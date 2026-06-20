@@ -1,0 +1,124 @@
+using Microsoft.EntityFrameworkCore;
+using TRPG.Data;
+using TRPG.Models;
+using TRPG.Services;
+using TRPG.Tests.Helpers;
+
+namespace TRPG.Tests;
+
+[Collection("Database")]
+public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
+{
+    private TrpgDbContext _context = null!;
+    private PersonService _service = null!;
+
+    public async Task InitializeAsync()
+    {
+        _context = db.CreateContext();
+        _service = new PersonService(_context);
+    }
+
+    public async Task DisposeAsync() => await _context.DisposeAsync();
+
+    [Fact]
+    public async Task Add_PersistsPerson()
+    {
+        // Arrange
+        var person = Builders.MakePerson();
+
+        // Act
+        await _service.Add(person);
+
+        // Assert
+        var found = await _context.Persons.FindAsync(person.Id);
+        Assert.NotNull(found);
+        Assert.Equal(person.Name, found.Name);
+    }
+
+    [Fact]
+    public async Task GetById_ReturnsNull_WhenNotFound()
+    {
+        // Act
+        var result = await _service.GetById(Guid.NewGuid());
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetById_ReturnsPerson_WhenExists()
+    {
+        // Arrange
+        var person = Builders.MakePerson();
+        await _service.Add(person);
+
+        // Act
+        var result = await _service.GetById(person.Id);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(person.Id, result.Id);
+    }
+
+    [Fact]
+    public async Task Update_SavesChanges()
+    {
+        // Arrange
+        var person = Builders.MakePerson();
+        await _service.Add(person);
+        person.Gold = 500;
+
+        // Act
+        await _service.Update(person);
+
+        // Assert
+        var updated = await _context.Persons.FindAsync(person.Id);
+        Assert.Equal(500, updated!.Gold);
+    }
+
+    [Fact]
+    public async Task Delete_RemovesPerson()
+    {
+        // Arrange
+        var person = Builders.MakePerson();
+        await _service.Add(person);
+
+        // Act
+        await _service.Delete(person.Id);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var found = await verifyContext.Persons.FindAsync(person.Id);
+        Assert.Null(found);
+    }
+
+    [Fact]
+    public async Task GetAllWithinRange_ReturnsOnlyPersonsInSameWorldWithinRadius()
+    {
+        // Arrange
+        var worldId = Guid.NewGuid();
+
+        var near = Builders.MakePerson(worldId: worldId);
+        near.Location.Coordinates = new Point(1, 1);
+
+        var far = Builders.MakePerson(worldId: worldId);
+        far.Location.Coordinates = new Point(1000, 1000);
+
+        var otherWorld = Builders.MakePerson(worldId: Guid.NewGuid());
+        otherWorld.Location.Coordinates = new Point(0, 0);
+
+        await _service.Add(near);
+        await _service.Add(far);
+        await _service.Add(otherWorld);
+
+        var center = new Location { WorldId = worldId, Coordinates = new Point(0, 0) };
+
+        // Act
+        var results = await _service.GetAllWithinRange(center, 10f);
+
+        // Assert
+        Assert.Contains(results, p => p.Id == near.Id);
+        Assert.DoesNotContain(results, p => p.Id == far.Id);
+        Assert.DoesNotContain(results, p => p.Id == otherWorld.Id);
+    }
+}
