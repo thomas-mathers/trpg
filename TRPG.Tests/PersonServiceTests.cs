@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 using TRPG.Services;
@@ -11,11 +10,16 @@ public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private PersonService _service = null!;
+    private Person _person = null!;
 
     public async Task InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new PersonService(_context);
+        
+        _person = Builders.MakePerson();
+        _context.Persons.Add(_person);
+        await _context.SaveChangesAsync();
     }
 
     public async Task DisposeAsync() => await _context.DisposeAsync();
@@ -48,31 +52,25 @@ public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task GetById_ReturnsPerson_WhenExists()
     {
-        // Arrange
-        var person = Builders.MakePerson();
-        await _service.Add(person);
-
         // Act
-        var result = await _service.GetById(person.Id);
+        var result = await _service.GetById(_person.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(person.Id, result.Id);
+        Assert.Equal(_person.Id, result.Id);
     }
 
     [Fact]
     public async Task Update_SavesChanges()
     {
         // Arrange
-        var person = Builders.MakePerson();
-        await _service.Add(person);
-        person.Gold = 500;
+        _person.Gold = 500;
 
         // Act
-        await _service.Update(person);
+        await _service.Update(_person);
 
         // Assert
-        var updated = await _context.Persons.FindAsync(person.Id);
+        var updated = await _context.Persons.FindAsync(_person.Id);
         Assert.Equal(500, updated!.Gold);
     }
 

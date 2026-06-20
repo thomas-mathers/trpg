@@ -11,12 +11,15 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
     private TrpgDbContext _context = null!;
     private PersonService _personService = null!;
     private SkillService _skillService = null!;
+    private Person _person = null!;
 
     public async Task InitializeAsync()
     {
         _context = db.CreateContext();
         _personService = new PersonService(_context);
         _skillService = new SkillService(_context);
+        _person = Builders.MakePerson();
+        await _personService.Add(_person);
     }
 
     public async Task DisposeAsync() => await _context.DisposeAsync();
@@ -25,18 +28,15 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task AddSkill_AddsSkillToPersonWithNoPrerequisites()
     {
         // Arrange
-        var person = Builders.MakePerson();
-        await _personService.Add(person);
-
         var skill = Builders.MakeSkill();
         _context.Skills.Add(skill);
         await _context.SaveChangesAsync();
 
         // Act
-        await _skillService.AddSkill(person.Id, skill.Id);
+        await _skillService.AddSkill(_person.Id, skill.Id);
 
         // Assert
-        var skills = await _skillService.GetAllByPersonId(person.Id);
+        var skills = await _skillService.GetAllByPersonId(_person.Id);
         Assert.Single(skills);
         Assert.Equal(skill.Id, skills[0].SkillId);
     }
@@ -45,9 +45,6 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task AddSkill_Throws_WhenPrerequisiteNotMet()
     {
         // Arrange
-        var person = Builders.MakePerson();
-        await _personService.Add(person);
-
         var prereq = Builders.MakeSkill();
         var skill = Builders.MakeSkill();
         _context.Skills.AddRange(prereq, skill);
@@ -58,16 +55,13 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _skillService.AddSkill(person.Id, skill.Id));
+            () => _skillService.AddSkill(_person.Id, skill.Id));
     }
 
     [Fact]
     public async Task AddSkill_Succeeds_WhenPrerequisiteMet()
     {
         // Arrange
-        var person = Builders.MakePerson();
-        await _personService.Add(person);
-
         var prereq = Builders.MakeSkill();
         var skill = Builders.MakeSkill();
         _context.Skills.AddRange(prereq, skill);
@@ -76,13 +70,13 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
         _context.SkillPrerequisites.Add(new SkillPrerequisite { SkillId = skill.Id, PrerequisiteSkillId = prereq.Id });
         await _context.SaveChangesAsync();
 
-        await _skillService.AddSkill(person.Id, prereq.Id);
+        await _skillService.AddSkill(_person.Id, prereq.Id);
 
         // Act
-        await _skillService.AddSkill(person.Id, skill.Id);
+        await _skillService.AddSkill(_person.Id, skill.Id);
 
         // Assert
-        var skills = await _skillService.GetAllByPersonId(person.Id);
+        var skills = await _skillService.GetAllByPersonId(_person.Id);
         Assert.Equal(2, skills.Count);
     }
 
@@ -90,20 +84,16 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task RemoveSkill_RemovesPersonSkill()
     {
         // Arrange
-        var person = Builders.MakePerson();
-        await _personService.Add(person);
-
         var skill = Builders.MakeSkill();
         _context.Skills.Add(skill);
         await _context.SaveChangesAsync();
-
-        await _skillService.AddSkill(person.Id, skill.Id);
+        await _skillService.AddSkill(_person.Id, skill.Id);
 
         // Act
-        await _skillService.RemoveSkill(person.Id, skill.Id);
+        await _skillService.RemoveSkill(_person.Id, skill.Id);
 
         // Assert
-        var skills = await _skillService.GetAllByPersonId(person.Id);
+        var skills = await _skillService.GetAllByPersonId(_person.Id);
         Assert.Empty(skills);
     }
 

@@ -9,47 +9,67 @@ namespace TRPG.Tests;
 public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private PersonService _personService = null!;
     private QuestService _questService = null!;
+    private Person _person = null!;
+    private Person _giver = null!;
+    private Quest _quest = null!;
 
     public async Task InitializeAsync()
     {
         _context = db.CreateContext();
-        _personService = new PersonService(_context);
         _questService = new QuestService(_context);
+
+        _person = Builders.MakePerson();
+        _giver = Builders.MakePerson();
+        _quest = Builders.MakeQuest(giverId: _giver.Id);
+
+        _context.Persons.Add(_person);
+        _context.Persons.Add(_giver);
+        _context.Quests.Add(_quest);
+
+        await _context.SaveChangesAsync();
     }
 
     public async Task DisposeAsync() => await _context.DisposeAsync();
 
-    private async Task<(Person person, Quest quest)> SeedPersonAndQuest()
+    private async Task<Quest> SeedQuest(List<Guid>? prerequisiteQuestIds = null)
     {
-        var person = Builders.MakePerson();
-        await _personService.Add(person);
-
-        var giver = Builders.MakePerson();
-        await _personService.Add(giver);
-
-        var quest = Builders.MakeQuest(giverId: giver.Id);
+        var quest = new Quest
+        {
+            GiverId = _giver.Id,
+            Name = $"Quest-{Guid.NewGuid():N}",
+            PrerequisiteQuestIds = prerequisiteQuestIds ?? []
+        };
         _context.Quests.Add(quest);
         await _context.SaveChangesAsync();
-
-        return (person, quest);
+        return quest;
     }
 
-    private static Circle MakeRegion() =>
-        new() { Center = new Location { WorldId = Guid.NewGuid(), Coordinates = new Point(0, 0) }, Radius = 100 };
+    private async Task<QuestObjective> SeedObjective(Quest quest, QuestObjectiveType type = QuestObjectiveType.Kill, QuestTargetType targetType = QuestTargetType.Race)
+    {
+        var objective = new QuestObjective
+        {
+            QuestId = quest.Id,
+            Name = $"Objective-{Guid.NewGuid():N}",
+            Type = type,
+            TargetType = targetType,
+            Target = Guid.NewGuid(),
+            Amount = 5,
+            Region = new Circle { Center = new Location { WorldId = Guid.NewGuid(), Coordinates = new Point(0, 0) }, Radius = 100 }
+        };
+        _context.QuestObjectives.Add(objective);
+        await _context.SaveChangesAsync();
+        return objective;
+    }
 
     [Fact]
     public async Task AssignQuest_CreatesPersonQuestWithAcceptedStatus()
     {
-        // Arrange
-        var (person, quest) = await SeedPersonAndQuest();
-
         // Act
-        await _questService.AssignQuest(quest.Id, person.Id);
+        await _questService.AssignQuest(_quest.Id, _person.Id);
 
         // Assert
-        var personQuests = await _questService.GetAllQuestsByPersonId(person.Id);
+        var personQuests = await _questService.GetAllQuestsByPersonId(_person.Id);
         Assert.Single(personQuests);
         Assert.Equal(QuestStatus.Accepted, personQuests[0].Status);
     }
@@ -57,73 +77,37 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task AssignQuest_Throws_WhenQuestDoesNotExist()
     {
-        // Arrange
-        var (person, _) = await SeedPersonAndQuest();
-
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _questService.AssignQuest(Guid.NewGuid(), person.Id));
+            () => _questService.AssignQuest(Guid.NewGuid(), _person.Id));
     }
 
     [Fact]
     public async Task AssignQuest_Throws_WhenPrerequisiteNotCompleted()
     {
         // Arrange
-        var giver = Builders.MakePerson();
-        await _personService.Add(giver);
-
-        var person = Builders.MakePerson();
-        await _personService.Add(person);
-
-        var prereqQuest = Builders.MakeQuest(giverId: giver.Id);
-        _context.Quests.Add(prereqQuest);
-        await _context.SaveChangesAsync();
-
-        var quest = new Quest
-        {
-            GiverId = giver.Id,
-            Name = $"Locked-{Guid.NewGuid():N}",
-            PrerequisiteQuestIds = [prereqQuest.Id]
-        };
-        _context.Quests.Add(quest);
-        await _context.SaveChangesAsync();
+        var prereq = await SeedQuest();
+        var locked = await SeedQuest(prerequisiteQuestIds: [prereq.Id]);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _questService.AssignQuest(quest.Id, person.Id));
+            () => _questService.AssignQuest(locked.Id, _person.Id));
     }
 
     [Fact]
     public async Task AssignQuest_Succeeds_WhenPrerequisiteCompleted()
     {
         // Arrange
-        var giver = Builders.MakePerson();
-        await _personService.Add(giver);
-
-        var person = Builders.MakePerson();
-        await _personService.Add(person);
-
-        var prereqQuest = Builders.MakeQuest(giverId: giver.Id);
-        _context.Quests.Add(prereqQuest);
-        await _context.SaveChangesAsync();
-
-        var quest = new Quest
-        {
-            GiverId = giver.Id,
-            Name = $"Locked-{Guid.NewGuid():N}",
-            PrerequisiteQuestIds = [prereqQuest.Id]
-        };
-        _context.Quests.Add(quest);
-        await _context.SaveChangesAsync();
-
-        await _questService.AssignQuest(prereqQuest.Id, person.Id);
-        await _questService.SetQuestStatus(prereqQuest.Id, person.Id, QuestStatus.Completed);
+        var prereq = await SeedQuest();
+        var locked = await SeedQuest(prerequisiteQuestIds: [prereq.Id]);
+        await _questService.AssignQuest(prereq.Id, _person.Id);
+        await _questService.SetQuestStatus(prereq.Id, _person.Id, QuestStatus.Completed);
 
         // Act
-        await _questService.AssignQuest(quest.Id, person.Id);
+        await _questService.AssignQuest(locked.Id, _person.Id);
 
         // Assert
-        var personQuests = await _questService.GetAllQuestsByPersonId(person.Id);
+        var personQuests = await _questService.GetAllQuestsByPersonId(_person.Id);
         Assert.Equal(2, personQuests.Count);
     }
 
@@ -131,19 +115,14 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task AssignQuest_CreatesObjectivesForPerson()
     {
         // Arrange
-        var (person, quest) = await SeedPersonAndQuest();
-
-        _context.QuestObjectives.AddRange(
-            new QuestObjective { QuestId = quest.Id, Name = "Kill wolves", Type = QuestObjectiveType.Kill, TargetType = QuestTargetType.Race, Target = Guid.NewGuid(), Amount = 5, Region = MakeRegion() },
-            new QuestObjective { QuestId = quest.Id, Name = "Collect pelts", Type = QuestObjectiveType.Collect, TargetType = QuestTargetType.Item, Target = Guid.NewGuid(), Amount = 3, Region = MakeRegion() }
-        );
-        await _context.SaveChangesAsync();
+        await SeedObjective(_quest, QuestObjectiveType.Kill, QuestTargetType.Race);
+        await SeedObjective(_quest, QuestObjectiveType.Collect, QuestTargetType.Item);
 
         // Act
-        await _questService.AssignQuest(quest.Id, person.Id);
+        await _questService.AssignQuest(_quest.Id, _person.Id);
 
         // Assert
-        var objectives = await _questService.GetAllQuestObjectivesByPersonId(person.Id);
+        var objectives = await _questService.GetAllQuestObjectivesByPersonId(_person.Id);
         Assert.Equal(2, objectives.Count);
         Assert.All(objectives, o => Assert.Equal(0, o.Amount));
     }
@@ -152,19 +131,14 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task ProgressObjective_IncrementsAmount()
     {
         // Arrange
-        var (person, quest) = await SeedPersonAndQuest();
-
-        var objective = new QuestObjective { QuestId = quest.Id, Name = "Kill wolves", Type = QuestObjectiveType.Kill, TargetType = QuestTargetType.Race, Target = Guid.NewGuid(), Amount = 5, Region = MakeRegion() };
-        _context.QuestObjectives.Add(objective);
-        await _context.SaveChangesAsync();
-
-        await _questService.AssignQuest(quest.Id, person.Id);
+        var objective = await SeedObjective(_quest);
+        await _questService.AssignQuest(_quest.Id, _person.Id);
 
         // Act
-        await _questService.ProgressObjective(person.Id, objective.Id, 3);
+        await _questService.ProgressObjective(_person.Id, objective.Id, 3);
 
         // Assert
-        var objectives = await _questService.GetAllQuestObjectivesByPersonId(person.Id);
+        var objectives = await _questService.GetAllQuestObjectivesByPersonId(_person.Id);
         Assert.Equal(3, objectives[0].Amount);
     }
 
@@ -172,14 +146,13 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task SetQuestStatus_UpdatesStatus()
     {
         // Arrange
-        var (person, quest) = await SeedPersonAndQuest();
-        await _questService.AssignQuest(quest.Id, person.Id);
+        await _questService.AssignQuest(_quest.Id, _person.Id);
 
         // Act
-        await _questService.SetQuestStatus(quest.Id, person.Id, QuestStatus.Completed);
+        await _questService.SetQuestStatus(_quest.Id, _person.Id, QuestStatus.Completed);
 
         // Assert
-        var personQuests = await _questService.GetAllQuestsByPersonId(person.Id);
+        var personQuests = await _questService.GetAllQuestsByPersonId(_person.Id);
         Assert.Equal(QuestStatus.Completed, personQuests[0].Status);
     }
 }

@@ -9,6 +9,8 @@ public class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private NpcConversationService _service = null!;
+    private readonly Guid _personId = Guid.NewGuid();
+    private readonly Guid _npcId = Guid.NewGuid();
 
     public async Task InitializeAsync()
     {
@@ -21,16 +23,12 @@ public class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task AddMessage_CreatesConversationOnFirstMessage()
     {
-        // Arrange
-        var personId = Guid.NewGuid();
-        var npcId = Guid.NewGuid();
-
-        // Act
-        await _service.AddMessage(personId, npcId, "Hello");
+        // Arrange & Act
+        await _service.AddMessage(_personId, _npcId, "Hello");
 
         // Assert
         var conversation = _context.NpcConversations
-            .FirstOrDefault(c => c.PersonId == personId && c.NpcId == npcId);
+            .FirstOrDefault(c => c.PersonId == _personId && c.NpcId == _npcId);
         
         Assert.NotNull(conversation);
     }
@@ -39,16 +37,14 @@ public class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task AddMessage_ReusesSameConversationForSubsequentMessages()
     {
         // Arrange
-        var personId = Guid.NewGuid();
-        var npcId = Guid.NewGuid();
-        await _service.AddMessage(personId, npcId, "Hello");
+        await _service.AddMessage(_personId, _npcId, "Hello");
 
         // Act
-        await _service.AddMessage(personId, npcId, "How are you?");
+        await _service.AddMessage(_personId, _npcId, "How are you?");
 
         // Assert
         var conversations = _context.NpcConversations
-            .Where(c => c.PersonId == personId && c.NpcId == npcId)
+            .Where(c => c.PersonId == _personId && c.NpcId == _npcId)
             .ToList();
         
         Assert.Single(conversations);
@@ -57,17 +53,13 @@ public class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task AddMessage_AssignsIncrementingIndexes()
     {
-        // Arrange
-        var personId = Guid.NewGuid();
-        var npcId = Guid.NewGuid();
-
-        // Act
-        await _service.AddMessage(personId, npcId, "First");
-        await _service.AddMessage(personId, npcId, "Second");
-        await _service.AddMessage(personId, npcId, "Third");
+        // Arrange & Act
+        await _service.AddMessage(_personId, _npcId, "First");
+        await _service.AddMessage(_personId, _npcId, "Second");
+        await _service.AddMessage(_personId, _npcId, "Third");
 
         // Assert
-        var messages = await _service.GetAllMessages(personId, npcId, 0);
+        var messages = await _service.GetAllMessages(_personId, _npcId, 0);
         
         Assert.Equal(3, messages.Count);
         Assert.Equal(0, messages[0].Index);
@@ -89,14 +81,12 @@ public class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetAllMessages_FiltersToStartingIndex()
     {
         // Arrange
-        var personId = Guid.NewGuid();
-        var npcId = Guid.NewGuid();
-        await _service.AddMessage(personId, npcId, "Zero");
-        await _service.AddMessage(personId, npcId, "One");
-        await _service.AddMessage(personId, npcId, "Two");
+        await _service.AddMessage(_personId, _npcId, "Zero");
+        await _service.AddMessage(_personId, _npcId, "One");
+        await _service.AddMessage(_personId, _npcId, "Two");
 
         // Act
-        var messages = await _service.GetAllMessages(personId, npcId, 1);
+        var messages = await _service.GetAllMessages(_personId, _npcId, 1);
 
         // Assert
         Assert.Equal(2, messages.Count);
@@ -108,17 +98,15 @@ public class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task UpdateSummary_SetsSummaryAndLastSummarizedIndex()
     {
         // Arrange
-        var personId = Guid.NewGuid();
-        var npcId = Guid.NewGuid();
-        await _service.AddMessage(personId, npcId, "Hello");
-        await _service.AddMessage(personId, npcId, "Goodbye");
+        await _service.AddMessage(_personId, _npcId, "Hello");
+        await _service.AddMessage(_personId, _npcId, "Goodbye");
 
         // Act
-        await _service.UpdateSummary(personId, npcId, "They greeted each other.");
+        await _service.UpdateSummary(_personId, _npcId, "They greeted each other.");
 
         // Assert
         var conversation = _context.NpcConversations
-            .First(c => c.PersonId == personId && c.NpcId == npcId);
+            .First(c => c.PersonId == _personId && c.NpcId == _npcId);
         
         Assert.Equal("They greeted each other.", conversation.Summary);
         Assert.Equal(1, conversation.LastSummarizedIndex);
@@ -136,29 +124,23 @@ public class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task UpdateSummary_Throws_WhenNoMessages()
     {
         // Arrange
-        var personId = Guid.NewGuid();
-        var npcId = Guid.NewGuid();
-        _context.NpcConversations.Add(new NpcConversation { PersonId = personId, NpcId = npcId });
+        _context.NpcConversations.Add(new NpcConversation { PersonId = _personId, NpcId = _npcId });
         await _context.SaveChangesAsync();
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _service.UpdateSummary(personId, npcId, "summary"));
+            () => _service.UpdateSummary(_personId, _npcId, "summary"));
     }
 
     [Fact]
     public async Task AddMessage_WorksInBothDirections()
     {
-        // Arrange
-        var personId = Guid.NewGuid();
-        var npcId = Guid.NewGuid();
-
-        // Act
-        await _service.AddMessage(personId, npcId, "Player says hi");
-        await _service.AddMessage(npcId, personId, "NPC replies");
+        // Arrange & Act
+        await _service.AddMessage(_personId, _npcId, "Player says hi");
+        await _service.AddMessage(_npcId, _personId, "NPC replies");
 
         // Assert
-        var messages = await _service.GetAllMessages(personId, npcId, 0);
+        var messages = await _service.GetAllMessages(_personId, _npcId, 0);
         Assert.Equal(2, messages.Count);
     }
 }
