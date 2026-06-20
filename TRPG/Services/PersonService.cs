@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -15,7 +16,7 @@ public class PersonService(TrpgDbContext context)
     public async Task<Person?> GetById(Guid id, CancellationToken cancellationToken = default)
         => await context.Persons.FindAsync([id], cancellationToken);
 
-    public async Task<List<Person>> GetAllWithinRange(Location center, float radius, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<Person>> GetAllWithinRange(Location center, float radius, CancellationToken cancellationToken = default)
     {
         var candidates = await context.Persons
             .Where(p => p.Location.WorldId == center.WorldId)
@@ -23,7 +24,7 @@ public class PersonService(TrpgDbContext context)
 
         return candidates
             .Where(p => Distance(p.Location.Coordinates, center.Coordinates) <= radius)
-            .ToList();
+            .ToList().AsReadOnly();
     }
 
     public async Task Update(Person person, CancellationToken cancellationToken = default)

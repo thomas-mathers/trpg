@@ -1,8 +1,10 @@
+using System.Collections.ObjectModel;
+
 namespace TRPG.Services;
 
 public static class Pathfinding
 {
-    public static List<TEdge> Dijkstra<TNode, TEdge>(
+    public static ReadOnlyCollection<TEdge> Dijkstra<TNode, TEdge>(
         TNode origin,
         TNode destination,
         Func<TNode, IEnumerable<TEdge>> getNeighbors,
@@ -39,6 +41,6 @@ public static class Pathfinding
             path.Insert(0, prev.Edge);
             node = prev.From;
         }
-        return path;
+        return path.AsReadOnly();
     }
 }

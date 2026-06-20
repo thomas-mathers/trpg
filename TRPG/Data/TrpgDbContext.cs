@@ -256,6 +256,5 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
 
         modelBuilder.Entity<QuestObjective>()
             .HasIndex(o => o.QuestId);
-
     }
 }

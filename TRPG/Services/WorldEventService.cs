@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -15,7 +16,7 @@ public class WorldEventService(TrpgDbContext context)
     public async Task<WorldEvent?> GetById(Guid id, CancellationToken cancellationToken = default)
         => await context.WorldEvents.FindAsync([id], cancellationToken);
 
-    public async Task<List<WorldEvent>> GetAllByRegion(Circle region, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<WorldEvent>> GetAllByRegion(Circle region, CancellationToken cancellationToken = default)
     {
         var events = await context.WorldEvents
             .Where(e => e.Region.Center.WorldId == region.Center.WorldId)
@@ -23,7 +24,7 @@ public class WorldEventService(TrpgDbContext context)
 
         return events
             .Where(e => Distance(e.Region.Center.Coordinates, region.Center.Coordinates) <= region.Radius)
-            .ToList();
+            .ToList().AsReadOnly();
     }
 
     private static float Distance(Point a, Point b)

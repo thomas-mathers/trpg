@@ -12,10 +12,11 @@ public class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLifetime
     private readonly Guid _personId = Guid.NewGuid();
     private readonly Guid _npcId = Guid.NewGuid();
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new NpcConversationService(_context);
+        return Task.CompletedTask;
     }
 
     public async Task DisposeAsync() => await _context.DisposeAsync();

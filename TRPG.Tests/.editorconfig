@@ -1,0 +1,14 @@
+root = false
+
+[*.cs]
+# Test method naming convention: Method_ExpectedResult_WhenCondition
+dotnet_diagnostic.CA1707.severity = none
+
+# xUnit fixtures and collection markers must be public
+dotnet_diagnostic.CA1515.severity = none
+
+# xUnit collection marker class is intentionally named DatabaseCollection
+dotnet_diagnostic.CA1711.severity = none
+
+# xUnit IAsyncLifetime.DisposeAsync handles cleanup; analyzer doesn't recognise the pattern
+dotnet_diagnostic.CA1001.severity = none

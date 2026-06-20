@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -47,7 +48,7 @@ public class InventoryService(TrpgDbContext context)
         {
             throw new InvalidOperationException($"Item {itemId} not found in person {personId}'s inventory.");
         }
-        
+
         var currentlyEquipped = await context.InventoryItems
             .FirstOrDefaultAsync(i => i.PersonId == personId && i.EquippedSlot == slot, cancellationToken);
 
@@ -70,18 +71,21 @@ public class InventoryService(TrpgDbContext context)
         {
             throw new InvalidOperationException($"No item equipped in slot {slot} for person {personId}.");
         }
-        
+
         item.EquippedSlot = null;
-        
+
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<List<InventoryItem>> GetAllByPersonId(Guid personId, CancellationToken cancellationToken = default)
-        => await context.InventoryItems
+    public async Task<ReadOnlyCollection<InventoryItem>> GetAllByPersonId(Guid personId, CancellationToken cancellationToken = default)
+    {
+        var list = await context.InventoryItems
             .Include(i => i.Item)
             .Where(i => i.PersonId == personId)
             .OrderBy(i => i.Index)
             .ToListAsync(cancellationToken);
+        return list.AsReadOnly();
+    }
 
     public async Task Remove(Guid personId, Guid itemId, int quantity, CancellationToken cancellationToken = default)
     {

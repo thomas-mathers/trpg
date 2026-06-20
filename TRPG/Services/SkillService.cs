@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -22,7 +23,7 @@ public class SkillService(TrpgDbContext context)
 
             if (!prerequisites.All(knownSkillIds.Contains))
             {
-                throw new InvalidOperationException("Skill prerequisites not met.");   
+                throw new InvalidOperationException("Skill prerequisites not met.");
             }
         }
 
@@ -40,20 +41,29 @@ public class SkillService(TrpgDbContext context)
     public async Task<Skill?> GetById(Guid id, CancellationToken cancellationToken = default)
         => await context.Skills.FindAsync([id], cancellationToken);
 
-    public async Task<List<Skill>> GetAll(CancellationToken cancellationToken = default)
-        => await context.Skills.ToListAsync(cancellationToken);
+    public async Task<ReadOnlyCollection<Skill>> GetAll(CancellationToken cancellationToken = default)
+    {
+        var list = await context.Skills.ToListAsync(cancellationToken);
+        return list.AsReadOnly();
+    }
 
-    public async Task<List<PersonSkill>> GetAllByPersonId(Guid personId, CancellationToken cancellationToken = default)
-        => await context.PersonSkills
+    public async Task<ReadOnlyCollection<PersonSkill>> GetAllByPersonId(Guid personId, CancellationToken cancellationToken = default)
+    {
+        var list = await context.PersonSkills
             .Include(ps => ps.Skill)
             .Where(ps => ps.PersonId == personId)
             .ToListAsync(cancellationToken);
+        return list.AsReadOnly();
+    }
 
-    public async Task<List<Guid>> GetAllPrerequisites(Guid id, CancellationToken cancellationToken = default)
-        => await context.SkillPrerequisites
+    public async Task<ReadOnlyCollection<Guid>> GetAllPrerequisites(Guid id, CancellationToken cancellationToken = default)
+    {
+        var list = await context.SkillPrerequisites
             .Where(sp => sp.SkillId == id)
             .Select(sp => sp.PrerequisiteSkillId)
             .ToListAsync(cancellationToken);
+        return list.AsReadOnly();
+    }
 
     public async Task RemoveSkill(Guid personId, Guid skillId, CancellationToken cancellationToken = default)
         => await context.PersonSkills

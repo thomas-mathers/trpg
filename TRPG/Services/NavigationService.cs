@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -7,16 +8,16 @@ namespace TRPG.Services;
 
 public class NavigationService(TrpgDbContext context, IMemoryCache cache)
 {
-    private record GridData(int Width, int Height, HashSet<Point> Blocked);
+    private sealed record GridData(int Width, int Height, HashSet<Point> Blocked);
 
-    public async Task<List<TravelRoute>> GetShortestCityRoute(Guid originCityId, Guid destinationCityId, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<TravelRoute>> GetShortestCityRoute(Guid originCityId, Guid destinationCityId, CancellationToken cancellationToken = default)
     {
         var graph = await cache.GetOrCreateAsync("nav:city-graph", async entry =>
         {
             entry.Priority = CacheItemPriority.NeverRemove;
-            
+
             var routes = await context.TravelRoutes.ToListAsync(cancellationToken);
-            
+
             return routes.GroupBy(r => r.OriginCityId).ToDictionary(g => g.Key, g => g.ToList());
         });
 
@@ -32,7 +33,7 @@ public class NavigationService(TrpgDbContext context, IMemoryCache cache)
             r => r.DestinationCityId);
     }
 
-    public async Task<List<Point>> GetShortestIntraCityRoute(Guid cityId, Point origin, Point destination, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<Point>> GetShortestIntraCityRoute(Guid cityId, Point origin, Point destination, CancellationToken cancellationToken = default)
     {
         var grid = await cache.GetOrCreateAsync($"nav:city-grid:{cityId}", async entry =>
         {
@@ -58,7 +59,7 @@ public class NavigationService(TrpgDbContext context, IMemoryCache cache)
             p => p);
     }
 
-    public async Task<List<Point>> GetShortestIntraBuildingRoute(Guid buildingId, Point origin, Point destination, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<Point>> GetShortestIntraBuildingRoute(Guid buildingId, Point origin, Point destination, CancellationToken cancellationToken = default)
     {
         var grid = await cache.GetOrCreateAsync($"nav:building-grid:{buildingId}", async entry =>
         {
@@ -66,15 +67,15 @@ public class NavigationService(TrpgDbContext context, IMemoryCache cache)
 
             var building = await context.Buildings.FindAsync([buildingId], cancellationToken)
                 ?? throw new InvalidOperationException($"Building {buildingId} not found.");
-            
+
             var buildingProps = await context.BuildingProps.Where(p => p.BuildingId == buildingId)
                 .ToListAsync(cancellationToken);
-            
+
             var blockedCells = new HashSet<Point>(buildingProps.Select(p => p.Coordinates));
-            
+
             var width = building.Boundary.Right - building.Boundary.Left;
             var height = building.Boundary.Bottom - building.Boundary.Top;
-            
+
             return new GridData(width, height, blockedCells);
         });
 
@@ -113,7 +114,7 @@ public class NavigationService(TrpgDbContext context, IMemoryCache cache)
     private static HashSet<Point> BuildBlockedFromRectangles(IEnumerable<Rectangle> rectangles)
     {
         var blocked = new HashSet<Point>();
-        
+
         foreach (var r in rectangles)
         {
             for (var x = r.Left; x < r.Right; x++)
@@ -124,7 +125,7 @@ public class NavigationService(TrpgDbContext context, IMemoryCache cache)
                 }
             }
         }
-        
+
         return blocked;
     }
 }

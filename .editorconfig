@@ -1,0 +1,12 @@
+root = true
+
+[*.cs]
+# No synchronization context in this single-player app; ConfigureAwait adds no value
+dotnet_diagnostic.CA2007.severity = none
+
+# Internal application — null parameter guards on delegates and EF Core overrides are noise
+dotnet_diagnostic.CA1062.severity = none
+
+# CA1002: List<T> is required for Npgsql PostgreSQL array column mapping (Collection<T> throws at runtime)
+# Service return types use ReadOnlyCollection<T> where possible, but model array columns must stay List<T>
+dotnet_diagnostic.CA1002.severity = none

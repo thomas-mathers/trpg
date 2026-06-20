@@ -59,4 +59,66 @@ internal static class Builders
         GoldReward = 100,
         ExperienceReward = 50
     };
+
+    public static Race MakeRace() => new() { Name = $"Race-{Guid.NewGuid():N}", Description = "A test race" };
+
+    public static Profession MakeProfession() => new() { Name = $"Profession-{Guid.NewGuid():N}", Description = "A test profession" };
+
+    public static Faction MakeFaction() => new() { Name = $"Faction-{Guid.NewGuid():N}", Description = "A test faction" };
+
+    public static World MakeWorld() => new() { Name = $"World-{Guid.NewGuid():N}", Description = "A test world" };
+
+    public static Country MakeCountry(Guid worldId) => new()
+    {
+        WorldId = worldId,
+        Name = $"Country-{Guid.NewGuid():N}",
+        Description = "A test country",
+        Boundary = new Circle { Center = new Location { WorldId = worldId, Coordinates = new Point(0, 0) }, Radius = 1000 }
+    };
+
+    public static Province MakeProvince(Guid countryId) => new()
+    {
+        CountryId = countryId,
+        Name = $"Province-{Guid.NewGuid():N}",
+        Description = "A test province",
+        Boundary = new Circle { Center = new Location { WorldId = Guid.NewGuid(), Coordinates = new Point(0, 0) }, Radius = 500 }
+    };
+
+    public static City MakeCity(Guid provinceId) => new()
+    {
+        ProvinceId = provinceId,
+        Name = $"City-{Guid.NewGuid():N}",
+        Description = "A test city",
+        Width = 100,
+        Height = 100,
+        Boundary = new Circle { Center = new Location { WorldId = Guid.NewGuid(), Coordinates = new Point(0, 0) }, Radius = 200 }
+    };
+
+    public static Building MakeBuilding(Guid cityId) => new()
+    {
+        CityId = cityId,
+        Name = $"Building-{Guid.NewGuid():N}",
+        Description = "A test building",
+        Boundary = new Rectangle(0, 0, 10, 10)
+    };
+
+    public static Job MakeJob(Guid personId, int priority = 1) => new()
+    {
+        PersonId = personId,
+        Action = JobAction.Idle,
+        StartHour = 8,
+        EndHour = 17,
+        Daily = true,
+        Priority = priority,
+        Location = new Location { WorldId = Guid.NewGuid(), Coordinates = new Point(0, 0) }
+    };
+
+    public static WorldEvent MakeWorldEvent(Guid worldId, Point? at = null) => new()
+    {
+        WorldId = worldId,
+        Description = "A test world event",
+        Date = DateTime.UtcNow,
+        Tags = [],
+        Region = new Circle { Center = new Location { WorldId = worldId, Coordinates = at ?? new Point(0, 0) }, Radius = 100 }
+    };
 }

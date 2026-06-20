@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -44,20 +45,21 @@ public class NpcConversationService(TrpgDbContext context)
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<List<NpcChatMessage>> GetAllMessages(Guid personId, Guid npcId, int startingMessageIndex, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<NpcChatMessage>> GetAllMessages(Guid personId, Guid npcId, int startingMessageIndex, CancellationToken cancellationToken = default)
     {
         var conversation = await context.NpcConversations
             .FirstOrDefaultAsync(c => c.PersonId == personId && c.NpcId == npcId, cancellationToken);
 
         if (conversation == null)
         {
-            return [];
+            return new ReadOnlyCollection<NpcChatMessage>([]);
         }
 
-        return await context.NpcChatMessages
+        var list = await context.NpcChatMessages
             .Where(m => m.ConversationId == conversation.Id && m.Index >= startingMessageIndex)
             .OrderBy(m => m.Index)
             .ToListAsync(cancellationToken);
+        return list.AsReadOnly();
     }
 
     public async Task UpdateSummary(Guid personId, Guid npcId, string summary, CancellationToken cancellationToken = default)

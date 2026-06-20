@@ -28,8 +28,10 @@
 - Nullable reference types enabled; use `?` where genuinely optional
 
 ### Collections
-- `List<T>` (not `IList`, `ICollection`, `IEnumerable`) for EF array columns and return types
-- Collection expressions `[]` for empty lists, `[x, y]` for inline initialization
+- `List<T>` **only** for PostgreSQL array columns (Npgsql requires it — `Collection<T>` throws at runtime)
+- `Collection<T>` for any other mutable public collection property
+- `ReadOnlyCollection<T>` for all service method return types (via `.AsReadOnly()` on the internal `List<T>`)
+- Collection expressions `[]` for empty collections, `[x, y]` for inline initialization
 
 ### Async
 - No `Async` suffix on service methods
@@ -127,6 +129,7 @@ public class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 - Promote entities to class fields in `InitializeAsync` when every (or nearly every) test needs them
 - Add `private async Task<T> Seed*(...)` helper methods for entities needed by only a subset of tests
 - Seed helpers add to context, save, and return the entity
+- Seed helpers return a single entity — never a tuple; use separate helpers if a test needs multiple seeded entities
 - `Builders` static class (`TRPG.Tests.Helpers`) constructs valid model objects
 
 ### Builders
