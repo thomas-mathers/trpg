@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class SkillPrerequisite
+internal class SkillPrerequisite
 {
     public Guid SkillId { get; init; }
     public Guid PrerequisiteSkillId { get; init; }

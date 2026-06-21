@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class PersonQuest
+internal class PersonQuest
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid PersonId { get; init; }

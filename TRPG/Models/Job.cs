@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class Job
+internal class Job
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid PersonId { get; init; }

@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class Location
+internal class Location
 {
     public Point Coordinates { get; set; } = null!;
     public Guid WorldId { get; set; }

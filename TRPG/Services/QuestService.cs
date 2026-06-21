@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class QuestService(TrpgDbContext context)
+internal class QuestService(TrpgDbContext context)
 {
     public async Task AssignQuest(Guid questId, Guid personId, CancellationToken cancellationToken = default)
     {

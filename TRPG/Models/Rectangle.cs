@@ -1,3 +1,3 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public record Rectangle(int Left, int Top, int Right, int Bottom);
+internal record Rectangle(int Left, int Top, int Right, int Bottom);

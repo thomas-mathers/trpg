@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TRPG.Models;
 
 namespace TRPG.Data;
 
-public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options)
+internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options)
 {
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<Item> Items => Set<Item>();

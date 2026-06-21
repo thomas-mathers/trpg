@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class JobService(TrpgDbContext context)
+internal class JobService(TrpgDbContext context)
 {
     public async Task Add(Job job, CancellationToken cancellationToken = default)
     {

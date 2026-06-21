@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class FactionService(TrpgDbContext context)
+internal class FactionService(TrpgDbContext context)
 {
     public async Task AddMember(Guid factionId, Guid personId, FactionRole role, CancellationToken cancellationToken = default)
     {

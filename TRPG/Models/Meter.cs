@@ -1,3 +1,3 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public record Meter(int Current, int Maximum);
+internal record Meter(int Current, int Maximum);

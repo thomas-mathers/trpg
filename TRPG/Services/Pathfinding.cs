@@ -1,8 +1,8 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 
 namespace TRPG.Services;
 
-public static class Pathfinding
+internal static class Pathfinding
 {
     public static ReadOnlyCollection<TEdge> Dijkstra<TNode, TEdge>(
         TNode origin,

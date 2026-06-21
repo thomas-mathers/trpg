@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class RaceService(TrpgDbContext context)
+internal class RaceService(TrpgDbContext context)
 {
     public async Task<Race?> GetById(Guid id, CancellationToken cancellationToken = default)
         => await context.Races.FindAsync([id], cancellationToken);

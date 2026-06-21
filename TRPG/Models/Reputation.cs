@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class Reputation
+internal class Reputation
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid PersonId { get; init; }

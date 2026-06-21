@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class NpcChatMessage
+internal class NpcChatMessage
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid ConversationId { get; init; }

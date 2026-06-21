@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class Skill
+internal class Skill
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Name { get; init; } = "";

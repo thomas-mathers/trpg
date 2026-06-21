@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class InventoryService(TrpgDbContext context)
+internal class InventoryService(TrpgDbContext context)
 {
     public async Task Add(Guid personId, Guid itemId, int quantity, CancellationToken cancellationToken = default)
     {

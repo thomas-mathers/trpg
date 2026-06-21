@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class Building
+internal class Building
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid CityId { get; init; }

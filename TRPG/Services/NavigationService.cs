@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.ObjectModel;
 using TRPG.Data;
@@ -6,7 +6,7 @@ using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class NavigationService(TrpgDbContext context, IMemoryCache cache)
+internal class NavigationService(TrpgDbContext context, IMemoryCache cache)
 {
     private sealed record GridData(int Width, int Height, HashSet<Point> Blocked);
 

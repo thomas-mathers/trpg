@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class NpcConversationService(TrpgDbContext context)
+internal class NpcConversationService(TrpgDbContext context)
 {
     public async Task AddMessage(Guid fromId, Guid toId, string message, CancellationToken cancellationToken = default)
     {

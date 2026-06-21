@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
 namespace TRPG.Data;
 
-public class TrpgDbContextFactory : IDesignTimeDbContextFactory<TrpgDbContext>
+internal class TrpgDbContextFactory : IDesignTimeDbContextFactory<TrpgDbContext>
 {
     public TrpgDbContext CreateDbContext(string[] args)
     {

@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class SkillService(TrpgDbContext context)
+internal class SkillService(TrpgDbContext context)
 {
     public async Task AddSkill(Guid personId, Guid skillId, CancellationToken cancellationToken = default)
     {

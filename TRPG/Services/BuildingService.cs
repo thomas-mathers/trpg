@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class BuildingService(TrpgDbContext context)
+internal class BuildingService(TrpgDbContext context)
 {
     public async Task AddOwner(Guid buildingId, Guid ownerId, CancellationToken cancellationToken = default)
     {

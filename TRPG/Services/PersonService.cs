@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class PersonService(TrpgDbContext context)
+internal class PersonService(TrpgDbContext context)
 {
     public async Task Add(Person person, CancellationToken cancellationToken = default)
     {

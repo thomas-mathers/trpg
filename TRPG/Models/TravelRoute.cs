@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class TravelRoute
+internal class TravelRoute
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid OriginCityId { get; init; }

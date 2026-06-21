@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class WorldEvent
+internal class WorldEvent
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid WorldId { get; init; }

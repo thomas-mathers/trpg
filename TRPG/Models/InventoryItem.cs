@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class InventoryItem
+internal class InventoryItem
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid PersonId { get; init; }

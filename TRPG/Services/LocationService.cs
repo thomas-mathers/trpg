@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class LocationService(TrpgDbContext context)
+internal class LocationService(TrpgDbContext context)
 {
     public async Task<World?> GetWorldById(Guid id, CancellationToken cancellationToken = default)
         => await context.Worlds.FindAsync([id], cancellationToken);

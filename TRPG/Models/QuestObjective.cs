@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class QuestObjective
+internal class QuestObjective
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid QuestId { get; init; }

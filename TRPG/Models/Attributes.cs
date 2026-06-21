@@ -1,6 +1,6 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public class Attributes
+internal class Attributes
 {
     public Meter Hp { get; set; } = null!;
     public Meter Ap { get; set; } = null!;

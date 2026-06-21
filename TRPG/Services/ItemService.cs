@@ -1,10 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class ItemService(TrpgDbContext context)
+internal class ItemService(TrpgDbContext context)
 {
     public async Task Add(Item item, CancellationToken cancellationToken = default)
     {

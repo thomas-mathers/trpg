@@ -1,3 +1,3 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
-public record Point(int X, int Y);
+internal record Point(int X, int Y);

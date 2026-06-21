@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class ReputationService(TrpgDbContext context)
+internal class ReputationService(TrpgDbContext context)
 {
     public async Task AdjustReputation(Guid personId, Guid factionId, int deltaScore, CancellationToken cancellationToken = default)
     {

@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-public class WorldEventService(TrpgDbContext context)
+internal class WorldEventService(TrpgDbContext context)
 {
     public async Task Add(WorldEvent worldEvent, CancellationToken cancellationToken = default)
     {
