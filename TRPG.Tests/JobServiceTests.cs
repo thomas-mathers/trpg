@@ -7,14 +7,14 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private JobService _service = null!;
     private Person _person = null!;
     private Job _job = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new JobService(_context);
@@ -27,7 +27,7 @@ public class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _service.Add(_job);
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     [Fact]
     public async Task Add_PersistsJob()
@@ -36,10 +36,10 @@ public class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
         var job = Builders.MakeJob(_person.Id);
 
         // Act
-        await _service.Add(job);
+        await _service.Add(job, TestContext.Current.CancellationToken);
 
         // Assert
-        var jobs = await _service.GetAllByPersonId(_person.Id);
+        var jobs = await _service.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Contains(jobs, j => j.Id == job.Id);
     }
 
@@ -50,12 +50,12 @@ public class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
         var low = Builders.MakeJob(_person.Id, priority: 1);
         var high = Builders.MakeJob(_person.Id, priority: 10);
         var mid = Builders.MakeJob(_person.Id, priority: 5);
-        await _service.Add(low);
-        await _service.Add(high);
-        await _service.Add(mid);
+        await _service.Add(low, TestContext.Current.CancellationToken);
+        await _service.Add(high, TestContext.Current.CancellationToken);
+        await _service.Add(mid, TestContext.Current.CancellationToken);
 
         // Act
-        var jobs = await _service.GetAllByPersonId(_person.Id);
+        var jobs = await _service.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
 
         // Assert — seeded _job (priority 1) plus three new ones; highest priority first
         Assert.Equal(high.Id, jobs[0].Id);
@@ -81,11 +81,11 @@ public class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
 
         // Act
         await using var updateContext = db.CreateContext();
-        await new JobService(updateContext).Update(updated);
+        await new JobService(updateContext).Update(updated, TestContext.Current.CancellationToken);
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var found = await verifyContext.Jobs.FirstAsync(j => j.Id == _job.Id);
+        var found = await verifyContext.Jobs.FirstAsync(j => j.Id == _job.Id, TestContext.Current.CancellationToken);
         Assert.Equal(newWorldId, found.Location.WorldId);
     }
 
@@ -94,14 +94,14 @@ public class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var job = Builders.MakeJob(_person.Id);
-        await _service.Add(job);
+        await _service.Add(job, TestContext.Current.CancellationToken);
 
         // Act
-        await _service.Delete(job.Id);
+        await _service.Delete(job.Id, TestContext.Current.CancellationToken);
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var jobs = await verifyContext.Jobs.Where(j => j.Id == job.Id).ToListAsync();
+        var jobs = await verifyContext.Jobs.Where(j => j.Id == job.Id).ToListAsync(TestContext.Current.CancellationToken);
         Assert.Empty(jobs);
     }
 }

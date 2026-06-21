@@ -6,7 +6,7 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private QuestService _questService = null!;
@@ -14,7 +14,7 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     private Person _giver = null!;
     private Quest _quest = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _questService = new QuestService(_context);
@@ -30,7 +30,7 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     private async Task<Quest> SeedQuest(List<Guid>? prerequisiteQuestIds = null)
     {
@@ -66,10 +66,10 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task AssignQuest_CreatesPersonQuestWithAcceptedStatus()
     {
         // Act
-        await _questService.AssignQuest(_quest.Id, _person.Id);
+        await _questService.AssignQuest(_quest.Id, _person.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        var personQuests = await _questService.GetAllQuestsByPersonId(_person.Id);
+        var personQuests = await _questService.GetAllQuestsByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Single(personQuests);
         Assert.Equal(QuestStatus.Accepted, personQuests[0].Status);
     }
@@ -79,7 +79,7 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _questService.AssignQuest(Guid.NewGuid(), _person.Id));
+            () => _questService.AssignQuest(Guid.NewGuid(), _person.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _questService.AssignQuest(locked.Id, _person.Id));
+            () => _questService.AssignQuest(locked.Id, _person.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -100,14 +100,14 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var prereq = await SeedQuest();
         var locked = await SeedQuest(prerequisiteQuestIds: [prereq.Id]);
-        await _questService.AssignQuest(prereq.Id, _person.Id);
-        await _questService.SetQuestStatus(prereq.Id, _person.Id, QuestStatus.Completed);
+        await _questService.AssignQuest(prereq.Id, _person.Id, TestContext.Current.CancellationToken);
+        await _questService.SetQuestStatus(prereq.Id, _person.Id, QuestStatus.Completed, TestContext.Current.CancellationToken);
 
         // Act
-        await _questService.AssignQuest(locked.Id, _person.Id);
+        await _questService.AssignQuest(locked.Id, _person.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        var personQuests = await _questService.GetAllQuestsByPersonId(_person.Id);
+        var personQuests = await _questService.GetAllQuestsByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Equal(2, personQuests.Count);
     }
 
@@ -119,10 +119,10 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
         await SeedObjective(_quest, QuestObjectiveType.Collect, QuestTargetType.Item);
 
         // Act
-        await _questService.AssignQuest(_quest.Id, _person.Id);
+        await _questService.AssignQuest(_quest.Id, _person.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        var objectives = await _questService.GetAllQuestObjectivesByPersonId(_person.Id);
+        var objectives = await _questService.GetAllQuestObjectivesByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Equal(2, objectives.Count);
         Assert.All(objectives, o => Assert.Equal(0, o.Amount));
     }
@@ -132,13 +132,13 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var objective = await SeedObjective(_quest);
-        await _questService.AssignQuest(_quest.Id, _person.Id);
+        await _questService.AssignQuest(_quest.Id, _person.Id, TestContext.Current.CancellationToken);
 
         // Act
-        await _questService.ProgressObjective(_person.Id, objective.Id, 3);
+        await _questService.ProgressObjective(_person.Id, objective.Id, 3, TestContext.Current.CancellationToken);
 
         // Assert
-        var objectives = await _questService.GetAllQuestObjectivesByPersonId(_person.Id);
+        var objectives = await _questService.GetAllQuestObjectivesByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Equal(3, objectives[0].Amount);
     }
 
@@ -146,13 +146,13 @@ public class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task SetQuestStatus_UpdatesStatus()
     {
         // Arrange
-        await _questService.AssignQuest(_quest.Id, _person.Id);
+        await _questService.AssignQuest(_quest.Id, _person.Id, TestContext.Current.CancellationToken);
 
         // Act
-        await _questService.SetQuestStatus(_quest.Id, _person.Id, QuestStatus.Completed);
+        await _questService.SetQuestStatus(_quest.Id, _person.Id, QuestStatus.Completed, TestContext.Current.CancellationToken);
 
         // Assert
-        var personQuests = await _questService.GetAllQuestsByPersonId(_person.Id);
+        var personQuests = await _questService.GetAllQuestsByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Equal(QuestStatus.Completed, personQuests[0].Status);
     }
 }

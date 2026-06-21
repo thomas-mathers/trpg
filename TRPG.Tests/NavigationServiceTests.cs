@@ -7,7 +7,7 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private MemoryCache _cache = null!;
@@ -15,7 +15,7 @@ public class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
     private Province _province = null!;
     private City _city = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _cache = new MemoryCache(new MemoryCacheOptions());
@@ -33,7 +33,7 @@ public class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _cache.Dispose();
         await _context.DisposeAsync();
@@ -79,7 +79,7 @@ public class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
         var route = await SeedTravelRoute(cityB.Id);
 
         // Act
-        var result = await _service.GetShortestCityRoute(_city.Id, cityB.Id);
+        var result = await _service.GetShortestCityRoute(_city.Id, cityB.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(result);
@@ -90,7 +90,7 @@ public class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetShortestCityRoute_ReturnsEmpty_WhenNoRouteExists()
     {
         // Act
-        var result = await _service.GetShortestCityRoute(_city.Id, Guid.NewGuid());
+        var result = await _service.GetShortestCityRoute(_city.Id, Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(result);
@@ -104,7 +104,7 @@ public class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
         var destination = new Point(0, 2);
 
         // Act
-        var result = await _service.GetShortestIntraCityRoute(_city.Id, origin, destination);
+        var result = await _service.GetShortestIntraCityRoute(_city.Id, origin, destination, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -116,7 +116,7 @@ public class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _service.GetShortestIntraCityRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0)));
+            () => _service.GetShortestIntraCityRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
         var destination = new Point(2, 0);
 
         // Act
-        var result = await _service.GetShortestIntraBuildingRoute(building.Id, origin, destination);
+        var result = await _service.GetShortestIntraBuildingRoute(building.Id, origin, destination, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -140,6 +140,6 @@ public class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _service.GetShortestIntraBuildingRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0)));
+            () => _service.GetShortestIntraBuildingRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0), TestContext.Current.CancellationToken));
     }
 }

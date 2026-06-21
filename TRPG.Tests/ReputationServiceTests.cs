@@ -4,30 +4,30 @@ using TRPG.Services;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private ReputationService _service = null!;
     private readonly Guid _personId = Guid.NewGuid();
     private readonly Guid _factionId = Guid.NewGuid();
 
-    public Task InitializeAsync()
+    public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new ReputationService(_context);
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     [Fact]
     public async Task AdjustReputation_CreatesReputation_WhenFirstCall()
     {
         // Act
-        await _service.AdjustReputation(_personId, _factionId, 10);
+        await _service.AdjustReputation(_personId, _factionId, 10, TestContext.Current.CancellationToken);
 
         // Assert
-        var reputations = await _service.GetAllByPersonId(_personId);
+        var reputations = await _service.GetAllByPersonId(_personId, TestContext.Current.CancellationToken);
         Assert.Single(reputations);
         Assert.Equal(10, reputations[0].Score);
     }
@@ -38,13 +38,13 @@ public class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var personId = Guid.NewGuid();
         var factionId = Guid.NewGuid();
-        await _service.AdjustReputation(personId, factionId, 10);
+        await _service.AdjustReputation(personId, factionId, 10, TestContext.Current.CancellationToken);
 
         // Act
-        await _service.AdjustReputation(personId, factionId, 5);
+        await _service.AdjustReputation(personId, factionId, 5, TestContext.Current.CancellationToken);
 
         // Assert
-        var reputations = await _service.GetAllByPersonId(personId);
+        var reputations = await _service.GetAllByPersonId(personId, TestContext.Current.CancellationToken);
         Assert.Single(reputations);
         Assert.Equal(15, reputations[0].Score);
     }
@@ -55,13 +55,13 @@ public class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var personId = Guid.NewGuid();
         var factionId = Guid.NewGuid();
-        await _service.AdjustReputation(personId, factionId, 20);
+        await _service.AdjustReputation(personId, factionId, 20, TestContext.Current.CancellationToken);
 
         // Act
-        await _service.AdjustReputation(personId, factionId, -8);
+        await _service.AdjustReputation(personId, factionId, -8, TestContext.Current.CancellationToken);
 
         // Assert
-        var reputations = await _service.GetAllByPersonId(personId);
+        var reputations = await _service.GetAllByPersonId(personId, TestContext.Current.CancellationToken);
         Assert.Equal(12, reputations[0].Score);
     }
 
@@ -72,11 +72,11 @@ public class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime
         var personId = Guid.NewGuid();
         var factionId1 = Guid.NewGuid();
         var factionId2 = Guid.NewGuid();
-        await _service.AdjustReputation(personId, factionId1, 5);
-        await _service.AdjustReputation(personId, factionId2, 10);
+        await _service.AdjustReputation(personId, factionId1, 5, TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(personId, factionId2, 10, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetAllByPersonId(personId);
+        var result = await _service.GetAllByPersonId(personId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, result.Count);

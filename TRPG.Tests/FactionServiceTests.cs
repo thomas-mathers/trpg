@@ -6,14 +6,14 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private FactionService _service = null!;
     private Faction _faction = null!;
     private readonly Guid _personId = Guid.NewGuid();
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new FactionService(_context);
@@ -23,13 +23,13 @@ public class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     [Fact]
     public async Task GetById_ReturnsNull_WhenNotFound()
     {
         // Act
-        var result = await _service.GetById(Guid.NewGuid());
+        var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -39,7 +39,7 @@ public class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetById_ReturnsFaction_WhenExists()
     {
         // Act
-        var result = await _service.GetById(_faction.Id);
+        var result = await _service.GetById(_faction.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -50,10 +50,10 @@ public class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task AddMember_AddsMemberToFaction()
     {
         // Act
-        await _service.AddMember(_faction.Id, _personId, FactionRole.Member);
+        await _service.AddMember(_faction.Id, _personId, FactionRole.Member, TestContext.Current.CancellationToken);
 
         // Assert
-        var members = await _service.GetAllMembersByFactionId(_faction.Id);
+        var members = await _service.GetAllMembersByFactionId(_faction.Id, TestContext.Current.CancellationToken);
         Assert.Single(members);
         Assert.Equal(_personId, members[0].PersonId);
         Assert.Equal(FactionRole.Member, members[0].Role);
@@ -65,13 +65,13 @@ public class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var faction2 = Builders.MakeFaction();
         _context.Factions.Add(faction2);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await _service.AddMember(_faction.Id, _personId, FactionRole.Member);
-        await _service.AddMember(faction2.Id, _personId, FactionRole.Leader);
+        await _service.AddMember(_faction.Id, _personId, FactionRole.Member, TestContext.Current.CancellationToken);
+        await _service.AddMember(faction2.Id, _personId, FactionRole.Leader, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetAllMembershipsByPersonId(_personId);
+        var result = await _service.GetAllMembershipsByPersonId(_personId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -84,11 +84,11 @@ public class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var personId2 = Guid.NewGuid();
-        await _service.AddMember(_faction.Id, _personId, FactionRole.Leader);
-        await _service.AddMember(_faction.Id, personId2, FactionRole.Member);
+        await _service.AddMember(_faction.Id, _personId, FactionRole.Leader, TestContext.Current.CancellationToken);
+        await _service.AddMember(_faction.Id, personId2, FactionRole.Member, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetAllMembersByFactionId(_faction.Id);
+        var result = await _service.GetAllMembersByFactionId(_faction.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -100,13 +100,13 @@ public class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task UpdateMemberRole_UpdatesRole()
     {
         // Arrange
-        await _service.AddMember(_faction.Id, _personId, FactionRole.Member);
+        await _service.AddMember(_faction.Id, _personId, FactionRole.Member, TestContext.Current.CancellationToken);
 
         // Act
-        await _service.UpdateMemberRole(_faction.Id, _personId, FactionRole.Leader);
+        await _service.UpdateMemberRole(_faction.Id, _personId, FactionRole.Leader, TestContext.Current.CancellationToken);
 
         // Assert
-        var members = await _service.GetAllMembersByFactionId(_faction.Id);
+        var members = await _service.GetAllMembersByFactionId(_faction.Id, TestContext.Current.CancellationToken);
         Assert.Equal(FactionRole.Leader, members[0].Role);
     }
 
@@ -115,20 +115,20 @@ public class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _service.UpdateMemberRole(_faction.Id, Guid.NewGuid(), FactionRole.Leader));
+            () => _service.UpdateMemberRole(_faction.Id, Guid.NewGuid(), FactionRole.Leader, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task RemoveMember_RemovesMembership()
     {
         // Arrange
-        await _service.AddMember(_faction.Id, _personId, FactionRole.Member);
+        await _service.AddMember(_faction.Id, _personId, FactionRole.Member, TestContext.Current.CancellationToken);
 
         // Act
-        await _service.RemoveMember(_faction.Id, _personId);
+        await _service.RemoveMember(_faction.Id, _personId, TestContext.Current.CancellationToken);
 
         // Assert
-        var members = await _service.GetAllMembersByFactionId(_faction.Id);
+        var members = await _service.GetAllMembersByFactionId(_faction.Id, TestContext.Current.CancellationToken);
         Assert.Empty(members);
     }
 }

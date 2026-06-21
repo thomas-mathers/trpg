@@ -6,23 +6,23 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private PersonService _service = null!;
     private Person _person = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new PersonService(_context);
-        
+
         _person = Builders.MakePerson();
         _context.Persons.Add(_person);
         await _context.SaveChangesAsync();
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     [Fact]
     public async Task Add_PersistsPerson()
@@ -31,10 +31,10 @@ public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
         var person = Builders.MakePerson();
 
         // Act
-        await _service.Add(person);
+        await _service.Add(person, TestContext.Current.CancellationToken);
 
         // Assert
-        var found = await _context.Persons.FindAsync(person.Id);
+        var found = await _context.Persons.FindAsync([person.Id], TestContext.Current.CancellationToken);
         Assert.NotNull(found);
         Assert.Equal(person.Name, found.Name);
     }
@@ -43,7 +43,7 @@ public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetById_ReturnsNull_WhenNotFound()
     {
         // Act
-        var result = await _service.GetById(Guid.NewGuid());
+        var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -53,7 +53,7 @@ public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetById_ReturnsPerson_WhenExists()
     {
         // Act
-        var result = await _service.GetById(_person.Id);
+        var result = await _service.GetById(_person.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -67,10 +67,10 @@ public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
         _person.Gold = 500;
 
         // Act
-        await _service.Update(_person);
+        await _service.Update(_person, TestContext.Current.CancellationToken);
 
         // Assert
-        var updated = await _context.Persons.FindAsync(_person.Id);
+        var updated = await _context.Persons.FindAsync([_person.Id], TestContext.Current.CancellationToken);
         Assert.Equal(500, updated!.Gold);
     }
 
@@ -79,14 +79,14 @@ public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var person = Builders.MakePerson();
-        await _service.Add(person);
+        await _service.Add(person, TestContext.Current.CancellationToken);
 
         // Act
-        await _service.Delete(person.Id);
+        await _service.Delete(person.Id, TestContext.Current.CancellationToken);
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var found = await verifyContext.Persons.FindAsync(person.Id);
+        var found = await verifyContext.Persons.FindAsync([person.Id], TestContext.Current.CancellationToken);
         Assert.Null(found);
     }
 
@@ -105,14 +105,14 @@ public class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
         var otherWorld = Builders.MakePerson(worldId: Guid.NewGuid());
         otherWorld.Location.Coordinates = new Point(0, 0);
 
-        await _service.Add(near);
-        await _service.Add(far);
-        await _service.Add(otherWorld);
+        await _service.Add(near, TestContext.Current.CancellationToken);
+        await _service.Add(far, TestContext.Current.CancellationToken);
+        await _service.Add(otherWorld, TestContext.Current.CancellationToken);
 
         var center = new Location { WorldId = worldId, Coordinates = new Point(0, 0) };
 
         // Act
-        var results = await _service.GetAllWithinRange(center, 10f);
+        var results = await _service.GetAllWithinRange(center, 10f, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains(results, p => p.Id == near.Id);

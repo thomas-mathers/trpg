@@ -6,14 +6,14 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private PersonService _personService = null!;
     private SkillService _skillService = null!;
     private Person _person = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _personService = new PersonService(_context);
@@ -22,7 +22,7 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _personService.Add(_person);
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     [Fact]
     public async Task AddSkill_AddsSkillToPersonWithNoPrerequisites()
@@ -30,13 +30,13 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var skill = Builders.MakeSkill();
         _context.Skills.Add(skill);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await _skillService.AddSkill(_person.Id, skill.Id);
+        await _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        var skills = await _skillService.GetAllByPersonId(_person.Id);
+        var skills = await _skillService.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Single(skills);
         Assert.Equal(skill.Id, skills[0].SkillId);
     }
@@ -48,14 +48,14 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
         var prereq = Builders.MakeSkill();
         var skill = Builders.MakeSkill();
         _context.Skills.AddRange(prereq, skill);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _context.SkillPrerequisites.Add(new SkillPrerequisite { SkillId = skill.Id, PrerequisiteSkillId = prereq.Id });
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _skillService.AddSkill(_person.Id, skill.Id));
+            () => _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -65,18 +65,18 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
         var prereq = Builders.MakeSkill();
         var skill = Builders.MakeSkill();
         _context.Skills.AddRange(prereq, skill);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _context.SkillPrerequisites.Add(new SkillPrerequisite { SkillId = skill.Id, PrerequisiteSkillId = prereq.Id });
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await _skillService.AddSkill(_person.Id, prereq.Id);
+        await _skillService.AddSkill(_person.Id, prereq.Id, TestContext.Current.CancellationToken);
 
         // Act
-        await _skillService.AddSkill(_person.Id, skill.Id);
+        await _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        var skills = await _skillService.GetAllByPersonId(_person.Id);
+        var skills = await _skillService.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Equal(2, skills.Count);
     }
 
@@ -86,14 +86,14 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var skill = Builders.MakeSkill();
         _context.Skills.Add(skill);
-        await _context.SaveChangesAsync();
-        await _skillService.AddSkill(_person.Id, skill.Id);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken);
 
         // Act
-        await _skillService.RemoveSkill(_person.Id, skill.Id);
+        await _skillService.RemoveSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        var skills = await _skillService.GetAllByPersonId(_person.Id);
+        var skills = await _skillService.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Empty(skills);
     }
 
@@ -105,16 +105,16 @@ public class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
         var prereq2 = Builders.MakeSkill();
         var skill = Builders.MakeSkill();
         _context.Skills.AddRange(prereq1, prereq2, skill);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _context.SkillPrerequisites.AddRange(
             new SkillPrerequisite { SkillId = skill.Id, PrerequisiteSkillId = prereq1.Id },
             new SkillPrerequisite { SkillId = skill.Id, PrerequisiteSkillId = prereq2.Id }
         );
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var prereqs = await _skillService.GetAllPrerequisites(skill.Id);
+        var prereqs = await _skillService.GetAllPrerequisites(skill.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, prereqs.Count);

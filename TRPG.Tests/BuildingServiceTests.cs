@@ -6,7 +6,7 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private BuildingService _service = null!;
@@ -14,7 +14,7 @@ public class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
     private readonly Guid _cityId = Guid.NewGuid();
     private readonly Guid _ownerId = Guid.NewGuid();
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new BuildingService(_context);
@@ -24,13 +24,13 @@ public class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     [Fact]
     public async Task GetById_ReturnsNull_WhenNotFound()
     {
         // Act
-        var result = await _service.GetById(Guid.NewGuid());
+        var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -40,7 +40,7 @@ public class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetById_ReturnsBuilding_WhenExists()
     {
         // Act
-        var result = await _service.GetById(_building.Id);
+        var result = await _service.GetById(_building.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -51,7 +51,7 @@ public class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetAllByCityId_ReturnsBuildingsInCity()
     {
         // Act
-        var result = await _service.GetAllByCityId(_cityId);
+        var result = await _service.GetAllByCityId(_cityId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains(result, b => b.Id == _building.Id);
@@ -62,10 +62,10 @@ public class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task AddOwner_CreatesOwnership()
     {
         // Act
-        await _service.AddOwner(_building.Id, _ownerId);
+        await _service.AddOwner(_building.Id, _ownerId, TestContext.Current.CancellationToken);
 
         // Assert
-        var owners = await _service.GetAllOwnersByBuildingId(_building.Id);
+        var owners = await _service.GetAllOwnersByBuildingId(_building.Id, TestContext.Current.CancellationToken);
         Assert.Single(owners);
         Assert.Equal(_ownerId, owners[0].OwnerId);
     }
@@ -75,11 +75,11 @@ public class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var ownerId2 = Guid.NewGuid();
-        await _service.AddOwner(_building.Id, _ownerId);
-        await _service.AddOwner(_building.Id, ownerId2);
+        await _service.AddOwner(_building.Id, _ownerId, TestContext.Current.CancellationToken);
+        await _service.AddOwner(_building.Id, ownerId2, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetAllOwnersByBuildingId(_building.Id);
+        var result = await _service.GetAllOwnersByBuildingId(_building.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -99,10 +99,10 @@ public class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
             Coordinates = new Point(1, 1)
         };
         _context.BuildingProps.Add(prop);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetAllPropsByBuildingId(_building.Id);
+        var result = await _service.GetAllPropsByBuildingId(_building.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(result);
@@ -113,13 +113,13 @@ public class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task RemoveOwner_RemovesOwnership()
     {
         // Arrange
-        await _service.AddOwner(_building.Id, _ownerId);
+        await _service.AddOwner(_building.Id, _ownerId, TestContext.Current.CancellationToken);
 
         // Act
-        await _service.RemoveOwner(_building.Id, _ownerId);
+        await _service.RemoveOwner(_building.Id, _ownerId, TestContext.Current.CancellationToken);
 
         // Assert
-        var owners = await _service.GetAllOwnersByBuildingId(_building.Id);
+        var owners = await _service.GetAllOwnersByBuildingId(_building.Id, TestContext.Current.CancellationToken);
         Assert.Empty(owners);
     }
 }

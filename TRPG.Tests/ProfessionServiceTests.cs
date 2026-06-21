@@ -6,13 +6,13 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public class ProfessionServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class ProfessionServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private ProfessionService _service = null!;
     private Profession _profession = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new ProfessionService(_context);
@@ -22,13 +22,13 @@ public class ProfessionServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     [Fact]
     public async Task GetById_ReturnsNull_WhenNotFound()
     {
         // Act
-        var result = await _service.GetById(Guid.NewGuid());
+        var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -38,7 +38,7 @@ public class ProfessionServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetById_ReturnsProfession_WhenExists()
     {
         // Act
-        var result = await _service.GetById(_profession.Id);
+        var result = await _service.GetById(_profession.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -49,7 +49,7 @@ public class ProfessionServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetAll_ReturnsAllProfessions()
     {
         // Act
-        var result = await _service.GetAll();
+        var result = await _service.GetAll(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains(result, p => p.Id == _profession.Id);

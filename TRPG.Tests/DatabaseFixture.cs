@@ -4,12 +4,12 @@ using TRPG.Data;
 
 namespace TRPG.Tests;
 
-public class DatabaseFixture : IAsyncLifetime
+public sealed class DatabaseFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17")
         .Build();
 
-    public TrpgDbContext CreateContext()
+    internal TrpgDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<TrpgDbContext>()
             .UseNpgsql(_container.GetConnectionString())
@@ -18,7 +18,7 @@ public class DatabaseFixture : IAsyncLifetime
         return new TrpgDbContext(options);
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         await _container.StartAsync();
 
@@ -26,7 +26,7 @@ public class DatabaseFixture : IAsyncLifetime
         await context.Database.MigrateAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
         => await _container.DisposeAsync();
 }
 
