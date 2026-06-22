@@ -66,7 +66,6 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Update_SavesChanges()
     {
         // Arrange — build updated entity in a fresh context to avoid tracking conflict with _job
-        var newWorldId = Guid.NewGuid();
         var updated = new Job
         {
             Id = _job.Id,
@@ -76,7 +75,7 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
             EndHour = _job.EndHour,
             Daily = _job.Daily,
             Priority = _job.Priority,
-            Location = new Location { WorldId = newWorldId, Coordinates = new Point(0, 0) }
+            Location = new Location { Coordinates = new Point(99, 99) }
         };
 
         // Act
@@ -86,7 +85,8 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
         // Assert
         await using var verifyContext = db.CreateContext();
         var found = await verifyContext.Jobs.FirstAsync(j => j.Id == _job.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(newWorldId, found.Location.WorldId);
+        Assert.Equal(99, found.Location.Coordinates.X);
+        Assert.Equal(99, found.Location.Coordinates.Y);
     }
 
     [Fact]

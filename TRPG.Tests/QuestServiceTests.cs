@@ -21,7 +21,7 @@ public sealed class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
 
         _person = Builders.MakePerson();
         _giver = Builders.MakePerson();
-        _quest = Builders.MakeQuest(giverId: _giver.Id);
+        _quest = Builders.MakeQuest(giverId: _giver.Id, worldId: _giver.WorldId);
 
         _context.Persons.Add(_person);
         _context.Persons.Add(_giver);
@@ -36,6 +36,7 @@ public sealed class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
     {
         var quest = new Quest
         {
+            WorldId = _giver.WorldId,
             GiverId = _giver.Id,
             Name = $"Quest-{Guid.NewGuid():N}",
             PrerequisiteQuestIds = prerequisiteQuestIds ?? []
@@ -55,7 +56,7 @@ public sealed class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime
             TargetType = targetType,
             Target = Guid.NewGuid(),
             Amount = 5,
-            Region = new Circle { Center = new Location { WorldId = Guid.NewGuid(), Coordinates = new Point(0, 0) }, Radius = 100 }
+            Region = new Circle { Center = new Location { Coordinates = new Point(0, 0) }, Radius = 100 }
         };
         _context.QuestObjectives.Add(objective);
         await _context.SaveChangesAsync();

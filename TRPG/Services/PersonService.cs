@@ -16,14 +16,14 @@ internal class PersonService(TrpgDbContext context)
     public async Task<Person?> GetById(Guid id, CancellationToken cancellationToken = default)
         => await context.Persons.FindAsync([id], cancellationToken);
 
-    public async Task<ReadOnlyCollection<Person>> GetAllWithinRange(Location center, float radius, CancellationToken cancellationToken = default)
+    public async Task<ReadOnlyCollection<Person>> GetAllWithinRange(Guid worldId, Point center, float radius, CancellationToken cancellationToken = default)
     {
         var candidates = await context.Persons
-            .Where(p => p.Location.WorldId == center.WorldId)
+            .Where(p => p.WorldId == worldId)
             .ToListAsync(cancellationToken);
 
         return candidates
-            .Where(p => Distance(p.Location.Coordinates, center.Coordinates) <= radius)
+            .Where(p => Distance(p.Location.Coordinates, center) <= radius)
             .ToList().AsReadOnly();
     }
 

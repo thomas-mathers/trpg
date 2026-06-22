@@ -67,6 +67,7 @@ public sealed class ItemServiceTests(DatabaseFixture db) : IAsyncLifetime
         var updated = new Item
         {
             Id = _item.Id,
+            WorldId = _item.WorldId,
             Name = _item.Name,
             Description = "Updated description",
             Category = _item.Category,

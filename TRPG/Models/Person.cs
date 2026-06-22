@@ -3,6 +3,7 @@
 internal class Person
 {
     public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid WorldId { get; init; }
     public string Name { get; init; } = "";
     public string Biography { get; set; } = "";
     public Guid RaceId { get; init; }

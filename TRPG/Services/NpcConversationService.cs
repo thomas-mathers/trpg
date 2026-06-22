@@ -7,7 +7,7 @@ namespace TRPG.Services;
 
 internal class NpcConversationService(TrpgDbContext context)
 {
-    public async Task AddMessage(Guid fromId, Guid toId, string message, CancellationToken cancellationToken = default)
+    public async Task AddMessage(Guid worldId, Guid fromId, Guid toId, string message, CancellationToken cancellationToken = default)
     {
         var conversation = await context.NpcConversations
             .FirstOrDefaultAsync(c =>
@@ -19,6 +19,7 @@ internal class NpcConversationService(TrpgDbContext context)
             conversation = new NpcConversation
             {
                 Id = Guid.NewGuid(),
+                WorldId = worldId,
                 PersonId = fromId,
                 NpcId = toId,
                 Summary = "",

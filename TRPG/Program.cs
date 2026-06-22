@@ -1,18 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OllamaSharp;
+using TRPG;
 using TRPG.Data;
 using TRPG.Services;
 
-var config = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json", optional: true)
-    .Build();
-    
+var appConfiguration = new AppConfiguration();
+
 var services = new ServiceCollection()
-    .AddSingleton<IConfiguration>(config)
     .AddDbContext<TrpgDbContext>(options =>
     {
-        var connectionString = config.GetConnectionString("Default");
+        var connectionString = appConfiguration.PostgresConnectionString;
         options.UseNpgsql(connectionString);
     })
     .AddMemoryCache()
@@ -31,5 +29,12 @@ var services = new ServiceCollection()
     .AddTransient<ReputationService>()
     .AddTransient<SkillService>()
     .AddTransient<WorldEventService>()
+    .AddSingleton<OllamaApiClient>(_ =>
+    {
+        var client = new OllamaApiClient(appConfiguration.OllamaUri)
+        {
+            SelectedModel = appConfiguration.OllamaModel
+        };
+        return client;
+    })
     .BuildServiceProvider();
-    

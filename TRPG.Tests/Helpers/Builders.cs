@@ -6,16 +6,13 @@ internal static class Builders
 {
     public static Person MakePerson(Guid? worldId = null, Guid? raceId = null, Guid? professionId = null, Guid? birthCityId = null) => new()
     {
+        WorldId = worldId ?? Guid.NewGuid(),
         Name = "Test Person",
         RaceId = raceId ?? Guid.NewGuid(),
         BirthCityId = birthCityId ?? Guid.NewGuid(),
         BirthYear = 1000,
         ProfessionId = professionId ?? Guid.NewGuid(),
-        Location = new Location
-        {
-            WorldId = worldId ?? Guid.NewGuid(),
-            Coordinates = new Point(0, 0)
-        },
+        Location = new Location { Coordinates = new Point(0, 0) },
         Progression = new Progression
         {
             Level = 1,
@@ -33,8 +30,9 @@ internal static class Builders
         }
     };
 
-    public static Item MakeItem(bool stackable = false) => new()
+    public static Item MakeItem(Guid? worldId = null, bool stackable = false) => new()
     {
+        WorldId = worldId ?? Guid.NewGuid(),
         Name = $"Item-{Guid.NewGuid():N}",
         Description = "A test item",
         Category = ItemCategory.Consumable,
@@ -43,16 +41,18 @@ internal static class Builders
         GoldValue = 10
     };
 
-    public static Skill MakeSkill() => new()
+    public static Skill MakeSkill(Guid? worldId = null) => new()
     {
+        WorldId = worldId ?? Guid.NewGuid(),
         Name = $"Skill-{Guid.NewGuid():N}",
         Description = "A test skill",
         ApCost = 5,
         CooldownTurns = 1
     };
 
-    public static Quest MakeQuest(Guid giverId) => new()
+    public static Quest MakeQuest(Guid giverId, Guid? worldId = null) => new()
     {
+        WorldId = worldId ?? Guid.NewGuid(),
         GiverId = giverId,
         Name = $"Quest-{Guid.NewGuid():N}",
         Description = "A test quest",
@@ -60,11 +60,11 @@ internal static class Builders
         ExperienceReward = 50
     };
 
-    public static Race MakeRace() => new() { Name = $"Race-{Guid.NewGuid():N}", Description = "A test race" };
+    public static Race MakeRace(Guid? worldId = null) => new() { WorldId = worldId ?? Guid.NewGuid(), Name = $"Race-{Guid.NewGuid():N}", Description = "A test race" };
 
-    public static Profession MakeProfession() => new() { Name = $"Profession-{Guid.NewGuid():N}", Description = "A test profession" };
+    public static Profession MakeProfession(Guid? worldId = null) => new() { WorldId = worldId ?? Guid.NewGuid(), Name = $"Profession-{Guid.NewGuid():N}", Description = "A test profession" };
 
-    public static Faction MakeFaction() => new() { Name = $"Faction-{Guid.NewGuid():N}", Description = "A test faction" };
+    public static Faction MakeFaction(Guid? worldId = null) => new() { WorldId = worldId ?? Guid.NewGuid(), Name = $"Faction-{Guid.NewGuid():N}", Description = "A test faction" };
 
     public static World MakeWorld() => new() { Name = $"World-{Guid.NewGuid():N}", Description = "A test world" };
 
@@ -73,7 +73,7 @@ internal static class Builders
         WorldId = worldId,
         Name = $"Country-{Guid.NewGuid():N}",
         Description = "A test country",
-        Boundary = new Circle { Center = new Location { WorldId = worldId, Coordinates = new Point(0, 0) }, Radius = 1000 }
+        Boundary = new Circle { Center = new Location { Coordinates = new Point(0, 0) }, Radius = 1000 }
     };
 
     public static Province MakeProvince(Guid countryId) => new()
@@ -81,7 +81,7 @@ internal static class Builders
         CountryId = countryId,
         Name = $"Province-{Guid.NewGuid():N}",
         Description = "A test province",
-        Boundary = new Circle { Center = new Location { WorldId = Guid.NewGuid(), Coordinates = new Point(0, 0) }, Radius = 500 }
+        Boundary = new Circle { Center = new Location { Coordinates = new Point(0, 0) }, Radius = 500 }
     };
 
     public static City MakeCity(Guid provinceId) => new()
@@ -91,7 +91,7 @@ internal static class Builders
         Description = "A test city",
         Width = 100,
         Height = 100,
-        Boundary = new Circle { Center = new Location { WorldId = Guid.NewGuid(), Coordinates = new Point(0, 0) }, Radius = 200 }
+        Boundary = new Circle { Center = new Location { Coordinates = new Point(0, 0) }, Radius = 200 }
     };
 
     public static Building MakeBuilding(Guid cityId) => new()
@@ -110,7 +110,7 @@ internal static class Builders
         EndHour = 17,
         Daily = true,
         Priority = priority,
-        Location = new Location { WorldId = Guid.NewGuid(), Coordinates = new Point(0, 0) }
+        Location = new Location { Coordinates = new Point(0, 0) }
     };
 
     public static WorldEvent MakeWorldEvent(Guid worldId, Point? at = null) => new()
@@ -119,6 +119,6 @@ internal static class Builders
         Description = "A test world event",
         Date = DateTime.UtcNow,
         Tags = [],
-        Region = new Circle { Center = new Location { WorldId = worldId, Coordinates = at ?? new Point(0, 0) }, Radius = 100 }
+        Region = new Circle { Center = new Location { Coordinates = at ?? new Point(0, 0) }, Radius = 100 }
     };
 }

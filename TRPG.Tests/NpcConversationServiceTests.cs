@@ -9,6 +9,7 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
 {
     private TrpgDbContext _context = null!;
     private NpcConversationService _service = null!;
+    private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _personId = Guid.NewGuid();
     private readonly Guid _npcId = Guid.NewGuid();
 
@@ -25,7 +26,7 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
     public async Task AddMessage_CreatesConversationOnFirstMessage()
     {
         // Arrange & Act
-        await _service.AddMessage(_personId, _npcId, "Hello", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "Hello", TestContext.Current.CancellationToken);
 
         // Assert
         var conversation = _context.NpcConversations
@@ -38,10 +39,10 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
     public async Task AddMessage_ReusesSameConversationForSubsequentMessages()
     {
         // Arrange
-        await _service.AddMessage(_personId, _npcId, "Hello", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "Hello", TestContext.Current.CancellationToken);
 
         // Act
-        await _service.AddMessage(_personId, _npcId, "How are you?", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "How are you?", TestContext.Current.CancellationToken);
 
         // Assert
         var conversations = _context.NpcConversations
@@ -55,9 +56,9 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
     public async Task AddMessage_AssignsIncrementingIndexes()
     {
         // Arrange & Act
-        await _service.AddMessage(_personId, _npcId, "First", TestContext.Current.CancellationToken);
-        await _service.AddMessage(_personId, _npcId, "Second", TestContext.Current.CancellationToken);
-        await _service.AddMessage(_personId, _npcId, "Third", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "First", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "Second", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "Third", TestContext.Current.CancellationToken);
 
         // Assert
         var messages = await _service.GetAllMessages(_personId, _npcId, 0, TestContext.Current.CancellationToken);
@@ -82,9 +83,9 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
     public async Task GetAllMessages_FiltersToStartingIndex()
     {
         // Arrange
-        await _service.AddMessage(_personId, _npcId, "Zero", TestContext.Current.CancellationToken);
-        await _service.AddMessage(_personId, _npcId, "One", TestContext.Current.CancellationToken);
-        await _service.AddMessage(_personId, _npcId, "Two", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "Zero", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "One", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "Two", TestContext.Current.CancellationToken);
 
         // Act
         var messages = await _service.GetAllMessages(_personId, _npcId, 1, TestContext.Current.CancellationToken);
@@ -99,8 +100,8 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
     public async Task UpdateSummary_SetsSummaryAndLastSummarizedIndex()
     {
         // Arrange
-        await _service.AddMessage(_personId, _npcId, "Hello", TestContext.Current.CancellationToken);
-        await _service.AddMessage(_personId, _npcId, "Goodbye", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "Hello", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "Goodbye", TestContext.Current.CancellationToken);
 
         // Act
         await _service.UpdateSummary(_personId, _npcId, "They greeted each other.", TestContext.Current.CancellationToken);
@@ -125,7 +126,7 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
     public async Task UpdateSummary_Throws_WhenNoMessages()
     {
         // Arrange
-        _context.NpcConversations.Add(new NpcConversation { PersonId = _personId, NpcId = _npcId });
+        _context.NpcConversations.Add(new NpcConversation { WorldId = _worldId, PersonId = _personId, NpcId = _npcId });
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act & Assert
@@ -137,8 +138,8 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
     public async Task AddMessage_WorksInBothDirections()
     {
         // Arrange & Act
-        await _service.AddMessage(_personId, _npcId, "Player says hi", TestContext.Current.CancellationToken);
-        await _service.AddMessage(_npcId, _personId, "NPC replies", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _personId, _npcId, "Player says hi", TestContext.Current.CancellationToken);
+        await _service.AddMessage(_worldId, _npcId, _personId, "NPC replies", TestContext.Current.CancellationToken);
 
         // Assert
         var messages = await _service.GetAllMessages(_personId, _npcId, 0, TestContext.Current.CancellationToken);

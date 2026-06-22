@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TRPG.Models;
 
 namespace TRPG.Data;
@@ -55,10 +55,11 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     {
         modelBuilder.Entity<Person>(entity =>
         {
+            entity.HasIndex(p => p.WorldId);
             entity.OwnsOne(p => p.Location, lo =>
             {
                 lo.OwnsOne(l => l.Coordinates);
-                lo.HasIndex(l => new { l.WorldId, l.CityId, l.BuildingId });
+                lo.HasIndex(l => new { l.CityId, l.BuildingId });
             });
             entity.OwnsOne(p => p.Progression, prog =>
             {
@@ -152,6 +153,8 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         {
             entity.Property(q => q.ItemRewards).HasColumnType("uuid[]");
             entity.Property(q => q.PrerequisiteQuestIds).HasColumnType("uuid[]");
+            entity.HasIndex(q => q.WorldId);
+            entity.HasIndex(q => q.GiverId);
         });
 
         modelBuilder.Entity<QuestObjective>(entity =>
@@ -161,6 +164,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
                 r.ToJson();
                 r.OwnsOne(c => c.Center, center => center.OwnsOne(l => l.Coordinates));
             });
+            entity.HasIndex(o => o.QuestId);
         });
 
         modelBuilder.Entity<PersonSkill>(entity =>
@@ -186,7 +190,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.OwnsOne(j => j.Location, lo =>
             {
                 lo.OwnsOne(l => l.Coordinates);
-                lo.HasIndex(l => new { l.WorldId, l.CityId, l.BuildingId });
+                lo.HasIndex(l => new { l.CityId, l.BuildingId });
             });
             entity.HasIndex(j => j.PersonId);
         });
@@ -195,22 +199,22 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             .HasIndex(w => w.Name).IsUnique();
 
         modelBuilder.Entity<Race>()
-            .HasIndex(r => r.Name).IsUnique();
+            .HasIndex(r => new { r.WorldId, r.Name }).IsUnique();
 
         modelBuilder.Entity<Profession>()
-            .HasIndex(p => p.Name).IsUnique();
+            .HasIndex(p => new { p.WorldId, p.Name }).IsUnique();
 
         modelBuilder.Entity<Skill>()
-            .HasIndex(s => s.Name).IsUnique();
+            .HasIndex(s => new { s.WorldId, s.Name }).IsUnique();
 
         modelBuilder.Entity<Effect>()
-            .HasIndex(e => e.Name).IsUnique();
+            .HasIndex(e => new { e.WorldId, e.Name }).IsUnique();
 
         modelBuilder.Entity<Item>()
-            .HasIndex(i => i.Name).IsUnique();
+            .HasIndex(i => new { i.WorldId, i.Name }).IsUnique();
 
         modelBuilder.Entity<Faction>()
-            .HasIndex(f => f.Name).IsUnique();
+            .HasIndex(f => new { f.WorldId, f.Name }).IsUnique();
 
         modelBuilder.Entity<Country>()
             .HasIndex(c => new { c.WorldId, c.Name }).IsUnique();
@@ -227,8 +231,11 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<TravelRoute>()
             .HasIndex(r => new { r.OriginCityId, r.DestinationCityId }).IsUnique();
 
-        modelBuilder.Entity<NpcConversation>()
-            .HasIndex(c => new { c.NpcId, c.PersonId }).IsUnique();
+        modelBuilder.Entity<NpcConversation>(entity =>
+        {
+            entity.HasIndex(c => c.WorldId);
+            entity.HasIndex(c => new { c.NpcId, c.PersonId }).IsUnique();
+        });
 
         modelBuilder.Entity<NpcChatMessage>()
             .HasIndex(m => new { m.ConversationId, m.Index }).IsUnique();
@@ -250,11 +257,5 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.HasIndex(bo => new { bo.BuildingId, bo.OwnerId }).IsUnique();
             entity.HasIndex(bo => bo.OwnerId);
         });
-
-        modelBuilder.Entity<Quest>()
-            .HasIndex(q => q.GiverId);
-
-        modelBuilder.Entity<QuestObjective>()
-            .HasIndex(o => o.QuestId);
     }
 }

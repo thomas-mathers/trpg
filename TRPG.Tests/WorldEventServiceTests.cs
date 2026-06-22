@@ -73,12 +73,12 @@ public sealed class WorldEventServiceTests(DatabaseFixture db) : IAsyncLifetime
 
         var searchRegion = new Circle
         {
-            Center = new Location { WorldId = _worldId, Coordinates = new Point(0, 0) },
+            Center = new Location { Coordinates = new Point(0, 0) },
             Radius = 50
         };
 
         // Act
-        var result = await _service.GetAllByRegion(searchRegion, TestContext.Current.CancellationToken);
+        var result = await _service.GetAllByRegion(_worldId, searchRegion, TestContext.Current.CancellationToken);
 
         // Assert — _event (at 0,0) and near (at 1,1) are within radius 50; far and otherWorld are not
         Assert.Contains(result, e => e.Id == _event.Id);

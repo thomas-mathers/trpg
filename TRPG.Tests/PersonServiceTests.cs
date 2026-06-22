@@ -109,10 +109,8 @@ public sealed class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _service.Add(far, TestContext.Current.CancellationToken);
         await _service.Add(otherWorld, TestContext.Current.CancellationToken);
 
-        var center = new Location { WorldId = worldId, Coordinates = new Point(0, 0) };
-
         // Act
-        var results = await _service.GetAllWithinRange(center, 10f, TestContext.Current.CancellationToken);
+        var results = await _service.GetAllWithinRange(worldId, new Point(0, 0), 10f, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains(results, p => p.Id == near.Id);

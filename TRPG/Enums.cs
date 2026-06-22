@@ -1,4 +1,4 @@
-﻿namespace TRPG.Models;
+﻿namespace TRPG;
 
 internal enum EquipmentSlot { Helm, Chest, LeftHand, RightHand, Boots, Necklace, Gloves, LeftRing, RightRing, Belt }
 
