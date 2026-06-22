@@ -6,17 +6,15 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
-{
+public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime {
+    private City _city = null!;
     private TrpgDbContext _context = null!;
-    private LocationService _service = null!;
-    private World _world = null!;
     private Country _country = null!;
     private Province _province = null!;
-    private City _city = null!;
+    private LocationService _service = null!;
+    private World _world = null!;
 
-    public async ValueTask InitializeAsync()
-    {
+    public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _service = new LocationService(_context);
 
@@ -32,11 +30,12 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task GetWorldById_ReturnsNull_WhenNotFound()
-    {
+    public async Task GetWorldById_ReturnsNull_WhenNotFound() {
         // Act
         var result = await _service.GetWorldById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -45,8 +44,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetWorldById_ReturnsWorld_WhenExists()
-    {
+    public async Task GetWorldById_ReturnsWorld_WhenExists() {
         // Act
         var result = await _service.GetWorldById(_world.Id, TestContext.Current.CancellationToken);
 
@@ -56,8 +54,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetCountryById_ReturnsNull_WhenNotFound()
-    {
+    public async Task GetCountryById_ReturnsNull_WhenNotFound() {
         // Act
         var result = await _service.GetCountryById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -66,8 +63,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetCountryById_ReturnsCountry_WhenExists()
-    {
+    public async Task GetCountryById_ReturnsCountry_WhenExists() {
         // Act
         var result = await _service.GetCountryById(_country.Id, TestContext.Current.CancellationToken);
 
@@ -77,8 +73,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAllCountriesByWorldId_ReturnsCountriesInWorld()
-    {
+    public async Task GetAllCountriesByWorldId_ReturnsCountriesInWorld() {
         // Act
         var result = await _service.GetAllCountriesByWorldId(_world.Id, TestContext.Current.CancellationToken);
 
@@ -88,8 +83,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetProvinceById_ReturnsNull_WhenNotFound()
-    {
+    public async Task GetProvinceById_ReturnsNull_WhenNotFound() {
         // Act
         var result = await _service.GetProvinceById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -98,8 +92,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetProvinceById_ReturnsProvince_WhenExists()
-    {
+    public async Task GetProvinceById_ReturnsProvince_WhenExists() {
         // Act
         var result = await _service.GetProvinceById(_province.Id, TestContext.Current.CancellationToken);
 
@@ -109,8 +102,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAllProvincesByCountryId_ReturnsProvincesInCountry()
-    {
+    public async Task GetAllProvincesByCountryId_ReturnsProvincesInCountry() {
         // Act
         var result = await _service.GetAllProvincesByCountryId(_country.Id, TestContext.Current.CancellationToken);
 
@@ -120,8 +112,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetCityById_ReturnsNull_WhenNotFound()
-    {
+    public async Task GetCityById_ReturnsNull_WhenNotFound() {
         // Act
         var result = await _service.GetCityById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -130,8 +121,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetCityById_ReturnsCity_WhenExists()
-    {
+    public async Task GetCityById_ReturnsCity_WhenExists() {
         // Act
         var result = await _service.GetCityById(_city.Id, TestContext.Current.CancellationToken);
 
@@ -141,8 +131,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAllCitiesByProvinceId_ReturnsCitiesInProvince()
-    {
+    public async Task GetAllCitiesByProvinceId_ReturnsCitiesInProvince() {
         // Act
         var result = await _service.GetAllCitiesByProvinceId(_province.Id, TestContext.Current.CancellationToken);
 

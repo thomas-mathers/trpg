@@ -3,42 +3,41 @@ using TRPG.Models;
 
 namespace TRPG.Data;
 
-internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options)
-{
-    public DbSet<Person> Persons => Set<Person>();
-    public DbSet<Item> Items => Set<Item>();
-    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
-    public DbSet<Skill> Skills => Set<Skill>();
-    public DbSet<SkillPrerequisite> SkillPrerequisites => Set<SkillPrerequisite>();
-    public DbSet<Effect> Effects => Set<Effect>();
-    public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
-    public DbSet<NpcChatMessage> NpcChatMessages => Set<NpcChatMessage>();
-    public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
-    public DbSet<Faction> Factions => Set<Faction>();
-    public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
-    public DbSet<Reputation> Reputations => Set<Reputation>();
-    public DbSet<World> Worlds => Set<World>();
-    public DbSet<Country> Countries => Set<Country>();
-    public DbSet<Race> Races => Set<Race>();
-    public DbSet<Province> Provinces => Set<Province>();
-    public DbSet<City> Cities => Set<City>();
-    public DbSet<Building> Buildings => Set<Building>();
-    public DbSet<BuildingProp> BuildingProps => Set<BuildingProp>();
+internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options) {
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
-    public DbSet<Quest> Quests => Set<Quest>();
-    public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
-    public DbSet<PersonQuest> PersonQuests => Set<PersonQuest>();
-    public DbSet<PersonQuestObjective> PersonQuestObjectives => Set<PersonQuestObjective>();
-    public DbSet<Profession> Professions => Set<Profession>();
-    public DbSet<PersonSkill> PersonSkills => Set<PersonSkill>();
-    public DbSet<TravelRoute> TravelRoutes => Set<TravelRoute>();
+    public DbSet<BuildingProp> BuildingProps => Set<BuildingProp>();
+    public DbSet<Building> Buildings => Set<Building>();
+    public DbSet<City> Cities => Set<City>();
+    public DbSet<Country> Countries => Set<Country>();
+    public DbSet<Effect> Effects => Set<Effect>();
+    public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
+    public DbSet<Faction> Factions => Set<Faction>();
+    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<Item> Items => Set<Item>();
     public DbSet<Job> Jobs => Set<Job>();
+    public DbSet<NpcChatMessage> NpcChatMessages => Set<NpcChatMessage>();
+    public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
+    public DbSet<PersonQuestObjective> PersonQuestObjectives => Set<PersonQuestObjective>();
+    public DbSet<PersonQuest> PersonQuests => Set<PersonQuest>();
+    public DbSet<Person> Persons => Set<Person>();
+    public DbSet<PersonSkill> PersonSkills => Set<PersonSkill>();
+    public DbSet<Profession> Professions => Set<Profession>();
+    public DbSet<Province> Provinces => Set<Province>();
+    public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
+    public DbSet<Quest> Quests => Set<Quest>();
+    public DbSet<Race> Races => Set<Race>();
+    public DbSet<Reputation> Reputations => Set<Reputation>();
+    public DbSet<SkillPrerequisite> SkillPrerequisites => Set<SkillPrerequisite>();
+    public DbSet<Skill> Skills => Set<Skill>();
+    public DbSet<TravelRoute> TravelRoutes => Set<TravelRoute>();
+    public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
+    public DbSet<World> Worlds => Set<World>();
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSnakeCaseNamingConvention();
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
+        optionsBuilder.UseSnakeCaseNamingConvention();
+    }
 
-    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
-    {
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) {
         configurationBuilder.Properties<EquipmentSlot>().HaveConversion<string>();
         configurationBuilder.Properties<ItemCategory>().HaveConversion<string>();
         configurationBuilder.Properties<EffectStat>().HaveConversion<string>();
@@ -51,144 +50,112 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Person>(entity =>
-        {
+    protected override void OnModelCreating(ModelBuilder modelBuilder) {
+        modelBuilder.Entity<Person>(entity => {
             entity.HasIndex(p => p.WorldId);
-            entity.OwnsOne(p => p.Location, lo =>
-            {
+            entity.OwnsOne(p => p.Location, lo => {
                 lo.OwnsOne(l => l.Coordinates);
                 lo.HasIndex(l => new { l.CityId, l.BuildingId });
             });
-            entity.OwnsOne(p => p.Progression, prog =>
-            {
+            entity.OwnsOne(p => p.Progression, prog => {
                 prog.ToJson();
                 prog.OwnsOne(p => p.Experience);
             });
-            entity.OwnsOne(p => p.Attributes, s =>
-            {
+            entity.OwnsOne(p => p.Attributes, s => {
                 s.ToJson();
                 s.OwnsOne(st => st.Hp);
                 s.OwnsOne(st => st.Ap);
             });
         });
 
-        modelBuilder.Entity<Item>(entity =>
-        {
+        modelBuilder.Entity<Item>(entity => {
             entity.Property(i => i.ActiveEffectIds).HasColumnType("uuid[]");
             entity.Property(i => i.PassiveEffectIds).HasColumnType("uuid[]");
         });
 
-        modelBuilder.Entity<InventoryItem>(entity =>
-        {
+        modelBuilder.Entity<InventoryItem>(entity => {
             entity.HasOne(i => i.Item).WithMany().HasForeignKey(i => i.ItemId);
             entity.HasIndex(i => i.PersonId);
         });
 
-        modelBuilder.Entity<Skill>(entity =>
-        {
+        modelBuilder.Entity<Skill>(entity => {
             entity.Property(s => s.ActiveEffectIds).HasColumnType("uuid[]");
             entity.Property(s => s.PassiveEffectIds).HasColumnType("uuid[]");
         });
 
-        modelBuilder.Entity<SkillPrerequisite>(entity =>
-        {
+        modelBuilder.Entity<SkillPrerequisite>(entity => {
             entity.HasKey(sp => new { sp.SkillId, sp.PrerequisiteSkillId });
         });
 
-        modelBuilder.Entity<NpcChatMessage>(entity =>
-        {
+        modelBuilder.Entity<NpcChatMessage>(entity => {
             entity.HasOne(m => m.Conversation).WithMany().HasForeignKey(m => m.ConversationId);
         });
 
-        modelBuilder.Entity<WorldEvent>(entity =>
-        {
+        modelBuilder.Entity<WorldEvent>(entity => {
             entity.Property(e => e.Tags).HasColumnType("text[]");
-            entity.OwnsOne(e => e.Region, r =>
-            {
+            entity.OwnsOne(e => e.Region, r => {
                 r.ToJson();
                 r.OwnsOne(c => c.Center, center => center.OwnsOne(l => l.Coordinates));
             });
         });
 
-        modelBuilder.Entity<Country>(entity =>
-        {
-            entity.OwnsOne(c => c.Boundary, b =>
-            {
+        modelBuilder.Entity<Country>(entity => {
+            entity.OwnsOne(c => c.Boundary, b => {
                 b.ToJson();
                 b.OwnsOne(c => c.Center, center => center.OwnsOne(l => l.Coordinates));
             });
         });
 
-        modelBuilder.Entity<Province>(entity =>
-        {
-            entity.OwnsOne(p => p.Boundary, b =>
-            {
+        modelBuilder.Entity<Province>(entity => {
+            entity.OwnsOne(p => p.Boundary, b => {
                 b.ToJson();
                 b.OwnsOne(c => c.Center, center => center.OwnsOne(l => l.Coordinates));
             });
         });
 
-        modelBuilder.Entity<City>(entity =>
-        {
-            entity.OwnsOne(c => c.Boundary, b =>
-            {
+        modelBuilder.Entity<City>(entity => {
+            entity.OwnsOne(c => c.Boundary, b => {
                 b.ToJson();
                 b.OwnsOne(c => c.Center, center => center.OwnsOne(l => l.Coordinates));
             });
         });
 
-        modelBuilder.Entity<Building>(entity =>
-        {
-            entity.OwnsOne(b => b.Boundary, r => r.ToJson());
-        });
+        modelBuilder.Entity<Building>(entity => { entity.OwnsOne(b => b.Boundary, r => r.ToJson()); });
 
-        modelBuilder.Entity<BuildingProp>(entity =>
-        {
-            entity.OwnsOne(bp => bp.Coordinates, p => p.ToJson());
-        });
+        modelBuilder.Entity<BuildingProp>(entity => { entity.OwnsOne(bp => bp.Coordinates, p => p.ToJson()); });
 
-        modelBuilder.Entity<Quest>(entity =>
-        {
+        modelBuilder.Entity<Quest>(entity => {
             entity.Property(q => q.ItemRewards).HasColumnType("uuid[]");
             entity.Property(q => q.PrerequisiteQuestIds).HasColumnType("uuid[]");
             entity.HasIndex(q => q.WorldId);
             entity.HasIndex(q => q.GiverId);
         });
 
-        modelBuilder.Entity<QuestObjective>(entity =>
-        {
-            entity.OwnsOne(o => o.Region, r =>
-            {
+        modelBuilder.Entity<QuestObjective>(entity => {
+            entity.OwnsOne(o => o.Region, r => {
                 r.ToJson();
                 r.OwnsOne(c => c.Center, center => center.OwnsOne(l => l.Coordinates));
             });
             entity.HasIndex(o => o.QuestId);
         });
 
-        modelBuilder.Entity<PersonSkill>(entity =>
-        {
+        modelBuilder.Entity<PersonSkill>(entity => {
             entity.HasOne(ps => ps.Skill).WithMany().HasForeignKey(ps => ps.SkillId);
             entity.HasIndex(ps => new { ps.PersonId, ps.SkillId }).IsUnique();
         });
 
-        modelBuilder.Entity<PersonQuest>(entity =>
-        {
+        modelBuilder.Entity<PersonQuest>(entity => {
             entity.HasOne(pq => pq.Quest).WithMany().HasForeignKey(pq => pq.QuestId);
             entity.HasIndex(pq => new { pq.PersonId, pq.QuestId }).IsUnique();
         });
 
-        modelBuilder.Entity<PersonQuestObjective>(entity =>
-        {
+        modelBuilder.Entity<PersonQuestObjective>(entity => {
             entity.HasOne(po => po.Objective).WithMany().HasForeignKey(po => po.ObjectiveId);
             entity.HasIndex(po => new { po.PersonId, po.ObjectiveId }).IsUnique();
         });
 
-        modelBuilder.Entity<Job>(entity =>
-        {
-            entity.OwnsOne(j => j.Location, lo =>
-            {
+        modelBuilder.Entity<Job>(entity => {
+            entity.OwnsOne(j => j.Location, lo => {
                 lo.OwnsOne(l => l.Coordinates);
                 lo.HasIndex(l => new { l.CityId, l.BuildingId });
             });
@@ -231,8 +198,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<TravelRoute>()
             .HasIndex(r => new { r.OriginCityId, r.DestinationCityId }).IsUnique();
 
-        modelBuilder.Entity<NpcConversation>(entity =>
-        {
+        modelBuilder.Entity<NpcConversation>(entity => {
             entity.HasIndex(c => c.WorldId);
             entity.HasIndex(c => new { c.NpcId, c.PersonId }).IsUnique();
         });
@@ -246,14 +212,12 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<Reputation>()
             .HasIndex(r => new { r.PersonId, r.FactionId }).IsUnique();
 
-        modelBuilder.Entity<FactionMember>(entity =>
-        {
+        modelBuilder.Entity<FactionMember>(entity => {
             entity.HasIndex(fm => new { fm.PersonId, fm.FactionId }).IsUnique();
             entity.HasIndex(fm => fm.FactionId);
         });
 
-        modelBuilder.Entity<BuildingOwner>(entity =>
-        {
+        modelBuilder.Entity<BuildingOwner>(entity => {
             entity.HasIndex(bo => new { bo.BuildingId, bo.OwnerId }).IsUnique();
             entity.HasIndex(bo => bo.OwnerId);
         });

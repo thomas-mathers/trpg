@@ -3,19 +3,15 @@ using TRPG.Services;
 
 namespace TRPG.Tests;
 
-public class PathfindingTests
-{
-    private sealed record Edge(string To, float Cost);
-
-    private static List<Edge> Graph(Dictionary<string, List<Edge>> graph, string node)
-        => graph.TryGetValue(node, out var edges) ? edges : [];
+public class PathfindingTests {
+    private static List<Edge> Graph(Dictionary<string, List<Edge>> graph, string node) {
+        return graph.TryGetValue(node, out var edges) ? edges : [];
+    }
 
     [Fact]
-    public void Dijkstra_ReturnsMultiHopPath_InCorrectOrder()
-    {
+    public void Dijkstra_ReturnsMultiHopPath_InCorrectOrder() {
         // Arrange
-        var graph = new Dictionary<string, List<Edge>>
-        {
+        var graph = new Dictionary<string, List<Edge>> {
             ["A"] = [new Edge("B", 1), new Edge("C", 10)],
             ["B"] = [new Edge("C", 1)],
             ["C"] = []
@@ -31,11 +27,9 @@ public class PathfindingTests
     }
 
     [Fact]
-    public void Dijkstra_ReturnsShortestPath_WhenCheaperRouteRequiresMoreHops()
-    {
+    public void Dijkstra_ReturnsShortestPath_WhenCheaperRouteRequiresMoreHops() {
         // Arrange — direct A→D costs 100; A→B→C→D costs 9
-        var graph = new Dictionary<string, List<Edge>>
-        {
+        var graph = new Dictionary<string, List<Edge>> {
             ["A"] = [new Edge("B", 3), new Edge("D", 100)],
             ["B"] = [new Edge("C", 3)],
             ["C"] = [new Edge("D", 3)],
@@ -53,11 +47,9 @@ public class PathfindingTests
     }
 
     [Fact]
-    public void Dijkstra_ReturnsEmpty_WhenDestinationUnreachable()
-    {
+    public void Dijkstra_ReturnsEmpty_WhenDestinationUnreachable() {
         // Arrange
-        var graph = new Dictionary<string, List<Edge>>
-        {
+        var graph = new Dictionary<string, List<Edge>> {
             ["A"] = [new Edge("B", 1)],
             ["B"] = [],
             ["C"] = []
@@ -71,8 +63,7 @@ public class PathfindingTests
     }
 
     [Fact]
-    public void Dijkstra_NavigatesAroundObstacle_OnGrid()
-    {
+    public void Dijkstra_NavigatesAroundObstacle_OnGrid() {
         // Arrange — 3×3 grid, (1,0) blocked; straight path is cut off
         //   0 1 2
         // 0 S X E
@@ -88,12 +79,24 @@ public class PathfindingTests
         Assert.Equal(new Point(2, 0), result[^1]);
         return;
 
-        IEnumerable<Point> Neighbors(Point p)
-        {
-            if (p.X > 0 && !blocked.Contains(new Point(p.X - 1, p.Y))) yield return new Point(p.X - 1, p.Y);
-            if (p.X < 2 && !blocked.Contains(new Point(p.X + 1, p.Y))) yield return new Point(p.X + 1, p.Y);
-            if (p.Y > 0 && !blocked.Contains(new Point(p.X, p.Y - 1))) yield return new Point(p.X, p.Y - 1);
-            if (p.Y < 2 && !blocked.Contains(new Point(p.X, p.Y + 1))) yield return new Point(p.X, p.Y + 1);
+        IEnumerable<Point> Neighbors(Point p) {
+            if (p.X > 0 && !blocked.Contains(new Point(p.X - 1, p.Y))) {
+                yield return new Point(p.X - 1, p.Y);
+            }
+
+            if (p.X < 2 && !blocked.Contains(new Point(p.X + 1, p.Y))) {
+                yield return new Point(p.X + 1, p.Y);
+            }
+
+            if (p.Y > 0 && !blocked.Contains(new Point(p.X, p.Y - 1))) {
+                yield return new Point(p.X, p.Y - 1);
+            }
+
+            if (p.Y < 2 && !blocked.Contains(new Point(p.X, p.Y + 1))) {
+                yield return new Point(p.X, p.Y + 1);
+            }
         }
     }
+
+    private sealed record Edge(string To, float Cost);
 }

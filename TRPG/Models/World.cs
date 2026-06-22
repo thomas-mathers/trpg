@@ -1,8 +1,7 @@
 ﻿namespace TRPG.Models;
 
-internal class World
-{
+internal class World {
+    public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Name { get; init; } = "";
-    public string Description { get; init; } = "";
 }

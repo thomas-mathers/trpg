@@ -1,34 +1,30 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-internal class QuestService(TrpgDbContext context)
-{
-    public async Task AssignQuest(Guid questId, Guid personId, CancellationToken cancellationToken = default)
-    {
+internal class QuestService(TrpgDbContext context) {
+    public async Task AssignQuest(Guid questId, Guid personId, CancellationToken cancellationToken = default) {
         var quest = await context.Quests.FindAsync([questId], cancellationToken);
 
-        if (quest == null)
-        {
+        if (quest == null) {
             throw new InvalidOperationException($"Quest {questId} not found.");
         }
 
-        if (quest.PrerequisiteQuestIds.Count > 0)
-        {
+        if (quest.PrerequisiteQuestIds.Count > 0) {
             var completedQuestIds = await context.PersonQuests
                 .Where(pq => pq.PersonId == personId && pq.Status == QuestStatus.Completed)
                 .Select(pq => pq.QuestId)
                 .ToListAsync(cancellationToken);
 
-            if (!quest.PrerequisiteQuestIds.All(completedQuestIds.Contains))
+            if (!quest.PrerequisiteQuestIds.All(completedQuestIds.Contains)) {
                 throw new InvalidOperationException("Quest prerequisites not met.");
+            }
         }
 
-        context.PersonQuests.Add(new PersonQuest
-        {
+        context.PersonQuests.Add(new PersonQuest {
             Id = Guid.NewGuid(),
             PersonId = personId,
             QuestId = questId,
@@ -39,10 +35,8 @@ internal class QuestService(TrpgDbContext context)
             .Where(o => o.QuestId == questId)
             .ToListAsync(cancellationToken);
 
-        foreach (var objective in objectives)
-        {
-            context.PersonQuestObjectives.Add(new PersonQuestObjective
-            {
+        foreach (var objective in objectives) {
+            context.PersonQuestObjectives.Add(new PersonQuestObjective {
                 Id = Guid.NewGuid(),
                 PersonId = personId,
                 ObjectiveId = objective.Id,
@@ -53,27 +47,28 @@ internal class QuestService(TrpgDbContext context)
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<Quest?> GetById(Guid questId, CancellationToken cancellationToken = default)
-        => await context.Quests.FindAsync([questId], cancellationToken);
+    public async Task<Quest?> GetById(Guid questId, CancellationToken cancellationToken = default) {
+        return await context.Quests.FindAsync([questId], cancellationToken);
+    }
 
-    public async Task<ReadOnlyCollection<Quest>> GetAllQuestsByGiverId(Guid giverId, CancellationToken cancellationToken = default)
-    {
+    public async Task<ReadOnlyCollection<Quest>> GetAllQuestsByGiverId(Guid giverId,
+        CancellationToken cancellationToken = default) {
         var list = await context.Quests
             .Where(q => q.GiverId == giverId)
             .ToListAsync(cancellationToken);
         return list.AsReadOnly();
     }
 
-    public async Task<ReadOnlyCollection<QuestObjective>> GetAllQuestObjectivesByQuestId(Guid questId, CancellationToken cancellationToken = default)
-    {
+    public async Task<ReadOnlyCollection<QuestObjective>> GetAllQuestObjectivesByQuestId(Guid questId,
+        CancellationToken cancellationToken = default) {
         var list = await context.QuestObjectives
             .Where(o => o.QuestId == questId)
             .ToListAsync(cancellationToken);
         return list.AsReadOnly();
     }
 
-    public async Task<ReadOnlyCollection<PersonQuest>> GetAllQuestsByPersonId(Guid personId, CancellationToken cancellationToken = default)
-    {
+    public async Task<ReadOnlyCollection<PersonQuest>> GetAllQuestsByPersonId(Guid personId,
+        CancellationToken cancellationToken = default) {
         var list = await context.PersonQuests
             .Include(pq => pq.Quest)
             .Where(pq => pq.PersonId == personId)
@@ -81,8 +76,8 @@ internal class QuestService(TrpgDbContext context)
         return list.AsReadOnly();
     }
 
-    public async Task<ReadOnlyCollection<PersonQuestObjective>> GetAllQuestObjectivesByPersonId(Guid personId, CancellationToken cancellationToken = default)
-    {
+    public async Task<ReadOnlyCollection<PersonQuestObjective>> GetAllQuestObjectivesByPersonId(Guid personId,
+        CancellationToken cancellationToken = default) {
         var list = await context.PersonQuestObjectives
             .Include(po => po.Objective)
             .Where(po => po.PersonId == personId)
@@ -90,23 +85,25 @@ internal class QuestService(TrpgDbContext context)
         return list.AsReadOnly();
     }
 
-    public async Task ProgressObjective(Guid personId, Guid questObjectiveId, int amount, CancellationToken cancellationToken = default)
-    {
+    public async Task ProgressObjective(Guid personId, Guid questObjectiveId, int amount,
+        CancellationToken cancellationToken = default) {
         var objective = await context.PersonQuestObjectives
             .FirstOrDefaultAsync(o => o.PersonId == personId && o.ObjectiveId == questObjectiveId, cancellationToken);
 
-        if (objective == null) throw new InvalidOperationException($"Quest objective {questObjectiveId} not found for person {personId}.");
+        if (objective == null) {
+            throw new InvalidOperationException($"Quest objective {questObjectiveId} not found for person {personId}.");
+        }
+
         objective.Amount += amount;
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task SetQuestStatus(Guid questId, Guid personId, QuestStatus status, CancellationToken cancellationToken = default)
-    {
+    public async Task SetQuestStatus(Guid questId, Guid personId, QuestStatus status,
+        CancellationToken cancellationToken = default) {
         var personQuest = await context.PersonQuests
             .FirstOrDefaultAsync(pq => pq.QuestId == questId && pq.PersonId == personId, cancellationToken);
 
-        if (personQuest == null)
-        {
+        if (personQuest == null) {
             throw new InvalidOperationException($"Quest {questId} not found for person {personId}.");
         }
 

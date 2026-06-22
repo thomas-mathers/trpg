@@ -6,15 +6,13 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
-{
-    private TrpgDbContext _context = null!;
-    private FactionService _service = null!;
-    private Faction _faction = null!;
+public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private readonly Guid _personId = Guid.NewGuid();
+    private TrpgDbContext _context = null!;
+    private Faction _faction = null!;
+    private FactionService _service = null!;
 
-    public async ValueTask InitializeAsync()
-    {
+    public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _service = new FactionService(_context);
 
@@ -23,11 +21,12 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task GetById_ReturnsNull_WhenNotFound()
-    {
+    public async Task GetById_ReturnsNull_WhenNotFound() {
         // Act
         var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -36,8 +35,7 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetById_ReturnsFaction_WhenExists()
-    {
+    public async Task GetById_ReturnsFaction_WhenExists() {
         // Act
         var result = await _service.GetById(_faction.Id, TestContext.Current.CancellationToken);
 
@@ -47,8 +45,7 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AddMember_AddsMemberToFaction()
-    {
+    public async Task AddMember_AddsMemberToFaction() {
         // Act
         await _service.AddMember(_faction.Id, _personId, FactionRole.Member, TestContext.Current.CancellationToken);
 
@@ -60,8 +57,7 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAllMembershipsByPersonId_ReturnsMemberships()
-    {
+    public async Task GetAllMembershipsByPersonId_ReturnsMemberships() {
         // Arrange
         var faction2 = Builders.MakeFaction();
         _context.Factions.Add(faction2);
@@ -80,8 +76,7 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAllMembersByFactionId_ReturnsMembers()
-    {
+    public async Task GetAllMembersByFactionId_ReturnsMembers() {
         // Arrange
         var personId2 = Guid.NewGuid();
         await _service.AddMember(_faction.Id, _personId, FactionRole.Leader, TestContext.Current.CancellationToken);
@@ -97,13 +92,13 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UpdateMemberRole_UpdatesRole()
-    {
+    public async Task UpdateMemberRole_UpdatesRole() {
         // Arrange
         await _service.AddMember(_faction.Id, _personId, FactionRole.Member, TestContext.Current.CancellationToken);
 
         // Act
-        await _service.UpdateMemberRole(_faction.Id, _personId, FactionRole.Leader, TestContext.Current.CancellationToken);
+        await _service.UpdateMemberRole(_faction.Id, _personId, FactionRole.Leader,
+            TestContext.Current.CancellationToken);
 
         // Assert
         var members = await _service.GetAllMembersByFactionId(_faction.Id, TestContext.Current.CancellationToken);
@@ -111,16 +106,15 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UpdateMemberRole_Throws_WhenNotMember()
-    {
+    public async Task UpdateMemberRole_Throws_WhenNotMember() {
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _service.UpdateMemberRole(_faction.Id, Guid.NewGuid(), FactionRole.Leader, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _service.UpdateMemberRole(_faction.Id, Guid.NewGuid(), FactionRole.Leader,
+                TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task RemoveMember_RemovesMembership()
-    {
+    public async Task RemoveMember_RemovesMembership() {
         // Arrange
         await _service.AddMember(_faction.Id, _personId, FactionRole.Member, TestContext.Current.CancellationToken);
 

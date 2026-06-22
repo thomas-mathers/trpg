@@ -6,14 +6,12 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class RaceServiceTests(DatabaseFixture db) : IAsyncLifetime
-{
+public sealed class RaceServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
-    private RaceService _service = null!;
     private Race _race = null!;
+    private RaceService _service = null!;
 
-    public async ValueTask InitializeAsync()
-    {
+    public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _service = new RaceService(_context);
 
@@ -22,11 +20,12 @@ public sealed class RaceServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task GetById_ReturnsNull_WhenNotFound()
-    {
+    public async Task GetById_ReturnsNull_WhenNotFound() {
         // Act
         var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -35,8 +34,7 @@ public sealed class RaceServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetById_ReturnsRace_WhenExists()
-    {
+    public async Task GetById_ReturnsRace_WhenExists() {
         // Act
         var result = await _service.GetById(_race.Id, TestContext.Current.CancellationToken);
 
@@ -46,8 +44,7 @@ public sealed class RaceServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAll_ReturnsAllRaces()
-    {
+    public async Task GetAll_ReturnsAllRaces() {
         // Act
         var result = await _service.GetAll(TestContext.Current.CancellationToken);
 

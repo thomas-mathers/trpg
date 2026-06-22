@@ -8,8 +8,7 @@ using TRPG.Services;
 var appConfiguration = new AppConfiguration();
 
 var services = new ServiceCollection()
-    .AddDbContext<TrpgDbContext>(options =>
-    {
+    .AddDbContext<TrpgDbContext>(options => {
         var connectionString = appConfiguration.PostgresConnectionString;
         options.UseNpgsql(connectionString);
     })
@@ -29,10 +28,8 @@ var services = new ServiceCollection()
     .AddTransient<ReputationService>()
     .AddTransient<SkillService>()
     .AddTransient<WorldEventService>()
-    .AddSingleton<OllamaApiClient>(_ =>
-    {
-        var client = new OllamaApiClient(appConfiguration.OllamaUri)
-        {
+    .AddSingleton<OllamaApiClient>(_ => {
+        var client = new OllamaApiClient(appConfiguration.OllamaUri) {
             SelectedModel = appConfiguration.OllamaModel
         };
         return client;

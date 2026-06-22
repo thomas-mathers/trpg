@@ -6,14 +6,12 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class ItemServiceTests(DatabaseFixture db) : IAsyncLifetime
-{
+public sealed class ItemServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
-    private ItemService _service = null!;
     private Item _item = null!;
+    private ItemService _service = null!;
 
-    public async ValueTask InitializeAsync()
-    {
+    public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _service = new ItemService(_context);
 
@@ -22,11 +20,12 @@ public sealed class ItemServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task Add_PersistsItem()
-    {
+    public async Task Add_PersistsItem() {
         // Arrange
         var item = Builders.MakeItem();
 
@@ -40,8 +39,7 @@ public sealed class ItemServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetById_ReturnsNull_WhenNotFound()
-    {
+    public async Task GetById_ReturnsNull_WhenNotFound() {
         // Act
         var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -50,8 +48,7 @@ public sealed class ItemServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetById_ReturnsItem_WhenExists()
-    {
+    public async Task GetById_ReturnsItem_WhenExists() {
         // Act
         var result = await _service.GetById(_item.Id, TestContext.Current.CancellationToken);
 
@@ -61,11 +58,9 @@ public sealed class ItemServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Update_SavesChanges()
-    {
+    public async Task Update_SavesChanges() {
         // Arrange — build updated entity in a fresh context to avoid tracking conflict with _item
-        var updated = new Item
-        {
+        var updated = new Item {
             Id = _item.Id,
             WorldId = _item.WorldId,
             Name = _item.Name,
@@ -88,8 +83,7 @@ public sealed class ItemServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Delete_RemovesItem()
-    {
+    public async Task Delete_RemovesItem() {
         // Arrange
         var item = Builders.MakeItem();
         await _service.Add(item, TestContext.Current.CancellationToken);

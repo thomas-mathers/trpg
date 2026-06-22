@@ -4,25 +4,24 @@ using TRPG.Services;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime
-{
+public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime {
+    private readonly Guid _factionId = Guid.NewGuid();
+    private readonly Guid _personId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private ReputationService _service = null!;
-    private readonly Guid _personId = Guid.NewGuid();
-    private readonly Guid _factionId = Guid.NewGuid();
 
-    public ValueTask InitializeAsync()
-    {
+    public ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _service = new ReputationService(_context);
         return ValueTask.CompletedTask;
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task AdjustReputation_CreatesReputation_WhenFirstCall()
-    {
+    public async Task AdjustReputation_CreatesReputation_WhenFirstCall() {
         // Act
         await _service.AdjustReputation(_personId, _factionId, 10, TestContext.Current.CancellationToken);
 
@@ -33,8 +32,7 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AdjustReputation_IncrementsScore_WhenSubsequentCall()
-    {
+    public async Task AdjustReputation_IncrementsScore_WhenSubsequentCall() {
         // Arrange
         var personId = Guid.NewGuid();
         var factionId = Guid.NewGuid();
@@ -50,8 +48,7 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AdjustReputation_SupportsNegativeDelta()
-    {
+    public async Task AdjustReputation_SupportsNegativeDelta() {
         // Arrange
         var personId = Guid.NewGuid();
         var factionId = Guid.NewGuid();
@@ -66,8 +63,7 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAllByPersonId_ReturnsReputationsForPerson()
-    {
+    public async Task GetAllByPersonId_ReturnsReputationsForPerson() {
         // Arrange
         var personId = Guid.NewGuid();
         var factionId1 = Guid.NewGuid();

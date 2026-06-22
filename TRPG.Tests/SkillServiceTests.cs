@@ -6,15 +6,13 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
-{
+public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
+    private Person _person = null!;
     private PersonService _personService = null!;
     private SkillService _skillService = null!;
-    private Person _person = null!;
 
-    public async ValueTask InitializeAsync()
-    {
+    public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _personService = new PersonService(_context);
         _skillService = new SkillService(_context);
@@ -22,11 +20,12 @@ public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _personService.Add(_person);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task AddSkill_AddsSkillToPersonWithNoPrerequisites()
-    {
+    public async Task AddSkill_AddsSkillToPersonWithNoPrerequisites() {
         // Arrange
         var skill = Builders.MakeSkill();
         _context.Skills.Add(skill);
@@ -42,8 +41,7 @@ public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AddSkill_Throws_WhenPrerequisiteNotMet()
-    {
+    public async Task AddSkill_Throws_WhenPrerequisiteNotMet() {
         // Arrange
         var prereq = Builders.MakeSkill();
         var skill = Builders.MakeSkill();
@@ -54,13 +52,12 @@ public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task AddSkill_Succeeds_WhenPrerequisiteMet()
-    {
+    public async Task AddSkill_Succeeds_WhenPrerequisiteMet() {
         // Arrange
         var prereq = Builders.MakeSkill();
         var skill = Builders.MakeSkill();
@@ -81,8 +78,7 @@ public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task RemoveSkill_RemovesPersonSkill()
-    {
+    public async Task RemoveSkill_RemovesPersonSkill() {
         // Arrange
         var skill = Builders.MakeSkill();
         _context.Skills.Add(skill);
@@ -98,8 +94,7 @@ public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAllPrerequisites_ReturnsCorrectIds()
-    {
+    public async Task GetAllPrerequisites_ReturnsCorrectIds() {
         // Arrange
         var prereq1 = Builders.MakeSkill();
         var prereq2 = Builders.MakeSkill();

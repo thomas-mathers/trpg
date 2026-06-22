@@ -7,15 +7,13 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
-{
+public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
-    private JobService _service = null!;
-    private Person _person = null!;
     private Job _job = null!;
+    private Person _person = null!;
+    private JobService _service = null!;
 
-    public async ValueTask InitializeAsync()
-    {
+    public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _service = new JobService(_context);
 
@@ -27,11 +25,12 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _service.Add(_job);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task Add_PersistsJob()
-    {
+    public async Task Add_PersistsJob() {
         // Arrange
         var job = Builders.MakeJob(_person.Id);
 
@@ -44,12 +43,11 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAllByPersonId_ReturnsJobsOrderedByPriorityDescending()
-    {
+    public async Task GetAllByPersonId_ReturnsJobsOrderedByPriorityDescending() {
         // Arrange
-        var low = Builders.MakeJob(_person.Id, priority: 1);
-        var high = Builders.MakeJob(_person.Id, priority: 10);
-        var mid = Builders.MakeJob(_person.Id, priority: 5);
+        var low = Builders.MakeJob(_person.Id, 1);
+        var high = Builders.MakeJob(_person.Id, 10);
+        var mid = Builders.MakeJob(_person.Id, 5);
         await _service.Add(low, TestContext.Current.CancellationToken);
         await _service.Add(high, TestContext.Current.CancellationToken);
         await _service.Add(mid, TestContext.Current.CancellationToken);
@@ -63,11 +61,9 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Update_SavesChanges()
-    {
+    public async Task Update_SavesChanges() {
         // Arrange — build updated entity in a fresh context to avoid tracking conflict with _job
-        var updated = new Job
-        {
+        var updated = new Job {
             Id = _job.Id,
             PersonId = _job.PersonId,
             Action = _job.Action,
@@ -90,8 +86,7 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Delete_RemovesJob()
-    {
+    public async Task Delete_RemovesJob() {
         // Arrange
         var job = Builders.MakeJob(_person.Id);
         await _service.Add(job, TestContext.Current.CancellationToken);
@@ -101,7 +96,8 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var jobs = await verifyContext.Jobs.Where(j => j.Id == job.Id).ToListAsync(TestContext.Current.CancellationToken);
+        var jobs = await verifyContext.Jobs.Where(j => j.Id == job.Id)
+            .ToListAsync(TestContext.Current.CancellationToken);
         Assert.Empty(jobs);
     }
 }

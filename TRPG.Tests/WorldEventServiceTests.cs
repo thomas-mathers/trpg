@@ -6,15 +6,13 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class WorldEventServiceTests(DatabaseFixture db) : IAsyncLifetime
-{
-    private TrpgDbContext _context = null!;
-    private WorldEventService _service = null!;
-    private WorldEvent _event = null!;
+public sealed class WorldEventServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private readonly Guid _worldId = Guid.NewGuid();
+    private TrpgDbContext _context = null!;
+    private WorldEvent _event = null!;
+    private WorldEventService _service = null!;
 
-    public async ValueTask InitializeAsync()
-    {
+    public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _service = new WorldEventService(_context);
 
@@ -22,11 +20,12 @@ public sealed class WorldEventServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _service.Add(_event);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task Add_PersistsWorldEvent()
-    {
+    public async Task Add_PersistsWorldEvent() {
         // Arrange
         var worldEvent = Builders.MakeWorldEvent(_worldId);
 
@@ -40,8 +39,7 @@ public sealed class WorldEventServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetById_ReturnsNull_WhenNotFound()
-    {
+    public async Task GetById_ReturnsNull_WhenNotFound() {
         // Act
         var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -50,8 +48,7 @@ public sealed class WorldEventServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetById_ReturnsEvent_WhenExists()
-    {
+    public async Task GetById_ReturnsEvent_WhenExists() {
         // Act
         var result = await _service.GetById(_event.Id, TestContext.Current.CancellationToken);
 
@@ -61,18 +58,16 @@ public sealed class WorldEventServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetAllByRegion_ReturnsEventsWithinRadius()
-    {
+    public async Task GetAllByRegion_ReturnsEventsWithinRadius() {
         // Arrange
-        var near = Builders.MakeWorldEvent(_worldId, at: new Point(1, 1));
-        var far = Builders.MakeWorldEvent(_worldId, at: new Point(1000, 1000));
-        var otherWorld = Builders.MakeWorldEvent(Guid.NewGuid(), at: new Point(0, 0));
+        var near = Builders.MakeWorldEvent(_worldId, new Point(1, 1));
+        var far = Builders.MakeWorldEvent(_worldId, new Point(1000, 1000));
+        var otherWorld = Builders.MakeWorldEvent(Guid.NewGuid(), new Point(0, 0));
         await _service.Add(near, TestContext.Current.CancellationToken);
         await _service.Add(far, TestContext.Current.CancellationToken);
         await _service.Add(otherWorld, TestContext.Current.CancellationToken);
 
-        var searchRegion = new Circle
-        {
+        var searchRegion = new Circle {
             Center = new Location { Coordinates = new Point(0, 0) },
             Radius = 50
         };

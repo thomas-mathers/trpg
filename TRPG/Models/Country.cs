@@ -1,10 +1,9 @@
 ﻿namespace TRPG.Models;
 
-internal class Country
-{
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid WorldId { get; init; }
-    public string Name { get; init; } = "";
-    public string Description { get; init; } = "";
+internal class Country {
     public Circle Boundary { get; init; } = null!;
+    public string Description { get; init; } = "";
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public string Name { get; init; } = "";
+    public Guid WorldId { get; init; }
 }

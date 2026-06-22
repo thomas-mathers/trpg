@@ -1,7 +1,6 @@
 ﻿namespace TRPG.Models;
 
-internal class Progression
-{
-    public int Level { get; set; }
+internal class Progression {
     public Meter Experience { get; set; } = null!;
+    public int Level { get; set; }
 }

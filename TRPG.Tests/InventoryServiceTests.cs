@@ -6,16 +6,14 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
-{
+public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
     private InventoryService _inventoryService = null!;
-    private Person _person = null!;
     private Item _item = null!;
+    private Person _person = null!;
     private Item _stackableItem = null!;
 
-    public async ValueTask InitializeAsync()
-    {
+    public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _inventoryService = new InventoryService(_context);
 
@@ -30,11 +28,12 @@ public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task Add_AddsItemToInventory()
-    {
+    public async Task Add_AddsItemToInventory() {
         // Arrange & Act
         await _inventoryService.Add(_person.Id, _item.Id, 1, TestContext.Current.CancellationToken);
 
@@ -46,8 +45,7 @@ public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Add_StackableItem_IncrementsQuantity()
-    {
+    public async Task Add_StackableItem_IncrementsQuantity() {
         // Arrange
         await _inventoryService.Add(_person.Id, _stackableItem.Id, 3, TestContext.Current.CancellationToken);
 
@@ -61,8 +59,7 @@ public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Add_NonStackableItem_CreatesNewEntry()
-    {
+    public async Task Add_NonStackableItem_CreatesNewEntry() {
         // Arrange
         await _inventoryService.Add(_person.Id, _item.Id, 1, TestContext.Current.CancellationToken);
 
@@ -75,8 +72,7 @@ public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Remove_DecreasesQuantity()
-    {
+    public async Task Remove_DecreasesQuantity() {
         // Arrange
         await _inventoryService.Add(_person.Id, _stackableItem.Id, 5, TestContext.Current.CancellationToken);
 
@@ -90,8 +86,7 @@ public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Remove_RemovesEntry_WhenQuantityReachesZero()
-    {
+    public async Task Remove_RemovesEntry_WhenQuantityReachesZero() {
         // Arrange
         await _inventoryService.Add(_person.Id, _item.Id, 1, TestContext.Current.CancellationToken);
 
@@ -104,21 +99,20 @@ public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Remove_Throws_WhenItemNotInInventory()
-    {
+    public async Task Remove_Throws_WhenItemNotInInventory() {
         // Arrange & Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _inventoryService.Remove(_person.Id, _item.Id, 1, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _inventoryService.Remove(_person.Id, _item.Id, 1, TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task Equip_SetsEquippedSlot()
-    {
+    public async Task Equip_SetsEquippedSlot() {
         // Arrange
         await _inventoryService.Add(_person.Id, _item.Id, 1, TestContext.Current.CancellationToken);
 
         // Act
-        await _inventoryService.Equip(_person.Id, _item.Id, EquipmentSlot.RightHand, TestContext.Current.CancellationToken);
+        await _inventoryService.Equip(_person.Id, _item.Id, EquipmentSlot.RightHand,
+            TestContext.Current.CancellationToken);
 
         // Assert
         var items = await _inventoryService.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
@@ -126,15 +120,16 @@ public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Equip_UnequipsPrevious_WhenSlotAlreadyOccupied()
-    {
+    public async Task Equip_UnequipsPrevious_WhenSlotAlreadyOccupied() {
         // Arrange
         await _inventoryService.Add(_person.Id, _item.Id, 1, TestContext.Current.CancellationToken);
         await _inventoryService.Add(_person.Id, _stackableItem.Id, 1, TestContext.Current.CancellationToken);
-        await _inventoryService.Equip(_person.Id, _item.Id, EquipmentSlot.RightHand, TestContext.Current.CancellationToken);
+        await _inventoryService.Equip(_person.Id, _item.Id, EquipmentSlot.RightHand,
+            TestContext.Current.CancellationToken);
 
         // Act
-        await _inventoryService.Equip(_person.Id, _stackableItem.Id, EquipmentSlot.RightHand, TestContext.Current.CancellationToken);
+        await _inventoryService.Equip(_person.Id, _stackableItem.Id, EquipmentSlot.RightHand,
+            TestContext.Current.CancellationToken);
 
         // Assert
         var items = await _inventoryService.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
@@ -145,11 +140,11 @@ public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Unequip_ClearsSlot()
-    {
+    public async Task Unequip_ClearsSlot() {
         // Arrange
         await _inventoryService.Add(_person.Id, _item.Id, 1, TestContext.Current.CancellationToken);
-        await _inventoryService.Equip(_person.Id, _item.Id, EquipmentSlot.LeftHand, TestContext.Current.CancellationToken);
+        await _inventoryService.Equip(_person.Id, _item.Id, EquipmentSlot.LeftHand,
+            TestContext.Current.CancellationToken);
 
         // Act
         await _inventoryService.Unequip(_person.Id, EquipmentSlot.LeftHand, TestContext.Current.CancellationToken);
@@ -160,10 +155,9 @@ public sealed class InventoryServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Unequip_Throws_WhenSlotEmpty()
-    {
+    public async Task Unequip_Throws_WhenSlotEmpty() {
         // Arrange & Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _inventoryService.Unequip(_person.Id, EquipmentSlot.Helm, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _inventoryService.Unequip(_person.Id, EquipmentSlot.Helm, TestContext.Current.CancellationToken));
     }
 }
