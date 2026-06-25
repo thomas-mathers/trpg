@@ -37,6 +37,7 @@
 - No `Async` suffix on service methods
 - `CancellationToken cancellationToken = default` on every public service method
 - `await using` for disposable contexts
+- Never chain member access directly on an awaited expression: `(await Foo()).Bar` — always assign to a variable first
 
 ---
 
