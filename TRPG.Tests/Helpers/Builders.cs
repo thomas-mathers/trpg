@@ -41,13 +41,16 @@ internal static class Builders {
         };
     }
 
-    public static Skill MakeSkill(Guid? worldId = null) {
-        return new Skill {
+    public static Attack MakeSkill(Guid? worldId = null) {
+        return new Attack {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Skill-{Guid.NewGuid():N}",
             Description = "A test skill",
-            ApCost = 5,
-            CooldownTurns = 1
+            Cost = 5,
+            Cooldown = 1,
+            DamageType = DamageType.Physical,
+            DamageAmountType = AmountType.Flat,
+            DamageAmount = 10
         };
     }
 

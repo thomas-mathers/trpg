@@ -32,7 +32,12 @@ internal enum ItemCategory {
     CraftingMaterial
 }
 
-internal enum EffectStat {
+internal enum AmountType {
+    Flat,
+    Percent
+}
+
+internal enum AttributeName {
     CurrentHp,
     MaximumHp,
     CurrentAp,
@@ -41,17 +46,31 @@ internal enum EffectStat {
     Defense,
     Dexterity,
     Endurance,
-    Intelligence
+    Intelligence,
+    PhysicalResistance,
+    FireResistance,
+    IceResistance,
+    LightningResistance,
+    PoisonResistance,
+    MagicResistance
 }
 
-internal enum EffectApplicationMode {
-    Origin,
-    Target
+internal enum ConditionType {
+    Blinded,
+    Bleeding,
+    Frozen,
+    Poisoned,
+    Silenced,
+    Stunned
 }
 
-internal enum EffectType {
-    Flat,
-    Percent
+internal enum DamageType {
+    Physical,
+    Fire,
+    Ice,
+    Lightning,
+    Poison,
+    Magic
 }
 
 internal enum FactionRole {

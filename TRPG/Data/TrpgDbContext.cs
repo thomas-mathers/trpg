@@ -1,15 +1,20 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Models;
 
 namespace TRPG.Data;
 
 internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options) {
+    private static readonly JsonSerializerOptions JsonOptions = new() {
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
     public DbSet<BuildingProp> BuildingProps => Set<BuildingProp>();
     public DbSet<Building> Buildings => Set<Building>();
     public DbSet<City> Cities => Set<City>();
     public DbSet<Country> Countries => Set<Country>();
-    public DbSet<Effect> Effects => Set<Effect>();
     public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
     public DbSet<Faction> Factions => Set<Faction>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
@@ -38,11 +43,12 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) {
+        configurationBuilder.Properties<AmountType>().HaveConversion<string>();
+        configurationBuilder.Properties<AttributeName>().HaveConversion<string>();
+        configurationBuilder.Properties<ConditionType>().HaveConversion<string>();
+        configurationBuilder.Properties<DamageType>().HaveConversion<string>();
         configurationBuilder.Properties<EquipmentSlot>().HaveConversion<string>();
         configurationBuilder.Properties<ItemCategory>().HaveConversion<string>();
-        configurationBuilder.Properties<EffectStat>().HaveConversion<string>();
-        configurationBuilder.Properties<EffectApplicationMode>().HaveConversion<string>();
-        configurationBuilder.Properties<EffectType>().HaveConversion<string>();
         configurationBuilder.Properties<FactionRole>().HaveConversion<string>();
         configurationBuilder.Properties<QuestStatus>().HaveConversion<string>();
         configurationBuilder.Properties<QuestObjectiveType>().HaveConversion<string>();
@@ -66,11 +72,18 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
                 s.OwnsOne(st => st.Hp);
                 s.OwnsOne(st => st.Ap);
             });
+            entity.Property(p => p.ActiveConditions)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v => JsonSerializer.Deserialize<Dictionary<ConditionType, int>>(v, JsonOptions) ?? new()
+                )
+                .HasColumnType("jsonb");
+            entity.OwnsMany(p => p.ActiveModifiers, m => m.ToJson());
         });
 
         modelBuilder.Entity<Item>(entity => {
-            entity.Property(i => i.ActiveEffectIds).HasColumnType("uuid[]");
-            entity.Property(i => i.PassiveEffectIds).HasColumnType("uuid[]");
+            entity.OwnsMany(i => i.Modifiers, m => m.ToJson());
+            entity.HasIndex(i => new { i.WorldId, i.Name }).IsUnique();
         });
 
         modelBuilder.Entity<InventoryItem>(entity => {
@@ -79,8 +92,18 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         });
 
         modelBuilder.Entity<Skill>(entity => {
-            entity.Property(s => s.ActiveEffectIds).HasColumnType("uuid[]");
-            entity.Property(s => s.PassiveEffectIds).HasColumnType("uuid[]");
+            entity.HasDiscriminator<string>("skill_type")
+                  .HasValue<Attack>("Attack")
+                  .HasValue<Support>("Support");
+            entity.HasIndex(s => new { s.WorldId, s.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<Attack>(entity => {
+            entity.OwnsMany(a => a.Conditions, c => c.ToJson());
+        });
+
+        modelBuilder.Entity<Support>(entity => {
+            entity.OwnsMany(s => s.Modifiers, m => m.ToJson());
         });
 
         modelBuilder.Entity<SkillPrerequisite>(entity => {
@@ -170,15 +193,6 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<Profession>()
             .HasIndex(p => new { p.WorldId, p.Name }).IsUnique();
-
-        modelBuilder.Entity<Skill>()
-            .HasIndex(s => new { s.WorldId, s.Name }).IsUnique();
-
-        modelBuilder.Entity<Effect>()
-            .HasIndex(e => new { e.WorldId, e.Name }).IsUnique();
-
-        modelBuilder.Entity<Item>()
-            .HasIndex(i => new { i.WorldId, i.Name }).IsUnique();
 
         modelBuilder.Entity<Faction>()
             .HasIndex(f => new { f.WorldId, f.Name }).IsUnique();
