@@ -71,12 +71,18 @@ internal class GenerateGeographyCommandHandler(AiClient client, ILogger<Generate
                         $"Generate city {k + 1} of {cityCount} for province {province.Name}: provide its Name, Description, Width, and Height (size in tiles, 20-100).",
                         cancellationToken
                     );
+                    var width = citySchema.Width;
+                    var height = citySchema.Height;
                     cities.Add(new City {
                         ProvinceId = province.Id,
                         Name = citySchema.Name,
                         Description = citySchema.Description,
-                        Width = citySchema.Width,
-                        Height = citySchema.Height
+                        Width = width,
+                        Height = height,
+                        Boundary = new Circle {
+                            Center = new Location { Coordinates = new Point(0, 0) },
+                            Radius = Math.Max(width, height) / 2.0f
+                        }
                     });
                 }
             }
