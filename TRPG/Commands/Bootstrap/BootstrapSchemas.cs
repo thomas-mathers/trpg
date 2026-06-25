@@ -49,6 +49,8 @@ internal class ProfessionSchema {
 }
 
 internal class AttackSchema {
+    public float? AoeRadius { get; set; }
+    public string Category { get; set; } = "";
     public List<ConditionEffectSchema> Conditions { get; set; } = [];
     public int Cooldown { get; set; }
     public int Cost { get; set; }
@@ -57,6 +59,7 @@ internal class AttackSchema {
     public string DamageType { get; set; } = "";
     public string Description { get; set; } = "";
     public string Name { get; set; } = "";
+    public string TargetType { get; set; } = "";
 }
 
 internal class ConditionEffectSchema {
@@ -67,12 +70,15 @@ internal class ConditionEffectSchema {
 }
 
 internal class SupportSchema {
+    public float? AoeRadius { get; set; }
+    public string Category { get; set; } = "";
     public int Cooldown { get; set; }
     public int Cost { get; set; }
     public string Description { get; set; } = "";
     public int? Duration { get; set; }
     public List<AttributeModifierSchema> Modifiers { get; set; } = [];
     public string Name { get; set; } = "";
+    public string TargetType { get; set; } = "";
 }
 
 internal class AttributeModifierSchema {

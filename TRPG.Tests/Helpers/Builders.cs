@@ -48,6 +48,7 @@ internal static class Builders {
             Description = "A test skill",
             Cost = 5,
             Cooldown = 1,
+            TargetType = TargetType.Single,
             DamageType = DamageType.Physical,
             DamageAmountType = AmountType.Flat,
             DamageAmount = 10

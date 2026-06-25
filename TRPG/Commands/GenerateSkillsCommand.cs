@@ -36,8 +36,11 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
              When asked to generate an attack skill, respond with a single JSON object with these fields:
              - Name (string, unique)
              - Description (string)
+             - Category: a skill archetype such as Warrior, Ranger, Mage, Rogue — group thematically related skills under the same category
              - Cost: AP cost (integer 0-10)
              - Cooldown: turns (integer, 0 = no cooldown)
+             - TargetType: Single (one target), Aoe (all enemies in radius), or Self
+             - AoeRadius: metres (float), only when TargetType is Aoe, omit otherwise
              - DamageType: one of {{damageTypes}}
              - DamageAmountType: Flat or Percent
              - DamageAmount: number (use 0.15 for 15% when Percent)
@@ -46,8 +49,8 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
                - Duration: turns (integer)
                - Amount: number (for Bleeding/Poisoned DoT damage per turn), omit for others
                - AmountType: Flat or Percent (for Bleeding/Poisoned), omit for others
-             Vary damage types and conditions. Each attack must be unique. Do not use markdown.
-             Example: {"Name":"Shield Bash","Description":"Slam your shield into an enemy, stunning them.","Cost":3,"Cooldown":2,"DamageType":"Physical","DamageAmountType":"Flat","DamageAmount":15,"Conditions":[{"Condition":"Stunned","Duration":1}]}
+             Vary categories, damage types, target types, and conditions. Each attack must be unique. Do not use markdown.
+             Example: {"Name":"Blizzard","Description":"Summons a freezing storm that damages and chills all nearby enemies.","Category":"Mage","Cost":6,"Cooldown":4,"TargetType":"Aoe","AoeRadius":8.0,"DamageType":"Ice","DamageAmountType":"Flat","DamageAmount":12,"Conditions":[{"Condition":"Frozen","Duration":1}]}
              """);
 
         var supportChat = client.CreateChat<GenerateSkillsCommandHandler>(
@@ -56,15 +59,18 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
              When asked to generate a support skill, respond with a single JSON object with these fields:
              - Name (string, unique)
              - Description (string)
+             - Category: a skill archetype such as Warrior, Ranger, Mage, Rogue — group thematically related skills under the same category
              - Cost: AP cost (integer 0-10)
              - Cooldown: turns (integer, 0 = no cooldown)
+             - TargetType: Single (one ally), Aoe (all allies in radius), or Self
+             - AoeRadius: metres (float), only when TargetType is Aoe, omit otherwise
              - Duration: turns the effect lasts (integer), or null if permanent
              - Modifiers: array of stat changes, each with:
                - Attribute: one of {{attributeNames}}
                - Type: Flat or Percent
                - Amount: number (negative for penalties, use 0.15 for 15% when Percent)
-             Vary stats and durations. Each support must be unique. Do not use markdown.
-             Example: {"Name":"Battle Cry","Description":"Boosts nearby allies with a surge of strength.","Cost":2,"Cooldown":3,"Duration":3,"Modifiers":[{"Attribute":"Strength","Type":"Flat","Amount":5}]}
+             Vary categories, target types, stats, and durations. Each support must be unique. Do not use markdown.
+             Example: {"Name":"War Cry","Description":"A rallying shout that bolsters nearby allies' strength.","Category":"Warrior","Cost":2,"Cooldown":3,"TargetType":"Aoe","AoeRadius":6.0,"Duration":3,"Modifiers":[{"Attribute":"Strength","Type":"Flat","Amount":5}]}
              """);
 
         var attackSchemas = new List<AttackSchema>();
@@ -86,19 +92,26 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
         var allSkillNames = attackSchemas.Select(a => a.Name)
             .Concat(supportSchemas.Select(s => s.Name))
             .ToList();
+        var allCategories = attackSchemas.Select(a => a.Category)
+            .Concat(supportSchemas.Select(s => s.Category))
+            .ToList();
 
         var prereqSchemas = new List<SkillPrerequisitesSchema>();
         for (var i = 0; i < allSkillNames.Count; i++) {
-            var preceding = allSkillNames.Take(i).ToList();
-            SkillPrerequisitesSchema prereqs;
-            if (preceding.Count == 0) {
-                prereqs = new SkillPrerequisitesSchema();
+            var myCategory = allCategories[i];
+            var sameCategoryPreceding = allSkillNames
+                .Take(i)
+                .Where((_, j) => allCategories[j].Equals(myCategory, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (sameCategoryPreceding.Count == 0) {
+                prereqSchemas.Add(new SkillPrerequisitesSchema());
             } else {
-                prereqs = await attackChat.GetJson<SkillPrerequisitesSchema>(
-                    $"Choose 0-2 thematically fitting prerequisites for '{allSkillNames[i]}' from this list (or none if it stands alone): {string.Join(", ", preceding)}. Respond with PrerequisiteSkillNames using only names from that list. Example: {{\"PrerequisiteSkillNames\":[\"{preceding[0]}\"]}}",
+                var prereqs = await attackChat.GetJson<SkillPrerequisitesSchema>(
+                    $"Choose 0-2 prerequisites for '{allSkillNames[i]}' ({myCategory}) from this same-category list (or none if it is a starting skill): {string.Join(", ", sameCategoryPreceding)}. Respond with PrerequisiteSkillNames using only names from that list. Example: {{\"PrerequisiteSkillNames\":[\"{sameCategoryPreceding[0]}\"]}}",
                     cancellationToken);
+                prereqSchemas.Add(prereqs);
             }
-            prereqSchemas.Add(prereqs);
         }
 
         var attacks = attackSchemas.Select(a => new Attack {
@@ -107,13 +120,15 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
             Description = a.Description,
             Cost = a.Cost,
             Cooldown = a.Cooldown,
+            TargetType = TryParseEnum<TargetType>(a.TargetType) ?? TargetType.Single,
+            AoeRadius = a.TargetType.Equals("Aoe", StringComparison.OrdinalIgnoreCase) ? a.AoeRadius : null,
             DamageType = TryParseEnum<DamageType>(a.DamageType) ?? DamageType.Physical,
             DamageAmountType = TryParseEnum<AmountType>(a.DamageAmountType) ?? AmountType.Flat,
             DamageAmount = a.DamageAmount,
             Conditions = a.Conditions
                 .Select(c => {
                     var condType = TryParseEnum<ConditionType>(c.Condition);
-                    if (condType is null) return (ConditionEffect?)null;
+                    if (condType is null) return null;
                     return new ConditionEffect {
                         Condition = condType.Value,
                         Duration = c.Duration,
@@ -131,11 +146,13 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
             Description = s.Description,
             Cost = s.Cost,
             Cooldown = s.Cooldown,
+            TargetType = TryParseEnum<TargetType>(s.TargetType) ?? TargetType.Self,
+            AoeRadius = s.TargetType.Equals("Aoe", StringComparison.OrdinalIgnoreCase) ? s.AoeRadius : null,
             Duration = s.Duration,
             Modifiers = s.Modifiers
                 .Select(m => {
                     var attr = TryParseEnum<AttributeName>(m.Attribute);
-                    if (attr is null) return (AttributeModifier?)null;
+                    if (attr is null) return null;
                     return new AttributeModifier {
                         Attribute = attr.Value,
                         Type = TryParseEnum<AmountType>(m.Type) ?? AmountType.Flat,
@@ -146,7 +163,7 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
                 .ToList()
         }).ToList();
 
-        var allSkills = attacks.Cast<Skill>().Concat(supports.Cast<Skill>()).ToList();
+        var allSkills = attacks.Concat(supports.Cast<Skill>()).ToList();
         var prerequisites = new List<SkillPrerequisite>();
 
         for (var i = 0; i < allSkillNames.Count; i++) {

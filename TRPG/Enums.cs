@@ -73,6 +73,12 @@ internal enum DamageType {
     Magic
 }
 
+internal enum TargetType {
+    Single,
+    Aoe,
+    Self
+}
+
 internal enum FactionRole {
     Leader,
     Member

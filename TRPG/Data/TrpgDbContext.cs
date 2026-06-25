@@ -48,6 +48,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<ConditionType>().HaveConversion<string>();
         configurationBuilder.Properties<DamageType>().HaveConversion<string>();
         configurationBuilder.Properties<EquipmentSlot>().HaveConversion<string>();
+        configurationBuilder.Properties<TargetType>().HaveConversion<string>();
         configurationBuilder.Properties<ItemCategory>().HaveConversion<string>();
         configurationBuilder.Properties<FactionRole>().HaveConversion<string>();
         configurationBuilder.Properties<QuestStatus>().HaveConversion<string>();
