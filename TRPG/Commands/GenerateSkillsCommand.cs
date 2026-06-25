@@ -39,12 +39,12 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
              - Category: a skill archetype such as Warrior, Ranger, Mage, Rogue — group thematically related skills under the same category
              - Cost: AP cost (integer 0-10)
              - Cooldown: turns (integer, 0 = no cooldown)
-             - TargetType: Single (one target), Aoe (all enemies in radius), or Self
+             - TargetType: Single (one enemy) or Aoe (all enemies in radius)
              - AoeRadius: metres (float), only when TargetType is Aoe, omit otherwise
              - DamageType: one of {{damageTypes}}
              - DamageAmountType: Flat or Percent
              - DamageAmount: number (use 0.15 for 15% when Percent)
-             - Conditions: optional array of rider conditions applied to the target, each with:
+             - Conditions: optional array of rider conditions applied to the enemy, each with:
                - Condition: one of {{conditionTypes}}
                - Duration: turns (integer)
                - Amount: number (for Bleeding/Poisoned DoT damage per turn), omit for others
@@ -120,7 +120,7 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
             Description = a.Description,
             Cost = a.Cost,
             Cooldown = a.Cooldown,
-            TargetType = TryParseEnum<TargetType>(a.TargetType) ?? TargetType.Single,
+            TargetType = TryParseEnum<TargetType>(a.TargetType) is TargetType.Aoe ? TargetType.Aoe : TargetType.Single,
             AoeRadius = a.TargetType.Equals("Aoe", StringComparison.OrdinalIgnoreCase) ? a.AoeRadius : null,
             DamageType = TryParseEnum<DamageType>(a.DamageType) ?? DamageType.Physical,
             DamageAmountType = TryParseEnum<AmountType>(a.DamageAmountType) ?? AmountType.Flat,
