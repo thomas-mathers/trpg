@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Algorithms;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -21,11 +22,13 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             throw new InvalidOperationException("City graph cache returned null.");
         }
 
-        return Pathfinding.Dijkstra(
+        var cityPath = Graphs.Dijkstra(
             originCityId, destinationCityId,
-            id => graph.TryGetValue(id, out var edges) ? edges : [],
-            r => r.TravelTime,
-            r => r.DestinationCityId);
+            id => graph.TryGetValue(id, out var rs) ? rs.Select(r => r.DestinationCityId) : [],
+            (from, to) => graph[from].First(r => r.DestinationCityId == to).TravelTime);
+
+        return cityPath.Zip(cityPath.Skip(1), (from, to) => graph[from].First(r => r.DestinationCityId == to))
+            .ToList().AsReadOnly();
     }
 
     public async Task<ReadOnlyCollection<Point>> GetShortestIntraCityRoute(Guid cityId, Point origin, Point destination,
@@ -45,11 +48,10 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             throw new InvalidOperationException($"City grid cache returned null for {cityId}.");
         }
 
-        return Pathfinding.Dijkstra(
+        return Graphs.Dijkstra(
             origin, destination,
             p => GridNeighbors(p, grid.Width, grid.Height, grid.Blocked),
-            _ => 1f,
-            p => p);
+            (_, _) => 1f);
     }
 
     public async Task<ReadOnlyCollection<Point>> GetShortestIntraBuildingRoute(Guid buildingId, Point origin,
@@ -75,11 +77,10 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             throw new InvalidOperationException($"Building grid cache returned null for {buildingId}.");
         }
 
-        return Pathfinding.Dijkstra(
+        return Graphs.Dijkstra(
             origin, destination,
             p => GridNeighbors(p, grid.Width, grid.Height, grid.Blocked),
-            _ => 1f,
-            p => p);
+            (_, _) => 1f);
     }
 
     private static IEnumerable<Point> GridNeighbors(Point p, int width, int height, HashSet<Point> blocked) {

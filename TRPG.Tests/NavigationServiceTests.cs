@@ -98,7 +98,8 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
                 TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(2, result.Count);
+        Assert.Equal(3, result.Count);
+        Assert.Equal(origin, result[0]);
         Assert.Equal(destination, result[^1]);
     }
 
@@ -122,7 +123,8 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
             TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(2, result.Count);
+        Assert.Equal(3, result.Count);
+        Assert.Equal(origin, result[0]);
         Assert.Equal(destination, result[^1]);
     }
 
