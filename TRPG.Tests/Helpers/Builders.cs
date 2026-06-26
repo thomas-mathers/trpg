@@ -85,7 +85,7 @@ internal static class Builders {
     }
 
     public static World MakeWorld() {
-        return new World { Name = $"World-{Guid.NewGuid():N}", Description = "A test world" };
+        return new World { Name = $"World-{Guid.NewGuid():N}", Description = "A test world", Boundary = new Rectangle(0, 0, 10000, 10000) };
     }
 
     public static Country MakeCountry(Guid worldId) {
@@ -93,27 +93,18 @@ internal static class Builders {
             WorldId = worldId,
             Name = $"Country-{Guid.NewGuid():N}",
             Description = "A test country",
-            Boundary = new Circle { Center = new Location { Coordinates = new Point(0, 0) }, Radius = 1000 }
+            Boundary = new Rectangle(0, 0, 3000, 3000)
         };
     }
 
-    public static Province MakeProvince(Guid countryId) {
-        return new Province {
-            CountryId = countryId,
-            Name = $"Province-{Guid.NewGuid():N}",
-            Description = "A test province",
-            Boundary = new Circle { Center = new Location { Coordinates = new Point(0, 0) }, Radius = 500 }
-        };
-    }
-
-    public static City MakeCity(Guid provinceId) {
+    public static City MakeCity(Guid countryId) {
         return new City {
-            ProvinceId = provinceId,
+            CountryId = countryId,
             Name = $"City-{Guid.NewGuid():N}",
             Description = "A test city",
             Width = 100,
             Height = 100,
-            Boundary = new Circle { Center = new Location { Coordinates = new Point(0, 0) }, Radius = 200 }
+            Boundary = new Rectangle(0, 0, 100, 100)
         };
     }
 

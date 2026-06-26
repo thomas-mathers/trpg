@@ -11,6 +11,7 @@ internal class Attributes {
     public int Intelligence { get; set; }
     public float LightningResistance { get; set; }
     public float MagicResistance { get; set; }
+    public float MovementSpeed { get; set; }
     public float PhysicalResistance { get; set; }
     public float PoisonResistance { get; set; }
     public int Strength { get; set; }

@@ -5,7 +5,16 @@ using TRPG.Models;
 namespace TRPG.Commands;
 
 internal class GenerateWorldCommand {
+    public int AttackCount { get; init; }
+    public int BuildingsPerCity { get; init; }
+    public int CountryCount { get; init; }
     public required string Description { get; init; }
+    public int FactionCount { get; init; }
+    public int MaxCities { get; init; }
+    public int MinCities { get; init; }
+    public int ProfessionCount { get; init; }
+    public int RaceCount { get; init; }
+    public int SupportCount { get; init; }
 }
 
 internal class GenerateWorldCommandResult {
@@ -17,7 +26,6 @@ internal class GenerateWorldCommandResult {
     public required IReadOnlyList<Faction> Factions { get; init; }
     public required IReadOnlyList<Person> Persons { get; init; }
     public required IReadOnlyList<Profession> Professions { get; init; }
-    public required IReadOnlyList<Province> Provinces { get; init; }
     public required IReadOnlyList<Race> Races { get; init; }
     public required IReadOnlyList<SkillPrerequisite> SkillPrerequisites { get; init; }
     public required IReadOnlyList<Support> Supports { get; init; }
@@ -43,29 +51,34 @@ internal class GenerateWorldCommandHandler(
         var sw = Stopwatch.StartNew();
 
         var geography = await geographyHandler.Handle(
-            new GenerateGeographyCommand { Description = command.Description },
+            new GenerateGeographyCommand {
+                CountryCount = command.CountryCount,
+                Description = command.Description,
+                MaxCities = command.MaxCities,
+                MinCities = command.MinCities
+            },
             cancellationToken
         );
 
         var worldId = geography.World.Id;
 
         var races = await racesHandler.Handle(
-            new GenerateRacesCommand { Description = command.Description, WorldId = worldId },
+            new GenerateRacesCommand { Count = command.RaceCount, Description = command.Description, WorldId = worldId },
             cancellationToken
         );
         var professions = await professionsHandler.Handle(
-            new GenerateProfessionsCommand { Description = command.Description, WorldId = worldId },
+            new GenerateProfessionsCommand { Count = command.ProfessionCount, Description = command.Description, WorldId = worldId },
             cancellationToken
         );
         var factions = await factionsHandler.Handle(
-            new GenerateFactionsCommand { Description = command.Description, WorldId = worldId },
+            new GenerateFactionsCommand { Count = command.FactionCount, Description = command.Description, WorldId = worldId },
             cancellationToken
         );
         var travelRoutes = await travelRoutesHandler.Handle(
             new GenerateTravelRoutesCommand {
                 Description = command.Description,
                 Cities = geography.Cities,
-                Count = geography.Cities.Count * 2
+                Count = geography.Cities.Count * 2,
             },
             cancellationToken
         );
@@ -76,6 +89,7 @@ internal class GenerateWorldCommandHandler(
             var cityBuildings = await buildingsHandler.Handle(
                 new GenerateBuildingsCommand {
                     City = city,
+                    Count = command.BuildingsPerCity,
                     Description = command.Description,
                     ExistingBuildingNames = existingBuildingNames.AsReadOnly()
                 },
@@ -89,7 +103,9 @@ internal class GenerateWorldCommandHandler(
 
         var skillsResult = await skillsHandler.Handle(
             new GenerateSkillsCommand {
+                AttackCount = command.AttackCount,
                 Description = command.Description,
+                SupportCount = command.SupportCount,
                 WorldId = worldId
             },
             cancellationToken
@@ -116,7 +132,6 @@ internal class GenerateWorldCommandHandler(
         return new GenerateWorldCommandResult {
             World = geography.World,
             Countries = geography.Countries,
-            Provinces = geography.Provinces,
             Cities = geography.Cities,
             Races = races,
             Professions = professions,

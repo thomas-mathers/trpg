@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
@@ -22,26 +22,14 @@ internal class LocationService(TrpgDbContext context) {
         return list.AsReadOnly();
     }
 
-    public async Task<Province?> GetProvinceById(Guid id, CancellationToken cancellationToken = default) {
-        return await context.Provinces.FindAsync([id], cancellationToken);
-    }
-
-    public async Task<ReadOnlyCollection<Province>> GetAllProvincesByCountryId(Guid countryId,
-        CancellationToken cancellationToken = default) {
-        var list = await context.Provinces
-            .Where(p => p.CountryId == countryId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
-    }
-
     public async Task<City?> GetCityById(Guid id, CancellationToken cancellationToken = default) {
         return await context.Cities.FindAsync([id], cancellationToken);
     }
 
-    public async Task<ReadOnlyCollection<City>> GetAllCitiesByProvinceId(Guid provinceId,
+    public async Task<ReadOnlyCollection<City>> GetAllCitiesByCountryId(Guid countryId,
         CancellationToken cancellationToken = default) {
         var list = await context.Cities
-            .Where(c => c.ProvinceId == provinceId)
+            .Where(c => c.CountryId == countryId)
             .ToListAsync(cancellationToken);
         return list.AsReadOnly();
     }

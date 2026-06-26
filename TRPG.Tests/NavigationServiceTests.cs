@@ -11,7 +11,7 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     private MemoryCache _cache = null!;
     private City _city = null!;
     private TrpgDbContext _context = null!;
-    private Province _province = null!;
+    private Country _country = null!;
     private NavigationService _service = null!;
 
     public async ValueTask InitializeAsync() {
@@ -20,13 +20,11 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         _service = new NavigationService(_context, _cache);
 
         var world = Builders.MakeWorld();
-        var country = Builders.MakeCountry(world.Id);
-        _province = Builders.MakeProvince(country.Id);
-        _city = Builders.MakeCity(_province.Id);
+        _country = Builders.MakeCountry(world.Id);
+        _city = Builders.MakeCity(_country.Id);
 
         _context.Worlds.Add(world);
-        _context.Countries.Add(country);
-        _context.Provinces.Add(_province);
+        _context.Countries.Add(_country);
         _context.Cities.Add(_city);
         await _context.SaveChangesAsync();
     }
@@ -37,7 +35,7 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     }
 
     private async Task<City> SeedCity() {
-        var city = Builders.MakeCity(_province.Id);
+        var city = Builders.MakeCity(_country.Id);
         _context.Cities.Add(city);
         await _context.SaveChangesAsync();
         return city;

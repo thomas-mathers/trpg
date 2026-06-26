@@ -34,13 +34,30 @@ internal class Menu(
             return;
         }
 
+        Console.WriteLine("Configure generation (press Enter to use defaults):");
+        var command = new BootstrapWorldCommand {
+            Description = description,
+            CountryCount = AskInt("  Countries", WorldGenerationDefaults.CountryCount),
+            MinCities = AskInt("  Cities min", WorldGenerationDefaults.MinCities),
+            MaxCities = AskInt("  Cities max", WorldGenerationDefaults.MaxCities),
+            BuildingsPerCity = AskInt("  Buildings/city", WorldGenerationDefaults.BuildingsPerCity),
+            RaceCount = AskInt("  Races", WorldGenerationDefaults.RaceCount),
+            ProfessionCount = AskInt("  Professions", WorldGenerationDefaults.ProfessionCount),
+            FactionCount = AskInt("  Factions", WorldGenerationDefaults.FactionCount),
+            AttackCount = AskInt("  Attack skills", WorldGenerationDefaults.AttackCount),
+            SupportCount = AskInt("  Support skills", WorldGenerationDefaults.SupportCount),
+        };
+
         Console.WriteLine("Generating world...");
-        var result = await bootstrapHandler.Handle(
-            new BootstrapWorldCommand { Description = description },
-            CancellationToken.None
-        );
+        var result = await bootstrapHandler.Handle(command, CancellationToken.None);
 
         Console.WriteLine($"Done. World \"{result.World.Name}\" created (ID: {result.World.Id}).");
+    }
+
+    private static int AskInt(string label, int defaultValue) {
+        Console.Write($"{label} [{defaultValue}]: ");
+        var input = Console.ReadLine()?.Trim();
+        return int.TryParse(input, out var value) ? value : defaultValue;
     }
 
     private async Task RunDrop() {

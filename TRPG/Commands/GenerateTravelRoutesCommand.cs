@@ -39,11 +39,18 @@ internal class GenerateTravelRoutesCommandHandler(AiClient client, ILogger<Gener
              """);
 
         var routes = new List<TravelRoute>();
+        var usedPairs = new HashSet<(Guid, Guid)>();
         for (var i = 0; i < command.Count; i++) {
-            var schema = await chat.GetJson<TravelRouteSchema>($"Generate travel route {i + 1} of {command.Count}.",
+            var exclusions = usedPairs.Count > 0
+                ? " Do not use these already-taken pairs: " + string.Join(", ", usedPairs.Select(p =>
+                    $"{command.Cities.First(c => c.Id == p.Item1).Name}↔{command.Cities.First(c => c.Id == p.Item2).Name}")) + "."
+                : "";
+            var schema = await chat.GetJson<TravelRouteSchema>(
+                $"Generate travel route {i + 1} of {command.Count}.{exclusions}",
                 cancellationToken);
-            var route = MapRoute(command.Cities, schema);
+            var route = MapRoute(command.Cities, schema, usedPairs);
             if (route is not null) {
+                usedPairs.Add((route.OriginCityId, route.DestinationCityId));
                 routes.Add(route);
             }
         }
@@ -52,12 +59,21 @@ internal class GenerateTravelRoutesCommandHandler(AiClient client, ILogger<Gener
         return routes;
     }
 
-    private static TravelRoute? MapRoute(IReadOnlyList<City> cities, TravelRouteSchema schema) {
+    private TravelRoute? MapRoute(IReadOnlyList<City> cities, TravelRouteSchema schema, HashSet<(Guid, Guid)> usedPairs) {
         var origin =
             cities.FirstOrDefault(c => c.Name.Equals(schema.OriginCityName, StringComparison.OrdinalIgnoreCase));
         var destination = cities.FirstOrDefault(c =>
             c.Name.Equals(schema.DestinationCityName, StringComparison.OrdinalIgnoreCase));
-        if (origin is null || destination is null || origin.Id == destination.Id) {
+        if (origin is null || destination is null) {
+            logger.LogWarning("Dropped route '{Route}': city not found ('{Origin}' -> '{Destination}')", schema.Name, schema.OriginCityName, schema.DestinationCityName);
+            return null;
+        }
+        if (origin.Id == destination.Id) {
+            logger.LogWarning("Dropped route '{Route}': origin and destination are the same city '{City}'", schema.Name, schema.OriginCityName);
+            return null;
+        }
+        if (usedPairs.Contains((origin.Id, destination.Id)) || usedPairs.Contains((destination.Id, origin.Id))) {
+            logger.LogWarning("Dropped route '{Route}': duplicate pair '{Origin}' <-> '{Destination}'", schema.Name, schema.OriginCityName, schema.DestinationCityName);
             return null;
         }
 

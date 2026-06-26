@@ -52,15 +52,18 @@ internal enum AttributeName {
     IceResistance,
     LightningResistance,
     PoisonResistance,
-    MagicResistance
+    MagicResistance,
+    MovementSpeed
 }
 
 internal enum ConditionType {
     Blinded,
     Bleeding,
+    Burning,
     Frozen,
     Poisoned,
     Silenced,
+    Snared,
     Stunned
 }
 

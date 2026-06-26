@@ -125,19 +125,7 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
             DamageType = TryParseEnum<DamageType>(a.DamageType) ?? DamageType.Physical,
             DamageAmountType = TryParseEnum<AmountType>(a.DamageAmountType) ?? AmountType.Flat,
             DamageAmount = a.DamageAmount,
-            Conditions = a.Conditions
-                .Select(c => {
-                    var condType = TryParseEnum<ConditionType>(c.Condition);
-                    if (condType is null) return null;
-                    return new ConditionEffect {
-                        Condition = condType.Value,
-                        Duration = c.Duration,
-                        Amount = c.Amount,
-                        Type = TryParseEnum<AmountType>(c.AmountType)
-                    };
-                })
-                .OfType<ConditionEffect>()
-                .ToList()
+            Conditions = MapConditions(a.Name, a.Conditions)
         }).ToList();
 
         var supports = supportSchemas.Select(s => new Support {
@@ -149,18 +137,7 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
             TargetType = TryParseEnum<TargetType>(s.TargetType) ?? TargetType.Self,
             AoeRadius = s.TargetType.Equals("Aoe", StringComparison.OrdinalIgnoreCase) ? s.AoeRadius : null,
             Duration = s.Duration,
-            Modifiers = s.Modifiers
-                .Select(m => {
-                    var attr = TryParseEnum<AttributeName>(m.Attribute);
-                    if (attr is null) return null;
-                    return new AttributeModifier {
-                        Attribute = attr.Value,
-                        Type = TryParseEnum<AmountType>(m.Type) ?? AmountType.Flat,
-                        Amount = m.Amount
-                    };
-                })
-                .OfType<AttributeModifier>()
-                .ToList()
+            Modifiers = MapModifiers(s.Name, s.Modifiers)
         }).ToList();
 
         var allSkills = attacks.Concat(supports.Cast<Skill>()).ToList();
@@ -174,12 +151,49 @@ internal class GenerateSkillsCommandHandler(AiClient client, ILogger<GenerateSki
                     prerequisites.Add(new SkillPrerequisite {
                         SkillId = allSkills[i].Id, PrerequisiteSkillId = prereq.Id
                     });
+                else
+                    logger.LogWarning("Dropped prerequisite '{Prereq}' for '{Skill}': not found in skill list", prereqName, allSkillNames[i]);
             }
         }
 
         logger.LogDebug("GenerateSkills completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
         return new GenerateSkillsCommandResult { Attacks = attacks, Supports = supports, Prerequisites = prerequisites };
     }
+
+    private List<ConditionEffect> MapConditions(string skillName, List<ConditionEffectSchema> schemas) =>
+        schemas
+            .Select(c => {
+                var condType = TryParseEnum<ConditionType>(c.Condition);
+                if (condType is null) {
+                    logger.LogWarning("Dropped condition '{Condition}' on '{Skill}': unknown ConditionType", c.Condition, skillName);
+                    return null;
+                }
+                return new ConditionEffect {
+                    Condition = condType.Value,
+                    Duration = c.Duration,
+                    Amount = c.Amount,
+                    Type = TryParseEnum<AmountType>(c.AmountType)
+                };
+            })
+            .OfType<ConditionEffect>()
+            .ToList();
+
+    private List<AttributeModifier> MapModifiers(string skillName, List<AttributeModifierSchema> schemas) =>
+        schemas
+            .Select(m => {
+                var attr = TryParseEnum<AttributeName>(m.Attribute);
+                if (attr is null) {
+                    logger.LogWarning("Dropped modifier '{Attribute}' on '{Skill}': unknown AttributeName", m.Attribute, skillName);
+                    return null;
+                }
+                return new AttributeModifier {
+                    Attribute = attr.Value,
+                    Type = TryParseEnum<AmountType>(m.Type) ?? AmountType.Flat,
+                    Amount = m.Amount
+                };
+            })
+            .OfType<AttributeModifier>()
+            .ToList();
 
     private static T? TryParseEnum<T>(string? value) where T : struct, Enum {
         if (string.IsNullOrEmpty(value)) return null;

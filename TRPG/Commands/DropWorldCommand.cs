@@ -13,10 +13,8 @@ internal class DropWorldCommandHandler(TrpgDbContext context) {
 
         var countryIds = await context.Countries
             .Where(c => c.WorldId == worldId).Select(c => c.Id).ToListAsync(cancellationToken);
-        var provinceIds = await context.Provinces
-            .Where(p => countryIds.Contains(p.CountryId)).Select(p => p.Id).ToListAsync(cancellationToken);
         var cityIds = await context.Cities
-            .Where(c => provinceIds.Contains(c.ProvinceId)).Select(c => c.Id).ToListAsync(cancellationToken);
+            .Where(c => countryIds.Contains(c.CountryId)).Select(c => c.Id).ToListAsync(cancellationToken);
         var buildingIds = await context.Buildings
             .Where(b => cityIds.Contains(b.CityId)).Select(b => b.Id).ToListAsync(cancellationToken);
         var skillIds = await context.Skills
@@ -31,8 +29,7 @@ internal class DropWorldCommandHandler(TrpgDbContext context) {
         await context.TravelRoutes
             .Where(tr => cityIds.Contains(tr.OriginCityId) || cityIds.Contains(tr.DestinationCityId))
             .ExecuteDeleteAsync(cancellationToken);
-        await context.Cities.Where(c => provinceIds.Contains(c.ProvinceId)).ExecuteDeleteAsync(cancellationToken);
-        await context.Provinces.Where(p => countryIds.Contains(p.CountryId)).ExecuteDeleteAsync(cancellationToken);
+        await context.Cities.Where(c => countryIds.Contains(c.CountryId)).ExecuteDeleteAsync(cancellationToken);
         await context.Countries.Where(c => c.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Skills.Where(s => s.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Races.Where(r => r.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);

@@ -10,15 +10,12 @@ internal class GenerateGeographyCommand {
     public int CountryCount { get; init; } = 3;
     public required string Description { get; init; }
     public int MaxCities { get; init; } = 8;
-    public int MaxProvinces { get; init; } = 4;
     public int MinCities { get; init; } = 5;
-    public int MinProvinces { get; init; } = 2;
 }
 
 internal class GenerateGeographyCommandResult {
     public required IReadOnlyList<City> Cities { get; init; }
     public required IReadOnlyList<Country> Countries { get; init; }
-    public required IReadOnlyList<Province> Provinces { get; init; }
     public required World World { get; init; }
 }
 
@@ -40,10 +37,9 @@ internal class GenerateGeographyCommandHandler(AiClient client, ILogger<Generate
             "Generate the world: provide its Name and Description.",
             cancellationToken
         );
-        var world = new World { Name = worldSchema.Name, Description = worldSchema.Description };
+        var world = new World { Name = worldSchema.Name, Description = worldSchema.Description, Boundary = new Rectangle(0, 0, 0, 0) };
 
         var countries = new List<Country>();
-        var provinces = new List<Province>();
         var cities = new List<City>();
 
         for (var i = 0; i < command.CountryCount; i++) {
@@ -51,40 +47,28 @@ internal class GenerateGeographyCommandHandler(AiClient client, ILogger<Generate
                 $"Generate country {i + 1} of {command.CountryCount}: provide its Name and Description.",
                 cancellationToken
             );
-            var country = new Country
-                { WorldId = world.Id, Name = countrySchema.Name, Description = countrySchema.Description };
+            var country = new Country {
+                WorldId = world.Id,
+                Name = countrySchema.Name,
+                Description = countrySchema.Description,
+                Boundary = new Rectangle(0, 0, 0, 0)
+            };
             countries.Add(country);
 
-            var provinceCount = Random.Shared.Next(command.MinProvinces, command.MaxProvinces + 1);
-            for (var j = 0; j < provinceCount; j++) {
-                var provinceSchema = await chat.GetJson<GeographyEntitySchema>(
-                    $"Generate province {j + 1} of {provinceCount} for country {country.Name}: provide its Name and Description.",
+            var cityCount = Random.Shared.Next(command.MinCities, command.MaxCities + 1);
+            for (var k = 0; k < cityCount; k++) {
+                var citySchema = await chat.GetJson<GeographyCitySchema>(
+                    $"Generate city {k + 1} of {cityCount} for country {country.Name}: provide its Name, Description, Width, and Height (size in tiles, 20-100).",
                     cancellationToken
                 );
-                var province = new Province
-                    { CountryId = country.Id, Name = provinceSchema.Name, Description = provinceSchema.Description };
-                provinces.Add(province);
-
-                var cityCount = Random.Shared.Next(command.MinCities, command.MaxCities + 1);
-                for (var k = 0; k < cityCount; k++) {
-                    var citySchema = await chat.GetJson<GeographyCitySchema>(
-                        $"Generate city {k + 1} of {cityCount} for province {province.Name}: provide its Name, Description, Width, and Height (size in tiles, 20-100).",
-                        cancellationToken
-                    );
-                    var width = citySchema.Width;
-                    var height = citySchema.Height;
-                    cities.Add(new City {
-                        ProvinceId = province.Id,
-                        Name = citySchema.Name,
-                        Description = citySchema.Description,
-                        Width = width,
-                        Height = height,
-                        Boundary = new Circle {
-                            Center = new Location { Coordinates = new Point(0, 0) },
-                            Radius = Math.Max(width, height) / 2.0f
-                        }
-                    });
-                }
+                cities.Add(new City {
+                    CountryId = country.Id,
+                    Name = citySchema.Name,
+                    Description = citySchema.Description,
+                    Width = citySchema.Width,
+                    Height = citySchema.Height,
+                    Boundary = new Rectangle(0, 0, 0, 0)
+                });
             }
         }
 
@@ -93,7 +77,6 @@ internal class GenerateGeographyCommandHandler(AiClient client, ILogger<Generate
         return new GenerateGeographyCommandResult {
             World = world,
             Countries = countries,
-            Provinces = provinces,
             Cities = cities
         };
     }

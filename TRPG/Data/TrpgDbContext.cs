@@ -27,7 +27,6 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<PersonSkill> PersonSkills => Set<PersonSkill>();
     public DbSet<Profession> Professions => Set<Profession>();
-    public DbSet<Province> Provinces => Set<Province>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
     public DbSet<Race> Races => Set<Race>();
@@ -123,25 +122,16 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             });
         });
 
-        modelBuilder.Entity<Country>(entity => {
-            entity.OwnsOne(c => c.Boundary, b => {
-                b.ToJson();
-                b.OwnsOne(c => c.Center, center => center.OwnsOne(l => l.Coordinates));
-            });
+        modelBuilder.Entity<World>(entity => {
+            entity.OwnsOne(w => w.Boundary, b => b.ToJson());
         });
 
-        modelBuilder.Entity<Province>(entity => {
-            entity.OwnsOne(p => p.Boundary, b => {
-                b.ToJson();
-                b.OwnsOne(c => c.Center, center => center.OwnsOne(l => l.Coordinates));
-            });
+        modelBuilder.Entity<Country>(entity => {
+            entity.OwnsOne(c => c.Boundary, b => b.ToJson());
         });
 
         modelBuilder.Entity<City>(entity => {
-            entity.OwnsOne(c => c.Boundary, b => {
-                b.ToJson();
-                b.OwnsOne(c => c.Center, center => center.OwnsOne(l => l.Coordinates));
-            });
+            entity.OwnsOne(c => c.Boundary, b => b.ToJson());
         });
 
         modelBuilder.Entity<Building>(entity => { entity.OwnsOne(b => b.Boundary, r => r.ToJson()); });
@@ -201,11 +191,8 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<Country>()
             .HasIndex(c => new { c.WorldId, c.Name }).IsUnique();
 
-        modelBuilder.Entity<Province>()
-            .HasIndex(p => new { p.CountryId, p.Name }).IsUnique();
-
         modelBuilder.Entity<City>()
-            .HasIndex(c => new { c.ProvinceId, c.Name }).IsUnique();
+            .HasIndex(c => new { c.CountryId, c.Name }).IsUnique();
 
         modelBuilder.Entity<Building>()
             .HasIndex(b => new { b.CityId, b.Name }).IsUnique();

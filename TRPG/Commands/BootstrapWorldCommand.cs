@@ -4,7 +4,16 @@ using TRPG.Data;
 namespace TRPG.Commands;
 
 internal class BootstrapWorldCommand {
+    public int AttackCount { get; init; } = WorldGenerationDefaults.AttackCount;
+    public int BuildingsPerCity { get; init; } = WorldGenerationDefaults.BuildingsPerCity;
+    public int CountryCount { get; init; } = WorldGenerationDefaults.CountryCount;
     public required string Description { get; init; }
+    public int FactionCount { get; init; } = WorldGenerationDefaults.FactionCount;
+    public int MaxCities { get; init; } = WorldGenerationDefaults.MaxCities;
+    public int MinCities { get; init; } = WorldGenerationDefaults.MinCities;
+    public int ProfessionCount { get; init; } = WorldGenerationDefaults.ProfessionCount;
+    public int RaceCount { get; init; } = WorldGenerationDefaults.RaceCount;
+    public int SupportCount { get; init; } = WorldGenerationDefaults.SupportCount;
 }
 
 internal class BootstrapWorldCommandHandler(
@@ -17,13 +26,23 @@ internal class BootstrapWorldCommandHandler(
         CancellationToken cancellationToken
     ) {
         var result = await generateWorldHandler.Handle(
-            new GenerateWorldCommand { Description = command.Description },
+            new GenerateWorldCommand {
+                AttackCount = command.AttackCount,
+                BuildingsPerCity = command.BuildingsPerCity,
+                CountryCount = command.CountryCount,
+                Description = command.Description,
+                FactionCount = command.FactionCount,
+                MaxCities = command.MaxCities,
+                MinCities = command.MinCities,
+                ProfessionCount = command.ProfessionCount,
+                RaceCount = command.RaceCount,
+                SupportCount = command.SupportCount
+            },
             cancellationToken
         );
 
         context.Worlds.Add(result.World);
         context.Countries.AddRange(result.Countries);
-        context.Provinces.AddRange(result.Provinces);
         context.Cities.AddRange(result.Cities);
         context.Races.AddRange(result.Races);
         context.Professions.AddRange(result.Professions);

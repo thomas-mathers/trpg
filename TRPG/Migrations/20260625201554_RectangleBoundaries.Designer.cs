@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
@@ -12,9 +13,11 @@ using TRPG.Data;
 namespace TRPG.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260625201554_RectangleBoundaries")]
+    partial class RectangleBoundaries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -116,10 +119,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("CountryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("country_id");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -134,6 +133,10 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
+                    b.Property<Guid>("ProvinceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("province_id");
+
                     b.Property<int>("Width")
                         .HasColumnType("integer")
                         .HasColumnName("width");
@@ -141,9 +144,9 @@ namespace TRPG.Migrations
                     b.HasKey("Id")
                         .HasName("pk_cities");
 
-                    b.HasIndex("CountryId", "Name")
+                    b.HasIndex("ProvinceId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_cities_country_id_name");
+                        .HasDatabaseName("ix_cities_province_id_name");
 
                     b.ToTable("cities", (string)null);
                 });
@@ -635,6 +638,37 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_professions_world_id_name");
 
                     b.ToTable("professions", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Models.Province", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CountryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("country_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_provinces");
+
+                    b.HasIndex("CountryId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_provinces_country_id_name");
+
+                    b.ToTable("provinces", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Models.Quest", b =>
@@ -1501,6 +1535,37 @@ namespace TRPG.Migrations
                         .HasConstraintName("fk_person_skills_skills_skill_id");
 
                     b.Navigation("Skill");
+                });
+
+            modelBuilder.Entity("TRPG.Models.Province", b =>
+                {
+                    b.OwnsOne("TRPG.Models.Rectangle", "Boundary", b1 =>
+                        {
+                            b1.Property<Guid>("ProvinceId");
+
+                            b1.Property<int>("Bottom");
+
+                            b1.Property<int>("Left");
+
+                            b1.Property<int>("Right");
+
+                            b1.Property<int>("Top");
+
+                            b1.HasKey("ProvinceId");
+
+                            b1.ToTable("provinces");
+
+                            b1
+                                .ToJson("boundary")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProvinceId")
+                                .HasConstraintName("fk_provinces_provinces_id");
+                        });
+
+                    b.Navigation("Boundary")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TRPG.Models.QuestObjective", b =>
