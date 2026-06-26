@@ -5,7 +5,7 @@ namespace TRPG.Tests;
 
 public class GraphsTests {
     [Fact]
-    public void Dijkstra_ReturnsMultiHopPath_InCorrectOrder() {
+    public void ShortestPath_ReturnsMultiHopPath_InCorrectOrder() {
         // Arrange
         var graph = new Dictionary<string, Dictionary<string, float>> {
             ["A"] = new() { ["B"] = 1, ["C"] = 10 },
@@ -14,7 +14,7 @@ public class GraphsTests {
         };
 
         // Act
-        var result = Graphs.Dijkstra("A", "C", n => Neighbors(graph, n), (from, to) => graph[from][to]);
+        var result = Graphs.ShortestPath("A", "C", n => Neighbors(graph, n), (from, to) => graph[from][to]);
 
         // Assert
         Assert.Equal(3, result.Count);
@@ -24,7 +24,7 @@ public class GraphsTests {
     }
 
     [Fact]
-    public void Dijkstra_ReturnsShortestPath_WhenCheaperRouteRequiresMoreHops() {
+    public void ShortestPath_ReturnsShortestPath_WhenCheaperRouteRequiresMoreHops() {
         // Arrange — direct A→D costs 100; A→B→C→D costs 9
         var graph = new Dictionary<string, Dictionary<string, float>> {
             ["A"] = new() { ["B"] = 3, ["D"] = 100 },
@@ -34,7 +34,7 @@ public class GraphsTests {
         };
 
         // Act
-        var result = Graphs.Dijkstra("A", "D", n => Neighbors(graph, n), (from, to) => graph[from][to]);
+        var result = Graphs.ShortestPath("A", "D", n => Neighbors(graph, n), (from, to) => graph[from][to]);
 
         // Assert
         Assert.Equal(4, result.Count);
@@ -45,7 +45,7 @@ public class GraphsTests {
     }
 
     [Fact]
-    public void Dijkstra_ReturnsEmpty_WhenDestinationUnreachable() {
+    public void ShortestPath_ReturnsEmpty_WhenDestinationUnreachable() {
         // Arrange
         var graph = new Dictionary<string, Dictionary<string, float>> {
             ["A"] = new() { ["B"] = 1 },
@@ -54,14 +54,14 @@ public class GraphsTests {
         };
 
         // Act
-        var result = Graphs.Dijkstra("A", "C", n => Neighbors(graph, n), (from, to) => graph[from][to]);
+        var result = Graphs.ShortestPath("A", "C", n => Neighbors(graph, n), (from, to) => graph[from][to]);
 
         // Assert
         Assert.Empty(result);
     }
 
     [Fact]
-    public void Dijkstra_NavigatesAroundObstacle_OnGrid() {
+    public void ShortestPath_NavigatesAroundObstacle_OnGrid() {
         // Arrange — 3×3 grid, (1,0) blocked; straight path is cut off
         //   0 1 2
         // 0 S X E
@@ -70,7 +70,7 @@ public class GraphsTests {
         var blocked = new HashSet<Point> { new(1, 0) };
 
         // Act
-        var result = Graphs.Dijkstra(new Point(0, 0), new Point(2, 0), GridNeighbors, (_, _) => 1f);
+        var result = Graphs.ShortestPath(new Point(0, 0), new Point(2, 0), GridNeighbors, (_, _) => 1f);
 
         // Assert — shortest detour is 4 steps: (0,1)→(1,1)→(2,1)→(2,0)
         Assert.Equal(5, result.Count);
@@ -84,6 +84,60 @@ public class GraphsTests {
             if (p.Y > 0 && !blocked.Contains(new Point(p.X, p.Y - 1))) yield return new Point(p.X, p.Y - 1);
             if (p.Y < 2 && !blocked.Contains(new Point(p.X, p.Y + 1))) yield return new Point(p.X, p.Y + 1);
         }
+    }
+
+    [Fact]
+    public void MinimumSpanningTree_ReturnsNMinusOneEdges_ForConnectedGraph() {
+        // Arrange — 4 vertices, fully connected with varying costs
+        var graph = new Dictionary<string, Dictionary<string, float>> {
+            ["A"] = new() { ["B"] = 1, ["C"] = 5 },
+            ["B"] = new() { ["A"] = 1, ["C"] = 2, ["D"] = 6 },
+            ["C"] = new() { ["A"] = 5, ["B"] = 2, ["D"] = 3 },
+            ["D"] = new() { ["C"] = 3, ["B"] = 6 }
+        };
+
+        // Act
+        var result = Graphs.MinimumSpanningTree("A", n => Neighbors(graph, n), (from, to) => graph[from][to]);
+
+        // Assert
+        Assert.Equal(3, result.Count);
+    }
+
+    [Fact]
+    public void MinimumSpanningTree_SelectsCheapestEdges() {
+        // Arrange — MST should pick A-B(1), B-C(2), C-D(3) and skip the more expensive alternatives
+        var graph = new Dictionary<string, Dictionary<string, float>> {
+            ["A"] = new() { ["B"] = 1, ["C"] = 5 },
+            ["B"] = new() { ["A"] = 1, ["C"] = 2, ["D"] = 6 },
+            ["C"] = new() { ["A"] = 5, ["B"] = 2, ["D"] = 3 },
+            ["D"] = new() { ["C"] = 3, ["B"] = 6 }
+        };
+
+        // Act
+        var result = Graphs.MinimumSpanningTree("A", n => Neighbors(graph, n), (from, to) => graph[from][to]);
+
+        // Assert
+        Assert.Contains(("A", "B"), result);
+        Assert.Contains(("B", "C"), result);
+        Assert.Contains(("C", "D"), result);
+    }
+
+    [Fact]
+    public void MinimumSpanningTree_ReturnsPartialTree_WhenGraphIsDisconnected() {
+        // Arrange — A-B connected, C-D isolated from them
+        var graph = new Dictionary<string, Dictionary<string, float>> {
+            ["A"] = new() { ["B"] = 1 },
+            ["B"] = new() { ["A"] = 1 },
+            ["C"] = new() { ["D"] = 2 },
+            ["D"] = new() { ["C"] = 2 }
+        };
+
+        // Act — starts from A, so C and D are unreachable
+        var result = Graphs.MinimumSpanningTree("A", n => Neighbors(graph, n), (from, to) => graph[from][to]);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Contains(("A", "B"), result);
     }
 
     private static IEnumerable<string> Neighbors(Dictionary<string, Dictionary<string, float>> graph, string node) =>

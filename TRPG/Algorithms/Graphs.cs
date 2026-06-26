@@ -3,40 +3,30 @@
 namespace TRPG.Algorithms;
 
 internal static class Graphs {
-    public static ReadOnlyCollection<(TKey from, TKey to)> Prims<TKey>(
-        List<TKey> vertices,
+    public static ReadOnlyCollection<(TKey from, TKey to)> MinimumSpanningTree<TKey>(
+        TKey start,
         Func<TKey, IEnumerable<TKey>> getNeighbors,
         Func<TKey, TKey, float> getCost
     ) where TKey : notnull {
-        var cheapestCost = new Dictionary<TKey, float>();
+        var cheapestCost = new Dictionary<TKey, float> { [start] = 0 };
         var cheapestEdge = new Dictionary<TKey, TKey>();
-        
-        foreach (var u in vertices) {
-            cheapestCost[u] = float.PositiveInfinity;
-        }
-        
-        cheapestCost[vertices[0]] = 0;
-        
-        var unexplored = new HashSet<TKey>(vertices);
+        var frontier = new PriorityQueue<TKey, float>();
+        var visited = new HashSet<TKey>();
 
-        while (unexplored.Count > 0) {
-            var from = unexplored.MinBy(v => cheapestCost[v]);
+        frontier.Enqueue(start, 0);
 
-            if (from is null || float.IsPositiveInfinity(cheapestCost[from])) {
-                break;
-            }
-            
-            unexplored.Remove(from);
+        while (frontier.TryDequeue(out var from, out _)) {
+            if (!visited.Add(from)) continue;
 
             foreach (var to in getNeighbors(from)) {
+                if (visited.Contains(to)) continue;
+
                 var cost = getCost(from, to);
-                
-                if (!unexplored.Contains(to) || cost >= cheapestCost[to]) {
-                    continue;
-                }
-                
+                if (cheapestCost.TryGetValue(to, out var best) && cost >= best) continue;
+
                 cheapestCost[to] = cost;
                 cheapestEdge[to] = from;
+                frontier.Enqueue(to, cost);
             }
         }
 
@@ -49,28 +39,31 @@ internal static class Graphs {
         return edges.AsReadOnly();
     }
 
-    public static ReadOnlyCollection<TKey> Dijkstra<TKey>(
+    public static ReadOnlyCollection<TKey> ShortestPath<TKey>(
         TKey origin,
         TKey destination,
         Func<TKey, IEnumerable<TKey>> getNeighbors,
         Func<TKey, TKey, float> getCost) where TKey : notnull {
-        var distances = new Dictionary<TKey, float> { [origin] = 0 };
-        var previous = new Dictionary<TKey, TKey>();
-        var queue = new PriorityQueue<TKey, float>();
-        queue.Enqueue(origin, 0);
+        var costs = new Dictionary<TKey, float> { [origin] = 0 };
+        var cameFrom = new Dictionary<TKey, TKey>();
+        var frontier = new PriorityQueue<TKey, float>();
+        
+        frontier.Enqueue(origin, 0);
 
-        while (queue.Count > 0) {
-            var current = queue.Dequeue();
-            if (EqualityComparer<TKey>.Default.Equals(current, destination)) {
+        while (frontier.Count > 0) {
+            var from = frontier.Dequeue();
+            
+            if (EqualityComparer<TKey>.Default.Equals(from, destination)) {
                 break;
             }
 
-            foreach (var neighbor in getNeighbors(current)) {
-                var newDist = distances[current] + getCost(current, neighbor);
-                if (!distances.TryGetValue(neighbor, out var existing) || newDist < existing) {
-                    distances[neighbor] = newDist;
-                    previous[neighbor] = current;
-                    queue.Enqueue(neighbor, newDist);
+            foreach (var to in getNeighbors(from)) {
+                var cost = costs[from] + getCost(from, to);
+                
+                if (!costs.TryGetValue(to, out var bestCost) || cost < bestCost) {
+                    costs[to] = cost;
+                    cameFrom[to] = from;
+                    frontier.Enqueue(to, cost);
                 }
             }
         }
@@ -78,7 +71,7 @@ internal static class Graphs {
         var path = new List<TKey>();
         var node = destination;
         
-        while (previous.TryGetValue(node, out var prev)) {
+        while (cameFrom.TryGetValue(node, out var prev)) {
             path.Insert(0, node);
             node = prev;
         }
@@ -88,6 +81,7 @@ internal static class Graphs {
         }
 
         path.Insert(0, origin);
+        
         return path.AsReadOnly();
     }
 }

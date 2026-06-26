@@ -22,7 +22,7 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             throw new InvalidOperationException("City graph cache returned null.");
         }
 
-        var cityPath = Graphs.Dijkstra(
+        var cityPath = Graphs.ShortestPath(
             originCityId, destinationCityId,
             id => graph.TryGetValue(id, out var rs) ? rs.Select(r => r.DestinationCityId) : [],
             (from, to) => graph[from].First(r => r.DestinationCityId == to).TravelTime);
@@ -48,7 +48,7 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             throw new InvalidOperationException($"City grid cache returned null for {cityId}.");
         }
 
-        return Graphs.Dijkstra(
+        return Graphs.ShortestPath(
             origin, destination,
             p => GridNeighbors(p, grid.Width, grid.Height, grid.Blocked),
             (_, _) => 1f);
@@ -77,7 +77,7 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             throw new InvalidOperationException($"Building grid cache returned null for {buildingId}.");
         }
 
-        return Graphs.Dijkstra(
+        return Graphs.ShortestPath(
             origin, destination,
             p => GridNeighbors(p, grid.Width, grid.Height, grid.Blocked),
             (_, _) => 1f);
