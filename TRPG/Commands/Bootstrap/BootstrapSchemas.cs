@@ -5,20 +5,8 @@ internal class GeographyEntitySchema {
     public string Name { get; set; } = "";
 }
 
-internal class GeographyCitySchema {
-    public string Description { get; set; } = "";
-    public int Height { get; set; }
+internal class RoadNameSchema {
     public string Name { get; set; } = "";
-    public int Width { get; set; }
-}
-
-internal class TravelRouteSchema {
-    public float DangerLevel { get; set; }
-    public string DestinationCityName { get; set; } = "";
-    public float Distance { get; set; }
-    public string Name { get; set; } = "";
-    public string OriginCityName { get; set; } = "";
-    public int TravelTime { get; set; }
 }
 
 internal class BuildingOwnerSchema {

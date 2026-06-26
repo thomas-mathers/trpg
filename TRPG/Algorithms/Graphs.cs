@@ -3,14 +3,14 @@
 namespace TRPG.Algorithms;
 
 internal static class Graphs {
-    public static ReadOnlyCollection<(TKey from, TKey to)> MinimumSpanningTree<TKey>(
+    public static ReadOnlyCollection<(TKey From, TKey To)> MinimumSpanningTree<TKey>(
         TKey start,
         Func<TKey, IEnumerable<TKey>> getNeighbors,
-        Func<TKey, TKey, float> getCost
+        Func<TKey, TKey, double> getCost
     ) where TKey : notnull {
-        var cheapestCost = new Dictionary<TKey, float> { [start] = 0 };
+        var cheapestCost = new Dictionary<TKey, double> { [start] = 0 };
         var cheapestEdge = new Dictionary<TKey, TKey>();
-        var frontier = new PriorityQueue<TKey, float>();
+        var frontier = new PriorityQueue<TKey, double>();
         var visited = new HashSet<TKey>();
 
         frontier.Enqueue(start, 0);
@@ -43,10 +43,10 @@ internal static class Graphs {
         TKey origin,
         TKey destination,
         Func<TKey, IEnumerable<TKey>> getNeighbors,
-        Func<TKey, TKey, float> getCost) where TKey : notnull {
-        var costs = new Dictionary<TKey, float> { [origin] = 0 };
+        Func<TKey, TKey, double> getCost) where TKey : notnull {
+        var costs = new Dictionary<TKey, double> { [origin] = 0 };
         var cameFrom = new Dictionary<TKey, TKey>();
-        var frontier = new PriorityQueue<TKey, float>();
+        var frontier = new PriorityQueue<TKey, double>();
         
         frontier.Enqueue(origin, 0);
 

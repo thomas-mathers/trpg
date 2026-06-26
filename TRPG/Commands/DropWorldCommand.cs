@@ -26,8 +26,8 @@ internal class DropWorldCommandHandler(TrpgDbContext context) {
             .ExecuteDeleteAsync(cancellationToken);
         await context.Persons.Where(p => p.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Buildings.Where(b => cityIds.Contains(b.CityId)).ExecuteDeleteAsync(cancellationToken);
-        await context.TravelRoutes
-            .Where(tr => cityIds.Contains(tr.OriginCityId) || cityIds.Contains(tr.DestinationCityId))
+        await context.Roads
+            .Where(r => cityIds.Contains(r.OriginCityId) || cityIds.Contains(r.DestinationCityId))
             .ExecuteDeleteAsync(cancellationToken);
         await context.Cities.Where(c => countryIds.Contains(c.CountryId)).ExecuteDeleteAsync(cancellationToken);
         await context.Countries.Where(c => c.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);

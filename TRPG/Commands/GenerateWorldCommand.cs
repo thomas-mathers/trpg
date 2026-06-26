@@ -27,9 +27,9 @@ internal class GenerateWorldCommandResult {
     public required IReadOnlyList<Person> Persons { get; init; }
     public required IReadOnlyList<Profession> Professions { get; init; }
     public required IReadOnlyList<Race> Races { get; init; }
+    public required IReadOnlyList<Road> Roads { get; init; }
     public required IReadOnlyList<SkillPrerequisite> SkillPrerequisites { get; init; }
     public required IReadOnlyList<Support> Supports { get; init; }
-    public required IReadOnlyList<TravelRoute> TravelRoutes { get; init; }
     public required World World { get; init; }
 }
 
@@ -38,7 +38,6 @@ internal class GenerateWorldCommandHandler(
     GenerateRacesCommandHandler racesHandler,
     GenerateProfessionsCommandHandler professionsHandler,
     GenerateFactionsCommandHandler factionsHandler,
-    GenerateTravelRoutesCommandHandler travelRoutesHandler,
     GenerateBuildingsCommandHandler buildingsHandler,
     GenerateSkillsCommandHandler skillsHandler,
     GenerateBuildingOwnerCommandHandler buildingOwnerHandler,
@@ -72,14 +71,6 @@ internal class GenerateWorldCommandHandler(
         );
         var factions = await factionsHandler.Handle(
             new GenerateFactionsCommand { Count = command.FactionCount, Description = command.Description, WorldId = worldId },
-            cancellationToken
-        );
-        var travelRoutes = await travelRoutesHandler.Handle(
-            new GenerateTravelRoutesCommand {
-                Description = command.Description,
-                Cities = geography.Cities,
-                Count = geography.Cities.Count * 2,
-            },
             cancellationToken
         );
 
@@ -133,13 +124,13 @@ internal class GenerateWorldCommandHandler(
             World = geography.World,
             Countries = geography.Countries,
             Cities = geography.Cities,
+            Roads = geography.Roads,
             Races = races,
             Professions = professions,
             Factions = factions,
             Attacks = skillsResult.Attacks,
             Supports = skillsResult.Supports,
             SkillPrerequisites = skillsResult.Prerequisites,
-            TravelRoutes = travelRoutes,
             Buildings = buildings,
             Persons = ownerResults.Select(r => r.Owner).ToList(),
             BuildingOwners = ownerResults.Select(r => r.BuildingOwner).ToList()

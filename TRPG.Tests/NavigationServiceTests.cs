@@ -41,18 +41,18 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         return city;
     }
 
-    private async Task<TravelRoute> SeedTravelRoute(Guid destinationCityId) {
-        var route = new TravelRoute {
+    private async Task<Road> SeedRoad(Guid destinationCityId) {
+        var road = new Road {
             OriginCityId = _city.Id,
             DestinationCityId = destinationCityId,
-            Name = $"Route-{Guid.NewGuid():N}",
+            Name = $"Road-{Guid.NewGuid():N}",
             Distance = 10f,
             TravelTime = 5,
             DangerLevel = 0.1f
         };
-        _context.TravelRoutes.Add(route);
+        _context.Roads.Add(road);
         await _context.SaveChangesAsync();
-        return route;
+        return road;
     }
 
     private async Task<Building> SeedBuilding() {
@@ -66,14 +66,14 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     public async Task GetShortestCityRoute_ReturnsRoute_WhenDirectRouteExists() {
         // Arrange
         var cityB = await SeedCity();
-        var route = await SeedTravelRoute(cityB.Id);
+        var road = await SeedRoad(cityB.Id);
 
         // Act
         var result = await _service.GetShortestCityRoute(_city.Id, cityB.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(result);
-        Assert.Equal(route.Id, result[0].Id);
+        Assert.Equal(road.Id, result[0].Id);
     }
 
     [Fact]

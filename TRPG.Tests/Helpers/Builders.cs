@@ -93,7 +93,7 @@ internal static class Builders {
             WorldId = worldId,
             Name = $"Country-{Guid.NewGuid():N}",
             Description = "A test country",
-            Boundary = new Rectangle(0, 0, 3000, 3000)
+            Boundary = new Polygon { Points = [new Point(0, 0), new Point(3000, 0), new Point(3000, 3000), new Point(0, 3000)] }
         };
     }
 
@@ -104,7 +104,7 @@ internal static class Builders {
             Description = "A test city",
             Width = 100,
             Height = 100,
-            Boundary = new Rectangle(0, 0, 100, 100)
+            Boundary = new Polygon { Points = [new Point(0, 0), new Point(100, 0), new Point(100, 100), new Point(0, 100)] }
         };
     }
 

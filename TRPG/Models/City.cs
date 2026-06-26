@@ -1,7 +1,7 @@
 ﻿namespace TRPG.Models;
 
 internal class City {
-    public Rectangle Boundary { get; init; } = null!;
+    public Polygon Boundary { get; init; } = null!;
     public string Description { get; init; } = "";
     public int Height { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();

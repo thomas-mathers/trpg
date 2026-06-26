@@ -33,7 +33,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<SkillPrerequisite> SkillPrerequisites => Set<SkillPrerequisite>();
     public DbSet<Skill> Skills => Set<Skill>();
-    public DbSet<TravelRoute> TravelRoutes => Set<TravelRoute>();
+    public DbSet<Road> Roads => Set<Road>();
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
     public DbSet<World> Worlds => Set<World>();
 
@@ -127,11 +127,17 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         });
 
         modelBuilder.Entity<Country>(entity => {
-            entity.OwnsOne(c => c.Boundary, b => b.ToJson());
+            entity.OwnsOne(c => c.Boundary, b => {
+                b.ToJson();
+                b.OwnsMany(p => p.Points);
+            });
         });
 
         modelBuilder.Entity<City>(entity => {
-            entity.OwnsOne(c => c.Boundary, b => b.ToJson());
+            entity.OwnsOne(c => c.Boundary, b => {
+                b.ToJson();
+                b.OwnsMany(p => p.Points);
+            });
         });
 
         modelBuilder.Entity<Building>(entity => { entity.OwnsOne(b => b.Boundary, r => r.ToJson()); });
@@ -197,7 +203,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<Building>()
             .HasIndex(b => new { b.CityId, b.Name }).IsUnique();
 
-        modelBuilder.Entity<TravelRoute>()
+        modelBuilder.Entity<Road>()
             .HasIndex(r => new { r.OriginCityId, r.DestinationCityId }).IsUnique();
 
         modelBuilder.Entity<NpcConversation>(entity => {

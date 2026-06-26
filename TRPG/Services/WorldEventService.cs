@@ -26,9 +26,9 @@ internal class WorldEventService(TrpgDbContext context) {
             .ToList().AsReadOnly();
     }
 
-    private static float Distance(Point a, Point b) {
+    private static double Distance(Point a, Point b) {
         var dx = a.X - b.X;
         var dy = a.Y - b.Y;
-        return MathF.Sqrt(dx * dx + dy * dy);
+        return Math.Sqrt(dx * dx + dy * dy);
     }
 }

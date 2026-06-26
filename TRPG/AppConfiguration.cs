@@ -3,6 +3,7 @@ namespace TRPG;
 internal static class WorldGenerationDefaults {
     public const int AttackCount = 30;
     public const int BuildingsPerCity = 8;
+    public const int CityTileSize = 100;
     public const int CountryCount = 3;
     public const int FactionCount = 8;
     public const int MaxCities = 8;
@@ -10,6 +11,8 @@ internal static class WorldGenerationDefaults {
     public const int ProfessionCount = 8;
     public const int RaceCount = 6;
     public const int SupportCount = 15;
+    public const int WorldHeight = 10000;
+    public const int WorldWidth = 10000;
 }
 
 internal class AppConfiguration {

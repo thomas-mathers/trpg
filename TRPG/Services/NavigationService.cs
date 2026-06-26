@@ -8,14 +8,14 @@ using TRPG.Models;
 namespace TRPG.Services;
 
 internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
-    public async Task<ReadOnlyCollection<TravelRoute>> GetShortestCityRoute(Guid originCityId, Guid destinationCityId,
+    public async Task<ReadOnlyCollection<Road>> GetShortestCityRoute(Guid originCityId, Guid destinationCityId,
         CancellationToken cancellationToken = default) {
         var graph = await cache.GetOrCreateAsync("nav:city-graph", async entry => {
             entry.Priority = CacheItemPriority.NeverRemove;
 
-            var routes = await context.TravelRoutes.ToListAsync(cancellationToken);
+            var roads = await context.Roads.ToListAsync(cancellationToken);
 
-            return routes.GroupBy(r => r.OriginCityId).ToDictionary(g => g.Key, g => g.ToList());
+            return roads.GroupBy(r => r.OriginCityId).ToDictionary(g => g.Key, g => g.ToList());
         });
 
         if (graph is null) {

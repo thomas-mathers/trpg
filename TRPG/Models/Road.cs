@@ -1,6 +1,6 @@
-﻿namespace TRPG.Models;
+namespace TRPG.Models;
 
-internal class TravelRoute {
+internal class Road {
     public float DangerLevel { get; init; }
     public Guid DestinationCityId { get; init; }
     public float Distance { get; init; }
