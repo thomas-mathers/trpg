@@ -62,6 +62,13 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         return building;
     }
 
+    private async Task<BuildingRoom> SeedRoom(Guid buildingId) {
+        var room = Builders.MakeBuildingRoom(buildingId);
+        _context.BuildingRooms.Add(room);
+        await _context.SaveChangesAsync();
+        return room;
+    }
+
     [Fact]
     public async Task GetShortestCityRoute_ReturnsRoute_WhenDirectRouteExists() {
         // Arrange
@@ -112,14 +119,15 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     }
 
     [Fact]
-    public async Task GetShortestIntraBuildingRoute_ReturnsPath_WhenNoObstacles() {
+    public async Task GetShortestIntraRoomRoute_ReturnsPath_WhenNoObstacles() {
         // Arrange
         var building = await SeedBuilding();
+        var room = await SeedRoom(building.Id);
         var origin = new Point(0, 0);
         var destination = new Point(2, 0);
 
         // Act
-        var result = await _service.GetShortestIntraBuildingRoute(building.Id, origin, destination,
+        var result = await _service.GetShortestIntraRoomRoute(room.Id, origin, destination,
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -129,10 +137,10 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     }
 
     [Fact]
-    public async Task GetShortestIntraBuildingRoute_ThrowsInvalidOperationException_WhenBuildingNotFound() {
+    public async Task GetShortestIntraRoomRoute_ThrowsInvalidOperationException_WhenRoomNotFound() {
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _service.GetShortestIntraBuildingRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0),
+            _service.GetShortestIntraRoomRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0),
                 TestContext.Current.CancellationToken));
     }
 }

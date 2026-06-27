@@ -54,27 +54,26 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             (_, _) => 1f);
     }
 
-    public async Task<ReadOnlyCollection<Point>> GetShortestIntraBuildingRoute(Guid buildingId, Point origin,
+    public async Task<ReadOnlyCollection<Point>> GetShortestIntraRoomRoute(Guid roomId, Point origin,
         Point destination, CancellationToken cancellationToken = default) {
-        var grid = await cache.GetOrCreateAsync($"nav:building-grid:{buildingId}", async entry => {
+        var grid = await cache.GetOrCreateAsync($"nav:room-grid:{roomId}", async entry => {
             entry.SlidingExpiration = TimeSpan.FromMinutes(10);
 
-            var building = await context.Buildings.FindAsync([buildingId], cancellationToken)
-                           ?? throw new InvalidOperationException($"Building {buildingId} not found.");
+            var room = await context.BuildingRooms.FindAsync([roomId], cancellationToken)
+                       ?? throw new InvalidOperationException($"Room {roomId} not found.");
 
-            var buildingProps = await context.Props.Where(p => p.BuildingId == buildingId)
-                .ToListAsync(cancellationToken);
+            var props = await context.Props.Where(p => p.RoomId == roomId).ToListAsync(cancellationToken);
 
-            var blockedCells = BuildBlockedFromRectangles(buildingProps.Select(p => p.Boundary));
+            var blockedCells = BuildBlockedFromRectangles(props.Select(p => p.Boundary));
 
-            var width = building.Boundary.Right - building.Boundary.Left;
-            var height = building.Boundary.Bottom - building.Boundary.Top;
+            var width = room.Boundary.Right - room.Boundary.Left;
+            var height = room.Boundary.Bottom - room.Boundary.Top;
 
             return new GridData(width, height, blockedCells);
         });
 
         if (grid is null) {
-            throw new InvalidOperationException($"Building grid cache returned null for {buildingId}.");
+            throw new InvalidOperationException($"Room grid cache returned null for {roomId}.");
         }
 
         return Graphs.ShortestPath(

@@ -108,6 +108,15 @@ internal static class Builders {
         };
     }
 
+    public static BuildingRoom MakeBuildingRoom(Guid buildingId) {
+        return new BuildingRoom {
+            BuildingId = buildingId,
+            Name = $"Room-{Guid.NewGuid():N}",
+            FloorNumber = 0,
+            Boundary = new Rectangle(0, 0, 10, 10)
+        };
+    }
+
     public static Building MakeBuilding(Guid cityId) {
         return new Building {
             CityId = cityId,

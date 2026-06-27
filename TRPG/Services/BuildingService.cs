@@ -27,10 +27,10 @@ internal class BuildingService(TrpgDbContext context) {
         return list.AsReadOnly();
     }
 
-    public async Task<ReadOnlyCollection<Prop>> GetAllPropsByBuildingId(Guid buildingId,
+    public async Task<ReadOnlyCollection<Prop>> GetAllPropsByRoomId(Guid roomId,
         CancellationToken cancellationToken = default) {
         var list = await context.Props
-            .Where(p => p.BuildingId == buildingId)
+            .Where(p => p.RoomId == roomId)
             .ToListAsync(cancellationToken);
         return list.AsReadOnly();
     }

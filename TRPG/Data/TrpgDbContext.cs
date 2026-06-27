@@ -11,6 +11,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     };
 
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
+    public DbSet<BuildingRoom> BuildingRooms => Set<BuildingRoom>();
     public DbSet<Building> Buildings => Set<Building>();
     public DbSet<PropItem> PropItems => Set<PropItem>();
     public DbSet<Prop> Props => Set<Prop>();
@@ -144,20 +145,27 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<Building>(entity => { entity.OwnsOne(b => b.Boundary, r => r.ToJson()); });
 
+        modelBuilder.Entity<BuildingRoom>(entity => {
+            entity.HasIndex(r => r.BuildingId);
+            entity.OwnsOne(r => r.Boundary, b => b.ToJson());
+        });
+
         modelBuilder.Entity<Prop>(entity => {
             entity.HasDiscriminator<string>("prop_type")
                   .HasValue<Chair>("Chair")
                   .HasValue<Table>("Table")
                   .HasValue<Bed>("Bed")
                   .HasValue<Chest>("Chest")
+                  .HasValue<Door>("Door")
                   .HasValue<Fireplace>("Fireplace")
                   .HasValue<Bookcase>("Bookcase")
                   .HasValue<Barrel>("Barrel")
                   .HasValue<Forge>("Forge")
                   .HasValue<Altar>("Altar")
                   .HasValue<Counter>("Counter")
-                  .HasValue<Lever>("Lever");
-            entity.HasIndex(p => p.BuildingId);
+                  .HasValue<Lever>("Lever")
+                  .HasValue<Staircase>("Staircase");
+            entity.HasIndex(p => p.RoomId);
             entity.OwnsOne(p => p.Boundary, b => b.ToJson());
             entity.Property(p => p.StorageItemCategories)
                 .HasConversion(

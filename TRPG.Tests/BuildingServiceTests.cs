@@ -83,10 +83,14 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetAllPropsByBuildingId_ReturnsProps() {
+    public async Task GetAllPropsByRoomId_ReturnsProps() {
         // Arrange
+        var room = Builders.MakeBuildingRoom(_building.Id);
+        _context.BuildingRooms.Add(room);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
         var prop = new Chair {
-            BuildingId = _building.Id,
+            RoomId = room.Id,
             Name = $"Prop-{Guid.NewGuid():N}",
             Description = "A test prop",
             Boundary = new Rectangle(1, 1, 2, 2)
@@ -95,7 +99,7 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetAllPropsByBuildingId(_building.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetAllPropsByRoomId(room.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(result);
