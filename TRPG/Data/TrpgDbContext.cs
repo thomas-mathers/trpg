@@ -43,6 +43,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) {
         configurationBuilder.Properties<AmountType>().HaveConversion<string>();
+        configurationBuilder.Properties<BuildingType>().HaveConversion<string>();
         configurationBuilder.Properties<AttributeName>().HaveConversion<string>();
         configurationBuilder.Properties<ConditionType>().HaveConversion<string>();
         configurationBuilder.Properties<DamageType>().HaveConversion<string>();

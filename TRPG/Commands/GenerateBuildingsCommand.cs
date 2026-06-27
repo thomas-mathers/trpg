@@ -21,8 +21,10 @@ internal class GenerateBuildingsCommandHandler(AiClient client, ILogger<Generate
         var sw = Stopwatch.StartNew();
         
         const string example =
-            """{"Name":"The Rusty Anvil","Description":"A busy smithy known for quality ironwork and fair prices."}""";
-        
+            """{"Name":"The Rusty Anvil","Description":"A busy smithy known for quality ironwork and fair prices.","BuildingType":"Blacksmith"}""";
+
+        var buildingTypes = string.Join(", ", Enum.GetNames<BuildingType>());
+
         var existingNamesHint = command.ExistingBuildingNames.Count > 0
             ? $"Do not reuse any of these names already used in other cities: {string.Join(", ", command.ExistingBuildingNames)}."
             : string.Empty;
@@ -31,7 +33,8 @@ internal class GenerateBuildingsCommandHandler(AiClient client, ILogger<Generate
             $"""
              You are a creative world-building assistant for a TRPG game generating content for: {command.Description}.
              You are generating buildings for the city of {command.City.Name}: {command.City.Description}.
-             When asked to generate a building, respond with a single JSON object with Name and Description fields only.
+             When asked to generate a building, respond with a single JSON object with Name, Description, and BuildingType fields.
+             BuildingType must be one of: {buildingTypes}.
              Each building must be unique and fitting for this city. {existingNamesHint} Do not use markdown.
              Example: {example}
              """);
@@ -44,6 +47,9 @@ internal class GenerateBuildingsCommandHandler(AiClient client, ILogger<Generate
                 CityId = command.City.Id,
                 Name = schema.Name,
                 Description = schema.Description,
+                BuildingType = Enum.TryParse<BuildingType>(schema.BuildingType, out var buildingType)
+                    ? buildingType
+                    : BuildingType.House,
                 Boundary = new Rectangle(0, 0, 0, 0)
             });
         }

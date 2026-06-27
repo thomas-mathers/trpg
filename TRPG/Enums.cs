@@ -109,6 +109,23 @@ internal enum QuestTargetType {
     Race
 }
 
+internal enum BuildingType {
+    ArcaneShop,
+    Apothecary,
+    Bakery,
+    Blacksmith,
+    Castle,
+    GeneralGoods,
+    GuildHall,
+    House,
+    Inn,
+    Jail,
+    Library,
+    Stable,
+    Tavern,
+    Temple
+}
+
 internal enum JobAction {
     Sleep,
     Work,

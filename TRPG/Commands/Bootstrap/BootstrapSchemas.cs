@@ -22,6 +22,7 @@ internal class BuildingOwnerListSchema {
 }
 
 internal class BuildingSchema {
+    public string BuildingType { get; set; } = "";
     public string Description { get; set; } = "";
     public string Name { get; set; } = "";
 }
