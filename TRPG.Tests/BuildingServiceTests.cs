@@ -85,13 +85,13 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     [Fact]
     public async Task GetAllPropsByBuildingId_ReturnsProps() {
         // Arrange
-        var prop = new BuildingProp {
+        var prop = new Chair {
             BuildingId = _building.Id,
             Name = $"Prop-{Guid.NewGuid():N}",
             Description = "A test prop",
             Boundary = new Rectangle(1, 1, 2, 2)
         };
-        _context.BuildingProps.Add(prop);
+        _context.Props.Add(prop);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

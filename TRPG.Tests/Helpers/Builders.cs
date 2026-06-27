@@ -113,6 +113,7 @@ internal static class Builders {
             CityId = cityId,
             Name = $"Building-{Guid.NewGuid():N}",
             Description = "A test building",
+            BuildingType = BuildingType.House,
             Boundary = new Rectangle(0, 0, 10, 10)
         };
     }

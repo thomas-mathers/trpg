@@ -62,7 +62,7 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             var building = await context.Buildings.FindAsync([buildingId], cancellationToken)
                            ?? throw new InvalidOperationException($"Building {buildingId} not found.");
 
-            var buildingProps = await context.BuildingProps.Where(p => p.BuildingId == buildingId)
+            var buildingProps = await context.Props.Where(p => p.BuildingId == buildingId)
                 .ToListAsync(cancellationToken);
 
             var blockedCells = BuildBlockedFromRectangles(buildingProps.Select(p => p.Boundary));

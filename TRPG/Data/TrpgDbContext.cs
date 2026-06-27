@@ -11,8 +11,9 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     };
 
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
-    public DbSet<BuildingProp> BuildingProps => Set<BuildingProp>();
     public DbSet<Building> Buildings => Set<Building>();
+    public DbSet<PropItem> PropItems => Set<PropItem>();
+    public DbSet<Prop> Props => Set<Prop>();
     public DbSet<City> Cities => Set<City>();
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
@@ -143,7 +144,32 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<Building>(entity => { entity.OwnsOne(b => b.Boundary, r => r.ToJson()); });
 
-        modelBuilder.Entity<BuildingProp>(entity => { entity.OwnsOne(bp => bp.Boundary, b => b.ToJson()); });
+        modelBuilder.Entity<Prop>(entity => {
+            entity.HasDiscriminator<string>("prop_type")
+                  .HasValue<Chair>("Chair")
+                  .HasValue<Table>("Table")
+                  .HasValue<Bed>("Bed")
+                  .HasValue<Chest>("Chest")
+                  .HasValue<Fireplace>("Fireplace")
+                  .HasValue<Bookcase>("Bookcase")
+                  .HasValue<Barrel>("Barrel")
+                  .HasValue<Forge>("Forge")
+                  .HasValue<Altar>("Altar")
+                  .HasValue<Counter>("Counter")
+                  .HasValue<Lever>("Lever");
+            entity.HasIndex(p => p.BuildingId);
+            entity.OwnsOne(p => p.Boundary, b => b.ToJson());
+            entity.Property(p => p.StorageItemCategories)
+                .HasConversion(
+                    v => v == null ? null : JsonSerializer.Serialize(v, JsonOptions),
+                    v => v == null ? null : JsonSerializer.Deserialize<List<ItemCategory>>(v, JsonOptions)
+                )
+                .HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<PropItem>(entity => {
+            entity.HasIndex(pi => new { pi.PropId, pi.Index }).IsUnique();
+        });
 
         modelBuilder.Entity<Quest>(entity => {
             entity.Property(q => q.ItemRewards).HasColumnType("uuid[]");
