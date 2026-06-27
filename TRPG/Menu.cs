@@ -37,7 +37,8 @@ internal class Menu(
         Console.WriteLine("Configure generation (press Enter to use defaults):");
         var command = new BootstrapWorldCommand {
             Description = description,
-            CountryCount = AskInt("  Countries", WorldGenerationDefaults.CountryCount),
+            MinCountries = AskInt("  Countries min", WorldGenerationDefaults.MinCountries),
+            MaxCountries = AskInt("  Countries max", WorldGenerationDefaults.MaxCountries),
             MinCities = AskInt("  Cities min", WorldGenerationDefaults.MinCities),
             MaxCities = AskInt("  Cities max", WorldGenerationDefaults.MaxCities),
             BuildingsPerCity = AskInt("  Buildings/city", WorldGenerationDefaults.BuildingsPerCity),

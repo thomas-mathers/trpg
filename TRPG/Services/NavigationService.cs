@@ -65,7 +65,7 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             var buildingProps = await context.BuildingProps.Where(p => p.BuildingId == buildingId)
                 .ToListAsync(cancellationToken);
 
-            var blockedCells = new HashSet<Point>(buildingProps.Select(p => p.Coordinates));
+            var blockedCells = BuildBlockedFromRectangles(buildingProps.Select(p => p.Boundary));
 
             var width = building.Boundary.Right - building.Boundary.Left;
             var height = building.Boundary.Bottom - building.Boundary.Top;

@@ -4,10 +4,11 @@ internal static class WorldGenerationDefaults {
     public const int AttackCount = 30;
     public const int BuildingsPerCity = 8;
     public const int CityTileSize = 100;
-    public const int CountryCount = 3;
     public const int FactionCount = 8;
-    public const int MaxCities = 8;
-    public const int MinCities = 5;
+    public const int MaxCities = 100;
+    public const int MaxCountries = 5;
+    public const int MinCities = 50;
+    public const int MinCountries = 3;
     public const int ProfessionCount = 8;
     public const int RaceCount = 6;
     public const int SupportCount = 15;

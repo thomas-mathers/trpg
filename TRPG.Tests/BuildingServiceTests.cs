@@ -89,7 +89,7 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
             BuildingId = _building.Id,
             Name = $"Prop-{Guid.NewGuid():N}",
             Description = "A test prop",
-            Coordinates = new Point(1, 1)
+            Boundary = new Rectangle(1, 1, 2, 2)
         };
         _context.BuildingProps.Add(prop);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

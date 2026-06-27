@@ -7,7 +7,8 @@ namespace TRPG.Commands;
 internal class GenerateWorldCommand {
     public int AttackCount { get; init; }
     public int BuildingsPerCity { get; init; }
-    public int CountryCount { get; init; }
+    public int MaxCountries { get; init; }
+    public int MinCountries { get; init; }
     public required string Description { get; init; }
     public int FactionCount { get; init; }
     public int MaxCities { get; init; }
@@ -51,10 +52,11 @@ internal class GenerateWorldCommandHandler(
 
         var geography = await geographyHandler.Handle(
             new GenerateGeographyCommand {
-                CountryCount = command.CountryCount,
                 Description = command.Description,
                 MaxCities = command.MaxCities,
-                MinCities = command.MinCities
+                MaxCountries = command.MaxCountries,
+                MinCities = command.MinCities,
+                MinCountries = command.MinCountries
             },
             cancellationToken
         );

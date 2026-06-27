@@ -8,10 +8,11 @@ using TRPG.Models;
 namespace TRPG.Commands;
 
 internal class GenerateGeographyCommand {
-    public int CountryCount { get; init; } = WorldGenerationDefaults.CountryCount;
     public required string Description { get; init; }
     public int MaxCities { get; init; } = WorldGenerationDefaults.MaxCities;
+    public int MaxCountries { get; init; } = WorldGenerationDefaults.MaxCountries;
     public int MinCities { get; init; } = WorldGenerationDefaults.MinCities;
+    public int MinCountries { get; init; } = WorldGenerationDefaults.MinCountries;
     public int WorldHeight { get; init; } = WorldGenerationDefaults.WorldHeight;
     public int WorldWidth { get; init; } = WorldGenerationDefaults.WorldWidth;
 }
@@ -30,9 +31,10 @@ internal class GenerateGeographyCommandHandler(AiClient client, ILogger<Generate
     ) {
         var sw = Stopwatch.StartNew();
 
-        var totalCities = command.CountryCount * Random.Shared.Next(command.MinCities, command.MaxCities + 1);
-        
-        var map = MapGenerator.Generate(command.WorldWidth, command.WorldHeight, totalCities, command.CountryCount);
+        var totalCities = Random.Shared.Next(command.MinCities, command.MaxCities + 1);
+        var numberOfCountries = Random.Shared.Next(command.MinCountries, command.MaxCountries + 1);
+
+        var map = MapGenerator.Generate(command.WorldWidth, command.WorldHeight, totalCities, numberOfCountries);
 
         var chat = client.CreateChat<GenerateGeographyCommandHandler>(
             $"""

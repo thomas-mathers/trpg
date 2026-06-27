@@ -6,7 +6,8 @@ namespace TRPG.Commands;
 internal class BootstrapWorldCommand {
     public int AttackCount { get; init; } = WorldGenerationDefaults.AttackCount;
     public int BuildingsPerCity { get; init; } = WorldGenerationDefaults.BuildingsPerCity;
-    public int CountryCount { get; init; } = WorldGenerationDefaults.CountryCount;
+    public int MaxCountries { get; init; } = WorldGenerationDefaults.MaxCountries;
+    public int MinCountries { get; init; } = WorldGenerationDefaults.MinCountries;
     public required string Description { get; init; }
     public int FactionCount { get; init; } = WorldGenerationDefaults.FactionCount;
     public int MaxCities { get; init; } = WorldGenerationDefaults.MaxCities;
@@ -29,11 +30,12 @@ internal class BootstrapWorldCommandHandler(
             new GenerateWorldCommand {
                 AttackCount = command.AttackCount,
                 BuildingsPerCity = command.BuildingsPerCity,
-                CountryCount = command.CountryCount,
                 Description = command.Description,
                 FactionCount = command.FactionCount,
                 MaxCities = command.MaxCities,
+                MaxCountries = command.MaxCountries,
                 MinCities = command.MinCities,
+                MinCountries = command.MinCountries,
                 ProfessionCount = command.ProfessionCount,
                 RaceCount = command.RaceCount,
                 SupportCount = command.SupportCount

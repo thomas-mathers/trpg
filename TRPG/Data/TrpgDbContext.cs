@@ -142,7 +142,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<Building>(entity => { entity.OwnsOne(b => b.Boundary, r => r.ToJson()); });
 
-        modelBuilder.Entity<BuildingProp>(entity => { entity.OwnsOne(bp => bp.Coordinates, p => p.ToJson()); });
+        modelBuilder.Entity<BuildingProp>(entity => { entity.OwnsOne(bp => bp.Boundary, b => b.ToJson()); });
 
         modelBuilder.Entity<Quest>(entity => {
             entity.Property(q => q.ItemRewards).HasColumnType("uuid[]");
