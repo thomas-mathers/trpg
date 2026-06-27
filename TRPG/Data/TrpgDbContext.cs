@@ -13,7 +13,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
     public DbSet<BuildingRoom> BuildingRooms => Set<BuildingRoom>();
     public DbSet<Building> Buildings => Set<Building>();
-    public DbSet<PropItem> PropItems => Set<PropItem>();
+    public DbSet<ContainerItem> ContainerItems => Set<ContainerItem>();
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<City> Cities => Set<City>();
     public DbSet<Country> Countries => Set<Country>();
@@ -46,6 +46,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) {
         configurationBuilder.Properties<AmountType>().HaveConversion<string>();
         configurationBuilder.Properties<BuildingType>().HaveConversion<string>();
+        configurationBuilder.Properties<WorkstationType>().HaveConversion<string>();
         configurationBuilder.Properties<AttributeName>().HaveConversion<string>();
         configurationBuilder.Properties<ConditionType>().HaveConversion<string>();
         configurationBuilder.Properties<DamageType>().HaveConversion<string>();
@@ -151,23 +152,22 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         });
 
         modelBuilder.Entity<Prop>(entity => {
-            entity.HasDiscriminator<string>("prop_type")
-                  .HasValue<Chair>("Chair")
-                  .HasValue<Table>("Table")
+            entity.HasDiscriminator<string>("behavior_type")
+                  .HasValue<Prop>("Prop")
+                  .HasValue<Seat>("Seat")
+                  .HasValue<Workstation>("Workstation")
+
                   .HasValue<Bed>("Bed")
-                  .HasValue<Chest>("Chest")
-                  .HasValue<Door>("Door")
-                  .HasValue<Fireplace>("Fireplace")
-                  .HasValue<Bookcase>("Bookcase")
-                  .HasValue<Barrel>("Barrel")
-                  .HasValue<Forge>("Forge")
-                  .HasValue<Altar>("Altar")
-                  .HasValue<Counter>("Counter")
-                  .HasValue<Lever>("Lever")
-                  .HasValue<Staircase>("Staircase");
+                  .HasValue<Container>("Container")
+                  .HasValue<RoomConnector>("RoomConnector")
+                  .HasValue<Trigger>("Trigger");
             entity.HasIndex(p => p.RoomId);
             entity.OwnsOne(p => p.Boundary, b => b.ToJson());
-            entity.Property(p => p.StorageItemCategories)
+        });
+
+        modelBuilder.Entity<Container>(entity => {
+            entity.HasMany(s => s.Items).WithOne().HasForeignKey(pi => pi.ContainerId);
+            entity.Property(c => c.StorageItemCategories)
                 .HasConversion(
                     v => v == null ? null : JsonSerializer.Serialize(v, JsonOptions),
                     v => v == null ? null : JsonSerializer.Deserialize<List<ItemCategory>>(v, JsonOptions)
@@ -175,8 +175,8 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
                 .HasColumnType("jsonb");
         });
 
-        modelBuilder.Entity<PropItem>(entity => {
-            entity.HasIndex(pi => new { pi.PropId, pi.Index }).IsUnique();
+        modelBuilder.Entity<ContainerItem>(entity => {
+            entity.HasIndex(pi => new { pi.ContainerId, pi.Index }).IsUnique();
         });
 
         modelBuilder.Entity<Quest>(entity => {

@@ -109,6 +109,17 @@ internal enum QuestTargetType {
     Race
 }
 
+internal enum WorkstationType {
+    Alchemy,
+    Armorsmithing,
+    Cooking,
+    Enchanting,
+    Trade,
+    Prayer,
+    Reading,
+    Weaponsmithing
+}
+
 internal enum BuildingType {
     ArcaneShop,
     Apothecary,

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
@@ -12,9 +13,11 @@ using TRPG.Data;
 namespace TRPG.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260627043736_SplitOccupiableProp")]
+    partial class SplitOccupiableProp
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -153,39 +156,6 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_cities_country_id_name");
 
                     b.ToTable("cities", (string)null);
-                });
-
-            modelBuilder.Entity("TRPG.Models.ContainerItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("ContainerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("container_id");
-
-                    b.Property<int>("Index")
-                        .HasColumnType("integer")
-                        .HasColumnName("index");
-
-                    b.Property<Guid>("ItemId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("item_id");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer")
-                        .HasColumnName("quantity");
-
-                    b.HasKey("Id")
-                        .HasName("pk_container_items");
-
-                    b.HasIndex("ContainerId", "Index")
-                        .IsUnique()
-                        .HasDatabaseName("ix_container_items_container_id_index");
-
-                    b.ToTable("container_items", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Models.Country", b =>
@@ -694,14 +664,27 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
+                    b.Property<string>("PropType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("prop_type");
+
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uuid")
                         .HasColumnName("room_id");
 
+                    b.Property<string>("StorageItemCategories")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("storage_item_categories");
+
+                    b.Property<int?>("StorageSize")
+                        .HasColumnType("integer")
+                        .HasColumnName("storage_size");
+
                     b.Property<string>("behavior_type")
                         .IsRequired()
-                        .HasMaxLength(13)
-                        .HasColumnType("character varying(13)")
+                        .HasMaxLength(21)
+                        .HasColumnType("character varying(21)")
                         .HasColumnName("behavior_type");
 
                     b.HasKey("Id")
@@ -715,6 +698,39 @@ namespace TRPG.Migrations
                     b.HasDiscriminator<string>("behavior_type").HasValue("Prop");
 
                     b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("TRPG.Models.PropItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer")
+                        .HasColumnName("index");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<Guid>("PropId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("prop_id");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.HasKey("Id")
+                        .HasName("pk_prop_items");
+
+                    b.HasIndex("PropId", "Index")
+                        .IsUnique()
+                        .HasDatabaseName("ix_prop_items_prop_id_index");
+
+                    b.ToTable("prop_items", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Models.Quest", b =>
@@ -1057,7 +1073,7 @@ namespace TRPG.Migrations
                     b.ToTable("world_events", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Models.Bed", b =>
+            modelBuilder.Entity("TRPG.Models.AssignableProp", b =>
                 {
                     b.HasBaseType("TRPG.Models.Prop");
 
@@ -1065,37 +1081,12 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("assigned_person_id");
 
-                    b.Property<Guid?>("OccupantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("occupant_id");
-
                     b.ToTable("props", (string)null);
 
-                    b.HasDiscriminator().HasValue("Bed");
+                    b.HasDiscriminator().HasValue("AssignableProp");
                 });
 
-            modelBuilder.Entity("TRPG.Models.Container", b =>
-                {
-                    b.HasBaseType("TRPG.Models.Prop");
-
-                    b.Property<Guid?>("KeyItemId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("key_item_id");
-
-                    b.Property<string>("StorageItemCategories")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("storage_item_categories");
-
-                    b.Property<int?>("StorageSize")
-                        .HasColumnType("integer")
-                        .HasColumnName("storage_size");
-
-                    b.ToTable("props", (string)null);
-
-                    b.HasDiscriminator().HasValue("Container");
-                });
-
-            modelBuilder.Entity("TRPG.Models.RoomConnector", b =>
+            modelBuilder.Entity("TRPG.Models.ConnectorProp", b =>
                 {
                     b.HasBaseType("TRPG.Models.Prop");
 
@@ -1107,33 +1098,12 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("key_item_id");
 
-                    b.ToTable("props", null, t =>
-                        {
-                            t.Property("KeyItemId")
-                                .HasColumnName("room_connector_key_item_id");
-                        });
+                    b.ToTable("props", (string)null);
 
-                    b.HasDiscriminator().HasValue("RoomConnector");
+                    b.HasDiscriminator().HasValue("ConnectorProp");
                 });
 
-            modelBuilder.Entity("TRPG.Models.Seat", b =>
-                {
-                    b.HasBaseType("TRPG.Models.Prop");
-
-                    b.Property<Guid?>("OccupantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("occupant_id");
-
-                    b.ToTable("props", null, t =>
-                        {
-                            t.Property("OccupantId")
-                                .HasColumnName("seat_occupant_id");
-                        });
-
-                    b.HasDiscriminator().HasValue("Seat");
-                });
-
-            modelBuilder.Entity("TRPG.Models.Trigger", b =>
+            modelBuilder.Entity("TRPG.Models.ControllableProp", b =>
                 {
                     b.HasBaseType("TRPG.Models.Prop");
 
@@ -1143,36 +1113,54 @@ namespace TRPG.Migrations
 
                     b.ToTable("props", (string)null);
 
-                    b.HasDiscriminator().HasValue("Trigger");
+                    b.HasDiscriminator().HasValue("ControllableProp");
                 });
 
-            modelBuilder.Entity("TRPG.Models.Workstation", b =>
+            modelBuilder.Entity("TRPG.Models.SeatProp", b =>
                 {
                     b.HasBaseType("TRPG.Models.Prop");
-
-                    b.Property<Guid?>("AssignedPersonId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("assigned_person_id");
 
                     b.Property<Guid?>("OccupantId")
                         .HasColumnType("uuid")
                         .HasColumnName("occupant_id");
 
-                    b.Property<string>("WorkstationType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("workstation_type");
+                    b.ToTable("props", (string)null);
+
+                    b.HasDiscriminator().HasValue("SeatProp");
+                });
+
+            modelBuilder.Entity("TRPG.Models.StorageProp", b =>
+                {
+                    b.HasBaseType("TRPG.Models.Prop");
+
+                    b.Property<Guid?>("KeyItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("key_item_id");
 
                     b.ToTable("props", null, t =>
                         {
-                            t.Property("AssignedPersonId")
-                                .HasColumnName("workstation_assigned_person_id");
-
-                            t.Property("OccupantId")
-                                .HasColumnName("workstation_occupant_id");
+                            t.Property("KeyItemId")
+                                .HasColumnName("storage_prop_key_item_id");
                         });
 
-                    b.HasDiscriminator().HasValue("Workstation");
+                    b.HasDiscriminator().HasValue("StorageProp");
+                });
+
+            modelBuilder.Entity("TRPG.Models.WorkstationProp", b =>
+                {
+                    b.HasBaseType("TRPG.Models.Prop");
+
+                    b.Property<Guid?>("OccupantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("occupant_id");
+
+                    b.ToTable("props", null, t =>
+                        {
+                            t.Property("OccupantId")
+                                .HasColumnName("workstation_prop_occupant_id");
+                        });
+
+                    b.HasDiscriminator().HasValue("WorkstationProp");
                 });
 
             modelBuilder.Entity("TRPG.Models.Attack", b =>
@@ -1316,16 +1304,6 @@ namespace TRPG.Migrations
 
                     b.Navigation("Boundary")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("TRPG.Models.ContainerItem", b =>
-                {
-                    b.HasOne("TRPG.Models.Container", null)
-                        .WithMany("Items")
-                        .HasForeignKey("ContainerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_container_items_props_container_id");
                 });
 
             modelBuilder.Entity("TRPG.Models.Country", b =>
@@ -1776,6 +1754,16 @@ namespace TRPG.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TRPG.Models.PropItem", b =>
+                {
+                    b.HasOne("TRPG.Models.StorageProp", null)
+                        .WithMany("Items")
+                        .HasForeignKey("PropId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_prop_items_props_prop_id");
+                });
+
             modelBuilder.Entity("TRPG.Models.QuestObjective", b =>
                 {
                     b.OwnsOne("TRPG.Models.Circle", "Region", b1 =>
@@ -2010,7 +1998,7 @@ namespace TRPG.Migrations
                     b.Navigation("Modifiers");
                 });
 
-            modelBuilder.Entity("TRPG.Models.Container", b =>
+            modelBuilder.Entity("TRPG.Models.StorageProp", b =>
                 {
                     b.Navigation("Items");
                 });

@@ -89,7 +89,7 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
         _context.BuildingRooms.Add(room);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var prop = new Chair {
+        var prop = new Seat {
             RoomId = room.Id,
             Name = $"Prop-{Guid.NewGuid():N}",
             Description = "A test prop",

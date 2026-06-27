@@ -1,5 +1,5 @@
 namespace TRPG.Models;
 
-internal class Forge : Prop {
+internal class Seat : Prop {
     public Guid? OccupantId { get; set; }
 }
