@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;

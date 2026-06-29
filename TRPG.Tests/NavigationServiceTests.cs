@@ -55,20 +55,6 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         return road;
     }
 
-    private async Task<Building> SeedBuilding() {
-        var building = Builders.MakeBuilding(_city.Id);
-        _context.Buildings.Add(building);
-        await _context.SaveChangesAsync();
-        return building;
-    }
-
-    private async Task<BuildingRoom> SeedRoom(Guid buildingId) {
-        var room = Builders.MakeBuildingRoom(buildingId);
-        _context.BuildingRooms.Add(room);
-        await _context.SaveChangesAsync();
-        return room;
-    }
-
     [Fact]
     public async Task GetShortestCityRoute_ReturnsRoute_WhenDirectRouteExists() {
         // Arrange
@@ -115,32 +101,6 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.GetShortestIntraCityRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0),
-                TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
-    public async Task GetShortestIntraRoomRoute_ReturnsPath_WhenNoObstacles() {
-        // Arrange
-        var building = await SeedBuilding();
-        var room = await SeedRoom(building.Id);
-        var origin = new Point(0, 0);
-        var destination = new Point(2, 0);
-
-        // Act
-        var result = await _service.GetShortestIntraRoomRoute(room.Id, origin, destination,
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Equal(3, result.Count);
-        Assert.Equal(origin, result[0]);
-        Assert.Equal(destination, result[^1]);
-    }
-
-    [Fact]
-    public async Task GetShortestIntraRoomRoute_ThrowsInvalidOperationException_WhenRoomNotFound() {
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _service.GetShortestIntraRoomRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0),
                 TestContext.Current.CancellationToken));
     }
 }

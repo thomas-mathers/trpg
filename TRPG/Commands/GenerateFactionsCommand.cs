@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using TRPG.Commands.Bootstrap;
+using OllamaSharp;
 using TRPG.Extensions;
 using TRPG.Models;
 
@@ -12,37 +12,36 @@ internal class GenerateFactionsCommand {
     public required Guid WorldId { get; init; }
 }
 
-internal class GenerateFactionsCommandHandler(AiClient client, ILogger<GenerateFactionsCommandHandler> logger) {
+internal class GenerateFactionsCommandHandler(OllamaApiClient client, ILogger<GenerateFactionsCommandHandler> logger) {
     public async Task<IReadOnlyList<Faction>> Handle(
         GenerateFactionsCommand command,
         CancellationToken cancellationToken
     ) {
         var sw = Stopwatch.StartNew();
-        
-        const string example =
-            """{"Name":"The Iron Compact","Description":"A powerful guild of merchants controlling trade routes across the region."}""";
-        
-        var chat = client.CreateChat<GenerateFactionsCommandHandler>(
+
+        var schema = await client.GetJson<FactionListSchema>(
+            logger,
             $"""
              You are a creative world-building assistant for a TRPG game generating content for: {command.Description}.
-             When asked to generate a faction, respond with a single JSON object with Name and Description fields only.
-             Each faction must be unique and different from any already generated. Do not use markdown.
-             Example: {example}
-             """);
-
-        var factions = new List<Faction>();
-        
-        for (var i = 0; i < command.Count; i++) {
-            var schema =
-                await chat.GetJson<FactionSchema>($"Generate faction {i + 1} of {command.Count}.", cancellationToken);
-            factions.Add(new Faction {
-                WorldId = command.WorldId, 
-                Name = schema.Name, 
-                Description = schema.Description
-            });
-        }
+             Generate {command.Count} unique factions. Respond with a JSON object with a Factions array, each element having Name and Description. Each description must be a single sentence. You MUST respond in English only. Do not use markdown.
+             """,
+            $"Generate {command.Count} unique factions.",
+            s => s.Factions.Count != command.Count
+                ? $"Expected exactly {command.Count} factions but got {s.Factions.Count}."
+                : null,
+            cancellationToken);
 
         logger.LogDebug("GenerateFactions completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
-        return factions;
+        return schema.Factions.Select(f => new Faction
+            { WorldId = command.WorldId, Name = f.Name, Description = f.Description }).ToList();
     }
+}
+
+file class FactionListSchema {
+    public List<FactionItemSchema> Factions { get; set; } = [];
+}
+
+file class FactionItemSchema {
+    public string Description { get; set; } = "";
+    public string Name { get; set; } = "";
 }

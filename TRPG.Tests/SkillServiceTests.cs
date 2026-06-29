@@ -9,111 +9,73 @@ namespace TRPG.Tests;
 public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
     private Person _person = null!;
-    private PersonService _personService = null!;
-    private SkillService _skillService = null!;
+    private SkillService _service = null!;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
-        _personService = new PersonService(_context);
-        _skillService = new SkillService(_context);
+        _service = new SkillService(_context);
         _person = Builders.MakePerson();
-        await _personService.Add(_person);
+        _context.Persons.Add(_person);
+        await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() {
-        await _context.DisposeAsync();
-    }
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     [Fact]
-    public async Task AddSkill_AddsSkillToPersonWithNoPrerequisites() {
-        // Arrange
-        var skill = Builders.MakeSkill();
-        _context.Skills.Add(skill);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
+    public async Task AddExperience_CreatesPersonSkill_WhenNoneExists() {
         // Act
-        await _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken);
+        await _service.AddExperience(_person.Id, Skill.Archery, 50, TestContext.Current.CancellationToken);
 
         // Assert
-        var skills = await _skillService.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
+        var skills = await _service.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Single(skills);
-        Assert.Equal(skill.Id, skills[0].SkillId);
+        Assert.Equal(Skill.Archery, skills[0].Skill);
+        Assert.Equal(50, skills[0].Experience);
     }
 
     [Fact]
-    public async Task AddSkill_Throws_WhenPrerequisiteNotMet() {
+    public async Task AddExperience_AccumulatesOnSubsequentCalls() {
         // Arrange
-        var prereq = Builders.MakeSkill();
-        var skill = Builders.MakeSkill();
-        _context.Skills.AddRange(prereq, skill);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        _context.SkillPrerequisites.Add(new SkillPrerequisite { SkillId = skill.Id, PrerequisiteSkillId = prereq.Id });
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
-    public async Task AddSkill_Succeeds_WhenPrerequisiteMet() {
-        // Arrange
-        var prereq = Builders.MakeSkill();
-        var skill = Builders.MakeSkill();
-        _context.Skills.AddRange(prereq, skill);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        _context.SkillPrerequisites.Add(new SkillPrerequisite { SkillId = skill.Id, PrerequisiteSkillId = prereq.Id });
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        await _skillService.AddSkill(_person.Id, prereq.Id, TestContext.Current.CancellationToken);
+        await _service.AddExperience(_person.Id, Skill.Archery, 50, TestContext.Current.CancellationToken);
 
         // Act
-        await _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken);
+        await _service.AddExperience(_person.Id, Skill.Archery, 60, TestContext.Current.CancellationToken);
 
         // Assert
-        var skills = await _skillService.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
+        var skills = await _service.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(110, skills[0].Experience);
+    }
+
+    [Fact]
+    public async Task AddExperience_BumpsLevel_WhenThresholdCrossed() {
+        // Act — 100 XP crosses the level 1 threshold
+        var result = await _service.AddExperience(_person.Id, Skill.Archery, 100, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(1, result.Level);
+    }
+
+    [Fact]
+    public async Task AddExperience_DoesNotBumpLevel_WhenBelowThreshold() {
+        // Act
+        var result = await _service.AddExperience(_person.Id, Skill.Archery, 50, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(0, result.Level);
+    }
+
+    [Fact]
+    public async Task GetAllByPersonId_ReturnsAllSkills() {
+        // Arrange
+        await _service.AddExperience(_person.Id, Skill.Archery, 100, TestContext.Current.CancellationToken);
+        await _service.AddExperience(_person.Id, Skill.Stealth, 100, TestContext.Current.CancellationToken);
+
+        // Act
+        var skills = await _service.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
+
+        // Assert
         Assert.Equal(2, skills.Count);
-    }
-
-    [Fact]
-    public async Task RemoveSkill_RemovesPersonSkill() {
-        // Arrange
-        var skill = Builders.MakeSkill();
-        _context.Skills.Add(skill);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _skillService.AddSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken);
-
-        // Act
-        await _skillService.RemoveSkill(_person.Id, skill.Id, TestContext.Current.CancellationToken);
-
-        // Assert
-        var skills = await _skillService.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
-        Assert.Empty(skills);
-    }
-
-    [Fact]
-    public async Task GetAllPrerequisites_ReturnsCorrectIds() {
-        // Arrange
-        var prereq1 = Builders.MakeSkill();
-        var prereq2 = Builders.MakeSkill();
-        var skill = Builders.MakeSkill();
-        _context.Skills.AddRange(prereq1, prereq2, skill);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        _context.SkillPrerequisites.AddRange(
-            new SkillPrerequisite { SkillId = skill.Id, PrerequisiteSkillId = prereq1.Id },
-            new SkillPrerequisite { SkillId = skill.Id, PrerequisiteSkillId = prereq2.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var prereqs = await _skillService.GetAllPrerequisites(skill.Id, TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Equal(2, prereqs.Count);
-        Assert.Contains(prereq1.Id, prereqs);
-        Assert.Contains(prereq2.Id, prereqs);
+        Assert.Contains(skills, s => s.Skill == Skill.Archery);
+        Assert.Contains(skills, s => s.Skill == Skill.Stealth);
     }
 }

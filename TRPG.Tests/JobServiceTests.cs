@@ -45,7 +45,7 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime {
     [Fact]
     public async Task GetAllByPersonId_ReturnsJobsOrderedByPriorityDescending() {
         // Arrange
-        var low = Builders.MakeJob(_person.Id, 1);
+        var low = Builders.MakeJob(_person.Id);
         var high = Builders.MakeJob(_person.Id, 10);
         var mid = Builders.MakeJob(_person.Id, 5);
         await _service.Add(low, TestContext.Current.CancellationToken);

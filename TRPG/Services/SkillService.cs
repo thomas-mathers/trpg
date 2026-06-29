@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
@@ -6,63 +6,37 @@ using TRPG.Models;
 namespace TRPG.Services;
 
 internal class SkillService(TrpgDbContext context) {
-    public async Task AddSkill(Guid personId, Guid skillId, CancellationToken cancellationToken = default) {
-        var prerequisites = await context.SkillPrerequisites
-            .Where(sp => sp.SkillId == skillId)
-            .Select(sp => sp.PrerequisiteSkillId)
-            .ToListAsync(cancellationToken);
+    private static readonly int[] LevelThresholds = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700];
 
-        if (prerequisites.Count > 0) {
-            var knownSkillIds = await context.PersonSkills
-                .Where(ps => ps.PersonId == personId)
-                .Select(ps => ps.SkillId)
-                .ToListAsync(cancellationToken);
+    public async Task<PersonSkill> AddExperience(Guid personId, Skill skill, int amount,
+        CancellationToken cancellationToken = default) {
+        var personSkill = await context.PersonSkills
+            .FirstOrDefaultAsync(ps => ps.PersonId == personId && ps.Skill == skill, cancellationToken);
 
-            if (!prerequisites.All(knownSkillIds.Contains)) {
-                throw new InvalidOperationException("Skill prerequisites not met.");
-            }
+        if (personSkill == null) {
+            personSkill = new PersonSkill { PersonId = personId, Skill = skill };
+            context.PersonSkills.Add(personSkill);
         }
 
-        context.PersonSkills.Add(new PersonSkill {
-            Id = Guid.NewGuid(),
-            PersonId = personId,
-            SkillId = skillId,
-            Cooldown = 0
-        });
+        personSkill.Experience += amount;
+        personSkill.Level = LevelForExperience(personSkill.Experience);
 
         await context.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task<Skill?> GetById(Guid id, CancellationToken cancellationToken = default) {
-        return await context.Skills.FindAsync([id], cancellationToken);
-    }
-
-    public async Task<ReadOnlyCollection<Skill>> GetAll(CancellationToken cancellationToken = default) {
-        var list = await context.Skills.ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+        return personSkill;
     }
 
     public async Task<ReadOnlyCollection<PersonSkill>> GetAllByPersonId(Guid personId,
         CancellationToken cancellationToken = default) {
         var list = await context.PersonSkills
-            .Include(ps => ps.Skill)
             .Where(ps => ps.PersonId == personId)
             .ToListAsync(cancellationToken);
         return list.AsReadOnly();
     }
 
-    public async Task<ReadOnlyCollection<Guid>> GetAllPrerequisites(Guid id,
-        CancellationToken cancellationToken = default) {
-        var list = await context.SkillPrerequisites
-            .Where(sp => sp.SkillId == id)
-            .Select(sp => sp.PrerequisiteSkillId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
-    }
-
-    public async Task RemoveSkill(Guid personId, Guid skillId, CancellationToken cancellationToken = default) {
-        await context.PersonSkills
-            .Where(ps => ps.PersonId == personId && ps.SkillId == skillId)
-            .ExecuteDeleteAsync(cancellationToken);
+    private static int LevelForExperience(int xp) {
+        for (var i = LevelThresholds.Length - 1; i >= 0; i--) {
+            if (xp >= LevelThresholds[i]) return i;
+        }
+        return 0;
     }
 }

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using TRPG.Commands.Bootstrap;
+using OllamaSharp;
 using TRPG.Extensions;
 using TRPG.Models;
 
@@ -12,33 +12,40 @@ internal class GenerateRacesCommand {
     public required Guid WorldId { get; init; }
 }
 
-internal class GenerateRacesCommandHandler(AiClient client, ILogger<GenerateRacesCommandHandler> logger) {
+internal class GenerateRacesCommandHandler(OllamaApiClient client, ILogger<GenerateRacesCommandHandler> logger) {
     public async Task<IReadOnlyList<Race>> Handle(
         GenerateRacesCommand command,
         CancellationToken cancellationToken
     ) {
         var sw = Stopwatch.StartNew();
-        
-        const string example =
-            """{"Name":"Humans","Description":"Adaptable and ambitious people found across all regions."}""";
-        
-        var chat = client.CreateChat<GenerateRacesCommandHandler>(
+
+        var schema = await client.GetJson<RaceListSchema>(
+            logger,
             $"""
              You are a creative world-building assistant for a TRPG game generating content for: {command.Description}.
-             When asked to generate a race, respond with a single JSON object with Name and Description fields only.
-             Each race must be unique and different from any already generated. Do not use markdown.
-             Example: {example}
-             """);
-
-        var races = new List<Race>();
-        for (var i = 0; i < command.Count; i++) {
-            var schema =
-                await chat.GetJson<RaceSchema>($"Generate race {i + 1} of {command.Count}.", cancellationToken);
-            races.Add(new Race { WorldId = command.WorldId, Name = schema.Name, Description = schema.Description });
-        }
+             Generate {command.Count} unique races. Respond with a JSON object with a Races array, each element having Name, Description, and CultureStyle.
+             Each description must be a single sentence. CultureStyle must be one of: Nordic/Viking, Roman, Feudal Japanese, Arabic/Persian, Celtic, Slavic, Ancient Egyptian, Mesoamerican, Byzantine, Mongol. Each race must have a different CultureStyle. You MUST respond in English only. Do not use markdown.
+             """,
+            $"Generate {command.Count} unique races.",
+            s => s.Races.Count != command.Count
+                ? $"Expected exactly {command.Count} races but got {s.Races.Count}."
+                : null,
+            cancellationToken);
 
         logger.LogDebug("GenerateRaces completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
-        
-        return races;
+        return schema.Races.Select(r => new Race {
+                WorldId = command.WorldId, Name = r.Name, Description = r.Description, CultureStyle = r.CultureStyle
+            })
+            .ToList();
     }
+}
+
+file class RaceListSchema {
+    public List<RaceItemSchema> Races { get; set; } = [];
+}
+
+file class RaceItemSchema {
+    public string CultureStyle { get; set; } = "";
+    public string Description { get; set; } = "";
+    public string Name { get; set; } = "";
 }

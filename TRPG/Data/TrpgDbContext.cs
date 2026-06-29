@@ -11,11 +11,9 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     };
 
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
-    public DbSet<BuildingRoom> BuildingRooms => Set<BuildingRoom>();
     public DbSet<Building> Buildings => Set<Building>();
-    public DbSet<ContainerItem> ContainerItems => Set<ContainerItem>();
-    public DbSet<Prop> Props => Set<Prop>();
     public DbSet<City> Cities => Set<City>();
+    public DbSet<ContainerItem> ContainerItems => Set<ContainerItem>();
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
     public DbSet<Faction> Factions => Set<Faction>();
@@ -24,18 +22,18 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<Job> Jobs => Set<Job>();
     public DbSet<NpcChatMessage> NpcChatMessages => Set<NpcChatMessage>();
     public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
+    public DbSet<PersonAbility> PersonAbilities => Set<PersonAbility>();
+    public DbSet<PersonSkill> PersonSkills => Set<PersonSkill>();
     public DbSet<PersonQuestObjective> PersonQuestObjectives => Set<PersonQuestObjective>();
     public DbSet<PersonQuest> PersonQuests => Set<PersonQuest>();
     public DbSet<Person> Persons => Set<Person>();
-    public DbSet<PersonSkill> PersonSkills => Set<PersonSkill>();
-    public DbSet<Profession> Professions => Set<Profession>();
+    public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
     public DbSet<Race> Races => Set<Race>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
-    public DbSet<SkillPrerequisite> SkillPrerequisites => Set<SkillPrerequisite>();
-    public DbSet<Skill> Skills => Set<Skill>();
     public DbSet<Road> Roads => Set<Road>();
+    public DbSet<Room> Rooms => Set<Room>();
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
     public DbSet<World> Worlds => Set<World>();
 
@@ -57,6 +55,8 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<QuestStatus>().HaveConversion<string>();
         configurationBuilder.Properties<QuestObjectiveType>().HaveConversion<string>();
         configurationBuilder.Properties<JobAction>().HaveConversion<string>();
+        configurationBuilder.Properties<Profession>().HaveConversion<string>();
+        configurationBuilder.Properties<Skill>().HaveConversion<string>();
         configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();
     }
 
@@ -67,10 +67,6 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
                 lo.OwnsOne(l => l.Coordinates);
                 lo.HasIndex(l => new { l.CityId, l.BuildingId });
             });
-            entity.OwnsOne(p => p.Progression, prog => {
-                prog.ToJson();
-                prog.OwnsOne(p => p.Experience);
-            });
             entity.OwnsOne(p => p.Attributes, s => {
                 s.ToJson();
                 s.OwnsOne(st => st.Hp);
@@ -79,7 +75,8 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.Property(p => p.ActiveConditions)
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, JsonOptions),
-                    v => JsonSerializer.Deserialize<Dictionary<ConditionType, int>>(v, JsonOptions) ?? new()
+                    v => JsonSerializer.Deserialize<Dictionary<ConditionType, int>>(v, JsonOptions) ??
+                         new Dictionary<ConditionType, int>()
                 )
                 .HasColumnType("jsonb");
             entity.OwnsMany(p => p.ActiveModifiers, m => m.ToJson());
@@ -95,24 +92,6 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.HasIndex(i => i.PersonId);
         });
 
-        modelBuilder.Entity<Skill>(entity => {
-            entity.HasDiscriminator<string>("skill_type")
-                  .HasValue<Attack>("Attack")
-                  .HasValue<Support>("Support");
-            entity.HasIndex(s => new { s.WorldId, s.Name }).IsUnique();
-        });
-
-        modelBuilder.Entity<Attack>(entity => {
-            entity.OwnsMany(a => a.Conditions, c => c.ToJson());
-        });
-
-        modelBuilder.Entity<Support>(entity => {
-            entity.OwnsMany(s => s.Modifiers, m => m.ToJson());
-        });
-
-        modelBuilder.Entity<SkillPrerequisite>(entity => {
-            entity.HasKey(sp => new { sp.SkillId, sp.PrerequisiteSkillId });
-        });
 
         modelBuilder.Entity<NpcChatMessage>(entity => {
             entity.HasOne(m => m.Conversation).WithMany().HasForeignKey(m => m.ConversationId);
@@ -126,9 +105,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             });
         });
 
-        modelBuilder.Entity<World>(entity => {
-            entity.OwnsOne(w => w.Boundary, b => b.ToJson());
-        });
+        modelBuilder.Entity<World>(entity => { entity.OwnsOne(w => w.Boundary, b => b.ToJson()); });
 
         modelBuilder.Entity<Country>(entity => {
             entity.OwnsOne(c => c.Boundary, b => {
@@ -146,23 +123,17 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<Building>(entity => { entity.OwnsOne(b => b.Boundary, r => r.ToJson()); });
 
-        modelBuilder.Entity<BuildingRoom>(entity => {
-            entity.HasIndex(r => r.BuildingId);
-            entity.OwnsOne(r => r.Boundary, b => b.ToJson());
-        });
+        modelBuilder.Entity<Room>(entity => { entity.HasIndex(r => r.BuildingId); });
 
         modelBuilder.Entity<Prop>(entity => {
             entity.HasDiscriminator<string>("behavior_type")
-                  .HasValue<Prop>("Prop")
-                  .HasValue<Seat>("Seat")
-                  .HasValue<Workstation>("Workstation")
-
-                  .HasValue<Bed>("Bed")
-                  .HasValue<Container>("Container")
-                  .HasValue<RoomConnector>("RoomConnector")
-                  .HasValue<Trigger>("Trigger");
+                .HasValue<Seat>("Seat")
+                .HasValue<Workstation>("Workstation")
+                .HasValue<Bed>("Bed")
+                .HasValue<Container>("Container")
+                .HasValue<RoomConnector>("RoomConnector")
+                .HasValue<Trigger>("Trigger");
             entity.HasIndex(p => p.RoomId);
-            entity.OwnsOne(p => p.Boundary, b => b.ToJson());
         });
 
         modelBuilder.Entity<Container>(entity => {
@@ -194,9 +165,12 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.HasIndex(o => o.QuestId);
         });
 
+        modelBuilder.Entity<PersonAbility>(entity => {
+            entity.HasIndex(pa => new { pa.PersonId, pa.AbilityName }).IsUnique();
+        });
+
         modelBuilder.Entity<PersonSkill>(entity => {
-            entity.HasOne(ps => ps.Skill).WithMany().HasForeignKey(ps => ps.SkillId);
-            entity.HasIndex(ps => new { ps.PersonId, ps.SkillId }).IsUnique();
+            entity.HasIndex(ps => new { ps.PersonId, ps.Skill }).IsUnique();
         });
 
         modelBuilder.Entity<PersonQuest>(entity => {
@@ -223,8 +197,6 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<Race>()
             .HasIndex(r => new { r.WorldId, r.Name }).IsUnique();
 
-        modelBuilder.Entity<Profession>()
-            .HasIndex(p => new { p.WorldId, p.Name }).IsUnique();
 
         modelBuilder.Entity<Faction>()
             .HasIndex(f => new { f.WorldId, f.Name }).IsUnique();

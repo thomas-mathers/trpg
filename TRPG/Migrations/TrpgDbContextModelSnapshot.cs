@@ -44,6 +44,10 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
+                    b.Property<Guid?>("FactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("faction_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -87,35 +91,6 @@ namespace TRPG.Migrations
                     b.ToTable("building_owners", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Models.BuildingRoom", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("BuildingId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("building_id");
-
-                    b.Property<int>("FloorNumber")
-                        .HasColumnType("integer")
-                        .HasColumnName("floor_number");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id")
-                        .HasName("pk_building_rooms");
-
-                    b.HasIndex("BuildingId")
-                        .HasDatabaseName("ix_building_rooms_building_id");
-
-                    b.ToTable("building_rooms", (string)null);
-                });
-
             modelBuilder.Entity("TRPG.Models.City", b =>
                 {
                     b.Property<Guid>("Id")
@@ -135,6 +110,10 @@ namespace TRPG.Migrations
                     b.Property<int>("Height")
                         .HasColumnType("integer")
                         .HasColumnName("height");
+
+                    b.Property<bool>("IsCapital")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_capital");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -519,18 +498,27 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("birth_year");
 
+                    b.Property<int>("Experience")
+                        .HasColumnType("integer")
+                        .HasColumnName("experience");
+
                     b.Property<int>("Gold")
                         .HasColumnType("integer")
                         .HasColumnName("gold");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<Guid>("ProfessionId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("profession_id");
+                    b.Property<string>("Profession")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("profession");
 
                     b.Property<Guid>("RaceId")
                         .HasColumnType("uuid")
@@ -547,6 +535,36 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_persons_world_id");
 
                     b.ToTable("persons", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Models.PersonAbility", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AbilityName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ability_name");
+
+                    b.Property<int>("Cooldown")
+                        .HasColumnType("integer")
+                        .HasColumnName("cooldown");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_person_abilities");
+
+                    b.HasIndex("PersonId", "AbilityName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_person_abilities_person_id_ability_name");
+
+                    b.ToTable("person_abilities", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Models.PersonQuest", b =>
@@ -621,60 +639,31 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<int>("Cooldown")
+                    b.Property<int>("Experience")
                         .HasColumnType("integer")
-                        .HasColumnName("cooldown");
+                        .HasColumnName("experience");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
 
                     b.Property<Guid>("PersonId")
                         .HasColumnType("uuid")
                         .HasColumnName("person_id");
 
-                    b.Property<Guid>("SkillId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("skill_id");
+                    b.Property<string>("Skill")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("skill");
 
                     b.HasKey("Id")
                         .HasName("pk_person_skills");
 
-                    b.HasIndex("SkillId")
-                        .HasDatabaseName("ix_person_skills_skill_id");
-
-                    b.HasIndex("PersonId", "SkillId")
+                    b.HasIndex("PersonId", "Skill")
                         .IsUnique()
-                        .HasDatabaseName("ix_person_skills_person_id_skill_id");
+                        .HasDatabaseName("ix_person_skills_person_id_skill");
 
                     b.ToTable("person_skills", (string)null);
-                });
-
-            modelBuilder.Entity("TRPG.Models.Profession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("description");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_professions");
-
-                    b.HasIndex("WorldId", "Name")
-                        .IsUnique()
-                        .HasDatabaseName("ix_professions_world_id_name");
-
-                    b.ToTable("professions", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Models.Prop", b =>
@@ -827,6 +816,11 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("CultureStyle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("culture_style");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -922,78 +916,38 @@ namespace TRPG.Migrations
                     b.ToTable("roads", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Models.Skill", b =>
+            modelBuilder.Entity("TRPG.Models.Room", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<float?>("AoeRadius")
-                        .HasColumnType("real")
-                        .HasColumnName("aoe_radius");
-
-                    b.Property<int>("Cooldown")
-                        .HasColumnType("integer")
-                        .HasColumnName("cooldown");
-
-                    b.Property<int>("Cost")
-                        .HasColumnType("integer")
-                        .HasColumnName("cost");
+                    b.Property<Guid>("BuildingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("building_id");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("description");
 
+                    b.Property<int>("FloorNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("floor_number");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<string>("TargetType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("target_type");
-
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
-                    b.Property<string>("skill_type")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("character varying(8)")
-                        .HasColumnName("skill_type");
-
                     b.HasKey("Id")
-                        .HasName("pk_skills");
+                        .HasName("pk_rooms");
 
-                    b.HasIndex("WorldId", "Name")
-                        .IsUnique()
-                        .HasDatabaseName("ix_skills_world_id_name");
+                    b.HasIndex("BuildingId")
+                        .HasDatabaseName("ix_rooms_building_id");
 
-                    b.ToTable("skills", (string)null);
-
-                    b.HasDiscriminator<string>("skill_type").HasValue("Skill");
-
-                    b.UseTphMappingStrategy();
-                });
-
-            modelBuilder.Entity("TRPG.Models.SkillPrerequisite", b =>
-                {
-                    b.Property<Guid>("SkillId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("skill_id");
-
-                    b.Property<Guid>("PrerequisiteSkillId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("prerequisite_skill_id");
-
-                    b.HasKey("SkillId", "PrerequisiteSkillId")
-                        .HasName("pk_skill_prerequisites");
-
-                    b.ToTable("skill_prerequisites", (string)null);
+                    b.ToTable("rooms", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Models.World", b =>
@@ -1175,42 +1129,6 @@ namespace TRPG.Migrations
                     b.HasDiscriminator().HasValue("Workstation");
                 });
 
-            modelBuilder.Entity("TRPG.Models.Attack", b =>
-                {
-                    b.HasBaseType("TRPG.Models.Skill");
-
-                    b.Property<float>("DamageAmount")
-                        .HasColumnType("real")
-                        .HasColumnName("damage_amount");
-
-                    b.Property<string>("DamageAmountType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("damage_amount_type");
-
-                    b.Property<string>("DamageType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("damage_type");
-
-                    b.ToTable("skills", (string)null);
-
-                    b.HasDiscriminator().HasValue("Attack");
-                });
-
-            modelBuilder.Entity("TRPG.Models.Support", b =>
-                {
-                    b.HasBaseType("TRPG.Models.Skill");
-
-                    b.Property<int?>("Duration")
-                        .HasColumnType("integer")
-                        .HasColumnName("duration");
-
-                    b.ToTable("skills", (string)null);
-
-                    b.HasDiscriminator().HasValue("Support");
-                });
-
             modelBuilder.Entity("TRPG.Models.Building", b =>
                 {
                     b.OwnsOne("TRPG.Models.Rectangle", "Boundary", b1 =>
@@ -1236,37 +1154,6 @@ namespace TRPG.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("BuildingId")
                                 .HasConstraintName("fk_buildings_buildings_id");
-                        });
-
-                    b.Navigation("Boundary")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TRPG.Models.BuildingRoom", b =>
-                {
-                    b.OwnsOne("TRPG.Models.Rectangle", "Boundary", b1 =>
-                        {
-                            b1.Property<Guid>("BuildingRoomId");
-
-                            b1.Property<int>("Bottom");
-
-                            b1.Property<int>("Left");
-
-                            b1.Property<int>("Right");
-
-                            b1.Property<int>("Top");
-
-                            b1.HasKey("BuildingRoomId");
-
-                            b1.ToTable("building_rooms");
-
-                            b1
-                                .ToJson("boundary")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("BuildingRoomId")
-                                .HasConstraintName("fk_building_rooms_building_rooms_id");
                         });
 
                     b.Navigation("Boundary")
@@ -1435,6 +1322,10 @@ namespace TRPG.Migrations
                             b1.Property<Guid?>("CityId")
                                 .HasColumnType("uuid")
                                 .HasColumnName("location_city_id");
+
+                            b1.Property<Guid?>("RoomId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("location_room_id");
 
                             b1.HasKey("JobId");
 
@@ -1619,6 +1510,10 @@ namespace TRPG.Migrations
                                 .HasColumnType("uuid")
                                 .HasColumnName("location_city_id");
 
+                            b1.Property<Guid?>("RoomId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("location_room_id");
+
                             b1.HasKey("PersonId");
 
                             b1.HasIndex("CityId", "BuildingId")
@@ -1657,55 +1552,12 @@ namespace TRPG.Migrations
                                 .IsRequired();
                         });
 
-                    b.OwnsOne("TRPG.Models.Progression", "Progression", b1 =>
-                        {
-                            b1.Property<Guid>("PersonId");
-
-                            b1.Property<int>("Level");
-
-                            b1.HasKey("PersonId");
-
-                            b1.ToTable("persons");
-
-                            b1
-                                .ToJson("progression")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("PersonId")
-                                .HasConstraintName("fk_persons_persons_id");
-
-                            b1.OwnsOne("TRPG.Models.Meter", "Experience", b2 =>
-                                {
-                                    b2.Property<Guid>("ProgressionPersonId");
-
-                                    b2.Property<int>("Current");
-
-                                    b2.Property<int>("Maximum");
-
-                                    b2.HasKey("ProgressionPersonId")
-                                        .HasName("pk_persons");
-
-                                    b2.ToTable("persons");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("ProgressionPersonId")
-                                        .HasConstraintName("fk_persons_persons_progression_person_id");
-                                });
-
-                            b1.Navigation("Experience")
-                                .IsRequired();
-                        });
-
                     b.Navigation("ActiveModifiers");
 
                     b.Navigation("Attributes")
                         .IsRequired();
 
                     b.Navigation("Location")
-                        .IsRequired();
-
-                    b.Navigation("Progression")
                         .IsRequired();
                 });
 
@@ -1731,49 +1583,6 @@ namespace TRPG.Migrations
                         .HasConstraintName("fk_person_quest_objectives_quest_objectives_objective_id");
 
                     b.Navigation("Objective");
-                });
-
-            modelBuilder.Entity("TRPG.Models.PersonSkill", b =>
-                {
-                    b.HasOne("TRPG.Models.Skill", "Skill")
-                        .WithMany()
-                        .HasForeignKey("SkillId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_person_skills_skills_skill_id");
-
-                    b.Navigation("Skill");
-                });
-
-            modelBuilder.Entity("TRPG.Models.Prop", b =>
-                {
-                    b.OwnsOne("TRPG.Models.Rectangle", "Boundary", b1 =>
-                        {
-                            b1.Property<Guid>("PropId");
-
-                            b1.Property<int>("Bottom");
-
-                            b1.Property<int>("Left");
-
-                            b1.Property<int>("Right");
-
-                            b1.Property<int>("Top");
-
-                            b1.HasKey("PropId");
-
-                            b1.ToTable("props");
-
-                            b1
-                                .ToJson("boundary")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("PropId")
-                                .HasConstraintName("fk_props_props_id");
-                        });
-
-                    b.Navigation("Boundary")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("TRPG.Models.QuestObjective", b =>
@@ -1803,6 +1612,8 @@ namespace TRPG.Migrations
                                     b2.Property<Guid?>("BuildingId");
 
                                     b2.Property<Guid?>("CityId");
+
+                                    b2.Property<Guid?>("RoomId");
 
                                     b2.HasKey("CircleQuestObjectiveId")
                                         .HasName("pk_quest_objectives");
@@ -1904,6 +1715,8 @@ namespace TRPG.Migrations
 
                                     b2.Property<Guid?>("CityId");
 
+                                    b2.Property<Guid?>("RoomId");
+
                                     b2.HasKey("CircleWorldEventId")
                                         .HasName("pk_world_events");
 
@@ -1941,73 +1754,6 @@ namespace TRPG.Migrations
 
                     b.Navigation("Region")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("TRPG.Models.Attack", b =>
-                {
-                    b.OwnsMany("TRPG.Models.ConditionEffect", "Conditions", b1 =>
-                        {
-                            b1.Property<Guid>("AttackId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<float?>("Amount");
-
-                            b1.Property<string>("Condition")
-                                .IsRequired();
-
-                            b1.Property<int>("Duration");
-
-                            b1.Property<string>("Type");
-
-                            b1.HasKey("AttackId", "__synthesizedOrdinal");
-
-                            b1.ToTable("skills");
-
-                            b1
-                                .ToJson("conditions")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("AttackId")
-                                .HasConstraintName("fk_skills_skills_attack_id");
-                        });
-
-                    b.Navigation("Conditions");
-                });
-
-            modelBuilder.Entity("TRPG.Models.Support", b =>
-                {
-                    b.OwnsMany("TRPG.Models.AttributeModifier", "Modifiers", b1 =>
-                        {
-                            b1.Property<Guid>("SupportId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<float>("Amount");
-
-                            b1.Property<string>("Attribute")
-                                .IsRequired();
-
-                            b1.Property<string>("Type")
-                                .IsRequired();
-
-                            b1.HasKey("SupportId", "__synthesizedOrdinal");
-
-                            b1.ToTable("skills");
-
-                            b1
-                                .ToJson("modifiers")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("SupportId")
-                                .HasConstraintName("fk_skills_skills_support_id");
-                        });
-
-                    b.Navigation("Modifiers");
                 });
 
             modelBuilder.Entity("TRPG.Models.Container", b =>

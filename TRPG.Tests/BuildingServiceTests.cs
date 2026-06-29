@@ -85,15 +85,14 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     [Fact]
     public async Task GetAllPropsByRoomId_ReturnsProps() {
         // Arrange
-        var room = Builders.MakeBuildingRoom(_building.Id);
-        _context.BuildingRooms.Add(room);
+        var room = Builders.MakeRoom(_building.Id);
+        _context.Rooms.Add(room);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var prop = new Seat {
             RoomId = room.Id,
             Name = $"Prop-{Guid.NewGuid():N}",
-            Description = "A test prop",
-            Boundary = new Rectangle(1, 1, 2, 2)
+            Description = "A test prop"
         };
         _context.Props.Add(prop);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

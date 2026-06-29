@@ -3,7 +3,8 @@ using TRPG.Models;
 namespace TRPG.Tests.Helpers;
 
 internal static class Builders {
-    public static Person MakePerson(Guid? worldId = null, Guid? raceId = null, Guid? professionId = null,
+    public static Person MakePerson(Guid? worldId = null, Guid? raceId = null,
+        Profession profession = Profession.Knight,
         Guid? birthCityId = null) {
         return new Person {
             WorldId = worldId ?? Guid.NewGuid(),
@@ -11,12 +12,9 @@ internal static class Builders {
             RaceId = raceId ?? Guid.NewGuid(),
             BirthCityId = birthCityId ?? Guid.NewGuid(),
             BirthYear = 1000,
-            ProfessionId = professionId ?? Guid.NewGuid(),
+            Profession = profession,
             Location = new Location { Coordinates = new Point(0, 0) },
-            Progression = new Progression {
-                Level = 1,
-                Experience = new Meter(0, 100)
-            },
+            Level = 1,
             Attributes = new Attributes {
                 Hp = new Meter(100, 100),
                 Ap = new Meter(50, 50),
@@ -41,19 +39,6 @@ internal static class Builders {
         };
     }
 
-    public static Attack MakeSkill(Guid? worldId = null) {
-        return new Attack {
-            WorldId = worldId ?? Guid.NewGuid(),
-            Name = $"Skill-{Guid.NewGuid():N}",
-            Description = "A test skill",
-            Cost = 5,
-            Cooldown = 1,
-            TargetType = TargetType.Single,
-            DamageType = DamageType.Physical,
-            DamageAmountType = AmountType.Flat,
-            DamageAmount = 10
-        };
-    }
 
     public static Quest MakeQuest(Guid giverId, Guid? worldId = null) {
         return new Quest {
@@ -71,12 +56,6 @@ internal static class Builders {
             { WorldId = worldId ?? Guid.NewGuid(), Name = $"Race-{Guid.NewGuid():N}", Description = "A test race" };
     }
 
-    public static Profession MakeProfession(Guid? worldId = null) {
-        return new Profession {
-            WorldId = worldId ?? Guid.NewGuid(), Name = $"Profession-{Guid.NewGuid():N}",
-            Description = "A test profession"
-        };
-    }
 
     public static Faction MakeFaction(Guid? worldId = null) {
         return new Faction {
@@ -85,7 +64,10 @@ internal static class Builders {
     }
 
     public static World MakeWorld() {
-        return new World { Name = $"World-{Guid.NewGuid():N}", Description = "A test world", Boundary = new Rectangle(0, 0, 10000, 10000) };
+        return new World {
+            Name = $"World-{Guid.NewGuid():N}", Description = "A test world",
+            Boundary = new Rectangle(0, 0, 10000, 10000)
+        };
     }
 
     public static Country MakeCountry(Guid worldId) {
@@ -93,7 +75,8 @@ internal static class Builders {
             WorldId = worldId,
             Name = $"Country-{Guid.NewGuid():N}",
             Description = "A test country",
-            Boundary = new Polygon { Points = [new Point(0, 0), new Point(3000, 0), new Point(3000, 3000), new Point(0, 3000)] }
+            Boundary = new Polygon
+                { Points = [new Point(0, 0), new Point(3000, 0), new Point(3000, 3000), new Point(0, 3000)] }
         };
     }
 
@@ -104,16 +87,17 @@ internal static class Builders {
             Description = "A test city",
             Width = 100,
             Height = 100,
-            Boundary = new Polygon { Points = [new Point(0, 0), new Point(100, 0), new Point(100, 100), new Point(0, 100)] }
+            Boundary = new Polygon
+                { Points = [new Point(0, 0), new Point(100, 0), new Point(100, 100), new Point(0, 100)] }
         };
     }
 
-    public static BuildingRoom MakeBuildingRoom(Guid buildingId) {
-        return new BuildingRoom {
+    public static Room MakeRoom(Guid buildingId) {
+        return new Room {
             BuildingId = buildingId,
             Name = $"Room-{Guid.NewGuid():N}",
-            FloorNumber = 0,
-            Boundary = new Rectangle(0, 0, 10, 10)
+            Description = "A test room",
+            FloorNumber = 0
         };
     }
 

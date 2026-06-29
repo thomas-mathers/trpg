@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Algorithms;
@@ -54,34 +54,6 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             (_, _) => 1f);
     }
 
-    public async Task<ReadOnlyCollection<Point>> GetShortestIntraRoomRoute(Guid roomId, Point origin,
-        Point destination, CancellationToken cancellationToken = default) {
-        var grid = await cache.GetOrCreateAsync($"nav:room-grid:{roomId}", async entry => {
-            entry.SlidingExpiration = TimeSpan.FromMinutes(10);
-
-            var room = await context.BuildingRooms.FindAsync([roomId], cancellationToken)
-                       ?? throw new InvalidOperationException($"Room {roomId} not found.");
-
-            var props = await context.Props.Where(p => p.RoomId == roomId).ToListAsync(cancellationToken);
-
-            var blockedCells = BuildBlockedFromRectangles(props.Select(p => p.Boundary));
-
-            var width = room.Boundary.Right - room.Boundary.Left;
-            var height = room.Boundary.Bottom - room.Boundary.Top;
-
-            return new GridData(width, height, blockedCells);
-        });
-
-        if (grid is null) {
-            throw new InvalidOperationException($"Room grid cache returned null for {roomId}.");
-        }
-
-        return Graphs.ShortestPath(
-            origin, destination,
-            p => GridNeighbors(p, grid.Width, grid.Height, grid.Blocked),
-            (_, _) => 1f);
-    }
-
     private static IEnumerable<Point> GridNeighbors(Point p, int width, int height, HashSet<Point> blocked) {
         if (p.X > 0 && !blocked.Contains(new Point(p.X - 1, p.Y))) {
             yield return new Point(p.X - 1, p.Y);
@@ -102,7 +74,6 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
 
     private static HashSet<Point> BuildBlockedFromRectangles(IEnumerable<Rectangle> rectangles) {
         var blocked = new HashSet<Point>();
-
         foreach (var r in rectangles) {
             for (var x = r.Left; x < r.Right; x++) {
                 for (var y = r.Top; y < r.Bottom; y++) {

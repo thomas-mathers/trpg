@@ -16,13 +16,19 @@ internal static class Graphs {
         frontier.Enqueue(start, 0);
 
         while (frontier.TryDequeue(out var from, out _)) {
-            if (!visited.Add(from)) continue;
+            if (!visited.Add(from)) {
+                continue;
+            }
 
             foreach (var to in getNeighbors(from)) {
-                if (visited.Contains(to)) continue;
+                if (visited.Contains(to)) {
+                    continue;
+                }
 
                 var cost = getCost(from, to);
-                if (cheapestCost.TryGetValue(to, out var best) && cost >= best) continue;
+                if (cheapestCost.TryGetValue(to, out var best) && cost >= best) {
+                    continue;
+                }
 
                 cheapestCost[to] = cost;
                 cheapestEdge[to] = from;
@@ -31,7 +37,7 @@ internal static class Graphs {
         }
 
         var edges = new List<(TKey from, TKey to)>();
-        
+
         foreach (var (to, from) in cheapestEdge) {
             edges.Add((from, to));
         }
@@ -47,19 +53,19 @@ internal static class Graphs {
         var costs = new Dictionary<TKey, double> { [origin] = 0 };
         var cameFrom = new Dictionary<TKey, TKey>();
         var frontier = new PriorityQueue<TKey, double>();
-        
+
         frontier.Enqueue(origin, 0);
 
         while (frontier.Count > 0) {
             var from = frontier.Dequeue();
-            
+
             if (EqualityComparer<TKey>.Default.Equals(from, destination)) {
                 break;
             }
 
             foreach (var to in getNeighbors(from)) {
                 var cost = costs[from] + getCost(from, to);
-                
+
                 if (!costs.TryGetValue(to, out var bestCost) || cost < bestCost) {
                     costs[to] = cost;
                     cameFrom[to] = from;
@@ -70,7 +76,7 @@ internal static class Graphs {
 
         var path = new List<TKey>();
         var node = destination;
-        
+
         while (cameFrom.TryGetValue(node, out var prev)) {
             path.Insert(0, node);
             node = prev;
@@ -81,7 +87,7 @@ internal static class Graphs {
         }
 
         path.Insert(0, origin);
-        
+
         return path.AsReadOnly();
     }
 }

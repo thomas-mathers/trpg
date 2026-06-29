@@ -11,8 +11,9 @@ internal class Person {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Location Location { get; set; } = null!;
     public string Name { get; init; } = "";
-    public Guid ProfessionId { get; init; }
-    public Progression Progression { get; set; } = null!;
+    public Profession Profession { get; init; }
+    public int Experience { get; set; }
+    public int Level { get; set; }
     public Guid RaceId { get; init; }
     public Guid WorldId { get; init; }
 }

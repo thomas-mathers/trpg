@@ -5,38 +5,6 @@ internal class GeographyEntitySchema {
     public string Name { get; set; } = "";
 }
 
-internal class RoadNameSchema {
-    public string Name { get; set; } = "";
-}
-
-internal class BuildingOwnerSchema {
-    public string Biography { get; set; } = "";
-    public string BuildingName { get; set; } = "";
-    public string Name { get; set; } = "";
-    public string ProfessionName { get; set; } = "";
-    public string RaceName { get; set; } = "";
-}
-
-internal class BuildingOwnerListSchema {
-    public List<BuildingOwnerSchema> Owners { get; set; } = [];
-}
-
-internal class BuildingSchema {
-    public string BuildingType { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string Name { get; set; } = "";
-}
-
-internal class RaceSchema {
-    public string Description { get; set; } = "";
-    public string Name { get; set; } = "";
-}
-
-internal class ProfessionSchema {
-    public string Description { get; set; } = "";
-    public string Name { get; set; } = "";
-}
-
 internal class AttackSchema {
     public float? AoeRadius { get; set; }
     public string Category { get; set; } = "";
@@ -88,11 +56,6 @@ internal class ItemSchema {
     public List<AttributeModifierSchema> Modifiers { get; set; } = [];
     public string Name { get; set; } = "";
     public int Weight { get; set; }
-}
-
-internal class FactionSchema {
-    public string Description { get; set; } = "";
-    public string Name { get; set; } = "";
 }
 
 internal class PersonSchema {

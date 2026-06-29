@@ -79,10 +79,21 @@ public class GraphsTests {
         return;
 
         IEnumerable<Point> GridNeighbors(Point p) {
-            if (p.X > 0 && !blocked.Contains(new Point(p.X - 1, p.Y))) yield return new Point(p.X - 1, p.Y);
-            if (p.X < 2 && !blocked.Contains(new Point(p.X + 1, p.Y))) yield return new Point(p.X + 1, p.Y);
-            if (p.Y > 0 && !blocked.Contains(new Point(p.X, p.Y - 1))) yield return new Point(p.X, p.Y - 1);
-            if (p.Y < 2 && !blocked.Contains(new Point(p.X, p.Y + 1))) yield return new Point(p.X, p.Y + 1);
+            if (p.X > 0 && !blocked.Contains(new Point(p.X - 1, p.Y))) {
+                yield return new Point(p.X - 1, p.Y);
+            }
+
+            if (p.X < 2 && !blocked.Contains(new Point(p.X + 1, p.Y))) {
+                yield return new Point(p.X + 1, p.Y);
+            }
+
+            if (p.Y > 0 && !blocked.Contains(new Point(p.X, p.Y - 1))) {
+                yield return new Point(p.X, p.Y - 1);
+            }
+
+            if (p.Y < 2 && !blocked.Contains(new Point(p.X, p.Y + 1))) {
+                yield return new Point(p.X, p.Y + 1);
+            }
         }
     }
 
@@ -140,6 +151,7 @@ public class GraphsTests {
         Assert.Contains(("A", "B"), result);
     }
 
-    private static IEnumerable<string> Neighbors(Dictionary<string, Dictionary<string, float>> graph, string node) =>
-        graph.TryGetValue(node, out var neighbors) ? neighbors.Keys.AsEnumerable() : [];
+    private static IEnumerable<string> Neighbors(Dictionary<string, Dictionary<string, float>> graph, string node) {
+        return graph.TryGetValue(node, out var neighbors) ? neighbors.Keys.AsEnumerable() : [];
+    }
 }

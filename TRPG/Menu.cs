@@ -19,9 +19,14 @@ internal class Menu(
             Console.Write("> ");
 
             switch (Console.ReadLine()?.Trim()) {
-                case "1": await RunNew(); break;
-                case "2": await RunDrop(); break;
-                case "3": return;
+                case "1":
+                    await RunNew();
+                    break;
+                case "2":
+                    await RunDrop();
+                    break;
+                case "3":
+                    return;
             }
         }
     }
@@ -41,12 +46,9 @@ internal class Menu(
             MaxCountries = AskInt("  Countries max", WorldGenerationDefaults.MaxCountries),
             MinCities = AskInt("  Cities min", WorldGenerationDefaults.MinCities),
             MaxCities = AskInt("  Cities max", WorldGenerationDefaults.MaxCities),
-            BuildingsPerCity = AskInt("  Buildings/city", WorldGenerationDefaults.BuildingsPerCity),
+            HousesPerCity = AskInt("  Houses/city", WorldGenerationDefaults.HousesPerCity),
             RaceCount = AskInt("  Races", WorldGenerationDefaults.RaceCount),
-            ProfessionCount = AskInt("  Professions", WorldGenerationDefaults.ProfessionCount),
-            FactionCount = AskInt("  Factions", WorldGenerationDefaults.FactionCount),
-            AttackCount = AskInt("  Attack skills", WorldGenerationDefaults.AttackCount),
-            SupportCount = AskInt("  Support skills", WorldGenerationDefaults.SupportCount),
+            FactionCount = AskInt("  Factions", WorldGenerationDefaults.FactionCount)
         };
 
         Console.WriteLine("Generating world...");
@@ -70,19 +72,23 @@ internal class Menu(
         }
 
         Console.WriteLine();
-        for (var i = 0; i < worlds.Count; i++)
+        for (var i = 0; i < worlds.Count; i++) {
             Console.WriteLine($"{i + 1}. {worlds[i].Name} ({worlds[i].Id})");
+        }
+
         Console.WriteLine("0. Cancel");
         Console.Write("> ");
 
         var input = Console.ReadLine()?.Trim();
-        if (!int.TryParse(input, out var choice) || choice < 1 || choice > worlds.Count)
+        if (!int.TryParse(input, out var choice) || choice < 1 || choice > worlds.Count) {
             return;
+        }
 
         var world = worlds[choice - 1];
         Console.Write($"Drop \"{world.Name}\"? This cannot be undone. (y/N): ");
-        if (!string.Equals(Console.ReadLine()?.Trim(), "y", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(Console.ReadLine()?.Trim(), "y", StringComparison.OrdinalIgnoreCase)) {
             return;
+        }
 
         await dropHandler.Handle(
             new DropWorldCommand { WorldId = world.Id },

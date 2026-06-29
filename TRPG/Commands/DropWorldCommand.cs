@@ -17,12 +17,15 @@ internal class DropWorldCommandHandler(TrpgDbContext context) {
             .Where(c => countryIds.Contains(c.CountryId)).Select(c => c.Id).ToListAsync(cancellationToken);
         var buildingIds = await context.Buildings
             .Where(b => cityIds.Contains(b.CityId)).Select(b => b.Id).ToListAsync(cancellationToken);
-        var skillIds = await context.Skills
-            .Where(s => s.WorldId == worldId).Select(s => s.Id).ToListAsync(cancellationToken);
 
-        await context.SkillPrerequisites.Where(sp => skillIds.Contains(sp.SkillId))
-            .ExecuteDeleteAsync(cancellationToken);
+        var personIds = await context.Persons
+            .Where(p => p.WorldId == worldId).Select(p => p.Id).ToListAsync(cancellationToken);
+
         await context.BuildingOwners.Where(bo => buildingIds.Contains(bo.BuildingId))
+            .ExecuteDeleteAsync(cancellationToken);
+        await context.PersonAbilities.Where(pa => personIds.Contains(pa.PersonId))
+            .ExecuteDeleteAsync(cancellationToken);
+        await context.PersonSkills.Where(ps => personIds.Contains(ps.PersonId))
             .ExecuteDeleteAsync(cancellationToken);
         await context.Persons.Where(p => p.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Buildings.Where(b => cityIds.Contains(b.CityId)).ExecuteDeleteAsync(cancellationToken);
@@ -31,9 +34,7 @@ internal class DropWorldCommandHandler(TrpgDbContext context) {
             .ExecuteDeleteAsync(cancellationToken);
         await context.Cities.Where(c => countryIds.Contains(c.CountryId)).ExecuteDeleteAsync(cancellationToken);
         await context.Countries.Where(c => c.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.Skills.Where(s => s.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Races.Where(r => r.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.Professions.Where(p => p.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Factions.Where(f => f.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Worlds.Where(w => w.Id == worldId).ExecuteDeleteAsync(cancellationToken);
     }

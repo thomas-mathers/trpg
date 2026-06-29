@@ -1,6 +1,6 @@
 namespace TRPG.Models;
 
-internal class Attack : Skill {
+internal class AttackAbility : Ability {
     public List<ConditionEffect> Conditions { get; init; } = [];
     public float DamageAmount { get; init; }
     public AmountType DamageAmountType { get; init; }

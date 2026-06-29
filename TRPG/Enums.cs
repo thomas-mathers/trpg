@@ -82,6 +82,28 @@ internal enum TargetType {
     Self
 }
 
+internal enum Skill {
+    Swordsmanship,
+    Stealth,
+    Spellcasting,
+    Archery,
+    Devotion,
+    Warfare
+}
+
+internal enum Profession {
+    Knight,
+    Rogue,
+    Ranger,
+    Mage,
+    Cleric,
+    Mercenary,
+    Alchemist,
+    Blacksmith,
+    Scholar,
+    Merchant
+}
+
 internal enum FactionRole {
     Leader,
     Member
@@ -129,7 +151,6 @@ internal enum BuildingType {
     GeneralGoods,
     GuildHall,
     House,
-    Inn,
     Jail,
     Library,
     Stable,
