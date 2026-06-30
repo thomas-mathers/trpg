@@ -11,8 +11,6 @@ internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
     private static readonly string[] ShieldBaseNames =
         ["Buckler", "Small Shield", "Large Shield", "Tower Shield", "Kite Shield", "Round Shield"];
 
-    private record ArmorTypeData(string[] BaseNames, int Weight, int DefenseLow, int DefenseHigh);
-
     private static readonly Dictionary<ArmorType, ArmorTypeData> Types = new() {
         [ArmorType.Helm] = new ArmorTypeData(
             ["Cap", "Helm", "Great Helm", "Crown", "Skull Cap", "War Helm", "Visor"],
@@ -28,31 +26,32 @@ internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
             2, 1, 10)
     };
 
-    private readonly ModifierTemplate[] _modifiers = CreateModifierPool(abilityDefinitions.RandomAttackAbility);
-
-    private static ModifierTemplate[] CreateModifierPool(Func<string> randomAttackAbility) => [
+    private readonly ModifierTemplate[] _modifiers = [
         new(1, ModifierKey.MaxHp, 100,
             level => new AttributeModifier
-                { Attribute = AttributeName.MaximumHp, Type = AmountType.Flat, Amount = Roll(level, 5, 100) }),
+                { Attribute = AttributeName.Hp, Type = AmountType.Flat, Amount = Roll(level, 5, 100) }),
         new(1, ModifierKey.MaxAp, 80,
             level => new AttributeModifier
-                { Attribute = AttributeName.MaximumAp, Type = AmountType.Flat, Amount = Roll(level, 3, 60) }),
+                { Attribute = AttributeName.Ap, Type = AmountType.Flat, Amount = Roll(level, 3, 60) }),
         new(1, ModifierKey.Defense, 100,
             level => new AttributeModifier
                 { Attribute = AttributeName.Defense, Type = AmountType.Flat, Amount = Roll(level, 2, 40) }),
         new(1, ModifierKey.FireResistance, 80,
-            level => new AttributeModifier
-                { Attribute = AttributeName.FireResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 40) }),
+            level => new AttributeModifier {
+                Attribute = AttributeName.FireResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 40)
+            }),
         new(1, ModifierKey.IceResistance, 80,
-            level => new AttributeModifier
-                { Attribute = AttributeName.IceResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 40) }),
+            level => new AttributeModifier {
+                Attribute = AttributeName.IceResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 40)
+            }),
         new(1, ModifierKey.LightningResistance, 80,
             level => new AttributeModifier {
                 Attribute = AttributeName.LightningResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 40)
             }),
         new(5, ModifierKey.PoisonResistance, 60,
-            level => new AttributeModifier
-                { Attribute = AttributeName.PoisonResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 40) }),
+            level => new AttributeModifier {
+                Attribute = AttributeName.PoisonResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 40)
+            }),
         new(5, ModifierKey.FasterHitRecovery, 50,
             level => new CombatSpeedModifier
                 { SpeedType = CombatSpeedType.FasterHitRecovery, Amount = Roll(level, 5, 30) }),
@@ -63,11 +62,14 @@ internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
             level => new AttributeModifier
                 { Attribute = AttributeName.Endurance, Type = AmountType.Flat, Amount = Roll(level, 1, 10) }),
         new(15, ModifierKey.MagicResistance, 20,
-            level => new AttributeModifier
-                { Attribute = AttributeName.MagicResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 30) }),
+            level => new AttributeModifier {
+                Attribute = AttributeName.MagicResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 30)
+            }),
         new(20, ModifierKey.ProcWhenStruck, 5,
-            level => new ProcModifier
-                { AbilityName = randomAttackAbility(), Chance = Roll(level, 5, 15), Trigger = ProcTrigger.WhenStruck })
+            level => new ProcModifier {
+                AbilityName = abilityDefinitions.RandomAttackAbility(), Chance = Roll(level, 5, 15),
+                Trigger = ProcTrigger.WhenStruck
+            })
     ];
 
     public ArmorItem GenerateArmor(ArmorType type, int level, Guid worldId) {
@@ -116,4 +118,6 @@ internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
             DurabilityCurrent = durabilityMax
         };
     }
+
+    private record ArmorTypeData(string[] BaseNames, int Weight, int DefenseLow, int DefenseHigh);
 }

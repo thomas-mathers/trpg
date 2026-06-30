@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -8,7 +7,6 @@ using TRPG.Commands;
 using TRPG.Data;
 using TRPG.Definitions;
 using TRPG.Generators;
-using TRPG.Models;
 using TRPG.Services;
 using ZLogger;
 using ZLogger.Providers;

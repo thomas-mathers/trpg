@@ -5,7 +5,6 @@ namespace TRPG.Definitions;
 internal class AbilityDefinitions(
     Dictionary<string, Ability> byName,
     Dictionary<string, HashSet<string>> prerequisites) {
-
     public IReadOnlyCollection<Ability> Abilities => byName.Values;
 
     public static AbilityDefinitions Create() {
@@ -18,7 +17,7 @@ internal class AbilityDefinitions(
         AddWarfareAbilities(builder);
         return new AbilityDefinitions(builder.ByName, builder.Prerequisites);
     }
-    
+
     public string RandomAttackAbility() {
         var attacks = Abilities.OfType<AttackAbility>().ToList();
         return attacks[Random.Shared.Next(attacks.Count)].Name;
@@ -111,14 +110,14 @@ internal class AbilityDefinitions(
     private static void AddDevotionAbilities(AbilityBuilder builder) {
         var mend = builder.AddSupport("Mend", "Restores a portion of an ally's health.", Skill.Devotion, 1, 2, 0,
                 TargetType.Single, null, null)
-            .AddModifier(AttributeName.CurrentHp, 15);
+            .AddModifier(AttributeName.Hp, 15);
         var divineShield = builder.AddSupport("Divine Shield", "Fortifies an ally with a magical barrier.",
                 Skill.Devotion, 2, 3, 3, TargetType.Single, null, 2)
             .AddModifier(AttributeName.PhysicalResistance, 20)
             .Requires(mend);
         var regenerate = builder.AddSupport("Regenerate", "Grants an ally health regeneration over time.",
                 Skill.Devotion, 2, 3, 3, TargetType.Single, null, 3)
-            .AddModifier(AttributeName.CurrentHp, 8)
+            .AddModifier(AttributeName.Hp, 8)
             .Requires(mend);
         builder.AddSupport("Aura of Protection", "Grants nearby allies increased physical resistance.", Skill.Devotion,
                 4, 5, 5, TargetType.Aoe, 5f, 3)
@@ -126,7 +125,7 @@ internal class AbilityDefinitions(
             .Requires(divineShield);
         builder.AddSupport("Mass Heal", "Restores health to all nearby allies.", Skill.Devotion, 5, 5, 4,
                 TargetType.Aoe, 6f, null)
-            .AddModifier(AttributeName.CurrentHp, 12)
+            .AddModifier(AttributeName.Hp, 12)
             .Requires(regenerate);
     }
 

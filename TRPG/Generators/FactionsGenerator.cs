@@ -7,9 +7,9 @@ using TRPG.Models;
 namespace TRPG.Generators;
 
 internal class FactionsGeneratorInput {
-    public required Guid WorldId { get; init; }
-    public required string Description { get; init; }
     public int Count { get; init; } = 4;
+    public required string Description { get; init; }
+    public required Guid WorldId { get; init; }
 }
 
 internal class FactionsGenerator(OllamaApiClient client, ILogger<FactionsGenerator> logger) {

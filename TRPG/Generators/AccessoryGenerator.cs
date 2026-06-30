@@ -8,7 +8,7 @@ internal class AccessoryGenerator {
         ["Carved", "Etched", "Worn", "Polished", "Ancient", "Ornate", "Simple", "Enchanted", "Crude", "Fine"];
 
     private record AccessoryTypeData(string[] BaseNames, int Weight);
-
+    
     private static readonly Dictionary<AccessoryType, AccessoryTypeData> Types = new() {
         [AccessoryType.Necklace] = new AccessoryTypeData(["Amulet", "Pendant", "Medallion", "Talisman", "Charm"], 1),
         [AccessoryType.Ring] = new AccessoryTypeData(["Ring", "Band", "Signet", "Seal", "Loop"], 0),
@@ -27,10 +27,10 @@ internal class AccessoryGenerator {
                 { Attribute = AttributeName.Intelligence, Type = AmountType.Flat, Amount = Roll(level, 1, 8) }),
         new(1, ModifierKey.MaxHp, 100,
             level => new AttributeModifier
-                { Attribute = AttributeName.MaximumHp, Type = AmountType.Flat, Amount = Roll(level, 3, 50) }),
+                { Attribute = AttributeName.Hp, Type = AmountType.Flat, Amount = Roll(level, 3, 50) }),
         new(1, ModifierKey.MaxAp, 80,
             level => new AttributeModifier
-                { Attribute = AttributeName.MaximumAp, Type = AmountType.Flat, Amount = Roll(level, 3, 50) }),
+                { Attribute = AttributeName.Ap, Type = AmountType.Flat, Amount = Roll(level, 3, 50) }),
         new(1, ModifierKey.FireResistance, 70,
             level => new AttributeModifier
                 { Attribute = AttributeName.FireResistance, Type = AmountType.Percent, Amount = Roll(level, 5, 30) }),

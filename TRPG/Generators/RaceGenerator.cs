@@ -7,9 +7,9 @@ using TRPG.Models;
 namespace TRPG.Generators;
 
 internal class RaceGeneratorInput {
-    public required Guid WorldId { get; init; }
-    public required string Description { get; init; }
     public int Count { get; init; } = 6;
+    public required string Description { get; init; }
+    public required Guid WorldId { get; init; }
 }
 
 internal class RaceGenerator(OllamaApiClient client, ILogger<RaceGenerator> logger) {
@@ -34,7 +34,8 @@ internal class RaceGenerator(OllamaApiClient client, ILogger<RaceGenerator> logg
 
         logger.LogDebug("GenerateRaces completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
         return schema.Races.Select(r => new Race {
-                WorldId = generatorInput.WorldId, Name = r.Name, Description = r.Description, CultureStyle = r.CultureStyle
+                WorldId = generatorInput.WorldId, Name = r.Name, Description = r.Description,
+                CultureStyle = r.CultureStyle
             })
             .ToList();
     }

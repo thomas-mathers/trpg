@@ -1,15 +1,15 @@
-using TRPG.Definitions;
 using TRPG.Models;
 
 namespace TRPG.Generators;
 
 internal record NpcGeneratorInput(Race Race, Profession Profession, Guid WorldId, Guid BirthCityId, Location Location);
 
-internal record NpcGeneratorResult(Person Person, IReadOnlyList<Item> Items, IReadOnlyList<InventoryItem> InventoryItems);
+internal record NpcGeneratorResult(
+    Person Person,
+    IReadOnlyList<Item> Items,
+    IReadOnlyList<InventoryItem> InventoryItems);
 
 internal class NpcGenerator(ItemGenerator itemGenerator) {
-    private record NamePool(string[] FirstNames, string[] LastNames);
-    
     private static readonly Dictionary<string, NamePool> Pools = new(StringComparer.OrdinalIgnoreCase) {
         ["Nordic/Viking"] = new NamePool(
             [
@@ -192,38 +192,27 @@ internal class NpcGenerator(ItemGenerator itemGenerator) {
             "Redholm", "Silverfen", "Timberwood", "Wolfmere"
         ]
     );
-    
-    private record ProfessionGrowth(
-        int Strength,
-        int Defense,
-        int Dexterity,
-        int Endurance,
-        int Intelligence,
-        int HpPerLevel,
-        int ApPerLevel,
-        float GoldMultiplier
-    );
-    
-    private static readonly Dictionary<Profession, ProfessionGrowth> Growths = new() {
-        [Profession.Knight] = new ProfessionGrowth(2, 2, 0, 2, 0, 5, 0, 0.8f),
-        [Profession.Rogue] = new ProfessionGrowth(0, 0, 3, 1, 1, 3, 0, 1.2f),
-        [Profession.Ranger] = new ProfessionGrowth(1, 0, 2, 2, 0, 4, 0, 0.9f),
-        [Profession.Mage] = new ProfessionGrowth(0, 0, 0, 0, 4, 2, 3, 1.5f),
-        [Profession.Cleric] = new ProfessionGrowth(0, 1, 0, 1, 3, 3, 2, 1.0f),
-        [Profession.Mercenary] = new ProfessionGrowth(2, 1, 1, 2, 0, 4, 0, 1.1f),
-        [Profession.Alchemist] = new ProfessionGrowth(0, 0, 1, 1, 3, 2, 1, 2.0f),
-        [Profession.Blacksmith] = new ProfessionGrowth(3, 1, 0, 2, 0, 4, 0, 1.5f),
-        [Profession.Scholar] = new ProfessionGrowth(0, 0, 0, 0, 4, 2, 1, 2.0f),
-        [Profession.Merchant] = new ProfessionGrowth(0, 0, 1, 0, 1, 2, 0, 3.0f),
-        [Profession.Politician] = new ProfessionGrowth(0, 0, 0, 0, 2, 2, 0, 4.0f),
-        [Profession.StableMaster] = new ProfessionGrowth(1, 0, 1, 2, 0, 3, 0, 1.0f),
-        [Profession.Bartender] = new ProfessionGrowth(0, 0, 1, 1, 1, 3, 0, 1.2f),
-        [Profession.Guard] = new ProfessionGrowth(1, 2, 0, 2, 0, 4, 0, 0.7f)
+
+    private static readonly Dictionary<Profession, StatAffinities> Affinities = new() {
+        [Profession.Knight] = new StatAffinities(3, 3, 0, 2, 2, 0, 0, 0.8f),
+        [Profession.Rogue] = new StatAffinities(1, 0, 4, 1, 2, 0, 2, 1.2f),
+        [Profession.Ranger] = new StatAffinities(1, 0, 3, 2, 2, 0, 2, 0.9f),
+        [Profession.Mage] = new StatAffinities(0, 0, 0, 1, 0, 4, 5, 1.5f),
+        [Profession.Cleric] = new StatAffinities(0, 2, 0, 1, 1, 3, 3, 1.0f),
+        [Profession.Mercenary] = new StatAffinities(3, 2, 1, 1, 3, 0, 0, 1.1f),
+        [Profession.Alchemist] = new StatAffinities(0, 0, 2, 1, 0, 3, 4, 2.0f),
+        [Profession.Blacksmith] = new StatAffinities(4, 1, 1, 3, 1, 0, 0, 1.5f),
+        [Profession.Scholar] = new StatAffinities(0, 0, 1, 1, 0, 1, 7, 2.0f),
+        [Profession.Merchant] = new StatAffinities(0, 0, 3, 1, 1, 0, 5, 3.0f),
+        [Profession.Politician] = new StatAffinities(0, 0, 1, 0, 0, 1, 8, 4.0f),
+        [Profession.StableMaster] = new StatAffinities(1, 0, 3, 3, 2, 0, 1, 1.0f),
+        [Profession.Bartender] = new StatAffinities(0, 0, 3, 1, 2, 0, 4, 1.2f),
+        [Profession.Guard] = new StatAffinities(2, 3, 1, 3, 1, 0, 0, 0.7f)
     };
 
     public NpcGeneratorResult Generate(NpcGeneratorInput generatorInput) {
         var level = Random.Shared.Next(1, 100);
-        
+
         var person = new Person {
             WorldId = generatorInput.WorldId,
             Name = GetName(generatorInput.Race.CultureStyle),
@@ -236,34 +225,50 @@ internal class NpcGenerator(ItemGenerator itemGenerator) {
             Attributes = GetAttributes(level, generatorInput.Profession),
             Level = level
         };
-        
+
         var (items, inventoryItems) = GenerateStartingInventory(person);
-        
+
         return new NpcGeneratorResult(person, items, inventoryItems);
     }
 
     private static int GetGold(int level, Profession profession) {
         var baseGold = level * 50;
         var spread = Random.Shared.Next((int) (baseGold * 0.8f), (int) (baseGold * 1.2f));
-        return (int) (spread * Growths[profession].GoldMultiplier);
+        return (int) (spread * Affinities[profession].GoldMultiplier);
     }
 
     private static Attributes GetAttributes(int level, Profession profession) {
-        var g = Growths[profession];
-        var maxHp = 100 + level * g.HpPerLevel;
-        var maxAp = 10 + level * g.ApPerLevel;
+        var a = Affinities[profession];
+        int[] pool = [a.Strength, a.Defense, a.Dexterity, a.Endurance, a.Stamina, a.Mana, a.Intelligence];
+        var total = pool.Sum();
+        var stats = new int[7];
+        Array.Fill(stats, 1);
+
+        for (var i = 0; i < level * GameRules.PointsPerLevel; i++) {
+            var roll = Random.Shared.Next(total);
+            var cumulative = 0;
+            for (var j = 0; j < pool.Length; j++) {
+                cumulative += pool[j];
+                if (roll < cumulative) {
+                    stats[j]++;
+                    break;
+                }
+            }
+        }
+
         return new Attributes {
-            Hp = new Meter(maxHp, maxHp),
-            Ap = new Meter(maxAp, maxAp),
-            Strength = 5 + level * g.Strength,
-            Defense = 5 + level * g.Defense,
-            Dexterity = 5 + level * g.Dexterity,
-            Endurance = 5 + level * g.Endurance,
-            Intelligence = 5 + level * g.Intelligence
+            Strength = stats[0],
+            Defense = stats[1],
+            Dexterity = stats[2],
+            Endurance = stats[3],
+            Stamina = stats[4],
+            Mana = stats[5],
+            Intelligence = stats[6],
+            HpPercent = 1.0f,
+            ApPercent = 1.0f,
+            MpPercent = 1.0f
         };
     }
-    
-    private record StartingInventoryResult(IReadOnlyList<Item> Items, IReadOnlyList<InventoryItem> InventoryItems);
 
     private StartingInventoryResult GenerateStartingInventory(Person person) {
         var startingItems = GetStartingItems(person);
@@ -284,14 +289,12 @@ internal class NpcGenerator(ItemGenerator itemGenerator) {
 
         return new StartingInventoryResult(items.AsReadOnly(), inventoryItems.AsReadOnly());
     }
-    
-    private record StartingItem(Item Item, int Quantity);
 
     private StartingItem[] GetStartingItems(Person person) {
         var profession = person.Profession;
         var level = person.Level;
         var worldId = person.WorldId;
-        
+
         return profession switch {
             Profession.Knight => [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Sword, level, worldId), 1),
@@ -318,17 +321,35 @@ internal class NpcGenerator(ItemGenerator itemGenerator) {
                 new StartingItem(itemGenerator.GenerateShield(level, worldId), 1)
             ],
             Profession.Alchemist => [new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 5)],
-            Profession.Blacksmith => [new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Axe, level, worldId), 1)],
+            Profession.Blacksmith =>
+                [new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Axe, level, worldId), 1)],
             Profession.Scholar => [new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1)],
             Profession.Merchant => [new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 3)],
             _ => [new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 1)]
         };
     }
-    
+
     public static string GetName(string cultureStyle) {
         var pool = Pools.GetValueOrDefault(cultureStyle, FallbackNamePool);
         var first = pool.FirstNames[Random.Shared.Next(pool.FirstNames.Length)];
         var last = pool.LastNames[Random.Shared.Next(pool.LastNames.Length)];
         return $"{first} {last}";
     }
+
+    private record NamePool(string[] FirstNames, string[] LastNames);
+
+    private record StatAffinities(
+        int Strength,
+        int Defense,
+        int Dexterity,
+        int Endurance,
+        int Stamina,
+        int Mana,
+        int Intelligence,
+        float GoldMultiplier
+    );
+
+    private record StartingInventoryResult(IReadOnlyList<Item> Items, IReadOnlyList<InventoryItem> InventoryItems);
+
+    private record StartingItem(Item Item, int Quantity);
 }

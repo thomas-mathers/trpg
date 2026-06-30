@@ -59,7 +59,8 @@ internal class GeographyGenerator(
         var sw = Stopwatch.StartNew();
         var totalCities = Random.Shared.Next(generatorInput.MinCities, generatorInput.MaxCities + 1);
         var numberOfCountries = Random.Shared.Next(generatorInput.MinCountries, generatorInput.MaxCountries + 1);
-        var map = MapGenerator.Generate(generatorInput.WorldWidth, generatorInput.WorldHeight, totalCities, numberOfCountries);
+        var map = MapGenerator.Generate(generatorInput.WorldWidth, generatorInput.WorldHeight, totalCities,
+            numberOfCountries);
         var context = new GeographyGenerationContext(generatorInput, map, []);
 
         var world = await GenerateWorldEntity(context, cancellationToken);
@@ -78,7 +79,8 @@ internal class GeographyGenerator(
         };
     }
 
-    private async Task<World> GenerateWorldEntity(GeographyGenerationContext context, CancellationToken cancellationToken) {
+    private async Task<World> GenerateWorldEntity(GeographyGenerationContext context,
+        CancellationToken cancellationToken) {
         var worldSchema = await client.GetJson<GeographyEntitySchema>(
             logger,
             $"""
@@ -105,7 +107,8 @@ internal class GeographyGenerator(
     ) {
         var countries = new List<Country>();
         for (var i = 0; i < context.Map.Countries.Count; i++) {
-            var namesHint = $" Do not reuse any of these already-used names: {string.Join(", ", context.ExistingNames)}.";
+            var namesHint =
+                $" Do not reuse any of these already-used names: {string.Join(", ", context.ExistingNames)}.";
             var schema = await client.GetJson<GeographyEntitySchema>(
                 logger,
                 $"""
@@ -127,6 +130,7 @@ internal class GeographyGenerator(
             });
             context.ExistingNames.Add(schema.Name);
         }
+
         var countryById = context.Map.Countries.Zip(countries).ToDictionary(p => p.First.Id, p => p.Second);
         return new GeneratedCountries(countries, countryById);
     }
@@ -136,10 +140,12 @@ internal class GeographyGenerator(
         for (var i = 0; i < map.Cities.Count; i++) {
             focusMap[map.Cities[i].Id] = CityFocuses[i % CityFocuses.Length];
         }
+
         return focusMap;
     }
 
-    private async Task<GeneratedCities> GenerateCityEntities(GenerateCitiesInput input, CancellationToken cancellationToken) {
+    private async Task<GeneratedCities> GenerateCityEntities(GenerateCitiesInput input,
+        CancellationToken cancellationToken) {
         var context = input.Context;
         var world = input.World;
         var countries = input.Countries;
@@ -186,17 +192,20 @@ internal class GeographyGenerator(
                     if (s.Cities.Count != countryCities.Count) {
                         return $"Expected {countryCities.Count} cities, got {s.Cities.Count}.";
                     }
+
                     var internalDupe = s.Cities
                         .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
                         .FirstOrDefault(g => g.Count() > 1)?.Key;
                     if (internalDupe != null) {
                         return $"Duplicate name \"{internalDupe}\" in the batch. All names must be unique.";
                     }
+
                     var crossDupe = s.Cities
                         .FirstOrDefault(c => context.ExistingNames.Contains(c.Name, StringComparer.OrdinalIgnoreCase));
                     if (crossDupe != null) {
                         return $"The name \"{crossDupe.Name}\" is already in use. Choose a different name.";
                     }
+
                     return null;
                 },
                 cancellationToken);
@@ -266,11 +275,17 @@ internal class GeographyGenerator(
     }
 }
 
-internal record GeographyGenerationContext(GeographyGeneratorInput GeneratorInput, MapGeneratorResult Map, List<string> ExistingNames);
+internal record GeographyGenerationContext(
+    GeographyGeneratorInput GeneratorInput,
+    MapGeneratorResult Map,
+    List<string> ExistingNames);
 
 internal record GeneratedCountries(List<Country> Countries, Dictionary<Guid, Country> CountryById);
 
-internal record GeneratedCities(List<City> Cities, Dictionary<Guid, string> CityFocuses, Dictionary<Guid, City> CityById);
+internal record GeneratedCities(
+    List<City> Cities,
+    Dictionary<Guid, string> CityFocuses,
+    Dictionary<Guid, City> CityById);
 
 internal record GenerateCitiesInput(GeographyGenerationContext Context, World World, GeneratedCountries Countries);
 

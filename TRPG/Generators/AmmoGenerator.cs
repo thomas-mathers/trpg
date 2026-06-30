@@ -5,7 +5,7 @@ namespace TRPG.Generators;
 internal class AmmoGenerator {
     private static readonly Dictionary<AmmoType, string[]> BaseNames = new() {
         [AmmoType.Arrow] = ["Arrows", "Bodkin Arrows", "Broadhead Arrows", "Fire Arrows"],
-        [AmmoType.Bolt]  = ["Bolts", "Broadhead Bolts", "Steel Bolts"]
+        [AmmoType.Bolt] = ["Bolts", "Broadhead Bolts", "Steel Bolts"]
     };
 
     public AmmunitionItem Generate(AmmoType type, Guid worldId) {

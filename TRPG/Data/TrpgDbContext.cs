@@ -71,11 +71,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
                 lo.OwnsOne(l => l.Coordinates);
                 lo.HasIndex(l => new { l.CityId, l.BuildingId });
             });
-            entity.OwnsOne(p => p.Attributes, s => {
-                s.ToJson();
-                s.OwnsOne(st => st.Hp);
-                s.OwnsOne(st => st.Ap);
-            });
+            entity.OwnsOne(p => p.Attributes, s => s.ToJson());
             entity.Property(p => p.ActiveConditions)
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, JsonOptions),

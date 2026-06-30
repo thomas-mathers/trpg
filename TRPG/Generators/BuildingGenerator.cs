@@ -15,47 +15,6 @@ internal record BuildingGeneratorResult(
 );
 
 internal class BuildingGenerator {
-    public BuildingGeneratorResult Generate(BuildingGeneratorInput input) {
-        var names = Names[input.Type];
-        var building = new Building {
-            CityId = input.CityId,
-            BuildingType = input.Type,
-            Name = names[Random.Shared.Next(names.Length)],
-            Boundary = new Rectangle(0, 0, 0, 0)
-        };
-        var specs = GetSpecs(input.Type, input.OwnerId);
-
-        var rooms = specs.Select(s => new Room {
-            BuildingId = building.Id,
-            Description = s.Description,
-            FloorNumber = s.FloorNumber,
-            Name = s.Name
-        }).ToArray();
-
-        var props = specs.Zip(rooms)
-            .SelectMany(pair => pair.First.Props.Select(p => p.Factory(pair.Second.Id)))
-            .ToList();
-
-        var roomsByFloor = rooms.GroupBy(r => r.FloorNumber).OrderBy(g => g.Key).ToArray();
-
-        for (var i = 0; i < roomsByFloor.Length - 1; i++) {
-            var roomAbove = roomsByFloor[i + 1].First();
-            var roomBelow = roomsByFloor[i].First();
-
-            props.Add(new RoomConnector {
-                RoomId = roomBelow.Id, Name = "Staircase", Description = "A staircase leading up.",
-                DestinationRoomId = roomAbove.Id
-            });
-
-            props.Add(new RoomConnector {
-                RoomId = roomAbove.Id, Name = "Staircase", Description = "A staircase leading down.",
-                DestinationRoomId = roomBelow.Id
-            });
-        }
-
-        return new BuildingGeneratorResult(building, rooms, props);
-    }
-    
     private static readonly Dictionary<BuildingType, string[]> Names = new() {
         [BuildingType.ArcaneShop] = [
             "The Mystic Tome", "The Wandering Eye", "The Silver Sigil", "The Hidden Grimoire",
@@ -123,11 +82,48 @@ internal class BuildingGenerator {
             "The Offering Stone", "The Votive Lantern", "The Celestial Gate"
         ]
     };
-    
-    private record RoomSpec(string Name, string Description, int FloorNumber, PropSpec[] Props);
 
-    private record PropSpec(string Name, Func<Guid, Prop> Factory);
-    
+    public BuildingGeneratorResult Generate(BuildingGeneratorInput input) {
+        var names = Names[input.Type];
+        var building = new Building {
+            CityId = input.CityId,
+            BuildingType = input.Type,
+            Name = names[Random.Shared.Next(names.Length)],
+            Boundary = new Rectangle(0, 0, 0, 0)
+        };
+        var specs = GetSpecs(input.Type, input.OwnerId);
+
+        var rooms = specs.Select(s => new Room {
+            BuildingId = building.Id,
+            Description = s.Description,
+            FloorNumber = s.FloorNumber,
+            Name = s.Name
+        }).ToArray();
+
+        var props = specs.Zip(rooms)
+            .SelectMany(pair => pair.First.Props.Select(p => p.Factory(pair.Second.Id)))
+            .ToList();
+
+        var roomsByFloor = rooms.GroupBy(r => r.FloorNumber).OrderBy(g => g.Key).ToArray();
+
+        for (var i = 0; i < roomsByFloor.Length - 1; i++) {
+            var roomAbove = roomsByFloor[i + 1].First();
+            var roomBelow = roomsByFloor[i].First();
+
+            props.Add(new RoomConnector {
+                RoomId = roomBelow.Id, Name = "Staircase", Description = "A staircase leading up.",
+                DestinationRoomId = roomAbove.Id
+            });
+
+            props.Add(new RoomConnector {
+                RoomId = roomAbove.Id, Name = "Staircase", Description = "A staircase leading down.",
+                DestinationRoomId = roomBelow.Id
+            });
+        }
+
+        return new BuildingGeneratorResult(building, rooms, props);
+    }
+
     private static RoomSpec[] GetSpecs(BuildingType buildingType, Guid? ownerId) {
         return buildingType switch {
             BuildingType.House => GetHouseSpecs(ownerId),
@@ -496,4 +492,8 @@ internal class BuildingGenerator {
             ])
         ];
     }
+
+    private record RoomSpec(string Name, string Description, int FloorNumber, PropSpec[] Props);
+
+    private record PropSpec(string Name, Func<Guid, Prop> Factory);
 }

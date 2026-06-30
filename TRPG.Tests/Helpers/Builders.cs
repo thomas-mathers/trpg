@@ -16,13 +16,16 @@ internal static class Builders {
             Location = new Location { Coordinates = new Point(0, 0) },
             Level = 1,
             Attributes = new Attributes {
-                Hp = new Meter(100, 100),
-                Ap = new Meter(50, 50),
                 Strength = 10,
                 Defense = 5,
                 Dexterity = 8,
                 Endurance = 7,
-                Intelligence = 9
+                Stamina = 6,
+                Mana = 4,
+                Intelligence = 9,
+                HpPercent = 1.0f,
+                ApPercent = 1.0f,
+                MpPercent = 1.0f
             }
         };
     }
@@ -89,7 +92,7 @@ internal static class Builders {
             Description = "A test consumable",
             Weight = 1,
             GoldValue = 10,
-            Attribute = AttributeName.CurrentHp,
+            Attribute = AttributeName.Hp,
             Amount = 50,
             Duration = 0
         };

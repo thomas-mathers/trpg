@@ -21,6 +21,7 @@ internal class WorldGeneratorResult {
     public required IReadOnlyList<Building> Buildings { get; init; }
     public required IReadOnlyList<City> Cities { get; init; }
     public required IReadOnlyList<Country> Countries { get; init; }
+    public required IReadOnlyList<FactionMember> FactionMembers { get; init; }
     public required IReadOnlyList<Faction> Factions { get; init; }
     public required IReadOnlyList<InventoryItem> InventoryItems { get; init; }
     public required IReadOnlyList<Item> Items { get; init; }
@@ -58,7 +59,7 @@ internal class WorldGenerator(
             new RaceGeneratorInput {
                 WorldId = worldId,
                 Description = generatorInput.Description,
-                Count = generatorInput.RaceCount,
+                Count = generatorInput.RaceCount
             },
             cancellationToken
         );
@@ -67,7 +68,7 @@ internal class WorldGenerator(
             new FactionsGeneratorInput {
                 WorldId = worldId,
                 Description = generatorInput.Description,
-                Count = generatorInput.FactionCount,
+                Count = generatorInput.FactionCount
             },
             cancellationToken
         );
@@ -80,14 +81,15 @@ internal class WorldGenerator(
                 MaxCities = generatorInput.MaxCities,
                 MaxCountries = generatorInput.MaxCountries,
                 MinCities = generatorInput.MinCities,
-                MinCountries = generatorInput.MinCountries,
+                MinCountries = generatorInput.MinCountries
             },
             cancellationToken
         );
 
-        var allBuildings = new List<Building>();
+        var buildings = new List<Building>();
         var persons = new List<Person>();
         var buildingOwners = new List<BuildingOwner>();
+        var factionMembers = new List<FactionMember>();
         var items = new List<Item>();
         var inventoryItems = new List<InventoryItem>();
         var rooms = new List<Room>();
@@ -109,7 +111,10 @@ internal class WorldGenerator(
                 );
 
                 if (type == BuildingType.GuildHall) {
-                    buildingResult.Building.FactionId = factions[guildHallIndex++ % factions.Count].Id;
+                    var factionId = factions[guildHallIndex++ % factions.Count].Id;
+                    buildingResult.Building.FactionId = factionId;
+                    factionMembers.Add(new FactionMember
+                        { FactionId = factionId, PersonId = npcResult.Person.Id, Role = FactionRole.Leader });
                 }
 
                 npcResult.Person.Location.BuildingId = buildingResult.Building.Id;
@@ -117,13 +122,14 @@ internal class WorldGenerator(
                 persons.Add(npcResult.Person);
                 items.AddRange(npcResult.Items);
                 inventoryItems.AddRange(npcResult.InventoryItems);
-                buildingOwners.Add(new BuildingOwner { BuildingId = buildingResult.Building.Id, OwnerId = npcResult.Person.Id });
+                buildingOwners.Add(new BuildingOwner
+                    { BuildingId = buildingResult.Building.Id, OwnerId = npcResult.Person.Id });
                 rooms.AddRange(buildingResult.Rooms);
                 props.AddRange(buildingResult.Props);
             }
 
             CityLayout.PlaceBuildings(city, cityBuildings);
-            allBuildings.AddRange(cityBuildings);
+            buildings.AddRange(cityBuildings);
         }
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
@@ -135,9 +141,10 @@ internal class WorldGenerator(
             Roads = geography.Roads,
             Races = races,
             Factions = factions,
-            Buildings = allBuildings,
+            Buildings = buildings,
             Persons = persons,
             BuildingOwners = buildingOwners,
+            FactionMembers = factionMembers,
             Items = items,
             InventoryItems = inventoryItems,
             Rooms = rooms,
@@ -147,23 +154,28 @@ internal class WorldGenerator(
 
     private static List<BuildingType> GetCityBuildingTypes(int housesPerCity) {
         var types = StandardBuildingTypes.ToList();
-        for (var i = 0; i < housesPerCity; i++) types.Add(BuildingType.House);
+        for (var i = 0; i < housesPerCity; i++) {
+            types.Add(BuildingType.House);
+        }
+
         return types;
     }
 
-    private static Profession GetProfessionForBuilding(BuildingType type) => type switch {
-        BuildingType.Tavern => Profession.Bartender,
-        BuildingType.Blacksmith => Profession.Blacksmith,
-        BuildingType.Temple => Profession.Cleric,
-        BuildingType.Library => Profession.Scholar,
-        BuildingType.GeneralGoods => Profession.Merchant,
-        BuildingType.Apothecary => Profession.Alchemist,
-        BuildingType.Bakery => Profession.Merchant,
-        BuildingType.Stable => Profession.StableMaster,
-        BuildingType.ArcaneShop => Profession.Mage,
-        BuildingType.GuildHall => Profession.Politician,
-        BuildingType.Castle => Profession.Politician,
-        BuildingType.Jail => Profession.Guard,
-        _ => Profession.Merchant
-    };
+    private static Profession GetProfessionForBuilding(BuildingType type) {
+        return type switch {
+            BuildingType.Tavern => Profession.Bartender,
+            BuildingType.Blacksmith => Profession.Blacksmith,
+            BuildingType.Temple => Profession.Cleric,
+            BuildingType.Library => Profession.Scholar,
+            BuildingType.GeneralGoods => Profession.Merchant,
+            BuildingType.Apothecary => Profession.Alchemist,
+            BuildingType.Bakery => Profession.Merchant,
+            BuildingType.Stable => Profession.StableMaster,
+            BuildingType.ArcaneShop => Profession.Mage,
+            BuildingType.GuildHall => Profession.Politician,
+            BuildingType.Castle => Profession.Politician,
+            BuildingType.Jail => Profession.Guard,
+            _ => Profession.Merchant
+        };
+    }
 }

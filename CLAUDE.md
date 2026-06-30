@@ -16,6 +16,7 @@
 - Primary constructors everywhere (`public class PersonService(TrpgDbContext context)`)
 - Expression-bodied members for simple one-liners
 - Place related types (classes, records, enums) in the same file as the class they primarily support — no standalone `Enums.cs` or similar
+- Use named parameters when constructing records or objects with multiple positional arguments of the same or similar types (e.g. `new StatAffinities(Strength: 3, Defense: 2, ...)` not `new StatAffinities(3, 2, ...)`)
 
 ### Comments
 - Explain *why*, never *how* — well-named identifiers make the what and how obvious

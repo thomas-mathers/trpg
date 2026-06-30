@@ -43,17 +43,19 @@ internal static class ItemModifierHelpers {
             result.Add(template.Build(itemLevel));
             remaining.RemoveAll(t => t.UniqueKey == template.UniqueKey);
         }
+
         return result;
     }
 
-    internal static int ModifierCount(int itemLevel) =>
-        itemLevel switch {
-            <= 5  => Random.Shared.Next(0, 2),
+    internal static int ModifierCount(int itemLevel) {
+        return itemLevel switch {
+            <= 5 => Random.Shared.Next(0, 2),
             <= 15 => Random.Shared.Next(1, 3),
             <= 30 => Random.Shared.Next(2, 4),
             <= 60 => Random.Shared.Next(2, 5),
-            _     => Random.Shared.Next(3, 6)
+            _ => Random.Shared.Next(3, 6)
         };
+    }
 
     internal static int Roll(int itemLevel, int minimum, int maximum) {
         var range = maximum - minimum;
@@ -68,8 +70,11 @@ internal static class ItemModifierHelpers {
         var cumulative = 0;
         foreach (var t in pool) {
             cumulative += t.Weight;
-            if (roll < cumulative) return t;
+            if (roll < cumulative) {
+                return t;
+            }
         }
+
         return pool[^1];
     }
 }

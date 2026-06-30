@@ -6,14 +6,15 @@ internal enum AmountType {
 }
 
 internal enum AttributeName {
-    CurrentHp,
-    MaximumHp,
-    CurrentAp,
-    MaximumAp,
+    Hp,
+    Ap,
+    Mp,
     Strength,
     Defense,
     Dexterity,
     Endurance,
+    Stamina,
+    Mana,
     Intelligence,
     PhysicalResistance,
     FireResistance,

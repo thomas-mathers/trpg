@@ -18,7 +18,7 @@ internal class WeaponGenerator(AbilityDefinitions abilityDefinitions) {
         int Range,
         int AttackSpeed
     );
-
+    
     private static readonly Dictionary<WeaponType, WeaponTypeData> Types = new() {
         [WeaponType.Dagger] = new WeaponTypeData(
             ["Dagger", "Dirk", "Stiletto", "Kris", "Knife"],
@@ -52,9 +52,7 @@ internal class WeaponGenerator(AbilityDefinitions abilityDefinitions) {
             4, 3, 8, 10, 35, 6, 7)
     };
 
-    private readonly ModifierTemplate[] _modifiers = CreateModifierPool(abilityDefinitions.RandomAttackAbility);
-
-    private static ModifierTemplate[] CreateModifierPool(Func<string> randomAttackAbility) => [
+    private readonly ModifierTemplate[] _modifiers = [
         new(1, ModifierKey.Strength, 100,
             level => new AttributeModifier
                 { Attribute = AttributeName.Strength, Type = AmountType.Flat, Amount = Roll(level, 1, 15) }),
@@ -71,8 +69,9 @@ internal class WeaponGenerator(AbilityDefinitions abilityDefinitions) {
             level => new ElementalDamageModifier
                 { DamageType = DamageType.Ice, MinDamage = Roll(level, 1, 20), MaxDamage = Roll(level, 5, 60) }),
         new(5, ModifierKey.LightningDamage, 80,
-            level => new ElementalDamageModifier
-                { DamageType = DamageType.Lightning, MinDamage = Roll(level, 1, 20), MaxDamage = Roll(level, 5, 60) }),
+            level => new ElementalDamageModifier {
+                DamageType = DamageType.Lightning, MinDamage = Roll(level, 1, 20), MaxDamage = Roll(level, 5, 60)
+            }),
         new(10, ModifierKey.PoisonDamage, 60,
             level => new ElementalDamageModifier
                 { DamageType = DamageType.Poison, MinDamage = Roll(level, 1, 15), MaxDamage = Roll(level, 3, 40) }),
@@ -87,8 +86,10 @@ internal class WeaponGenerator(AbilityDefinitions abilityDefinitions) {
         new(20, ModifierKey.CrushingBlow, 10,
             level => new SpecialHitModifier { HitType = SpecialHitType.CrushingBlow, Chance = Roll(level, 5, 25) }),
         new(25, ModifierKey.ProcOnStriking, 5,
-            level => new ProcModifier
-                { AbilityName = randomAttackAbility(), Chance = Roll(level, 5, 20), Trigger = ProcTrigger.OnStriking })
+            level => new ProcModifier {
+                AbilityName = abilityDefinitions.RandomAttackAbility(), Chance = Roll(level, 5, 20),
+                Trigger = ProcTrigger.OnStriking
+            })
     ];
 
     public WeaponItem Generate(WeaponType type, int level, Guid worldId) {
