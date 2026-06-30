@@ -23,10 +23,10 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<NpcChatMessage> NpcChatMessages => Set<NpcChatMessage>();
     public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
     public DbSet<PersonAbility> PersonAbilities => Set<PersonAbility>();
-    public DbSet<PersonSkill> PersonSkills => Set<PersonSkill>();
     public DbSet<PersonQuestObjective> PersonQuestObjectives => Set<PersonQuestObjective>();
     public DbSet<PersonQuest> PersonQuests => Set<PersonQuest>();
     public DbSet<Person> Persons => Set<Person>();
+    public DbSet<PersonSkill> PersonSkills => Set<PersonSkill>();
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
@@ -50,7 +50,11 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<DamageType>().HaveConversion<string>();
         configurationBuilder.Properties<EquipmentSlot>().HaveConversion<string>();
         configurationBuilder.Properties<TargetType>().HaveConversion<string>();
-        configurationBuilder.Properties<ItemCategory>().HaveConversion<string>();
+        configurationBuilder.Properties<WeaponType>().HaveConversion<string>();
+        configurationBuilder.Properties<ArmorType>().HaveConversion<string>();
+        configurationBuilder.Properties<AccessoryType>().HaveConversion<string>();
+        configurationBuilder.Properties<AmmoType>().HaveConversion<string>();
+        configurationBuilder.Properties<ItemRarity>().HaveConversion<string>();
         configurationBuilder.Properties<FactionRole>().HaveConversion<string>();
         configurationBuilder.Properties<QuestStatus>().HaveConversion<string>();
         configurationBuilder.Properties<QuestObjectiveType>().HaveConversion<string>();
@@ -83,9 +87,26 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         });
 
         modelBuilder.Entity<Item>(entity => {
-            entity.OwnsMany(i => i.Modifiers, m => m.ToJson());
-            entity.HasIndex(i => new { i.WorldId, i.Name }).IsUnique();
+            entity.HasDiscriminator<string>("item_type")
+                .HasValue<Item>("generic")
+                .HasValue<WeaponItem>("weapon")
+                .HasValue<ShieldItem>("shield")
+                .HasValue<ArmorItem>("armor")
+                .HasValue<ConsumableItem>("consumable")
+                .HasValue<AmmunitionItem>("ammunition")
+                .HasValue<AccessoryItem>("accessory");
+            entity.Property(i => i.Modifiers)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v => JsonSerializer.Deserialize<List<ItemModifier>>(v, JsonOptions) ?? new List<ItemModifier>()
+                )
+                .HasColumnType("jsonb");
         });
+
+        modelBuilder.Entity<WeaponItem>().Property(w => w.Type).HasColumnName("weapon_type");
+        modelBuilder.Entity<ArmorItem>().Property(a => a.Type).HasColumnName("armor_type");
+        modelBuilder.Entity<AmmunitionItem>().Property(a => a.Type).HasColumnName("ammo_type");
+        modelBuilder.Entity<AccessoryItem>().Property(a => a.Type).HasColumnName("accessory_type");
 
         modelBuilder.Entity<InventoryItem>(entity => {
             entity.HasOne(i => i.Item).WithMany().HasForeignKey(i => i.ItemId);
@@ -138,12 +159,6 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<Container>(entity => {
             entity.HasMany(s => s.Items).WithOne().HasForeignKey(pi => pi.ContainerId);
-            entity.Property(c => c.StorageItemCategories)
-                .HasConversion(
-                    v => v == null ? null : JsonSerializer.Serialize(v, JsonOptions),
-                    v => v == null ? null : JsonSerializer.Deserialize<List<ItemCategory>>(v, JsonOptions)
-                )
-                .HasColumnType("jsonb");
         });
 
         modelBuilder.Entity<ContainerItem>(entity => {

@@ -308,11 +308,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("category");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -322,14 +317,24 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("gold_value");
 
-                    b.Property<bool>("IsStackable")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_stackable");
+                    b.Property<int>("Level")
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Modifiers")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("modifiers");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
+
+                    b.Property<string>("Rarity")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("rarity");
 
                     b.Property<int>("Weight")
                         .HasColumnType("integer")
@@ -339,14 +344,20 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
 
+                    b.Property<string>("item_type")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)")
+                        .HasColumnName("item_type");
+
                     b.HasKey("Id")
                         .HasName("pk_items");
 
-                    b.HasIndex("WorldId", "Name")
-                        .IsUnique()
-                        .HasDatabaseName("ix_items_world_id_name");
-
                     b.ToTable("items", (string)null);
+
+                    b.HasDiscriminator<string>("item_type").HasValue("generic");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("TRPG.Models.Job", b =>
@@ -1011,6 +1022,162 @@ namespace TRPG.Migrations
                     b.ToTable("world_events", (string)null);
                 });
 
+            modelBuilder.Entity("TRPG.Models.AccessoryItem", b =>
+                {
+                    b.HasBaseType("TRPG.Models.Item");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("accessory_type");
+
+                    b.ToTable("items", (string)null);
+
+                    b.HasDiscriminator().HasValue("accessory");
+                });
+
+            modelBuilder.Entity("TRPG.Models.AmmunitionItem", b =>
+                {
+                    b.HasBaseType("TRPG.Models.Item");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ammo_type");
+
+                    b.ToTable("items", (string)null);
+
+                    b.HasDiscriminator().HasValue("ammunition");
+                });
+
+            modelBuilder.Entity("TRPG.Models.ArmorItem", b =>
+                {
+                    b.HasBaseType("TRPG.Models.Item");
+
+                    b.Property<int>("Defense")
+                        .HasColumnType("integer")
+                        .HasColumnName("defense");
+
+                    b.Property<int>("DurabilityCurrent")
+                        .HasColumnType("integer")
+                        .HasColumnName("durability_current");
+
+                    b.Property<int>("DurabilityMax")
+                        .HasColumnType("integer")
+                        .HasColumnName("durability_max");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("armor_type");
+
+                    b.ToTable("items", (string)null);
+
+                    b.HasDiscriminator().HasValue("armor");
+                });
+
+            modelBuilder.Entity("TRPG.Models.ConsumableItem", b =>
+                {
+                    b.HasBaseType("TRPG.Models.Item");
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("integer")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("Attribute")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("attribute");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration");
+
+                    b.ToTable("items", (string)null);
+
+                    b.HasDiscriminator().HasValue("consumable");
+                });
+
+            modelBuilder.Entity("TRPG.Models.ShieldItem", b =>
+                {
+                    b.HasBaseType("TRPG.Models.Item");
+
+                    b.Property<int>("BlockChance")
+                        .HasColumnType("integer")
+                        .HasColumnName("block_chance");
+
+                    b.Property<int>("Defense")
+                        .HasColumnType("integer")
+                        .HasColumnName("defense");
+
+                    b.Property<int>("DurabilityCurrent")
+                        .HasColumnType("integer")
+                        .HasColumnName("durability_current");
+
+                    b.Property<int>("DurabilityMax")
+                        .HasColumnType("integer")
+                        .HasColumnName("durability_max");
+
+                    b.ToTable("items", null, t =>
+                        {
+                            t.Property("Defense")
+                                .HasColumnName("shield_item_defense");
+
+                            t.Property("DurabilityCurrent")
+                                .HasColumnName("shield_item_durability_current");
+
+                            t.Property("DurabilityMax")
+                                .HasColumnName("shield_item_durability_max");
+                        });
+
+                    b.HasDiscriminator().HasValue("shield");
+                });
+
+            modelBuilder.Entity("TRPG.Models.WeaponItem", b =>
+                {
+                    b.HasBaseType("TRPG.Models.Item");
+
+                    b.Property<int>("AttackSpeed")
+                        .HasColumnType("integer")
+                        .HasColumnName("attack_speed");
+
+                    b.Property<int>("DurabilityCurrent")
+                        .HasColumnType("integer")
+                        .HasColumnName("durability_current");
+
+                    b.Property<int>("DurabilityMax")
+                        .HasColumnType("integer")
+                        .HasColumnName("durability_max");
+
+                    b.Property<int>("MaxDamage")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_damage");
+
+                    b.Property<int>("MinDamage")
+                        .HasColumnType("integer")
+                        .HasColumnName("min_damage");
+
+                    b.Property<int>("Range")
+                        .HasColumnType("integer")
+                        .HasColumnName("range");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("weapon_type");
+
+                    b.ToTable("items", null, t =>
+                        {
+                            t.Property("DurabilityCurrent")
+                                .HasColumnName("weapon_item_durability_current");
+
+                            t.Property("DurabilityMax")
+                                .HasColumnName("weapon_item_durability_max");
+                        });
+
+                    b.HasDiscriminator().HasValue("weapon");
+                });
+
             modelBuilder.Entity("TRPG.Models.Bed", b =>
                 {
                     b.HasBaseType("TRPG.Models.Prop");
@@ -1035,10 +1202,6 @@ namespace TRPG.Migrations
                     b.Property<Guid?>("KeyItemId")
                         .HasColumnType("uuid")
                         .HasColumnName("key_item_id");
-
-                    b.Property<string>("StorageItemCategories")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("storage_item_categories");
 
                     b.Property<int?>("StorageSize")
                         .HasColumnType("integer")
@@ -1272,39 +1435,6 @@ namespace TRPG.Migrations
                         .HasConstraintName("fk_inventory_items_items_item_id");
 
                     b.Navigation("Item");
-                });
-
-            modelBuilder.Entity("TRPG.Models.Item", b =>
-                {
-                    b.OwnsMany("TRPG.Models.AttributeModifier", "Modifiers", b1 =>
-                        {
-                            b1.Property<Guid>("ItemId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<float>("Amount");
-
-                            b1.Property<string>("Attribute")
-                                .IsRequired();
-
-                            b1.Property<string>("Type")
-                                .IsRequired();
-
-                            b1.HasKey("ItemId", "__synthesizedOrdinal");
-
-                            b1.ToTable("items");
-
-                            b1
-                                .ToJson("modifiers")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("ItemId")
-                                .HasConstraintName("fk_items_items_item_id");
-                        });
-
-                    b.Navigation("Modifiers");
                 });
 
             modelBuilder.Entity("TRPG.Models.Job", b =>

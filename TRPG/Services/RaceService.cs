@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -10,8 +9,8 @@ internal class RaceService(TrpgDbContext context) {
         return await context.Races.FindAsync([id], cancellationToken);
     }
 
-    public async Task<ReadOnlyCollection<Race>> GetAll(CancellationToken cancellationToken = default) {
-        var list = await context.Races.ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+    public async Task<IReadOnlyCollection<Race>> GetAll(CancellationToken cancellationToken = default) {
+        var list = await context.Races.ToArrayAsync(cancellationToken);
+        return list;
     }
 }

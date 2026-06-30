@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -19,28 +18,28 @@ internal class BuildingService(TrpgDbContext context) {
         return await context.Buildings.FindAsync([id], cancellationToken);
     }
 
-    public async Task<ReadOnlyCollection<Building>> GetAllByCityId(Guid cityId,
+    public async Task<IReadOnlyCollection<Building>> GetAllByCityId(Guid cityId,
         CancellationToken cancellationToken = default) {
         var list = await context.Buildings
             .Where(b => b.CityId == cityId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
-    public async Task<ReadOnlyCollection<Prop>> GetAllPropsByRoomId(Guid roomId,
+    public async Task<IReadOnlyCollection<Prop>> GetAllPropsByRoomId(Guid roomId,
         CancellationToken cancellationToken = default) {
         var list = await context.Props
             .Where(p => p.RoomId == roomId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
-    public async Task<ReadOnlyCollection<BuildingOwner>> GetAllOwnersByBuildingId(Guid buildingId,
+    public async Task<IReadOnlyCollection<BuildingOwner>> GetAllOwnersByBuildingId(Guid buildingId,
         CancellationToken cancellationToken = default) {
         var list = await context.BuildingOwners
             .Where(o => o.BuildingId == buildingId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
     public async Task RemoveOwner(Guid buildingId, Guid ownerId, CancellationToken cancellationToken = default) {

@@ -1,4 +1,6 @@
+using TRPG.Commands;
 using TRPG.Data;
+using TRPG.EntityDefinitions;
 using TRPG.Models;
 using TRPG.Services;
 using TRPG.Tests.Helpers;
@@ -16,7 +18,7 @@ public sealed class AbilityServiceTests(DatabaseFixture db) : IAsyncLifetime {
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _personService = new PersonService(_context);
-        _abilityService = new AbilityService(_context);
+        _abilityService = new AbilityService(_context, AbilityDefinitions.Create());
         _skillService = new SkillService(_context);
         _person = Builders.MakePerson();
         await _personService.Add(_person);
@@ -24,7 +26,9 @@ public sealed class AbilityServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _skillService.AddExperience(_person.Id, Skill.Stealth, 250);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
     public async Task AddAbility_AddsAbilityToPersonWithNoPrerequisites() {
@@ -34,7 +38,7 @@ public sealed class AbilityServiceTests(DatabaseFixture db) : IAsyncLifetime {
         // Assert
         var abilities = await _abilityService.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Single(abilities);
-        Assert.Equal("Slash", abilities[0].AbilityName);
+        Assert.Equal("Slash", abilities.First().AbilityName);
     }
 
     [Fact]

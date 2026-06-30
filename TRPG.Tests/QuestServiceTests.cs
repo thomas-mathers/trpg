@@ -69,7 +69,7 @@ public sealed class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var personQuests =
             await _questService.GetAllQuestsByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Single(personQuests);
-        Assert.Equal(QuestStatus.Accepted, personQuests[0].Status);
+        Assert.Equal(QuestStatus.Accepted, personQuests.First().Status);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public sealed class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime {
         // Assert
         var objectives =
             await _questService.GetAllQuestObjectivesByPersonId(_person.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(3, objectives[0].Amount);
+        Assert.Equal(3, objectives.First().Amount);
     }
 
     [Fact]
@@ -151,6 +151,6 @@ public sealed class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime {
         // Assert
         var personQuests =
             await _questService.GetAllQuestsByPersonId(_person.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(QuestStatus.Completed, personQuests[0].Status);
+        Assert.Equal(QuestStatus.Completed, personQuests.First().Status);
     }
 }

@@ -1,5 +1,13 @@
 ﻿namespace TRPG.Models;
 
+internal enum JobAction {
+    Sleep,
+    Work,
+    Idle,
+    Patrol,
+    Socialize
+}
+
 internal class Job {
     public JobAction Action { get; init; }
     public bool Daily { get; init; }

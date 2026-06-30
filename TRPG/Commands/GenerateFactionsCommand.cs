@@ -38,10 +38,10 @@ internal class GenerateFactionsCommandHandler(OllamaApiClient client, ILogger<Ge
 }
 
 file class FactionListSchema {
-    public List<FactionItemSchema> Factions { get; set; } = [];
+    public List<FactionItemSchema> Factions { get; init; } = [];
 }
 
 file class FactionItemSchema {
-    public string Description { get; set; } = "";
-    public string Name { get; set; } = "";
+    public string Description { get; init; } = "";
+    public string Name { get;  init; } = "";
 }

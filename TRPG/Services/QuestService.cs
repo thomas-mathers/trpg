@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -51,38 +50,38 @@ internal class QuestService(TrpgDbContext context) {
         return await context.Quests.FindAsync([questId], cancellationToken);
     }
 
-    public async Task<ReadOnlyCollection<Quest>> GetAllQuestsByGiverId(Guid giverId,
+    public async Task<IReadOnlyCollection<Quest>> GetAllQuestsByGiverId(Guid giverId,
         CancellationToken cancellationToken = default) {
         var list = await context.Quests
             .Where(q => q.GiverId == giverId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
-    public async Task<ReadOnlyCollection<QuestObjective>> GetAllQuestObjectivesByQuestId(Guid questId,
+    public async Task<IReadOnlyCollection<QuestObjective>> GetAllQuestObjectivesByQuestId(Guid questId,
         CancellationToken cancellationToken = default) {
         var list = await context.QuestObjectives
             .Where(o => o.QuestId == questId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
-    public async Task<ReadOnlyCollection<PersonQuest>> GetAllQuestsByPersonId(Guid personId,
+    public async Task<IReadOnlyCollection<PersonQuest>> GetAllQuestsByPersonId(Guid personId,
         CancellationToken cancellationToken = default) {
         var list = await context.PersonQuests
             .Include(pq => pq.Quest)
             .Where(pq => pq.PersonId == personId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
-    public async Task<ReadOnlyCollection<PersonQuestObjective>> GetAllQuestObjectivesByPersonId(Guid personId,
+    public async Task<IReadOnlyCollection<PersonQuestObjective>> GetAllQuestObjectivesByPersonId(Guid personId,
         CancellationToken cancellationToken = default) {
         var list = await context.PersonQuestObjectives
             .Include(po => po.Objective)
             .Where(po => po.PersonId == personId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
     public async Task ProgressObjective(Guid personId, Guid questObjectiveId, int amount,

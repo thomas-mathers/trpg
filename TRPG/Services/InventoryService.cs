@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -68,14 +67,14 @@ internal class InventoryService(TrpgDbContext context) {
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<ReadOnlyCollection<InventoryItem>> GetAllByPersonId(Guid personId,
+    public async Task<IReadOnlyCollection<InventoryItem>> GetAllByPersonId(Guid personId,
         CancellationToken cancellationToken = default) {
         var list = await context.InventoryItems
             .Include(i => i.Item)
             .Where(i => i.PersonId == personId)
             .OrderBy(i => i.Index)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
     public async Task Remove(Guid personId, Guid itemId, int quantity, CancellationToken cancellationToken = default) {

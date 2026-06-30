@@ -1,5 +1,20 @@
 ﻿namespace TRPG.Models;
 
+internal enum QuestObjectiveType {
+    Kill,
+    Collect,
+    Explore,
+    Speak
+}
+
+internal enum QuestTargetType {
+    Person,
+    Item,
+    City,
+    Building,
+    Race
+}
+
 internal class QuestObjective {
     public int? Amount { get; init; }
     public string Description { get; init; } = "";

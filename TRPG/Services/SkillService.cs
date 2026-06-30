@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
@@ -25,18 +24,21 @@ internal class SkillService(TrpgDbContext context) {
         return personSkill;
     }
 
-    public async Task<ReadOnlyCollection<PersonSkill>> GetAllByPersonId(Guid personId,
+    public async Task<IReadOnlyCollection<PersonSkill>> GetAllByPersonId(Guid personId,
         CancellationToken cancellationToken = default) {
         var list = await context.PersonSkills
             .Where(ps => ps.PersonId == personId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
     private static int LevelForExperience(int xp) {
         for (var i = LevelThresholds.Length - 1; i >= 0; i--) {
-            if (xp >= LevelThresholds[i]) return i;
+            if (xp >= LevelThresholds[i]) {
+                return i;
+            }
         }
+
         return 0;
     }
 }

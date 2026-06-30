@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -26,11 +25,11 @@ internal class ReputationService(TrpgDbContext context) {
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<ReadOnlyCollection<Reputation>> GetAllByPersonId(Guid personId,
+    public async Task<IReadOnlyCollection<Reputation>> GetAllByPersonId(Guid personId,
         CancellationToken cancellationToken = default) {
         var list = await context.Reputations
             .Where(r => r.PersonId == personId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 }

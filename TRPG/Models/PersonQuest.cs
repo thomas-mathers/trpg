@@ -1,5 +1,12 @@
 ﻿namespace TRPG.Models;
 
+internal enum QuestStatus {
+    Accepted,
+    Completed,
+    Failed,
+    Abandoned
+}
+
 internal class PersonQuest {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid PersonId { get; init; }

@@ -19,7 +19,9 @@ public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
     public async Task AddExperience_CreatesPersonSkill_WhenNoneExists() {
@@ -29,8 +31,8 @@ public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime {
         // Assert
         var skills = await _service.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
         Assert.Single(skills);
-        Assert.Equal(Skill.Archery, skills[0].Skill);
-        Assert.Equal(50, skills[0].Experience);
+        Assert.Equal(Skill.Archery, skills.First().Skill);
+        Assert.Equal(50, skills.First().Experience);
     }
 
     [Fact]
@@ -43,13 +45,14 @@ public sealed class SkillServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
         // Assert
         var skills = await _service.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(110, skills[0].Experience);
+        Assert.Equal(110, skills.First().Experience);
     }
 
     [Fact]
     public async Task AddExperience_BumpsLevel_WhenThresholdCrossed() {
         // Act — 100 XP crosses the level 1 threshold
-        var result = await _service.AddExperience(_person.Id, Skill.Archery, 100, TestContext.Current.CancellationToken);
+        var result =
+            await _service.AddExperience(_person.Id, Skill.Archery, 100, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(1, result.Level);

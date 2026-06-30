@@ -66,7 +66,7 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
 
         // Assert
         Assert.Single(result);
-        Assert.Equal(road.Id, result[0].Id);
+        Assert.Equal(road.Id, result.First().Id);
     }
 
     [Fact]
@@ -92,8 +92,8 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
 
         // Assert
         Assert.Equal(3, result.Count);
-        Assert.Equal(origin, result[0]);
-        Assert.Equal(destination, result[^1]);
+        Assert.Equal(origin, result.First());
+        Assert.Equal(destination, result.Last());
     }
 
     [Fact]

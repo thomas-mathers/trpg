@@ -65,8 +65,6 @@ public sealed class ItemServiceTests(DatabaseFixture db) : IAsyncLifetime {
             WorldId = _item.WorldId,
             Name = _item.Name,
             Description = "Updated description",
-            Category = _item.Category,
-            IsStackable = _item.IsStackable,
             Weight = _item.Weight,
             GoldValue = 999
         };

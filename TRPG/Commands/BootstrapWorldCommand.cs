@@ -46,6 +46,8 @@ internal class BootstrapWorldCommandHandler(
         context.Buildings.AddRange(result.Buildings);
         context.Persons.AddRange(result.Persons);
         context.BuildingOwners.AddRange(result.BuildingOwners);
+        context.Items.AddRange(result.Items);
+        context.InventoryItems.AddRange(result.InventoryItems);
         context.Rooms.AddRange(result.Rooms);
         context.Props.AddRange(result.Props);
 

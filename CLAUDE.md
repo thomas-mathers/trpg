@@ -15,13 +15,26 @@
 - File-scoped namespaces (`namespace TRPG.Models;`)
 - Primary constructors everywhere (`public class PersonService(TrpgDbContext context)`)
 - Expression-bodied members for simple one-liners
-- No comments except where non-obvious; no XML doc comments
+- Place related types (classes, records, enums) in the same file as the class they primarily support — no standalone `Enums.cs` or similar
+
+### Comments
+- Explain *why*, never *how* — well-named identifiers make the what and how obvious
+- Use a comment only when a future reader would be genuinely confused without it; if removing it wouldn't confuse anyone, don't write it
+- No XML doc comments
 
 ### Naming
 - `_camelCase` for private fields
 - `PascalCase` for everything public
+- No abbreviations — write `minimum`, `maximum`, `quantity`, `defense`, `index`, not `min`, `max`, `qty`, `def`, `idx`
+- No tuple return types or tuple parameters — use a named `record` instead; tuples as local variables inside method bodies are fine
+- Functions with more than 3 parameters must capture those parameters in a class instead
 - Test classes: `{Subject}Tests`
 - Test methods: `Method_ExpectedResult_WhenCondition`
+
+### Functions
+- Each function does one thing — if you need "and" to describe what it does, split it
+- Prefer pure functions (static methods that depend only on their parameters and return a value with no side effects) where possible
+- Keep functions under 40 lines; if a function exceeds this, extract helpers
 
 ### Null handling
 - `null!` for fields initialized in `InitializeAsync` (not inline)
@@ -29,8 +42,9 @@
 
 ### Collections
 - `List<T>` **only** for PostgreSQL array columns (Npgsql requires it — `Collection<T>` throws at runtime)
-- `Collection<T>` for any other mutable public collection property
-- `ReadOnlyCollection<T>` for all service method return types (via `.AsReadOnly()` on the internal `List<T>`)
+- `Collection<T>` for any other mutable public/internal collection property
+- Public/internal method return types and parameters: use `IReadOnlyCollection<T>`, `IReadOnlyList<T>`, or `IReadOnlyDictionary<K,V>` — never expose concrete collection types in signatures
+- Private method signatures and local fields may use concrete types (`List<T>`, `Dictionary<K,V>`) for performance
 - Collection expressions `[]` for empty collections, `[x, y]` for inline initialization
 
 ### Async
@@ -44,8 +58,8 @@
 ## Models
 
 ### Immutability
-- `init` on fields that should not change after construction: `Id`, `Name`, `RaceId`, `BirthCityId`, etc.
-- `set` on mutable fields: `Gold`, `Biography`, `Location`, `Progression`, `Attributes`
+- Prefer `init` by default — only use `set` when a property genuinely needs to change after construction
+- `set` is justified for runtime game state: `Gold`, `Biography`, `Location`, `Progression`, `Attributes`, `DurabilityCurrent`
 - Standard Id pattern: `public Guid Id { get; init; } = Guid.NewGuid();`
 
 ### Value objects

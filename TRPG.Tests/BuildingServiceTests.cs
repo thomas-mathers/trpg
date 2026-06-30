@@ -63,7 +63,7 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
         // Assert
         var owners = await _service.GetAllOwnersByBuildingId(_building.Id, TestContext.Current.CancellationToken);
         Assert.Single(owners);
-        Assert.Equal(_ownerId, owners[0].OwnerId);
+        Assert.Equal(_ownerId, owners.First().OwnerId);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
         // Assert
         Assert.Single(result);
-        Assert.Equal(prop.Id, result[0].Id);
+        Assert.Equal(prop.Id, result.First().Id);
     }
 
     [Fact]

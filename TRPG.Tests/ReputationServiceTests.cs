@@ -28,7 +28,7 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         // Assert
         var reputations = await _service.GetAllByPersonId(_personId, TestContext.Current.CancellationToken);
         Assert.Single(reputations);
-        Assert.Equal(10, reputations[0].Score);
+        Assert.Equal(10, reputations.First().Score);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         // Assert
         var reputations = await _service.GetAllByPersonId(personId, TestContext.Current.CancellationToken);
         Assert.Single(reputations);
-        Assert.Equal(15, reputations[0].Score);
+        Assert.Equal(15, reputations.First().Score);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
 
         // Assert
         var reputations = await _service.GetAllByPersonId(personId, TestContext.Current.CancellationToken);
-        Assert.Equal(12, reputations[0].Score);
+        Assert.Equal(12, reputations.First().Score);
     }
 
     [Fact]

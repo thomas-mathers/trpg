@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -22,20 +21,20 @@ internal class FactionService(TrpgDbContext context) {
         return await context.Factions.FindAsync([id], cancellationToken);
     }
 
-    public async Task<ReadOnlyCollection<FactionMember>> GetAllMembershipsByPersonId(Guid personId,
+    public async Task<IReadOnlyCollection<FactionMember>> GetAllMembershipsByPersonId(Guid personId,
         CancellationToken cancellationToken = default) {
         var list = await context.FactionMembers
             .Where(fm => fm.PersonId == personId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
-    public async Task<ReadOnlyCollection<FactionMember>> GetAllMembersByFactionId(Guid factionId,
+    public async Task<IReadOnlyCollection<FactionMember>> GetAllMembersByFactionId(Guid factionId,
         CancellationToken cancellationToken = default) {
         var list = await context.FactionMembers
             .Where(fm => fm.FactionId == factionId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        return list;
     }
 
     public async Task UpdateMemberRole(Guid factionId, Guid memberId, FactionRole role,

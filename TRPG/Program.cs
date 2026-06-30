@@ -6,6 +6,8 @@ using OllamaSharp;
 using TRPG;
 using TRPG.Commands;
 using TRPG.Data;
+using TRPG.EntityDefinitions;
+using TRPG.Models;
 using TRPG.Services;
 using ZLogger;
 using ZLogger.Providers;
@@ -47,6 +49,8 @@ var services = new ServiceCollection()
     .AddTransient<LocationService>()
     .AddTransient<NavigationService>()
     .AddTransient<NpcConversationService>()
+    .AddSingleton(AbilityDefinitions.Create())
+    .AddSingleton(sp => ItemDefinitions.Create(sp.GetRequiredService<AbilityDefinitions>()))
     .AddTransient<AbilityService>()
     .AddTransient<SkillService>()
     .AddTransient<PersonService>()
@@ -129,22 +133,25 @@ static async Task RunCommand(string[] args, IServiceProvider services) {
             break;
         }
         case "generate-abilities": {
-            Console.WriteLine($"\nAttacks ({AbilityDefinitions.Attacks.Count}):");
-            foreach (var a in AbilityDefinitions.Attacks.Take(5)) {
+            var defs = services.GetRequiredService<AbilityDefinitions>();
+            var attacks = defs.Abilities.OfType<AttackAbility>().ToList();
+            var supports = defs.Abilities.OfType<SupportAbility>().ToList();
+            Console.WriteLine($"\nAttacks ({attacks.Count}):");
+            foreach (var a in attacks.Take(5)) {
                 Console.WriteLine($"  [{a.Skill} lv{a.RequiredSkillLevel}] {a.Name}: {a.Description}");
             }
 
-            if (AbilityDefinitions.Attacks.Count > 5) {
-                Console.WriteLine($"  ... and {AbilityDefinitions.Attacks.Count - 5} more");
+            if (attacks.Count > 5) {
+                Console.WriteLine($"  ... and {attacks.Count - 5} more");
             }
 
-            Console.WriteLine($"\nSupports ({AbilityDefinitions.Supports.Count}):");
-            foreach (var s in AbilityDefinitions.Supports.Take(5)) {
+            Console.WriteLine($"\nSupports ({supports.Count}):");
+            foreach (var s in supports.Take(5)) {
                 Console.WriteLine($"  [{s.Skill} lv{s.RequiredSkillLevel}] {s.Name}: {s.Description}");
             }
 
-            if (AbilityDefinitions.Supports.Count > 5) {
-                Console.WriteLine($"  ... and {AbilityDefinitions.Supports.Count - 5} more");
+            if (supports.Count > 5) {
+                Console.WriteLine($"  ... and {supports.Count - 5} more");
             }
 
             break;
@@ -190,8 +197,9 @@ static async Task RunCommand(string[] args, IServiceProvider services) {
                     $"    Cities: {string.Join(", ", citiesInCountry.Select(c => c.IsCapital ? $"[{c.Name}]" : c.Name))}");
             }
 
+            var abilityDefs = services.GetRequiredService<AbilityDefinitions>();
             Console.WriteLine(
-                $"\nAbilities: {AbilityDefinitions.Attacks.Count} attacks, {AbilityDefinitions.Supports.Count} supports");
+                $"\nAbilities: {abilityDefs.Abilities.OfType<AttackAbility>().Count()} attacks, {abilityDefs.Abilities.OfType<SupportAbility>().Count()} supports");
             Console.WriteLine($"Buildings: {result.Buildings.Count}, Persons: {result.Persons.Count}");
             break;
         }

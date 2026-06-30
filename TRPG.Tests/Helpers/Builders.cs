@@ -27,15 +27,93 @@ internal static class Builders {
         };
     }
 
-    public static Item MakeItem(Guid? worldId = null, bool stackable = false) {
+    public static Item MakeItem(Guid? worldId = null) {
         return new Item {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Item-{Guid.NewGuid():N}",
             Description = "A test item",
-            Category = ItemCategory.Consumable,
-            IsStackable = stackable,
             Weight = 1,
             GoldValue = 10
+        };
+    }
+
+    public static WeaponItem MakeWeaponItem(Guid? worldId = null, WeaponType type = WeaponType.Sword) {
+        return new WeaponItem {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Item-{Guid.NewGuid():N}",
+            Description = "A test weapon",
+            Weight = 8,
+            GoldValue = 50,
+            Type = type,
+            MinDamage = 5,
+            MaxDamage = 15,
+            Range = 1,
+            AttackSpeed = 7,
+            DurabilityMax = 100,
+            DurabilityCurrent = 100
+        };
+    }
+
+    public static ArmorItem MakeArmorItem(Guid? worldId = null, ArmorType type = ArmorType.Chest) {
+        return new ArmorItem {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Item-{Guid.NewGuid():N}",
+            Description = "A test armor",
+            Weight = 15,
+            GoldValue = 40,
+            Type = type,
+            Defense = 10,
+            DurabilityMax = 100,
+            DurabilityCurrent = 100
+        };
+    }
+
+    public static ShieldItem MakeShieldItem(Guid? worldId = null) {
+        return new ShieldItem {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Item-{Guid.NewGuid():N}",
+            Description = "A test shield",
+            Weight = 8,
+            GoldValue = 30,
+            Defense = 8,
+            BlockChance = 25,
+            DurabilityMax = 100,
+            DurabilityCurrent = 100
+        };
+    }
+
+    public static ConsumableItem MakeConsumableItem(Guid? worldId = null) {
+        return new ConsumableItem {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Item-{Guid.NewGuid():N}",
+            Description = "A test consumable",
+            Weight = 1,
+            GoldValue = 10,
+            Attribute = AttributeName.CurrentHp,
+            Amount = 50,
+            Duration = 0
+        };
+    }
+
+    public static AmmunitionItem MakeAmmunitionItem(Guid? worldId = null, AmmoType type = AmmoType.Arrow) {
+        return new AmmunitionItem {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Item-{Guid.NewGuid():N}",
+            Description = "A test ammo",
+            Weight = 2,
+            GoldValue = 5,
+            Type = type
+        };
+    }
+
+    public static AccessoryItem MakeAccessoryItem(Guid? worldId = null, AccessoryType type = AccessoryType.Ring) {
+        return new AccessoryItem {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Item-{Guid.NewGuid():N}",
+            Description = "A test accessory",
+            Weight = 1,
+            GoldValue = 20,
+            Type = type
         };
     }
 

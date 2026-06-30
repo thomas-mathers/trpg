@@ -42,7 +42,7 @@ internal class NpcConversationService(TrpgDbContext context) {
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<ReadOnlyCollection<NpcChatMessage>> GetAllMessages(Guid personId, Guid npcId,
+    public async Task<IReadOnlyList<NpcChatMessage>> GetAllMessages(Guid personId, Guid npcId,
         int startingMessageIndex, CancellationToken cancellationToken = default) {
         var conversation = await context.NpcConversations
             .FirstOrDefaultAsync(c => c.PersonId == personId && c.NpcId == npcId, cancellationToken);
@@ -54,8 +54,9 @@ internal class NpcConversationService(TrpgDbContext context) {
         var list = await context.NpcChatMessages
             .Where(m => m.ConversationId == conversation.Id && m.Index >= startingMessageIndex)
             .OrderBy(m => m.Index)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
+        
+        return list;
     }
 
     public async Task UpdateSummary(Guid personId, Guid npcId, string summary,

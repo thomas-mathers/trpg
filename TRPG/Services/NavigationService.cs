@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Algorithms;
@@ -8,7 +7,7 @@ using TRPG.Models;
 namespace TRPG.Services;
 
 internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
-    public async Task<ReadOnlyCollection<Road>> GetShortestCityRoute(Guid originCityId, Guid destinationCityId,
+    public async Task<IReadOnlyCollection<Road>> GetShortestCityRoute(Guid originCityId, Guid destinationCityId,
         CancellationToken cancellationToken = default) {
         var graph = await cache.GetOrCreateAsync("nav:city-graph", async entry => {
             entry.Priority = CacheItemPriority.NeverRemove;
@@ -27,11 +26,12 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             id => graph.TryGetValue(id, out var rs) ? rs.Select(r => r.DestinationCityId) : [],
             (from, to) => graph[from].First(r => r.DestinationCityId == to).TravelTime);
 
-        return cityPath.Zip(cityPath.Skip(1), (from, to) => graph[from].First(r => r.DestinationCityId == to))
-            .ToList().AsReadOnly();
+        return cityPath
+            .Zip(cityPath.Skip(1), (from, to) => graph[from].First(r => r.DestinationCityId == to))
+            .ToArray();
     }
 
-    public async Task<ReadOnlyCollection<Point>> GetShortestIntraCityRoute(Guid cityId, Point origin, Point destination,
+    public async Task<IReadOnlyCollection<Point>> GetShortestIntraCityRoute(Guid cityId, Point origin, Point destination,
         CancellationToken cancellationToken = default) {
         var grid = await cache.GetOrCreateAsync($"nav:city-grid:{cityId}", async entry => {
             entry.SlidingExpiration = TimeSpan.FromMinutes(10);
@@ -50,24 +50,24 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
 
         return Graphs.ShortestPath(
             origin, destination,
-            p => GridNeighbors(p, grid.Width, grid.Height, grid.Blocked),
+            p => GridNeighbors(p, grid),
             (_, _) => 1f);
     }
 
-    private static IEnumerable<Point> GridNeighbors(Point p, int width, int height, HashSet<Point> blocked) {
-        if (p.X > 0 && !blocked.Contains(new Point(p.X - 1, p.Y))) {
+    private static IEnumerable<Point> GridNeighbors(Point p, GridData grid) {
+        if (p.X > 0 && !grid.Blocked.Contains(new Point(p.X - 1, p.Y))) {
             yield return new Point(p.X - 1, p.Y);
         }
 
-        if (p.X < width - 1 && !blocked.Contains(new Point(p.X + 1, p.Y))) {
+        if (p.X < grid.Width - 1 && !grid.Blocked.Contains(new Point(p.X + 1, p.Y))) {
             yield return new Point(p.X + 1, p.Y);
         }
 
-        if (p.Y > 0 && !blocked.Contains(new Point(p.X, p.Y - 1))) {
+        if (p.Y > 0 && !grid.Blocked.Contains(new Point(p.X, p.Y - 1))) {
             yield return new Point(p.X, p.Y - 1);
         }
 
-        if (p.Y < height - 1 && !blocked.Contains(new Point(p.X, p.Y + 1))) {
+        if (p.Y < grid.Height - 1 && !grid.Blocked.Contains(new Point(p.X, p.Y + 1))) {
             yield return new Point(p.X, p.Y + 1);
         }
     }
@@ -85,5 +85,5 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
         return blocked;
     }
 
-    private sealed record GridData(int Width, int Height, HashSet<Point> Blocked);
+    private record GridData(int Width, int Height, HashSet<Point> Blocked);
 }

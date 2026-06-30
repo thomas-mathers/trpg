@@ -41,11 +41,11 @@ internal class GenerateRacesCommandHandler(OllamaApiClient client, ILogger<Gener
 }
 
 file class RaceListSchema {
-    public List<RaceItemSchema> Races { get; set; } = [];
+    public List<RaceItemSchema> Races { get; init; } = [];
 }
 
 file class RaceItemSchema {
-    public string CultureStyle { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string Name { get; set; } = "";
+    public string CultureStyle { get; init; } = "";
+    public string Description { get; init; } = "";
+    public string Name { get; init; } = "";
 }

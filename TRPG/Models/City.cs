@@ -3,7 +3,7 @@
 internal class City {
     public Polygon Boundary { get; init; } = null!;
     public Guid CountryId { get; init; }
-    public string Description { get; set; } = "";
+    public string Description { get; init; } = "";
     public int Height { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public bool IsCapital { get; init; }

@@ -52,8 +52,8 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime {
         // Assert
         var members = await _service.GetAllMembersByFactionId(_faction.Id, TestContext.Current.CancellationToken);
         Assert.Single(members);
-        Assert.Equal(_personId, members[0].PersonId);
-        Assert.Equal(FactionRole.Member, members[0].Role);
+        Assert.Equal(_personId, members.First().PersonId);
+        Assert.Equal(FactionRole.Member, members.First().Role);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
         // Assert
         var members = await _service.GetAllMembersByFactionId(_faction.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(FactionRole.Leader, members[0].Role);
+        Assert.Equal(FactionRole.Leader, members.First().Role);
     }
 
     [Fact]

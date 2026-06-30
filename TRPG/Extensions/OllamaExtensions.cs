@@ -10,81 +10,29 @@ internal static class OllamaExtensions {
     private static readonly JsonSerializerOptions DeserializeOptions = new() { PropertyNameCaseInsensitive = true };
     private static readonly RequestOptions DefaultOptions = new() { MinP = 0.1f };
 
-    private static async Task<string> GetEntireResponse(
-        this OllamaApiClient client,
-        string systemPrompt,
-        string prompt,
-        CancellationToken ct
-    ) {
-        var sb = new StringBuilder();
-        var request = new GenerateRequest {
-            System = systemPrompt,
-            Prompt = prompt,
-            Format = "json",
-            Options = DefaultOptions
-        };
-        await foreach (var chunk in client.GenerateAsync(request, ct)) {
-            sb.Append(chunk?.Response);
-        }
-
-        return sb.ToString();
-    }
-
-    private static async Task<string> GetEntireResponse(this Chat chat, string prompt, CancellationToken ct) {
-        var sb = new StringBuilder();
-        await foreach (var token in chat.SendAsync(prompt, null, null, "json", ct)) {
-            sb.Append(token);
-        }
-
-        return sb.ToString();
-    }
-
-    internal static Chat CreateChat(this OllamaApiClient client, string systemPrompt) {
-        var chat = new Chat(client, systemPrompt) {
-            Options = DefaultOptions
-        };
-        return chat;
-    }
-
-    internal static Task<T> GetJson<T>(
+    internal static async Task<T> GetJson<T>(
         this OllamaApiClient client,
         ILogger logger,
         string systemPrompt,
         string userPrompt,
         Func<T, string?>? validate = null,
         CancellationToken cancellationToken = default) where T : new() {
-        return GetJson(
-            (prompt, ct) => client.GetEntireResponse(systemPrompt, prompt, ct),
-            userPrompt,
-            validate,
-            logger,
-            cancellationToken);
-    }
+        logger.LogTrace("[System] {SystemPrompt}", systemPrompt);
 
-    internal static Task<T> GetJson<T>(
-        this Chat chat,
-        ILogger logger,
-        string prompt,
-        Func<T, string?>? validate = null,
-        CancellationToken cancellationToken = default) where T : new() {
-        return GetJson(
-            chat.GetEntireResponse,
-            prompt,
-            validate,
-            logger,
-            cancellationToken);
-    }
-
-    private static async Task<T> GetJson<T>(
-        Func<string, CancellationToken, Task<string>> send,
-        string prompt,
-        Func<T, string?>? validate,
-        ILogger logger,
-        CancellationToken cancellationToken) where T : new() {
-        var currentPrompt = prompt;
+        var currentPrompt = userPrompt;
         for (var attempt = 0; attempt < 5; attempt++) {
-            var response = await send(currentPrompt, cancellationToken);
+            var sb = new StringBuilder();
+            var request = new GenerateRequest {
+                System = systemPrompt,
+                Prompt = currentPrompt,
+                Format = "json",
+                Options = DefaultOptions
+            };
+            await foreach (var chunk in client.GenerateAsync(request, cancellationToken)) {
+                sb.Append(chunk?.Response);
+            }
 
+            var response = sb.ToString();
             logger.LogTrace("[User] {Prompt}", currentPrompt);
             logger.LogTrace("[Assistant] {Response}", response);
 
@@ -100,14 +48,14 @@ internal static class OllamaExtensions {
             }
 
             if (result is null) {
-                currentPrompt = "The response was not valid JSON. " + prompt;
+                currentPrompt = "The response was not valid JSON. " + userPrompt;
                 continue;
             }
 
             var error = validate?.Invoke(result);
             if (error is not null) {
                 logger.LogWarning("Validation failed (attempt {Attempt}): {Error}", attempt + 1, error);
-                currentPrompt = error + " " + prompt;
+                currentPrompt = error + " " + userPrompt;
                 continue;
             }
 
