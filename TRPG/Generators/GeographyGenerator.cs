@@ -1,13 +1,12 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
-using TRPG.Algorithms;
 using TRPG.Extensions;
 using TRPG.Models;
 
-namespace TRPG.Commands;
+namespace TRPG.Generators;
 
-internal class GenerateGeographyCommand {
+internal class GeographyGeneratorInput {
     public required string Description { get; init; }
     public int MaxCities { get; init; } = WorldGenerationDefaults.MaxCities;
     public int MaxCountries { get; init; } = WorldGenerationDefaults.MaxCountries;
@@ -19,7 +18,7 @@ internal class GenerateGeographyCommand {
     public int WorldWidth { get; init; } = WorldGenerationDefaults.WorldWidth;
 }
 
-internal class GenerateGeographyCommandResult {
+internal class GeographyGeneratorResult {
     public required IReadOnlyList<City> Cities { get; init; }
     public required IReadOnlyDictionary<Guid, string> CityFocuses { get; init; }
     public required IReadOnlyList<Country> Countries { get; init; }
@@ -27,9 +26,9 @@ internal class GenerateGeographyCommandResult {
     public required World World { get; init; }
 }
 
-internal class GenerateGeographyCommandHandler(
+internal class GeographyGenerator(
     OllamaApiClient client,
-    ILogger<GenerateGeographyCommandHandler> logger) {
+    ILogger<GeographyGenerator> logger) {
     private static readonly string[] CityFocuses = [
         "trade and commerce",
         "arcane scholarship",
@@ -53,15 +52,15 @@ internal class GenerateGeographyCommandHandler(
         "Japanese-inspired (e.g., Hakurei, Tsuruga, Midori, Karaten, Shiran)"
     ];
 
-    public async Task<GenerateGeographyCommandResult> Handle(
-        GenerateGeographyCommand command,
+    public async Task<GeographyGeneratorResult> Generate(
+        GeographyGeneratorInput generatorInput,
         CancellationToken cancellationToken
     ) {
         var sw = Stopwatch.StartNew();
-        var totalCities = Random.Shared.Next(command.MinCities, command.MaxCities + 1);
-        var numberOfCountries = Random.Shared.Next(command.MinCountries, command.MaxCountries + 1);
-        var map = MapGenerator.Generate(command.WorldWidth, command.WorldHeight, totalCities, numberOfCountries);
-        var context = new GeographyGenerationContext(command, map, []);
+        var totalCities = Random.Shared.Next(generatorInput.MinCities, generatorInput.MaxCities + 1);
+        var numberOfCountries = Random.Shared.Next(generatorInput.MinCountries, generatorInput.MaxCountries + 1);
+        var map = MapGenerator.Generate(generatorInput.WorldWidth, generatorInput.WorldHeight, totalCities, numberOfCountries);
+        var context = new GeographyGenerationContext(generatorInput, map, []);
 
         var world = await GenerateWorldEntity(context, cancellationToken);
         var countries = await GenerateCountryEntities(context, world, cancellationToken);
@@ -70,7 +69,7 @@ internal class GenerateGeographyCommandHandler(
 
         logger.LogDebug("GenerateGeography completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
-        return new GenerateGeographyCommandResult {
+        return new GeographyGeneratorResult {
             World = world,
             Countries = countries.Countries,
             Cities = cities.Cities,
@@ -83,17 +82,17 @@ internal class GenerateGeographyCommandHandler(
         var worldSchema = await client.GetJson<GeographyEntitySchema>(
             logger,
             $"""
-             You are a creative world-building assistant for a TRPG game generating content for: {context.Command.Description}.
+             You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
              Respond with a single JSON object with Name and Description fields. The description should capture the world's tone, culture, and character — do not reference specific geography, terrain, named places, named individuals, or specific institutions. You MUST respond in English only. Never use Chinese or any non-Latin characters. Do not use markdown.
              """,
             "Generate the world: provide its Name and Description.",
             cancellationToken: cancellationToken);
 
         var world = new World {
-            Id = context.Command.WorldId ?? Guid.NewGuid(),
+            Id = context.GeneratorInput.WorldId ?? Guid.NewGuid(),
             Name = worldSchema.Name,
             Description = worldSchema.Description,
-            Boundary = new Rectangle(0, 0, context.Command.WorldWidth, context.Command.WorldHeight)
+            Boundary = new Rectangle(0, 0, context.GeneratorInput.WorldWidth, context.GeneratorInput.WorldHeight)
         };
         context.ExistingNames.Add(world.Name);
         return world;
@@ -110,7 +109,7 @@ internal class GenerateGeographyCommandHandler(
             var schema = await client.GetJson<GeographyEntitySchema>(
                 logger,
                 $"""
-                 You are a creative world-building assistant for a TRPG game generating content for: {context.Command.Description}.
+                 You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
                  The world is {world.Name}: {world.Description}.
                  Respond with a single JSON object with Name and Description fields. The description must be a single sentence capturing the country's culture and character — no geography, named cities, individuals, or institutions. You MUST respond in English only. Never use Chinese or any non-Latin characters. Do not use markdown.
                  """,
@@ -152,7 +151,7 @@ internal class GenerateGeographyCommandHandler(
 
         var cities = new List<City>();
         var cityFocuses = new Dictionary<Guid, string>();
-        var races = context.Command.Races;
+        var races = context.GeneratorInput.Races;
         var countryIndex = 0;
 
         foreach (var (countryLayoutId, country) in countries.CountryById) {
@@ -176,7 +175,7 @@ internal class GenerateGeographyCommandHandler(
             var schema = await client.GetJson<CityListSchema>(
                 logger,
                 $"""
-                 You are a creative world-building assistant for a TRPG game generating content for: {context.Command.Description}.
+                 You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
                  The world is {world.Name}: {world.Description}.
                  Respond with a JSON object with a Cities array containing exactly {countryCities.Count} entries for the country of {country.Name}: {country.Description}.
                  Each entry has Name and Description. Each description must be a single sentence capturing the city's culture and character.
@@ -235,7 +234,7 @@ internal class GenerateGeographyCommandHandler(
         var roadNamesSchema = await client.GetJson<RoadNamesSchema>(
             logger,
             $"""
-             You are a creative world-building assistant for a TRPG game generating content for: {context.Command.Description}.
+             You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
              The world is {world.Name}: {world.Description}.
              Respond with a JSON object with a Roads array containing exactly {context.Map.Roads.Count} entries. Each entry must have an Index (1-based integer matching the road number) and a Name. You MUST produce one entry per road — do not merge or skip any. Road names should be evocative and thematic — like "The King's Road", "Ember Trail", or "Merchant's Way" — not descriptions of the endpoints. All names must be unique. You MUST respond in English only. Do not use markdown.
              """,
@@ -267,7 +266,7 @@ internal class GenerateGeographyCommandHandler(
     }
 }
 
-internal record GeographyGenerationContext(GenerateGeographyCommand Command, MapGeneratorResult Map, List<string> ExistingNames);
+internal record GeographyGenerationContext(GeographyGeneratorInput GeneratorInput, MapGeneratorResult Map, List<string> ExistingNames);
 
 internal record GeneratedCountries(List<Country> Countries, Dictionary<Guid, Country> CountryById);
 

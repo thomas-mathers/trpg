@@ -1,8 +1,9 @@
 using System.Collections.ObjectModel;
 using SharpVoronoiLib;
+using TRPG.Algorithms;
 using TRPG.Models;
 
-namespace TRPG.Algorithms;
+namespace TRPG.Generators;
 
 internal class MapCountry {
     public required Polygon Boundary { get; init; }

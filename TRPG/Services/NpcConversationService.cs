@@ -55,7 +55,7 @@ internal class NpcConversationService(TrpgDbContext context) {
             .Where(m => m.ConversationId == conversation.Id && m.Index >= startingMessageIndex)
             .OrderBy(m => m.Index)
             .ToArrayAsync(cancellationToken);
-        
+
         return list;
     }
 

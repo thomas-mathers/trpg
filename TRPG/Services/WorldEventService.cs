@@ -19,7 +19,7 @@ internal class WorldEventService(TrpgDbContext context) {
         var events = await context.WorldEvents
             .Where(e => e.WorldId == worldId)
             .ToArrayAsync(cancellationToken);
-        
+
         return events
             .Where(e => Distance(e.Region.Center.Coordinates, region.Center.Coordinates) <= region.Radius)
             .ToArray();

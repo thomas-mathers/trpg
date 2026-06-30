@@ -10,7 +10,11 @@ internal enum Profession {
     Alchemist,
     Blacksmith,
     Scholar,
-    Merchant
+    Merchant,
+    Politician,
+    StableMaster,
+    Bartender,
+    Guard
 }
 
 internal class Person {

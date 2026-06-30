@@ -31,7 +31,8 @@ internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
             .ToArray();
     }
 
-    public async Task<IReadOnlyCollection<Point>> GetShortestIntraCityRoute(Guid cityId, Point origin, Point destination,
+    public async Task<IReadOnlyCollection<Point>> GetShortestIntraCityRoute(Guid cityId, Point origin,
+        Point destination,
         CancellationToken cancellationToken = default) {
         var grid = await cache.GetOrCreateAsync($"nav:city-grid:{cityId}", async entry => {
             entry.SlidingExpiration = TimeSpan.FromMinutes(10);

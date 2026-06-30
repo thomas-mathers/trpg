@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Commands;
 using TRPG.Data;
-using TRPG.EntityDefinitions;
+using TRPG.Definitions;
 using TRPG.Models;
 
 namespace TRPG.Services;

@@ -4,17 +4,17 @@ using OllamaSharp;
 using TRPG.Extensions;
 using TRPG.Models;
 
-namespace TRPG.Commands;
+namespace TRPG.Generators;
 
-internal class GenerateFactionsCommand {
-    public int Count { get; init; } = 4;
-    public required string Description { get; init; }
+internal class FactionsGeneratorInput {
     public required Guid WorldId { get; init; }
+    public required string Description { get; init; }
+    public int Count { get; init; } = 4;
 }
 
-internal class GenerateFactionsCommandHandler(OllamaApiClient client, ILogger<GenerateFactionsCommandHandler> logger) {
-    public async Task<IReadOnlyList<Faction>> Handle(
-        GenerateFactionsCommand command,
+internal class FactionsGenerator(OllamaApiClient client, ILogger<FactionsGenerator> logger) {
+    public async Task<IReadOnlyList<Faction>> Generate(
+        FactionsGeneratorInput command,
         CancellationToken cancellationToken
     ) {
         var sw = Stopwatch.StartNew();
@@ -43,5 +43,5 @@ file class FactionListSchema {
 
 file class FactionItemSchema {
     public string Description { get; init; } = "";
-    public string Name { get;  init; } = "";
+    public string Name { get; init; } = "";
 }

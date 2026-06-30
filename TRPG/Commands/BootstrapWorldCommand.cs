@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TRPG.Data;
+using TRPG.Generators;
 
 namespace TRPG.Commands;
 
@@ -16,15 +17,15 @@ internal class BootstrapWorldCommand {
 
 internal class BootstrapWorldCommandHandler(
     TrpgDbContext context,
-    GenerateWorldCommandHandler generateWorldHandler,
+    WorldGenerator worldHandler,
     ILogger<BootstrapWorldCommandHandler> logger
 ) {
-    public async Task<GenerateWorldCommandResult> Handle(
+    public async Task<WorldGeneratorResult> Handle(
         BootstrapWorldCommand command,
         CancellationToken cancellationToken
     ) {
-        var result = await generateWorldHandler.Handle(
-            new GenerateWorldCommand {
+        var result = await worldHandler.Generate(
+            new WorldGeneratorInput {
                 Description = command.Description,
                 FactionCount = command.FactionCount,
                 HousesPerCity = command.HousesPerCity,

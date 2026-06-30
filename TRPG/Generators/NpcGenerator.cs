@@ -1,8 +1,17 @@
-namespace TRPG.EntityDefinitions;
+using TRPG.Definitions;
+using TRPG.Models;
 
-internal static class NameDefinitions {
-    private static readonly Dictionary<string, Pool> Pools = new(StringComparer.OrdinalIgnoreCase) {
-        ["Nordic/Viking"] = new Pool(
+namespace TRPG.Generators;
+
+internal record NpcGeneratorInput(Race Race, Profession Profession, Guid WorldId, Guid BirthCityId, Location Location);
+
+internal record NpcGeneratorResult(Person Person, IReadOnlyList<Item> Items, IReadOnlyList<InventoryItem> InventoryItems);
+
+internal class NpcGenerator(ItemGenerator itemGenerator) {
+    private record NamePool(string[] FirstNames, string[] LastNames);
+    
+    private static readonly Dictionary<string, NamePool> Pools = new(StringComparer.OrdinalIgnoreCase) {
+        ["Nordic/Viking"] = new NamePool(
             [
                 "Einar", "Sigrun", "Thorvald", "Ragnhild", "Bjorn", "Ingrid", "Leif", "Astrid", "Gunnar", "Freydis",
                 "Ulf", "Helga", "Ragnar", "Solveig", "Harald", "Gudrun", "Ivar", "Thyra", "Ketil", "Ylva",
@@ -18,7 +27,7 @@ internal static class NameDefinitions {
                 "Sigvaldsson", "Bergthorsson", "Valgardsson", "Grimmsson"
             ]
         ),
-        ["Roman"] = new Pool(
+        ["Roman"] = new NamePool(
             [
                 "Gaius", "Lucia", "Marcus", "Valeria", "Quintus", "Iulia", "Decimus", "Claudia", "Titus", "Livia",
                 "Lucius", "Cornelia", "Publius", "Aurelia", "Aulus", "Fabia", "Manius", "Servilia", "Gnaeus", "Clodia",
@@ -34,7 +43,7 @@ internal static class NameDefinitions {
                 "Tacitus", "Lucretius", "Marcellus"
             ]
         ),
-        ["Feudal Japanese"] = new Pool(
+        ["Feudal Japanese"] = new NamePool(
             [
                 "Aoi", "Hikaru", "Kazuki", "Ryota", "Sora", "Yui", "Haruto", "Natsuki", "Miyu", "Shizuka", "Tsubasa",
                 "Akira", "Kotaro", "Eriko", "Fumito", "Megumi", "Rei", "Satoko", "Takashi", "Yuuta",
@@ -49,7 +58,7 @@ internal static class NameDefinitions {
                 "Okamoto", "Aoki", "Nagai", "Ishida", "Ueda", "Kawaguchi", "Ono", "Fujii", "Okada", "Maeda"
             ]
         ),
-        ["Arabic/Persian"] = new Pool(
+        ["Arabic/Persian"] = new NamePool(
             [
                 "Salam", "Faris", "Nizar", "Malik", "Zayd", "Hassan", "Amir", "Ibrahim", "Tariq", "Yasmin", "Layla",
                 "Farid", "Khalid", "Samir", "Rania", "Zafar", "Nadia", "Rashid", "Leila", "Karim",
@@ -64,7 +73,7 @@ internal static class NameDefinitions {
                 "Kashani", "Shirwani"
             ]
         ),
-        ["Celtic"] = new Pool(
+        ["Celtic"] = new NamePool(
             [
                 "Aodhan", "Branwen", "Caolán", "Dairíne", "Eilís", "Fínghin", "Gabhraen", "Iarlaith", "Maeve", "Niamh",
                 "Órlaith", "Pádraic", "Ruadhán", "Sorcha", "Tiarnán", "Úna", "Ciarán", "Bríd", "Eoghan", "Llŷr",
@@ -80,7 +89,7 @@ internal static class NameDefinitions {
                 "MacAuliffe", "O'Donoghue", "MacLochlainn", "O'Donovan"
             ]
         ),
-        ["Slavic"] = new Pool(
+        ["Slavic"] = new NamePool(
             [
                 "Ivan", "Miroslav", "Nikita", "Vladimir", "Dmitry", "Sergei", "Pavel", "Olga", "Natasha", "Katerina",
                 "Aleksandr", "Boris", "Yuri", "Andrei", "Mikhail", "Nadia", "Zoya", "Vasily", "Igor", "Vera",
@@ -96,7 +105,7 @@ internal static class NameDefinitions {
                 "Zaytsev", "Belousov", "Chernov"
             ]
         ),
-        ["Ancient Egyptian"] = new Pool(
+        ["Ancient Egyptian"] = new NamePool(
             [
                 "Amenemhat", "Nefertiti", "Meryt", "Yuya", "Khnumhotep", "Senenmut", "Ptahmose", "Nefermaat",
                 "Meritamun", "Wenis", "Nakhtmin", "Pashedu", "Qenena", "Renpet", "Minnefer", "Amunhotep", "Nebwenenef",
@@ -113,7 +122,7 @@ internal static class NameDefinitions {
                 "Nespakashuty", "Khaemwaset", "Ramose", "Hunefer"
             ]
         ),
-        ["Mesoamerican"] = new Pool(
+        ["Mesoamerican"] = new NamePool(
             [
                 "Xochitl", "Quetzalli", "Nopaltzin", "Coyotl", "Ixtlixochitl", "Papatzin", "Chimalman", "Citlali",
                 "Itzli", "Cuauhtli", "Huitzilin", "Coyohua", "Tlalli", "Yaotl", "Mazatl", "Necahual", "Tezozomoc",
@@ -131,7 +140,7 @@ internal static class NameDefinitions {
                 "Quetzalpa", "Michhua", "Matlatzinca"
             ]
         ),
-        ["Byzantine"] = new Pool(
+        ["Byzantine"] = new NamePool(
             [
                 "Alexios", "Theophilos", "Dimitrios", "Nikolaos", "Kallistratos", "Eirene", "Athenodoros", "Photios",
                 "Leontios", "Panteleimon", "Kyriakos", "Hypatia", "Makarios", "Zoe", "Theoktiste", "Nereida",
@@ -149,7 +158,7 @@ internal static class NameDefinitions {
                 "Zonaras", "Manasses", "Sphrantzes", "Chrysoberges", "Maniakes", "Batatzes"
             ]
         ),
-        ["Mongol"] = new Pool(
+        ["Mongol"] = new NamePool(
             [
                 "Temujin", "Borte", "Jebe", "Subutai", "Chagatai", "Ogodei", "Tolui", "Hulagu", "Berke", "Arghun",
                 "Ghazan", "Timur", "Nogai", "Toqta", "Ozbek", "Jochi", "Sorqaqtani", "Toregene", "Chabi", "Bortei",
@@ -167,7 +176,7 @@ internal static class NameDefinitions {
         )
     };
 
-    private static readonly Pool FallbackPool = new(
+    private static readonly NamePool FallbackNamePool = new(
         [
             "Aldric", "Brenna", "Caelan", "Dorin", "Elowen", "Faren", "Gorin", "Halia", "Idris", "Jorah", "Kael",
             "Lyra", "Maren", "Niran", "Orin", "Pira", "Quill", "Rael", "Soren", "Talia",
@@ -183,18 +192,143 @@ internal static class NameDefinitions {
             "Redholm", "Silverfen", "Timberwood", "Wolfmere"
         ]
     );
+    
+    private record ProfessionGrowth(
+        int Strength,
+        int Defense,
+        int Dexterity,
+        int Endurance,
+        int Intelligence,
+        int HpPerLevel,
+        int ApPerLevel,
+        float GoldMultiplier
+    );
+    
+    private static readonly Dictionary<Profession, ProfessionGrowth> Growths = new() {
+        [Profession.Knight] = new ProfessionGrowth(2, 2, 0, 2, 0, 5, 0, 0.8f),
+        [Profession.Rogue] = new ProfessionGrowth(0, 0, 3, 1, 1, 3, 0, 1.2f),
+        [Profession.Ranger] = new ProfessionGrowth(1, 0, 2, 2, 0, 4, 0, 0.9f),
+        [Profession.Mage] = new ProfessionGrowth(0, 0, 0, 0, 4, 2, 3, 1.5f),
+        [Profession.Cleric] = new ProfessionGrowth(0, 1, 0, 1, 3, 3, 2, 1.0f),
+        [Profession.Mercenary] = new ProfessionGrowth(2, 1, 1, 2, 0, 4, 0, 1.1f),
+        [Profession.Alchemist] = new ProfessionGrowth(0, 0, 1, 1, 3, 2, 1, 2.0f),
+        [Profession.Blacksmith] = new ProfessionGrowth(3, 1, 0, 2, 0, 4, 0, 1.5f),
+        [Profession.Scholar] = new ProfessionGrowth(0, 0, 0, 0, 4, 2, 1, 2.0f),
+        [Profession.Merchant] = new ProfessionGrowth(0, 0, 1, 0, 1, 2, 0, 3.0f),
+        [Profession.Politician] = new ProfessionGrowth(0, 0, 0, 0, 2, 2, 0, 4.0f),
+        [Profession.StableMaster] = new ProfessionGrowth(1, 0, 1, 2, 0, 3, 0, 1.0f),
+        [Profession.Bartender] = new ProfessionGrowth(0, 0, 1, 1, 1, 3, 0, 1.2f),
+        [Profession.Guard] = new ProfessionGrowth(1, 2, 0, 2, 0, 4, 0, 0.7f)
+    };
 
+    public NpcGeneratorResult Generate(NpcGeneratorInput generatorInput) {
+        var level = Random.Shared.Next(1, 100);
+        
+        var person = new Person {
+            WorldId = generatorInput.WorldId,
+            Name = GetName(generatorInput.Race.CultureStyle),
+            RaceId = generatorInput.Race.Id,
+            Profession = generatorInput.Profession,
+            BirthCityId = generatorInput.BirthCityId,
+            BirthYear = Random.Shared.Next(900, 975),
+            Gold = GetGold(level, generatorInput.Profession),
+            Location = generatorInput.Location,
+            Attributes = GetAttributes(level, generatorInput.Profession),
+            Level = level
+        };
+        
+        var (items, inventoryItems) = GenerateStartingInventory(person);
+        
+        return new NpcGeneratorResult(person, items, inventoryItems);
+    }
+
+    private static int GetGold(int level, Profession profession) {
+        var baseGold = level * 50;
+        var spread = Random.Shared.Next((int) (baseGold * 0.8f), (int) (baseGold * 1.2f));
+        return (int) (spread * Growths[profession].GoldMultiplier);
+    }
+
+    private static Attributes GetAttributes(int level, Profession profession) {
+        var g = Growths[profession];
+        var maxHp = 100 + level * g.HpPerLevel;
+        var maxAp = 10 + level * g.ApPerLevel;
+        return new Attributes {
+            Hp = new Meter(maxHp, maxHp),
+            Ap = new Meter(maxAp, maxAp),
+            Strength = 5 + level * g.Strength,
+            Defense = 5 + level * g.Defense,
+            Dexterity = 5 + level * g.Dexterity,
+            Endurance = 5 + level * g.Endurance,
+            Intelligence = 5 + level * g.Intelligence
+        };
+    }
+    
+    private record StartingInventoryResult(IReadOnlyList<Item> Items, IReadOnlyList<InventoryItem> InventoryItems);
+
+    private StartingInventoryResult GenerateStartingInventory(Person person) {
+        var startingItems = GetStartingItems(person);
+        var items = new List<Item>();
+        var inventoryItems = new List<InventoryItem>();
+        var index = 0;
+
+        foreach (var (item, quantity) in startingItems) {
+            items.Add(item);
+            inventoryItems.Add(new InventoryItem {
+                PersonId = person.Id,
+                ItemId = item.Id,
+                Quantity = quantity,
+                Index = index++,
+                EquippedSlot = item.DefaultSlot
+            });
+        }
+
+        return new StartingInventoryResult(items.AsReadOnly(), inventoryItems.AsReadOnly());
+    }
+    
+    private record StartingItem(Item Item, int Quantity);
+
+    private StartingItem[] GetStartingItems(Person person) {
+        var profession = person.Profession;
+        var level = person.Level;
+        var worldId = person.WorldId;
+        
+        return profession switch {
+            Profession.Knight => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Sword, level, worldId), 1),
+                new StartingItem(itemGenerator.GenerateArmor(ArmorType.Chest, level, worldId), 1)
+            ],
+            Profession.Rogue => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1),
+                new StartingItem(itemGenerator.GenerateArmor(ArmorType.Boots, level, worldId), 1)
+            ],
+            Profession.Ranger => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Bow, level, worldId), 1),
+                new StartingItem(itemGenerator.GenerateAmmo(AmmoType.Arrow, worldId), 20)
+            ],
+            Profession.Mage => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1),
+                new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 3)
+            ],
+            Profession.Cleric => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Mace, level, worldId), 1),
+                new StartingItem(itemGenerator.GenerateArmor(ArmorType.Helm, level, worldId), 1)
+            ],
+            Profession.Mercenary => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Sword, level, worldId), 1),
+                new StartingItem(itemGenerator.GenerateShield(level, worldId), 1)
+            ],
+            Profession.Alchemist => [new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 5)],
+            Profession.Blacksmith => [new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Axe, level, worldId), 1)],
+            Profession.Scholar => [new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1)],
+            Profession.Merchant => [new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 3)],
+            _ => [new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 1)]
+        };
+    }
+    
     public static string GetName(string cultureStyle) {
-        var pool = Pools.GetValueOrDefault(cultureStyle, FallbackPool);
+        var pool = Pools.GetValueOrDefault(cultureStyle, FallbackNamePool);
         var first = pool.FirstNames[Random.Shared.Next(pool.FirstNames.Length)];
         var last = pool.LastNames[Random.Shared.Next(pool.LastNames.Length)];
         return $"{first} {last}";
     }
-
-    public static (string[] FirstNames, string[] LastNames) GetPool(string cultureStyle) {
-        var pool = Pools.GetValueOrDefault(cultureStyle, FallbackPool);
-        return (pool.FirstNames, pool.LastNames);
-    }
-
-    private record Pool(string[] FirstNames, string[] LastNames);
 }

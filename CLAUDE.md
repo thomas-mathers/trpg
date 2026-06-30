@@ -27,9 +27,12 @@
 - `PascalCase` for everything public
 - No abbreviations — write `minimum`, `maximum`, `quantity`, `defense`, `index`, not `min`, `max`, `qty`, `def`, `idx`
 - No tuple return types or tuple parameters — use a named `record` instead; tuples as local variables inside method bodies are fine
-- Functions with more than 3 parameters must capture those parameters in a class instead
+- Functions with more than 3 parameters must capture those parameters in a class instead (constructors excluded — DI constructors may have as many parameters as needed)
 - Test classes: `{Subject}Tests`
 - Test methods: `Method_ExpectedResult_WhenCondition`
+
+### Classes
+- Each class has a single responsibility — if describing it requires "and", split it into two classes
 
 ### Functions
 - Each function does one thing — if you need "and" to describe what it does, split it
