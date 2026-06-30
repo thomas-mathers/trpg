@@ -51,6 +51,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<EquipmentSlot>().HaveConversion<string>();
         configurationBuilder.Properties<TargetType>().HaveConversion<string>();
         configurationBuilder.Properties<WeaponType>().HaveConversion<string>();
+        configurationBuilder.Properties<ArmorClass>().HaveConversion<string>();
         configurationBuilder.Properties<ArmorType>().HaveConversion<string>();
         configurationBuilder.Properties<AccessoryType>().HaveConversion<string>();
         configurationBuilder.Properties<AmmoType>().HaveConversion<string>();

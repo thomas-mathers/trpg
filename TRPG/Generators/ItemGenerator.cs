@@ -13,8 +13,8 @@ internal class ItemGenerator(
         return weaponGenerator.Generate(type, level, worldId);
     }
 
-    public ArmorItem GenerateArmor(ArmorType type, int level, Guid worldId) {
-        return armorGenerator.GenerateArmor(type, level, worldId);
+    public ArmorItem GenerateArmor(ArmorType type, ArmorClass armorClass, int level, Guid worldId) {
+        return armorGenerator.GenerateArmor(type, armorClass, level, worldId);
     }
 
     public ShieldItem GenerateShield(int level, Guid worldId) {

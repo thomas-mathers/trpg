@@ -14,6 +14,9 @@ dotnet_diagnostic.CA1002.severity = none
 # CA1822: Private static data is intentional in generators and definitions — no need to enforce static keyword
 dotnet_diagnostic.CA1822.severity = suggestion
 
+# CA1859: Concrete return types on private methods add noise without meaningful benefit here
+dotnet_diagnostic.CA1859.severity = none
+
 # EF Core materializes init properties via reflection — Rider cannot see these assignments
 resharper_auto_property_can_be_made_get_only_global_highlighting = none
 resharper_auto_property_can_be_made_get_only_local_highlighting = none

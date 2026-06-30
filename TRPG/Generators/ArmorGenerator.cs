@@ -5,25 +5,34 @@ using static TRPG.Generators.ItemModifierHelpers;
 namespace TRPG.Generators;
 
 internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
-    private static readonly string[] Prefixes =
-        ["Sturdy", "Battered", "Reinforced", "Hardened", "Ancient", "Fine", "Heavy", "Light", "Enchanted", "Rusted"];
-
     private static readonly string[] ShieldBaseNames =
         ["Buckler", "Small Shield", "Large Shield", "Tower Shield", "Kite Shield", "Round Shield"];
 
-    private static readonly Dictionary<ArmorType, ArmorTypeData> Types = new() {
-        [ArmorType.Helm] = new ArmorTypeData(
-            ["Cap", "Helm", "Great Helm", "Crown", "Skull Cap", "War Helm", "Visor"],
-            6, 2, 15),
-        [ArmorType.Chest] = new ArmorTypeData(
-            ["Leather Armor", "Ring Mail", "Chain Mail", "Scale Mail", "Plate Mail", "Full Plate", "Brigandine"],
-            15, 5, 40),
-        [ArmorType.Boots] = new ArmorTypeData(
-            ["Boots", "Greaves", "Sabatons", "Shoes", "War Boots", "Light Boots"],
-            4, 1, 10),
-        [ArmorType.Gloves] = new ArmorTypeData(
-            ["Gloves", "Gauntlets", "Bracers", "Vambraces", "Light Gloves"],
-            2, 1, 10)
+    private static readonly Dictionary<ArmorType, Dictionary<ArmorClass, ArmorClassData>> Types = new() {
+        [ArmorType.Helm] = new Dictionary<ArmorClass, ArmorClassData> {
+            [ArmorClass.Cloth] = new(["Hood", "Cowl", "Skullcap"], 1, 0, 2),
+            [ArmorClass.Leather] = new(["Cap", "Leather Cap", "Hunter's Hood"], 2, 2, 8),
+            [ArmorClass.Mail] = new(["Coif", "Chain Coif", "Mail Coif"], 4, 5, 15),
+            [ArmorClass.Plate] = new(["Helm", "Great Helm", "War Helm", "Visor", "Full Helm"], 6, 10, 25),
+        },
+        [ArmorType.Chest] = new Dictionary<ArmorClass, ArmorClassData> {
+            [ArmorClass.Cloth] = new(["Robe", "Tunic", "Vestments", "Garb"], 2, 0, 5),
+            [ArmorClass.Leather] = new(["Leather Armor", "Studded Leather", "Brigandine"], 5, 5, 20),
+            [ArmorClass.Mail] = new(["Ring Mail", "Chain Mail", "Scale Mail"], 10, 15, 40),
+            [ArmorClass.Plate] = new(["Plate Mail", "Full Plate", "Hauberk", "Breastplate"], 15, 30, 70),
+        },
+        [ArmorType.Boots] = new Dictionary<ArmorClass, ArmorClassData> {
+            [ArmorClass.Cloth] = new(["Shoes", "Sandals", "Light Shoes"], 1, 0, 1),
+            [ArmorClass.Leather] = new(["Boots", "Leather Boots", "Light Boots"], 2, 1, 5),
+            [ArmorClass.Mail] = new(["Greaves", "Chain Boots"], 4, 3, 10),
+            [ArmorClass.Plate] = new(["Sabatons", "War Boots", "Heavy Boots"], 6, 6, 20),
+        },
+        [ArmorType.Gloves] = new Dictionary<ArmorClass, ArmorClassData> {
+            [ArmorClass.Cloth] = new(["Gloves", "Light Gloves"], 0, 0, 1),
+            [ArmorClass.Leather] = new(["Leather Gloves", "Bracers"], 1, 1, 4),
+            [ArmorClass.Mail] = new(["Chain Gloves", "Mail Gauntlets"], 2, 2, 8),
+            [ArmorClass.Plate] = new(["Gauntlets", "War Gauntlets", "Heavy Gauntlets"], 4, 5, 15),
+        },
     };
 
     private readonly ModifierTemplate[] _modifiers = [
@@ -72,12 +81,13 @@ internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
             })
     ];
 
-    public ArmorItem GenerateArmor(ArmorType type, int level, Guid worldId) {
-        var data = Types.GetValueOrDefault(type, new ArmorTypeData([type.ToString()], 5, 2, 20));
+    public ArmorItem GenerateArmor(ArmorType type, ArmorClass armorClass, int level, Guid worldId) {
+        var fallback = new ArmorClassData([type.ToString()], 5, 2, 20);
+        var data = Types.GetValueOrDefault(type)?.GetValueOrDefault(armorClass) ?? fallback;
         var baseName = data.BaseNames[Random.Shared.Next(data.BaseNames.Length)];
-        var prefix = Prefixes[Random.Shared.Next(Prefixes.Length)];
         var eligible = _modifiers.Where(t => t.MinItemLevel <= level).ToList();
-        var modifiers = PickModifiers(eligible, ModifierCount(level), level);
+        var chosen = PickModifierTemplates(eligible, ModifierCount(level), level);
+        var modifiers = chosen.Select(t => t.Build(level)).ToList();
         var durabilityMax = 60 + level * 6;
 
         return new ArmorItem {
@@ -85,7 +95,8 @@ internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
             Level = level,
             Rarity = ItemRarity.Normal,
             Type = type,
-            Name = $"{prefix} {baseName}",
+            ArmorClass = armorClass,
+            Name = BuildName(baseName, chosen),
             Description = "",
             Weight = data.Weight,
             GoldValue = level * 10 + modifiers.Count * 50 + Random.Shared.Next(level * 5 + 1),
@@ -98,16 +109,16 @@ internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
 
     public ShieldItem GenerateShield(int level, Guid worldId) {
         var baseName = ShieldBaseNames[Random.Shared.Next(ShieldBaseNames.Length)];
-        var prefix = Prefixes[Random.Shared.Next(Prefixes.Length)];
         var eligible = _modifiers.Where(t => t.MinItemLevel <= level).ToList();
-        var modifiers = PickModifiers(eligible, ModifierCount(level), level);
+        var chosen = PickModifierTemplates(eligible, ModifierCount(level), level);
+        var modifiers = chosen.Select(t => t.Build(level)).ToList();
         var durabilityMax = 60 + level * 6;
 
         return new ShieldItem {
             WorldId = worldId,
             Level = level,
             Rarity = ItemRarity.Normal,
-            Name = $"{prefix} {baseName}",
+            Name = BuildName(baseName, chosen),
             Description = "",
             Weight = 8,
             GoldValue = level * 10 + modifiers.Count * 50 + Random.Shared.Next(level * 5 + 1),
@@ -119,5 +130,5 @@ internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
         };
     }
 
-    private record ArmorTypeData(string[] BaseNames, int Weight, int DefenseLow, int DefenseHigh);
+    private record ArmorClassData(string[] BaseNames, int Weight, int DefenseLow, int DefenseHigh);
 }

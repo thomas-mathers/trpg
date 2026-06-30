@@ -1,9 +1,7 @@
-﻿using System.Collections.ObjectModel;
-
-namespace TRPG.Algorithms;
+﻿namespace TRPG.Algorithms;
 
 internal static class Graphs {
-    public static ReadOnlyCollection<(TKey From, TKey To)> MinimumSpanningTree<TKey>(
+    public static IReadOnlyList<(TKey From, TKey To)> MinimumSpanningTree<TKey>(
         TKey start,
         Func<TKey, IEnumerable<TKey>> getNeighbors,
         Func<TKey, TKey, double> getCost
@@ -42,10 +40,10 @@ internal static class Graphs {
             edges.Add((from, to));
         }
 
-        return edges.AsReadOnly();
+        return edges.ToArray();
     }
 
-    public static ReadOnlyCollection<TKey> ShortestPath<TKey>(
+    public static IReadOnlyList<TKey> ShortestPath<TKey>(
         TKey origin,
         TKey destination,
         Func<TKey, IEnumerable<TKey>> getNeighbors,
@@ -83,11 +81,11 @@ internal static class Graphs {
         }
 
         if (path.Count == 0 && !EqualityComparer<TKey>.Default.Equals(origin, destination)) {
-            return path.AsReadOnly();
+            return path.ToArray();
         }
 
         path.Insert(0, origin);
 
-        return path.AsReadOnly();
+        return path.ToArray();
     }
 }

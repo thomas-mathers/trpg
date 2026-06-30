@@ -5,9 +5,6 @@ using static TRPG.Generators.ItemModifierHelpers;
 namespace TRPG.Generators;
 
 internal class WeaponGenerator(AbilityDefinitions abilityDefinitions) {
-    private static readonly string[] Prefixes =
-        ["Jagged", "Fine", "Cruel", "Deadly", "Sharp", "Ancient", "Rusted", "Gleaming", "Cursed", "Blessed"];
-
     private record WeaponTypeData(
         string[] BaseNames,
         int Weight,
@@ -95,9 +92,9 @@ internal class WeaponGenerator(AbilityDefinitions abilityDefinitions) {
     public WeaponItem Generate(WeaponType type, int level, Guid worldId) {
         var data = Types.GetValueOrDefault(type, new WeaponTypeData([type.ToString()], 6, 2, 6, 8, 25, 1, 7));
         var baseName = data.BaseNames[Random.Shared.Next(data.BaseNames.Length)];
-        var prefix = Prefixes[Random.Shared.Next(Prefixes.Length)];
         var eligible = _modifiers.Where(t => t.MinItemLevel <= level).ToList();
-        var modifiers = PickModifiers(eligible, ModifierCount(level), level);
+        var chosen = PickModifierTemplates(eligible, ModifierCount(level), level);
+        var modifiers = chosen.Select(t => t.Build(level)).ToList();
         var durabilityMax = 50 + level * 5;
 
         return new WeaponItem {
@@ -105,7 +102,7 @@ internal class WeaponGenerator(AbilityDefinitions abilityDefinitions) {
             Level = level,
             Rarity = ItemRarity.Normal,
             Type = type,
-            Name = $"{prefix} {baseName}",
+            Name = BuildName(baseName, chosen),
             Description = "",
             Weight = data.Weight,
             GoldValue = level * 10 + modifiers.Count * 50 + Random.Shared.Next(level * 5 + 1),

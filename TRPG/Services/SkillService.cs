@@ -5,7 +5,6 @@ using TRPG.Models;
 namespace TRPG.Services;
 
 internal class SkillService(TrpgDbContext context) {
-    private static readonly int[] LevelThresholds = [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700];
 
     public async Task<PersonSkill> AddExperience(Guid personId, Skill skill, int amount,
         CancellationToken cancellationToken = default) {
@@ -33,12 +32,9 @@ internal class SkillService(TrpgDbContext context) {
     }
 
     private static int LevelForExperience(int xp) {
-        for (var i = LevelThresholds.Length - 1; i >= 0; i--) {
-            if (xp >= LevelThresholds[i]) {
-                return i;
-            }
+        for (var level = GameRules.MaxSkillLevel; level >= 1; level--) {
+            if (xp >= GameRules.XpForSkillLevel(level)) return level;
         }
-
         return 0;
     }
 }

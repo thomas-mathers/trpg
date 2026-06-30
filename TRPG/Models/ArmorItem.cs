@@ -1,5 +1,12 @@
 namespace TRPG.Models;
 
+internal enum ArmorClass {
+    Cloth,
+    Leather,
+    Mail,
+    Plate
+}
+
 internal enum ArmorType {
     Helm,
     Chest,
@@ -8,6 +15,7 @@ internal enum ArmorType {
 }
 
 internal class ArmorItem : Item {
+    public ArmorClass ArmorClass { get; init; }
     public override EquipmentSlot? DefaultSlot => Type switch {
         ArmorType.Helm => EquipmentSlot.Helm,
         ArmorType.Chest => EquipmentSlot.Chest,

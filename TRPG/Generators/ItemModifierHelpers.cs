@@ -35,16 +35,72 @@ internal enum ModifierKey {
 internal record ModifierTemplate(int MinItemLevel, ModifierKey UniqueKey, int Weight, Func<int, ItemModifier> Build);
 
 internal static class ItemModifierHelpers {
-    internal static List<ItemModifier> PickModifiers(List<ModifierTemplate> pool, int count, int itemLevel) {
+    private record ModifierNameData(string[] Prefixes, string[] Suffixes);
+
+    private static readonly Dictionary<ModifierKey, ModifierNameData> Names = new() {
+        [ModifierKey.FireDamage] = new(["Fiery", "Burning", "Blazing"], []),
+        [ModifierKey.IceDamage] = new(["Glacial", "Frozen", "Icy"], []),
+        [ModifierKey.LightningDamage] = new(["Static", "Shocking", "Thundering"], []),
+        [ModifierKey.PoisonDamage] = new(["Venomous", "Toxic", "Envenomed"], []),
+        [ModifierKey.LifeLeech] = new(["Vampiric", "Draining"], []),
+        [ModifierKey.ManaLeech] = new(["Mystical"], []),
+        [ModifierKey.DeadlyStrike] = new(["Deadly", "Lethal"], []),
+        [ModifierKey.OpenWounds] = new(["Wounding", "Serrated"], []),
+        [ModifierKey.CrushingBlow] = new(["Crushing", "Shattering"], []),
+        [ModifierKey.ProcOnStriking] = new(["Runic"], []),
+        [ModifierKey.ProcWhenStruck] = new(["Thorned"], []),
+        [ModifierKey.FireResistance] = new(["Ruby", "Garnet", "Crimson"], []),
+        [ModifierKey.IceResistance] = new(["Sapphire", "Cobalt", "Azure"], []),
+        [ModifierKey.LightningResistance] = new(["Topaz", "Amber", "Gold"], []),
+        [ModifierKey.PoisonResistance] = new(["Emerald", "Jade", "Viridian"], []),
+        [ModifierKey.MagicResistance] = new(["Amethyst", "Arcane"], []),
+        [ModifierKey.Strength] = new([], ["Strength", "the Titan", "Might"]),
+        [ModifierKey.Dexterity] = new([], ["Dexterity", "the Fox", "Skill"]),
+        [ModifierKey.Intelligence] = new([], ["Intelligence", "the Sage", "Wisdom"]),
+        [ModifierKey.Endurance] = new([], ["Endurance", "the Bear"]),
+        [ModifierKey.MaxHp] = new([], ["Life", "the Mammoth", "Vitality"]),
+        [ModifierKey.MaxAp] = new([], ["Energy", "Stamina"]),
+        [ModifierKey.Defense] = new([], ["Protection", "Defense", "Warding"]),
+        [ModifierKey.IncreasedAttackSpeed] = new([], ["Quickness", "Alacrity"]),
+        [ModifierKey.FasterCastRate] = new([], ["the Adept", "Swiftness"]),
+        [ModifierKey.FasterHitRecovery] = new([], ["Balance", "Steadiness"]),
+        [ModifierKey.SkillBonus] = new([], ["Mastery", "Skill"]),
+    };
+
+    internal static IReadOnlyList<ModifierTemplate> PickModifierTemplates(List<ModifierTemplate> pool, int count, int itemLevel) {
         var remaining = pool.ToList();
-        var result = new List<ItemModifier>();
+        var result = new List<ModifierTemplate>();
         for (var i = 0; i < count && remaining.Count > 0; i++) {
             var template = WeightedRandom(remaining);
-            result.Add(template.Build(itemLevel));
+            result.Add(template);
             remaining.RemoveAll(t => t.UniqueKey == template.UniqueKey);
         }
+        return result.ToArray();
+    }
 
-        return result;
+    internal static string BuildName(string baseName, IReadOnlyList<ModifierTemplate> chosen) {
+        var withPrefixes = chosen.Where(t => Names.TryGetValue(t.UniqueKey, out var n) && n.Prefixes.Length > 0).ToList();
+        var withSuffixes = chosen.Where(t => Names.TryGetValue(t.UniqueKey, out var n) && n.Suffixes.Length > 0).ToList();
+
+        string? prefix = null;
+        string? suffix = null;
+
+        if (withPrefixes.Count > 0) {
+            var names = Names[withPrefixes[Random.Shared.Next(withPrefixes.Count)].UniqueKey];
+            prefix = names.Prefixes[Random.Shared.Next(names.Prefixes.Length)];
+        }
+
+        if (withSuffixes.Count > 0) {
+            var names = Names[withSuffixes[Random.Shared.Next(withSuffixes.Count)].UniqueKey];
+            suffix = names.Suffixes[Random.Shared.Next(names.Suffixes.Length)];
+        }
+
+        return (prefix, suffix) switch {
+            (not null, not null) => $"{prefix} {baseName} of {suffix}",
+            (not null, null) => $"{prefix} {baseName}",
+            (null, not null) => $"{baseName} of {suffix}",
+            _ => baseName
+        };
     }
 
     internal static int ModifierCount(int itemLevel) {

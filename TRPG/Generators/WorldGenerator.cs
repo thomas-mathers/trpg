@@ -17,6 +17,7 @@ internal class WorldGeneratorInput {
 }
 
 internal class WorldGeneratorResult {
+    public required IReadOnlyCollection<PersonAbility> Abilities { get; init; }
     public required IReadOnlyList<BuildingOwner> BuildingOwners { get; init; }
     public required IReadOnlyList<Building> Buildings { get; init; }
     public required IReadOnlyList<City> Cities { get; init; }
@@ -30,6 +31,7 @@ internal class WorldGeneratorResult {
     public required IReadOnlyList<Race> Races { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
+    public required IReadOnlyCollection<PersonSkill> Skills { get; init; }
     public required World World { get; init; }
 }
 
@@ -94,6 +96,8 @@ internal class WorldGenerator(
         var inventoryItems = new List<InventoryItem>();
         var rooms = new List<Room>();
         var props = new List<Prop>();
+        var skills = new List<PersonSkill>();
+        var abilities = new List<PersonAbility>();
         var guildHallIndex = 0;
 
         foreach (var city in geography.Cities) {
@@ -122,6 +126,8 @@ internal class WorldGenerator(
                 persons.Add(npcResult.Person);
                 items.AddRange(npcResult.Items);
                 inventoryItems.AddRange(npcResult.InventoryItems);
+                skills.AddRange(npcResult.Skills);
+                abilities.AddRange(npcResult.Abilities);
                 buildingOwners.Add(new BuildingOwner
                     { BuildingId = buildingResult.Building.Id, OwnerId = npcResult.Person.Id });
                 rooms.AddRange(buildingResult.Rooms);
@@ -148,7 +154,9 @@ internal class WorldGenerator(
             Items = items,
             InventoryItems = inventoryItems,
             Rooms = rooms,
-            Props = props
+            Props = props,
+            Skills = skills,
+            Abilities = abilities
         };
     }
 

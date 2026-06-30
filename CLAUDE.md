@@ -17,6 +17,7 @@
 - Expression-bodied members for simple one-liners
 - Place related types (classes, records, enums) in the same file as the class they primarily support — no standalone `Enums.cs` or similar
 - Use named parameters when constructing records or objects with multiple positional arguments of the same or similar types (e.g. `new StatAffinities(Strength: 3, Defense: 2, ...)` not `new StatAffinities(3, 2, ...)`)
+- No alignment padding — do not add extra spaces to align `=`, `:`, or other tokens across lines
 
 ### Comments
 - Explain *why*, never *how* — well-named identifiers make the what and how obvious
@@ -50,6 +51,7 @@
 - Public/internal method return types and parameters: use `IReadOnlyCollection<T>`, `IReadOnlyList<T>`, or `IReadOnlyDictionary<K,V>` — never expose concrete collection types in signatures
 - Private method signatures and local fields may use concrete types (`List<T>`, `Dictionary<K,V>`) for performance
 - Collection expressions `[]` for empty collections, `[x, y]` for inline initialization
+- When returning `IReadOnlyCollection<T>` or `IReadOnlyList<T>` from a method, use `.ToArray()` — never `.ToList().AsReadOnly()` or `.AsReadOnly()`
 
 ### Async
 - No `Async` suffix on service methods

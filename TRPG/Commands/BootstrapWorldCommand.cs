@@ -52,6 +52,8 @@ internal class BootstrapWorldCommandHandler(
         context.InventoryItems.AddRange(result.InventoryItems);
         context.Rooms.AddRange(result.Rooms);
         context.Props.AddRange(result.Props);
+        context.PersonSkills.AddRange(result.Skills);
+        context.PersonAbilities.AddRange(result.Abilities);
 
         await context.SaveChangesAsync(cancellationToken);
 

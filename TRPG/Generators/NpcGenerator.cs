@@ -1,3 +1,4 @@
+using TRPG.Definitions;
 using TRPG.Models;
 
 namespace TRPG.Generators;
@@ -7,9 +8,11 @@ internal record NpcGeneratorInput(Race Race, Profession Profession, Guid WorldId
 internal record NpcGeneratorResult(
     Person Person,
     IReadOnlyList<Item> Items,
-    IReadOnlyList<InventoryItem> InventoryItems);
+    IReadOnlyList<InventoryItem> InventoryItems,
+    IReadOnlyCollection<PersonSkill> Skills,
+    IReadOnlyCollection<PersonAbility> Abilities);
 
-internal class NpcGenerator(ItemGenerator itemGenerator) {
+internal class NpcGenerator(ItemGenerator itemGenerator, AbilityDefinitions abilityDefinitions) {
     private static readonly Dictionary<string, NamePool> Pools = new(StringComparer.OrdinalIgnoreCase) {
         ["Nordic/Viking"] = new NamePool(
             [
@@ -193,6 +196,40 @@ internal class NpcGenerator(ItemGenerator itemGenerator) {
         ]
     );
 
+    private static readonly Dictionary<Profession, ArmorClass> ProfessionArmorClasses = new() {
+        [Profession.Knight] = ArmorClass.Plate,
+        [Profession.Rogue] = ArmorClass.Leather,
+        [Profession.Ranger] = ArmorClass.Leather,
+        [Profession.Mage] = ArmorClass.Cloth,
+        [Profession.Cleric] = ArmorClass.Plate,
+        [Profession.Mercenary] = ArmorClass.Mail,
+        [Profession.Alchemist] = ArmorClass.Cloth,
+        [Profession.Blacksmith] = ArmorClass.Plate,
+        [Profession.Scholar] = ArmorClass.Cloth,
+        [Profession.Merchant] = ArmorClass.Leather,
+        [Profession.Politician] = ArmorClass.Cloth,
+        [Profession.StableMaster] = ArmorClass.Leather,
+        [Profession.Bartender] = ArmorClass.Cloth,
+        [Profession.Guard] = ArmorClass.Mail,
+    };
+
+    private static readonly Dictionary<Profession, Skill[]> ProfessionSkills = new() {
+        [Profession.Knight] = [Skill.Swordsmanship, Skill.Warfare],
+        [Profession.Rogue] = [Skill.Stealth],
+        [Profession.Ranger] = [Skill.Archery],
+        [Profession.Mage] = [Skill.Spellcasting],
+        [Profession.Cleric] = [Skill.Devotion, Skill.Warfare],
+        [Profession.Mercenary] = [Skill.Swordsmanship, Skill.Warfare],
+        [Profession.Alchemist] = [Skill.Spellcasting],
+        [Profession.Blacksmith] = [Skill.Warfare],
+        [Profession.Scholar] = [Skill.Spellcasting],
+        [Profession.Merchant] = [],
+        [Profession.Politician] = [],
+        [Profession.StableMaster] = [],
+        [Profession.Bartender] = [],
+        [Profession.Guard] = [Skill.Swordsmanship, Skill.Warfare]
+    };
+
     private static readonly Dictionary<Profession, StatAffinities> Affinities = new() {
         [Profession.Knight] = new StatAffinities(3, 3, 0, 2, 2, 0, 0, 0.8f),
         [Profession.Rogue] = new StatAffinities(1, 0, 4, 1, 2, 0, 2, 1.2f),
@@ -211,7 +248,7 @@ internal class NpcGenerator(ItemGenerator itemGenerator) {
     };
 
     public NpcGeneratorResult Generate(NpcGeneratorInput generatorInput) {
-        var level = Random.Shared.Next(1, 100);
+        var level = Random.Shared.Next(1, GameRules.MaxLevel + 1);
 
         var person = new Person {
             WorldId = generatorInput.WorldId,
@@ -227,8 +264,30 @@ internal class NpcGenerator(ItemGenerator itemGenerator) {
         };
 
         var (items, inventoryItems) = GenerateStartingInventory(person);
+        var skills = GetSkills(person);
+        var abilities = GetAbilities(person, skills);
 
-        return new NpcGeneratorResult(person, items, inventoryItems);
+        return new NpcGeneratorResult(person, items, inventoryItems, skills, abilities);
+    }
+
+    private static IReadOnlyCollection<PersonSkill> GetSkills(Person person) {
+        var skillLevel = Math.Min(person.Level, GameRules.MaxSkillLevel);
+        return ProfessionSkills[person.Profession]
+            .Select(skill => new PersonSkill {
+                PersonId = person.Id,
+                Skill = skill,
+                Level = skillLevel,
+                Experience = GameRules.XpForSkillLevel(skillLevel)
+            })
+            .ToArray();
+    }
+
+    private IReadOnlyCollection<PersonAbility> GetAbilities(Person person, IReadOnlyCollection<PersonSkill> skills) {
+        return skills
+            .SelectMany(ps => abilityDefinitions.Abilities
+                .Where(a => a.Skill == ps.Skill && a.RequiredSkillLevel <= ps.Level)
+                .Select(a => new PersonAbility { PersonId = person.Id, AbilityName = a.Name }))
+            .ToArray();
     }
 
     private static int GetGold(int level, Profession profession) {
@@ -276,58 +335,91 @@ internal class NpcGenerator(ItemGenerator itemGenerator) {
         var inventoryItems = new List<InventoryItem>();
         var index = 0;
 
-        foreach (var (item, quantity) in startingItems) {
+        foreach (var (item, quantity, slotOverride) in startingItems) {
             items.Add(item);
             inventoryItems.Add(new InventoryItem {
                 PersonId = person.Id,
                 ItemId = item.Id,
                 Quantity = quantity,
                 Index = index++,
-                EquippedSlot = item.DefaultSlot
+                EquippedSlot = slotOverride ?? item.DefaultSlot
             });
         }
 
-        return new StartingInventoryResult(items.AsReadOnly(), inventoryItems.AsReadOnly());
+        return new StartingInventoryResult(items.ToArray(), inventoryItems.ToArray());
     }
 
     private StartingItem[] GetStartingItems(Person person) {
-        var profession = person.Profession;
         var level = person.Level;
         var worldId = person.WorldId;
+        var armorClass = ProfessionArmorClasses.GetValueOrDefault(person.Profession, ArmorClass.Leather);
+        var armor = GetArmorItems(armorClass, level, worldId);
+        var accessories = GetAccessoryItems(level, worldId);
 
-        return profession switch {
+        return person.Profession switch {
             Profession.Knight => [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Sword, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateArmor(ArmorType.Chest, level, worldId), 1)
+                new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
+                ..armor, ..accessories
             ],
             Profession.Rogue => [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateArmor(ArmorType.Boots, level, worldId), 1)
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1, EquipmentSlot.LeftHand),
+                ..armor, ..accessories
             ],
             Profession.Ranger => [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Bow, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateAmmo(AmmoType.Arrow, worldId), 20)
+                new StartingItem(itemGenerator.GenerateAmmo(AmmoType.Arrow, worldId), 20),
+                ..armor, ..accessories
             ],
             Profession.Mage => [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 3)
+                new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 3),
+                ..armor, ..accessories
             ],
             Profession.Cleric => [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Mace, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateArmor(ArmorType.Helm, level, worldId), 1)
+                new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
+                ..armor, ..accessories
             ],
             Profession.Mercenary => [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Sword, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateShield(level, worldId), 1)
+                new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
+                ..armor, ..accessories
             ],
-            Profession.Alchemist => [new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 5)],
-            Profession.Blacksmith =>
-                [new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Axe, level, worldId), 1)],
-            Profession.Scholar => [new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1)],
-            Profession.Merchant => [new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 3)],
-            _ => [new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 1)]
+            Profession.Alchemist => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Wand, level, worldId), 1),
+                new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 5),
+                ..armor, ..accessories
+            ],
+            Profession.Blacksmith => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Axe, level, worldId), 1),
+                ..armor, ..accessories
+            ],
+            Profession.Scholar => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1),
+                ..armor, ..accessories
+            ],
+            _ => [
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1),
+                ..armor, ..accessories
+            ]
         };
     }
+
+    private StartingItem[] GetArmorItems(ArmorClass armorClass, int level, Guid worldId) => [
+        new StartingItem(itemGenerator.GenerateArmor(ArmorType.Helm, armorClass, level, worldId), 1),
+        new StartingItem(itemGenerator.GenerateArmor(ArmorType.Chest, armorClass, level, worldId), 1),
+        new StartingItem(itemGenerator.GenerateArmor(ArmorType.Gloves, armorClass, level, worldId), 1),
+        new StartingItem(itemGenerator.GenerateArmor(ArmorType.Boots, armorClass, level, worldId), 1),
+    ];
+
+    private StartingItem[] GetAccessoryItems(int level, Guid worldId) => [
+        new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Necklace, level, worldId), 1),
+        new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Belt, level, worldId), 1),
+        new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId), 1),
+        new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId), 1, EquipmentSlot.RightRing),
+    ];
 
     public static string GetName(string cultureStyle) {
         var pool = Pools.GetValueOrDefault(cultureStyle, FallbackNamePool);
@@ -351,5 +443,5 @@ internal class NpcGenerator(ItemGenerator itemGenerator) {
 
     private record StartingInventoryResult(IReadOnlyList<Item> Items, IReadOnlyList<InventoryItem> InventoryItems);
 
-    private record StartingItem(Item Item, int Quantity);
+    private record StartingItem(Item Item, int Quantity, EquipmentSlot? SlotOverride = null);
 }

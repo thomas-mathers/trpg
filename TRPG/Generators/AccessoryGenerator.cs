@@ -4,9 +4,6 @@ using static TRPG.Generators.ItemModifierHelpers;
 namespace TRPG.Generators;
 
 internal class AccessoryGenerator {
-    private static readonly string[] Prefixes =
-        ["Carved", "Etched", "Worn", "Polished", "Ancient", "Ornate", "Simple", "Enchanted", "Crude", "Fine"];
-
     private record AccessoryTypeData(string[] BaseNames, int Weight);
     
     private static readonly Dictionary<AccessoryType, AccessoryTypeData> Types = new() {
@@ -57,16 +54,16 @@ internal class AccessoryGenerator {
     public AccessoryItem Generate(AccessoryType type, int level, Guid worldId) {
         var data = Types.GetValueOrDefault(type, new AccessoryTypeData([type.ToString()], 1));
         var baseName = data.BaseNames[Random.Shared.Next(data.BaseNames.Length)];
-        var prefix = Prefixes[Random.Shared.Next(Prefixes.Length)];
         var eligible = Modifiers.Where(t => t.MinItemLevel <= level).ToList();
-        var modifiers = PickModifiers(eligible, ModifierCount(level), level);
+        var chosen = PickModifierTemplates(eligible, ModifierCount(level), level);
+        var modifiers = chosen.Select(t => t.Build(level)).ToList();
 
         return new AccessoryItem {
             WorldId = worldId,
             Level = level,
             Rarity = ItemRarity.Normal,
             Type = type,
-            Name = $"{prefix} {baseName}",
+            Name = BuildName(baseName, chosen),
             Description = "",
             Weight = data.Weight,
             GoldValue = level * 8 + modifiers.Count * 50 + Random.Shared.Next(level * 5 + 1),

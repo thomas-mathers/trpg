@@ -38,10 +38,9 @@ internal class AbilityService(TrpgDbContext context, AbilityDefinitions abilityD
 
     public async Task<IReadOnlyCollection<PersonAbility>> GetAllByPersonId(Guid personId,
         CancellationToken cancellationToken = default) {
-        var list = await context.PersonAbilities
+        return await context.PersonAbilities
             .Where(pa => pa.PersonId == personId)
-            .ToListAsync(cancellationToken);
-        return list.AsReadOnly();
+            .ToArrayAsync(cancellationToken);
     }
 
     public async Task RemoveAbility(Guid personId, string abilityName, CancellationToken cancellationToken = default) {
