@@ -8,9 +8,11 @@ namespace TRPG.Generators;
 
 internal class GeographyGeneratorInput {
     public required string Description { get; init; }
-    public int MaxCities { get; init; } = WorldGenerationDefaults.MaxCities;
+    public int MaxRuralRegions { get; init; } = WorldGenerationDefaults.MaxRuralRegions;
+    public int MaxUrbanRegions { get; init; } = WorldGenerationDefaults.MaxUrbanRegions;
     public int MaxCountries { get; init; } = WorldGenerationDefaults.MaxCountries;
-    public int MinCities { get; init; } = WorldGenerationDefaults.MinCities;
+    public int MinRuralRegions { get; init; } = WorldGenerationDefaults.MinRuralRegions;
+    public int MinUrbanRegions { get; init; } = WorldGenerationDefaults.MinUrbanRegions;
     public int MinCountries { get; init; } = WorldGenerationDefaults.MinCountries;
     public IReadOnlyList<Race>? Races { get; init; }
     public int WorldHeight { get; init; } = WorldGenerationDefaults.WorldHeight;
@@ -19,8 +21,8 @@ internal class GeographyGeneratorInput {
 }
 
 internal class GeographyGeneratorResult {
-    public required IReadOnlyList<City> Cities { get; init; }
-    public required IReadOnlyDictionary<Guid, string> CityFocuses { get; init; }
+    public required IReadOnlyList<Region> Regions { get; init; }
+    public required IReadOnlyDictionary<Guid, string> RegionFocuses { get; init; }
     public required IReadOnlyList<Country> Countries { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
     public required World World { get; init; }
@@ -29,7 +31,7 @@ internal class GeographyGeneratorResult {
 internal class GeographyGenerator(
     OllamaApiClient client,
     ILogger<GeographyGenerator> logger) {
-    private static readonly string[] CityFocuses = [
+    private static readonly string[] RegionFocusList = [
         "trade and commerce",
         "arcane scholarship",
         "military tradition",
@@ -57,25 +59,26 @@ internal class GeographyGenerator(
         CancellationToken cancellationToken
     ) {
         var sw = Stopwatch.StartNew();
-        var totalCities = Random.Shared.Next(generatorInput.MinCities, generatorInput.MaxCities + 1);
+        var numUrbanRegions = Random.Shared.Next(generatorInput.MinUrbanRegions, generatorInput.MaxUrbanRegions + 1);
+        var numRuralRegions = Random.Shared.Next(generatorInput.MinRuralRegions, generatorInput.MaxRuralRegions + 1);
         var numberOfCountries = Random.Shared.Next(generatorInput.MinCountries, generatorInput.MaxCountries + 1);
-        var map = MapGenerator.Generate(generatorInput.WorldWidth, generatorInput.WorldHeight, totalCities,
-            numberOfCountries);
+        var map = MapGenerator.Generate(generatorInput.WorldWidth, generatorInput.WorldHeight, numUrbanRegions,
+            numRuralRegions, numberOfCountries);
         var context = new GeographyGenerationContext(generatorInput, map, []);
 
         var world = await GenerateWorldEntity(context, cancellationToken);
         var countries = await GenerateCountryEntities(context, world, cancellationToken);
-        var cities = await GenerateCityEntities(new GenerateCitiesInput(context, world, countries), cancellationToken);
-        var roads = await GenerateRoadEntities(new GenerateRoadsInput(context, world, cities), cancellationToken);
+        var regions = await GenerateRegionEntities(new GenerateRegionsInput(context, world, countries), cancellationToken);
+        var roads = await GenerateRoadEntities(new GenerateRoadsInput(context, world, regions), cancellationToken);
 
         logger.LogDebug("GenerateGeography completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
         return new GeographyGeneratorResult {
             World = world,
             Countries = countries.Countries,
-            Cities = cities.Cities,
+            Regions = regions.Regions,
             Roads = roads,
-            CityFocuses = cities.CityFocuses
+            RegionFocuses = regions.RegionFocuses
         };
     }
 
@@ -135,110 +138,135 @@ internal class GeographyGenerator(
         return new GeneratedCountries(countries, countryById);
     }
 
-    private static Dictionary<Guid, string> AssignCityFocuses(MapGeneratorResult map) {
+    private static Dictionary<Guid, string> AssignRegionFocuses(MapGeneratorResult map) {
         var focusMap = new Dictionary<Guid, string>();
-        for (var i = 0; i < map.Cities.Count; i++) {
-            focusMap[map.Cities[i].Id] = CityFocuses[i % CityFocuses.Length];
+        var urbanRegions = map.Regions.Where(r => r.RegionType == RegionType.Urban).ToList();
+        for (var i = 0; i < urbanRegions.Count; i++) {
+            focusMap[urbanRegions[i].Id] = RegionFocusList[i % RegionFocusList.Length];
         }
 
         return focusMap;
     }
 
-    private async Task<GeneratedCities> GenerateCityEntities(GenerateCitiesInput input,
+    private async Task<GeneratedRegions> GenerateRegionEntities(GenerateRegionsInput input,
         CancellationToken cancellationToken) {
         var context = input.Context;
         var world = input.World;
         var countries = input.Countries;
 
-        var cityFocusMap = AssignCityFocuses(context.Map);
-        var mapCitiesByCountryId = context.Map.Cities
-            .GroupBy(c => c.CountryId)
+        var focusMap = AssignRegionFocuses(context.Map);
+        var mapRegionsByCountryId = context.Map.Regions
+            .GroupBy(r => r.CountryId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var cities = new List<City>();
-        var cityFocuses = new Dictionary<Guid, string>();
+        var regions = new List<Region>();
+        var regionFocuses = new Dictionary<Guid, string>();
+        var regionById = new Dictionary<Guid, Region>();
         var races = context.GeneratorInput.Races;
         var countryIndex = 0;
 
         foreach (var (countryLayoutId, country) in countries.CountryById) {
-            var countryCities = mapCitiesByCountryId.GetValueOrDefault(countryLayoutId, []);
-            if (countryCities.Count == 0) {
+            var countryRegions = mapRegionsByCountryId.GetValueOrDefault(countryLayoutId, []);
+            if (countryRegions.Count == 0) {
                 continue;
             }
 
-            var namingStyle = races is { Count: > 0 }
-                ? $"{races[countryIndex % races.Count].CultureStyle} (matching the {races[countryIndex % races.Count].Name} race who dominate this country)"
-                : NamingStyles[countryIndex % NamingStyles.Length];
-            countryIndex++;
+            var urbanRegions = countryRegions.Where(r => r.RegionType == RegionType.Urban).ToList();
+            var ruralRegions = countryRegions.Where(r => r.RegionType == RegionType.Rural).ToList();
 
-            var namesHint = context.ExistingNames.Count > 0
-                ? $" Forbidden names (already used): {string.Join(", ", context.ExistingNames)}."
-                : string.Empty;
+            if (urbanRegions.Count > 0) {
+                var namingStyle = races is { Count: > 0 }
+                    ? $"{races[countryIndex % races.Count].CultureStyle} (matching the {races[countryIndex % races.Count].Name} race who dominate this country)"
+                    : NamingStyles[countryIndex % NamingStyles.Length];
 
-            var cityList = string.Join("\n", countryCities.Select((c, j) =>
-                $"{j + 1}. {cityFocusMap[c.Id]}{(c.IsCapital ? " (capital)" : "")}"));
+                var namesHint = context.ExistingNames.Count > 0
+                    ? $" Forbidden names (already used): {string.Join(", ", context.ExistingNames)}."
+                    : string.Empty;
 
-            var schema = await client.GetJson<CityListSchema>(
-                logger,
-                $"""
-                 You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
-                 The world is {world.Name}: {world.Description}.
-                 Respond with a JSON object with a Cities array containing exactly {countryCities.Count} entries for the country of {country.Name}: {country.Description}.
-                 Each entry has Name and Description. Each description must be a single sentence capturing the city's culture and character.
-                 Use {namingStyle} naming conventions — invent names inspired by that culture, do not use actual historical, mythological, or fictional place names. All names must be unique and must NOT appear in the forbidden list. Never use compound portmanteau names (no "Verdantmind", "Copperstone", "Melodyshire"). You MUST respond in English only. Do not use markdown.
-                 """,
-                $"Generate {countryCities.Count} cities for {country.Name}. Cultural focus for each (in order):\n{cityList}{namesHint}",
-                s => {
-                    if (s.Cities.Count != countryCities.Count) {
-                        return $"Expected {countryCities.Count} cities, got {s.Cities.Count}.";
-                    }
+                var cityList = string.Join("\n", urbanRegions.Select((r, j) =>
+                    $"{j + 1}. {focusMap[r.Id]}{(r.IsCapital ? " (capital)" : "")}"));
 
-                    var internalDupe = s.Cities
-                        .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-                        .FirstOrDefault(g => g.Count() > 1)?.Key;
-                    if (internalDupe != null) {
-                        return $"Duplicate name \"{internalDupe}\" in the batch. All names must be unique.";
-                    }
+                var schema = await client.GetJson<CityListSchema>(
+                    logger,
+                    $"""
+                     You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
+                     The world is {world.Name}: {world.Description}.
+                     Respond with a JSON object with a Cities array containing exactly {urbanRegions.Count} entries for the country of {country.Name}: {country.Description}.
+                     Each entry has Name and Description. Each description must be a single sentence capturing the city's culture and character.
+                     Use {namingStyle} naming conventions — invent names inspired by that culture, do not use actual historical, mythological, or fictional place names. All names must be unique and must NOT appear in the forbidden list. Never use compound portmanteau names (no "Verdantmind", "Copperstone", "Melodyshire"). You MUST respond in English only. Do not use markdown.
+                     """,
+                    $"Generate {urbanRegions.Count} cities for {country.Name}. Cultural focus for each (in order):\n{cityList}{namesHint}",
+                    s => {
+                        if (s.Cities.Count != urbanRegions.Count) {
+                            return $"Expected {urbanRegions.Count} cities, got {s.Cities.Count}.";
+                        }
 
-                    var crossDupe = s.Cities
-                        .FirstOrDefault(c => context.ExistingNames.Contains(c.Name, StringComparer.OrdinalIgnoreCase));
-                    if (crossDupe != null) {
-                        return $"The name \"{crossDupe.Name}\" is already in use. Choose a different name.";
-                    }
+                        var internalDupe = s.Cities
+                            .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                            .FirstOrDefault(g => g.Count() > 1)?.Key;
+                        if (internalDupe != null) {
+                            return $"Duplicate name \"{internalDupe}\" in the batch. All names must be unique.";
+                        }
 
-                    return null;
-                },
-                cancellationToken);
+                        var crossDupe = s.Cities
+                            .FirstOrDefault(c => context.ExistingNames.Contains(c.Name, StringComparer.OrdinalIgnoreCase));
+                        if (crossDupe != null) {
+                            return $"The name \"{crossDupe.Name}\" is already in use. Choose a different name.";
+                        }
 
-            for (var j = 0; j < countryCities.Count; j++) {
-                var mapCity = countryCities[j];
-                var city = new City {
+                        return null;
+                    },
+                    cancellationToken);
+
+                for (var j = 0; j < urbanRegions.Count; j++) {
+                    var mapRegion = urbanRegions[j];
+                    var region = new Region {
+                        CountryId = country.Id,
+                        Name = schema.Cities[j].Name,
+                        Description = schema.Cities[j].Description,
+                        Width = WorldGenerationDefaults.CityTileSize,
+                        Height = WorldGenerationDefaults.CityTileSize,
+                        IsCapital = mapRegion.IsCapital,
+                        RegionType = RegionType.Urban,
+                        Boundary = new Polygon { Points = new List<Point>(mapRegion.Boundary.Points.ToArray()) }
+                    };
+                    regions.Add(region);
+                    regionFocuses[region.Id] = focusMap[mapRegion.Id];
+                    regionById[mapRegion.Id] = region;
+                    context.ExistingNames.Add(schema.Cities[j].Name);
+                }
+            }
+
+            for (var j = 0; j < ruralRegions.Count; j++) {
+                var mapRegion = ruralRegions[j];
+                var region = new Region {
                     CountryId = country.Id,
-                    Name = schema.Cities[j].Name,
-                    Description = schema.Cities[j].Description,
+                    Name = $"Wilderness {j + 1}",
+                    Description = "An untamed wilderness region.",
                     Width = WorldGenerationDefaults.CityTileSize,
                     Height = WorldGenerationDefaults.CityTileSize,
-                    IsCapital = mapCity.IsCapital,
-                    Boundary = new Polygon { Points = new List<Point>(mapCity.Boundary.Points.ToArray()) }
+                    IsCapital = false,
+                    RegionType = RegionType.Rural,
+                    Boundary = new Polygon { Points = new List<Point>(mapRegion.Boundary.Points.ToArray()) }
                 };
-                cities.Add(city);
-                cityFocuses[city.Id] = cityFocusMap[mapCity.Id];
-                context.ExistingNames.Add(schema.Cities[j].Name);
+                regions.Add(region);
+                regionById[mapRegion.Id] = region;
             }
+
+            countryIndex++;
         }
 
-        var cityById = context.Map.Cities.Zip(cities).ToDictionary(p => p.First.Id, p => p.Second);
-        return new GeneratedCities(cities, cityFocuses, cityById);
+        return new GeneratedRegions(regions, regionFocuses, regionById);
     }
 
     private async Task<List<Road>> GenerateRoadEntities(GenerateRoadsInput input, CancellationToken cancellationToken) {
         var context = input.Context;
         var world = input.World;
-        var cities = input.Cities;
+        var regions = input.Regions;
 
-        var mapCityById = context.Map.Cities.ToDictionary(c => c.Id);
+        var mapRegionById = context.Map.Regions.ToDictionary(r => r.Id);
         var roadPairList = string.Join("\n", context.Map.Roads.Select((r, i) =>
-            $"{i + 1}. {cities.CityById[r.OriginCityId].Name} and {cities.CityById[r.DestinationCityId].Name}"));
+            $"{i + 1}. {regions.RegionById[r.OriginRegionId].Name} and {regions.RegionById[r.DestinationRegionId].Name}"));
 
         var roadNamesSchema = await client.GetJson<RoadNamesSchema>(
             logger,
@@ -256,17 +284,17 @@ internal class GeographyGenerator(
         var roadNamesByIndex = roadNamesSchema.Roads.ToDictionary(r => r.Index, r => r.Name);
 
         return context.Map.Roads.Select((layoutRoad, i) => {
-            var originCity = cities.CityById[layoutRoad.OriginCityId];
-            var destCity = cities.CityById[layoutRoad.DestinationCityId];
-            var originCenter = mapCityById[layoutRoad.OriginCityId].Center;
-            var destCenter = mapCityById[layoutRoad.DestinationCityId].Center;
+            var originRegion = regions.RegionById[layoutRoad.OriginRegionId];
+            var destRegion = regions.RegionById[layoutRoad.DestinationRegionId];
+            var originCenter = mapRegionById[layoutRoad.OriginRegionId].Center;
+            var destCenter = mapRegionById[layoutRoad.DestinationRegionId].Center;
             var dx = originCenter.X - destCenter.X;
             var dy = originCenter.Y - destCenter.Y;
             var distance = (float) Math.Sqrt(dx * dx + dy * dy);
             return new Road {
                 Name = roadNamesByIndex.GetValueOrDefault(i + 1, $"Road {i + 1}"),
-                OriginCityId = originCity.Id,
-                DestinationCityId = destCity.Id,
+                OriginRegionId = originRegion.Id,
+                DestinationRegionId = destRegion.Id,
                 Distance = distance,
                 TravelTime = Math.Max(1, (int) (distance / 50)),
                 DangerLevel = (float) Random.Shared.NextDouble() * 0.5f
@@ -282,14 +310,14 @@ internal record GeographyGenerationContext(
 
 internal record GeneratedCountries(List<Country> Countries, Dictionary<Guid, Country> CountryById);
 
-internal record GeneratedCities(
-    List<City> Cities,
-    Dictionary<Guid, string> CityFocuses,
-    Dictionary<Guid, City> CityById);
+internal record GeneratedRegions(
+    List<Region> Regions,
+    Dictionary<Guid, string> RegionFocuses,
+    Dictionary<Guid, Region> RegionById);
 
-internal record GenerateCitiesInput(GeographyGenerationContext Context, World World, GeneratedCountries Countries);
+internal record GenerateRegionsInput(GeographyGenerationContext Context, World World, GeneratedCountries Countries);
 
-internal record GenerateRoadsInput(GeographyGenerationContext Context, World World, GeneratedCities Cities);
+internal record GenerateRoadsInput(GeographyGenerationContext Context, World World, GeneratedRegions Regions);
 
 file class RoadNamesSchema {
     public List<RoadNameItemSchema> Roads { get; init; } = [];

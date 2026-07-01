@@ -10,101 +10,112 @@ internal class MapCountry {
     public Guid Id { get; } = Guid.NewGuid();
 }
 
-internal class MapCity {
+internal class MapRegion {
     public required Polygon Boundary { get; init; }
     public required Point Center { get; init; }
     public required Guid CountryId { get; init; }
     public Guid Id { get; } = Guid.NewGuid();
     public bool IsCapital { get; init; }
+    public RegionType RegionType { get; init; }
 }
 
 internal class MapRoad {
-    public required Guid DestinationCityId { get; init; }
+    public required Guid DestinationRegionId { get; init; }
     public Guid Id { get; } = Guid.NewGuid();
-    public required Guid OriginCityId { get; init; }
+    public required Guid OriginRegionId { get; init; }
 }
 
 internal class MapGeneratorResult {
-    public required IReadOnlyList<MapCity> Cities { get; init; }
     public required IReadOnlyList<MapCountry> Countries { get; init; }
+    public required IReadOnlyList<MapRegion> Regions { get; init; }
     public required IReadOnlyList<MapRoad> Roads { get; init; }
 }
 
 internal static class MapGenerator {
-    public static MapGeneratorResult Generate(int worldWidth, int worldHeight, int numberOfCities,
-        int numberOfCountries) {
+    public static MapGeneratorResult Generate(int worldWidth, int worldHeight, int numUrbanRegions,
+        int numRuralRegions, int numberOfCountries) {
         var plane = new VoronoiPlane(0, 0, worldWidth, worldHeight);
 
-        var citySites = plane.GenerateRandomSites(numberOfCities);
+        var sites = plane.GenerateRandomSites(numUrbanRegions + numRuralRegions);
 
         plane.Tessellate();
 
-        var (cityToCountryIndex, capitalSites) = AssignCitiesToCountries(citySites, numberOfCountries);
+        var (siteToCountryIndex, capitalSites) = AssignSitesToCountries(sites, numberOfCountries);
 
         var countries = Enumerable.Range(0, numberOfCountries)
-            .Select(i => new MapCountry { Boundary = GetCountryBoundary(i, cityToCountryIndex) })
+            .Select(i => new MapCountry { Boundary = GetCountryBoundary(i, siteToCountryIndex) })
             .ToArray();
 
-        var cityBySite = citySites.ToDictionary(
+        var ruralSites = GetRuralSites(sites, capitalSites, numRuralRegions);
+
+        var regionBySite = sites.ToDictionary(
             k => k,
-            site => new MapCity {
-                CountryId = countries[cityToCountryIndex[site]].Id,
+            site => new MapRegion {
+                CountryId = countries[siteToCountryIndex[site]].Id,
                 Center = new Point((int) site.X, (int) site.Y),
                 Boundary = new Polygon {
                     Points = [..site.ClockwiseEdgesWound.Select(e => new Point((int) e.Start.X, (int) e.Start.Y))]
                 },
-                IsCapital = capitalSites.Contains(site)
+                IsCapital = capitalSites.Contains(site),
+                RegionType = ruralSites.Contains(site) ? RegionType.Rural : RegionType.Urban
             });
 
-        var roads = GetRoads(cityBySite);
+        var roads = GetRoads(regionBySite);
 
         return new MapGeneratorResult {
             Countries = countries,
-            Cities = cityBySite.Values.ToArray(),
+            Regions = regionBySite.Values.ToArray(),
             Roads = roads
         };
     }
 
-    private static (Dictionary<VoronoiSite, int> CityToCountry, HashSet<VoronoiSite> CapitalSites)
-        AssignCitiesToCountries(
-            List<VoronoiSite> cities, int numCountries) {
-        var frontier = new Queue<(int CountryIndex, VoronoiSite CitySite)>();
-        var cityToCountry = new Dictionary<VoronoiSite, int>();
+    private static (Dictionary<VoronoiSite, int> SiteToCountry, HashSet<VoronoiSite> CapitalSites)
+        AssignSitesToCountries(List<VoronoiSite> sites, int numCountries) {
+        var frontier = new Queue<(int CountryIndex, VoronoiSite Site)>();
+        var siteToCountry = new Dictionary<VoronoiSite, int>();
 
-        var capitalCities = cities.Shuffle().Take(numCountries).ToArray();
+        var capitalSites = sites.Shuffle().Take(numCountries).ToArray();
 
-        for (var i = 0; i < capitalCities.Length; i++) {
-            frontier.Enqueue((i, capitalCities[i]));
+        for (var i = 0; i < capitalSites.Length; i++) {
+            frontier.Enqueue((i, capitalSites[i]));
         }
 
         while (frontier.Count > 0) {
-            var (countryIndex, city) = frontier.Dequeue();
+            var (countryIndex, site) = frontier.Dequeue();
 
-            if (!cityToCountry.TryAdd(city, countryIndex)) {
+            if (!siteToCountry.TryAdd(site, countryIndex)) {
                 continue;
             }
 
-            foreach (var neighbour in city.Neighbours.OrderBy(n => DistanceTo(city, n))) {
+            foreach (var neighbour in site.Neighbours.OrderBy(n => DistanceTo(site, n))) {
                 frontier.Enqueue((countryIndex, neighbour));
             }
         }
 
-        return (cityToCountry, [..capitalCities]);
+        return (siteToCountry, [..capitalSites]);
     }
 
-    private static Polygon GetCountryBoundary(int countryIndex, Dictionary<VoronoiSite, int> cityToCountryIndex) {
-        var countryCities = cityToCountryIndex
+    private static HashSet<VoronoiSite> GetRuralSites(
+        List<VoronoiSite> sites,
+        HashSet<VoronoiSite> capitalSites,
+        int numRuralRegions) {
+        var nonCapitals = sites.Where(s => !capitalSites.Contains(s)).ToList();
+        return [..nonCapitals.Shuffle().Take(numRuralRegions)];
+    }
+
+    private static Polygon GetCountryBoundary(int countryIndex, Dictionary<VoronoiSite, int> siteToCountryIndex) {
+        var countrySites = siteToCountryIndex
             .Where(kvp => kvp.Value == countryIndex)
             .Select(kvp => kvp.Key)
             .ToArray();
 
-        if (countryCities.Length == 0) {
-            throw new InvalidOperationException("Country has no cities");
+        if (countrySites.Length == 0) {
+            throw new InvalidOperationException("Country has no regions");
         }
 
-        var boundaryEdges = countryCities
+        var boundaryEdges = countrySites
             .SelectMany(c => c.ClockwiseEdges)
-            .Where(e => e.IsBoundaryEdge(cityToCountryIndex))
+            .Where(e => e.IsBoundaryEdge(siteToCountryIndex))
             .Distinct()
             .ToList();
 
@@ -154,7 +165,7 @@ internal static class MapGenerator {
         return new Polygon { Points = new Collection<Point>(points) };
     }
 
-    private static bool IsBoundaryEdge(this VoronoiEdge edge, Dictionary<VoronoiSite, int> cityToCountryIndex) {
+    private static bool IsBoundaryEdge(this VoronoiEdge edge, Dictionary<VoronoiSite, int> siteToCountryIndex) {
         var left = edge.Left;
         var right = edge.Right;
 
@@ -166,19 +177,19 @@ internal static class MapGenerator {
             return true;
         }
 
-        return cityToCountryIndex[left] != cityToCountryIndex[right];
+        return siteToCountryIndex[left] != siteToCountryIndex[right];
     }
 
-    private static MapRoad[] GetRoads(Dictionary<VoronoiSite, MapCity> cityBySite) {
+    private static MapRoad[] GetRoads(Dictionary<VoronoiSite, MapRegion> regionBySite) {
         var edges = Graphs.MinimumSpanningTree(
-            cityBySite.Keys.First(),
-            city => city.Neighbours,
+            regionBySite.Keys.First(),
+            site => site.Neighbours,
             DistanceTo);
 
         return edges
             .Select(edge => new MapRoad {
-                OriginCityId = cityBySite[edge.From].Id,
-                DestinationCityId = cityBySite[edge.To].Id
+                OriginRegionId = regionBySite[edge.From].Id,
+                DestinationRegionId = regionBySite[edge.To].Id
             })
             .ToArray();
     }

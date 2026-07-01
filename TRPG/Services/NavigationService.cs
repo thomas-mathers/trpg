@@ -7,46 +7,46 @@ using TRPG.Models;
 namespace TRPG.Services;
 
 internal class NavigationService(TrpgDbContext context, IMemoryCache cache) {
-    public async Task<IReadOnlyCollection<Road>> GetShortestCityRoute(Guid originCityId, Guid destinationCityId,
+    public async Task<IReadOnlyCollection<Road>> GetShortestRegionRoute(Guid originRegionId, Guid destinationRegionId,
         CancellationToken cancellationToken = default) {
-        var graph = await cache.GetOrCreateAsync("nav:city-graph", async entry => {
+        var graph = await cache.GetOrCreateAsync("nav:region-graph", async entry => {
             entry.Priority = CacheItemPriority.NeverRemove;
 
             var roads = await context.Roads.ToListAsync(cancellationToken);
 
-            return roads.GroupBy(r => r.OriginCityId).ToDictionary(g => g.Key, g => g.ToList());
+            return roads.GroupBy(r => r.OriginRegionId).ToDictionary(g => g.Key, g => g.ToList());
         });
 
         if (graph is null) {
-            throw new InvalidOperationException("City graph cache returned null.");
+            throw new InvalidOperationException("Region graph cache returned null.");
         }
 
-        var cityPath = Graphs.ShortestPath(
-            originCityId, destinationCityId,
-            id => graph.TryGetValue(id, out var rs) ? rs.Select(r => r.DestinationCityId) : [],
-            (from, to) => graph[from].First(r => r.DestinationCityId == to).TravelTime);
+        var regionPath = Graphs.ShortestPath(
+            originRegionId, destinationRegionId,
+            id => graph.TryGetValue(id, out var rs) ? rs.Select(r => r.DestinationRegionId) : [],
+            (from, to) => graph[from].First(r => r.DestinationRegionId == to).TravelTime);
 
-        return cityPath
-            .Zip(cityPath.Skip(1), (from, to) => graph[from].First(r => r.DestinationCityId == to))
+        return regionPath
+            .Zip(regionPath.Skip(1), (from, to) => graph[from].First(r => r.DestinationRegionId == to))
             .ToArray();
     }
 
-    public async Task<IReadOnlyCollection<Point>> GetShortestIntraCityRoute(Guid cityId, Point origin,
+    public async Task<IReadOnlyCollection<Point>> GetShortestIntraRegionRoute(Guid regionId, Point origin,
         Point destination,
         CancellationToken cancellationToken = default) {
-        var grid = await cache.GetOrCreateAsync($"nav:city-grid:{cityId}", async entry => {
+        var grid = await cache.GetOrCreateAsync($"nav:region-grid:{regionId}", async entry => {
             entry.SlidingExpiration = TimeSpan.FromMinutes(10);
 
-            var city = await context.Cities.FindAsync([cityId], cancellationToken)
-                       ?? throw new InvalidOperationException($"City {cityId} not found.");
+            var region = await context.Regions.FindAsync([regionId], cancellationToken)
+                         ?? throw new InvalidOperationException($"Region {regionId} not found.");
 
-            var buildings = await context.Buildings.Where(b => b.CityId == cityId).ToListAsync(cancellationToken);
+            var buildings = await context.Buildings.Where(b => b.RegionId == regionId).ToListAsync(cancellationToken);
 
-            return new GridData(city.Width, city.Height, BuildBlockedFromRectangles(buildings.Select(b => b.Boundary)));
+            return new GridData(region.Width, region.Height, BuildBlockedFromRectangles(buildings.Select(b => b.Boundary)));
         });
 
         if (grid is null) {
-            throw new InvalidOperationException($"City grid cache returned null for {cityId}.");
+            throw new InvalidOperationException($"Region grid cache returned null for {regionId}.");
         }
 
         return Graphs.ShortestPath(

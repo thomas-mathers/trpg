@@ -87,7 +87,7 @@
 ### Owned entities
 - `ToJson()` for owned types not queried/indexed (e.g. `Attributes`, `Progression`, `WorldEvent.Region`)
 - No `ToJson()` for owned types that need indexed columns (e.g. `Person.Location`) — these flatten to regular columns
-- Composite index `(WorldId, CityId, BuildingId)` on any flattened `Location`
+- Composite index `(RegionId, BuildingId)` on any flattened `Location`
 
 ### Enum storage
 - All enums stored as `string` via `HaveConversion<string>()` in `ConfigureConventions`
@@ -112,6 +112,27 @@
 - `FindAsync([id], cancellationToken)` for PK lookups
 - `ExecuteDeleteAsync` for hard deletes
 - `FirstOrDefaultAsync` + null check for lookups with side effects
+
+---
+
+## Rider MCP Tools
+
+### Known issues
+- `mcp__rider__rename_refactoring` **does not work for C# symbols** — always returns "Couldn't find symbol 'X' in file 'Y'" regardless of path format or symbol name. Known JetBrains bug: RIDER-136391. Use the `Edit` tool for targeted renames instead.
+- `mcp__rider__get_symbol_info` always returns `{"documentation":""}` for all positions — symbol info is unavailable via MCP.
+- `mcp__rider__search_symbol` returns file-level positions (line 1, col 1) rather than actual symbol positions — behaves like a text search, not semantic search.
+
+### Path format
+- `projectPath`: use forward slashes, point to the solution root — e.g. `C:/Users/mathe/RiderProjects/TRPG`
+- `pathInProject`: use forward slashes, relative to solution root — e.g. `TRPG/Models/City.cs`
+
+### Working tools
+- `mcp__rider__build_solution` — triggers a full incremental build; confirms project compiles
+- `mcp__rider__get_file_problems` — runs Rider code analysis on a file; useful to verify edits are error-free
+- `mcp__rider__list_directory_tree` — filesystem tree exploration
+- `mcp__rider__get_solution_projects` — lists projects in the solution
+- `mcp__rider__open_file_in_editor` — opens a file in Rider (occasionally times out; retry once if so)
+- `mcp__rider__execute_terminal_command` — runs shell commands in Rider's terminal (requires "Brave Mode" enabled in MCP settings to skip confirmation prompts; otherwise times out)
 
 ---
 

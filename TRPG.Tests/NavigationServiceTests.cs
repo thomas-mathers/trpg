@@ -9,7 +9,7 @@ namespace TRPG.Tests;
 [Collection("Database")]
 public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private MemoryCache _cache = null!;
-    private City _city = null!;
+    private Region _region = null!;
     private TrpgDbContext _context = null!;
     private Country _country = null!;
     private NavigationService _service = null!;
@@ -21,11 +21,11 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
 
         var world = Builders.MakeWorld();
         _country = Builders.MakeCountry(world.Id);
-        _city = Builders.MakeCity(_country.Id);
+        _region = Builders.MakeRegion(_country.Id);
 
         _context.Worlds.Add(world);
         _context.Countries.Add(_country);
-        _context.Cities.Add(_city);
+        _context.Regions.Add(_region);
         await _context.SaveChangesAsync();
     }
 
@@ -34,17 +34,17 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         await _context.DisposeAsync();
     }
 
-    private async Task<City> SeedCity() {
-        var city = Builders.MakeCity(_country.Id);
-        _context.Cities.Add(city);
+    private async Task<Region> SeedRegion() {
+        var region = Builders.MakeRegion(_country.Id);
+        _context.Regions.Add(region);
         await _context.SaveChangesAsync();
-        return city;
+        return region;
     }
 
-    private async Task<Road> SeedRoad(Guid destinationCityId) {
+    private async Task<Road> SeedRoad(Guid destinationRegionId) {
         var road = new Road {
-            OriginCityId = _city.Id,
-            DestinationCityId = destinationCityId,
+            OriginRegionId = _region.Id,
+            DestinationRegionId = destinationRegionId,
             Name = $"Road-{Guid.NewGuid():N}",
             Distance = 10f,
             TravelTime = 5,
@@ -56,13 +56,13 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     }
 
     [Fact]
-    public async Task GetShortestCityRoute_ReturnsRoute_WhenDirectRouteExists() {
+    public async Task GetShortestRegionRoute_ReturnsRoute_WhenDirectRouteExists() {
         // Arrange
-        var cityB = await SeedCity();
-        var road = await SeedRoad(cityB.Id);
+        var regionB = await SeedRegion();
+        var road = await SeedRoad(regionB.Id);
 
         // Act
-        var result = await _service.GetShortestCityRoute(_city.Id, cityB.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetShortestRegionRoute(_region.Id, regionB.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(result);
@@ -70,24 +70,24 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     }
 
     [Fact]
-    public async Task GetShortestCityRoute_ReturnsEmpty_WhenNoRouteExists() {
+    public async Task GetShortestRegionRoute_ReturnsEmpty_WhenNoRouteExists() {
         // Act
         var result =
-            await _service.GetShortestCityRoute(_city.Id, Guid.NewGuid(), TestContext.Current.CancellationToken);
+            await _service.GetShortestRegionRoute(_region.Id, Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(result);
     }
 
     [Fact]
-    public async Task GetShortestIntraCityRoute_ReturnsPath_WhenNoObstacles() {
+    public async Task GetShortestIntraRegionRoute_ReturnsPath_WhenNoObstacles() {
         // Arrange
         var origin = new Point(0, 0);
         var destination = new Point(0, 2);
 
         // Act
         var result =
-            await _service.GetShortestIntraCityRoute(_city.Id, origin, destination,
+            await _service.GetShortestIntraRegionRoute(_region.Id, origin, destination,
                 TestContext.Current.CancellationToken);
 
         // Assert
@@ -97,10 +97,10 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     }
 
     [Fact]
-    public async Task GetShortestIntraCityRoute_ThrowsInvalidOperationException_WhenCityNotFound() {
+    public async Task GetShortestIntraRegionRoute_ThrowsInvalidOperationException_WhenRegionNotFound() {
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _service.GetShortestIntraCityRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0),
+            _service.GetShortestIntraRegionRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0),
                 TestContext.Current.CancellationToken));
     }
 }

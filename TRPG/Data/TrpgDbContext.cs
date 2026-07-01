@@ -12,7 +12,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
     public DbSet<Building> Buildings => Set<Building>();
-    public DbSet<City> Cities => Set<City>();
+    public DbSet<Region> Regions => Set<Region>();
     public DbSet<ContainerItem> ContainerItems => Set<ContainerItem>();
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
@@ -61,6 +61,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<QuestObjectiveType>().HaveConversion<string>();
         configurationBuilder.Properties<JobAction>().HaveConversion<string>();
         configurationBuilder.Properties<Profession>().HaveConversion<string>();
+        configurationBuilder.Properties<RegionType>().HaveConversion<string>();
         configurationBuilder.Properties<Skill>().HaveConversion<string>();
         configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();
     }
@@ -70,7 +71,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.HasIndex(p => p.WorldId);
             entity.OwnsOne(p => p.Location, lo => {
                 lo.OwnsOne(l => l.Coordinates);
-                lo.HasIndex(l => new { l.CityId, l.BuildingId });
+                lo.HasIndex(l => new { l.RegionId, l.BuildingId });
             });
             entity.OwnsOne(p => p.Attributes, s => s.ToJson());
             entity.Property(p => p.ActiveConditions)
@@ -132,8 +133,8 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             });
         });
 
-        modelBuilder.Entity<City>(entity => {
-            entity.OwnsOne(c => c.Boundary, b => {
+        modelBuilder.Entity<Region>(entity => {
+            entity.OwnsOne(r => r.Boundary, b => {
                 b.ToJson();
                 b.OwnsMany(p => p.Points);
             });
@@ -198,7 +199,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<Job>(entity => {
             entity.OwnsOne(j => j.Location, lo => {
                 lo.OwnsOne(l => l.Coordinates);
-                lo.HasIndex(l => new { l.CityId, l.BuildingId });
+                lo.HasIndex(l => new { l.RegionId, l.BuildingId });
             });
             entity.HasIndex(j => j.PersonId);
         });
@@ -216,14 +217,14 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<Country>()
             .HasIndex(c => new { c.WorldId, c.Name }).IsUnique();
 
-        modelBuilder.Entity<City>()
-            .HasIndex(c => new { c.CountryId, c.Name }).IsUnique();
+        modelBuilder.Entity<Region>()
+            .HasIndex(r => new { r.CountryId, r.Name }).IsUnique();
 
         modelBuilder.Entity<Building>()
-            .HasIndex(b => new { b.CityId, b.Name }).IsUnique();
+            .HasIndex(b => new { b.RegionId, b.Name });
 
         modelBuilder.Entity<Road>()
-            .HasIndex(r => new { r.OriginCityId, r.DestinationCityId }).IsUnique();
+            .HasIndex(r => new { r.OriginRegionId, r.DestinationRegionId }).IsUnique();
 
         modelBuilder.Entity<NpcConversation>(entity => {
             entity.HasIndex(c => c.WorldId);

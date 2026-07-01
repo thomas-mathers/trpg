@@ -4,61 +4,50 @@ using TRPG.Generators;
 
 namespace TRPG.Commands;
 
-internal class BootstrapWorldCommand {
-    public required string Description { get; init; }
-    public int FactionCount { get; init; } = WorldGenerationDefaults.FactionCount;
-    public int HousesPerCity { get; init; } = WorldGenerationDefaults.HousesPerCity;
-    public int MaxCities { get; init; } = WorldGenerationDefaults.MaxCities;
-    public int MaxCountries { get; init; } = WorldGenerationDefaults.MaxCountries;
-    public int MinCities { get; init; } = WorldGenerationDefaults.MinCities;
-    public int MinCountries { get; init; } = WorldGenerationDefaults.MinCountries;
-    public int RaceCount { get; init; } = WorldGenerationDefaults.RaceCount;
-}
+internal record BootstrapWorldResult(Guid WorldId, Guid PlayerId);
 
 internal class BootstrapWorldCommandHandler(
     TrpgDbContext context,
-    WorldGenerator worldHandler,
     ILogger<BootstrapWorldCommandHandler> logger
 ) {
-    public async Task<WorldGeneratorResult> Handle(
-        BootstrapWorldCommand command,
+    public async Task<BootstrapWorldResult> Handle(
+        WorldGeneratorResult world,
+        PersonGeneratorResult? player,
         CancellationToken cancellationToken
     ) {
-        var result = await worldHandler.Generate(
-            new WorldGeneratorInput {
-                Description = command.Description,
-                FactionCount = command.FactionCount,
-                HousesPerCity = command.HousesPerCity,
-                MaxCities = command.MaxCities,
-                MaxCountries = command.MaxCountries,
-                MinCities = command.MinCities,
-                MinCountries = command.MinCountries,
-                RaceCount = command.RaceCount
-            },
-            cancellationToken
-        );
+        if (player != null) {
+            world.World.PlayerId = player.Person.Id;
+        }
 
-        context.Worlds.Add(result.World);
-        context.Countries.AddRange(result.Countries);
-        context.Cities.AddRange(result.Cities);
-        context.Races.AddRange(result.Races);
-        context.Factions.AddRange(result.Factions);
-        context.FactionMembers.AddRange(result.FactionMembers);
-        context.Roads.AddRange(result.Roads);
-        context.Buildings.AddRange(result.Buildings);
-        context.Persons.AddRange(result.Persons);
-        context.BuildingOwners.AddRange(result.BuildingOwners);
-        context.Items.AddRange(result.Items);
-        context.InventoryItems.AddRange(result.InventoryItems);
-        context.Rooms.AddRange(result.Rooms);
-        context.Props.AddRange(result.Props);
-        context.PersonSkills.AddRange(result.Skills);
-        context.PersonAbilities.AddRange(result.Abilities);
+        context.Worlds.Add(world.World);
+        context.Countries.AddRange(world.Countries);
+        context.Regions.AddRange(world.Regions);
+        context.Races.AddRange(world.Races);
+        context.Factions.AddRange(world.Factions);
+        context.FactionMembers.AddRange(world.FactionMembers);
+        context.Roads.AddRange(world.Roads);
+        context.Buildings.AddRange(world.Buildings);
+        context.Persons.AddRange(world.Persons);
+        context.BuildingOwners.AddRange(world.BuildingOwners);
+        context.Items.AddRange(world.Items);
+        context.InventoryItems.AddRange(world.InventoryItems);
+        context.Rooms.AddRange(world.Rooms);
+        context.Props.AddRange(world.Props);
+        context.PersonSkills.AddRange(world.Skills);
+        context.PersonAbilities.AddRange(world.Abilities);
+
+        if (player != null) {
+            context.Persons.Add(player.Person);
+            context.Items.AddRange(player.Items);
+            context.InventoryItems.AddRange(player.InventoryItems);
+            context.PersonSkills.AddRange(player.Skills);
+            context.PersonAbilities.AddRange(player.Abilities);
+        }
 
         await context.SaveChangesAsync(cancellationToken);
 
-        logger.LogDebug("Bootstrap saved {WorldId}", result.World.Id);
+        logger.LogDebug("Bootstrap saved {WorldId}", world.World.Id);
 
-        return result;
+        return new BootstrapWorldResult(world.World.Id, world.World.PlayerId ?? Guid.Empty);
     }
 }

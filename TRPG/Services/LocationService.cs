@@ -21,14 +21,14 @@ internal class LocationService(TrpgDbContext context) {
         return list;
     }
 
-    public async Task<City?> GetCityById(Guid id, CancellationToken cancellationToken = default) {
-        return await context.Cities.FindAsync([id], cancellationToken);
+    public async Task<Region?> GetRegionById(Guid id, CancellationToken cancellationToken = default) {
+        return await context.Regions.FindAsync([id], cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<City>> GetAllCitiesByCountryId(Guid countryId,
+    public async Task<IReadOnlyCollection<Region>> GetAllRegionsByCountryId(Guid countryId,
         CancellationToken cancellationToken = default) {
-        var list = await context.Cities
-            .Where(c => c.CountryId == countryId)
+        var list = await context.Regions
+            .Where(r => r.CountryId == countryId)
             .ToArrayAsync(cancellationToken);
         return list;
     }

@@ -5,12 +5,12 @@ namespace TRPG.Tests.Helpers;
 internal static class Builders {
     public static Person MakePerson(Guid? worldId = null, Guid? raceId = null,
         Profession profession = Profession.Knight,
-        Guid? birthCityId = null) {
+        Guid? birthRegionId = null) {
         return new Person {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = "Test Person",
             RaceId = raceId ?? Guid.NewGuid(),
-            BirthCityId = birthCityId ?? Guid.NewGuid(),
+            BirthRegionId = birthRegionId ?? Guid.NewGuid(),
             BirthYear = 1000,
             Profession = profession,
             Location = new Location { Coordinates = new Point(0, 0) },
@@ -161,11 +161,11 @@ internal static class Builders {
         };
     }
 
-    public static City MakeCity(Guid countryId) {
-        return new City {
+    public static Region MakeRegion(Guid countryId) {
+        return new Region {
             CountryId = countryId,
-            Name = $"City-{Guid.NewGuid():N}",
-            Description = "A test city",
+            Name = $"Region-{Guid.NewGuid():N}",
+            Description = "A test region",
             Width = 100,
             Height = 100,
             Boundary = new Polygon
@@ -182,9 +182,9 @@ internal static class Builders {
         };
     }
 
-    public static Building MakeBuilding(Guid cityId) {
+    public static Building MakeBuilding(Guid regionId) {
         return new Building {
-            CityId = cityId,
+            RegionId = regionId,
             Name = $"Building-{Guid.NewGuid():N}",
             Description = "A test building",
             BuildingType = BuildingType.House,

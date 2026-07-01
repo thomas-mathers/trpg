@@ -18,10 +18,10 @@ internal class BuildingService(TrpgDbContext context) {
         return await context.Buildings.FindAsync([id], cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<Building>> GetAllByCityId(Guid cityId,
+    public async Task<IReadOnlyCollection<Building>> GetAllByRegionId(Guid regionId,
         CancellationToken cancellationToken = default) {
         var list = await context.Buildings
-            .Where(b => b.CityId == cityId)
+            .Where(b => b.RegionId == regionId)
             .ToArrayAsync(cancellationToken);
         return list;
     }

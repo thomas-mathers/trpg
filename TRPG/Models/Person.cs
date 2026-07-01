@@ -22,7 +22,7 @@ internal class Person {
     public List<ActiveModifier> ActiveModifiers { get; set; } = [];
     public Attributes Attributes { get; set; } = null!;
     public string Biography { get; set; } = "";
-    public Guid BirthCityId { get; init; }
+    public Guid BirthRegionId { get; init; }
     public int BirthYear { get; init; }
     public int Experience { get; set; }
     public int Gold { get; set; }

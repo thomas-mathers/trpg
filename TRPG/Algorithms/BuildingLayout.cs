@@ -2,7 +2,7 @@ using TRPG.Models;
 
 namespace TRPG.Algorithms;
 
-internal static class CityLayout {
+internal static class BuildingLayout {
     private const int StreetWidth = 2;
 
     private static readonly Dictionary<BuildingType, (int Width, int Height)> Sizes = new() {
@@ -21,8 +21,9 @@ internal static class CityLayout {
         [BuildingType.Castle] = (8, 8)
     };
 
-    public static void PlaceBuildings(City city, IList<Building> buildings) {
+    public static void PlaceBuildings(Region region, IList<Building> buildings) {
         var sorted = buildings
+            .Where(b => Sizes.ContainsKey(b.BuildingType))
             .OrderByDescending(b => Sizes[b.BuildingType].Height)
             .ThenByDescending(b => Sizes[b.BuildingType].Width)
             .ToList();
@@ -34,7 +35,7 @@ internal static class CityLayout {
         foreach (var building in sorted) {
             var (w, h) = Sizes[building.BuildingType];
 
-            if (x + w > city.Width) {
+            if (x + w > region.Width) {
                 x = 0;
                 y += rowHeight + StreetWidth;
                 rowHeight = 0;

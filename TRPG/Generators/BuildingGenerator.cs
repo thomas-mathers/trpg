@@ -3,10 +3,13 @@ using TRPG.Models;
 namespace TRPG.Generators;
 
 internal record BuildingGeneratorInput(
-    Guid CityId,
+    Guid RegionId,
+    RegionType RegionType,
     Guid? OwnerId,
     BuildingType Type
-);
+) {
+    public IReadOnlyList<Guid> MemberIds { get; init; } = [];
+}
 
 internal record BuildingGeneratorResult(
     Building Building,
@@ -15,6 +18,20 @@ internal record BuildingGeneratorResult(
 );
 
 internal class BuildingGenerator {
+    internal static readonly IReadOnlyDictionary<RegionType, IReadOnlyCollection<BuildingType>> BuildingTypesByRegionType =
+        new Dictionary<RegionType, IReadOnlyCollection<BuildingType>> {
+            [RegionType.Urban] = [
+                BuildingType.ArcaneShop, BuildingType.Apothecary, BuildingType.Bakery,
+                BuildingType.Blacksmith, BuildingType.Castle, BuildingType.GeneralGoods,
+                BuildingType.GuildHall, BuildingType.House, BuildingType.Jail,
+                BuildingType.Library, BuildingType.Stable, BuildingType.Tavern, BuildingType.Temple
+            ],
+            [RegionType.Rural] = [
+                BuildingType.Cave, BuildingType.Crypt, BuildingType.Mine,
+                BuildingType.Ruins, BuildingType.Tower
+            ]
+        };
+
     private static readonly Dictionary<BuildingType, string[]> Names = new() {
         [BuildingType.ArcaneShop] = [
             "The Mystic Tome", "The Wandering Eye", "The Silver Sigil", "The Hidden Grimoire",
@@ -84,14 +101,18 @@ internal class BuildingGenerator {
     };
 
     public BuildingGeneratorResult Generate(BuildingGeneratorInput input) {
+        if (!BuildingTypesByRegionType[input.RegionType].Contains(input.Type))
+            throw new InvalidOperationException(
+                $"{input.Type} cannot be placed in a {input.RegionType} region.");
+
         var names = Names[input.Type];
         var building = new Building {
-            CityId = input.CityId,
+            RegionId = input.RegionId,
             BuildingType = input.Type,
             Name = names[Random.Shared.Next(names.Length)],
             Boundary = new Rectangle(0, 0, 0, 0)
         };
-        var specs = GetSpecs(input.Type, input.OwnerId);
+        var specs = GetSpecs(input.Type, input.OwnerId, input.MemberIds);
 
         var rooms = specs.Select(s => new Room {
             BuildingId = building.Id,
@@ -124,7 +145,7 @@ internal class BuildingGenerator {
         return new BuildingGeneratorResult(building, rooms, props);
     }
 
-    private static RoomSpec[] GetSpecs(BuildingType buildingType, Guid? ownerId) {
+    private static RoomSpec[] GetSpecs(BuildingType buildingType, Guid? ownerId, IReadOnlyList<Guid> memberIds) {
         return buildingType switch {
             BuildingType.House => GetHouseSpecs(ownerId),
             BuildingType.Tavern => GetTavernSpecs(ownerId),
@@ -136,7 +157,7 @@ internal class BuildingGenerator {
             BuildingType.Bakery => GetBakerySpecs(ownerId),
             BuildingType.Stable => GetStableSpecs(ownerId),
             BuildingType.ArcaneShop => GetArcaneShopSpecs(ownerId),
-            BuildingType.GuildHall => GetGuildHallSpecs(ownerId),
+            BuildingType.GuildHall => GetGuildHallSpecs(ownerId, memberIds),
             BuildingType.Castle => GetCastleSpecs(ownerId),
             BuildingType.Jail => GetJailSpecs(),
             _ => []
@@ -386,7 +407,19 @@ internal class BuildingGenerator {
         ];
     }
 
-    private static RoomSpec[] GetGuildHallSpecs(Guid? ownerId) {
+    private static RoomSpec[] GetGuildHallSpecs(Guid? ownerId, IReadOnlyList<Guid> memberIds) {
+        var memberRooms = memberIds.Select((memberId, i) => new RoomSpec(
+            i == 0 ? "Guild Master's Chamber" : $"Member Room {i}",
+            i == 0 ? "Private quarters for the guild master." : "A private room for a guild member.",
+            1,
+            [
+                new PropSpec("Bed",
+                    id => new Bed { RoomId = id, Name = "Bed", Description = "A modest bed.", AssignedPersonId = memberId }),
+                new PropSpec("Chest",
+                    id => new Container { RoomId = id, Name = "Chest", Description = "A chest for personal belongings." })
+            ]
+        )).ToArray();
+
         return [
             new RoomSpec("Hall", "A large hall where guild members gather.", 0, [
                 new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A sturdy chair." }),
@@ -399,19 +432,7 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("Office", "A private office for the guild master.", 1, [
-                new PropSpec("Bed",
-                    id => new Bed {
-                        RoomId = id, Name = "Bed", Description = "The guild master's bed.", AssignedPersonId = ownerId
-                    }),
-                new PropSpec("Desk",
-                    id => new Workstation {
-                        RoomId = id, Name = "Desk", Description = "A desk covered in contracts and ledgers.",
-                        WorkstationType = WorkstationType.Reading
-                    }),
-                new PropSpec("Chest",
-                    id => new Container { RoomId = id, Name = "Chest", Description = "A chest for guild records." })
-            ])
+            ..memberRooms
         ];
     }
 
