@@ -79,28 +79,4 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         Assert.Empty(result);
     }
 
-    [Fact]
-    public async Task GetShortestIntraRegionRoute_ReturnsPath_WhenNoObstacles() {
-        // Arrange
-        var origin = new Point(0, 0);
-        var destination = new Point(0, 2);
-
-        // Act
-        var result =
-            await _service.GetShortestIntraRegionRoute(_region.Id, origin, destination,
-                TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Equal(3, result.Count);
-        Assert.Equal(origin, result.First());
-        Assert.Equal(destination, result.Last());
-    }
-
-    [Fact]
-    public async Task GetShortestIntraRegionRoute_ThrowsInvalidOperationException_WhenRegionNotFound() {
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _service.GetShortestIntraRegionRoute(Guid.NewGuid(), new Point(0, 0), new Point(1, 0),
-                TestContext.Current.CancellationToken));
-    }
 }

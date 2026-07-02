@@ -7,6 +7,7 @@ using TRPG.Data;
 using TRPG.Definitions;
 using TRPG.Generators;
 using TRPG.Services;
+using TRPG.Tools;
 using ZLogger;
 using ZLogger.Providers;
 
@@ -16,7 +17,9 @@ internal static class ServiceCollectionExtensions {
     public static IServiceCollection AddTrpgLogging(this IServiceCollection serviceCollection) =>
         serviceCollection.AddLogging(builder => {
             builder.SetMinimumLevel(LogLevel.Trace);
-            builder.AddFilter("Microsoft.EntityFrameworkCore.Infrastructure", LogLevel.Error);
+            builder.AddFilter("Microsoft", LogLevel.Error);
+            builder.AddFilter("System", LogLevel.Error);
+            builder.AddFilter("TRPG", LogLevel.Trace);
             builder.AddZLoggerRollingFile(options => {
                 options.FilePathSelector = (timestamp, sequence) =>
                     Path.Combine("logs", $"trpg_{timestamp.LocalDateTime:yyyyMMdd}_{sequence:000}.log");
@@ -43,6 +46,7 @@ internal static class ServiceCollectionExtensions {
 
     public static IServiceCollection AddTrpgApplicationServices(this IServiceCollection serviceCollection) =>
         serviceCollection
+            .AddMemoryCache()
             .AddTransient<BuildingService>()
             .AddTransient<FactionService>()
             .AddTransient<InventoryService>()
@@ -59,6 +63,8 @@ internal static class ServiceCollectionExtensions {
             .AddTransient<RaceService>()
             .AddTransient<ReputationService>()
             .AddTransient<WorldEventService>()
+            .AddTransient<SceneService>()
+            .AddTransient<WorldService>()
             .AddTransient<WeaponGenerator>()
             .AddTransient<ArmorGenerator>()
             .AddTransient<AccessoryGenerator>()
@@ -74,5 +80,7 @@ internal static class ServiceCollectionExtensions {
             .AddTransient<BootstrapWorldCommandHandler>()
             .AddTransient<DropWorldCommandHandler>()
             .AddTransient<Menu>()
-            .AddTransient<Game>();
+            .AddTransient<Game>()
+            .AddTransient<AgentServer>()
+            .AddTransient<ToolFactory>();
 }

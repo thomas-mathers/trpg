@@ -31,6 +31,8 @@ internal class GeographyGeneratorResult {
 internal class GeographyGenerator(
     OllamaApiClient client,
     ILogger<GeographyGenerator> logger) {
+    private const int MaxCitiesPerRequest = 6;
+
     private static readonly string[] RegionFocusList = [
         "trade and commerce",
         "arcane scholarship",
@@ -179,61 +181,65 @@ internal class GeographyGenerator(
                     ? $"{races[countryIndex % races.Count].CultureStyle} (matching the {races[countryIndex % races.Count].Name} race who dominate this country)"
                     : NamingStyles[countryIndex % NamingStyles.Length];
 
-                var namesHint = context.ExistingNames.Count > 0
-                    ? $" Forbidden names (already used): {string.Join(", ", context.ExistingNames)}."
-                    : string.Empty;
+                for (var chunkStart = 0; chunkStart < urbanRegions.Count; chunkStart += MaxCitiesPerRequest) {
+                    var chunk = urbanRegions.Skip(chunkStart).Take(MaxCitiesPerRequest).ToList();
 
-                var cityList = string.Join("\n", urbanRegions.Select((r, j) =>
-                    $"{j + 1}. {focusMap[r.Id]}{(r.IsCapital ? " (capital)" : "")}"));
+                    var namesHint = context.ExistingNames.Count > 0
+                        ? $" Forbidden names (already used): {string.Join(", ", context.ExistingNames)}."
+                        : string.Empty;
 
-                var schema = await client.GetJson<CityListSchema>(
-                    logger,
-                    $"""
-                     You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
-                     The world is {world.Name}: {world.Description}.
-                     Respond with a JSON object with a Cities array containing exactly {urbanRegions.Count} entries for the country of {country.Name}: {country.Description}.
-                     Each entry has Name and Description. Each description must be a single sentence capturing the city's culture and character.
-                     Use {namingStyle} naming conventions — invent names inspired by that culture, do not use actual historical, mythological, or fictional place names. All names must be unique and must NOT appear in the forbidden list. Never use compound portmanteau names (no "Verdantmind", "Copperstone", "Melodyshire"). You MUST respond in English only. Do not use markdown.
-                     """,
-                    $"Generate {urbanRegions.Count} cities for {country.Name}. Cultural focus for each (in order):\n{cityList}{namesHint}",
-                    s => {
-                        if (s.Cities.Count != urbanRegions.Count) {
-                            return $"Expected {urbanRegions.Count} cities, got {s.Cities.Count}.";
-                        }
+                    var cityList = string.Join("\n", chunk.Select((r, j) =>
+                        $"{j + 1}. {focusMap[r.Id]}{(r.IsCapital ? " (capital)" : "")}"));
 
-                        var internalDupe = s.Cities
-                            .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-                            .FirstOrDefault(g => g.Count() > 1)?.Key;
-                        if (internalDupe != null) {
-                            return $"Duplicate name \"{internalDupe}\" in the batch. All names must be unique.";
-                        }
+                    var schema = await client.GetJson<CityListSchema>(
+                        logger,
+                        $"""
+                         You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
+                         The world is {world.Name}: {world.Description}.
+                         Respond with a JSON object with a Cities array containing exactly {chunk.Count} entries for the country of {country.Name}: {country.Description}.
+                         Each entry has Name and Description. Each description must be a single sentence capturing the city's culture and character.
+                         Use {namingStyle} naming conventions — invent names inspired by that culture, do not use actual historical, mythological, or fictional place names. All names must be unique and must NOT appear in the forbidden list. Never use compound portmanteau names (no "Verdantmind", "Copperstone", "Melodyshire"). You MUST respond in English only. Do not use markdown.
+                         """,
+                        $"Generate {chunk.Count} cities for {country.Name}. Cultural focus for each (in order):\n{cityList}{namesHint}",
+                        s => {
+                            if (s.Cities.Count != chunk.Count) {
+                                return $"Expected {chunk.Count} cities, got {s.Cities.Count}.";
+                            }
 
-                        var crossDupe = s.Cities
-                            .FirstOrDefault(c => context.ExistingNames.Contains(c.Name, StringComparer.OrdinalIgnoreCase));
-                        if (crossDupe != null) {
-                            return $"The name \"{crossDupe.Name}\" is already in use. Choose a different name.";
-                        }
+                            var internalDupe = s.Cities
+                                .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                                .FirstOrDefault(g => g.Count() > 1)?.Key;
+                            if (internalDupe != null) {
+                                return $"Duplicate name \"{internalDupe}\" in the batch. All names must be unique.";
+                            }
 
-                        return null;
-                    },
-                    cancellationToken);
+                            var crossDupe = s.Cities
+                                .FirstOrDefault(c => context.ExistingNames.Contains(c.Name, StringComparer.OrdinalIgnoreCase));
+                            if (crossDupe != null) {
+                                return $"The name \"{crossDupe.Name}\" is already in use. Choose a different name.";
+                            }
 
-                for (var j = 0; j < urbanRegions.Count; j++) {
-                    var mapRegion = urbanRegions[j];
-                    var region = new Region {
-                        CountryId = country.Id,
-                        Name = schema.Cities[j].Name,
-                        Description = schema.Cities[j].Description,
-                        Width = WorldGenerationDefaults.CityTileSize,
-                        Height = WorldGenerationDefaults.CityTileSize,
-                        IsCapital = mapRegion.IsCapital,
-                        RegionType = RegionType.Urban,
-                        Boundary = new Polygon { Points = new List<Point>(mapRegion.Boundary.Points.ToArray()) }
-                    };
-                    regions.Add(region);
-                    regionFocuses[region.Id] = focusMap[mapRegion.Id];
-                    regionById[mapRegion.Id] = region;
-                    context.ExistingNames.Add(schema.Cities[j].Name);
+                            return null;
+                        },
+                        cancellationToken);
+
+                    for (var j = 0; j < chunk.Count; j++) {
+                        var mapRegion = chunk[j];
+                        var region = new Region {
+                            CountryId = country.Id,
+                            Name = schema.Cities[j].Name,
+                            Description = schema.Cities[j].Description,
+                            Width = WorldGenerationDefaults.CityTileSize,
+                            Height = WorldGenerationDefaults.CityTileSize,
+                            IsCapital = mapRegion.IsCapital,
+                            RegionType = RegionType.Urban,
+                            Boundary = new Polygon { Points = new List<Point>(mapRegion.Boundary.Points.ToArray()) }
+                        };
+                        regions.Add(region);
+                        regionFocuses[region.Id] = focusMap[mapRegion.Id];
+                        regionById[mapRegion.Id] = region;
+                        context.ExistingNames.Add(schema.Cities[j].Name);
+                    }
                 }
             }
 

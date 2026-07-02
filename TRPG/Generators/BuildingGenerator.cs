@@ -9,6 +9,7 @@ internal record BuildingGeneratorInput(
     BuildingType Type
 ) {
     public IReadOnlyList<Guid> MemberIds { get; init; } = [];
+    public string? Name { get; init; }
 }
 
 internal record BuildingGeneratorResult(
@@ -32,7 +33,7 @@ internal class BuildingGenerator {
             ]
         };
 
-    private static readonly Dictionary<BuildingType, string[]> Names = new() {
+    internal static readonly Dictionary<BuildingType, string[]> Names = new() {
         [BuildingType.ArcaneShop] = [
             "The Mystic Tome", "The Wandering Eye", "The Silver Sigil", "The Hidden Grimoire",
             "The Arcane Emporium", "Enchanted Relics", "The Spellwright's Corner",
@@ -41,7 +42,12 @@ internal class BuildingGenerator {
         [BuildingType.House] = [
             "Aldric's House", "Brenna's Cottage", "The Old Stone House", "The Thatched Roof",
             "The Corner House", "The Narrow House", "The Crooked Chimney",
-            "The Low House", "The Timber House", "The Hearthside Home"
+            "The Low House", "The Timber House", "The Hearthside Home",
+            "Merrow's House", "Dagny's Cottage", "The Mossy Roof", "The Leaning Chimney",
+            "The Weathered Cottage", "The Ivy House", "The Gabled House", "The Sunken Cottage",
+            "The Whitewashed House", "The Shingled Cottage", "Osric's House", "The Turret House",
+            "The Quiet Cottage", "The Sagging Roof", "The Half Timbered House", "The Willow Cottage",
+            "The Chimney House", "The Shuttered Cottage", "The Steep Roof House", "The Garden Cottage"
         ],
         [BuildingType.Apothecary] = [
             "The Healing Hand", "The Green Flask", "The Herb Garden", "The Mortar & Pestle",
@@ -109,8 +115,7 @@ internal class BuildingGenerator {
         var building = new Building {
             RegionId = input.RegionId,
             BuildingType = input.Type,
-            Name = names[Random.Shared.Next(names.Length)],
-            Boundary = new Rectangle(0, 0, 0, 0)
+            Name = input.Name ?? names[Random.Shared.Next(names.Length)]
         };
         var specs = GetSpecs(input.Type, input.OwnerId, input.MemberIds);
 
@@ -141,6 +146,14 @@ internal class BuildingGenerator {
                 DestinationRoomId = roomBelow.Id
             });
         }
+
+        var entranceRoom = rooms.First(r => r.FloorNumber == 0);
+        props.Add(new RoomConnector {
+            RoomId = entranceRoom.Id,
+            Name = "Front Door",
+            Description = "The door leading outside.",
+            DestinationRoomId = null
+        });
 
         return new BuildingGeneratorResult(building, rooms, props);
     }
@@ -378,19 +391,19 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("Guest Room 1", "A small but tidy guest room.", 1, [
+            new RoomSpec("North Guest Room", "A small but tidy guest room.", 1, [
                 new PropSpec("Bed",
                     id => new Bed { RoomId = id, Name = "Bed", Description = "A comfortable bed for guests." }),
                 new PropSpec("Chest",
                     id => new Container { RoomId = id, Name = "Chest", Description = "A chest for guest belongings." })
             ]),
-            new RoomSpec("Guest Room 2", "A small but tidy guest room.", 1, [
+            new RoomSpec("South Guest Room", "A small but tidy guest room.", 1, [
                 new PropSpec("Bed",
                     id => new Bed { RoomId = id, Name = "Bed", Description = "A comfortable bed for guests." }),
                 new PropSpec("Chest",
                     id => new Container { RoomId = id, Name = "Chest", Description = "A chest for guest belongings." })
             ]),
-            new RoomSpec("Guest Room 3", "A small but tidy guest room.", 1, [
+            new RoomSpec("East Guest Room", "A small but tidy guest room.", 1, [
                 new PropSpec("Bed",
                     id => new Bed { RoomId = id, Name = "Bed", Description = "A comfortable bed for guests." }),
                 new PropSpec("Chest",

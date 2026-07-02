@@ -12,9 +12,20 @@ internal class Menu(
     PersonGenerator personGenerator,
     BootstrapWorldCommandHandler bootstrapHandler,
     DropWorldCommandHandler dropHandler,
-    Game game
+    Game game,
+    AgentServer agentServer
 ) {
-    public async Task Run(CancellationToken cancellationToken) {
+    public async Task Run(string[] args, CancellationToken cancellationToken) {
+        if (args.Contains("--agent")) {
+            await RunAgent(cancellationToken);
+            return;
+        }
+
+        if (args.Contains("--continue")) {
+            await RunContinue(cancellationToken);
+            return;
+        }
+
         while (true) {
             Console.WriteLine();
             Console.WriteLine("=== TRPG ===");
@@ -40,6 +51,12 @@ internal class Menu(
         }
     }
 
+    private async Task RunAgent(CancellationToken cancellationToken) {
+        var world = await AutoSelectWorld(cancellationToken);
+        if (world == null) return;
+        await agentServer.Run(new GameSession(world.Id, world.PlayerId!.Value), cancellationToken);
+    }
+
     private async Task RunNew(CancellationToken cancellationToken) {
         var playerName = PromptForString("Choose your name");
         var profession = PromptForOption("Choose your profession", Enum.GetValues<Profession>(), r => r.ToString());
@@ -62,10 +79,7 @@ internal class Menu(
                 Profession: profession,
                 WorldId: worldResult.World.Id,
                 BirthRegionId: startingRegion.Id,
-                Location: new Location {
-                    RegionId = startingRegion.Id, 
-                    Coordinates = new Point(0, 0)
-                },
+                RegionId: startingRegion.Id,
                 Level: 1,
                 Name: playerName
             )
@@ -102,6 +116,12 @@ internal class Menu(
     }
 
     private async Task RunContinue(CancellationToken cancellationToken) {
+        var world = await AutoSelectWorld(cancellationToken);
+        if (world == null) return;
+        await game.Run(new GameSession(world.Id, world.PlayerId!.Value), cancellationToken);
+    }
+
+    private async Task<World?> AutoSelectWorld(CancellationToken cancellationToken) {
         var worlds = await context.Worlds
             .Where(w => w.PlayerId != null)
             .OrderBy(w => w.Name)
@@ -109,12 +129,12 @@ internal class Menu(
 
         if (worlds.Count == 0) {
             Console.WriteLine("No saved games found.");
-            return;
+            return null;
         }
 
-        var world = PromptForOption("Choose a world to continue:", worlds, w => w.Name);
-        
-        await game.Run(new GameSession(world.Id, world.PlayerId!.Value), cancellationToken);
+        return worlds.Count == 1
+            ? worlds[0]
+            : PromptForOption("Choose a world to continue:", worlds, w => w.Name);
     }
     
     private static int PromptForInt(string label, int defaultValue) {

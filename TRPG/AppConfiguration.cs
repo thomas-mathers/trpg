@@ -21,7 +21,7 @@ internal static class WorldGenerationDefaults {
 }
 
 internal class AppConfiguration {
-    public string OllamaModel { get; init; } = "qwen2.5:14b";
+    public string OllamaModel { get; init; } = "gemma4:latest";
     public Uri OllamaUri { get; init; } = new("http://localhost:11434");
 
     public string PostgresConnectionString { get; init; } =

@@ -53,7 +53,7 @@ public sealed class QuestServiceTests(DatabaseFixture db) : IAsyncLifetime {
             TargetType = targetType,
             Target = Guid.NewGuid(),
             Amount = 5,
-            Region = new Circle { Center = new Location { Coordinates = new Point(0, 0) }, Radius = 100 }
+            RegionId = Guid.NewGuid()
         };
         _context.QuestObjectives.Add(objective);
         await _context.SaveChangesAsync();

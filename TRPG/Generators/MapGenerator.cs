@@ -162,7 +162,7 @@ internal static class MapGenerator {
             throw new InvalidOperationException("Country boundary walk did not form a closed polygon");
         }
 
-        return new Polygon { Points = new Collection<Point>(points) };
+        return new Polygon { Points = new List<Point>(points) };
     }
 
     private static bool IsBoundaryEdge(this VoronoiEdge edge, Dictionary<VoronoiSite, int> siteToCountryIndex) {

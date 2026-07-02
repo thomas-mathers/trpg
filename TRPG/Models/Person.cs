@@ -28,7 +28,8 @@ internal class Person {
     public int Gold { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Level { get; set; }
-    public Location Location { get; set; } = null!;
+    public Guid RegionId { get; set; }
+    public Guid? RoomId { get; set; }
     public string Name { get; init; } = "";
     public Profession Profession { get; init; }
     public Guid RaceId { get; init; }

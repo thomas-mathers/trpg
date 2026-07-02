@@ -19,4 +19,4 @@ var services = new ServiceCollection()
     .AddTrpgApplicationServices()
     .BuildServiceProvider();
 
-await services.GetRequiredService<Menu>().Run(CancellationToken.None);
+await services.GetRequiredService<Menu>().Run(args, CancellationToken.None);

@@ -22,7 +22,6 @@ internal enum BuildingType {
 }
 
 internal class Building {
-    public Rectangle Boundary { get; set; } = null!;
     public BuildingType BuildingType { get; init; }
     public Guid RegionId { get; init; }
     public string Description { get; init; } = "";

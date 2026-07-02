@@ -58,27 +58,22 @@ public sealed class WorldEventServiceTests(DatabaseFixture db) : IAsyncLifetime 
     }
 
     [Fact]
-    public async Task GetAllByRegion_ReturnsEventsWithinRadius() {
+    public async Task GetAllByRegion_ReturnsEventsInRegion() {
         // Arrange
-        var near = Builders.MakeWorldEvent(_worldId, new Point(1, 1));
-        var far = Builders.MakeWorldEvent(_worldId, new Point(1000, 1000));
-        var otherWorld = Builders.MakeWorldEvent(Guid.NewGuid(), new Point(0, 0));
-        await _service.Add(near, TestContext.Current.CancellationToken);
-        await _service.Add(far, TestContext.Current.CancellationToken);
+        var regionId = Guid.NewGuid();
+        var inRegion = Builders.MakeWorldEvent(_worldId, regionId);
+        var differentRegion = Builders.MakeWorldEvent(_worldId, Guid.NewGuid());
+        var otherWorld = Builders.MakeWorldEvent(Guid.NewGuid(), regionId);
+        await _service.Add(inRegion, TestContext.Current.CancellationToken);
+        await _service.Add(differentRegion, TestContext.Current.CancellationToken);
         await _service.Add(otherWorld, TestContext.Current.CancellationToken);
 
-        var searchRegion = new Circle {
-            Center = new Location { Coordinates = new Point(0, 0) },
-            Radius = 50
-        };
-
         // Act
-        var result = await _service.GetAllByRegion(_worldId, searchRegion, TestContext.Current.CancellationToken);
+        var result = await _service.GetAllByRegion(_worldId, regionId, TestContext.Current.CancellationToken);
 
-        // Assert — _event (at 0,0) and near (at 1,1) are within radius 50; far and otherWorld are not
-        Assert.Contains(result, e => e.Id == _event.Id);
-        Assert.Contains(result, e => e.Id == near.Id);
-        Assert.DoesNotContain(result, e => e.Id == far.Id);
+        // Assert
+        Assert.Contains(result, e => e.Id == inRegion.Id);
+        Assert.DoesNotContain(result, e => e.Id == differentRegion.Id);
         Assert.DoesNotContain(result, e => e.Id == otherWorld.Id);
     }
 }

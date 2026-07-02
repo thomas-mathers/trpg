@@ -5,7 +5,8 @@ namespace TRPG.Tests.Helpers;
 internal static class Builders {
     public static Person MakePerson(Guid? worldId = null, Guid? raceId = null,
         Profession profession = Profession.Knight,
-        Guid? birthRegionId = null) {
+        Guid? birthRegionId = null,
+        Guid? regionId = null) {
         return new Person {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = "Test Person",
@@ -13,7 +14,7 @@ internal static class Builders {
             BirthRegionId = birthRegionId ?? Guid.NewGuid(),
             BirthYear = 1000,
             Profession = profession,
-            Location = new Location { Coordinates = new Point(0, 0) },
+            RegionId = regionId ?? Guid.NewGuid(),
             Level = 1,
             Attributes = new Attributes {
                 Strength = 10,
@@ -187,8 +188,7 @@ internal static class Builders {
             RegionId = regionId,
             Name = $"Building-{Guid.NewGuid():N}",
             Description = "A test building",
-            BuildingType = BuildingType.House,
-            Boundary = new Rectangle(0, 0, 10, 10)
+            BuildingType = BuildingType.House
         };
     }
 
@@ -200,17 +200,17 @@ internal static class Builders {
             EndHour = 17,
             Daily = true,
             Priority = priority,
-            Location = new Location { Coordinates = new Point(0, 0) }
+            RegionId = Guid.NewGuid()
         };
     }
 
-    public static WorldEvent MakeWorldEvent(Guid worldId, Point? at = null) {
+    public static WorldEvent MakeWorldEvent(Guid worldId, Guid? regionId = null) {
         return new WorldEvent {
             WorldId = worldId,
             Description = "A test world event",
             Date = DateTime.UtcNow,
             Tags = [],
-            Region = new Circle { Center = new Location { Coordinates = at ?? new Point(0, 0) }, Radius = 100 }
+            RegionId = regionId
         };
     }
 }

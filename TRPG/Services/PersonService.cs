@@ -13,16 +13,38 @@ internal class PersonService(TrpgDbContext context) {
     public async Task<Person?> GetById(Guid id, CancellationToken cancellationToken = default) {
         return await context.Persons.FindAsync([id], cancellationToken);
     }
-
-    public async Task<IReadOnlyCollection<Person>> GetAllWithinRange(Guid worldId, Point center, float radius,
+    
+    public async Task<IReadOnlyCollection<Person>> GetAllInRoom(Guid worldId, Guid roomId,
         CancellationToken cancellationToken = default) {
-        var candidates = await context.Persons
-            .Where(p => p.WorldId == worldId)
-            .ToListAsync(cancellationToken);
+        return await context.Persons
+            .Where(p => p.WorldId == worldId && p.RoomId == roomId)
+            .ToArrayAsync(cancellationToken);
+    }
+    
+    public async Task<IReadOnlyCollection<Person>> GetAllOutdoorsInRegion(Guid worldId, Guid regionId,
+        CancellationToken cancellationToken = default) {
+        return await context.Persons
+            .Where(p => p.WorldId == worldId && p.RegionId == regionId && p.RoomId == null)
+            .ToArrayAsync(cancellationToken);
+    }
 
-        return candidates
-            .Where(p => Distance(p.Location.Coordinates, center) <= radius)
-            .ToArray();
+    public async Task<IReadOnlyCollection<Person>> GetAllInRegion(Guid worldId, Guid regionId,
+        CancellationToken cancellationToken = default) {
+        return await context.Persons
+            .Where(p => p.WorldId == worldId && p.RegionId == regionId)
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task<Person?> GetByNameInRoom(Guid worldId, Guid roomId, string name,
+        CancellationToken cancellationToken = default) {
+        return await context.Persons
+            .FirstOrDefaultAsync(p => p.WorldId == worldId && p.RoomId == roomId && p.Name == name, cancellationToken);
+    }
+
+    public async Task<Person?> GetByNameOutdoorsInRegion(Guid worldId, Guid regionId, string name,
+        CancellationToken cancellationToken = default) {
+        return await context.Persons
+            .FirstOrDefaultAsync(p => p.WorldId == worldId && p.RegionId == regionId && p.RoomId == null && p.Name == name, cancellationToken);
     }
 
     public async Task Update(Person person, CancellationToken cancellationToken = default) {
@@ -32,11 +54,5 @@ internal class PersonService(TrpgDbContext context) {
 
     public async Task Delete(Guid id, CancellationToken cancellationToken = default) {
         await context.Persons.Where(p => p.Id == id).ExecuteDeleteAsync(cancellationToken);
-    }
-
-    private static double Distance(Point a, Point b) {
-        var dx = a.X - b.X;
-        var dy = a.Y - b.Y;
-        return Math.Sqrt(dx * dx + dy * dy);
     }
 }

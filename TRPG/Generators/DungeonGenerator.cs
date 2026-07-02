@@ -55,8 +55,7 @@ internal static class DungeonGenerator {
         var building = new Building {
             RegionId = input.RegionId,
             BuildingType = type,
-            Name = namePool[Random.Shared.Next(namePool.Length)],
-            Boundary = new Rectangle(0, 0, 0, 0)
+            Name = namePool[Random.Shared.Next(namePool.Length)]
         };
         var room = new Room {
             BuildingId = building.Id,

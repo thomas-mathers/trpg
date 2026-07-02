@@ -14,20 +14,10 @@ internal class WorldEventService(TrpgDbContext context) {
         return await context.WorldEvents.FindAsync([id], cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<WorldEvent>> GetAllByRegion(Guid worldId, Circle region,
+    public async Task<IReadOnlyCollection<WorldEvent>> GetAllByRegion(Guid worldId, Guid regionId,
         CancellationToken cancellationToken = default) {
-        var events = await context.WorldEvents
-            .Where(e => e.WorldId == worldId)
+        return await context.WorldEvents
+            .Where(e => e.WorldId == worldId && e.RegionId == regionId)
             .ToArrayAsync(cancellationToken);
-
-        return events
-            .Where(e => Distance(e.Region.Center.Coordinates, region.Center.Coordinates) <= region.Radius)
-            .ToArray();
-    }
-
-    private static double Distance(Point a, Point b) {
-        var dx = a.X - b.X;
-        var dy = a.Y - b.Y;
-        return Math.Sqrt(dx * dx + dy * dy);
     }
 }

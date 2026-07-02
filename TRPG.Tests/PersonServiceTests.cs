@@ -86,30 +86,25 @@ public sealed class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetAllWithinRange_ReturnsOnlyPersonsInSameWorldWithinRadius() {
+    public async Task GetAllInRegion_ReturnsOnlyPersonsInRegion() {
         // Arrange
         var worldId = Guid.NewGuid();
+        var regionId = Guid.NewGuid();
 
-        var near = Builders.MakePerson(worldId);
-        near.Location.Coordinates = new Point(1, 1);
+        var inRegion = Builders.MakePerson(worldId, regionId: regionId);
+        var differentRegion = Builders.MakePerson(worldId);
+        var otherWorld = Builders.MakePerson(regionId: regionId);
 
-        var far = Builders.MakePerson(worldId);
-        far.Location.Coordinates = new Point(1000, 1000);
-
-        var otherWorld = Builders.MakePerson(Guid.NewGuid());
-        otherWorld.Location.Coordinates = new Point(0, 0);
-
-        await _service.Add(near, TestContext.Current.CancellationToken);
-        await _service.Add(far, TestContext.Current.CancellationToken);
+        await _service.Add(inRegion, TestContext.Current.CancellationToken);
+        await _service.Add(differentRegion, TestContext.Current.CancellationToken);
         await _service.Add(otherWorld, TestContext.Current.CancellationToken);
 
         // Act
-        var results =
-            await _service.GetAllWithinRange(worldId, new Point(0, 0), 10f, TestContext.Current.CancellationToken);
+        var results = await _service.GetAllInRegion(worldId, regionId, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Contains(results, p => p.Id == near.Id);
-        Assert.DoesNotContain(results, p => p.Id == far.Id);
+        Assert.Contains(results, p => p.Id == inRegion.Id);
+        Assert.DoesNotContain(results, p => p.Id == differentRegion.Id);
         Assert.DoesNotContain(results, p => p.Id == otherWorld.Id);
     }
 }

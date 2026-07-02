@@ -27,8 +27,4 @@
         <PackageReference Include="ZLogger" Version="2.5.10" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Tools\" />
-    </ItemGroup>
-
 </Project>

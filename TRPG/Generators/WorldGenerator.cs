@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using TRPG.Algorithms;
 using TRPG.Models;
 
 namespace TRPG.Generators;
@@ -60,6 +59,11 @@ internal class WorldGenerator(
         WorldGeneratorInput generatorInput,
         CancellationToken cancellationToken
     ) {
+        if (generatorInput.HousesPerCity > BuildingGenerator.Names[BuildingType.House].Length) {
+            throw new InvalidOperationException(
+                $"HousesPerCity ({generatorInput.HousesPerCity}) cannot exceed the house name pool size ({BuildingGenerator.Names[BuildingType.House].Length}).");
+        }
+
         var sw = Stopwatch.StartNew();
         var worldId = Guid.NewGuid();
 
@@ -116,12 +120,12 @@ internal class WorldGenerator(
 
         foreach (var region in geography.Regions.Where(r => r.RegionType == RegionType.Urban)) {
             var cityBuildings = new List<Building>();
+            var houseNames = new Queue<string>(BuildingGenerator.Names[BuildingType.House].Shuffle().Take(generatorInput.HousesPerCity));
 
             foreach (var type in GetCityBuildingTypes(generatorInput.HousesPerCity)) {
                 var race = races[Random.Shared.Next(races.Count)];
-                var location = new Location { RegionId = region.Id, Coordinates = new Point(0, 0) };
                 var personResult = personGenerator.Generate(
-                    new PersonGeneratorInput(race, GetProfessionForBuilding(type), worldId, region.Id, location)
+                    new PersonGeneratorInput(race, GetProfessionForBuilding(type), worldId, region.Id, region.Id)
                 );
 
                 var memberIds = new List<Guid> { personResult.Person.Id };
@@ -131,9 +135,8 @@ internal class WorldGenerator(
                     var numMembers = Random.Shared.Next(generatorInput.MinFactionMembers, generatorInput.MaxFactionMembers + 1);
                     for (var m = 1; m < numMembers; m++) {
                         var memberRace = races[Random.Shared.Next(races.Count)];
-                        var memberLocation = new Location { RegionId = region.Id, Coordinates = new Point(0, 0) };
                         var memberPerson = personGenerator.Generate(
-                            new PersonGeneratorInput(memberRace, Profession.Mercenary, worldId, region.Id, memberLocation)
+                            new PersonGeneratorInput(memberRace, Profession.Mercenary, worldId, region.Id, region.Id)
                         );
                         memberPersons.Add(memberPerson);
                         memberIds.Add(memberPerson.Person.Id);
@@ -142,7 +145,10 @@ internal class WorldGenerator(
 
                 var buildingResult = buildingGenerator.Generate(
                     new BuildingGeneratorInput(RegionId: region.Id, RegionType: region.RegionType,
-                        OwnerId: personResult.Person.Id, Type: type) { MemberIds = memberIds }
+                        OwnerId: personResult.Person.Id, Type: type) {
+                        MemberIds = memberIds,
+                        Name = type == BuildingType.House ? houseNames.Dequeue() : null
+                    }
                 );
 
                 if (type == BuildingType.GuildHall) {
@@ -153,7 +159,7 @@ internal class WorldGenerator(
                     foreach (var memberPerson in memberPersons) {
                         factionMembers.Add(new FactionMember
                             { FactionId = factionId, PersonId = memberPerson.Person.Id, Role = FactionRole.Member });
-                        memberPerson.Person.Location.BuildingId = buildingResult.Building.Id;
+                        memberPerson.Person.RoomId = buildingResult.Rooms.First(r => r.FloorNumber == 0).Id;
                         persons.Add(memberPerson.Person);
                         items.AddRange(memberPerson.Items);
                         inventoryItems.AddRange(memberPerson.InventoryItems);
@@ -162,7 +168,7 @@ internal class WorldGenerator(
                     }
                 }
 
-                personResult.Person.Location.BuildingId = buildingResult.Building.Id;
+                personResult.Person.RoomId = buildingResult.Rooms.First(r => r.FloorNumber == 0).Id;
                 cityBuildings.Add(buildingResult.Building);
                 persons.Add(personResult.Person);
                 items.AddRange(personResult.Items);
@@ -175,13 +181,11 @@ internal class WorldGenerator(
                 props.AddRange(buildingResult.Props);
             }
 
-            BuildingLayout.PlaceBuildings(region, cityBuildings);
             buildings.AddRange(cityBuildings);
         }
 
         foreach (var region in dungeonRegions) {
             var result = DungeonGenerator.Generate(new DungeonGeneratorInput(region.Id));
-            BuildingLayout.PlaceBuildings(region, [result.Building]);
             buildings.Add(result.Building);
             rooms.Add(result.Room);
         }
