@@ -10,33 +10,33 @@ internal class MapCountry {
     public Guid Id { get; } = Guid.NewGuid();
 }
 
-internal class MapRegion {
+internal class MapState {
     public required Polygon Boundary { get; init; }
     public required Point Center { get; init; }
     public required Guid CountryId { get; init; }
+    public bool HasCity { get; init; }
     public Guid Id { get; } = Guid.NewGuid();
     public bool IsCapital { get; init; }
-    public RegionType RegionType { get; init; }
 }
 
 internal class MapRoad {
-    public required Guid DestinationRegionId { get; init; }
+    public required Guid DestinationStateId { get; init; }
     public Guid Id { get; } = Guid.NewGuid();
-    public required Guid OriginRegionId { get; init; }
+    public required Guid OriginStateId { get; init; }
 }
 
 internal class MapGeneratorResult {
     public required IReadOnlyList<MapCountry> Countries { get; init; }
-    public required IReadOnlyList<MapRegion> Regions { get; init; }
+    public required IReadOnlyList<MapState> States { get; init; }
     public required IReadOnlyList<MapRoad> Roads { get; init; }
 }
 
 internal static class MapGenerator {
-    public static MapGeneratorResult Generate(int worldWidth, int worldHeight, int numUrbanRegions,
-        int numRuralRegions, int numberOfCountries) {
+    public static MapGeneratorResult Generate(int worldWidth, int worldHeight, int numCityStates,
+        int numNonCityStates, int numberOfCountries) {
         var plane = new VoronoiPlane(0, 0, worldWidth, worldHeight);
 
-        var sites = plane.GenerateRandomSites(numUrbanRegions + numRuralRegions);
+        var sites = plane.GenerateRandomSites(numCityStates + numNonCityStates);
 
         plane.Tessellate();
 
@@ -46,25 +46,25 @@ internal static class MapGenerator {
             .Select(i => new MapCountry { Boundary = GetCountryBoundary(i, siteToCountryIndex) })
             .ToArray();
 
-        var ruralSites = GetRuralSites(sites, capitalSites, numRuralRegions);
+        var nonCitySites = GetNonCitySites(sites, capitalSites, numNonCityStates);
 
-        var regionBySite = sites.ToDictionary(
+        var stateBySite = sites.ToDictionary(
             k => k,
-            site => new MapRegion {
+            site => new MapState {
                 CountryId = countries[siteToCountryIndex[site]].Id,
                 Center = new Point((int) site.X, (int) site.Y),
                 Boundary = new Polygon {
                     Points = [..site.ClockwiseEdgesWound.Select(e => new Point((int) e.Start.X, (int) e.Start.Y))]
                 },
                 IsCapital = capitalSites.Contains(site),
-                RegionType = ruralSites.Contains(site) ? RegionType.Rural : RegionType.Urban
+                HasCity = !nonCitySites.Contains(site)
             });
 
-        var roads = GetRoads(regionBySite);
+        var roads = GetRoads(stateBySite);
 
         return new MapGeneratorResult {
             Countries = countries,
-            Regions = regionBySite.Values.ToArray(),
+            States = stateBySite.Values.ToArray(),
             Roads = roads
         };
     }
@@ -95,12 +95,12 @@ internal static class MapGenerator {
         return (siteToCountry, [..capitalSites]);
     }
 
-    private static HashSet<VoronoiSite> GetRuralSites(
+    private static HashSet<VoronoiSite> GetNonCitySites(
         List<VoronoiSite> sites,
         HashSet<VoronoiSite> capitalSites,
-        int numRuralRegions) {
+        int numNonCityStates) {
         var nonCapitals = sites.Where(s => !capitalSites.Contains(s)).ToList();
-        return [..nonCapitals.Shuffle().Take(numRuralRegions)];
+        return [..nonCapitals.Shuffle().Take(numNonCityStates)];
     }
 
     private static Polygon GetCountryBoundary(int countryIndex, Dictionary<VoronoiSite, int> siteToCountryIndex) {
@@ -110,7 +110,7 @@ internal static class MapGenerator {
             .ToArray();
 
         if (countrySites.Length == 0) {
-            throw new InvalidOperationException("Country has no regions");
+            throw new InvalidOperationException("Country has no states");
         }
 
         var boundaryEdges = countrySites
@@ -180,16 +180,16 @@ internal static class MapGenerator {
         return siteToCountryIndex[left] != siteToCountryIndex[right];
     }
 
-    private static MapRoad[] GetRoads(Dictionary<VoronoiSite, MapRegion> regionBySite) {
+    private static MapRoad[] GetRoads(Dictionary<VoronoiSite, MapState> stateBySite) {
         var edges = Graphs.MinimumSpanningTree(
-            regionBySite.Keys.First(),
+            stateBySite.Keys.First(),
             site => site.Neighbours,
             DistanceTo);
 
         return edges
             .Select(edge => new MapRoad {
-                OriginRegionId = regionBySite[edge.From].Id,
-                DestinationRegionId = regionBySite[edge.To].Id
+                OriginStateId = stateBySite[edge.From].Id,
+                DestinationStateId = stateBySite[edge.To].Id
             })
             .ToArray();
     }

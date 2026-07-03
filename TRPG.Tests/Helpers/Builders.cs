@@ -5,16 +5,21 @@ namespace TRPG.Tests.Helpers;
 internal static class Builders {
     public static Person MakePerson(Guid? worldId = null, Guid? raceId = null,
         Profession profession = Profession.Knight,
-        Guid? birthRegionId = null,
-        Guid? regionId = null) {
+        Guid? birthStateId = null,
+        Guid? stateId = null,
+        Guid? cityId = null,
+        Guid? districtId = null,
+        int birthYear = 1000) {
         return new Person {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = "Test Person",
             RaceId = raceId ?? Guid.NewGuid(),
-            BirthRegionId = birthRegionId ?? Guid.NewGuid(),
-            BirthYear = 1000,
+            BirthStateId = birthStateId ?? Guid.NewGuid(),
+            BirthYear = birthYear,
             Profession = profession,
-            RegionId = regionId ?? Guid.NewGuid(),
+            StateId = stateId ?? Guid.NewGuid(),
+            CityId = cityId,
+            DistrictId = districtId,
             Level = 1,
             Attributes = new Attributes {
                 Strength = 10,
@@ -162,15 +167,35 @@ internal static class Builders {
         };
     }
 
-    public static Region MakeRegion(Guid countryId) {
-        return new Region {
+    public static State MakeState(Guid countryId) {
+        return new State {
             CountryId = countryId,
-            Name = $"Region-{Guid.NewGuid():N}",
-            Description = "A test region",
+            Name = $"State-{Guid.NewGuid():N}",
+            Description = "A test state",
             Width = 100,
             Height = 100,
+            Center = new Point(50, 50),
             Boundary = new Polygon
                 { Points = [new Point(0, 0), new Point(100, 0), new Point(100, 100), new Point(0, 100)] }
+        };
+    }
+
+    public static City MakeCity(Guid stateId, Guid countryId, bool isCapital = false) {
+        return new City {
+            StateId = stateId,
+            CountryId = countryId,
+            Name = $"City-{Guid.NewGuid():N}",
+            Description = "A test city",
+            IsCapital = isCapital
+        };
+    }
+
+    public static District MakeDistrict(Guid cityId, DistrictType districtType = DistrictType.Market) {
+        return new District {
+            CityId = cityId,
+            DistrictType = districtType,
+            Name = $"District-{Guid.NewGuid():N}",
+            Description = "A test district"
         };
     }
 
@@ -183,9 +208,11 @@ internal static class Builders {
         };
     }
 
-    public static Building MakeBuilding(Guid regionId) {
+    public static Building MakeBuilding(Guid stateId, Guid? cityId = null, Guid? districtId = null) {
         return new Building {
-            RegionId = regionId,
+            StateId = stateId,
+            CityId = cityId,
+            DistrictId = districtId,
             Name = $"Building-{Guid.NewGuid():N}",
             Description = "A test building",
             BuildingType = BuildingType.House
@@ -200,17 +227,17 @@ internal static class Builders {
             EndHour = 17,
             Daily = true,
             Priority = priority,
-            RegionId = Guid.NewGuid()
+            StateId = Guid.NewGuid()
         };
     }
 
-    public static WorldEvent MakeWorldEvent(Guid worldId, Guid? regionId = null) {
+    public static WorldEvent MakeWorldEvent(Guid worldId, Guid? stateId = null) {
         return new WorldEvent {
             WorldId = worldId,
             Description = "A test world event",
             Date = DateTime.UtcNow,
             Tags = [],
-            RegionId = regionId
+            StateId = stateId
         };
     }
 }

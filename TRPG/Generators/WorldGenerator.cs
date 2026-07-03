@@ -8,15 +8,17 @@ internal class WorldGeneratorInput {
     public required string Description { get; init; }
     public int FactionCount { get; init; }
     public int HousesPerCity { get; init; }
-    public int MaxDungeons { get; init; }
+    public int MaxBuildingsPerState { get; init; }
     public int MaxFactionMembers { get; init; }
-    public int MinDungeons { get; init; }
+    public int MaxHouseholdSize { get; init; }
+    public int MinBuildingsPerState { get; init; }
     public int MinFactionMembers { get; init; }
-    public int MaxRuralRegions { get; init; }
-    public int MaxUrbanRegions { get; init; }
+    public int MinHouseholdSize { get; init; }
+    public int MaxRuralStates { get; init; }
+    public int MaxCityStates { get; init; }
     public int MaxCountries { get; init; }
-    public int MinRuralRegions { get; init; }
-    public int MinUrbanRegions { get; init; }
+    public int MinRuralStates { get; init; }
+    public int MinCityStates { get; init; }
     public int MinCountries { get; init; }
     public int RaceCount { get; init; }
 }
@@ -25,7 +27,9 @@ internal class WorldGeneratorResult {
     public required IReadOnlyCollection<PersonAbility> Abilities { get; init; }
     public required IReadOnlyList<BuildingOwner> BuildingOwners { get; init; }
     public required IReadOnlyList<Building> Buildings { get; init; }
-    public required IReadOnlyList<Region> Regions { get; init; }
+    public required IReadOnlyList<State> States { get; init; }
+    public required IReadOnlyList<City> Cities { get; init; }
+    public required IReadOnlyList<District> Districts { get; init; }
     public required IReadOnlyList<Country> Countries { get; init; }
     public required IReadOnlyList<FactionMember> FactionMembers { get; init; }
     public required IReadOnlyList<Faction> Factions { get; init; }
@@ -67,10 +71,15 @@ internal class WorldGenerator(
         var sw = Stopwatch.StartNew();
         var worldId = Guid.NewGuid();
 
+        var groundedDescription = $"{generatorInput.Description} This remains a low-fantasy world where knights, "
+            + "mercenaries, blacksmiths, and mages are established, respected roles, and swords and plate armor are "
+            + "still standard equipment. Any technological or aesthetic theme should layer on top of this as mood "
+            + "and atmosphere — not replace or obsolete these roles and equipment.";
+
         var races = await raceGenerator.Generate(
             new RaceGeneratorInput {
                 WorldId = worldId,
-                Description = generatorInput.Description,
+                Description = groundedDescription,
                 Count = generatorInput.RaceCount
             },
             cancellationToken
@@ -79,7 +88,7 @@ internal class WorldGenerator(
         var factions = await factionsGenerator.Generate(
             new FactionsGeneratorInput {
                 WorldId = worldId,
-                Description = generatorInput.Description,
+                Description = groundedDescription,
                 Count = generatorInput.FactionCount
             },
             cancellationToken
@@ -88,13 +97,13 @@ internal class WorldGenerator(
         var geography = await geographyGenerator.Generate(
             new GeographyGeneratorInput {
                 WorldId = worldId,
-                Description = generatorInput.Description,
+                Description = groundedDescription,
                 Races = races,
-                MaxRuralRegions = generatorInput.MaxRuralRegions,
-                MaxUrbanRegions = generatorInput.MaxUrbanRegions,
+                MaxRuralStates = generatorInput.MaxRuralStates,
+                MaxCityStates = generatorInput.MaxCityStates,
                 MaxCountries = generatorInput.MaxCountries,
-                MinRuralRegions = generatorInput.MinRuralRegions,
-                MinUrbanRegions = generatorInput.MinUrbanRegions,
+                MinRuralStates = generatorInput.MinRuralStates,
+                MinCityStates = generatorInput.MinCityStates,
                 MinCountries = generatorInput.MinCountries
             },
             cancellationToken
@@ -110,23 +119,29 @@ internal class WorldGenerator(
         var props = new List<Prop>();
         var skills = new List<PersonSkill>();
         var abilities = new List<PersonAbility>();
+        var districts = new List<District>();
         var guildHallIndex = 0;
 
-        var ruralRegions = geography.Regions.Where(r => r.RegionType == RegionType.Rural).ToList();
-        var dungeonCount = Math.Min(
-            Random.Shared.Next(generatorInput.MinDungeons, generatorInput.MaxDungeons + 1),
-            ruralRegions.Count);
-        var dungeonRegions = ruralRegions.Shuffle().Take(dungeonCount).ToHashSet();
+        var stateById = geography.States.ToDictionary(s => s.Id);
 
-        foreach (var region in geography.Regions.Where(r => r.RegionType == RegionType.Urban)) {
+        foreach (var city in geography.Cities) {
+            var state = stateById[city.StateId];
+            var cityDistricts = Enum.GetValues<DistrictType>()
+                .Select(type => DistrictGenerator.Generate(type, city.Id))
+                .ToDictionary(d => d.DistrictType);
+            districts.AddRange(cityDistricts.Values);
+
             var cityBuildings = new List<Building>();
-            var houseNames = new Queue<string>(BuildingGenerator.Names[BuildingType.House].Shuffle().Take(generatorInput.HousesPerCity));
 
-            foreach (var type in GetCityBuildingTypes(generatorInput.HousesPerCity)) {
+            foreach (var type in StandardBuildingTypes) {
+                var district = cityDistricts[DistrictGenerator.DistrictTypeByBuildingType[type]];
+
                 var race = races[Random.Shared.Next(races.Count)];
                 var personResult = personGenerator.Generate(
-                    new PersonGeneratorInput(race, GetProfessionForBuilding(type), worldId, region.Id, region.Id)
+                    new PersonGeneratorInput(race, GetProfessionForBuilding(type), worldId, state.Id, state.Id)
                 );
+                personResult.Person.CityId = city.Id;
+                personResult.Person.DistrictId = district.Id;
 
                 var memberIds = new List<Guid> { personResult.Person.Id };
                 var memberPersons = new List<PersonGeneratorResult>();
@@ -136,18 +151,19 @@ internal class WorldGenerator(
                     for (var m = 1; m < numMembers; m++) {
                         var memberRace = races[Random.Shared.Next(races.Count)];
                         var memberPerson = personGenerator.Generate(
-                            new PersonGeneratorInput(memberRace, Profession.Mercenary, worldId, region.Id, region.Id)
+                            new PersonGeneratorInput(memberRace, Profession.Mercenary, worldId, state.Id, state.Id)
                         );
+                        memberPerson.Person.CityId = city.Id;
+                        memberPerson.Person.DistrictId = district.Id;
                         memberPersons.Add(memberPerson);
                         memberIds.Add(memberPerson.Person.Id);
                     }
                 }
 
                 var buildingResult = buildingGenerator.Generate(
-                    new BuildingGeneratorInput(RegionId: region.Id, RegionType: region.RegionType,
+                    new BuildingGeneratorInput(StateId: state.Id, CityId: city.Id, DistrictId: district.Id,
                         OwnerId: personResult.Person.Id, Type: type) {
-                        MemberIds = memberIds,
-                        Name = type == BuildingType.House ? houseNames.Dequeue() : null
+                        MemberIds = memberIds
                     }
                 );
 
@@ -181,13 +197,71 @@ internal class WorldGenerator(
                 props.AddRange(buildingResult.Props);
             }
 
+            var residentialDistrict = cityDistricts[DistrictType.Residential];
+            var districtIds = cityDistricts.Values.Select(d => d.Id).ToArray();
+            var houseNames = new Queue<string>(BuildingGenerator.Names[BuildingType.House].Shuffle().Take(generatorInput.HousesPerCity));
+
+            for (var h = 0; h < generatorInput.HousesPerCity; h++) {
+                var householdSize = Random.Shared.Next(generatorInput.MinHouseholdSize, generatorInput.MaxHouseholdSize + 1);
+                var household = new List<PersonGeneratorResult>();
+                for (var m = 0; m < householdSize; m++) {
+                    var race = races[Random.Shared.Next(races.Count)];
+                    var member = personGenerator.Generate(
+                        new PersonGeneratorInput(race, GetProfessionForBuilding(BuildingType.House), worldId, state.Id, state.Id)
+                    );
+                    member.Person.CityId = city.Id;
+                    household.Add(member);
+                }
+
+                var owner = household[0];
+                var houseResult = buildingGenerator.Generate(
+                    new BuildingGeneratorInput(StateId: state.Id, CityId: city.Id, DistrictId: residentialDistrict.Id,
+                        OwnerId: owner.Person.Id, Type: BuildingType.House) {
+                        Name = houseNames.Dequeue()
+                    }
+                );
+
+                var homeRoomId = houseResult.Rooms.First(r => r.FloorNumber == 0).Id;
+                var placedOutdoors = household.Select(_ => Random.Shared.Next(2) == 0).ToArray();
+                if (householdSize > 1 && !placedOutdoors.Contains(true)) {
+                    placedOutdoors[Random.Shared.Next(placedOutdoors.Length)] = true;
+                }
+
+                for (var m = 0; m < household.Count; m++) {
+                    var member = household[m];
+                    if (placedOutdoors[m]) {
+                        member.Person.RoomId = null;
+                        member.Person.DistrictId = districtIds[Random.Shared.Next(districtIds.Length)];
+                    } else {
+                        member.Person.RoomId = homeRoomId;
+                        member.Person.DistrictId = residentialDistrict.Id;
+                    }
+
+                    persons.Add(member.Person);
+                    items.AddRange(member.Items);
+                    inventoryItems.AddRange(member.InventoryItems);
+                    skills.AddRange(member.Skills);
+                    abilities.AddRange(member.Abilities);
+                }
+
+                cityBuildings.Add(houseResult.Building);
+                buildingOwners.Add(new BuildingOwner { BuildingId = houseResult.Building.Id, OwnerId = owner.Person.Id });
+                rooms.AddRange(houseResult.Rooms);
+                props.AddRange(houseResult.Props);
+            }
+
             buildings.AddRange(cityBuildings);
         }
 
-        foreach (var region in dungeonRegions) {
-            var result = DungeonGenerator.Generate(new DungeonGeneratorInput(region.Id));
-            buildings.Add(result.Building);
-            rooms.Add(result.Room);
+        foreach (var state in geography.States) {
+            var count = Random.Shared.Next(generatorInput.MinBuildingsPerState, generatorInput.MaxBuildingsPerState + 1);
+            var usedNames = new HashSet<string>();
+            for (var i = 0; i < count; i++) {
+                var result = DungeonGenerator.Generate(new DungeonGeneratorInput(state.Id, usedNames));
+                usedNames.Add(result.Building.Name);
+                buildings.Add(result.Building);
+                rooms.Add(result.Room);
+            }
         }
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
@@ -195,7 +269,9 @@ internal class WorldGenerator(
         return new WorldGeneratorResult {
             World = geography.World,
             Countries = geography.Countries,
-            Regions = geography.Regions,
+            States = geography.States,
+            Cities = geography.Cities,
+            Districts = districts,
             Roads = geography.Roads,
             Races = races,
             Factions = factions,
@@ -210,15 +286,6 @@ internal class WorldGenerator(
             Skills = skills,
             Abilities = abilities
         };
-    }
-
-    private static List<BuildingType> GetCityBuildingTypes(int housesPerCity) {
-        var types = StandardBuildingTypes.ToList();
-        for (var i = 0; i < housesPerCity; i++) {
-            types.Add(BuildingType.House);
-        }
-
-        return types;
     }
 
     private static Profession GetProfessionForBuilding(BuildingType type) {

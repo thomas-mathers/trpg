@@ -7,7 +7,7 @@ namespace TRPG.Tests;
 
 [Collection("Database")]
 public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
-    private readonly Guid _regionId = Guid.NewGuid();
+    private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _ownerId = Guid.NewGuid();
     private Building _building = null!;
     private TrpgDbContext _context = null!;
@@ -17,7 +17,7 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
         _context = db.CreateContext();
         _service = new BuildingService(_context);
 
-        _building = Builders.MakeBuilding(_regionId);
+        _building = Builders.MakeBuilding(_stateId);
         _context.Buildings.Add(_building);
         await _context.SaveChangesAsync();
     }
@@ -46,13 +46,13 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetAllByRegionId_ReturnsBuildingsInRegion() {
+    public async Task GetAllByStateId_ReturnsBuildingsInState() {
         // Act
-        var result = await _service.GetAllByRegionId(_regionId, TestContext.Current.CancellationToken);
+        var result = await _service.GetAllByStateId(_stateId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains(result, b => b.Id == _building.Id);
-        Assert.All(result, b => Assert.Equal(_regionId, b.RegionId));
+        Assert.All(result, b => Assert.Equal(_stateId, b.StateId));
     }
 
     [Fact]

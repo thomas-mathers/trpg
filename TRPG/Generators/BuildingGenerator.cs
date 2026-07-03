@@ -3,8 +3,9 @@ using TRPG.Models;
 namespace TRPG.Generators;
 
 internal record BuildingGeneratorInput(
-    Guid RegionId,
-    RegionType RegionType,
+    Guid StateId,
+    Guid CityId,
+    Guid DistrictId,
     Guid? OwnerId,
     BuildingType Type
 ) {
@@ -19,19 +20,17 @@ internal record BuildingGeneratorResult(
 );
 
 internal class BuildingGenerator {
-    internal static readonly IReadOnlyDictionary<RegionType, IReadOnlyCollection<BuildingType>> BuildingTypesByRegionType =
-        new Dictionary<RegionType, IReadOnlyCollection<BuildingType>> {
-            [RegionType.Urban] = [
-                BuildingType.ArcaneShop, BuildingType.Apothecary, BuildingType.Bakery,
-                BuildingType.Blacksmith, BuildingType.Castle, BuildingType.GeneralGoods,
-                BuildingType.GuildHall, BuildingType.House, BuildingType.Jail,
-                BuildingType.Library, BuildingType.Stable, BuildingType.Tavern, BuildingType.Temple
-            ],
-            [RegionType.Rural] = [
-                BuildingType.Cave, BuildingType.Crypt, BuildingType.Mine,
-                BuildingType.Ruins, BuildingType.Tower
-            ]
-        };
+    internal static readonly IReadOnlyCollection<BuildingType> CityBuildingTypes = [
+        BuildingType.ArcaneShop, BuildingType.Apothecary, BuildingType.Bakery,
+        BuildingType.Blacksmith, BuildingType.Castle, BuildingType.GeneralGoods,
+        BuildingType.GuildHall, BuildingType.House, BuildingType.Jail,
+        BuildingType.Library, BuildingType.Stable, BuildingType.Tavern, BuildingType.Temple
+    ];
+
+    internal static readonly IReadOnlyCollection<BuildingType> DungeonBuildingTypes = [
+        BuildingType.Cave, BuildingType.Crypt, BuildingType.Mine,
+        BuildingType.Ruins, BuildingType.Tower
+    ];
 
     internal static readonly Dictionary<BuildingType, string[]> Names = new() {
         [BuildingType.ArcaneShop] = [
@@ -107,13 +106,15 @@ internal class BuildingGenerator {
     };
 
     public BuildingGeneratorResult Generate(BuildingGeneratorInput input) {
-        if (!BuildingTypesByRegionType[input.RegionType].Contains(input.Type))
+        if (!CityBuildingTypes.Contains(input.Type))
             throw new InvalidOperationException(
-                $"{input.Type} cannot be placed in a {input.RegionType} region.");
+                $"{input.Type} cannot be placed in a city.");
 
         var names = Names[input.Type];
         var building = new Building {
-            RegionId = input.RegionId,
+            StateId = input.StateId,
+            CityId = input.CityId,
+            DistrictId = input.DistrictId,
             BuildingType = input.Type,
             Name = input.Name ?? names[Random.Shared.Next(names.Length)]
         };

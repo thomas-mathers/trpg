@@ -9,7 +9,7 @@ namespace TRPG.Tests;
 [Collection("Database")]
 public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private MemoryCache _cache = null!;
-    private Region _region = null!;
+    private State _state = null!;
     private TrpgDbContext _context = null!;
     private Country _country = null!;
     private NavigationService _service = null!;
@@ -21,11 +21,11 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
 
         var world = Builders.MakeWorld();
         _country = Builders.MakeCountry(world.Id);
-        _region = Builders.MakeRegion(_country.Id);
+        _state = Builders.MakeState(_country.Id);
 
         _context.Worlds.Add(world);
         _context.Countries.Add(_country);
-        _context.Regions.Add(_region);
+        _context.States.Add(_state);
         await _context.SaveChangesAsync();
     }
 
@@ -34,17 +34,17 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         await _context.DisposeAsync();
     }
 
-    private async Task<Region> SeedRegion() {
-        var region = Builders.MakeRegion(_country.Id);
-        _context.Regions.Add(region);
+    private async Task<State> SeedState() {
+        var state = Builders.MakeState(_country.Id);
+        _context.States.Add(state);
         await _context.SaveChangesAsync();
-        return region;
+        return state;
     }
 
-    private async Task<Road> SeedRoad(Guid destinationRegionId) {
+    private async Task<Road> SeedRoad(Guid destinationStateId) {
         var road = new Road {
-            OriginRegionId = _region.Id,
-            DestinationRegionId = destinationRegionId,
+            OriginStateId = _state.Id,
+            DestinationStateId = destinationStateId,
             Name = $"Road-{Guid.NewGuid():N}",
             Distance = 10f,
             TravelTime = 5,
@@ -56,13 +56,13 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     }
 
     [Fact]
-    public async Task GetShortestRegionRoute_ReturnsRoute_WhenDirectRouteExists() {
+    public async Task GetShortestStateRoute_ReturnsRoute_WhenDirectRouteExists() {
         // Arrange
-        var regionB = await SeedRegion();
-        var road = await SeedRoad(regionB.Id);
+        var stateB = await SeedState();
+        var road = await SeedRoad(stateB.Id);
 
         // Act
-        var result = await _service.GetShortestRegionRoute(_region.Id, regionB.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetShortestStateRoute(_state.Id, stateB.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(result);
@@ -70,10 +70,10 @@ public sealed class NavigationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     }
 
     [Fact]
-    public async Task GetShortestRegionRoute_ReturnsEmpty_WhenNoRouteExists() {
+    public async Task GetShortestStateRoute_ReturnsEmpty_WhenNoRouteExists() {
         // Act
         var result =
-            await _service.GetShortestRegionRoute(_region.Id, Guid.NewGuid(), TestContext.Current.CancellationToken);
+            await _service.GetShortestStateRoute(_state.Id, Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(result);

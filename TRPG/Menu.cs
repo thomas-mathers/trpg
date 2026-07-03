@@ -54,7 +54,7 @@ internal class Menu(
     private async Task RunAgent(CancellationToken cancellationToken) {
         var world = await AutoSelectWorld(cancellationToken);
         if (world == null) return;
-        await agentServer.Run(new GameSession(world.Id, world.PlayerId!.Value), cancellationToken);
+        await agentServer.Run(new GameSession(world.Id, world.PlayerId!.Value, world.Playtime), cancellationToken);
     }
 
     private async Task RunNew(CancellationToken cancellationToken) {
@@ -71,25 +71,30 @@ internal class Menu(
 
         var selectedRace = PromptForOption("Choose your race", worldResult.Races, r => r.Name);
 
-        var startingRegion = worldResult.Regions.First(r => r.IsCapital);
-        
+        var startingCity = worldResult.Cities.First(c => c.IsCapital);
+        var startingState = worldResult.States.First(s => s.Id == startingCity.StateId);
+        var startingDistrict = worldResult.Districts.First(d =>
+            d.CityId == startingCity.Id && d.DistrictType == DistrictType.Civic);
+
         var playerResult = personGenerator.Generate(
             new PersonGeneratorInput(
                 Race: selectedRace,
                 Profession: profession,
                 WorldId: worldResult.World.Id,
-                BirthRegionId: startingRegion.Id,
-                RegionId: startingRegion.Id,
+                BirthStateId: startingState.Id,
+                StateId: startingState.Id,
                 Level: 1,
                 Name: playerName
             )
         );
+        playerResult.Person.CityId = startingCity.Id;
+        playerResult.Person.DistrictId = startingDistrict.Id;
 
         var result = await bootstrapHandler.Handle(worldResult, playerResult, cancellationToken);
 
         Console.WriteLine($"Entering \"{worldResult.World.Name}\" as {playerName} the {profession}...");
         
-        await game.Run(new GameSession(result.WorldId, result.PlayerId), cancellationToken);
+        await game.Run(new GameSession(result.WorldId, result.PlayerId, TimeSpan.Zero), cancellationToken);
     }
 
     private static WorldGeneratorInput PromptWorldGenerationParameters() {
@@ -99,15 +104,17 @@ internal class Menu(
             Description = PromptForString("  Description", WorldGenerationDefaults.Description),
             MinCountries = PromptForInt("  Countries min", WorldGenerationDefaults.MinCountries),
             MaxCountries = PromptForInt("  Countries max", WorldGenerationDefaults.MaxCountries),
-            MinUrbanRegions = PromptForInt("  Urban regions min", WorldGenerationDefaults.MinUrbanRegions),
-            MaxUrbanRegions = PromptForInt("  Urban regions max", WorldGenerationDefaults.MaxUrbanRegions),
-            MinRuralRegions = PromptForInt("  Rural regions min", WorldGenerationDefaults.MinRuralRegions),
-            MaxRuralRegions = PromptForInt("  Rural regions max", WorldGenerationDefaults.MaxRuralRegions),
-            MinDungeons = PromptForInt("  Dungeons min", WorldGenerationDefaults.MinDungeons),
-            MaxDungeons = PromptForInt("  Dungeons max", WorldGenerationDefaults.MaxDungeons),
+            MinCityStates = PromptForInt("  City states min", WorldGenerationDefaults.MinCityStates),
+            MaxCityStates = PromptForInt("  City states max", WorldGenerationDefaults.MaxCityStates),
+            MinRuralStates = PromptForInt("  Rural states min", WorldGenerationDefaults.MinRuralStates),
+            MaxRuralStates = PromptForInt("  Rural states max", WorldGenerationDefaults.MaxRuralStates),
+            MinBuildingsPerState = PromptForInt("  Buildings/state min", WorldGenerationDefaults.MinBuildingsPerState),
+            MaxBuildingsPerState = PromptForInt("  Buildings/state max", WorldGenerationDefaults.MaxBuildingsPerState),
             MinFactionMembers = PromptForInt("  Faction members min", WorldGenerationDefaults.MinFactionMembers),
             MaxFactionMembers = PromptForInt("  Faction members max", WorldGenerationDefaults.MaxFactionMembers),
             HousesPerCity = PromptForInt("  Houses/city", WorldGenerationDefaults.HousesPerCity),
+            MinHouseholdSize = PromptForInt("  Household size min", WorldGenerationDefaults.MinHouseholdSize),
+            MaxHouseholdSize = PromptForInt("  Household size max", WorldGenerationDefaults.MaxHouseholdSize),
             RaceCount = PromptForInt("  Races", WorldGenerationDefaults.RaceCount),
             FactionCount = PromptForInt("  Factions", WorldGenerationDefaults.FactionCount)
         };
@@ -118,7 +125,7 @@ internal class Menu(
     private async Task RunContinue(CancellationToken cancellationToken) {
         var world = await AutoSelectWorld(cancellationToken);
         if (world == null) return;
-        await game.Run(new GameSession(world.Id, world.PlayerId!.Value), cancellationToken);
+        await game.Run(new GameSession(world.Id, world.PlayerId!.Value, world.Playtime), cancellationToken);
     }
 
     private async Task<World?> AutoSelectWorld(CancellationToken cancellationToken) {

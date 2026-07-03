@@ -45,9 +45,7 @@ internal class InventoryTool : Tool, IInvokableTool {
         if (string.IsNullOrWhiteSpace(targetName)) {
             target = player;
         } else {
-            target = player!.RoomId != null
-                ? await _personService.GetByNameInRoom(_session.WorldId, player.RoomId.Value, targetName, cancellationToken)
-                : await _personService.GetByNameOutdoorsInRegion(_session.WorldId, player.RegionId, targetName, cancellationToken);
+            target = await _personService.GetByNameNearby(_session.WorldId, player!, targetName, cancellationToken);
 
             if (target == null) {
                 return new { Error = $"No one named '{targetName}' found nearby. Call look to see who's around." };

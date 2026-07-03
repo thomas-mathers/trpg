@@ -86,25 +86,110 @@ public sealed class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetAllInRegion_ReturnsOnlyPersonsInRegion() {
+    public async Task GetAllInState_ReturnsOnlyPersonsInState() {
         // Arrange
         var worldId = Guid.NewGuid();
-        var regionId = Guid.NewGuid();
+        var stateId = Guid.NewGuid();
 
-        var inRegion = Builders.MakePerson(worldId, regionId: regionId);
-        var differentRegion = Builders.MakePerson(worldId);
-        var otherWorld = Builders.MakePerson(regionId: regionId);
+        var inState = Builders.MakePerson(worldId, stateId: stateId);
+        var differentState = Builders.MakePerson(worldId);
+        var otherWorld = Builders.MakePerson(stateId: stateId);
 
-        await _service.Add(inRegion, TestContext.Current.CancellationToken);
-        await _service.Add(differentRegion, TestContext.Current.CancellationToken);
+        await _service.Add(inState, TestContext.Current.CancellationToken);
+        await _service.Add(differentState, TestContext.Current.CancellationToken);
         await _service.Add(otherWorld, TestContext.Current.CancellationToken);
 
         // Act
-        var results = await _service.GetAllInRegion(worldId, regionId, TestContext.Current.CancellationToken);
+        var results = await _service.GetAllInState(worldId, stateId, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Contains(results, p => p.Id == inRegion.Id);
-        Assert.DoesNotContain(results, p => p.Id == differentRegion.Id);
+        Assert.Contains(results, p => p.Id == inState.Id);
+        Assert.DoesNotContain(results, p => p.Id == differentState.Id);
         Assert.DoesNotContain(results, p => p.Id == otherWorld.Id);
+    }
+
+    [Fact]
+    public async Task GetByNameOutdoorsInDistrict_ReturnsPerson_WhenInDistrict() {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var districtId = Guid.NewGuid();
+        var person = Builders.MakePerson(worldId, districtId: districtId);
+        await _service.Add(person, TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _service.GetByNameOutdoorsInDistrict(worldId, districtId, person.Name,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(person.Id, result.Id);
+    }
+
+    [Fact]
+    public async Task GetByNameOutdoorsInDistrict_ReturnsNull_WhenInDifferentDistrict() {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var person = Builders.MakePerson(worldId, districtId: Guid.NewGuid());
+        await _service.Add(person, TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _service.GetByNameOutdoorsInDistrict(worldId, Guid.NewGuid(), person.Name,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByNameNearby_ReturnsPerson_WhenIndoors() {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var roomId = Guid.NewGuid();
+        var target = Builders.MakePerson(worldId);
+        target.RoomId = roomId;
+        await _service.Add(target, TestContext.Current.CancellationToken);
+        var player = Builders.MakePerson(worldId);
+        player.RoomId = roomId;
+
+        // Act
+        var result = await _service.GetByNameNearby(worldId, player, target.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(target.Id, result.Id);
+    }
+
+    [Fact]
+    public async Task GetByNameNearby_ScopesToDistrict_WhenOutdoorsInCity() {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var districtId = Guid.NewGuid();
+        var target = Builders.MakePerson(worldId, districtId: districtId);
+        await _service.Add(target, TestContext.Current.CancellationToken);
+        var player = Builders.MakePerson(worldId, districtId: districtId);
+
+        // Act
+        var result = await _service.GetByNameNearby(worldId, player, target.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(target.Id, result.Id);
+    }
+
+    [Fact]
+    public async Task GetByNameNearby_ScopesToState_WhenOutdoorsWithNoCity() {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var stateId = Guid.NewGuid();
+        var target = Builders.MakePerson(worldId, stateId: stateId);
+        await _service.Add(target, TestContext.Current.CancellationToken);
+        var player = Builders.MakePerson(worldId, stateId: stateId);
+
+        // Act
+        var result = await _service.GetByNameNearby(worldId, player, target.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(target.Id, result.Id);
     }
 }

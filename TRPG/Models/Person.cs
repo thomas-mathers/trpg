@@ -22,13 +22,15 @@ internal class Person {
     public List<ActiveModifier> ActiveModifiers { get; set; } = [];
     public Attributes Attributes { get; set; } = null!;
     public string Biography { get; set; } = "";
-    public Guid BirthRegionId { get; init; }
+    public Guid BirthStateId { get; init; }
     public int BirthYear { get; init; }
     public int Experience { get; set; }
     public int Gold { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Level { get; set; }
-    public Guid RegionId { get; set; }
+    public Guid StateId { get; set; }
+    public Guid? CityId { get; set; }
+    public Guid? DistrictId { get; set; }
     public Guid? RoomId { get; set; }
     public string Name { get; init; } = "";
     public Profession Profession { get; init; }

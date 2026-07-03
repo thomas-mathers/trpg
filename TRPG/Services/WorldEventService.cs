@@ -14,10 +14,10 @@ internal class WorldEventService(TrpgDbContext context) {
         return await context.WorldEvents.FindAsync([id], cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<WorldEvent>> GetAllByRegion(Guid worldId, Guid regionId,
+    public async Task<IReadOnlyCollection<WorldEvent>> GetAllByState(Guid worldId, Guid stateId,
         CancellationToken cancellationToken = default) {
         return await context.WorldEvents
-            .Where(e => e.WorldId == worldId && e.RegionId == regionId)
+            .Where(e => e.WorldId == worldId && e.StateId == stateId)
             .ToArrayAsync(cancellationToken);
     }
 }

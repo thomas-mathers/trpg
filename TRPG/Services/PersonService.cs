@@ -14,24 +14,10 @@ internal class PersonService(TrpgDbContext context) {
         return await context.Persons.FindAsync([id], cancellationToken);
     }
     
-    public async Task<IReadOnlyCollection<Person>> GetAllInRoom(Guid worldId, Guid roomId,
+    public async Task<IReadOnlyCollection<Person>> GetAllInState(Guid worldId, Guid stateId,
         CancellationToken cancellationToken = default) {
         return await context.Persons
-            .Where(p => p.WorldId == worldId && p.RoomId == roomId)
-            .ToArrayAsync(cancellationToken);
-    }
-    
-    public async Task<IReadOnlyCollection<Person>> GetAllOutdoorsInRegion(Guid worldId, Guid regionId,
-        CancellationToken cancellationToken = default) {
-        return await context.Persons
-            .Where(p => p.WorldId == worldId && p.RegionId == regionId && p.RoomId == null)
-            .ToArrayAsync(cancellationToken);
-    }
-
-    public async Task<IReadOnlyCollection<Person>> GetAllInRegion(Guid worldId, Guid regionId,
-        CancellationToken cancellationToken = default) {
-        return await context.Persons
-            .Where(p => p.WorldId == worldId && p.RegionId == regionId)
+            .Where(p => p.WorldId == worldId && p.StateId == stateId)
             .ToArrayAsync(cancellationToken);
     }
 
@@ -41,10 +27,27 @@ internal class PersonService(TrpgDbContext context) {
             .FirstOrDefaultAsync(p => p.WorldId == worldId && p.RoomId == roomId && p.Name == name, cancellationToken);
     }
 
-    public async Task<Person?> GetByNameOutdoorsInRegion(Guid worldId, Guid regionId, string name,
+    public async Task<Person?> GetByNameOutdoorsInState(Guid worldId, Guid stateId, string name,
         CancellationToken cancellationToken = default) {
         return await context.Persons
-            .FirstOrDefaultAsync(p => p.WorldId == worldId && p.RegionId == regionId && p.RoomId == null && p.Name == name, cancellationToken);
+            .FirstOrDefaultAsync(p => p.WorldId == worldId && p.StateId == stateId && p.RoomId == null && p.Name == name, cancellationToken);
+    }
+
+    public async Task<Person?> GetByNameOutdoorsInDistrict(Guid worldId, Guid districtId, string name,
+        CancellationToken cancellationToken = default) {
+        return await context.Persons
+            .FirstOrDefaultAsync(p => p.WorldId == worldId && p.DistrictId == districtId && p.RoomId == null && p.Name == name, cancellationToken);
+    }
+
+    public async Task<Person?> GetByNameNearby(Guid worldId, Person player, string name,
+        CancellationToken cancellationToken = default) {
+        if (player.RoomId is { } roomId) {
+            return await GetByNameInRoom(worldId, roomId, name, cancellationToken);
+        }
+
+        return player.DistrictId is { } districtId
+            ? await GetByNameOutdoorsInDistrict(worldId, districtId, name, cancellationToken)
+            : await GetByNameOutdoorsInState(worldId, player.StateId, name, cancellationToken);
     }
 
     public async Task Update(Person person, CancellationToken cancellationToken = default) {

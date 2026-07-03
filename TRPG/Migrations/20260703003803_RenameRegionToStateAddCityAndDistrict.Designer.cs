@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
@@ -12,9 +13,11 @@ using TRPG.Data;
 namespace TRPG.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703003803_RenameRegionToStateAddCityAndDistrict")]
+    partial class RenameRegionToStateAddCityAndDistrict
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -459,12 +462,58 @@ namespace TRPG.Migrations
                     b.ToTable("jobs", (string)null);
                 });
 
+            modelBuilder.Entity("TRPG.Models.NpcChatMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer")
+                        .HasColumnName("index");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<Guid>("RecipientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipient_id");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sender_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_npc_chat_messages");
+
+                    b.HasIndex("ConversationId", "Index")
+                        .IsUnique()
+                        .HasDatabaseName("ix_npc_chat_messages_conversation_id_index");
+
+                    b.ToTable("npc_chat_messages", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Models.NpcConversation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<int?>("LastSummarizedIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("last_summarized_index");
 
                     b.Property<Guid>("NpcId")
                         .HasColumnType("uuid")
@@ -1056,10 +1105,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("player_id");
 
-                    b.Property<TimeSpan>("Playtime")
-                        .HasColumnType("interval")
-                        .HasColumnName("playtime");
-
                     b.HasKey("Id")
                         .HasName("pk_worlds");
 
@@ -1450,6 +1495,18 @@ namespace TRPG.Migrations
                         .HasConstraintName("fk_inventory_items_items_item_id");
 
                     b.Navigation("Item");
+                });
+
+            modelBuilder.Entity("TRPG.Models.NpcChatMessage", b =>
+                {
+                    b.HasOne("TRPG.Models.NpcConversation", "Conversation")
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_npc_chat_messages_npc_conversations_conversation_id");
+
+                    b.Navigation("Conversation");
                 });
 
             modelBuilder.Entity("TRPG.Models.Person", b =>

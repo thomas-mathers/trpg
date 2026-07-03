@@ -1,8 +1,7 @@
-﻿namespace TRPG.Models;
+namespace TRPG.Models;
 
 internal class NpcConversation {
     public Guid Id { get; init; } = Guid.NewGuid();
-    public int? LastSummarizedIndex { get; set; }
     public Guid NpcId { get; init; }
     public Guid PersonId { get; init; }
     public string Summary { get; set; } = "";

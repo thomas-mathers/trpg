@@ -21,7 +21,7 @@ internal class AgentServer(
         var chat = new Chat(ollamaClient, Game.SystemPrompt) { Think = true, Options = new RequestOptions { NumCtx = 8192 } };
         chat.OnThink += (_, token) => logger.LogDebug("[agent] think: {Token}", token);
 
-        var openingPrompt = await Game.BuildOpeningPrompt(session, sceneService, worldService, cancellationToken);
+        var openingPrompt = await Game.BuildOpeningPrompt(worldService, sceneService, session, cancellationToken);
         await foreach (var _ in chat.SendAsync(openingPrompt, tools, cancellationToken: cancellationToken)) {
         }
 

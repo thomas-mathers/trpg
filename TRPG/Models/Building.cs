@@ -23,7 +23,9 @@ internal enum BuildingType {
 
 internal class Building {
     public BuildingType BuildingType { get; init; }
-    public Guid RegionId { get; init; }
+    public Guid StateId { get; init; }
+    public Guid? CityId { get; init; }
+    public Guid? DistrictId { get; init; }
     public string Description { get; init; } = "";
     public Guid? FactionId { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
@@ -12,9 +13,11 @@ using TRPG.Data;
 namespace TRPG.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703020250_SimplifyNpcConversation")]
+    partial class SimplifyNpcConversation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1055,10 +1058,6 @@ namespace TRPG.Migrations
                     b.Property<Guid?>("PlayerId")
                         .HasColumnType("uuid")
                         .HasColumnName("player_id");
-
-                    b.Property<TimeSpan>("Playtime")
-                        .HasColumnType("interval")
-                        .HasColumnName("playtime");
 
                     b.HasKey("Id")
                         .HasName("pk_worlds");

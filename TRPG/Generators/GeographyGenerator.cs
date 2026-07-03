@@ -8,11 +8,11 @@ namespace TRPG.Generators;
 
 internal class GeographyGeneratorInput {
     public required string Description { get; init; }
-    public int MaxRuralRegions { get; init; } = WorldGenerationDefaults.MaxRuralRegions;
-    public int MaxUrbanRegions { get; init; } = WorldGenerationDefaults.MaxUrbanRegions;
+    public int MaxRuralStates { get; init; } = WorldGenerationDefaults.MaxRuralStates;
+    public int MaxCityStates { get; init; } = WorldGenerationDefaults.MaxCityStates;
     public int MaxCountries { get; init; } = WorldGenerationDefaults.MaxCountries;
-    public int MinRuralRegions { get; init; } = WorldGenerationDefaults.MinRuralRegions;
-    public int MinUrbanRegions { get; init; } = WorldGenerationDefaults.MinUrbanRegions;
+    public int MinRuralStates { get; init; } = WorldGenerationDefaults.MinRuralStates;
+    public int MinCityStates { get; init; } = WorldGenerationDefaults.MinCityStates;
     public int MinCountries { get; init; } = WorldGenerationDefaults.MinCountries;
     public IReadOnlyList<Race>? Races { get; init; }
     public int WorldHeight { get; init; } = WorldGenerationDefaults.WorldHeight;
@@ -21,8 +21,9 @@ internal class GeographyGeneratorInput {
 }
 
 internal class GeographyGeneratorResult {
-    public required IReadOnlyList<Region> Regions { get; init; }
-    public required IReadOnlyDictionary<Guid, string> RegionFocuses { get; init; }
+    public required IReadOnlyList<State> States { get; init; }
+    public required IReadOnlyList<City> Cities { get; init; }
+    public required IReadOnlyDictionary<Guid, string> CityFocuses { get; init; }
     public required IReadOnlyList<Country> Countries { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
     public required World World { get; init; }
@@ -33,7 +34,7 @@ internal class GeographyGenerator(
     ILogger<GeographyGenerator> logger) {
     private const int MaxCitiesPerRequest = 6;
 
-    private static readonly string[] RegionFocusList = [
+    private static readonly string[] CityFocusList = [
         "trade and commerce",
         "arcane scholarship",
         "military tradition",
@@ -61,26 +62,27 @@ internal class GeographyGenerator(
         CancellationToken cancellationToken
     ) {
         var sw = Stopwatch.StartNew();
-        var numUrbanRegions = Random.Shared.Next(generatorInput.MinUrbanRegions, generatorInput.MaxUrbanRegions + 1);
-        var numRuralRegions = Random.Shared.Next(generatorInput.MinRuralRegions, generatorInput.MaxRuralRegions + 1);
+        var numCityStates = Random.Shared.Next(generatorInput.MinCityStates, generatorInput.MaxCityStates + 1);
+        var numNonCityStates = Random.Shared.Next(generatorInput.MinRuralStates, generatorInput.MaxRuralStates + 1);
         var numberOfCountries = Random.Shared.Next(generatorInput.MinCountries, generatorInput.MaxCountries + 1);
-        var map = MapGenerator.Generate(generatorInput.WorldWidth, generatorInput.WorldHeight, numUrbanRegions,
-            numRuralRegions, numberOfCountries);
+        var map = MapGenerator.Generate(generatorInput.WorldWidth, generatorInput.WorldHeight, numCityStates,
+            numNonCityStates, numberOfCountries);
         var context = new GeographyGenerationContext(generatorInput, map, []);
 
         var world = await GenerateWorldEntity(context, cancellationToken);
         var countries = await GenerateCountryEntities(context, world, cancellationToken);
-        var regions = await GenerateRegionEntities(new GenerateRegionsInput(context, world, countries), cancellationToken);
-        var roads = await GenerateRoadEntities(new GenerateRoadsInput(context, world, regions), cancellationToken);
+        var states = await GenerateStateEntities(new GenerateStatesInput(context, world, countries), cancellationToken);
+        var roads = await GenerateRoadEntities(new GenerateRoadsInput(context, world, states), cancellationToken);
 
         logger.LogDebug("GenerateGeography completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
         return new GeographyGeneratorResult {
             World = world,
             Countries = countries.Countries,
-            Regions = regions.Regions,
+            States = states.States,
+            Cities = states.Cities,
             Roads = roads,
-            RegionFocuses = regions.RegionFocuses
+            CityFocuses = states.CityFocuses
         };
     }
 
@@ -140,56 +142,57 @@ internal class GeographyGenerator(
         return new GeneratedCountries(countries, countryById);
     }
 
-    private static Dictionary<Guid, string> AssignRegionFocuses(MapGeneratorResult map) {
+    private static Dictionary<Guid, string> AssignCityFocuses(MapGeneratorResult map) {
         var focusMap = new Dictionary<Guid, string>();
-        var urbanRegions = map.Regions.Where(r => r.RegionType == RegionType.Urban).ToList();
-        for (var i = 0; i < urbanRegions.Count; i++) {
-            focusMap[urbanRegions[i].Id] = RegionFocusList[i % RegionFocusList.Length];
+        var citySites = map.States.Where(s => s.HasCity).ToList();
+        for (var i = 0; i < citySites.Count; i++) {
+            focusMap[citySites[i].Id] = CityFocusList[i % CityFocusList.Length];
         }
 
         return focusMap;
     }
 
-    private async Task<GeneratedRegions> GenerateRegionEntities(GenerateRegionsInput input,
+    private async Task<GeneratedStates> GenerateStateEntities(GenerateStatesInput input,
         CancellationToken cancellationToken) {
         var context = input.Context;
         var world = input.World;
         var countries = input.Countries;
 
-        var focusMap = AssignRegionFocuses(context.Map);
-        var mapRegionsByCountryId = context.Map.Regions
-            .GroupBy(r => r.CountryId)
+        var focusMap = AssignCityFocuses(context.Map);
+        var mapStatesByCountryId = context.Map.States
+            .GroupBy(s => s.CountryId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var regions = new List<Region>();
-        var regionFocuses = new Dictionary<Guid, string>();
-        var regionById = new Dictionary<Guid, Region>();
+        var states = new List<State>();
+        var cities = new List<City>();
+        var cityFocuses = new Dictionary<Guid, string>();
+        var stateById = new Dictionary<Guid, State>();
         var races = context.GeneratorInput.Races;
         var countryIndex = 0;
 
         foreach (var (countryLayoutId, country) in countries.CountryById) {
-            var countryRegions = mapRegionsByCountryId.GetValueOrDefault(countryLayoutId, []);
-            if (countryRegions.Count == 0) {
+            var countryStates = mapStatesByCountryId.GetValueOrDefault(countryLayoutId, []);
+            if (countryStates.Count == 0) {
                 continue;
             }
 
-            var urbanRegions = countryRegions.Where(r => r.RegionType == RegionType.Urban).ToList();
-            var ruralRegions = countryRegions.Where(r => r.RegionType == RegionType.Rural).ToList();
+            var cityStates = countryStates.Where(s => s.HasCity).ToList();
+            var nonCityStates = countryStates.Where(s => !s.HasCity).ToList();
 
-            if (urbanRegions.Count > 0) {
+            if (cityStates.Count > 0) {
                 var namingStyle = races is { Count: > 0 }
                     ? $"{races[countryIndex % races.Count].CultureStyle} (matching the {races[countryIndex % races.Count].Name} race who dominate this country)"
                     : NamingStyles[countryIndex % NamingStyles.Length];
 
-                for (var chunkStart = 0; chunkStart < urbanRegions.Count; chunkStart += MaxCitiesPerRequest) {
-                    var chunk = urbanRegions.Skip(chunkStart).Take(MaxCitiesPerRequest).ToList();
+                for (var chunkStart = 0; chunkStart < cityStates.Count; chunkStart += MaxCitiesPerRequest) {
+                    var chunk = cityStates.Skip(chunkStart).Take(MaxCitiesPerRequest).ToList();
 
                     var namesHint = context.ExistingNames.Count > 0
                         ? $" Forbidden names (already used): {string.Join(", ", context.ExistingNames)}."
                         : string.Empty;
 
-                    var cityList = string.Join("\n", chunk.Select((r, j) =>
-                        $"{j + 1}. {focusMap[r.Id]}{(r.IsCapital ? " (capital)" : "")}"));
+                    var cityList = string.Join("\n", chunk.Select((s, j) =>
+                        $"{j + 1}. {focusMap[s.Id]}{(s.IsCapital ? " (capital)" : "")}"));
 
                     var schema = await client.GetJson<CityListSchema>(
                         logger,
@@ -224,55 +227,61 @@ internal class GeographyGenerator(
                         cancellationToken);
 
                     for (var j = 0; j < chunk.Count; j++) {
-                        var mapRegion = chunk[j];
-                        var region = new Region {
+                        var mapState = chunk[j];
+                        var state = new State {
                             CountryId = country.Id,
-                            Name = schema.Cities[j].Name,
+                            Name = $"{schema.Cities[j].Name} Territory",
                             Description = schema.Cities[j].Description,
                             Width = WorldGenerationDefaults.CityTileSize,
                             Height = WorldGenerationDefaults.CityTileSize,
-                            IsCapital = mapRegion.IsCapital,
-                            RegionType = RegionType.Urban,
-                            Boundary = new Polygon { Points = new List<Point>(mapRegion.Boundary.Points.ToArray()) }
+                            Center = mapState.Center,
+                            Boundary = new Polygon { Points = new List<Point>(mapState.Boundary.Points.ToArray()) }
                         };
-                        regions.Add(region);
-                        regionFocuses[region.Id] = focusMap[mapRegion.Id];
-                        regionById[mapRegion.Id] = region;
+                        var city = new City {
+                            StateId = state.Id,
+                            CountryId = country.Id,
+                            Name = schema.Cities[j].Name,
+                            Description = schema.Cities[j].Description,
+                            IsCapital = mapState.IsCapital
+                        };
+                        states.Add(state);
+                        cities.Add(city);
+                        cityFocuses[city.Id] = focusMap[mapState.Id];
+                        stateById[mapState.Id] = state;
                         context.ExistingNames.Add(schema.Cities[j].Name);
                     }
                 }
             }
 
-            for (var j = 0; j < ruralRegions.Count; j++) {
-                var mapRegion = ruralRegions[j];
-                var region = new Region {
+            for (var j = 0; j < nonCityStates.Count; j++) {
+                var mapState = nonCityStates[j];
+                var state = new State {
                     CountryId = country.Id,
                     Name = $"Wilderness {j + 1}",
                     Description = "An untamed wilderness region.",
                     Width = WorldGenerationDefaults.CityTileSize,
                     Height = WorldGenerationDefaults.CityTileSize,
-                    IsCapital = false,
-                    RegionType = RegionType.Rural,
-                    Boundary = new Polygon { Points = new List<Point>(mapRegion.Boundary.Points.ToArray()) }
+                    Center = mapState.Center,
+                    Boundary = new Polygon { Points = new List<Point>(mapState.Boundary.Points.ToArray()) }
                 };
-                regions.Add(region);
-                regionById[mapRegion.Id] = region;
+                states.Add(state);
+                stateById[mapState.Id] = state;
             }
 
             countryIndex++;
         }
 
-        return new GeneratedRegions(regions, regionFocuses, regionById);
+        return new GeneratedStates(states, cities, cityFocuses, stateById);
     }
 
     private async Task<List<Road>> GenerateRoadEntities(GenerateRoadsInput input, CancellationToken cancellationToken) {
         var context = input.Context;
         var world = input.World;
-        var regions = input.Regions;
+        var states = input.States;
 
-        var mapRegionById = context.Map.Regions.ToDictionary(r => r.Id);
+        var mapStateById = context.Map.States.ToDictionary(s => s.Id);
         var roadPairList = string.Join("\n", context.Map.Roads.Select((r, i) =>
-            $"{i + 1}. {regions.RegionById[r.OriginRegionId].Name} and {regions.RegionById[r.DestinationRegionId].Name}"));
+            $"{i + 1}. {states.StateById[r.OriginStateId].Name} and {states.StateById[r.DestinationStateId].Name}"));
 
         var roadNamesSchema = await client.GetJson<RoadNamesSchema>(
             logger,
@@ -290,17 +299,17 @@ internal class GeographyGenerator(
         var roadNamesByIndex = roadNamesSchema.Roads.ToDictionary(r => r.Index, r => r.Name);
 
         return context.Map.Roads.Select((layoutRoad, i) => {
-            var originRegion = regions.RegionById[layoutRoad.OriginRegionId];
-            var destRegion = regions.RegionById[layoutRoad.DestinationRegionId];
-            var originCenter = mapRegionById[layoutRoad.OriginRegionId].Center;
-            var destCenter = mapRegionById[layoutRoad.DestinationRegionId].Center;
+            var originState = states.StateById[layoutRoad.OriginStateId];
+            var destState = states.StateById[layoutRoad.DestinationStateId];
+            var originCenter = mapStateById[layoutRoad.OriginStateId].Center;
+            var destCenter = mapStateById[layoutRoad.DestinationStateId].Center;
             var dx = originCenter.X - destCenter.X;
             var dy = originCenter.Y - destCenter.Y;
             var distance = (float) Math.Sqrt(dx * dx + dy * dy);
             return new Road {
                 Name = roadNamesByIndex.GetValueOrDefault(i + 1, $"Road {i + 1}"),
-                OriginRegionId = originRegion.Id,
-                DestinationRegionId = destRegion.Id,
+                OriginStateId = originState.Id,
+                DestinationStateId = destState.Id,
                 Distance = distance,
                 TravelTime = Math.Max(1, (int) (distance / 50)),
                 DangerLevel = (float) Random.Shared.NextDouble() * 0.5f
@@ -316,14 +325,15 @@ internal record GeographyGenerationContext(
 
 internal record GeneratedCountries(List<Country> Countries, Dictionary<Guid, Country> CountryById);
 
-internal record GeneratedRegions(
-    List<Region> Regions,
-    Dictionary<Guid, string> RegionFocuses,
-    Dictionary<Guid, Region> RegionById);
+internal record GeneratedStates(
+    List<State> States,
+    List<City> Cities,
+    Dictionary<Guid, string> CityFocuses,
+    Dictionary<Guid, State> StateById);
 
-internal record GenerateRegionsInput(GeographyGenerationContext Context, World World, GeneratedCountries Countries);
+internal record GenerateStatesInput(GeographyGenerationContext Context, World World, GeneratedCountries Countries);
 
-internal record GenerateRoadsInput(GeographyGenerationContext Context, World World, GeneratedRegions Regions);
+internal record GenerateRoadsInput(GeographyGenerationContext Context, World World, GeneratedStates States);
 
 file class RoadNamesSchema {
     public List<RoadNameItemSchema> Roads { get; init; } = [];

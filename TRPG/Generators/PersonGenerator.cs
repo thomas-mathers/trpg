@@ -3,7 +3,7 @@ using TRPG.Models;
 
 namespace TRPG.Generators;
 
-internal record PersonGeneratorInput(Race Race, Profession Profession, Guid WorldId, Guid BirthRegionId, Guid RegionId, int Level = 0, string? Name = null);
+internal record PersonGeneratorInput(Race Race, Profession Profession, Guid WorldId, Guid BirthStateId, Guid StateId, int Level = 0, string? Name = null);
 
 internal record PersonGeneratorResult(
     Person Person,
@@ -78,8 +78,8 @@ internal class PersonGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
         ),
         ["Celtic"] = new NamePool(
             [
-                "Aodhan", "Branwen", "Caolán", "Dairíne", "Eilís", "Fínghin", "Gabhraen", "Iarlaith", "Maeve", "Niamh",
-                "Órlaith", "Pádraic", "Ruadhán", "Sorcha", "Tiarnán", "Úna", "Ciarán", "Bríd", "Eoghan", "Llŷr",
+                "Aodhan", "Branwen", "Caolan", "Dairine", "Eilis", "Finghin", "Gabhraen", "Iarlaith", "Maeve", "Niamh",
+                "Orlaith", "Padraic", "Ruadhan", "Sorcha", "Tiarnan", "Una", "Ciaran", "Brid", "Eoghan", "Llyr",
                 "Aisling", "Conall", "Deirdre", "Fergus", "Grainne", "Lugh", "Muirenn", "Oisin", "Ronan", "Saoirse",
                 "Tadhg", "Aoife", "Fintan", "Doireann", "Lorcan", "Treasa", "Colm", "Sadhbh", "Fionn", "Caoimhe"
             ],
@@ -255,10 +255,10 @@ internal class PersonGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
             Name = generatorInput.Name ?? GetName(generatorInput.Race.CultureStyle),
             RaceId = generatorInput.Race.Id,
             Profession = generatorInput.Profession,
-            BirthRegionId = generatorInput.BirthRegionId,
+            BirthStateId = generatorInput.BirthStateId,
             BirthYear = Random.Shared.Next(900, 975),
             Gold = GetGold(level, generatorInput.Profession),
-            RegionId = generatorInput.RegionId,
+            StateId = generatorInput.StateId,
             Attributes = GetAttributes(level, generatorInput.Profession),
             Level = level
         };

@@ -4,7 +4,11 @@ using TRPG.Models;
 
 namespace TRPG.Services;
 
-internal record SceneRegionInfo(string Name, string? Description, string Type, bool IsCapital);
+internal record SceneStateInfo(string Name, string? Description);
+
+internal record SceneDistrictInfo(string Name, string Type, bool IsCurrent);
+
+internal record SceneCityInfo(string Name, string? Description, IReadOnlyCollection<SceneDistrictInfo> Districts);
 
 internal record SceneBuildingInfo(string Name, string Type, string? OwnerName, string? FactionName, string? FactionDescription);
 
@@ -12,40 +16,52 @@ internal record SceneExitInfo(string Description, string DestinationRoomName, bo
 
 internal record SceneRoomInfo(string Name, string Description, int FloorNumber, IReadOnlyCollection<SceneExitInfo> Exits);
 
-internal record ScenePlayerInfo(string Name, string Race, string Profession, int Level, int Gold);
+internal record ScenePlayerInfo(string Name, string Race, string Profession, int Level, int Gold, int Age);
 
 internal record ScenePropInfo(string Name, string Description, string Type);
 
-internal record ScenePersonInfo(string Name, string Race, string Profession, int Level, string? FactionName);
+internal record ScenePersonInfo(string Name, string Race, string Profession, int Level, int Age, string? FactionName);
+
+internal record SceneQuery(Guid WorldId, Guid PlayerId, InGameDate CurrentDate);
 
 internal record SceneNearbyBuildingInfo(string Name, string Type);
 
 internal record SceneResult(
-    SceneRegionInfo Region,
+    InGameDate CurrentDate,
+    SceneStateInfo? State,
+    SceneCityInfo? City,
     SceneBuildingInfo? Building,
     SceneRoomInfo? Room,
     ScenePlayerInfo Player,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<ScenePersonInfo> NearbyPeople,
-    IReadOnlyCollection<SceneNearbyBuildingInfo>? NearbyBuildings
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
 internal class SceneService(TrpgDbContext context) {
-    public async Task<SceneResult> GetScene(Guid worldId, Guid playerId, CancellationToken cancellationToken = default) {
+    public async Task<SceneResult> GetScene(SceneQuery query, CancellationToken cancellationToken = default) {
+        var worldId = query.WorldId;
+        var playerId = query.PlayerId;
+
         var bootstrap = await (
             from p in context.Persons where p.Id == playerId
             join race in context.Races on p.RaceId equals race.Id
-            join region in context.Regions on p.RegionId equals region.Id
+            join region in context.States on p.StateId equals region.Id
+            join city in context.Cities on p.CityId equals city.Id into cityGroup
+            from city in cityGroup.DefaultIfEmpty()
             select new {
                 RegionName = region.Name,
                 RegionDescription = region.Description,
-                region.RegionType,
-                region.IsCapital,
+                CityName = city != null ? city.Name : null,
+                CityDescription = city != null ? city.Description : null,
                 PlayerName = p.Name,
                 p.Profession,
                 p.Level,
                 p.Gold,
-                p.RegionId,
+                p.BirthYear,
+                p.StateId,
+                p.CityId,
+                p.DistrictId,
                 p.RoomId,
                 RaceName = race.Name,
             }
@@ -55,8 +71,19 @@ internal class SceneService(TrpgDbContext context) {
         SceneRoomInfo? roomInfo = null;
         IReadOnlyCollection<ScenePropInfo> nearbyProps = [];
         IReadOnlyCollection<ScenePersonInfo> nearbyPeople = [];
-        IReadOnlyCollection<SceneNearbyBuildingInfo>? nearbyBuildings = null;
+        IReadOnlyCollection<SceneNearbyBuildingInfo> nearbyBuildings = [];
         string? regionDescription = null;
+
+        SceneCityInfo? cityInfo = null;
+        if (bootstrap.CityId != null) {
+            var districts = await context.Districts
+                .Where(d => d.CityId == bootstrap.CityId.Value)
+                .ToArrayAsync(cancellationToken);
+            var districtInfos = districts
+                .Select(d => new SceneDistrictInfo(d.Name, d.DistrictType.ToString(), d.Id == bootstrap.DistrictId))
+                .ToArray();
+            cityInfo = new SceneCityInfo(bootstrap.CityName!, bootstrap.CityDescription, districtInfos);
+        }
 
         if (bootstrap.RoomId != null) {
             var roomAndBuilding = await (
@@ -108,7 +135,7 @@ internal class SceneService(TrpgDbContext context) {
                     .ToDictionaryAsync(r => r.Id, r => r.Name, cancellationToken)
                 : [];
 
-            nearbyPeople = await (
+            var nearbyPeopleRaw = await (
                 from p in context.Persons
                 where p.WorldId == worldId && p.RoomId == bootstrap.RoomId.Value && p.Id != playerId
                 join race in context.Races on p.RaceId equals race.Id
@@ -116,8 +143,12 @@ internal class SceneService(TrpgDbContext context) {
                 from fm in fmGroup.DefaultIfEmpty()
                 join f in context.Factions on fm.FactionId equals f.Id into fGroup
                 from f in fGroup.DefaultIfEmpty()
-                select new ScenePersonInfo(p.Name, race.Name, p.Profession.ToString(), p.Level, f != null ? f.Name : null)
+                select new { p.Name, RaceName = race.Name, Profession = p.Profession.ToString(), p.Level, p.BirthYear, FactionName = f != null ? f.Name : null }
             ).ToArrayAsync(cancellationToken);
+
+            nearbyPeople = nearbyPeopleRaw
+                .Select(x => new ScenePersonInfo(x.Name, x.RaceName, x.Profession, x.Level, query.CurrentDate.Year - x.BirthYear, x.FactionName))
+                .ToArray();
 
             buildingInfo = new SceneBuildingInfo(
                 roomAndBuilding.BuildingName,
@@ -147,27 +178,33 @@ internal class SceneService(TrpgDbContext context) {
             regionDescription = bootstrap.RegionDescription;
 
             nearbyBuildings = await context.Buildings
-                .Where(b => b.RegionId == bootstrap.RegionId && b.BuildingType != BuildingType.House)
+                .Where(b => b.StateId == bootstrap.StateId && b.CityId == bootstrap.CityId && b.DistrictId == bootstrap.DistrictId)
                 .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType.ToString()))
                 .ToArrayAsync(cancellationToken);
 
-            nearbyPeople = await (
+            var nearbyPeopleRaw = await (
                 from p in context.Persons
-                where p.WorldId == worldId && p.RegionId == bootstrap.RegionId && p.RoomId == null && p.Id != playerId
+                where p.WorldId == worldId && p.StateId == bootstrap.StateId && p.DistrictId == bootstrap.DistrictId && p.RoomId == null && p.Id != playerId
                 join race in context.Races on p.RaceId equals race.Id
                 join fm in context.FactionMembers on p.Id equals fm.PersonId into fmGroup
                 from fm in fmGroup.DefaultIfEmpty()
                 join f in context.Factions on fm.FactionId equals f.Id into fGroup
                 from f in fGroup.DefaultIfEmpty()
-                select new ScenePersonInfo(p.Name, race.Name, p.Profession.ToString(), p.Level, f != null ? f.Name : null)
+                select new { p.Name, RaceName = race.Name, Profession = p.Profession.ToString(), p.Level, p.BirthYear, FactionName = f != null ? f.Name : null }
             ).ToArrayAsync(cancellationToken);
+
+            nearbyPeople = nearbyPeopleRaw
+                .Select(x => new ScenePersonInfo(x.Name, x.RaceName, x.Profession, x.Level, query.CurrentDate.Year - x.BirthYear, x.FactionName))
+                .ToArray();
         }
 
         return new SceneResult(
-            new SceneRegionInfo(bootstrap.RegionName, regionDescription, bootstrap.RegionType.ToString(), bootstrap.IsCapital),
+            query.CurrentDate,
+            new SceneStateInfo(bootstrap.RegionName, regionDescription),
+            cityInfo,
             buildingInfo,
             roomInfo,
-            new ScenePlayerInfo(bootstrap.PlayerName, bootstrap.RaceName, bootstrap.Profession.ToString(), bootstrap.Level, bootstrap.Gold),
+            new ScenePlayerInfo(bootstrap.PlayerName, bootstrap.RaceName, bootstrap.Profession.ToString(), bootstrap.Level, bootstrap.Gold, query.CurrentDate.Year - bootstrap.BirthYear),
             nearbyProps,
             nearbyPeople,
             nearbyBuildings

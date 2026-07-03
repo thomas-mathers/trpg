@@ -20,8 +20,8 @@ internal class BuildingService(TrpgDbContext context) {
         return await context.Buildings.FindAsync([id], cancellationToken);
     }
 
-    public async Task<Building?> GetByNameInRegion(Guid regionId, string name, CancellationToken cancellationToken = default) {
-        return await context.Buildings.FirstOrDefaultAsync(b => b.RegionId == regionId && b.Name == name, cancellationToken);
+    public async Task<Building?> GetByNameInState(Guid stateId, string name, CancellationToken cancellationToken = default) {
+        return await context.Buildings.FirstOrDefaultAsync(b => b.StateId == stateId && b.Name == name, cancellationToken);
     }
 
     public async Task<Room?> GetEntranceRoom(Guid buildingId, CancellationToken cancellationToken = default) {
@@ -55,10 +55,10 @@ internal class BuildingService(TrpgDbContext context) {
         return await context.Rooms.Where(b => roomIds.Contains(b.Id)).ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<Building>> GetAllByRegionId(Guid regionId,
+    public async Task<IReadOnlyCollection<Building>> GetAllByStateId(Guid stateId,
         CancellationToken cancellationToken = default) {
         var list = await context.Buildings
-            .Where(b => b.RegionId == regionId)
+            .Where(b => b.StateId == stateId)
             .ToArrayAsync(cancellationToken);
         return list;
     }

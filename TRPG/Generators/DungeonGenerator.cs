@@ -2,7 +2,7 @@ using TRPG.Models;
 
 namespace TRPG.Generators;
 
-internal record DungeonGeneratorInput(Guid RegionId);
+internal record DungeonGeneratorInput(Guid StateId, IReadOnlyCollection<string> ExcludedNames);
 
 internal record DungeonGeneratorResult(
     Building Building,
@@ -11,7 +11,7 @@ internal record DungeonGeneratorResult(
 
 internal static class DungeonGenerator {
     private static readonly IReadOnlyList<BuildingType> DungeonBuildingTypes =
-        BuildingGenerator.BuildingTypesByRegionType[RegionType.Rural].ToArray();
+        BuildingGenerator.DungeonBuildingTypes.ToArray();
 
     private static readonly Dictionary<BuildingType, string[]> Names = new() {
         [BuildingType.Cave] = [
@@ -50,12 +50,18 @@ internal static class DungeonGenerator {
     };
 
     public static DungeonGeneratorResult Generate(DungeonGeneratorInput input) {
-        var type = DungeonBuildingTypes[Random.Shared.Next(DungeonBuildingTypes.Count)];
-        var namePool = Names[type];
+        var availablePairs = DungeonBuildingTypes
+            .SelectMany(type => Names[type]
+                .Where(name => !input.ExcludedNames.Contains(name))
+                .Select(name => (Type: type, Name: name)))
+            .ToArray();
+
+        var (type, name) = availablePairs[Random.Shared.Next(availablePairs.Length)];
+
         var building = new Building {
-            RegionId = input.RegionId,
+            StateId = input.StateId,
             BuildingType = type,
-            Name = namePool[Random.Shared.Next(namePool.Length)]
+            Name = name
         };
         var room = new Room {
             BuildingId = building.Id,

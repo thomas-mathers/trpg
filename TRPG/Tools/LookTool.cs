@@ -28,7 +28,9 @@ internal class LookTool : Tool, IInvokableTool {
 
     public object? InvokeMethod(IDictionary<string, object?>? args) {
         _logger.LogDebug("[look] tool invoked");
-        var result = _sceneService.GetScene(_session.WorldId, _session.PlayerId).GetAwaiter().GetResult();
+        var currentDate = GameClock.GetCurrentInGameDate(_session);
+        var query = new SceneQuery(_session.WorldId, _session.PlayerId, currentDate);
+        var result = _sceneService.GetScene(query).GetAwaiter().GetResult();
         var json = System.Text.Json.JsonSerializer.Serialize(result, ToolJsonOptions.Options);
         _logger.LogDebug("[look] result: {Result}", json);
         return json;
