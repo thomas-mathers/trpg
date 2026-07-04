@@ -12,15 +12,17 @@ internal class MoveTool : Tool, IInvokableTool {
     private readonly PersonService _personService;
     private readonly BuildingService _buildingService;
     private readonly LocationService _locationService;
+    private readonly LockService _lockService;
     private readonly ILogger<MoveTool> _logger;
 
     public MoveTool(GameSession session, SceneService sceneService, PersonService personService,
-        BuildingService buildingService, LocationService locationService, ILogger<MoveTool> logger) {
+        BuildingService buildingService, LocationService locationService, LockService lockService, ILogger<MoveTool> logger) {
         _session = session;
         _sceneService = sceneService;
         _personService = personService;
         _buildingService = buildingService;
         _locationService = locationService;
+        _lockService = lockService;
         _logger = logger;
 
         Function = new Function {
@@ -64,6 +66,13 @@ internal class MoveTool : Tool, IInvokableTool {
             var entranceRoom = await _buildingService.GetEntranceRoom(building.Id, cancellationToken);
             if (entranceRoom == null) {
                 return new { Error = $"'{destinationName}' has no entrance. Call look to see what's around." };
+            }
+
+            var currentHour = GameClock.GetCurrentInGameDate(_session).Hour;
+            await _lockService.SyncScheduleLock(building.Id, building.BuildingType, currentHour, cancellationToken);
+            var canEnter = await _lockService.CanEnter(entranceRoom.Id, player.Id, cancellationToken);
+            if (!canEnter) {
+                return new { Error = $"The door to '{destinationName}' is locked." };
             }
 
             player.CityId = building.CityId;

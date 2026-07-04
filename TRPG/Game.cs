@@ -65,6 +65,11 @@ internal class Game(
                 break;
             }
 
+            if (input.StartsWith("/wait", StringComparison.OrdinalIgnoreCase)) {
+                await HandleWaitCommand(session, input, cancellationToken);
+                continue;
+            }
+
             session.DidMoveThisTurn = false;
             await SendAndLog(chat, tools, input, cancellationToken);
 
@@ -74,6 +79,29 @@ internal class Game(
                 ClearPreviousTurns(chat, currentTurnStart);
             }
         }
+    }
+
+    private async Task HandleWaitCommand(GameSession session, string input, CancellationToken cancellationToken) {
+        logger.LogInformation("[game] >>> {Input}", input);
+
+        var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2 || !int.TryParse(parts[1], out var hours) || hours <= 0) {
+            Console.WriteLine("Usage: /wait <hours>");
+            logger.LogInformation("[game] <<< rejected: usage error");
+            return;
+        }
+
+        GameClock.AdvanceHours(session, hours);
+        var currentDate = GameClock.GetCurrentInGameDate(session);
+        Console.WriteLine($"Time passes... it is now {currentDate.WeekdayName}, hour {currentDate.Hour}.");
+        logger.LogInformation("[game] <<< waited {Hours}h, now {Weekday} hour {Hour}",
+            hours, currentDate.WeekdayName, currentDate.Hour);
+
+        var query = new SceneQuery(session.WorldId, session.PlayerId, currentDate);
+        var scene = await sceneService.GetScene(query, cancellationToken);
+        var json = JsonSerializer.Serialize(scene, ToolJsonOptions.Options);
+        Console.WriteLine(json);
+        logger.LogDebug("[wait] scene: {Scene}", json);
     }
 
     private static void ClearPreviousTurns(Chat chat, int currentTurnStart) {

@@ -190,7 +190,7 @@ internal static class Builders {
         };
     }
 
-    public static District MakeDistrict(Guid cityId, DistrictType districtType = DistrictType.Market) {
+    public static District MakeDistrict(Guid cityId, DistrictType districtType = DistrictType.CityCenter) {
         return new District {
             CityId = cityId,
             DistrictType = districtType,
@@ -199,9 +199,10 @@ internal static class Builders {
         };
     }
 
-    public static Room MakeRoom(Guid buildingId) {
+    public static Room MakeRoom(Guid buildingId, int capacity = 4) {
         return new Room {
             BuildingId = buildingId,
+            Capacity = capacity,
             Name = $"Room-{Guid.NewGuid():N}",
             Description = "A test room",
             FloorNumber = 0
@@ -219,15 +220,17 @@ internal static class Builders {
         };
     }
 
-    public static Job MakeJob(Guid personId, int priority = 1) {
+    public static Job MakeJob(Guid personId, int priority = 1, JobAction action = JobAction.Idle,
+        int startHour = 8, int endHour = 17, Guid? roomId = null) {
         return new Job {
             PersonId = personId,
-            Action = JobAction.Idle,
-            StartHour = 8,
-            EndHour = 17,
+            Action = action,
+            StartHour = startHour,
+            EndHour = endHour,
             Daily = true,
             Priority = priority,
-            StateId = Guid.NewGuid()
+            StateId = Guid.NewGuid(),
+            RoomId = roomId
         };
     }
 

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using TRPG.Data;
 using TRPG.Models;
 using TRPG.Services;
@@ -17,7 +18,15 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
-        _service = new SceneService(_context);
+        var jobService = new JobService(_context);
+        var personService = new PersonService(_context);
+        var buildingService = new BuildingService(_context);
+        var inventoryService = new InventoryService(_context);
+        var dispatcher = new JobDispatcher(
+            new SleepJobHandler(personService), new WorkJobHandler(personService), new IdleJobHandler(personService),
+            NullLogger<JobDispatcher>.Instance);
+        var lockService = new LockService(buildingService, jobService, inventoryService);
+        _service = new SceneService(_context, new JobCatchUpService(jobService, personService, dispatcher), lockService);
 
         _worldId = Guid.NewGuid();
         var country = Builders.MakeCountry(_worldId);

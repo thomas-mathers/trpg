@@ -86,6 +86,29 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task GetPersonIdsByRoomId_ReturnsDistinctPersonIds() {
+        // Arrange
+        var roomId = Guid.NewGuid();
+        var otherPerson = Builders.MakePerson();
+        _context.Persons.Add(otherPerson);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _service.Add(Builders.MakeJob(_person.Id, action: JobAction.Sleep, roomId: roomId),
+            TestContext.Current.CancellationToken);
+        await _service.Add(Builders.MakeJob(_person.Id, action: JobAction.Work, roomId: roomId),
+            TestContext.Current.CancellationToken);
+        await _service.Add(Builders.MakeJob(otherPerson.Id, action: JobAction.Sleep, roomId: Guid.NewGuid()),
+            TestContext.Current.CancellationToken);
+
+        // Act
+        var personIds = await _service.GetPersonIdsByRoomId(roomId, TestContext.Current.CancellationToken);
+
+        // Assert
+        var id = Assert.Single(personIds);
+        Assert.Equal(_person.Id, id);
+    }
+
+    [Fact]
     public async Task Delete_RemovesJob() {
         // Arrange
         var job = Builders.MakeJob(_person.Id);

@@ -2,10 +2,11 @@ namespace TRPG.Models;
 
 internal enum DistrictType {
     Residential,
-    Castle,
-    Civic,
-    Market,
-    Craftsman
+    Scientific,
+    CityCenter,
+    Governmental,
+    HolySite,
+    Encampment
 }
 
 internal class District {

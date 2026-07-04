@@ -11,6 +11,7 @@ internal record BuildingGeneratorInput(
 ) {
     public IReadOnlyList<Guid> MemberIds { get; init; } = [];
     public string? Name { get; init; }
+    public bool IsLockable { get; init; }
 }
 
 internal record BuildingGeneratorResult(
@@ -21,9 +22,9 @@ internal record BuildingGeneratorResult(
 
 internal class BuildingGenerator {
     internal static readonly IReadOnlyCollection<BuildingType> CityBuildingTypes = [
-        BuildingType.ArcaneShop, BuildingType.Apothecary, BuildingType.Bakery,
+        BuildingType.ArcaneShop, BuildingType.Apothecary, BuildingType.Bakery, BuildingType.Barracks,
         BuildingType.Blacksmith, BuildingType.Castle, BuildingType.GeneralGoods,
-        BuildingType.GuildHall, BuildingType.House, BuildingType.Jail,
+        BuildingType.GuildHall, BuildingType.House, BuildingType.Inn, BuildingType.Jail,
         BuildingType.Library, BuildingType.Stable, BuildingType.Tavern, BuildingType.Temple
     ];
 
@@ -31,6 +32,25 @@ internal class BuildingGenerator {
         BuildingType.Cave, BuildingType.Crypt, BuildingType.Mine,
         BuildingType.Ruins, BuildingType.Tower
     ];
+
+    private static readonly string[] InnGuestRoomDirections = ["North", "South", "East", "West"];
+
+    internal static readonly Dictionary<BuildingType, int> Popularity = new() {
+        [BuildingType.Tavern] = 10,
+        [BuildingType.Inn] = 8,
+        [BuildingType.GuildHall] = 7,
+        [BuildingType.GeneralGoods] = 6,
+        [BuildingType.Bakery] = 6,
+        [BuildingType.Temple] = 5,
+        [BuildingType.Barracks] = 4,
+        [BuildingType.Library] = 4,
+        [BuildingType.ArcaneShop] = 3,
+        [BuildingType.Apothecary] = 3,
+        [BuildingType.Blacksmith] = 3,
+        [BuildingType.House] = 3,
+        [BuildingType.Stable] = 2,
+        [BuildingType.Castle] = 2
+    };
 
     internal static readonly Dictionary<BuildingType, string[]> Names = new() {
         [BuildingType.ArcaneShop] = [
@@ -58,6 +78,11 @@ internal class BuildingGenerator {
             "The Crumb & Crust", "The Ember Oven", "The Harvest Loaf",
             "The Sweet Roll", "The Grain Basket", "The Flour Mill"
         ],
+        [BuildingType.Barracks] = [
+            "The Iron Watch", "The Garrison House", "The Muster Hall", "The Sentinel Post",
+            "The Shield Wall", "The Standing Guard", "The Rampart Barracks",
+            "The Drill Yard", "The Soldier's Rest", "The Guard Company"
+        ],
         [BuildingType.Blacksmith] = [
             "The Iron Anvil", "The Rusty Hammer", "The Forge & Fire", "The Steel Works",
             "The Hammered Shield", "The Ember Forge", "The Ironmonger",
@@ -77,6 +102,11 @@ internal class BuildingGenerator {
             "The Guild House", "The Order Hall", "The Brotherhood Hall", "The Common Charter",
             "The Sealed Compact", "The Meeting Lodge", "The Trade Moot",
             "The Charter House", "The Open Hall", "The Register Room"
+        ],
+        [BuildingType.Inn] = [
+            "The Wanderer's Pillow", "The Weary Traveler", "The Lantern Rest", "The Sleepy Hollow Inn",
+            "The Traveler's Respite", "The Golden Bedpost", "The Wayfarer's Lodge",
+            "The Quiet Hearth Inn", "The Nightingale Inn", "The Drowsy Owl"
         ],
         [BuildingType.Jail] = [
             "The Iron Gate", "The Stone Cell", "The Warden's Hold", "The Grim Cage",
@@ -122,6 +152,7 @@ internal class BuildingGenerator {
 
         var rooms = specs.Select(s => new Room {
             BuildingId = building.Id,
+            Capacity = s.Capacity,
             Description = s.Description,
             FloorNumber = s.FloorNumber,
             Name = s.Name
@@ -153,7 +184,8 @@ internal class BuildingGenerator {
             RoomId = entranceRoom.Id,
             Name = "Front Door",
             Description = "The door leading outside.",
-            DestinationRoomId = null
+            DestinationRoomId = null,
+            IsLocked = input.IsLockable
         });
 
         return new BuildingGeneratorResult(building, rooms, props);
@@ -161,8 +193,9 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetSpecs(BuildingType buildingType, Guid? ownerId, IReadOnlyList<Guid> memberIds) {
         return buildingType switch {
-            BuildingType.House => GetHouseSpecs(ownerId),
+            BuildingType.House => GetHouseSpecs(memberIds),
             BuildingType.Tavern => GetTavernSpecs(ownerId),
+            BuildingType.Inn => GetInnSpecs(ownerId),
             BuildingType.Blacksmith => GetBlacksmithSpecs(ownerId),
             BuildingType.Temple => GetTempleSpecs(ownerId),
             BuildingType.Library => GetLibrarySpecs(ownerId),
@@ -170,6 +203,7 @@ internal class BuildingGenerator {
             BuildingType.Apothecary => GetApothecarySpecs(ownerId),
             BuildingType.Bakery => GetBakerySpecs(ownerId),
             BuildingType.Stable => GetStableSpecs(ownerId),
+            BuildingType.Barracks => GetBarracksSpecs(ownerId),
             BuildingType.ArcaneShop => GetArcaneShopSpecs(ownerId),
             BuildingType.GuildHall => GetGuildHallSpecs(ownerId, memberIds),
             BuildingType.Castle => GetCastleSpecs(ownerId),
@@ -180,7 +214,7 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetBlacksmithSpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Workshop", "A working forge with tools and equipment for smithing.", 0, [
+            new RoomSpec("Workshop", "A working forge with tools and equipment for smithing.", 0, 6, [
                 new PropSpec("Forge",
                     id => new Workstation {
                         RoomId = id, Name = "Forge", Description = "A roaring forge for shaping metal.",
@@ -197,7 +231,7 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("Living Quarters", "Simple living quarters above the shop.", 1, [
+            new RoomSpec("Living Quarters", "Simple living quarters above the shop.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed
                         { RoomId = id, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
@@ -210,7 +244,7 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetApothecarySpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Shop", "A shop filled with the smell of herbs and potions.", 0, [
+            new RoomSpec("Shop", "A shop filled with the smell of herbs and potions.", 0, 6, [
                 new PropSpec("Alchemy Table",
                     id => new Workstation {
                         RoomId = id, Name = "Alchemy Table", Description = "A table covered in alchemical equipment.",
@@ -222,7 +256,7 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("Living Quarters", "Modest living quarters above the apothecary.", 1, [
+            new RoomSpec("Living Quarters", "Modest living quarters above the apothecary.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed
                         { RoomId = id, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
@@ -235,7 +269,7 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetBakerySpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Bakery", "A warm room smelling of fresh bread.", 0, [
+            new RoomSpec("Bakery", "A warm room smelling of fresh bread.", 0, 6, [
                 new PropSpec("Oven",
                     id => new Workstation {
                         RoomId = id, Name = "Oven", Description = "A large stone oven for baking.",
@@ -247,7 +281,7 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("Living Quarters", "Living quarters above the bakery.", 1, [
+            new RoomSpec("Living Quarters", "Living quarters above the bakery.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed
                         { RoomId = id, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
@@ -260,7 +294,7 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetArcaneShopSpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Shop", "A dimly lit shop filled with arcane curiosities.", 0, [
+            new RoomSpec("Shop", "A dimly lit shop filled with arcane curiosities.", 0, 6, [
                 new PropSpec("Enchanting Table",
                     id => new Workstation {
                         RoomId = id, Name = "Enchanting Table", Description = "A table humming with magical energy.",
@@ -272,7 +306,7 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("Living Quarters", "Living quarters above the arcane shop.", 1, [
+            new RoomSpec("Living Quarters", "Living quarters above the arcane shop.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed
                         { RoomId = id, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
@@ -285,7 +319,7 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetGeneralGoodsSpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Shop", "A well-stocked shop with a wide variety of goods.", 0, [
+            new RoomSpec("Shop", "A well-stocked shop with a wide variety of goods.", 0, 6, [
                 new PropSpec("Counter",
                     id => new Workstation {
                         RoomId = id, Name = "Counter", Description = "A counter for general trading.",
@@ -296,7 +330,7 @@ internal class BuildingGenerator {
                 new PropSpec("Barrel",
                     id => new Container { RoomId = id, Name = "Barrel", Description = "A barrel of supplies." })
             ]),
-            new RoomSpec("Living Quarters", "Living quarters behind the shop.", 1, [
+            new RoomSpec("Living Quarters", "Living quarters behind the shop.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed
                         { RoomId = id, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
@@ -309,7 +343,7 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetLibrarySpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Reading Room", "A quiet room lined with shelves of books.", 0, [
+            new RoomSpec("Reading Room", "A quiet room lined with shelves of books.", 0, 10, [
                 new PropSpec("Bookcase",
                     id => new Workstation {
                         RoomId = id, Name = "Bookcase", Description = "A tall bookcase filled with tomes.",
@@ -330,7 +364,7 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("Study", "A private study for the librarian.", 1, [
+            new RoomSpec("Study", "A private study for the librarian.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed
                         { RoomId = id, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
@@ -348,7 +382,7 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetTempleSpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Sanctuary", "A serene hall for prayer and worship.", 0, [
+            new RoomSpec("Sanctuary", "A serene hall for prayer and worship.", 0, 20, [
                 new PropSpec("Altar",
                     id => new Workstation {
                         RoomId = id, Name = "Altar", Description = "A sacred altar for prayer.",
@@ -363,7 +397,7 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("Quarters", "Living quarters for the temple keeper.", 1, [
+            new RoomSpec("Quarters", "Living quarters for the temple keeper.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed
                         { RoomId = id, Name = "Bed", Description = "A simple bed.", AssignedPersonId = ownerId }),
@@ -376,7 +410,7 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetTavernSpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Common Room", "A lively room filled with the sounds of eating and drinking.", 0, [
+            new RoomSpec("Common Room", "A lively room filled with the sounds of eating and drinking.", 0, 15, [
                 new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A wooden chair." }),
                 new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A wooden chair." }),
                 new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A wooden chair." }),
@@ -392,25 +426,7 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("North Guest Room", "A small but tidy guest room.", 1, [
-                new PropSpec("Bed",
-                    id => new Bed { RoomId = id, Name = "Bed", Description = "A comfortable bed for guests." }),
-                new PropSpec("Chest",
-                    id => new Container { RoomId = id, Name = "Chest", Description = "A chest for guest belongings." })
-            ]),
-            new RoomSpec("South Guest Room", "A small but tidy guest room.", 1, [
-                new PropSpec("Bed",
-                    id => new Bed { RoomId = id, Name = "Bed", Description = "A comfortable bed for guests." }),
-                new PropSpec("Chest",
-                    id => new Container { RoomId = id, Name = "Chest", Description = "A chest for guest belongings." })
-            ]),
-            new RoomSpec("East Guest Room", "A small but tidy guest room.", 1, [
-                new PropSpec("Bed",
-                    id => new Bed { RoomId = id, Name = "Bed", Description = "A comfortable bed for guests." }),
-                new PropSpec("Chest",
-                    id => new Container { RoomId = id, Name = "Chest", Description = "A chest for guest belongings." })
-            ]),
-            new RoomSpec("Owner's Quarters", "The owner's private living space.", 2, [
+            new RoomSpec("Owner's Quarters", "The owner's private living space.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed
                         { RoomId = id, Name = "Bed", Description = "The owner's bed.", AssignedPersonId = ownerId }),
@@ -421,10 +437,43 @@ internal class BuildingGenerator {
         ];
     }
 
+    private static RoomSpec[] GetInnSpecs(Guid? ownerId) {
+        var guestRooms = InnGuestRoomDirections.Select(direction => new RoomSpec(
+            $"{direction} Guest Room", "A small but tidy guest room.", 1, 1, [
+                new PropSpec("Bed",
+                    id => new Bed { RoomId = id, Name = "Bed", Description = "A comfortable bed for guests." }),
+                new PropSpec("Chest",
+                    id => new Container { RoomId = id, Name = "Chest", Description = "A chest for guest belongings." })
+            ]
+        )).ToArray();
+
+        return [
+            new RoomSpec("Lobby", "A welcoming lobby with a check-in counter.", 0, 15, [
+                new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A cushioned chair." }),
+                new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A cushioned chair." }),
+                new PropSpec("Innkeeper's Counter",
+                    id => new Workstation {
+                        RoomId = id, Name = "Innkeeper's Counter", Description = "A counter for booking rooms.",
+                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                    })
+            ]),
+            ..guestRooms,
+            new RoomSpec("Owner's Quarters", "The innkeeper's private living space.", 2, 1, [
+                new PropSpec("Bed",
+                    id => new Bed
+                        { RoomId = id, Name = "Bed", Description = "The innkeeper's bed.", AssignedPersonId = ownerId }),
+                new PropSpec("Chest",
+                    id => new Container
+                        { RoomId = id, Name = "Chest", Description = "A chest for personal belongings." })
+            ])
+        ];
+    }
+
     private static RoomSpec[] GetGuildHallSpecs(Guid? ownerId, IReadOnlyList<Guid> memberIds) {
         var memberRooms = memberIds.Select((memberId, i) => new RoomSpec(
             i == 0 ? "Guild Master's Chamber" : $"Member Room {i}",
             i == 0 ? "Private quarters for the guild master." : "A private room for a guild member.",
+            1,
             1,
             [
                 new PropSpec("Bed",
@@ -435,7 +484,7 @@ internal class BuildingGenerator {
         )).ToArray();
 
         return [
-            new RoomSpec("Hall", "A large hall where guild members gather.", 0, [
+            new RoomSpec("Hall", "A large hall where guild members gather.", 0, 15, [
                 new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A sturdy chair." }),
                 new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A sturdy chair." }),
                 new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A sturdy chair." }),
@@ -450,26 +499,28 @@ internal class BuildingGenerator {
         ];
     }
 
-    private static RoomSpec[] GetHouseSpecs(Guid? ownerId) {
+    private static RoomSpec[] GetHouseSpecs(IReadOnlyList<Guid> memberIds) {
+        var bedrooms = memberIds.Select((memberId, i) => new RoomSpec(
+            $"Bedroom {i + 1}", "A modest bedroom.", 1, 1, [
+                new PropSpec("Bed",
+                    id => new Bed { RoomId = id, Name = "Bed", Description = "A modest bed.", AssignedPersonId = memberId }),
+                new PropSpec("Chest",
+                    id => new Container { RoomId = id, Name = "Chest", Description = "A chest for personal belongings." })
+            ]
+        )).ToArray();
+
         return [
-            new RoomSpec("Living Room", "A simple living room.", 0, [
+            new RoomSpec("Living Room", "A simple living room.", 0, 6, [
                 new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A worn chair." }),
                 new PropSpec("Chair", id => new Seat { RoomId = id, Name = "Chair", Description = "A worn chair." })
             ]),
-            new RoomSpec("Bedroom", "A modest bedroom.", 1, [
-                new PropSpec("Bed",
-                    id => new Bed
-                        { RoomId = id, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
-                new PropSpec("Chest",
-                    id => new Container
-                        { RoomId = id, Name = "Chest", Description = "A chest for personal belongings." })
-            ])
+            ..bedrooms
         ];
     }
 
     private static RoomSpec[] GetStableSpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Stable", "A stable housing horses and supplies.", 0, [
+            new RoomSpec("Stable", "A stable housing horses and supplies.", 0, 6, [
                 new PropSpec("Counter",
                     id => new Workstation {
                         RoomId = id, Name = "Counter", Description = "A counter for selling horses and supplies.",
@@ -478,7 +529,7 @@ internal class BuildingGenerator {
                 new PropSpec("Barrel",
                     id => new Container { RoomId = id, Name = "Barrel", Description = "A barrel of feed." })
             ]),
-            new RoomSpec("Living Quarters", "Simple living quarters for the stable hand.", 1, [
+            new RoomSpec("Living Quarters", "Simple living quarters for the stable hand.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed
                         { RoomId = id, Name = "Bed", Description = "A simple bed.", AssignedPersonId = ownerId })
@@ -486,9 +537,30 @@ internal class BuildingGenerator {
         ];
     }
 
+    private static RoomSpec[] GetBarracksSpecs(Guid? ownerId) {
+        return [
+            new RoomSpec("Drill Hall", "A hall lined with weapon racks and training gear.", 0, 15, [
+                new PropSpec("Weapon Rack",
+                    id => new Container { RoomId = id, Name = "Weapon Rack", Description = "A rack holding practice weapons." }),
+                new PropSpec("Counter",
+                    id => new Workstation {
+                        RoomId = id, Name = "Counter", Description = "A counter for issuing orders and supplies.",
+                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                    })
+            ]),
+            new RoomSpec("Officer's Quarters", "A spartan private room for the commanding officer.", 1, 1, [
+                new PropSpec("Bed",
+                    id => new Bed
+                        { RoomId = id, Name = "Bed", Description = "A simple cot.", AssignedPersonId = ownerId }),
+                new PropSpec("Chest",
+                    id => new Container { RoomId = id, Name = "Chest", Description = "A footlocker for personal effects." })
+            ])
+        ];
+    }
+
     private static RoomSpec[] GetCastleSpecs(Guid? ownerId) {
         return [
-            new RoomSpec("Great Hall", "A grand hall fit for a lord.", 0, [
+            new RoomSpec("Great Hall", "A grand hall fit for a lord.", 0, 15, [
                 new PropSpec("Throne",
                     id => new Seat { RoomId = id, Name = "Throne", Description = "An imposing throne." }),
                 new PropSpec("Chair",
@@ -503,7 +575,7 @@ internal class BuildingGenerator {
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
-            new RoomSpec("Royal Chambers", "Lavish private chambers for the lord.", 1, [
+            new RoomSpec("Royal Chambers", "Lavish private chambers for the lord.", 1, 1, [
                 new PropSpec("Bed",
                     id => new Bed {
                         RoomId = id, Name = "Bed", Description = "A grand four-poster bed.", AssignedPersonId = ownerId
@@ -516,11 +588,11 @@ internal class BuildingGenerator {
 
     private static RoomSpec[] GetJailSpecs() {
         return [
-            new RoomSpec("Guard Station", "A room where guards keep watch.", 0, [
+            new RoomSpec("Guard Station", "A room where guards keep watch.", 0, 4, [
                 new PropSpec("Chair",
                     id => new Seat { RoomId = id, Name = "Chair", Description = "A chair for the guard on duty." })
             ]),
-            new RoomSpec("Cells", "A row of dark, damp cells.", 1, [
+            new RoomSpec("Cells", "A row of dark, damp cells.", 1, 4, [
                 new PropSpec("Chest",
                     id => new Container
                         { RoomId = id, Name = "Chest", Description = "A chest for confiscated belongings." })
@@ -528,7 +600,7 @@ internal class BuildingGenerator {
         ];
     }
 
-    private record RoomSpec(string Name, string Description, int FloorNumber, PropSpec[] Props);
+    private record RoomSpec(string Name, string Description, int FloorNumber, int Capacity, PropSpec[] Props);
 
     private record PropSpec(string Name, Func<Guid, Prop> Factory);
 }

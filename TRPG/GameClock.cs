@@ -19,6 +19,10 @@ internal static class GameClock {
     public static TimeSpan GetTotalPlaytime(GameSession session) =>
         session.BankedPlaytime + session.SessionStopwatch.Elapsed;
 
+    public static void AdvanceHours(GameSession session, int hours) {
+        session.BankedPlaytime += TimeSpan.FromHours(hours / InGameHoursPerRealHour);
+    }
+
     public static DateTime GetCurrentInGameDateTime(GameSession session) {
         var inGameHoursElapsed = GetTotalPlaytime(session).TotalHours * InGameHoursPerRealHour;
         return WorldEpoch.AddHours(inGameHoursElapsed);

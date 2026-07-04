@@ -91,4 +91,29 @@ internal class BuildingService(TrpgDbContext context) {
             .Where(o => o.BuildingId == buildingId && o.OwnerId == ownerId)
             .ExecuteDeleteAsync(cancellationToken);
     }
+
+    public async Task<RoomConnector?> GetFrontDoor(Guid roomId, CancellationToken cancellationToken = default) {
+        return await context.Props
+            .Where(p => p.RoomId == roomId)
+            .OfType<RoomConnector>()
+            .FirstOrDefaultAsync(c => c.DestinationRoomId == null, cancellationToken);
+    }
+
+    public async Task SetFrontDoorLocked(Guid buildingId, bool isLocked, CancellationToken cancellationToken = default) {
+        var entranceRoom = await GetEntranceRoom(buildingId, cancellationToken);
+        if (entranceRoom == null) return;
+
+        var door = await GetFrontDoor(entranceRoom.Id, cancellationToken);
+        if (door == null) return;
+
+        door.IsLocked = isLocked;
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetKeyItemIds(Guid roomConnectorId, CancellationToken cancellationToken = default) {
+        return await context.RoomConnectorKeys
+            .Where(k => k.RoomConnectorId == roomConnectorId)
+            .Select(k => k.ItemId)
+            .ToArrayAsync(cancellationToken);
+    }
 }

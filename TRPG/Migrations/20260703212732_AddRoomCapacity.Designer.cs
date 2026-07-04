@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
@@ -12,9 +13,11 @@ using TRPG.Data;
 namespace TRPG.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703212732_AddRoomCapacity")]
+    partial class AddRoomCapacity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1003,33 +1006,6 @@ namespace TRPG.Migrations
                     b.ToTable("rooms", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Models.RoomConnectorKey", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("ItemId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("item_id");
-
-                    b.Property<Guid>("RoomConnectorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("room_connector_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_room_connector_keys");
-
-                    b.HasIndex("ItemId")
-                        .HasDatabaseName("ix_room_connector_keys_item_id");
-
-                    b.HasIndex("RoomConnectorId")
-                        .HasDatabaseName("ix_room_connector_keys_room_connector_id");
-
-                    b.ToTable("room_connector_keys", (string)null);
-                });
-
             modelBuilder.Entity("TRPG.Models.State", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1345,11 +1321,15 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("destination_room_id");
 
-                    b.Property<bool>("IsLocked")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_locked");
+                    b.Property<Guid?>("KeyItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("key_item_id");
 
-                    b.ToTable("props", (string)null);
+                    b.ToTable("props", null, t =>
+                        {
+                            t.Property("KeyItemId")
+                                .HasColumnName("room_connector_key_item_id");
+                        });
 
                     b.HasDiscriminator().HasValue("RoomConnector");
                 });

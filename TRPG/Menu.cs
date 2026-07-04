@@ -74,7 +74,7 @@ internal class Menu(
         var startingCity = worldResult.Cities.First(c => c.IsCapital);
         var startingState = worldResult.States.First(s => s.Id == startingCity.StateId);
         var startingDistrict = worldResult.Districts.First(d =>
-            d.CityId == startingCity.Id && d.DistrictType == DistrictType.Civic);
+            d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter);
 
         var playerResult = personGenerator.Generate(
             new PersonGeneratorInput(

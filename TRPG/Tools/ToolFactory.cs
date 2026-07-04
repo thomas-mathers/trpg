@@ -9,6 +9,7 @@ internal class ToolFactory(
     PersonService personService,
     BuildingService buildingService,
     LocationService locationService,
+    LockService lockService,
     WorldService worldService,
     InventoryService inventoryService,
     NpcConversationService npcConversationService,
@@ -16,7 +17,7 @@ internal class ToolFactory(
     public IReadOnlyList<Tool> Create(GameSession session) => [
         new WorldInfoTool(session, worldService),
         new LookTool(session, sceneService, loggerFactory.CreateLogger<LookTool>()),
-        new MoveTool(session, sceneService, personService, buildingService, locationService, loggerFactory.CreateLogger<MoveTool>()),
+        new MoveTool(session, sceneService, personService, buildingService, locationService, lockService, loggerFactory.CreateLogger<MoveTool>()),
         new InventoryTool(session, personService, inventoryService, loggerFactory.CreateLogger<InventoryTool>()),
         new CharacterTool(session, personService, loggerFactory.CreateLogger<CharacterTool>()),
         new StartConversationTool(session, personService, npcConversationService, loggerFactory.CreateLogger<StartConversationTool>()),

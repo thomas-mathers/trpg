@@ -21,6 +21,15 @@ internal class PersonService(TrpgDbContext context) {
             .ToArrayAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Guid>> GetIdsByDistrict(Guid worldId, Guid districtId,
+        CancellationToken cancellationToken = default) {
+        var ids = await context.Persons
+            .Where(p => p.WorldId == worldId && p.DistrictId == districtId)
+            .Select(p => p.Id)
+            .ToArrayAsync(cancellationToken);
+        return ids;
+    }
+
     public async Task<Person?> GetByNameInRoom(Guid worldId, Guid roomId, string name,
         CancellationToken cancellationToken = default) {
         return await context.Persons

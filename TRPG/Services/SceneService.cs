@@ -38,7 +38,7 @@ internal record SceneResult(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
-internal class SceneService(TrpgDbContext context) {
+internal class SceneService(TrpgDbContext context, JobCatchUpService jobCatchUpService, LockService lockService) {
     public async Task<SceneResult> GetScene(SceneQuery query, CancellationToken cancellationToken = default) {
         var worldId = query.WorldId;
         var playerId = query.PlayerId;
@@ -86,6 +86,8 @@ internal class SceneService(TrpgDbContext context) {
         }
 
         if (bootstrap.RoomId != null) {
+            await jobCatchUpService.CatchUpRoom(bootstrap.RoomId.Value, query.CurrentDate.Hour, cancellationToken);
+
             var roomAndBuilding = await (
                 from r in context.Rooms where r.Id == bootstrap.RoomId.Value
                 join b in context.Buildings on r.BuildingId equals b.Id
@@ -158,17 +160,22 @@ internal class SceneService(TrpgDbContext context) {
                 factionDescription
             );
 
+            var exitInfos = new List<SceneExitInfo>();
+            foreach (var c in connectors) {
+                var destinationName = c.DestinationRoomId != null && destinationNameById.TryGetValue(c.DestinationRoomId.Value, out var name)
+                    ? name
+                    : "Outside";
+                if (c.DestinationRoomId == null) {
+                    await lockService.SyncScheduleLock(roomAndBuilding.BuildingId, roomAndBuilding.BuildingType, query.CurrentDate.Hour, cancellationToken);
+                }
+                exitInfos.Add(new SceneExitInfo(c.Description, destinationName, c.IsLocked));
+            }
+
             roomInfo = new SceneRoomInfo(
                 roomAndBuilding.RoomName,
                 roomAndBuilding.RoomDescription,
                 roomAndBuilding.FloorNumber,
-                connectors.Select(c => new SceneExitInfo(
-                    c.Description,
-                    c.DestinationRoomId != null && destinationNameById.TryGetValue(c.DestinationRoomId.Value, out var name)
-                        ? name
-                        : "Outside",
-                    c.KeyItemId != null
-                )).ToArray()
+                exitInfos
             );
 
             nearbyProps = props.Where(p => p is not RoomConnector)
@@ -176,6 +183,10 @@ internal class SceneService(TrpgDbContext context) {
                 .ToArray();
         } else {
             regionDescription = bootstrap.RegionDescription;
+
+            if (bootstrap.DistrictId != null) {
+                await jobCatchUpService.CatchUpDistrict(worldId, bootstrap.DistrictId.Value, query.CurrentDate.Hour, cancellationToken);
+            }
 
             nearbyBuildings = await context.Buildings
                 .Where(b => b.StateId == bootstrap.StateId && b.CityId == bootstrap.CityId && b.DistrictId == bootstrap.DistrictId)

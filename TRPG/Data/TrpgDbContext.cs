@@ -36,6 +36,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<Road> Roads => Set<Road>();
     public DbSet<Room> Rooms => Set<Room>();
+    public DbSet<RoomConnectorKey> RoomConnectorKeys => Set<RoomConnectorKey>();
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
     public DbSet<World> Worlds => Set<World>();
 
@@ -108,6 +109,11 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<InventoryItem>(entity => {
             entity.HasOne(i => i.Item).WithMany().HasForeignKey(i => i.ItemId);
             entity.HasIndex(i => i.PersonId);
+        });
+
+        modelBuilder.Entity<RoomConnectorKey>(entity => {
+            entity.HasIndex(k => k.RoomConnectorId);
+            entity.HasIndex(k => k.ItemId);
         });
 
         modelBuilder.Entity<WorldEvent>(entity => {
@@ -195,6 +201,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<Job>(entity => {
             entity.HasIndex(j => new { j.StateId, j.RoomId });
             entity.HasIndex(j => j.PersonId);
+            entity.HasIndex(j => j.RoomId);
         });
 
         modelBuilder.Entity<World>()

@@ -109,6 +109,29 @@ public sealed class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task GetIdsByDistrict_ReturnsOnlyPersonsInDistrict() {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var districtId = Guid.NewGuid();
+
+        var inDistrict = Builders.MakePerson(worldId, districtId: districtId);
+        var differentDistrict = Builders.MakePerson(worldId, districtId: Guid.NewGuid());
+        var otherWorld = Builders.MakePerson(districtId: districtId);
+
+        await _service.Add(inDistrict, TestContext.Current.CancellationToken);
+        await _service.Add(differentDistrict, TestContext.Current.CancellationToken);
+        await _service.Add(otherWorld, TestContext.Current.CancellationToken);
+
+        // Act
+        var results = await _service.GetIdsByDistrict(worldId, districtId, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Contains(inDistrict.Id, results);
+        Assert.DoesNotContain(differentDistrict.Id, results);
+        Assert.DoesNotContain(otherWorld.Id, results);
+    }
+
+    [Fact]
     public async Task GetByNameOutdoorsInDistrict_ReturnsPerson_WhenInDistrict() {
         // Arrange
         var worldId = Guid.NewGuid();
