@@ -6,4 +6,5 @@ internal class PersonQuestObjective {
     public QuestObjective Objective { get; init; } = null!;
     public Guid ObjectiveId { get; init; }
     public Guid PersonId { get; init; }
+    public Guid WorldId { get; init; }
 }

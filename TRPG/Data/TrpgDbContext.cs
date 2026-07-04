@@ -60,10 +60,12 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<AmmoType>().HaveConversion<string>();
         configurationBuilder.Properties<ItemRarity>().HaveConversion<string>();
         configurationBuilder.Properties<FactionRole>().HaveConversion<string>();
+        configurationBuilder.Properties<ReputationTargetType>().HaveConversion<string>();
         configurationBuilder.Properties<QuestStatus>().HaveConversion<string>();
         configurationBuilder.Properties<QuestObjectiveType>().HaveConversion<string>();
         configurationBuilder.Properties<JobAction>().HaveConversion<string>();
         configurationBuilder.Properties<Profession>().HaveConversion<string>();
+        configurationBuilder.Properties<PersonState>().HaveConversion<string>();
         configurationBuilder.Properties<DistrictType>().HaveConversion<string>();
         configurationBuilder.Properties<Skill>().HaveConversion<string>();
         configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();
@@ -99,6 +101,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
                     v => JsonSerializer.Deserialize<List<ItemModifier>>(v, JsonOptions) ?? new List<ItemModifier>()
                 )
                 .HasColumnType("jsonb");
+            entity.HasIndex(i => i.WorldId);
         });
 
         modelBuilder.Entity<WeaponItem>().Property(w => w.Type).HasColumnName("weapon_type");
@@ -109,11 +112,13 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<InventoryItem>(entity => {
             entity.HasOne(i => i.Item).WithMany().HasForeignKey(i => i.ItemId);
             entity.HasIndex(i => i.PersonId);
+            entity.HasIndex(i => i.WorldId);
         });
 
         modelBuilder.Entity<RoomConnectorKey>(entity => {
             entity.HasIndex(k => k.RoomConnectorId);
             entity.HasIndex(k => k.ItemId);
+            entity.HasIndex(k => k.WorldId);
         });
 
         modelBuilder.Entity<WorldEvent>(entity => {
@@ -140,15 +145,20 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<City>(entity => {
             entity.HasIndex(c => c.StateId).IsUnique();
             entity.HasIndex(c => new { c.CountryId, c.Name }).IsUnique();
+            entity.HasIndex(c => c.WorldId);
         });
 
         modelBuilder.Entity<District>(entity => {
             entity.HasIndex(d => d.CityId);
             entity.HasIndex(d => new { d.CityId, d.DistrictType }).IsUnique();
+            entity.HasIndex(d => d.WorldId);
         });
 
 
-        modelBuilder.Entity<Room>(entity => { entity.HasIndex(r => r.BuildingId); });
+        modelBuilder.Entity<Room>(entity => {
+            entity.HasIndex(r => r.BuildingId);
+            entity.HasIndex(r => r.WorldId);
+        });
 
         modelBuilder.Entity<Prop>(entity => {
             entity.HasDiscriminator<string>("behavior_type")
@@ -159,6 +169,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
                 .HasValue<RoomConnector>("RoomConnector")
                 .HasValue<Trigger>("Trigger");
             entity.HasIndex(p => p.RoomId);
+            entity.HasIndex(p => p.WorldId);
         });
 
         modelBuilder.Entity<Container>(entity => {
@@ -167,6 +178,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<ContainerItem>(entity => {
             entity.HasIndex(pi => new { pi.ContainerId, pi.Index }).IsUnique();
+            entity.HasIndex(pi => pi.WorldId);
         });
 
         modelBuilder.Entity<Quest>(entity => {
@@ -178,30 +190,36 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<QuestObjective>(entity => {
             entity.HasIndex(o => o.QuestId);
+            entity.HasIndex(o => o.WorldId);
         });
 
         modelBuilder.Entity<PersonAbility>(entity => {
             entity.HasIndex(pa => new { pa.PersonId, pa.AbilityName }).IsUnique();
+            entity.HasIndex(pa => pa.WorldId);
         });
 
         modelBuilder.Entity<PersonSkill>(entity => {
             entity.HasIndex(ps => new { ps.PersonId, ps.Skill }).IsUnique();
+            entity.HasIndex(ps => ps.WorldId);
         });
 
         modelBuilder.Entity<PersonQuest>(entity => {
             entity.HasOne(pq => pq.Quest).WithMany().HasForeignKey(pq => pq.QuestId);
             entity.HasIndex(pq => new { pq.PersonId, pq.QuestId }).IsUnique();
+            entity.HasIndex(pq => pq.WorldId);
         });
 
         modelBuilder.Entity<PersonQuestObjective>(entity => {
             entity.HasOne(po => po.Objective).WithMany().HasForeignKey(po => po.ObjectiveId);
             entity.HasIndex(po => new { po.PersonId, po.ObjectiveId }).IsUnique();
+            entity.HasIndex(po => po.WorldId);
         });
 
         modelBuilder.Entity<Job>(entity => {
             entity.HasIndex(j => new { j.StateId, j.RoomId });
             entity.HasIndex(j => j.PersonId);
             entity.HasIndex(j => j.RoomId);
+            entity.HasIndex(j => j.WorldId);
         });
 
         modelBuilder.Entity<World>()
@@ -217,14 +235,20 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<Country>()
             .HasIndex(c => new { c.WorldId, c.Name }).IsUnique();
 
-        modelBuilder.Entity<State>()
-            .HasIndex(s => new { s.CountryId, s.Name }).IsUnique();
+        modelBuilder.Entity<State>(entity => {
+            entity.HasIndex(s => new { s.CountryId, s.Name }).IsUnique();
+            entity.HasIndex(s => s.WorldId);
+        });
 
-        modelBuilder.Entity<Building>()
-            .HasIndex(b => new { b.StateId, b.Name }).IsUnique();
+        modelBuilder.Entity<Building>(entity => {
+            entity.HasIndex(b => new { b.StateId, b.Name }).IsUnique();
+            entity.HasIndex(b => b.WorldId);
+        });
 
-        modelBuilder.Entity<Road>()
-            .HasIndex(r => new { r.OriginStateId, r.DestinationStateId }).IsUnique();
+        modelBuilder.Entity<Road>(entity => {
+            entity.HasIndex(r => new { r.OriginStateId, r.DestinationStateId }).IsUnique();
+            entity.HasIndex(r => r.WorldId);
+        });
 
         modelBuilder.Entity<NpcConversation>(entity => {
             entity.HasIndex(c => c.WorldId);
@@ -234,17 +258,21 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<WorldEvent>()
             .HasIndex(e => e.WorldId);
 
-        modelBuilder.Entity<Reputation>()
-            .HasIndex(r => new { r.PersonId, r.FactionId }).IsUnique();
+        modelBuilder.Entity<Reputation>(entity => {
+            entity.HasIndex(r => new { r.PersonId, r.TargetId, r.TargetType }).IsUnique();
+            entity.HasIndex(r => r.WorldId);
+        });
 
         modelBuilder.Entity<FactionMember>(entity => {
             entity.HasIndex(fm => new { fm.PersonId, fm.FactionId }).IsUnique();
             entity.HasIndex(fm => fm.FactionId);
+            entity.HasIndex(fm => fm.WorldId);
         });
 
         modelBuilder.Entity<BuildingOwner>(entity => {
             entity.HasIndex(bo => new { bo.BuildingId, bo.OwnerId }).IsUnique();
             entity.HasIndex(bo => bo.OwnerId);
+            entity.HasIndex(bo => bo.WorldId);
         });
     }
 }

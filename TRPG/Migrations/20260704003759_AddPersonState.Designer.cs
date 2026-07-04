@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
@@ -12,9 +13,11 @@ using TRPG.Data;
 namespace TRPG.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260704003759_AddPersonState")]
+    partial class AddPersonState
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -61,15 +64,8 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("state_id");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_buildings");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_buildings_world_id");
 
                     b.HasIndex("StateId", "Name")
                         .IsUnique()
@@ -93,18 +89,11 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner_id");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_building_owners");
 
                     b.HasIndex("OwnerId")
                         .HasDatabaseName("ix_building_owners_owner_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_building_owners_world_id");
 
                     b.HasIndex("BuildingId", "OwnerId")
                         .IsUnique()
@@ -142,19 +131,12 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("state_id");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_cities");
 
                     b.HasIndex("StateId")
                         .IsUnique()
                         .HasDatabaseName("ix_cities_state_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_cities_world_id");
 
                     b.HasIndex("CountryId", "Name")
                         .IsUnique()
@@ -186,15 +168,8 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_container_items");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_container_items_world_id");
 
                     b.HasIndex("ContainerId", "Index")
                         .IsUnique()
@@ -260,18 +235,11 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_districts");
 
                     b.HasIndex("CityId")
                         .HasDatabaseName("ix_districts_city_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_districts_world_id");
 
                     b.HasIndex("CityId", "DistrictType")
                         .IsUnique()
@@ -331,18 +299,11 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("role");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_faction_members");
 
                     b.HasIndex("FactionId")
                         .HasDatabaseName("ix_faction_members_faction_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_faction_members_world_id");
 
                     b.HasIndex("PersonId", "FactionId")
                         .IsUnique()
@@ -378,10 +339,6 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_inventory_items");
 
@@ -390,9 +347,6 @@ namespace TRPG.Migrations
 
                     b.HasIndex("PersonId")
                         .HasDatabaseName("ix_inventory_items_person_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_inventory_items_world_id");
 
                     b.ToTable("inventory_items", (string)null);
                 });
@@ -449,9 +403,6 @@ namespace TRPG.Migrations
                     b.HasKey("Id")
                         .HasName("pk_items");
 
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_items_world_id");
-
                     b.ToTable("items", (string)null);
 
                     b.HasDiscriminator<string>("item_type").HasValue("generic");
@@ -499,10 +450,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("state_id");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_jobs");
 
@@ -511,9 +458,6 @@ namespace TRPG.Migrations
 
                     b.HasIndex("RoomId")
                         .HasDatabaseName("ix_jobs_room_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_jobs_world_id");
 
                     b.HasIndex("StateId", "RoomId")
                         .HasDatabaseName("ix_jobs_state_id_room_id");
@@ -666,15 +610,8 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("person_id");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_person_abilities");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_person_abilities_world_id");
 
                     b.HasIndex("PersonId", "AbilityName")
                         .IsUnique()
@@ -703,18 +640,11 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("status");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_person_quests");
 
                     b.HasIndex("QuestId")
                         .HasDatabaseName("ix_person_quests_quest_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_person_quests_world_id");
 
                     b.HasIndex("PersonId", "QuestId")
                         .IsUnique()
@@ -742,18 +672,11 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("person_id");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_person_quest_objectives");
 
                     b.HasIndex("ObjectiveId")
                         .HasDatabaseName("ix_person_quest_objectives_objective_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_person_quest_objectives_world_id");
 
                     b.HasIndex("PersonId", "ObjectiveId")
                         .IsUnique()
@@ -786,15 +709,8 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("skill");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_person_skills");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_person_skills_world_id");
 
                     b.HasIndex("PersonId", "Skill")
                         .IsUnique()
@@ -824,10 +740,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("room_id");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.Property<string>("behavior_type")
                         .IsRequired()
                         .HasMaxLength(13)
@@ -839,9 +751,6 @@ namespace TRPG.Migrations
 
                     b.HasIndex("RoomId")
                         .HasDatabaseName("ix_props_room_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_props_world_id");
 
                     b.ToTable("props", (string)null);
 
@@ -948,18 +857,11 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("type");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_quest_objectives");
 
                     b.HasIndex("QuestId")
                         .HasDatabaseName("ix_quest_objectives_quest_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_quest_objectives_world_id");
 
                     b.ToTable("quest_objectives", (string)null);
                 });
@@ -1007,6 +909,10 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid>("FactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("faction_id");
+
                     b.Property<Guid>("PersonId")
                         .HasColumnType("uuid")
                         .HasColumnName("person_id");
@@ -1015,28 +921,12 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("score");
 
-                    b.Property<Guid>("TargetId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("target_id");
-
-                    b.Property<string>("TargetType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("target_type");
-
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_reputations");
 
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_reputations_world_id");
-
-                    b.HasIndex("PersonId", "TargetId", "TargetType")
+                    b.HasIndex("PersonId", "FactionId")
                         .IsUnique()
-                        .HasDatabaseName("ix_reputations_person_id_target_id_target_type");
+                        .HasDatabaseName("ix_reputations_person_id_faction_id");
 
                     b.ToTable("reputations", (string)null);
                 });
@@ -1073,15 +963,8 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("travel_time");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_roads");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_roads_world_id");
 
                     b.HasIndex("OriginStateId", "DestinationStateId")
                         .IsUnique()
@@ -1119,18 +1002,11 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_rooms");
 
                     b.HasIndex("BuildingId")
                         .HasDatabaseName("ix_rooms_building_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_rooms_world_id");
 
                     b.ToTable("rooms", (string)null);
                 });
@@ -1150,10 +1026,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("room_connector_id");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_room_connector_keys");
 
@@ -1162,9 +1034,6 @@ namespace TRPG.Migrations
 
                     b.HasIndex("RoomConnectorId")
                         .HasDatabaseName("ix_room_connector_keys_room_connector_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_room_connector_keys_world_id");
 
                     b.ToTable("room_connector_keys", (string)null);
                 });
@@ -1198,15 +1067,8 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("width");
 
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
                     b.HasKey("Id")
                         .HasName("pk_states");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_states_world_id");
 
                     b.HasIndex("CountryId", "Name")
                         .IsUnique()

@@ -7,11 +7,17 @@ namespace TRPG.Services;
 internal class FactionService(TrpgDbContext context) {
     public async Task AddMember(Guid factionId, Guid personId, FactionRole role,
         CancellationToken cancellationToken = default) {
+        var worldId = await context.Persons
+            .Where(p => p.Id == personId)
+            .Select(p => p.WorldId)
+            .FirstAsync(cancellationToken);
+
         context.FactionMembers.Add(new FactionMember {
             Id = Guid.NewGuid(),
             FactionId = factionId,
             PersonId = personId,
-            Role = role
+            Role = role,
+            WorldId = worldId
         });
 
         await context.SaveChangesAsync(cancellationToken);

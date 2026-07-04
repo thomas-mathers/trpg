@@ -12,7 +12,11 @@ internal class SkillService(TrpgDbContext context) {
             .FirstOrDefaultAsync(ps => ps.PersonId == personId && ps.Skill == skill, cancellationToken);
 
         if (personSkill == null) {
-            personSkill = new PersonSkill { PersonId = personId, Skill = skill };
+            var worldId = await context.Persons
+                .Where(p => p.Id == personId)
+                .Select(p => p.WorldId)
+                .FirstAsync(cancellationToken);
+            personSkill = new PersonSkill { PersonId = personId, Skill = skill, WorldId = worldId };
             context.PersonSkills.Add(personSkill);
         }
 

@@ -6,4 +6,5 @@ internal class ContainerItem {
     public int Index { get; init; }
     public Guid ItemId { get; init; }
     public int Quantity { get; init; }
+    public Guid WorldId { get; init; }
 }

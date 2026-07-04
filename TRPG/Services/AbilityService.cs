@@ -32,7 +32,12 @@ internal class AbilityService(TrpgDbContext context, AbilityDefinitions abilityD
             }
         }
 
-        context.PersonAbilities.Add(new PersonAbility { PersonId = personId, AbilityName = abilityName });
+        var worldId = await context.Persons
+            .Where(p => p.Id == personId)
+            .Select(p => p.WorldId)
+            .FirstAsync(cancellationToken);
+
+        context.PersonAbilities.Add(new PersonAbility { PersonId = personId, AbilityName = abilityName, WorldId = worldId });
         await context.SaveChangesAsync(cancellationToken);
     }
 

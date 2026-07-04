@@ -2,7 +2,7 @@ using TRPG.Models;
 
 namespace TRPG.Generators;
 
-internal record DungeonGeneratorInput(Guid StateId, IReadOnlyCollection<string> ExcludedNames);
+internal record DungeonGeneratorInput(Guid StateId, IReadOnlyCollection<string> ExcludedNames, Guid WorldId);
 
 internal record DungeonGeneratorResult(
     Building Building,
@@ -61,13 +61,15 @@ internal static class DungeonGenerator {
         var building = new Building {
             StateId = input.StateId,
             BuildingType = type,
-            Name = name
+            Name = name,
+            WorldId = input.WorldId
         };
         var room = new Room {
             BuildingId = building.Id,
             Name = RoomNames[type],
             Description = "",
-            FloorNumber = 0
+            FloorNumber = 0,
+            WorldId = input.WorldId
         };
         return new DungeonGeneratorResult(building, room);
     }

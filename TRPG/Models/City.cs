@@ -7,4 +7,5 @@ internal class City {
     public bool IsCapital { get; init; }
     public string Name { get; init; } = "";
     public Guid StateId { get; init; }
+    public Guid WorldId { get; init; }
 }

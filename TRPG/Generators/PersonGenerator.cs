@@ -277,7 +277,8 @@ internal class PersonGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
                 PersonId = person.Id,
                 Skill = skill,
                 Level = skillLevel,
-                Experience = GameRules.XpForSkillLevel(skillLevel)
+                Experience = GameRules.XpForSkillLevel(skillLevel),
+                WorldId = person.WorldId
             })
             .ToArray();
     }
@@ -286,7 +287,7 @@ internal class PersonGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
         return skills
             .SelectMany(ps => abilityDefinitions.Abilities
                 .Where(a => a.Skill == ps.Skill && a.RequiredSkillLevel <= ps.Level)
-                .Select(a => new PersonAbility { PersonId = person.Id, AbilityName = a.Name }))
+                .Select(a => new PersonAbility { PersonId = person.Id, AbilityName = a.Name, WorldId = person.WorldId }))
             .ToArray();
     }
 
@@ -342,7 +343,8 @@ internal class PersonGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
                 ItemId = item.Id,
                 Quantity = quantity,
                 Index = index++,
-                EquippedSlot = slotOverride ?? item.DefaultSlot
+                EquippedSlot = slotOverride ?? item.DefaultSlot,
+                WorldId = person.WorldId
             });
         }
 

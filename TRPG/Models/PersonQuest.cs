@@ -13,4 +13,5 @@ internal class PersonQuest {
     public Quest Quest { get; init; } = null!;
     public Guid QuestId { get; init; }
     public QuestStatus Status { get; set; }
+    public Guid WorldId { get; init; }
 }

@@ -5,4 +5,5 @@ internal class PersonAbility {
     public int Cooldown { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid PersonId { get; init; }
+    public Guid WorldId { get; init; }
 }

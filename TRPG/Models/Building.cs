@@ -32,4 +32,5 @@ internal class Building {
     public Guid? FactionId { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Name { get; init; } = "";
+    public Guid WorldId { get; init; }
 }

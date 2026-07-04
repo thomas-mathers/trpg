@@ -8,10 +8,16 @@ internal record ExitMatch(bool Matched, Guid? DestinationRoomId);
 
 internal class BuildingService(TrpgDbContext context) {
     public async Task AddOwner(Guid buildingId, Guid ownerId, CancellationToken cancellationToken = default) {
+        var worldId = await context.Buildings
+            .Where(b => b.Id == buildingId)
+            .Select(b => b.WorldId)
+            .FirstAsync(cancellationToken);
+
         context.BuildingOwners.Add(new BuildingOwner {
             Id = Guid.NewGuid(),
             BuildingId = buildingId,
-            OwnerId = ownerId
+            OwnerId = ownerId,
+            WorldId = worldId
         });
         await context.SaveChangesAsync(cancellationToken);
     }

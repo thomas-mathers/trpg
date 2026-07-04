@@ -7,7 +7,7 @@ namespace TRPG.Tests;
 
 [Collection("Database")]
 public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime {
-    private readonly Guid _personId = Guid.NewGuid();
+    private Guid _personId;
     private TrpgDbContext _context = null!;
     private Faction _faction = null!;
     private FactionService _service = null!;
@@ -17,7 +17,10 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime {
         _service = new FactionService(_context);
 
         _faction = Builders.MakeFaction();
+        var person = Builders.MakePerson();
+        _personId = person.Id;
         _context.Factions.Add(_faction);
+        _context.Persons.Add(person);
         await _context.SaveChangesAsync();
     }
 
@@ -78,7 +81,10 @@ public sealed class FactionServiceTests(DatabaseFixture db) : IAsyncLifetime {
     [Fact]
     public async Task GetAllMembersByFactionId_ReturnsMembers() {
         // Arrange
-        var personId2 = Guid.NewGuid();
+        var person2 = Builders.MakePerson();
+        var personId2 = person2.Id;
+        _context.Persons.Add(person2);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await _service.AddMember(_faction.Id, _personId, FactionRole.Leader, TestContext.Current.CancellationToken);
         await _service.AddMember(_faction.Id, personId2, FactionRole.Member, TestContext.Current.CancellationToken);
 

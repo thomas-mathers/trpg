@@ -7,4 +7,5 @@ internal class Room {
     public int FloorNumber { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Name { get; init; } = "";
+    public Guid WorldId { get; init; }
 }

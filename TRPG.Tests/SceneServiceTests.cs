@@ -26,7 +26,8 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
             new SleepJobHandler(personService), new WorkJobHandler(personService), new IdleJobHandler(personService),
             NullLogger<JobDispatcher>.Instance);
         var lockService = new LockService(buildingService, jobService, inventoryService);
-        _service = new SceneService(_context, new JobCatchUpService(jobService, personService, dispatcher), lockService);
+        var reputationService = new ReputationService(_context);
+        _service = new SceneService(_context, new JobCatchUpService(jobService, personService, dispatcher), lockService, reputationService);
 
         _worldId = Guid.NewGuid();
         var country = Builders.MakeCountry(_worldId);

@@ -18,4 +18,5 @@ internal class Job {
     public Guid PersonId { get; init; }
     public int Priority { get; init; }
     public int StartHour { get; init; }
+    public Guid WorldId { get; init; }
 }

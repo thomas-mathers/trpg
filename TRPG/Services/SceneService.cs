@@ -20,7 +20,8 @@ internal record ScenePlayerInfo(string Name, string Race, string Profession, int
 
 internal record ScenePropInfo(string Name, string Description, string Type);
 
-internal record ScenePersonInfo(string Name, string Race, string Profession, int Level, int Age, string? FactionName);
+internal record ScenePersonInfo(string Name, string Race, string Profession, int Level, int Age,
+    IReadOnlyCollection<string> FactionNames, string State, int Reputation);
 
 internal record SceneQuery(Guid WorldId, Guid PlayerId, InGameDate CurrentDate);
 
@@ -38,7 +39,9 @@ internal record SceneResult(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
-internal class SceneService(TrpgDbContext context, JobCatchUpService jobCatchUpService, LockService lockService) {
+internal class SceneService(
+    TrpgDbContext context, JobCatchUpService jobCatchUpService, LockService lockService, ReputationService reputationService
+) {
     public async Task<SceneResult> GetScene(SceneQuery query, CancellationToken cancellationToken = default) {
         var worldId = query.WorldId;
         var playerId = query.PlayerId;
@@ -141,16 +144,26 @@ internal class SceneService(TrpgDbContext context, JobCatchUpService jobCatchUpS
                 from p in context.Persons
                 where p.WorldId == worldId && p.RoomId == bootstrap.RoomId.Value && p.Id != playerId
                 join race in context.Races on p.RaceId equals race.Id
-                join fm in context.FactionMembers on p.Id equals fm.PersonId into fmGroup
-                from fm in fmGroup.DefaultIfEmpty()
-                join f in context.Factions on fm.FactionId equals f.Id into fGroup
-                from f in fGroup.DefaultIfEmpty()
-                select new { p.Name, RaceName = race.Name, Profession = p.Profession.ToString(), p.Level, p.BirthYear, FactionName = f != null ? f.Name : null }
+                select new { p.Id, p.Name, RaceName = race.Name, Profession = p.Profession.ToString(), p.Level, p.BirthYear, State = p.State.ToString() }
             ).ToArrayAsync(cancellationToken);
 
-            nearbyPeople = nearbyPeopleRaw
-                .Select(x => new ScenePersonInfo(x.Name, x.RaceName, x.Profession, x.Level, query.CurrentDate.Year - x.BirthYear, x.FactionName))
-                .ToArray();
+            var nearbyPersonIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
+            var factionNamesByPerson = (await (
+                from fm in context.FactionMembers
+                where nearbyPersonIds.Contains(fm.PersonId)
+                join f in context.Factions on fm.FactionId equals f.Id
+                select new { fm.PersonId, f.Name }
+            ).ToArrayAsync(cancellationToken))
+                .GroupBy(x => x.PersonId)
+                .ToDictionary(g => g.Key, g => (IReadOnlyCollection<string>)g.Select(x => x.Name).ToArray());
+
+            var nearbyPeopleList = new List<ScenePersonInfo>();
+            foreach (var x in nearbyPeopleRaw) {
+                var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
+                nearbyPeopleList.Add(new ScenePersonInfo(x.Name, x.RaceName, x.Profession, x.Level,
+                    query.CurrentDate.Year - x.BirthYear, factionNamesByPerson.GetValueOrDefault(x.Id, []), x.State, reputation));
+            }
+            nearbyPeople = nearbyPeopleList;
 
             buildingInfo = new SceneBuildingInfo(
                 roomAndBuilding.BuildingName,
@@ -197,16 +210,26 @@ internal class SceneService(TrpgDbContext context, JobCatchUpService jobCatchUpS
                 from p in context.Persons
                 where p.WorldId == worldId && p.StateId == bootstrap.StateId && p.DistrictId == bootstrap.DistrictId && p.RoomId == null && p.Id != playerId
                 join race in context.Races on p.RaceId equals race.Id
-                join fm in context.FactionMembers on p.Id equals fm.PersonId into fmGroup
-                from fm in fmGroup.DefaultIfEmpty()
-                join f in context.Factions on fm.FactionId equals f.Id into fGroup
-                from f in fGroup.DefaultIfEmpty()
-                select new { p.Name, RaceName = race.Name, Profession = p.Profession.ToString(), p.Level, p.BirthYear, FactionName = f != null ? f.Name : null }
+                select new { p.Id, p.Name, RaceName = race.Name, Profession = p.Profession.ToString(), p.Level, p.BirthYear, State = p.State.ToString() }
             ).ToArrayAsync(cancellationToken);
 
-            nearbyPeople = nearbyPeopleRaw
-                .Select(x => new ScenePersonInfo(x.Name, x.RaceName, x.Profession, x.Level, query.CurrentDate.Year - x.BirthYear, x.FactionName))
-                .ToArray();
+            var nearbyPersonIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
+            var factionNamesByPerson = (await (
+                from fm in context.FactionMembers
+                where nearbyPersonIds.Contains(fm.PersonId)
+                join f in context.Factions on fm.FactionId equals f.Id
+                select new { fm.PersonId, f.Name }
+            ).ToArrayAsync(cancellationToken))
+                .GroupBy(x => x.PersonId)
+                .ToDictionary(g => g.Key, g => (IReadOnlyCollection<string>)g.Select(x => x.Name).ToArray());
+
+            var nearbyPeopleList = new List<ScenePersonInfo>();
+            foreach (var x in nearbyPeopleRaw) {
+                var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
+                nearbyPeopleList.Add(new ScenePersonInfo(x.Name, x.RaceName, x.Profession, x.Level,
+                    query.CurrentDate.Year - x.BirthYear, factionNamesByPerson.GetValueOrDefault(x.Id, []), x.State, reputation));
+            }
+            nearbyPeople = nearbyPeopleList;
         }
 
         return new SceneResult(

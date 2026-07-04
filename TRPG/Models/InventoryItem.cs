@@ -8,4 +8,5 @@ internal class InventoryItem {
     public Guid ItemId { get; init; }
     public Guid PersonId { get; init; }
     public int Quantity { get; set; }
+    public Guid WorldId { get; init; }
 }

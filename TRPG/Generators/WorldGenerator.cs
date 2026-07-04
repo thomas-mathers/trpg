@@ -87,14 +87,14 @@ internal class WorldGenerator(
             cancellationToken
         );
 
-        var factions = await factionsGenerator.Generate(
+        var factions = (await factionsGenerator.Generate(
             new FactionsGeneratorInput {
                 WorldId = worldId,
                 Description = groundedDescription,
                 Count = generatorInput.FactionCount
             },
             cancellationToken
-        );
+        )).ToList();
 
         var geography = await geographyGenerator.Generate(
             new GeographyGeneratorInput {
@@ -131,9 +131,14 @@ internal class WorldGenerator(
         foreach (var city in geography.Cities) {
             var state = stateById[city.StateId];
             var cityDistricts = Enum.GetValues<DistrictType>()
-                .Select(type => DistrictGenerator.Generate(type, city.Id))
+                .Select(type => DistrictGenerator.Generate(type, city.Id, worldId))
                 .ToDictionary(d => d.DistrictType);
             districts.AddRange(cityDistricts.Values);
+
+            var cityFaction = new Faction {
+                WorldId = worldId, Name = $"The People of {city.Name}", Description = $"The common folk of {city.Name}."
+            };
+            factions.Add(cityFaction);
 
             var cityBuildings = new List<Building>();
             var cityIdleCandidates = cityDistricts.Values
@@ -172,7 +177,7 @@ internal class WorldGenerator(
 
                 var buildingResult = buildingGenerator.Generate(
                     new BuildingGeneratorInput(StateId: state.Id, CityId: city.Id, DistrictId: district.Id,
-                        OwnerId: personResult.Person.Id, Type: type) {
+                        OwnerId: personResult.Person.Id, Type: type, WorldId: worldId) {
                         MemberIds = memberIds,
                         IsLockable = isLockable
                     }
@@ -186,8 +191,10 @@ internal class WorldGenerator(
                             Description = $"A key that unlocks {buildingResult.Building.Name}."
                         };
                         items.Add(keyItem);
-                        inventoryItems.Add(new InventoryItem { PersonId = residentId, ItemId = keyItem.Id, Quantity = 1 });
-                        roomConnectorKeys.Add(new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = frontDoor.Id });
+                        inventoryItems.Add(new InventoryItem
+                            { PersonId = residentId, ItemId = keyItem.Id, Quantity = 1, WorldId = worldId });
+                        roomConnectorKeys.Add(new RoomConnectorKey
+                            { ItemId = keyItem.Id, RoomConnectorId = frontDoor.Id, WorldId = worldId });
                     }
                 }
 
@@ -202,10 +209,12 @@ internal class WorldGenerator(
                     var factionId = factions[guildHallIndex++ % factions.Count].Id;
                     buildingResult.Building.FactionId = factionId;
                     factionMembers.Add(new FactionMember
-                        { FactionId = factionId, PersonId = personResult.Person.Id, Role = FactionRole.Leader });
+                        { FactionId = factionId, PersonId = personResult.Person.Id, Role = FactionRole.Leader, WorldId = worldId });
                     foreach (var memberPerson in memberPersons) {
                         factionMembers.Add(new FactionMember
-                            { FactionId = factionId, PersonId = memberPerson.Person.Id, Role = FactionRole.Member });
+                            { FactionId = factionId, PersonId = memberPerson.Person.Id, Role = FactionRole.Member, WorldId = worldId });
+                        factionMembers.Add(new FactionMember
+                            { FactionId = cityFaction.Id, PersonId = memberPerson.Person.Id, Role = FactionRole.Member, WorldId = worldId });
                         memberPerson.Person.RoomId = groundFloorRoomId;
                         persons.Add(memberPerson.Person);
                         items.AddRange(memberPerson.Items);
@@ -215,23 +224,25 @@ internal class WorldGenerator(
 
                         var memberBedRoomId = buildingResult.Props.OfType<Bed>()
                             .First(b => b.AssignedPersonId == memberPerson.Person.Id).RoomId;
-                        jobs.AddRange(JobGenerator.Generate(state.Id, memberPerson.Person.Id, memberBedRoomId, null, groundFloorRoomId));
+                        jobs.AddRange(JobGenerator.Generate(state.Id, memberPerson.Person.Id, memberBedRoomId, null, groundFloorRoomId, worldId));
                     }
                 }
 
                 personResult.Person.RoomId = groundFloorRoomId;
                 var ownerBedRoomId = buildingResult.Props.OfType<Bed>()
                     .FirstOrDefault(b => b.AssignedPersonId == personResult.Person.Id)?.RoomId ?? groundFloorRoomId;
-                jobs.AddRange(JobGenerator.Generate(state.Id, personResult.Person.Id, ownerBedRoomId, groundFloorRoomId, groundFloorRoomId));
+                jobs.AddRange(JobGenerator.Generate(state.Id, personResult.Person.Id, ownerBedRoomId, groundFloorRoomId, groundFloorRoomId, worldId));
 
                 cityBuildings.Add(buildingResult.Building);
                 persons.Add(personResult.Person);
+                factionMembers.Add(new FactionMember
+                    { FactionId = cityFaction.Id, PersonId = personResult.Person.Id, Role = FactionRole.Member, WorldId = worldId });
                 items.AddRange(personResult.Items);
                 inventoryItems.AddRange(personResult.InventoryItems);
                 skills.AddRange(personResult.Skills);
                 abilities.AddRange(personResult.Abilities);
                 buildingOwners.Add(new BuildingOwner
-                    { BuildingId = buildingResult.Building.Id, OwnerId = personResult.Person.Id });
+                    { BuildingId = buildingResult.Building.Id, OwnerId = personResult.Person.Id, WorldId = worldId });
                 rooms.AddRange(buildingResult.Rooms);
                 props.AddRange(buildingResult.Props);
             }
@@ -254,7 +265,7 @@ internal class WorldGenerator(
                 var owner = household[0];
                 var houseResult = buildingGenerator.Generate(
                     new BuildingGeneratorInput(StateId: state.Id, CityId: city.Id, DistrictId: residentialDistrict.Id,
-                        OwnerId: owner.Person.Id, Type: BuildingType.House) {
+                        OwnerId: owner.Person.Id, Type: BuildingType.House, WorldId: worldId) {
                         Name = houseNames.Dequeue(),
                         MemberIds = household.Select(m => m.Person.Id).ToList(),
                         IsLockable = true
@@ -268,8 +279,10 @@ internal class WorldGenerator(
                         Description = $"A key that unlocks {houseResult.Building.Name}."
                     };
                     items.Add(houseKeyItem);
-                    inventoryItems.Add(new InventoryItem { PersonId = resident.Person.Id, ItemId = houseKeyItem.Id, Quantity = 1 });
-                    roomConnectorKeys.Add(new RoomConnectorKey { ItemId = houseKeyItem.Id, RoomConnectorId = houseFrontDoor.Id });
+                    inventoryItems.Add(new InventoryItem
+                        { PersonId = resident.Person.Id, ItemId = houseKeyItem.Id, Quantity = 1, WorldId = worldId });
+                    roomConnectorKeys.Add(new RoomConnectorKey
+                        { ItemId = houseKeyItem.Id, RoomConnectorId = houseFrontDoor.Id, WorldId = worldId });
                 }
 
                 var homeRoom = houseResult.Rooms.First(r => r.FloorNumber == 0);
@@ -279,6 +292,8 @@ internal class WorldGenerator(
 
                 foreach (var member in household) {
                     persons.Add(member.Person);
+                    factionMembers.Add(new FactionMember
+                        { FactionId = cityFaction.Id, PersonId = member.Person.Id, Role = FactionRole.Member, WorldId = worldId });
                     items.AddRange(member.Items);
                     inventoryItems.AddRange(member.InventoryItems);
                     skills.AddRange(member.Skills);
@@ -286,12 +301,13 @@ internal class WorldGenerator(
 
                     var memberBedRoomId = houseResult.Props.OfType<Bed>()
                         .First(b => b.AssignedPersonId == member.Person.Id).RoomId;
-                    jobs.Add(JobGenerator.GenerateSleep(state.Id, member.Person.Id, memberBedRoomId));
+                    jobs.Add(JobGenerator.GenerateSleep(state.Id, member.Person.Id, memberBedRoomId, worldId));
                     pendingIdleMembers.Add(member.Person);
                 }
 
                 cityBuildings.Add(houseResult.Building);
-                buildingOwners.Add(new BuildingOwner { BuildingId = houseResult.Building.Id, OwnerId = owner.Person.Id });
+                buildingOwners.Add(new BuildingOwner
+                    { BuildingId = houseResult.Building.Id, OwnerId = owner.Person.Id, WorldId = worldId });
                 rooms.AddRange(houseResult.Rooms);
                 props.AddRange(houseResult.Props);
             }
@@ -308,7 +324,7 @@ internal class WorldGenerator(
                 remainingCapacity[index]--;
                 member.RoomId = candidate.RoomId;
                 member.DistrictId = candidate.DistrictId;
-                jobs.Add(JobGenerator.GenerateIdle(state.Id, member.Id, candidate.RoomId));
+                jobs.Add(JobGenerator.GenerateIdle(state.Id, member.Id, candidate.RoomId, worldId));
             }
 
             buildings.AddRange(cityBuildings);
@@ -318,7 +334,7 @@ internal class WorldGenerator(
             var count = Random.Shared.Next(generatorInput.MinBuildingsPerState, generatorInput.MaxBuildingsPerState + 1);
             var usedNames = new HashSet<string>();
             for (var i = 0; i < count; i++) {
-                var result = DungeonGenerator.Generate(new DungeonGeneratorInput(state.Id, usedNames));
+                var result = DungeonGenerator.Generate(new DungeonGeneratorInput(state.Id, usedNames, worldId));
                 usedNames.Add(result.Building.Name);
                 buildings.Add(result.Building);
                 rooms.Add(result.Room);

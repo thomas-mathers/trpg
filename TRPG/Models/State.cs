@@ -9,4 +9,5 @@ internal class State {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Name { get; init; } = "";
     public int Width { get; init; }
+    public Guid WorldId { get; init; }
 }

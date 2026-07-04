@@ -27,16 +27,16 @@ public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
     public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 
     [Fact]
-    public async Task Dispatch_UpdatesPersonRoomId_ForSleepJob() =>
-        await AssertRoomIdUpdated(JobAction.Sleep);
+    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForSleepJob() =>
+        await AssertRoomIdUpdated(JobAction.Sleep, PersonState.Sleeping);
 
     [Fact]
-    public async Task Dispatch_UpdatesPersonRoomId_ForWorkJob() =>
-        await AssertRoomIdUpdated(JobAction.Work);
+    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForWorkJob() =>
+        await AssertRoomIdUpdated(JobAction.Work, PersonState.Busy);
 
     [Fact]
-    public async Task Dispatch_UpdatesPersonRoomId_ForIdleJob() =>
-        await AssertRoomIdUpdated(JobAction.Idle);
+    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForIdleJob() =>
+        await AssertRoomIdUpdated(JobAction.Idle, PersonState.Idle);
 
     [Fact]
     public async Task Dispatch_LeavesPersonUnchanged_ForPatrolJob() =>
@@ -46,7 +46,7 @@ public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
     public async Task Dispatch_LeavesPersonUnchanged_ForSocializeJob() =>
         await AssertRoomIdUnchanged(JobAction.Socialize);
 
-    private async Task AssertRoomIdUpdated(JobAction action) {
+    private async Task AssertRoomIdUpdated(JobAction action, PersonState expectedState) {
         // Arrange
         var roomId = Guid.NewGuid();
         var job = Builders.MakeJob(_person.Id, action: action, roomId: roomId);
@@ -56,11 +56,13 @@ public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
 
         // Assert
         Assert.Equal(roomId, _person.RoomId);
+        Assert.Equal(expectedState, _person.State);
     }
 
     private async Task AssertRoomIdUnchanged(JobAction action) {
         // Arrange
         var originalRoomId = _person.RoomId;
+        var originalState = _person.State;
         var job = Builders.MakeJob(_person.Id, action: action, roomId: Guid.NewGuid());
 
         // Act
@@ -68,5 +70,6 @@ public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
 
         // Assert
         Assert.Equal(originalRoomId, _person.RoomId);
+        Assert.Equal(originalState, _person.State);
     }
 }

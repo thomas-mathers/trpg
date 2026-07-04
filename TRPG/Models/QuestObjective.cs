@@ -25,4 +25,5 @@ internal class QuestObjective {
     public Guid Target { get; init; }
     public QuestTargetType TargetType { get; init; }
     public QuestObjectiveType Type { get; init; }
+    public Guid WorldId { get; init; }
 }

@@ -13,7 +13,7 @@ public class JobGeneratorTests {
         var idleRoomId = Guid.NewGuid();
 
         // Act
-        var jobs = JobGenerator.Generate(stateId, personId, sleepRoomId, null, idleRoomId);
+        var jobs = JobGenerator.Generate(stateId, personId, sleepRoomId, null, idleRoomId, Guid.NewGuid());
 
         // Assert
         var sleep = Assert.Single(jobs, j => j.Action == JobAction.Sleep);
@@ -37,7 +37,7 @@ public class JobGeneratorTests {
         var sleepRoomId = Guid.NewGuid();
 
         // Act
-        var jobs = JobGenerator.Generate(stateId, personId, sleepRoomId, null, null);
+        var jobs = JobGenerator.Generate(stateId, personId, sleepRoomId, null, null, Guid.NewGuid());
 
         // Assert
         Assert.DoesNotContain(jobs, j => j.Action == JobAction.Work);
@@ -53,7 +53,7 @@ public class JobGeneratorTests {
         var workRoomId = Guid.NewGuid();
 
         // Act
-        var jobs = JobGenerator.Generate(stateId, personId, sleepRoomId, workRoomId, workRoomId);
+        var jobs = JobGenerator.Generate(stateId, personId, sleepRoomId, workRoomId, workRoomId, Guid.NewGuid());
 
         // Assert
         var work = Assert.Single(jobs, j => j.Action == JobAction.Work);

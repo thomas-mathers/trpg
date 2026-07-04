@@ -6,4 +6,5 @@ internal class PersonSkill {
     public int Level { get; set; }
     public Guid PersonId { get; init; }
     public Skill Skill { get; init; }
+    public Guid WorldId { get; init; }
 }

@@ -23,11 +23,17 @@ internal class QuestService(TrpgDbContext context) {
             }
         }
 
+        var worldId = await context.Persons
+            .Where(p => p.Id == personId)
+            .Select(p => p.WorldId)
+            .FirstAsync(cancellationToken);
+
         context.PersonQuests.Add(new PersonQuest {
             Id = Guid.NewGuid(),
             PersonId = personId,
             QuestId = questId,
-            Status = QuestStatus.Accepted
+            Status = QuestStatus.Accepted,
+            WorldId = worldId
         });
 
         var objectives = await context.QuestObjectives
@@ -39,7 +45,8 @@ internal class QuestService(TrpgDbContext context) {
                 Id = Guid.NewGuid(),
                 PersonId = personId,
                 ObjectiveId = objective.Id,
-                Amount = 0
+                Amount = 0,
+                WorldId = worldId
             });
         }
 

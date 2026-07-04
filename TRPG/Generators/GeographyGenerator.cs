@@ -235,14 +235,16 @@ internal class GeographyGenerator(
                             Width = WorldGenerationDefaults.CityTileSize,
                             Height = WorldGenerationDefaults.CityTileSize,
                             Center = mapState.Center,
-                            Boundary = new Polygon { Points = new List<Point>(mapState.Boundary.Points.ToArray()) }
+                            Boundary = new Polygon { Points = new List<Point>(mapState.Boundary.Points.ToArray()) },
+                            WorldId = world.Id
                         };
                         var city = new City {
                             StateId = state.Id,
                             CountryId = country.Id,
                             Name = schema.Cities[j].Name,
                             Description = schema.Cities[j].Description,
-                            IsCapital = mapState.IsCapital
+                            IsCapital = mapState.IsCapital,
+                            WorldId = world.Id
                         };
                         states.Add(state);
                         cities.Add(city);
@@ -262,7 +264,8 @@ internal class GeographyGenerator(
                     Width = WorldGenerationDefaults.CityTileSize,
                     Height = WorldGenerationDefaults.CityTileSize,
                     Center = mapState.Center,
-                    Boundary = new Polygon { Points = new List<Point>(mapState.Boundary.Points.ToArray()) }
+                    Boundary = new Polygon { Points = new List<Point>(mapState.Boundary.Points.ToArray()) },
+                    WorldId = world.Id
                 };
                 states.Add(state);
                 stateById[mapState.Id] = state;
@@ -312,7 +315,8 @@ internal class GeographyGenerator(
                 DestinationStateId = destState.Id,
                 Distance = distance,
                 TravelTime = Math.Max(1, (int) (distance / 50)),
-                DangerLevel = (float) Random.Shared.NextDouble() * 0.5f
+                DangerLevel = (float) Random.Shared.NextDouble() * 0.5f,
+                WorldId = world.Id
             };
         }).ToList();
     }

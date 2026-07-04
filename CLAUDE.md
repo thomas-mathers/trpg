@@ -98,6 +98,10 @@
 ### Unique constraints
 - Let EF Core throw `DbUpdateException` on violations — no pre-check queries
 
+### World scoping
+- Every new entity/table must have a `WorldId` column with `HasIndex(x => x.WorldId)` — no FK constraint needed (matches other loose Guid references like `Job.PersonId`), just the indexed column
+- This keeps `DropWorldCommandHandler` a flat `Where(x => x.WorldId == worldId).ExecuteDeleteAsync(...)` per table — never make it derive world membership by chasing a parent entity's FK chain again
+
 ---
 
 ## Services

@@ -22,12 +22,18 @@ internal class InventoryService(TrpgDbContext context) {
             .Where(i => i.PersonId == personId)
             .MaxAsync(i => (int?) i.Index, cancellationToken) ?? -1;
 
+        var worldId = await context.Persons
+            .Where(p => p.Id == personId)
+            .Select(p => p.WorldId)
+            .FirstAsync(cancellationToken);
+
         context.InventoryItems.Add(new InventoryItem {
             Id = Guid.NewGuid(),
             PersonId = personId,
             ItemId = itemId,
             Quantity = quantity,
-            Index = maxIndex + 1
+            Index = maxIndex + 1,
+            WorldId = worldId
         });
 
         await context.SaveChangesAsync(cancellationToken);

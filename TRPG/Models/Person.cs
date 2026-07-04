@@ -17,6 +17,12 @@ internal enum Profession {
     Guard
 }
 
+internal enum PersonState {
+    Sleeping,
+    Idle,
+    Busy
+}
+
 internal class Person {
     public Dictionary<ConditionType, int> ActiveConditions { get; set; } = [];
     public List<ActiveModifier> ActiveModifiers { get; set; } = [];
@@ -35,5 +41,6 @@ internal class Person {
     public string Name { get; init; } = "";
     public Profession Profession { get; init; }
     public Guid RaceId { get; init; }
+    public PersonState State { get; set; }
     public Guid WorldId { get; init; }
 }

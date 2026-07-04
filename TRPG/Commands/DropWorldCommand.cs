@@ -11,37 +11,33 @@ internal class DropWorldCommandHandler(TrpgDbContext context) {
     public async Task Handle(DropWorldCommand command, CancellationToken cancellationToken = default) {
         var worldId = command.WorldId;
 
-        var countryIds = await context.Countries
-            .Where(c => c.WorldId == worldId).Select(c => c.Id).ToListAsync(cancellationToken);
-        var stateIds = await context.States
-            .Where(r => countryIds.Contains(r.CountryId)).Select(r => r.Id).ToListAsync(cancellationToken);
-        var cityIds = await context.Cities
-            .Where(c => stateIds.Contains(c.StateId)).Select(c => c.Id).ToListAsync(cancellationToken);
-        var districtIds = await context.Districts
-            .Where(d => cityIds.Contains(d.CityId)).Select(d => d.Id).ToListAsync(cancellationToken);
-        var buildingIds = await context.Buildings
-            .Where(b => stateIds.Contains(b.StateId)).Select(b => b.Id).ToListAsync(cancellationToken);
-
-        var personIds = await context.Persons
-            .Where(p => p.WorldId == worldId).Select(p => p.Id).ToListAsync(cancellationToken);
-
-        await context.BuildingOwners.Where(bo => buildingIds.Contains(bo.BuildingId))
-            .ExecuteDeleteAsync(cancellationToken);
-        await context.PersonAbilities.Where(pa => personIds.Contains(pa.PersonId))
-            .ExecuteDeleteAsync(cancellationToken);
-        await context.PersonSkills.Where(ps => personIds.Contains(ps.PersonId))
-            .ExecuteDeleteAsync(cancellationToken);
-        await context.Jobs.Where(j => personIds.Contains(j.PersonId)).ExecuteDeleteAsync(cancellationToken);
-        await context.Persons.Where(p => p.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.Buildings.Where(b => stateIds.Contains(b.StateId)).ExecuteDeleteAsync(cancellationToken);
-        await context.Districts.Where(d => districtIds.Contains(d.Id)).ExecuteDeleteAsync(cancellationToken);
-        await context.Roads
-            .Where(r => stateIds.Contains(r.OriginStateId) || stateIds.Contains(r.DestinationStateId))
-            .ExecuteDeleteAsync(cancellationToken);
-        await context.States.Where(r => countryIds.Contains(r.CountryId)).ExecuteDeleteAsync(cancellationToken);
-        await context.Countries.Where(c => c.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.Races.Where(r => r.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.Factions.Where(f => f.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.Worlds.Where(w => w.Id == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.ContainerItems.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.RoomConnectorKeys.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Props.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Rooms.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.InventoryItems.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.BuildingOwners.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.FactionMembers.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Reputations.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.PersonQuestObjectives.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.PersonQuests.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.QuestObjectives.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Quests.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.PersonAbilities.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.PersonSkills.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Jobs.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.NpcConversations.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.WorldEvents.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Items.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Buildings.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Districts.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Cities.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Roads.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.States.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Countries.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Races.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Factions.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Persons.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Worlds.Where(x => x.Id == worldId).ExecuteDeleteAsync(cancellationToken);
     }
 }

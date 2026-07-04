@@ -8,4 +8,5 @@ internal class Road {
     public string Name { get; init; } = "";
     public Guid OriginStateId { get; init; }
     public int TravelTime { get; init; }
+    public Guid WorldId { get; init; }
 }

@@ -50,12 +50,13 @@ internal static class DistrictGenerator {
         ]
     };
 
-    public static District Generate(DistrictType type, Guid cityId) {
+    public static District Generate(DistrictType type, Guid cityId, Guid worldId) {
         var names = Names[type];
         return new District {
             CityId = cityId,
             DistrictType = type,
-            Name = names[Random.Shared.Next(names.Length)]
+            Name = names[Random.Shared.Next(names.Length)],
+            WorldId = worldId
         };
     }
 }
