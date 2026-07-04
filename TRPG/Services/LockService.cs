@@ -6,26 +6,39 @@ internal class LockService(BuildingService buildingService, JobService jobServic
     private static readonly HashSet<BuildingType> NeverLocked = [BuildingType.Inn, BuildingType.Tavern];
 
     public async Task SyncScheduleLock(Guid buildingId, BuildingType buildingType, int hour, CancellationToken cancellationToken = default) {
-        if (NeverLocked.Contains(buildingType)) return;
+        if (NeverLocked.Contains(buildingType)) {
+            return;
+        }
 
         var owners = await buildingService.GetAllOwnersByBuildingId(buildingId, cancellationToken);
         var ownerId = owners.FirstOrDefault()?.OwnerId;
-        if (ownerId == null) return;
+        if (ownerId == null) {
+            return;
+        }
 
         var jobs = await jobService.GetAllByPersonId(ownerId.Value, cancellationToken);
-        var activeJob = jobs.Where(j => JobScheduling.IsActiveAtHour(j, hour))
-            .OrderByDescending(j => j.Priority).ThenBy(j => j.Id).FirstOrDefault();
-        if (activeJob == null) return;
+        var activeJob = jobs
+            .Where(j => JobScheduling.IsActiveAtHour(j, hour))
+            .OrderByDescending(j => j.Priority)
+            .ThenBy(j => j.Id)
+            .FirstOrDefault();
+        if (activeJob == null) {
+            return;
+        }
 
         await buildingService.SetFrontDoorLocked(buildingId, activeJob.Action == JobAction.Sleep, cancellationToken);
     }
 
     public async Task<bool> CanEnter(Guid entranceRoomId, Guid enteringPersonId, CancellationToken cancellationToken = default) {
         var door = await buildingService.GetFrontDoor(entranceRoomId, cancellationToken);
-        if (door is not { IsLocked: true }) return true;
+        if (door is not { IsLocked: true }) {
+            return true;
+        }
 
         var validKeyItemIds = await buildingService.GetKeyItemIds(door.Id, cancellationToken);
-        if (validKeyItemIds.Count == 0) return true;
+        if (validKeyItemIds.Count == 0) {
+            return true;
+        }
 
         var inventory = await inventoryService.GetAllByPersonId(enteringPersonId, cancellationToken);
         return inventory.Any(i => validKeyItemIds.Contains(i.ItemId));
