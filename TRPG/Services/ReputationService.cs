@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -16,16 +16,19 @@ internal class ReputationService(TrpgDbContext context) {
         }
 
         var reputation = await context.Reputations
-            .FirstOrDefaultAsync(r => r.PersonId == personId && r.TargetId == targetId && r.TargetType == targetType, cancellationToken);
+            .FirstOrDefaultAsync(r => r.PersonId == personId && r.TargetId == targetId && r.TargetType == targetType,
+                cancellationToken);
 
         if (reputation == null) {
             var worldId = await context.Persons
                 .Where(p => p.Id == personId)
                 .Select(p => p.WorldId)
                 .FirstAsync(cancellationToken);
-            context.Reputations.Add(new Reputation
-                { PersonId = personId, TargetId = targetId, TargetType = targetType, Score = deltaScore, WorldId = worldId });
-        } else {
+            context.Reputations.Add(new Reputation {
+                PersonId = personId, TargetId = targetId, TargetType = targetType, Score = deltaScore, WorldId = worldId
+            });
+        }
+        else {
             reputation.Score += deltaScore;
         }
 
@@ -47,8 +50,8 @@ internal class ReputationService(TrpgDbContext context) {
 
         return await context.Reputations
             .Where(r => r.PersonId == observerPersonId &&
-                ((r.TargetType == ReputationTargetType.Faction && factionIds.Contains(r.TargetId)) ||
-                 (r.TargetType == ReputationTargetType.Person && r.TargetId == targetPersonId)))
+                        ((r.TargetType == ReputationTargetType.Faction && factionIds.Contains(r.TargetId)) ||
+                         (r.TargetType == ReputationTargetType.Person && r.TargetId == targetPersonId)))
             .SumAsync(r => r.Score, cancellationToken);
     }
 }

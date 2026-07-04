@@ -16,6 +16,7 @@ internal enum ArmorType {
 
 internal class ArmorItem : Item {
     public ArmorClass ArmorClass { get; init; }
+
     public override EquipmentSlot? DefaultSlot => Type switch {
         ArmorType.Helm => EquipmentSlot.Helm,
         ArmorType.Chest => EquipmentSlot.Chest,

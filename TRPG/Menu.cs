@@ -53,7 +53,10 @@ internal class Menu(
 
     private async Task RunAgent(CancellationToken cancellationToken) {
         var world = await AutoSelectWorld(cancellationToken);
-        if (world == null) return;
+        if (world == null) {
+            return;
+        }
+
         await agentServer.Run(new GameSession(world.Id, world.PlayerId!.Value, world.Playtime), cancellationToken);
     }
 
@@ -64,7 +67,7 @@ internal class Menu(
         var input = PromptWorldGenerationParameters();
 
         Console.WriteLine("Generating world...");
-        
+
         var worldResult = await worldGenerator.Generate(input, cancellationToken);
 
         Console.WriteLine($"\nWorld \"{worldResult.World.Name}\" generated.");
@@ -78,13 +81,13 @@ internal class Menu(
 
         var playerResult = personGenerator.Generate(
             new PersonGeneratorInput(
-                Race: selectedRace,
-                Profession: profession,
-                WorldId: worldResult.World.Id,
-                BirthStateId: startingState.Id,
-                StateId: startingState.Id,
-                Level: 1,
-                Name: playerName
+                selectedRace,
+                profession,
+                worldResult.World.Id,
+                startingState.Id,
+                startingState.Id,
+                1,
+                playerName
             )
         );
         playerResult.Person.CityId = startingCity.Id;
@@ -93,13 +96,13 @@ internal class Menu(
         var result = await bootstrapHandler.Handle(worldResult, playerResult, cancellationToken);
 
         Console.WriteLine($"Entering \"{worldResult.World.Name}\" as {playerName} the {profession}...");
-        
+
         await game.Run(new GameSession(result.WorldId, result.PlayerId, TimeSpan.Zero), cancellationToken);
     }
 
     private static WorldGeneratorInput PromptWorldGenerationParameters() {
         Console.WriteLine("Configure generation (press Enter to use defaults):");
-        
+
         var input = new WorldGeneratorInput {
             Description = PromptForString("  Description", WorldGenerationDefaults.Description),
             MinCountries = PromptForInt("  Countries min", WorldGenerationDefaults.MinCountries),
@@ -118,13 +121,16 @@ internal class Menu(
             RaceCount = PromptForInt("  Races", WorldGenerationDefaults.RaceCount),
             FactionCount = PromptForInt("  Factions", WorldGenerationDefaults.FactionCount)
         };
-        
+
         return input;
     }
 
     private async Task RunContinue(CancellationToken cancellationToken) {
         var world = await AutoSelectWorld(cancellationToken);
-        if (world == null) return;
+        if (world == null) {
+            return;
+        }
+
         await game.Run(new GameSession(world.Id, world.PlayerId!.Value, world.Playtime), cancellationToken);
     }
 
@@ -143,27 +149,27 @@ internal class Menu(
             ? worlds[0]
             : PromptForOption("Choose a world to continue:", worlds, w => w.Name);
     }
-    
+
     private static int PromptForInt(string label, int defaultValue) {
         Console.Write($"{label} [{defaultValue}]: ");
         var input = Console.ReadLine()?.Trim();
         return int.TryParse(input, out var value) ? value : defaultValue;
     }
-    
+
     private static string PromptForString(string label, string defaultValue) {
         Console.Write($"{label} [{defaultValue}]: ");
         var value = Console.ReadLine()?.Trim();
         return string.IsNullOrWhiteSpace(value) ? defaultValue : value;
     }
-    
+
     private static string PromptForString(string label) {
         Console.WriteLine(label);
-        
+
         while (true) {
             Console.Write("> ");
-            
+
             var input = Console.ReadLine()?.Trim();
-            
+
             if (string.IsNullOrWhiteSpace(input)) {
                 Console.WriteLine("Invalid input.");
                 continue;
@@ -172,7 +178,7 @@ internal class Menu(
             return input;
         }
     }
-    
+
     private static T PromptForOption<T>(string label, IReadOnlyList<T> options, Func<T, string> labelSelector) {
         Console.WriteLine(label);
         for (var i = 0; i < options.Count; i++) {
@@ -181,12 +187,13 @@ internal class Menu(
 
         while (true) {
             Console.Write("> ");
-            
-            if (!int.TryParse(Console.ReadLine(), out var choiceIndex) || choiceIndex < 1 || choiceIndex > options.Count) {
+
+            if (!int.TryParse(Console.ReadLine(), out var choiceIndex) || choiceIndex < 1 ||
+                choiceIndex > options.Count) {
                 Console.WriteLine("Invalid choice.");
                 continue;
             }
-            
+
             return options[choiceIndex - 1];
         }
     }

@@ -175,7 +175,8 @@ public sealed class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime {
         player.RoomId = roomId;
 
         // Act
-        var result = await _service.GetByNameNearby(worldId, player, target.Name, TestContext.Current.CancellationToken);
+        var result =
+            await _service.GetByNameNearby(worldId, player, target.Name, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -192,7 +193,8 @@ public sealed class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var player = Builders.MakePerson(worldId, districtId: districtId);
 
         // Act
-        var result = await _service.GetByNameNearby(worldId, player, target.Name, TestContext.Current.CancellationToken);
+        var result =
+            await _service.GetByNameNearby(worldId, player, target.Name, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -209,7 +211,8 @@ public sealed class PersonServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var player = Builders.MakePerson(worldId, stateId: stateId);
 
         // Act
-        var result = await _service.GetByNameNearby(worldId, player, target.Name, TestContext.Current.CancellationToken);
+        var result =
+            await _service.GetByNameNearby(worldId, player, target.Name, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

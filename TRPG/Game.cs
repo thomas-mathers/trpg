@@ -36,7 +36,7 @@ internal class Game(
 
     public async Task Run(GameSession session, CancellationToken cancellationToken) {
         var chat = new Chat(ollamaClient, SystemPrompt) {
-            Think = true, 
+            Think = true,
             Options = new RequestOptions { NumCtx = 8192 }
         };
 
@@ -114,9 +114,9 @@ internal class Game(
     }
 
     private async Task CloseLingeringConversations(
-        Chat chat, 
-        IReadOnlyList<Tool> tools, 
-        GameSession session, 
+        Chat chat,
+        IReadOnlyList<Tool> tools,
+        GameSession session,
         CancellationToken cancellationToken
     ) {
         foreach (var npcName in session.ActiveConversationNpcs.Keys.ToArray()) {
@@ -124,7 +124,8 @@ internal class Game(
                 continue;
             }
 
-            var prompt = $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
+            var prompt =
+                $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
             await SendAndLog(chat, tools, prompt, cancellationToken);
 
             if (session.ActiveConversationNpcs.Remove(npcName)) {
@@ -142,7 +143,10 @@ internal class Game(
         logger.LogInformation("[game] >>> {Message}", input);
 
         var thinking = new StringBuilder();
-        void AppendThinking(object? _, string token) => thinking.Append(token);
+
+        void AppendThinking(object? _, string token) {
+            thinking.Append(token);
+        }
 
         chat.OnThink += AppendThinking;
         var buffer = new StringBuilder();
@@ -151,14 +155,15 @@ internal class Game(
                 Console.Write(token);
                 buffer.Append(token);
             }
-        } finally {
+        }
+        finally {
             chat.OnThink -= AppendThinking;
         }
 
         if (thinking.Length > 0) {
             logger.LogDebug("[game] think: {Thinking}", thinking.ToString().Trim());
         }
-        
+
         logger.LogInformation("[game] <<< {Response}", buffer.ToString());
     }
 

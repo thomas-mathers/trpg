@@ -10,8 +10,8 @@ namespace TRPG.Tests;
 public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
     private DropWorldCommandHandler _handler = null!;
-    private Guid _worldId;
     private Guid _otherWorldId;
+    private Guid _worldId;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
@@ -24,15 +24,17 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime {
         await SeedWorldData(_otherWorldId);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     private async Task SeedWorldData(Guid worldId) {
-        var person = Builders.MakePerson(worldId: worldId);
-        var faction = Builders.MakeFaction(worldId: worldId);
+        var person = Builders.MakePerson(worldId);
+        var faction = Builders.MakeFaction(worldId);
         var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: worldId);
         var room = Builders.MakeRoom(building.Id, worldId: worldId);
         var bed = new Bed { RoomId = room.Id, Name = "Bed", Description = "A test bed.", WorldId = worldId };
-        var item = Builders.MakeItem(worldId: worldId);
+        var item = Builders.MakeItem(worldId);
         var factionMember = new FactionMember
             { FactionId = faction.Id, PersonId = person.Id, Role = FactionRole.Member, WorldId = worldId };
 
@@ -54,20 +56,34 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime {
         // Assert
         await using var verifyContext = db.CreateContext();
 
-        Assert.False(await verifyContext.Persons.AnyAsync(x => x.WorldId == _worldId, TestContext.Current.CancellationToken));
-        Assert.False(await verifyContext.Factions.AnyAsync(x => x.WorldId == _worldId, TestContext.Current.CancellationToken));
-        Assert.False(await verifyContext.Buildings.AnyAsync(x => x.WorldId == _worldId, TestContext.Current.CancellationToken));
-        Assert.False(await verifyContext.Rooms.AnyAsync(x => x.WorldId == _worldId, TestContext.Current.CancellationToken));
-        Assert.False(await verifyContext.Props.AnyAsync(x => x.WorldId == _worldId, TestContext.Current.CancellationToken));
-        Assert.False(await verifyContext.Items.AnyAsync(x => x.WorldId == _worldId, TestContext.Current.CancellationToken));
-        Assert.False(await verifyContext.FactionMembers.AnyAsync(x => x.WorldId == _worldId, TestContext.Current.CancellationToken));
+        Assert.False(await verifyContext.Persons.AnyAsync(x => x.WorldId == _worldId,
+            TestContext.Current.CancellationToken));
+        Assert.False(await verifyContext.Factions.AnyAsync(x => x.WorldId == _worldId,
+            TestContext.Current.CancellationToken));
+        Assert.False(await verifyContext.Buildings.AnyAsync(x => x.WorldId == _worldId,
+            TestContext.Current.CancellationToken));
+        Assert.False(await verifyContext.Rooms.AnyAsync(x => x.WorldId == _worldId,
+            TestContext.Current.CancellationToken));
+        Assert.False(await verifyContext.Props.AnyAsync(x => x.WorldId == _worldId,
+            TestContext.Current.CancellationToken));
+        Assert.False(await verifyContext.Items.AnyAsync(x => x.WorldId == _worldId,
+            TestContext.Current.CancellationToken));
+        Assert.False(await verifyContext.FactionMembers.AnyAsync(x => x.WorldId == _worldId,
+            TestContext.Current.CancellationToken));
 
-        Assert.True(await verifyContext.Persons.AnyAsync(x => x.WorldId == _otherWorldId, TestContext.Current.CancellationToken));
-        Assert.True(await verifyContext.Factions.AnyAsync(x => x.WorldId == _otherWorldId, TestContext.Current.CancellationToken));
-        Assert.True(await verifyContext.Buildings.AnyAsync(x => x.WorldId == _otherWorldId, TestContext.Current.CancellationToken));
-        Assert.True(await verifyContext.Rooms.AnyAsync(x => x.WorldId == _otherWorldId, TestContext.Current.CancellationToken));
-        Assert.True(await verifyContext.Props.AnyAsync(x => x.WorldId == _otherWorldId, TestContext.Current.CancellationToken));
-        Assert.True(await verifyContext.Items.AnyAsync(x => x.WorldId == _otherWorldId, TestContext.Current.CancellationToken));
-        Assert.True(await verifyContext.FactionMembers.AnyAsync(x => x.WorldId == _otherWorldId, TestContext.Current.CancellationToken));
+        Assert.True(await verifyContext.Persons.AnyAsync(x => x.WorldId == _otherWorldId,
+            TestContext.Current.CancellationToken));
+        Assert.True(await verifyContext.Factions.AnyAsync(x => x.WorldId == _otherWorldId,
+            TestContext.Current.CancellationToken));
+        Assert.True(await verifyContext.Buildings.AnyAsync(x => x.WorldId == _otherWorldId,
+            TestContext.Current.CancellationToken));
+        Assert.True(await verifyContext.Rooms.AnyAsync(x => x.WorldId == _otherWorldId,
+            TestContext.Current.CancellationToken));
+        Assert.True(await verifyContext.Props.AnyAsync(x => x.WorldId == _otherWorldId,
+            TestContext.Current.CancellationToken));
+        Assert.True(await verifyContext.Items.AnyAsync(x => x.WorldId == _otherWorldId,
+            TestContext.Current.CancellationToken));
+        Assert.True(await verifyContext.FactionMembers.AnyAsync(x => x.WorldId == _otherWorldId,
+            TestContext.Current.CancellationToken));
     }
 }

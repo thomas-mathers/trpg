@@ -192,7 +192,8 @@ internal static class Builders {
         };
     }
 
-    public static District MakeDistrict(Guid cityId, DistrictType districtType = DistrictType.CityCenter, Guid? worldId = null) {
+    public static District MakeDistrict(Guid cityId, DistrictType districtType = DistrictType.CityCenter,
+        Guid? worldId = null) {
         return new District {
             CityId = cityId,
             DistrictType = districtType,
@@ -213,7 +214,8 @@ internal static class Builders {
         };
     }
 
-    public static Building MakeBuilding(Guid stateId, Guid? cityId = null, Guid? districtId = null, Guid? worldId = null) {
+    public static Building MakeBuilding(Guid stateId, Guid? cityId = null, Guid? districtId = null,
+        Guid? worldId = null) {
         return new Building {
             StateId = stateId,
             CityId = cityId,

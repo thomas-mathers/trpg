@@ -13,10 +13,10 @@ internal class Job {
     public bool Daily { get; init; }
     public int EndHour { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid StateId { get; init; }
-    public Guid? RoomId { get; init; }
     public Guid PersonId { get; init; }
     public int Priority { get; init; }
+    public Guid? RoomId { get; init; }
     public int StartHour { get; init; }
+    public Guid StateId { get; init; }
     public Guid WorldId { get; init; }
 }

@@ -1,4 +1,4 @@
-namespace TRPG.Models;
+﻿namespace TRPG.Models;
 
 internal class NpcConversation {
     public Guid Id { get; init; } = Guid.NewGuid();

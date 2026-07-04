@@ -26,22 +26,28 @@ internal class BuildingService(TrpgDbContext context) {
         return await context.Buildings.FindAsync([id], cancellationToken);
     }
 
-    public async Task<Building?> GetByNameInState(Guid stateId, string name, CancellationToken cancellationToken = default) {
-        return await context.Buildings.FirstOrDefaultAsync(b => b.StateId == stateId && b.Name == name, cancellationToken);
+    public async Task<Building?> GetByNameInState(Guid stateId, string name,
+        CancellationToken cancellationToken = default) {
+        return await context.Buildings.FirstOrDefaultAsync(b => b.StateId == stateId && b.Name == name,
+            cancellationToken);
     }
 
     public async Task<Room?> GetEntranceRoom(Guid buildingId, CancellationToken cancellationToken = default) {
-        return await context.Rooms.FirstOrDefaultAsync(r => r.BuildingId == buildingId && r.FloorNumber == 0, cancellationToken);
+        return await context.Rooms.FirstOrDefaultAsync(r => r.BuildingId == buildingId && r.FloorNumber == 0,
+            cancellationToken);
     }
 
-    public async Task<ExitMatch> FindExitByDestinationName(Guid roomId, string destinationName, CancellationToken cancellationToken = default) {
+    public async Task<ExitMatch> FindExitByDestinationName(Guid roomId, string destinationName,
+        CancellationToken cancellationToken = default) {
         var connectors = await context.Props
             .Where(p => p.RoomId == roomId)
             .OfType<RoomConnector>()
             .ToArrayAsync(cancellationToken);
 
         if (destinationName == "Outside") {
-            return connectors.Any(c => c.DestinationRoomId == null) ? new ExitMatch(true, null) : new ExitMatch(false, null);
+            return connectors.Any(c => c.DestinationRoomId == null)
+                ? new ExitMatch(true, null)
+                : new ExitMatch(false, null);
         }
 
         var destinationIds = connectors
@@ -51,13 +57,14 @@ internal class BuildingService(TrpgDbContext context) {
 
         var destinationRoomId = await context.Rooms
             .Where(r => destinationIds.Contains(r.Id) && r.Name == destinationName)
-            .Select(r => (Guid?)r.Id)
+            .Select(r => (Guid?) r.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
         return destinationRoomId != null ? new ExitMatch(true, destinationRoomId) : new ExitMatch(false, null);
     }
 
-    public async Task<IReadOnlyCollection<Room>> GetRoomByIds(HashSet<Guid> roomIds, CancellationToken cancellationToken = default) {
+    public async Task<IReadOnlyCollection<Room>> GetRoomByIds(HashSet<Guid> roomIds,
+        CancellationToken cancellationToken = default) {
         return await context.Rooms.Where(b => roomIds.Contains(b.Id)).ToListAsync(cancellationToken);
     }
 
@@ -105,18 +112,24 @@ internal class BuildingService(TrpgDbContext context) {
             .FirstOrDefaultAsync(c => c.DestinationRoomId == null, cancellationToken);
     }
 
-    public async Task SetFrontDoorLocked(Guid buildingId, bool isLocked, CancellationToken cancellationToken = default) {
+    public async Task SetFrontDoorLocked(Guid buildingId, bool isLocked,
+        CancellationToken cancellationToken = default) {
         var entranceRoom = await GetEntranceRoom(buildingId, cancellationToken);
-        if (entranceRoom == null) return;
+        if (entranceRoom == null) {
+            return;
+        }
 
         var door = await GetFrontDoor(entranceRoom.Id, cancellationToken);
-        if (door == null) return;
+        if (door == null) {
+            return;
+        }
 
         door.IsLocked = isLocked;
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Guid>> GetKeyItemIds(Guid roomConnectorId, CancellationToken cancellationToken = default) {
+    public async Task<IReadOnlyList<Guid>> GetKeyItemIds(Guid roomConnectorId,
+        CancellationToken cancellationToken = default) {
         return await context.RoomConnectorKeys
             .Where(k => k.RoomConnectorId == roomConnectorId)
             .Select(k => k.ItemId)

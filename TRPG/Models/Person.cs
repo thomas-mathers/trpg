@@ -30,17 +30,17 @@ internal class Person {
     public string Biography { get; set; } = "";
     public Guid BirthStateId { get; init; }
     public int BirthYear { get; init; }
+    public Guid? CityId { get; set; }
+    public Guid? DistrictId { get; set; }
     public int Experience { get; set; }
     public int Gold { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Level { get; set; }
-    public Guid StateId { get; set; }
-    public Guid? CityId { get; set; }
-    public Guid? DistrictId { get; set; }
-    public Guid? RoomId { get; set; }
     public string Name { get; init; } = "";
     public Profession Profession { get; init; }
     public Guid RaceId { get; init; }
+    public Guid? RoomId { get; set; }
     public PersonState State { get; set; }
+    public Guid StateId { get; set; }
     public Guid WorldId { get; init; }
 }

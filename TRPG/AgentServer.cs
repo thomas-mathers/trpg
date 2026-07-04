@@ -18,12 +18,12 @@ internal class AgentServer(
     ILogger<AgentServer> logger) {
     public async Task Run(GameSession session, CancellationToken cancellationToken) {
         var tools = toolFactory.Create(session);
-        var chat = new Chat(ollamaClient, Game.SystemPrompt) { Think = true, Options = new RequestOptions { NumCtx = 8192 } };
+        var chat = new Chat(ollamaClient, Game.SystemPrompt)
+            { Think = true, Options = new RequestOptions { NumCtx = 8192 } };
         chat.OnThink += (_, token) => logger.LogDebug("[agent] think: {Token}", token);
 
         var openingPrompt = await Game.BuildOpeningPrompt(worldService, sceneService, session, cancellationToken);
-        await foreach (var _ in chat.SendAsync(openingPrompt, tools, cancellationToken: cancellationToken)) {
-        }
+        await foreach (var _ in chat.SendAsync(openingPrompt, tools, cancellationToken: cancellationToken)) { }
 
         using var listener = new HttpListener();
         listener.Prefixes.Add("http://localhost:5000/");
@@ -37,7 +37,8 @@ internal class AgentServer(
             HttpListenerContext context;
             try {
                 context = await listener.GetContextAsync();
-            } catch (HttpListenerException) {
+            }
+            catch (HttpListenerException) {
                 break;
             }
 
@@ -45,7 +46,8 @@ internal class AgentServer(
         }
     }
 
-    private async Task HandleRequest(HttpListenerContext context, Chat chat, IReadOnlyList<Tool> tools, CancellationToken cancellationToken) {
+    private async Task HandleRequest(HttpListenerContext context, Chat chat, IReadOnlyList<Tool> tools,
+        CancellationToken cancellationToken) {
         var request = context.Request;
         var response = context.Response;
 
@@ -62,11 +64,13 @@ internal class AgentServer(
         try {
             var doc = JsonDocument.Parse(body);
             message = doc.RootElement.GetProperty("message").GetString()!;
-        } catch (JsonException) {
+        }
+        catch (JsonException) {
             response.StatusCode = 400;
             response.Close();
             return;
-        } catch (KeyNotFoundException) {
+        }
+        catch (KeyNotFoundException) {
             response.StatusCode = 400;
             response.Close();
             return;

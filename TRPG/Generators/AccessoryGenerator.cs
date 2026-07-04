@@ -4,8 +4,6 @@ using static TRPG.Generators.ItemModifierHelpers;
 namespace TRPG.Generators;
 
 internal class AccessoryGenerator {
-    private record AccessoryTypeData(string[] BaseNames, int Weight);
-    
     private static readonly Dictionary<AccessoryType, AccessoryTypeData> Types = new() {
         [AccessoryType.Necklace] = new AccessoryTypeData(["Amulet", "Pendant", "Medallion", "Talisman", "Charm"], 1),
         [AccessoryType.Ring] = new AccessoryTypeData(["Ring", "Band", "Signet", "Seal", "Loop"], 0),
@@ -70,4 +68,6 @@ internal class AccessoryGenerator {
             Modifiers = modifiers
         };
     }
+
+    private record AccessoryTypeData(string[] BaseNames, int Weight);
 }

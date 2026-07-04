@@ -10,9 +10,9 @@ internal record BuildingGeneratorInput(
     BuildingType Type,
     Guid WorldId
 ) {
+    public bool IsLockable { get; init; }
     public IReadOnlyList<Guid> MemberIds { get; init; } = [];
     public string? Name { get; init; }
-    public bool IsLockable { get; init; }
 }
 
 internal record BuildingGeneratorResult(
@@ -137,9 +137,10 @@ internal class BuildingGenerator {
     };
 
     public BuildingGeneratorResult Generate(BuildingGeneratorInput input) {
-        if (!CityBuildingTypes.Contains(input.Type))
+        if (!CityBuildingTypes.Contains(input.Type)) {
             throw new InvalidOperationException(
                 $"{input.Type} cannot be placed in a city.");
+        }
 
         var names = Names[input.Type];
         var building = new Building {
@@ -221,12 +222,14 @@ internal class BuildingGenerator {
             new RoomSpec("Workshop", "A working forge with tools and equipment for smithing.", 0, 6, [
                 new PropSpec("Forge",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Forge", Description = "A roaring forge for shaping metal.",
+                        RoomId = id, WorldId = worldId, Name = "Forge",
+                        Description = "A roaring forge for shaping metal.",
                         WorkstationType = WorkstationType.Weaponsmithing
                     }),
                 new PropSpec("Anvil",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Anvil", Description = "A heavy anvil for hammering armour.",
+                        RoomId = id, WorldId = worldId, Name = "Anvil",
+                        Description = "A heavy anvil for hammering armour.",
                         WorkstationType = WorkstationType.Armorsmithing
                     }),
                 new PropSpec("Counter",
@@ -237,11 +240,15 @@ internal class BuildingGenerator {
             ]),
             new RoomSpec("Living Quarters", "Simple living quarters above the shop.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A sturdy chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest",
+                        Description = "A sturdy chest for personal belongings."
+                    })
             ])
         ];
     }
@@ -251,22 +258,27 @@ internal class BuildingGenerator {
             new RoomSpec("Shop", "A shop filled with the smell of herbs and potions.", 0, 6, [
                 new PropSpec("Alchemy Table",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Alchemy Table", Description = "A table covered in alchemical equipment.",
+                        RoomId = id, WorldId = worldId, Name = "Alchemy Table",
+                        Description = "A table covered in alchemical equipment.",
                         WorkstationType = WorkstationType.Alchemy
                     }),
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for selling remedies.",
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for selling remedies.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
             new RoomSpec("Living Quarters", "Modest living quarters above the apothecary.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
             ])
         ];
     }
@@ -281,17 +293,21 @@ internal class BuildingGenerator {
                     }),
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for selling baked goods.",
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for selling baked goods.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
             new RoomSpec("Living Quarters", "Living quarters above the bakery.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
             ])
         ];
     }
@@ -301,22 +317,27 @@ internal class BuildingGenerator {
             new RoomSpec("Shop", "A dimly lit shop filled with arcane curiosities.", 0, 6, [
                 new PropSpec("Enchanting Table",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Enchanting Table", Description = "A table humming with magical energy.",
+                        RoomId = id, WorldId = worldId, Name = "Enchanting Table",
+                        Description = "A table humming with magical energy.",
                         WorkstationType = WorkstationType.Enchanting
                     }),
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for selling arcane wares.",
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for selling arcane wares.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
             new RoomSpec("Living Quarters", "Living quarters above the arcane shop.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
             ])
         ];
     }
@@ -326,21 +347,27 @@ internal class BuildingGenerator {
             new RoomSpec("Shop", "A well-stocked shop with a wide variety of goods.", 0, 6, [
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for general trading.",
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for general trading.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     }),
                 new PropSpec("Crate",
-                    (id, worldId) => new Container { RoomId = id, WorldId = worldId, Name = "Crate", Description = "A large crate of goods." }),
+                    (id, worldId) => new Container
+                        { RoomId = id, WorldId = worldId, Name = "Crate", Description = "A large crate of goods." }),
                 new PropSpec("Barrel",
-                    (id, worldId) => new Container { RoomId = id, WorldId = worldId, Name = "Barrel", Description = "A barrel of supplies." })
+                    (id, worldId) => new Container
+                        { RoomId = id, WorldId = worldId, Name = "Barrel", Description = "A barrel of supplies." })
             ]),
             new RoomSpec("Living Quarters", "Living quarters behind the shop.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
             ])
         ];
     }
@@ -350,18 +377,24 @@ internal class BuildingGenerator {
             new RoomSpec("Reading Room", "A quiet room lined with shelves of books.", 0, 10, [
                 new PropSpec("Bookcase",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Bookcase", Description = "A tall bookcase filled with tomes.",
+                        RoomId = id, WorldId = worldId, Name = "Bookcase",
+                        Description = "A tall bookcase filled with tomes.",
                         WorkstationType = WorkstationType.Reading
                     }),
                 new PropSpec("Bookcase",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Bookcase", Description = "A tall bookcase filled with manuscripts.",
+                        RoomId = id, WorldId = worldId, Name = "Bookcase",
+                        Description = "A tall bookcase filled with manuscripts.",
                         WorkstationType = WorkstationType.Reading
                     }),
                 new PropSpec("Chair",
-                    (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A comfortable reading chair." }),
+                    (id, worldId) => new Seat {
+                        RoomId = id, WorldId = worldId, Name = "Chair", Description = "A comfortable reading chair."
+                    }),
                 new PropSpec("Chair",
-                    (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A comfortable reading chair." }),
+                    (id, worldId) => new Seat {
+                        RoomId = id, WorldId = worldId, Name = "Chair", Description = "A comfortable reading chair."
+                    }),
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for lending books.",
@@ -370,16 +403,19 @@ internal class BuildingGenerator {
             ]),
             new RoomSpec("Study", "A private study for the librarian.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Bookcase",
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Bookcase", Description = "A personal bookcase.",
                         WorkstationType = WorkstationType.Reading
                     }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
             ])
         ];
     }
@@ -392,22 +428,32 @@ internal class BuildingGenerator {
                         RoomId = id, WorldId = worldId, Name = "Altar", Description = "A sacred altar for prayer.",
                         WorkstationType = WorkstationType.Prayer
                     }),
-                new PropSpec("Pew", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Pew", Description = "A wooden pew." }),
-                new PropSpec("Pew", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Pew", Description = "A wooden pew." }),
-                new PropSpec("Pew", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Pew", Description = "A wooden pew." }),
+                new PropSpec("Pew",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Pew", Description = "A wooden pew." }),
+                new PropSpec("Pew",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Pew", Description = "A wooden pew." }),
+                new PropSpec("Pew",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Pew", Description = "A wooden pew." }),
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for donations and offerings.",
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for donations and offerings.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
             new RoomSpec("Quarters", "Living quarters for the temple keeper.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A simple bed.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A simple bed.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
             ])
         ];
     }
@@ -415,28 +461,42 @@ internal class BuildingGenerator {
     private static RoomSpec[] GetTavernSpecs(Guid? ownerId) {
         return [
             new RoomSpec("Common Room", "A lively room filled with the sounds of eating and drinking.", 0, 15, [
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A wooden chair." }),
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A wooden chair." }),
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A wooden chair." }),
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A wooden chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A wooden chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A wooden chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A wooden chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A wooden chair." }),
                 new PropSpec("Fireplace",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Fireplace", Description = "A large fireplace used for cooking.",
+                        RoomId = id, WorldId = worldId, Name = "Fireplace",
+                        Description = "A large fireplace used for cooking.",
                         WorkstationType = WorkstationType.Cooking
                     }),
                 new PropSpec("Bar Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Bar Counter", Description = "A long counter for serving drinks.",
+                        RoomId = id, WorldId = worldId, Name = "Bar Counter",
+                        Description = "A long counter for serving drinks.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
             new RoomSpec("Owner's Quarters", "The owner's private living space.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "The owner's bed.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "The owner's bed.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for the owner's belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest",
+                        Description = "A chest for the owner's belongings."
+                    })
             ])
         ];
     }
@@ -445,30 +505,42 @@ internal class BuildingGenerator {
         var guestRooms = InnGuestRoomDirections.Select(direction => new RoomSpec(
             $"{direction} Guest Room", "A small but tidy guest room.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A comfortable bed for guests." }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A comfortable bed for guests."
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for guest belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for guest belongings."
+                    })
             ]
         )).ToArray();
 
         return [
             new RoomSpec("Lobby", "A welcoming lobby with a check-in counter.", 0, 15, [
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A cushioned chair." }),
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A cushioned chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A cushioned chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A cushioned chair." }),
                 new PropSpec("Innkeeper's Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Innkeeper's Counter", Description = "A counter for booking rooms.",
+                        RoomId = id, WorldId = worldId, Name = "Innkeeper's Counter",
+                        Description = "A counter for booking rooms.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
             ..guestRooms,
             new RoomSpec("Owner's Quarters", "The innkeeper's private living space.", 2, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "The innkeeper's bed.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "The innkeeper's bed.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
             ])
         ];
     }
@@ -481,18 +553,31 @@ internal class BuildingGenerator {
             1,
             [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.", AssignedPersonId = memberId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedPersonId = memberId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
             ]
         )).ToArray();
 
         return [
             new RoomSpec("Hall", "A large hall where guild members gather.", 0, 15, [
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A sturdy chair." }),
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A sturdy chair." }),
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A sturdy chair." }),
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A sturdy chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A sturdy chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A sturdy chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A sturdy chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A sturdy chair." }),
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for guild business.",
@@ -507,16 +592,25 @@ internal class BuildingGenerator {
         var bedrooms = memberIds.Select((memberId, i) => new RoomSpec(
             $"Bedroom {i + 1}", "A modest bedroom.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.", AssignedPersonId = memberId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedPersonId = memberId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
             ]
         )).ToArray();
 
         return [
             new RoomSpec("Living Room", "A simple living room.", 0, 6, [
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A worn chair." }),
-                new PropSpec("Chair", (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A worn chair." })
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A worn chair." }),
+                new PropSpec("Chair",
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A worn chair." })
             ]),
             ..bedrooms
         ];
@@ -527,16 +621,20 @@ internal class BuildingGenerator {
             new RoomSpec("Stable", "A stable housing horses and supplies.", 0, 6, [
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for selling horses and supplies.",
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for selling horses and supplies.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     }),
                 new PropSpec("Barrel",
-                    (id, worldId) => new Container { RoomId = id, WorldId = worldId, Name = "Barrel", Description = "A barrel of feed." })
+                    (id, worldId) => new Container
+                        { RoomId = id, WorldId = worldId, Name = "Barrel", Description = "A barrel of feed." })
             ]),
             new RoomSpec("Living Quarters", "Simple living quarters for the stable hand.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A simple bed.", AssignedPersonId = ownerId })
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A simple bed.",
+                        AssignedPersonId = ownerId
+                    })
             ])
         ];
     }
@@ -545,19 +643,28 @@ internal class BuildingGenerator {
         return [
             new RoomSpec("Drill Hall", "A hall lined with weapon racks and training gear.", 0, 15, [
                 new PropSpec("Weapon Rack",
-                    (id, worldId) => new Container { RoomId = id, WorldId = worldId, Name = "Weapon Rack", Description = "A rack holding practice weapons." }),
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Weapon Rack",
+                        Description = "A rack holding practice weapons."
+                    }),
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for issuing orders and supplies.",
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for issuing orders and supplies.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
             new RoomSpec("Officer's Quarters", "A spartan private room for the commanding officer.", 1, 1, [
                 new PropSpec("Bed",
-                    (id, worldId) => new Bed
-                        { RoomId = id, WorldId = worldId, Name = "Bed", Description = "A simple cot.", AssignedPersonId = ownerId }),
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A simple cot.",
+                        AssignedPersonId = ownerId
+                    }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A footlocker for personal effects." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest",
+                        Description = "A footlocker for personal effects."
+                    })
             ])
         ];
     }
@@ -566,26 +673,33 @@ internal class BuildingGenerator {
         return [
             new RoomSpec("Great Hall", "A grand hall fit for a lord.", 0, 15, [
                 new PropSpec("Throne",
-                    (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Throne", Description = "An imposing throne." }),
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Throne", Description = "An imposing throne." }),
                 new PropSpec("Chair",
-                    (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A chair for guests." }),
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A chair for guests." }),
                 new PropSpec("Chair",
-                    (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A chair for guests." }),
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A chair for guests." }),
                 new PropSpec("Chair",
-                    (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A chair for guests." }),
+                    (id, worldId) => new Seat
+                        { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A chair for guests." }),
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
-                        RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for receiving tribute and trade.",
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for receiving tribute and trade.",
                         WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
                     })
             ]),
             new RoomSpec("Royal Chambers", "Lavish private chambers for the lord.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
-                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A grand four-poster bed.", AssignedPersonId = ownerId
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A grand four-poster bed.",
+                        AssignedPersonId = ownerId
                     }),
                 new PropSpec("Chest",
-                    (id, worldId) => new Container { RoomId = id, WorldId = worldId, Name = "Chest", Description = "An ornate chest." })
+                    (id, worldId) => new Container
+                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "An ornate chest." })
             ])
         ];
     }
@@ -594,12 +708,16 @@ internal class BuildingGenerator {
         return [
             new RoomSpec("Guard Station", "A room where guards keep watch.", 0, 4, [
                 new PropSpec("Chair",
-                    (id, worldId) => new Seat { RoomId = id, WorldId = worldId, Name = "Chair", Description = "A chair for the guard on duty." })
+                    (id, worldId) => new Seat {
+                        RoomId = id, WorldId = worldId, Name = "Chair", Description = "A chair for the guard on duty."
+                    })
             ]),
             new RoomSpec("Cells", "A row of dark, damp cells.", 1, 4, [
                 new PropSpec("Chest",
-                    (id, worldId) => new Container
-                        { RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for confiscated belongings." })
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest",
+                        Description = "A chest for confiscated belongings."
+                    })
             ])
         ];
     }

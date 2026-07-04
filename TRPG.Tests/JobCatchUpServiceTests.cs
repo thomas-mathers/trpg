@@ -8,10 +8,10 @@ namespace TRPG.Tests;
 
 [Collection("Database")]
 public sealed class JobCatchUpServiceTests(DatabaseFixture db) : IAsyncLifetime {
+    private JobCatchUpService _catchUp = null!;
     private TrpgDbContext _context = null!;
     private JobService _jobService = null!;
     private PersonService _personService = null!;
-    private JobCatchUpService _catchUp = null!;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
@@ -23,7 +23,9 @@ public sealed class JobCatchUpServiceTests(DatabaseFixture db) : IAsyncLifetime 
         _catchUp = new JobCatchUpService(_jobService, _personService, dispatcher);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
     public async Task CatchUpRoom_MovesPersonIntoRoom_WhenSleepJobActive() {

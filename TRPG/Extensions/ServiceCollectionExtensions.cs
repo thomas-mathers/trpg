@@ -14,8 +14,8 @@ using ZLogger.Providers;
 namespace TRPG.Extensions;
 
 internal static class ServiceCollectionExtensions {
-    public static IServiceCollection AddTrpgLogging(this IServiceCollection serviceCollection) =>
-        serviceCollection.AddLogging(builder => {
+    public static IServiceCollection AddTrpgLogging(this IServiceCollection serviceCollection) {
+        return serviceCollection.AddLogging(builder => {
             builder.SetMinimumLevel(LogLevel.Trace);
             builder.AddFilter("Microsoft", LogLevel.Error);
             builder.AddFilter("System", LogLevel.Error);
@@ -31,21 +31,27 @@ internal static class ServiceCollectionExtensions {
                 });
             });
         });
-    
-    public static IServiceCollection AddTrpgDbContext(this IServiceCollection serviceCollection, string connectionString) =>
-        serviceCollection.AddDbContext<TrpgDbContext>((provider, options) => {
-            options.UseNpgsql(connectionString).UseLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
-        }, ServiceLifetime.Transient);
+    }
 
-    public static IServiceCollection AddOllamaApiClient(this IServiceCollection serviceCollection, AppConfiguration appConfiguration) =>
-        serviceCollection.AddSingleton<OllamaApiClient>(_ => {
+    public static IServiceCollection AddTrpgDbContext(this IServiceCollection serviceCollection,
+        string connectionString) {
+        return serviceCollection.AddDbContext<TrpgDbContext>(
+            (provider, options) => {
+                options.UseNpgsql(connectionString).UseLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
+            }, ServiceLifetime.Transient);
+    }
+
+    public static IServiceCollection AddOllamaApiClient(this IServiceCollection serviceCollection,
+        AppConfiguration appConfiguration) {
+        return serviceCollection.AddSingleton<OllamaApiClient>(_ => {
             var httpClient = new HttpClient
                 { BaseAddress = appConfiguration.OllamaUri, Timeout = Timeout.InfiniteTimeSpan };
             return new OllamaApiClient(httpClient) { SelectedModel = appConfiguration.OllamaModel };
         });
+    }
 
-    public static IServiceCollection AddTrpgApplicationServices(this IServiceCollection serviceCollection) =>
-        serviceCollection
+    public static IServiceCollection AddTrpgApplicationServices(this IServiceCollection serviceCollection) {
+        return serviceCollection
             .AddMemoryCache()
             .AddTransient<BuildingService>()
             .AddTransient<InventoryService>()
@@ -81,4 +87,5 @@ internal static class ServiceCollectionExtensions {
             .AddTransient<Game>()
             .AddTransient<AgentServer>()
             .AddTransient<ToolFactory>();
+    }
 }

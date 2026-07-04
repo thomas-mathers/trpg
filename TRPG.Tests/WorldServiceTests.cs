@@ -8,8 +8,8 @@ namespace TRPG.Tests;
 [Collection("Database")]
 public sealed class WorldServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
-    private World _world = null!;
     private WorldService _service = null!;
+    private World _world = null!;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();

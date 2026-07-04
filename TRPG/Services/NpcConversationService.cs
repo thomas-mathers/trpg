@@ -24,7 +24,8 @@ internal class NpcConversationService(TrpgDbContext context) {
                 NpcId = npcId,
                 Summary = summary
             });
-        } else {
+        }
+        else {
             conversation.Summary = summary;
         }
 

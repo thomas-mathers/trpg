@@ -7,8 +7,8 @@ namespace TRPG.Tests;
 
 [Collection("Database")]
 public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
-    private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _ownerId = Guid.NewGuid();
+    private readonly Guid _stateId = Guid.NewGuid();
     private Building _building = null!;
     private TrpgDbContext _context = null!;
     private BuildingService _service = null!;

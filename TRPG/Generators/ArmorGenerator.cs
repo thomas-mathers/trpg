@@ -13,26 +13,26 @@ internal class ArmorGenerator(AbilityDefinitions abilityDefinitions) {
             [ArmorClass.Cloth] = new(["Hood", "Cowl", "Skullcap"], 1, 0, 2),
             [ArmorClass.Leather] = new(["Cap", "Leather Cap", "Hunter's Hood"], 2, 2, 8),
             [ArmorClass.Mail] = new(["Coif", "Chain Coif", "Mail Coif"], 4, 5, 15),
-            [ArmorClass.Plate] = new(["Helm", "Great Helm", "War Helm", "Visor", "Full Helm"], 6, 10, 25),
+            [ArmorClass.Plate] = new(["Helm", "Great Helm", "War Helm", "Visor", "Full Helm"], 6, 10, 25)
         },
         [ArmorType.Chest] = new Dictionary<ArmorClass, ArmorClassData> {
             [ArmorClass.Cloth] = new(["Robe", "Tunic", "Vestments", "Garb"], 2, 0, 5),
             [ArmorClass.Leather] = new(["Leather Armor", "Studded Leather", "Brigandine"], 5, 5, 20),
             [ArmorClass.Mail] = new(["Ring Mail", "Chain Mail", "Scale Mail"], 10, 15, 40),
-            [ArmorClass.Plate] = new(["Plate Mail", "Full Plate", "Hauberk", "Breastplate"], 15, 30, 70),
+            [ArmorClass.Plate] = new(["Plate Mail", "Full Plate", "Hauberk", "Breastplate"], 15, 30, 70)
         },
         [ArmorType.Boots] = new Dictionary<ArmorClass, ArmorClassData> {
             [ArmorClass.Cloth] = new(["Shoes", "Sandals", "Light Shoes"], 1, 0, 1),
             [ArmorClass.Leather] = new(["Boots", "Leather Boots", "Light Boots"], 2, 1, 5),
             [ArmorClass.Mail] = new(["Greaves", "Chain Boots"], 4, 3, 10),
-            [ArmorClass.Plate] = new(["Sabatons", "War Boots", "Heavy Boots"], 6, 6, 20),
+            [ArmorClass.Plate] = new(["Sabatons", "War Boots", "Heavy Boots"], 6, 6, 20)
         },
         [ArmorType.Gloves] = new Dictionary<ArmorClass, ArmorClassData> {
             [ArmorClass.Cloth] = new(["Gloves", "Light Gloves"], 0, 0, 1),
             [ArmorClass.Leather] = new(["Leather Gloves", "Bracers"], 1, 1, 4),
             [ArmorClass.Mail] = new(["Chain Gloves", "Mail Gauntlets"], 2, 2, 8),
-            [ArmorClass.Plate] = new(["Gauntlets", "War Gauntlets", "Heavy Gauntlets"], 4, 5, 15),
-        },
+            [ArmorClass.Plate] = new(["Gauntlets", "War Gauntlets", "Heavy Gauntlets"], 4, 5, 15)
+        }
     };
 
     private readonly ModifierTemplate[] _modifiers = [

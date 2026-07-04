@@ -34,7 +34,8 @@ internal static class DistrictGenerator {
             "The Residential District", "The Old Town", "Hearthside", "The Homesteads", "The Cottage Row"
         ],
         [DistrictType.Scientific] = [
-            "The Scholar's Quarter", "The Athenaeum District", "The Study Ward", "The Archive Grounds", "The Enlightenment Row"
+            "The Scholar's Quarter", "The Athenaeum District", "The Study Ward", "The Archive Grounds",
+            "The Enlightenment Row"
         ],
         [DistrictType.CityCenter] = [
             "The City Center", "The Exchange District", "Trader's Commons", "The Merchant Quarter", "The Grand Bazaar"

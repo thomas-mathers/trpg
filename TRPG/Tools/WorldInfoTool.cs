@@ -1,3 +1,4 @@
+using System.Text.Json;
 using OllamaSharp.Models.Chat;
 using OllamaSharp.Tools;
 using TRPG.Services;
@@ -14,7 +15,8 @@ internal class WorldInfoTool : Tool, IInvokableTool {
 
         Function = new Function {
             Name = "world",
-            Description = "Returns the world's name and lore description — its tone, culture, and history. Call this when you need background beyond the current scene, such as narrating rumors, festivals, or a character's cultural origin.",
+            Description =
+                "Returns the world's name and lore description — its tone, culture, and history. Call this when you need background beyond the current scene, such as narrating rumors, festivals, or a character's cultural origin.",
             Parameters = new Parameters {
                 Type = "object",
                 Properties = new Dictionary<string, Property>(),
@@ -25,6 +27,6 @@ internal class WorldInfoTool : Tool, IInvokableTool {
 
     public object? InvokeMethod(IDictionary<string, object?>? args) {
         var world = _worldService.GetWorld(_session.WorldId, CancellationToken.None).GetAwaiter().GetResult();
-        return System.Text.Json.JsonSerializer.Serialize(new { world!.Name, world.Description }, ToolJsonOptions.Options);
+        return JsonSerializer.Serialize(new { world!.Name, world.Description }, ToolJsonOptions.Options);
     }
 }

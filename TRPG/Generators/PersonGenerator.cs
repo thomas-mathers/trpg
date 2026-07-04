@@ -3,7 +3,14 @@ using TRPG.Models;
 
 namespace TRPG.Generators;
 
-internal record PersonGeneratorInput(Race Race, Profession Profession, Guid WorldId, Guid BirthStateId, Guid StateId, int Level = 0, string? Name = null);
+internal record PersonGeneratorInput(
+    Race Race,
+    Profession Profession,
+    Guid WorldId,
+    Guid BirthStateId,
+    Guid StateId,
+    int Level = 0,
+    string? Name = null);
 
 internal record PersonGeneratorResult(
     Person Person,
@@ -210,7 +217,7 @@ internal class PersonGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
         [Profession.Politician] = ArmorClass.Cloth,
         [Profession.StableMaster] = ArmorClass.Leather,
         [Profession.Bartender] = ArmorClass.Cloth,
-        [Profession.Guard] = ArmorClass.Mail,
+        [Profession.Guard] = ArmorClass.Mail
     };
 
     private static readonly Dictionary<Profession, Skill[]> ProfessionSkills = new() {
@@ -287,7 +294,8 @@ internal class PersonGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
         return skills
             .SelectMany(ps => abilityDefinitions.Abilities
                 .Where(a => a.Skill == ps.Skill && a.RequiredSkillLevel <= ps.Level)
-                .Select(a => new PersonAbility { PersonId = person.Id, AbilityName = a.Name, WorldId = person.WorldId }))
+                .Select(a => new PersonAbility
+                    { PersonId = person.Id, AbilityName = a.Name, WorldId = person.WorldId }))
             .ToArray();
     }
 
@@ -366,7 +374,8 @@ internal class PersonGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
             ],
             Profession.Rogue => [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1, EquipmentSlot.LeftHand),
+                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1,
+                    EquipmentSlot.LeftHand),
                 ..armor, ..accessories
             ],
             Profession.Ranger => [
@@ -409,19 +418,24 @@ internal class PersonGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
         };
     }
 
-    private StartingItem[] GetArmorItems(ArmorClass armorClass, int level, Guid worldId) => [
-        new StartingItem(itemGenerator.GenerateArmor(ArmorType.Helm, armorClass, level, worldId), 1),
-        new StartingItem(itemGenerator.GenerateArmor(ArmorType.Chest, armorClass, level, worldId), 1),
-        new StartingItem(itemGenerator.GenerateArmor(ArmorType.Gloves, armorClass, level, worldId), 1),
-        new StartingItem(itemGenerator.GenerateArmor(ArmorType.Boots, armorClass, level, worldId), 1),
-    ];
+    private StartingItem[] GetArmorItems(ArmorClass armorClass, int level, Guid worldId) {
+        return [
+            new StartingItem(itemGenerator.GenerateArmor(ArmorType.Helm, armorClass, level, worldId), 1),
+            new StartingItem(itemGenerator.GenerateArmor(ArmorType.Chest, armorClass, level, worldId), 1),
+            new StartingItem(itemGenerator.GenerateArmor(ArmorType.Gloves, armorClass, level, worldId), 1),
+            new StartingItem(itemGenerator.GenerateArmor(ArmorType.Boots, armorClass, level, worldId), 1)
+        ];
+    }
 
-    private StartingItem[] GetAccessoryItems(int level, Guid worldId) => [
-        new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Necklace, level, worldId), 1),
-        new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Belt, level, worldId), 1),
-        new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId), 1),
-        new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId), 1, EquipmentSlot.RightRing),
-    ];
+    private StartingItem[] GetAccessoryItems(int level, Guid worldId) {
+        return [
+            new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Necklace, level, worldId), 1),
+            new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Belt, level, worldId), 1),
+            new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId), 1),
+            new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId), 1,
+                EquipmentSlot.RightRing)
+        ];
+    }
 
     public static string GetName(string cultureStyle) {
         var pool = Pools.GetValueOrDefault(cultureStyle, FallbackNamePool);

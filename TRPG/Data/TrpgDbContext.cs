@@ -13,11 +13,10 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
     public DbSet<Building> Buildings => Set<Building>();
-    public DbSet<State> States => Set<State>();
     public DbSet<City> Cities => Set<City>();
-    public DbSet<District> Districts => Set<District>();
     public DbSet<ContainerItem> ContainerItems => Set<ContainerItem>();
     public DbSet<Country> Countries => Set<Country>();
+    public DbSet<District> Districts => Set<District>();
     public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
     public DbSet<Faction> Factions => Set<Faction>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
@@ -35,8 +34,9 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<Race> Races => Set<Race>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<Road> Roads => Set<Road>();
-    public DbSet<Room> Rooms => Set<Room>();
     public DbSet<RoomConnectorKey> RoomConnectorKeys => Set<RoomConnectorKey>();
+    public DbSet<Room> Rooms => Set<Room>();
+    public DbSet<State> States => Set<State>();
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
     public DbSet<World> Worlds => Set<World>();
 
@@ -121,9 +121,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.HasIndex(k => k.WorldId);
         });
 
-        modelBuilder.Entity<WorldEvent>(entity => {
-            entity.Property(e => e.Tags).HasColumnType("text[]");
-        });
+        modelBuilder.Entity<WorldEvent>(entity => { entity.Property(e => e.Tags).HasColumnType("text[]"); });
 
         modelBuilder.Entity<World>(entity => { entity.OwnsOne(w => w.Boundary, b => b.ToJson()); });
 

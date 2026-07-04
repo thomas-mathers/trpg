@@ -445,6 +445,7 @@ internal class AbilityDefinitions(
                 set = [];
                 Prerequisites[abilityName] = set;
             }
+
             set.Add(prerequisiteName);
         }
 

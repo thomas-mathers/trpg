@@ -9,12 +9,12 @@ namespace TRPG.Tests;
 [Collection("Database")]
 public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
-    private SceneService _service = null!;
-    private Guid _worldId;
-    private Race _race = null!;
-    private State _state = null!;
-    private Person _player = null!;
     private Person _nearbyPerson = null!;
+    private Person _player = null!;
+    private Race _race = null!;
+    private SceneService _service = null!;
+    private State _state = null!;
+    private Guid _worldId;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
@@ -27,7 +27,8 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
             NullLogger<JobDispatcher>.Instance);
         var lockService = new LockService(buildingService, jobService, inventoryService);
         var reputationService = new ReputationService(_context);
-        _service = new SceneService(_context, new JobCatchUpService(jobService, personService, dispatcher), lockService, reputationService);
+        _service = new SceneService(_context, new JobCatchUpService(jobService, personService, dispatcher), lockService,
+            reputationService);
 
         _worldId = Guid.NewGuid();
         var country = Builders.MakeCountry(_worldId);

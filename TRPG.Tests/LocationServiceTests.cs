@@ -7,10 +7,10 @@ namespace TRPG.Tests;
 
 [Collection("Database")]
 public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime {
-    private State _state = null!;
     private TrpgDbContext _context = null!;
     private Country _country = null!;
     private LocationService _service = null!;
+    private State _state = null!;
     private World _world = null!;
 
     public async ValueTask InitializeAsync() {

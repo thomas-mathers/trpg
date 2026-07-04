@@ -9,8 +9,8 @@ namespace TRPG.Tests;
 [Collection("Database")]
 public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
-    private Person _person = null!;
     private JobDispatcher _dispatcher = null!;
+    private Person _person = null!;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
@@ -24,27 +24,34 @@ public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
 
     [Fact]
-    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForSleepJob() =>
+    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForSleepJob() {
         await AssertRoomIdUpdated(JobAction.Sleep, PersonState.Sleeping);
+    }
 
     [Fact]
-    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForWorkJob() =>
+    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForWorkJob() {
         await AssertRoomIdUpdated(JobAction.Work, PersonState.Busy);
+    }
 
     [Fact]
-    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForIdleJob() =>
+    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForIdleJob() {
         await AssertRoomIdUpdated(JobAction.Idle, PersonState.Idle);
+    }
 
     [Fact]
-    public async Task Dispatch_LeavesPersonUnchanged_ForPatrolJob() =>
+    public async Task Dispatch_LeavesPersonUnchanged_ForPatrolJob() {
         await AssertRoomIdUnchanged(JobAction.Patrol);
+    }
 
     [Fact]
-    public async Task Dispatch_LeavesPersonUnchanged_ForSocializeJob() =>
+    public async Task Dispatch_LeavesPersonUnchanged_ForSocializeJob() {
         await AssertRoomIdUnchanged(JobAction.Socialize);
+    }
 
     private async Task AssertRoomIdUpdated(JobAction action, PersonState expectedState) {
         // Arrange

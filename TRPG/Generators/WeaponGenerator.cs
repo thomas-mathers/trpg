@@ -5,17 +5,6 @@ using static TRPG.Generators.ItemModifierHelpers;
 namespace TRPG.Generators;
 
 internal class WeaponGenerator(AbilityDefinitions abilityDefinitions) {
-    private record WeaponTypeData(
-        string[] BaseNames,
-        int Weight,
-        int MinimumDamageLow,
-        int MinimumDamageHigh,
-        int MaximumDamageLow,
-        int MaximumDamageHigh,
-        int Range,
-        int AttackSpeed
-    );
-    
     private static readonly Dictionary<WeaponType, WeaponTypeData> Types = new() {
         [WeaponType.Dagger] = new WeaponTypeData(
             ["Dagger", "Dirk", "Stiletto", "Kris", "Knife"],
@@ -115,4 +104,15 @@ internal class WeaponGenerator(AbilityDefinitions abilityDefinitions) {
             DurabilityCurrent = durabilityMax
         };
     }
+
+    private record WeaponTypeData(
+        string[] BaseNames,
+        int Weight,
+        int MinimumDamageLow,
+        int MinimumDamageHigh,
+        int MaximumDamageLow,
+        int MaximumDamageHigh,
+        int Range,
+        int AttackSpeed
+    );
 }

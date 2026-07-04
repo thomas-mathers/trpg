@@ -5,5 +5,7 @@ internal static class GameRules {
     public const int MaxSkillLevel = 100;
     public const int PointsPerLevel = 5;
 
-    public static int XpForSkillLevel(int level) => 25 * level * (level + 3);
+    public static int XpForSkillLevel(int level) {
+        return 25 * level * (level + 3);
+    }
 }

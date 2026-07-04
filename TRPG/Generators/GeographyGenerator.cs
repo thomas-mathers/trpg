@@ -8,12 +8,12 @@ namespace TRPG.Generators;
 
 internal class GeographyGeneratorInput {
     public required string Description { get; init; }
-    public int MaxRuralStates { get; init; } = WorldGenerationDefaults.MaxRuralStates;
     public int MaxCityStates { get; init; } = WorldGenerationDefaults.MaxCityStates;
     public int MaxCountries { get; init; } = WorldGenerationDefaults.MaxCountries;
-    public int MinRuralStates { get; init; } = WorldGenerationDefaults.MinRuralStates;
+    public int MaxRuralStates { get; init; } = WorldGenerationDefaults.MaxRuralStates;
     public int MinCityStates { get; init; } = WorldGenerationDefaults.MinCityStates;
     public int MinCountries { get; init; } = WorldGenerationDefaults.MinCountries;
+    public int MinRuralStates { get; init; } = WorldGenerationDefaults.MinRuralStates;
     public IReadOnlyList<Race>? Races { get; init; }
     public int WorldHeight { get; init; } = WorldGenerationDefaults.WorldHeight;
     public Guid? WorldId { get; init; }
@@ -21,11 +21,11 @@ internal class GeographyGeneratorInput {
 }
 
 internal class GeographyGeneratorResult {
-    public required IReadOnlyList<State> States { get; init; }
     public required IReadOnlyList<City> Cities { get; init; }
     public required IReadOnlyDictionary<Guid, string> CityFocuses { get; init; }
     public required IReadOnlyList<Country> Countries { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
+    public required IReadOnlyList<State> States { get; init; }
     public required World World { get; init; }
 }
 
@@ -217,7 +217,8 @@ internal class GeographyGenerator(
                             }
 
                             var crossDupe = s.Cities
-                                .FirstOrDefault(c => context.ExistingNames.Contains(c.Name, StringComparer.OrdinalIgnoreCase));
+                                .FirstOrDefault(c =>
+                                    context.ExistingNames.Contains(c.Name, StringComparer.OrdinalIgnoreCase));
                             if (crossDupe != null) {
                                 return $"The name \"{crossDupe.Name}\" is already in use. Choose a different name.";
                             }

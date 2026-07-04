@@ -9,17 +9,17 @@ internal class WorldGeneratorInput {
     public int FactionCount { get; init; }
     public int HousesPerCity { get; init; }
     public int MaxBuildingsPerState { get; init; }
-    public int MaxFactionMembers { get; init; }
-    public int MaxHouseholdSize { get; init; }
-    public int MinBuildingsPerState { get; init; }
-    public int MinFactionMembers { get; init; }
-    public int MinHouseholdSize { get; init; }
-    public int MaxRuralStates { get; init; }
     public int MaxCityStates { get; init; }
     public int MaxCountries { get; init; }
-    public int MinRuralStates { get; init; }
+    public int MaxFactionMembers { get; init; }
+    public int MaxHouseholdSize { get; init; }
+    public int MaxRuralStates { get; init; }
+    public int MinBuildingsPerState { get; init; }
     public int MinCityStates { get; init; }
     public int MinCountries { get; init; }
+    public int MinFactionMembers { get; init; }
+    public int MinHouseholdSize { get; init; }
+    public int MinRuralStates { get; init; }
     public int RaceCount { get; init; }
 }
 
@@ -27,22 +27,22 @@ internal class WorldGeneratorResult {
     public required IReadOnlyCollection<PersonAbility> Abilities { get; init; }
     public required IReadOnlyList<BuildingOwner> BuildingOwners { get; init; }
     public required IReadOnlyList<Building> Buildings { get; init; }
-    public required IReadOnlyList<State> States { get; init; }
     public required IReadOnlyList<City> Cities { get; init; }
-    public required IReadOnlyList<District> Districts { get; init; }
     public required IReadOnlyList<Country> Countries { get; init; }
+    public required IReadOnlyList<District> Districts { get; init; }
     public required IReadOnlyList<FactionMember> FactionMembers { get; init; }
     public required IReadOnlyList<Faction> Factions { get; init; }
     public required IReadOnlyList<InventoryItem> InventoryItems { get; init; }
     public required IReadOnlyList<Item> Items { get; init; }
+    public required IReadOnlyList<Job> Jobs { get; init; }
     public required IReadOnlyList<Person> Persons { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<Race> Races { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
+    public required IReadOnlyList<RoomConnectorKey> RoomConnectorKeys { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
     public required IReadOnlyCollection<PersonSkill> Skills { get; init; }
-    public required IReadOnlyList<Job> Jobs { get; init; }
-    public required IReadOnlyList<RoomConnectorKey> RoomConnectorKeys { get; init; }
+    public required IReadOnlyList<State> States { get; init; }
     public required World World { get; init; }
 }
 
@@ -74,9 +74,9 @@ internal class WorldGenerator(
         var worldId = Guid.NewGuid();
 
         var groundedDescription = $"{generatorInput.Description} This remains a low-fantasy world where knights, "
-            + "mercenaries, blacksmiths, and mages are established, respected roles, and swords and plate armor are "
-            + "still standard equipment. Any technological or aesthetic theme should layer on top of this as mood "
-            + "and atmosphere — not replace or obsolete these roles and equipment.";
+                                  + "mercenaries, blacksmiths, and mages are established, respected roles, and swords and plate armor are "
+                                  + "still standard equipment. Any technological or aesthetic theme should layer on top of this as mood "
+                                  + "and atmosphere — not replace or obsolete these roles and equipment.";
 
         var races = await raceGenerator.Generate(
             new RaceGeneratorInput {
@@ -160,7 +160,8 @@ internal class WorldGenerator(
                 var memberPersons = new List<PersonGeneratorResult>();
 
                 if (type == BuildingType.GuildHall) {
-                    var numMembers = Random.Shared.Next(generatorInput.MinFactionMembers, generatorInput.MaxFactionMembers + 1);
+                    var numMembers = Random.Shared.Next(generatorInput.MinFactionMembers,
+                        generatorInput.MaxFactionMembers + 1);
                     for (var m = 1; m < numMembers; m++) {
                         var memberRace = races[Random.Shared.Next(races.Count)];
                         var memberPerson = personGenerator.Generate(
@@ -176,15 +177,16 @@ internal class WorldGenerator(
                 var isLockable = type is not (BuildingType.Inn or BuildingType.Tavern);
 
                 var buildingResult = buildingGenerator.Generate(
-                    new BuildingGeneratorInput(StateId: state.Id, CityId: city.Id, DistrictId: district.Id,
-                        OwnerId: personResult.Person.Id, Type: type, WorldId: worldId) {
+                    new BuildingGeneratorInput(state.Id, city.Id, district.Id,
+                        personResult.Person.Id, type, worldId) {
                         MemberIds = memberIds,
                         IsLockable = isLockable
                     }
                 );
 
                 if (isLockable) {
-                    var frontDoor = buildingResult.Props.OfType<RoomConnector>().First(c => c.DestinationRoomId == null);
+                    var frontDoor = buildingResult.Props.OfType<RoomConnector>()
+                        .First(c => c.DestinationRoomId == null);
                     foreach (var residentId in memberIds) {
                         var keyItem = new Item {
                             WorldId = worldId, Name = $"Key to {buildingResult.Building.Name}",
@@ -208,13 +210,19 @@ internal class WorldGenerator(
                 if (type == BuildingType.GuildHall) {
                     var factionId = factions[guildHallIndex++ % factions.Count].Id;
                     buildingResult.Building.FactionId = factionId;
-                    factionMembers.Add(new FactionMember
-                        { FactionId = factionId, PersonId = personResult.Person.Id, Role = FactionRole.Leader, WorldId = worldId });
+                    factionMembers.Add(new FactionMember {
+                        FactionId = factionId, PersonId = personResult.Person.Id, Role = FactionRole.Leader,
+                        WorldId = worldId
+                    });
                     foreach (var memberPerson in memberPersons) {
-                        factionMembers.Add(new FactionMember
-                            { FactionId = factionId, PersonId = memberPerson.Person.Id, Role = FactionRole.Member, WorldId = worldId });
-                        factionMembers.Add(new FactionMember
-                            { FactionId = cityFaction.Id, PersonId = memberPerson.Person.Id, Role = FactionRole.Member, WorldId = worldId });
+                        factionMembers.Add(new FactionMember {
+                            FactionId = factionId, PersonId = memberPerson.Person.Id, Role = FactionRole.Member,
+                            WorldId = worldId
+                        });
+                        factionMembers.Add(new FactionMember {
+                            FactionId = cityFaction.Id, PersonId = memberPerson.Person.Id, Role = FactionRole.Member,
+                            WorldId = worldId
+                        });
                         memberPerson.Person.RoomId = groundFloorRoomId;
                         persons.Add(memberPerson.Person);
                         items.AddRange(memberPerson.Items);
@@ -224,19 +232,23 @@ internal class WorldGenerator(
 
                         var memberBedRoomId = buildingResult.Props.OfType<Bed>()
                             .First(b => b.AssignedPersonId == memberPerson.Person.Id).RoomId;
-                        jobs.AddRange(JobGenerator.Generate(state.Id, memberPerson.Person.Id, memberBedRoomId, null, groundFloorRoomId, worldId));
+                        jobs.AddRange(JobGenerator.Generate(state.Id, memberPerson.Person.Id, memberBedRoomId, null,
+                            groundFloorRoomId, worldId));
                     }
                 }
 
                 personResult.Person.RoomId = groundFloorRoomId;
                 var ownerBedRoomId = buildingResult.Props.OfType<Bed>()
                     .FirstOrDefault(b => b.AssignedPersonId == personResult.Person.Id)?.RoomId ?? groundFloorRoomId;
-                jobs.AddRange(JobGenerator.Generate(state.Id, personResult.Person.Id, ownerBedRoomId, groundFloorRoomId, groundFloorRoomId, worldId));
+                jobs.AddRange(JobGenerator.Generate(state.Id, personResult.Person.Id, ownerBedRoomId, groundFloorRoomId,
+                    groundFloorRoomId, worldId));
 
                 cityBuildings.Add(buildingResult.Building);
                 persons.Add(personResult.Person);
-                factionMembers.Add(new FactionMember
-                    { FactionId = cityFaction.Id, PersonId = personResult.Person.Id, Role = FactionRole.Member, WorldId = worldId });
+                factionMembers.Add(new FactionMember {
+                    FactionId = cityFaction.Id, PersonId = personResult.Person.Id, Role = FactionRole.Member,
+                    WorldId = worldId
+                });
                 items.AddRange(personResult.Items);
                 inventoryItems.AddRange(personResult.InventoryItems);
                 skills.AddRange(personResult.Skills);
@@ -248,15 +260,18 @@ internal class WorldGenerator(
             }
 
             var residentialDistrict = cityDistricts[DistrictType.Residential];
-            var houseNames = new Queue<string>(BuildingGenerator.Names[BuildingType.House].Shuffle().Take(generatorInput.HousesPerCity));
+            var houseNames = new Queue<string>(BuildingGenerator.Names[BuildingType.House].Shuffle()
+                .Take(generatorInput.HousesPerCity));
 
             for (var h = 0; h < generatorInput.HousesPerCity; h++) {
-                var householdSize = Random.Shared.Next(generatorInput.MinHouseholdSize, generatorInput.MaxHouseholdSize + 1);
+                var householdSize =
+                    Random.Shared.Next(generatorInput.MinHouseholdSize, generatorInput.MaxHouseholdSize + 1);
                 var household = new List<PersonGeneratorResult>();
                 for (var m = 0; m < householdSize; m++) {
                     var race = races[Random.Shared.Next(races.Count)];
                     var member = personGenerator.Generate(
-                        new PersonGeneratorInput(race, GetProfessionForBuilding(BuildingType.House), worldId, state.Id, state.Id)
+                        new PersonGeneratorInput(race, GetProfessionForBuilding(BuildingType.House), worldId, state.Id,
+                            state.Id)
                     );
                     member.Person.CityId = city.Id;
                     household.Add(member);
@@ -264,8 +279,8 @@ internal class WorldGenerator(
 
                 var owner = household[0];
                 var houseResult = buildingGenerator.Generate(
-                    new BuildingGeneratorInput(StateId: state.Id, CityId: city.Id, DistrictId: residentialDistrict.Id,
-                        OwnerId: owner.Person.Id, Type: BuildingType.House, WorldId: worldId) {
+                    new BuildingGeneratorInput(state.Id, city.Id, residentialDistrict.Id,
+                        owner.Person.Id, BuildingType.House, worldId) {
                         Name = houseNames.Dequeue(),
                         MemberIds = household.Select(m => m.Person.Id).ToList(),
                         IsLockable = true
@@ -288,12 +303,15 @@ internal class WorldGenerator(
                 var homeRoom = houseResult.Rooms.First(r => r.FloorNumber == 0);
                 var homeRoomId = homeRoom.Id;
                 cityIdleCandidates.Add(new IdleCandidate(
-                    homeRoomId, residentialDistrict.Id, homeRoom.Capacity, BuildingGenerator.Popularity[BuildingType.House]));
+                    homeRoomId, residentialDistrict.Id, homeRoom.Capacity,
+                    BuildingGenerator.Popularity[BuildingType.House]));
 
                 foreach (var member in household) {
                     persons.Add(member.Person);
-                    factionMembers.Add(new FactionMember
-                        { FactionId = cityFaction.Id, PersonId = member.Person.Id, Role = FactionRole.Member, WorldId = worldId });
+                    factionMembers.Add(new FactionMember {
+                        FactionId = cityFaction.Id, PersonId = member.Person.Id, Role = FactionRole.Member,
+                        WorldId = worldId
+                    });
                     items.AddRange(member.Items);
                     inventoryItems.AddRange(member.InventoryItems);
                     skills.AddRange(member.Skills);
@@ -331,7 +349,8 @@ internal class WorldGenerator(
         }
 
         foreach (var state in geography.States) {
-            var count = Random.Shared.Next(generatorInput.MinBuildingsPerState, generatorInput.MaxBuildingsPerState + 1);
+            var count = Random.Shared.Next(generatorInput.MinBuildingsPerState,
+                generatorInput.MaxBuildingsPerState + 1);
             var usedNames = new HashSet<string>();
             for (var i = 0; i < count; i++) {
                 var result = DungeonGenerator.Generate(new DungeonGeneratorInput(state.Id, usedNames, worldId));

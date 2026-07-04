@@ -35,39 +35,38 @@ internal enum ModifierKey {
 internal record ModifierTemplate(int MinItemLevel, ModifierKey UniqueKey, int Weight, Func<int, ItemModifier> Build);
 
 internal static class ItemModifierHelpers {
-    private record ModifierNameData(string[] Prefixes, string[] Suffixes);
-
     private static readonly Dictionary<ModifierKey, ModifierNameData> Names = new() {
-        [ModifierKey.FireDamage] = new(["Fiery", "Burning", "Blazing"], []),
-        [ModifierKey.IceDamage] = new(["Glacial", "Frozen", "Icy"], []),
-        [ModifierKey.LightningDamage] = new(["Static", "Shocking", "Thundering"], []),
-        [ModifierKey.PoisonDamage] = new(["Venomous", "Toxic", "Envenomed"], []),
-        [ModifierKey.LifeLeech] = new(["Vampiric", "Draining"], []),
-        [ModifierKey.ManaLeech] = new(["Mystical"], []),
-        [ModifierKey.DeadlyStrike] = new(["Deadly", "Lethal"], []),
-        [ModifierKey.OpenWounds] = new(["Wounding", "Serrated"], []),
-        [ModifierKey.CrushingBlow] = new(["Crushing", "Shattering"], []),
-        [ModifierKey.ProcOnStriking] = new(["Runic"], []),
-        [ModifierKey.ProcWhenStruck] = new(["Thorned"], []),
-        [ModifierKey.FireResistance] = new(["Ruby", "Garnet", "Crimson"], []),
-        [ModifierKey.IceResistance] = new(["Sapphire", "Cobalt", "Azure"], []),
-        [ModifierKey.LightningResistance] = new(["Topaz", "Amber", "Gold"], []),
-        [ModifierKey.PoisonResistance] = new(["Emerald", "Jade", "Viridian"], []),
-        [ModifierKey.MagicResistance] = new(["Amethyst", "Arcane"], []),
-        [ModifierKey.Strength] = new([], ["Strength", "the Titan", "Might"]),
-        [ModifierKey.Dexterity] = new([], ["Dexterity", "the Fox", "Skill"]),
-        [ModifierKey.Intelligence] = new([], ["Intelligence", "the Sage", "Wisdom"]),
-        [ModifierKey.Endurance] = new([], ["Endurance", "the Bear"]),
-        [ModifierKey.MaxHp] = new([], ["Life", "the Mammoth", "Vitality"]),
-        [ModifierKey.MaxAp] = new([], ["Energy", "Stamina"]),
-        [ModifierKey.Defense] = new([], ["Protection", "Defense", "Warding"]),
-        [ModifierKey.IncreasedAttackSpeed] = new([], ["Quickness", "Alacrity"]),
-        [ModifierKey.FasterCastRate] = new([], ["the Adept", "Swiftness"]),
-        [ModifierKey.FasterHitRecovery] = new([], ["Balance", "Steadiness"]),
-        [ModifierKey.SkillBonus] = new([], ["Mastery", "Skill"]),
+        [ModifierKey.FireDamage] = new ModifierNameData(["Fiery", "Burning", "Blazing"], []),
+        [ModifierKey.IceDamage] = new ModifierNameData(["Glacial", "Frozen", "Icy"], []),
+        [ModifierKey.LightningDamage] = new ModifierNameData(["Static", "Shocking", "Thundering"], []),
+        [ModifierKey.PoisonDamage] = new ModifierNameData(["Venomous", "Toxic", "Envenomed"], []),
+        [ModifierKey.LifeLeech] = new ModifierNameData(["Vampiric", "Draining"], []),
+        [ModifierKey.ManaLeech] = new ModifierNameData(["Mystical"], []),
+        [ModifierKey.DeadlyStrike] = new ModifierNameData(["Deadly", "Lethal"], []),
+        [ModifierKey.OpenWounds] = new ModifierNameData(["Wounding", "Serrated"], []),
+        [ModifierKey.CrushingBlow] = new ModifierNameData(["Crushing", "Shattering"], []),
+        [ModifierKey.ProcOnStriking] = new ModifierNameData(["Runic"], []),
+        [ModifierKey.ProcWhenStruck] = new ModifierNameData(["Thorned"], []),
+        [ModifierKey.FireResistance] = new ModifierNameData(["Ruby", "Garnet", "Crimson"], []),
+        [ModifierKey.IceResistance] = new ModifierNameData(["Sapphire", "Cobalt", "Azure"], []),
+        [ModifierKey.LightningResistance] = new ModifierNameData(["Topaz", "Amber", "Gold"], []),
+        [ModifierKey.PoisonResistance] = new ModifierNameData(["Emerald", "Jade", "Viridian"], []),
+        [ModifierKey.MagicResistance] = new ModifierNameData(["Amethyst", "Arcane"], []),
+        [ModifierKey.Strength] = new ModifierNameData([], ["Strength", "the Titan", "Might"]),
+        [ModifierKey.Dexterity] = new ModifierNameData([], ["Dexterity", "the Fox", "Skill"]),
+        [ModifierKey.Intelligence] = new ModifierNameData([], ["Intelligence", "the Sage", "Wisdom"]),
+        [ModifierKey.Endurance] = new ModifierNameData([], ["Endurance", "the Bear"]),
+        [ModifierKey.MaxHp] = new ModifierNameData([], ["Life", "the Mammoth", "Vitality"]),
+        [ModifierKey.MaxAp] = new ModifierNameData([], ["Energy", "Stamina"]),
+        [ModifierKey.Defense] = new ModifierNameData([], ["Protection", "Defense", "Warding"]),
+        [ModifierKey.IncreasedAttackSpeed] = new ModifierNameData([], ["Quickness", "Alacrity"]),
+        [ModifierKey.FasterCastRate] = new ModifierNameData([], ["the Adept", "Swiftness"]),
+        [ModifierKey.FasterHitRecovery] = new ModifierNameData([], ["Balance", "Steadiness"]),
+        [ModifierKey.SkillBonus] = new ModifierNameData([], ["Mastery", "Skill"])
     };
 
-    internal static IReadOnlyList<ModifierTemplate> PickModifierTemplates(List<ModifierTemplate> pool, int count, int itemLevel) {
+    internal static IReadOnlyList<ModifierTemplate> PickModifierTemplates(List<ModifierTemplate> pool, int count,
+        int itemLevel) {
         var remaining = pool.ToList();
         var result = new List<ModifierTemplate>();
         for (var i = 0; i < count && remaining.Count > 0; i++) {
@@ -75,12 +74,15 @@ internal static class ItemModifierHelpers {
             result.Add(template);
             remaining.RemoveAll(t => t.UniqueKey == template.UniqueKey);
         }
+
         return result.ToArray();
     }
 
     internal static string BuildName(string baseName, IReadOnlyList<ModifierTemplate> chosen) {
-        var withPrefixes = chosen.Where(t => Names.TryGetValue(t.UniqueKey, out var n) && n.Prefixes.Length > 0).ToList();
-        var withSuffixes = chosen.Where(t => Names.TryGetValue(t.UniqueKey, out var n) && n.Suffixes.Length > 0).ToList();
+        var withPrefixes = chosen.Where(t => Names.TryGetValue(t.UniqueKey, out var n) && n.Prefixes.Length > 0)
+            .ToList();
+        var withSuffixes = chosen.Where(t => Names.TryGetValue(t.UniqueKey, out var n) && n.Suffixes.Length > 0)
+            .ToList();
 
         string? prefix = null;
         string? suffix = null;
@@ -133,4 +135,6 @@ internal static class ItemModifierHelpers {
 
         return pool[^1];
     }
+
+    private record ModifierNameData(string[] Prefixes, string[] Suffixes);
 }

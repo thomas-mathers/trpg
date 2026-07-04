@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using SharpVoronoiLib;
 using TRPG.Algorithms;
 using TRPG.Models;
@@ -27,8 +26,8 @@ internal class MapRoad {
 
 internal class MapGeneratorResult {
     public required IReadOnlyList<MapCountry> Countries { get; init; }
-    public required IReadOnlyList<MapState> States { get; init; }
     public required IReadOnlyList<MapRoad> Roads { get; init; }
+    public required IReadOnlyList<MapState> States { get; init; }
 }
 
 internal static class MapGenerator {

@@ -19,8 +19,10 @@ internal class JobService(TrpgDbContext context) {
         return list;
     }
 
-    public async Task<IReadOnlyList<Guid>> GetPersonIdsByRoomId(Guid roomId, CancellationToken cancellationToken = default) {
-        var ids = await context.Jobs.Where(j => j.RoomId == roomId).Select(j => j.PersonId).Distinct().ToArrayAsync(cancellationToken);
+    public async Task<IReadOnlyList<Guid>> GetPersonIdsByRoomId(Guid roomId,
+        CancellationToken cancellationToken = default) {
+        var ids = await context.Jobs.Where(j => j.RoomId == roomId).Select(j => j.PersonId).Distinct()
+            .ToArrayAsync(cancellationToken);
         return ids;
     }
 

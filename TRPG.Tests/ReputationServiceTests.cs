@@ -7,10 +7,10 @@ namespace TRPG.Tests;
 
 [Collection("Database")]
 public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime {
-    private Guid _personId;
     private TrpgDbContext _context = null!;
-    private ReputationService _service = null!;
     private Faction _faction = null!;
+    private Guid _personId;
+    private ReputationService _service = null!;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
@@ -24,6 +24,10 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
+    public async ValueTask DisposeAsync() {
+        await _context.DisposeAsync();
+    }
+
     private async Task<Person> SeedPerson() {
         var person = Builders.MakePerson();
         _context.Persons.Add(person);
@@ -31,14 +35,11 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         return person;
     }
 
-    public async ValueTask DisposeAsync() {
-        await _context.DisposeAsync();
-    }
-
     [Fact]
     public async Task AdjustReputation_CreatesReputation_WhenFirstCall() {
         // Act
-        await _service.AdjustReputation(_personId, _faction.Id, ReputationTargetType.Faction, 10, TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(_personId, _faction.Id, ReputationTargetType.Faction, 10,
+            TestContext.Current.CancellationToken);
 
         // Assert
         var reputations = await _service.GetAllByPersonId(_personId, TestContext.Current.CancellationToken);
@@ -50,10 +51,12 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     public async Task AdjustReputation_IncrementsScore_WhenSubsequentCall() {
         // Arrange
         var personId = (await SeedPerson()).Id;
-        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, 10, TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, 10,
+            TestContext.Current.CancellationToken);
 
         // Act
-        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, 5, TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, 5,
+            TestContext.Current.CancellationToken);
 
         // Assert
         var reputations = await _service.GetAllByPersonId(personId, TestContext.Current.CancellationToken);
@@ -65,10 +68,12 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     public async Task AdjustReputation_SupportsNegativeDelta() {
         // Arrange
         var personId = (await SeedPerson()).Id;
-        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, 20, TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, 20,
+            TestContext.Current.CancellationToken);
 
         // Act
-        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, -8, TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, -8,
+            TestContext.Current.CancellationToken);
 
         // Assert
         var reputations = await _service.GetAllByPersonId(personId, TestContext.Current.CancellationToken);
@@ -79,14 +84,16 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
     public async Task AdjustReputation_Throws_WhenFactionTargetDoesNotExist() {
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _service.AdjustReputation(_personId, Guid.NewGuid(), ReputationTargetType.Faction, 10, TestContext.Current.CancellationToken));
+            _service.AdjustReputation(_personId, Guid.NewGuid(), ReputationTargetType.Faction, 10,
+                TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task AdjustReputation_Throws_WhenPersonTargetDoesNotExist() {
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _service.AdjustReputation(_personId, Guid.NewGuid(), ReputationTargetType.Person, 10, TestContext.Current.CancellationToken));
+            _service.AdjustReputation(_personId, Guid.NewGuid(), ReputationTargetType.Person, 10,
+                TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -96,16 +103,20 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         var faction2 = Builders.MakeFaction();
         _context.Factions.Add(faction2);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, 5, TestContext.Current.CancellationToken);
-        await _service.AdjustReputation(personId, faction2.Id, ReputationTargetType.Faction, 10, TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(personId, _faction.Id, ReputationTargetType.Faction, 5,
+            TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(personId, faction2.Id, ReputationTargetType.Faction, 10,
+            TestContext.Current.CancellationToken);
 
         // Act
         var result = await _service.GetAllByPersonId(personId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Contains(result, r => r.TargetId == _faction.Id && r.TargetType == ReputationTargetType.Faction && r.Score == 5);
-        Assert.Contains(result, r => r.TargetId == faction2.Id && r.TargetType == ReputationTargetType.Faction && r.Score == 10);
+        Assert.Contains(result,
+            r => r.TargetId == _faction.Id && r.TargetType == ReputationTargetType.Faction && r.Score == 5);
+        Assert.Contains(result,
+            r => r.TargetId == faction2.Id && r.TargetType == ReputationTargetType.Faction && r.Score == 10);
     }
 
     [Fact]
@@ -135,9 +146,12 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await _service.AdjustReputation(_personId, _faction.Id, ReputationTargetType.Faction, 5, TestContext.Current.CancellationToken);
-        await _service.AdjustReputation(_personId, guildFaction.Id, ReputationTargetType.Faction, 10, TestContext.Current.CancellationToken);
-        await _service.AdjustReputation(_personId, npc.Id, ReputationTargetType.Person, 3, TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(_personId, _faction.Id, ReputationTargetType.Faction, 5,
+            TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(_personId, guildFaction.Id, ReputationTargetType.Faction, 10,
+            TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(_personId, npc.Id, ReputationTargetType.Person, 3,
+            TestContext.Current.CancellationToken);
 
         // Act
         var result = await _service.GetEffectiveReputation(_personId, npc.Id, TestContext.Current.CancellationToken);
