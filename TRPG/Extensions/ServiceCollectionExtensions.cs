@@ -18,10 +18,6 @@ namespace TRPG.Extensions;
 internal static class ServiceCollectionExtensions {
     public static IServiceCollection AddTrpgLogging(this IServiceCollection serviceCollection, string logDirectory) {
         return serviceCollection.AddLogging(builder => {
-            builder.SetMinimumLevel(LogLevel.Trace);
-            builder.AddFilter("Microsoft", LogLevel.Error);
-            builder.AddFilter("System", LogLevel.Error);
-            builder.AddFilter("TRPG", LogLevel.Trace);
             builder.AddZLoggerRollingFile(options => {
                 options.FilePathSelector = (timestamp, sequence) =>
                     Path.Combine(logDirectory, $"trpg_{timestamp.LocalDateTime:yyyyMMdd}_{sequence:000}.log");
@@ -40,7 +36,7 @@ internal static class ServiceCollectionExtensions {
         return serviceCollection.AddDbContext<TrpgDbContext>(
             (provider, options) => {
                 options.UseNpgsql(connectionString).UseLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
-            }, ServiceLifetime.Scoped);
+            });
     }
 
     public static IServiceCollection AddOllamaApiClient(this IServiceCollection serviceCollection,

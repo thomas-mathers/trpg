@@ -44,7 +44,7 @@
 # so running this once per model in a list builds up one combined CSV you can
 # open in a spreadsheet to compare everything together.
 #
-# The server is launched with --logs pointing at a run-specific temp directory
+# The server is launched with --LogDirectory pointing at a run-specific temp directory
 # (not the game's normal logs/ folder), so this run's structured [perf]/think
 # logging is isolated from ordinary gameplay logs and from other benchmark
 # runs — no need to correlate by timestamp across one shared multi-day file.
@@ -134,10 +134,10 @@ start_server() {
     local original_dir="$PWD"
     cd "$BINDIR"
     if [ -n "$TEMPERATURE" ]; then
-        ./TRPG.exe --model "$MODEL" --think "$THINK" --temperature "$TEMPERATURE" --logs "$APP_LOG_DIR" \
-            >> "$LOG_FILE" 2>&1 &
+        ./TRPG.exe --OllamaModel "$MODEL" --OllamaThink "$THINK" --OllamaTemperature "$TEMPERATURE" \
+            --LogDirectory "$APP_LOG_DIR" >> "$LOG_FILE" 2>&1 &
     else
-        ./TRPG.exe --model "$MODEL" --think "$THINK" --logs "$APP_LOG_DIR" >> "$LOG_FILE" 2>&1 &
+        ./TRPG.exe --OllamaModel "$MODEL" --OllamaThink "$THINK" --LogDirectory "$APP_LOG_DIR" >> "$LOG_FILE" 2>&1 &
     fi
     disown
     cd "$original_dir"

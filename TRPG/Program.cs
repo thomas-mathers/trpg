@@ -1,23 +1,19 @@
-using System.Globalization;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG;
 using TRPG.Data;
 using TRPG.Endpoints;
 using TRPG.Extensions;
 
-var defaultConfiguration = new AppConfiguration();
-var appConfiguration = new AppConfiguration {
-    OllamaModel = GetArgValue(args, "--model") ?? defaultConfiguration.OllamaModel,
-    OllamaThink = GetArgValue(args, "--think") is { } thinkArg ? bool.Parse(thinkArg) : defaultConfiguration.OllamaThink,
-    OllamaTemperature = GetArgValue(args, "--temperature") is { } temperatureArg
-        ? float.Parse(temperatureArg, CultureInfo.InvariantCulture)
-        : defaultConfiguration.OllamaTemperature,
-    LogDirectory = GetArgValue(args, "--logs") ?? defaultConfiguration.LogDirectory
-};
+var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseUrls("http://localhost:5000");
+
+var appConfiguration = new AppConfiguration();
+builder.Configuration.Bind(appConfiguration);
 
 Directory.CreateDirectory(appConfiguration.LogDirectory);
 
@@ -25,9 +21,6 @@ foreach (var old in Directory.GetFiles(appConfiguration.LogDirectory, "trpg_*.lo
              .Where(f => File.GetLastWriteTime(f) < DateTime.Now.AddDays(-7))) {
     File.Delete(old);
 }
-
-var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls("http://localhost:5000");
 
 builder.Services
     .AddTrpgLogging(appConfiguration.LogDirectory)
@@ -53,8 +46,3 @@ app.MapWorldEndpoints();
 app.MapSessionEndpoints();
 
 await app.RunAsync();
-
-static string? GetArgValue(string[] args, string flag) {
-    var index = Array.IndexOf(args, flag);
-    return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
-}
