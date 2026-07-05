@@ -20,7 +20,7 @@ public sealed class JobCatchUpServiceTests(DatabaseFixture db) : IAsyncLifetime 
         var dispatcher = new JobDispatcher(
             new SleepJobHandler(_personService), new WorkJobHandler(_personService), new IdleJobHandler(_personService),
             NullLogger<JobDispatcher>.Instance);
-        _catchUp = new JobCatchUpService(_jobService, _personService, dispatcher);
+        _catchUp = new JobCatchUpService(_jobService, _personService, dispatcher, NullLogger<JobCatchUpService>.Instance);
     }
 
     public async ValueTask DisposeAsync() {

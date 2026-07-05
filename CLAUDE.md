@@ -140,6 +140,15 @@
 
 ---
 
+## Ollama Model Benchmarking
+
+- `scripts/benchmark-model.sh` and `scripts/benchmark-models.sh` measure move-command reliability and latency for a given Ollama model + thinking-mode combination, run against the `--agent` HTTP mode (`AgentServer`/`GameTurnRunner`) — built to replace manual edit-source-and-rebuild A/B testing
+- Full usage, argument syntax, and design rationale (why the server restarts per trial, why there's an untimed warmup, why there's no capability auto-detection) live in each script's own header comment — read that first, don't rely on this note for exact syntax
+- Some models crash `AgentServer` if asked to think when they don't support it (e.g. `mistral-nemo:12b`) — there's no auto-detection, the caller has to know which models can take `@true`/`@both`
+- Results accumulate across every invocation in `scripts/benchmark-results.csv` (gitignored — local experiment output, not committed), grouped by a `tag` column
+
+---
+
 ## Integration Tests
 
 ### Infrastructure

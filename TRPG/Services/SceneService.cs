@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -59,9 +61,11 @@ internal class SceneService(
     TrpgDbContext context,
     JobCatchUpService jobCatchUpService,
     LockService lockService,
-    ReputationService reputationService
+    ReputationService reputationService,
+    ILogger<SceneService> logger
 ) {
     public async Task<SceneResult> GetScene(SceneQuery query, CancellationToken cancellationToken = default) {
+        var stopwatch = Stopwatch.StartNew();
         var worldId = query.WorldId;
         var playerId = query.PlayerId;
 
@@ -182,6 +186,7 @@ internal class SceneService(
                 .GroupBy(x => x.PersonId)
                 .ToDictionary(g => g.Key, g => (IReadOnlyCollection<string>) g.Select(x => x.Name).ToArray());
 
+            var reputationStopwatch = Stopwatch.StartNew();
             var nearbyPeopleList = new List<ScenePersonInfo>();
             foreach (var x in nearbyPeopleRaw) {
                 var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
@@ -189,6 +194,8 @@ internal class SceneService(
                     query.CurrentDate.Year - x.BirthYear, factionNamesByPerson.GetValueOrDefault(x.Id, []), x.State,
                     reputation));
             }
+            logger.LogInformation("[perf] Reputation lookups for {PersonCount} indoor people took {ElapsedMs}ms",
+                nearbyPeopleRaw.Length, reputationStopwatch.ElapsedMilliseconds);
 
             nearbyPeople = nearbyPeopleList;
 
@@ -260,6 +267,7 @@ internal class SceneService(
                 .GroupBy(x => x.PersonId)
                 .ToDictionary(g => g.Key, g => (IReadOnlyCollection<string>) g.Select(x => x.Name).ToArray());
 
+            var reputationStopwatch = Stopwatch.StartNew();
             var nearbyPeopleList = new List<ScenePersonInfo>();
             foreach (var x in nearbyPeopleRaw) {
                 var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
@@ -267,9 +275,14 @@ internal class SceneService(
                     query.CurrentDate.Year - x.BirthYear, factionNamesByPerson.GetValueOrDefault(x.Id, []), x.State,
                     reputation));
             }
+            logger.LogInformation("[perf] Reputation lookups for {PersonCount} outdoor people took {ElapsedMs}ms",
+                nearbyPeopleRaw.Length, reputationStopwatch.ElapsedMilliseconds);
 
             nearbyPeople = nearbyPeopleList;
         }
+
+        logger.LogInformation("[perf] GetScene ({Branch}) took {ElapsedMs}ms, {PersonCount} nearby people",
+            bootstrap.RoomId != null ? "indoor" : "outdoor", stopwatch.ElapsedMilliseconds, nearbyPeople.Count);
 
         return new SceneResult(
             query.CurrentDate,

@@ -60,6 +60,6 @@ internal class LocationService(TrpgDbContext context) {
     public async Task<District?> GetDistrictByNameInCity(Guid cityId, string name,
         CancellationToken cancellationToken = default) {
         return await context.Districts
-            .FirstOrDefaultAsync(d => d.CityId == cityId && d.Name == name, cancellationToken);
+            .FirstOrDefaultAsync(d => d.CityId == cityId && EF.Functions.ILike(d.Name, name), cancellationToken);
     }
 }

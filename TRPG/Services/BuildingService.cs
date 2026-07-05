@@ -28,8 +28,8 @@ internal class BuildingService(TrpgDbContext context) {
 
     public async Task<Building?> GetByNameInState(Guid stateId, string name,
         CancellationToken cancellationToken = default) {
-        return await context.Buildings.FirstOrDefaultAsync(b => b.StateId == stateId && b.Name == name,
-            cancellationToken);
+        return await context.Buildings.FirstOrDefaultAsync(
+            b => b.StateId == stateId && EF.Functions.ILike(b.Name, name), cancellationToken);
     }
 
     public async Task<Room?> GetEntranceRoom(Guid buildingId, CancellationToken cancellationToken = default) {
@@ -44,7 +44,7 @@ internal class BuildingService(TrpgDbContext context) {
             .OfType<RoomConnector>()
             .ToArrayAsync(cancellationToken);
 
-        if (destinationName == "Outside") {
+        if (destinationName.Equals("Outside", StringComparison.OrdinalIgnoreCase)) {
             return connectors.Any(c => c.DestinationRoomId == null)
                 ? new ExitMatch(true, null)
                 : new ExitMatch(false, null);
@@ -56,7 +56,7 @@ internal class BuildingService(TrpgDbContext context) {
             .ToHashSet();
 
         var destinationRoomId = await context.Rooms
-            .Where(r => destinationIds.Contains(r.Id) && r.Name == destinationName)
+            .Where(r => destinationIds.Contains(r.Id) && EF.Functions.ILike(r.Name, destinationName))
             .Select(r => (Guid?) r.Id)
             .FirstOrDefaultAsync(cancellationToken);
 

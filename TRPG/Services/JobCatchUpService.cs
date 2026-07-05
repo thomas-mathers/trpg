@@ -1,18 +1,26 @@
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+
 namespace TRPG.Services;
 
-internal class JobCatchUpService(JobService jobService, PersonService personService, JobDispatcher dispatcher) {
+internal class JobCatchUpService(
+    JobService jobService, PersonService personService, JobDispatcher dispatcher, ILogger<JobCatchUpService> logger
+) {
     public async Task CatchUpRoom(Guid roomId, int hour, CancellationToken cancellationToken = default) {
         var personIds = await jobService.GetPersonIdsByRoomId(roomId, cancellationToken);
-        await CatchUp(personIds, hour, cancellationToken);
+        await CatchUp("Room", personIds, hour, cancellationToken);
     }
 
     public async Task CatchUpDistrict(Guid worldId, Guid districtId, int hour,
         CancellationToken cancellationToken = default) {
         var personIds = await personService.GetIdsByDistrict(worldId, districtId, cancellationToken);
-        await CatchUp(personIds, hour, cancellationToken);
+        await CatchUp("District", personIds, hour, cancellationToken);
     }
 
-    private async Task CatchUp(IReadOnlyCollection<Guid> personIds, int hour, CancellationToken cancellationToken) {
+    private async Task CatchUp(string scope, IReadOnlyCollection<Guid> personIds, int hour,
+        CancellationToken cancellationToken) {
+        var stopwatch = Stopwatch.StartNew();
+
         foreach (var personId in personIds) {
             var jobs = await jobService.GetAllByPersonId(personId, cancellationToken);
 
@@ -32,5 +40,9 @@ internal class JobCatchUpService(JobService jobService, PersonService personServ
                 await dispatcher.Dispatch(person, dueJob, cancellationToken);
             }
         }
+
+        stopwatch.Stop();
+        logger.LogInformation("[perf] CatchUp{Scope} processed {PersonCount} people in {ElapsedMs}ms",
+            scope, personIds.Count, stopwatch.ElapsedMilliseconds);
     }
 }

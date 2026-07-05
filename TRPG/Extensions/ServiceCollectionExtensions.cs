@@ -14,7 +14,7 @@ using ZLogger.Providers;
 namespace TRPG.Extensions;
 
 internal static class ServiceCollectionExtensions {
-    public static IServiceCollection AddTrpgLogging(this IServiceCollection serviceCollection) {
+    public static IServiceCollection AddTrpgLogging(this IServiceCollection serviceCollection, string logDirectory) {
         return serviceCollection.AddLogging(builder => {
             builder.SetMinimumLevel(LogLevel.Trace);
             builder.AddFilter("Microsoft", LogLevel.Error);
@@ -22,7 +22,7 @@ internal static class ServiceCollectionExtensions {
             builder.AddFilter("TRPG", LogLevel.Trace);
             builder.AddZLoggerRollingFile(options => {
                 options.FilePathSelector = (timestamp, sequence) =>
-                    Path.Combine("logs", $"trpg_{timestamp.LocalDateTime:yyyyMMdd}_{sequence:000}.log");
+                    Path.Combine(logDirectory, $"trpg_{timestamp.LocalDateTime:yyyyMMdd}_{sequence:000}.log");
                 options.RollingInterval = RollingInterval.Day;
                 options.UsePlainTextFormatter(formatter => {
                     formatter.SetPrefixFormatter($"{0:yyyy-MM-dd HH:mm:ss} [{1}] {2}: ",
@@ -86,6 +86,7 @@ internal static class ServiceCollectionExtensions {
             .AddTransient<Menu>()
             .AddTransient<Game>()
             .AddTransient<AgentServer>()
+            .AddTransient<GameTurnRunner>()
             .AddTransient<ToolFactory>();
     }
 }

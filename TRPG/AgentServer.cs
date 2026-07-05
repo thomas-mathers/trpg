@@ -2,28 +2,13 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using OllamaSharp;
-using OllamaSharp.Models;
-using OllamaSharp.Models.Chat;
-using TRPG.Services;
-using TRPG.Tools;
 
 namespace TRPG;
 
-internal class AgentServer(
-    OllamaApiClient ollamaClient,
-    ToolFactory toolFactory,
-    SceneService sceneService,
-    WorldService worldService,
-    ILogger<AgentServer> logger) {
+internal class AgentServer(GameTurnRunner turnRunner, ILogger<AgentServer> logger) {
     public async Task Run(GameSession session, CancellationToken cancellationToken) {
-        var tools = toolFactory.Create(session);
-        var chat = new Chat(ollamaClient, Game.SystemPrompt)
-            { Think = true, Options = new RequestOptions { NumCtx = 8192 } };
-        chat.OnThink += (_, token) => logger.LogDebug("[agent] think: {Token}", token);
-
-        var openingPrompt = await Game.BuildOpeningPrompt(worldService, sceneService, session, cancellationToken);
-        await foreach (var _ in chat.SendAsync(openingPrompt, tools, cancellationToken: cancellationToken)) { }
+        turnRunner.StartSession(session);
+        await turnRunner.SendOpening(cancellationToken: cancellationToken);
 
         using var listener = new HttpListener();
         listener.Prefixes.Add("http://localhost:5000/");
@@ -42,12 +27,11 @@ internal class AgentServer(
                 break;
             }
 
-            await HandleRequest(context, chat, tools, cancellationToken);
+            await HandleRequest(context, cancellationToken);
         }
     }
 
-    private async Task HandleRequest(HttpListenerContext context, Chat chat, IReadOnlyList<Tool> tools,
-        CancellationToken cancellationToken) {
+    private async Task HandleRequest(HttpListenerContext context, CancellationToken cancellationToken) {
         var request = context.Request;
         var response = context.Response;
 
@@ -76,17 +60,15 @@ internal class AgentServer(
             return;
         }
 
-        logger.LogInformation("[agent] >>> {Message}", message);
+        var metrics = await turnRunner.ProcessTurn(message, cancellationToken: cancellationToken);
 
-        var buffer = new StringBuilder();
-        await foreach (var token in chat.SendAsync(message, tools, cancellationToken: cancellationToken)) {
-            buffer.Append(token);
-        }
-
-        var responseText = buffer.ToString();
-        logger.LogInformation("[agent] <<< {Response}", responseText);
-
-        var json = JsonSerializer.Serialize(new { response = responseText });
+        var json = JsonSerializer.Serialize(new {
+            response = metrics.Response,
+            firstTokenMs = metrics.FirstTokenMs,
+            totalMs = metrics.TotalMs,
+            tokenCount = metrics.TokenCount,
+            tokensPerSecond = metrics.TokensPerSecond
+        });
         var bytes = Encoding.UTF8.GetBytes(json);
         response.ContentType = "application/json";
         response.ContentLength64 = bytes.Length;
