@@ -18,7 +18,7 @@
 #                       to leave the model's own default temperature untouched.
 #
 # Runs two fixed move commands N times each, each trial against a freshly
-# started --agent server:
+# started server with a freshly created session:
 #   - "hard" script: an indirect district reference ("lets go to the city center")
 #   - "easy" script: a direct reference using the target district's actual name
 # Both target that world's CityCenter-type district from its Residential-type
@@ -27,9 +27,9 @@
 # a direct DB query after each trial, not by trusting the model's narration —
 # models can describe arrival without ever having called the move tool. The
 # server restarts per trial (rather than being reused across all of them)
-# because the opening prompt is baked into chat history once at startup —
-# reusing a server across a DB reset would leave stale location context in the
-# conversation.
+# because the opening prompt is baked into a session's chat history once at
+# creation — reusing a session across a DB reset would leave stale location
+# context in the conversation.
 #
 # Requires: the TRPG solution already built (dotnet build), the trpg-postgres-1
 # and trpg-ollama-1 docker containers running, and the given world having a
@@ -134,19 +134,23 @@ start_server() {
     local original_dir="$PWD"
     cd "$BINDIR"
     if [ -n "$TEMPERATURE" ]; then
-        ./TRPG.exe --agent --model "$MODEL" --think "$THINK" --temperature "$TEMPERATURE" --logs "$APP_LOG_DIR" \
+        ./TRPG.exe --model "$MODEL" --think "$THINK" --temperature "$TEMPERATURE" --logs "$APP_LOG_DIR" \
             >> "$LOG_FILE" 2>&1 &
     else
-        ./TRPG.exe --agent --model "$MODEL" --think "$THINK" --logs "$APP_LOG_DIR" >> "$LOG_FILE" 2>&1 &
+        ./TRPG.exe --model "$MODEL" --think "$THINK" --logs "$APP_LOG_DIR" >> "$LOG_FILE" 2>&1 &
     fi
     disown
     cd "$original_dir"
 
+    # A curl round-trip against a real endpoint confirms the app is actually
+    # accepting and answering HTTP requests, not just that a socket is bound —
+    # a stronger check than Get-NetTCPConnection, and it avoids spawning
+    # powershell.exe on every poll iteration (spawning it repeatedly alongside
+    # a backgrounded process has been observed to stall badly in some shells).
     for _ in $(seq 1 60); do
-        local state process_alive
-        state=$(powershell -Command "(Get-NetTCPConnection -LocalPort 5000 -ErrorAction SilentlyContinue).State" 2>/dev/null | tr -d '\r\n')
-        process_alive=$(powershell -Command "(Get-Process -Name TRPG -ErrorAction SilentlyContinue).Count" 2>/dev/null | tr -d '\r\n')
-        if [ "$state" = "Listen" ] && [ -n "$process_alive" ] && [ "$process_alive" -gt 0 ]; then
+        local code
+        code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/worlds 2>/dev/null)
+        if [ "$code" = "200" ]; then
             return 0
         fi
         sleep 1
@@ -154,6 +158,20 @@ start_server() {
 
     echo "ERROR: server did not start within 60s" >&2
     return 1
+}
+
+# The server has no more --agent mode — every run against it is just a normal
+# session. Each trial gets its own freshly created session right after the
+# server starts, so its opening-turn chat history never leaks between trials.
+start_session() {
+    local response session_id
+    response=$(curl -s -X POST "http://localhost:5000/worlds/$WORLD_ID/sessions")
+    session_id=$(echo "$response" | grep -oE '"sessionId":"[^"]+"' | grep -oE '[0-9a-fA-F-]{36}')
+    if [ -z "$session_id" ]; then
+        echo "ERROR: failed to start session for world $WORLD_ID: $response" >&2
+        return 1
+    fi
+    echo "$session_id"
 }
 
 stop_server() {
@@ -168,7 +186,9 @@ warmup() {
     echo "Warming up $MODEL (untimed)..."
     reset_player
     start_server
-    curl -s -X POST http://localhost:5000/chat -H "Content-Type: application/json" \
+    local session_id
+    session_id=$(start_session) || { stop_server; return 1; }
+    curl -s -X POST "http://localhost:5000/sessions/$session_id/chat" -H "Content-Type: application/json" \
         -d "{\"message\":\"lets go to $TARGET_DISTRICT_NAME\"}" >> "$LOG_FILE" 2>&1 || true
     stop_server
 }
@@ -183,10 +203,13 @@ run_trial() {
     reset_player
     start_server
 
+    local session_id
+    session_id=$(start_session) || { stop_server; echo "FAIL 0"; return; }
+
     local start_ns end_ns elapsed_ms response district success
     start_ns=$(date +%s%N)
-    response=$(curl -s -X POST http://localhost:5000/chat -H "Content-Type: application/json" \
-        -d "{\"message\":\"$message\"}" 2>&1) || response="CURL_FAILED"
+    response=$(curl -s -X POST "http://localhost:5000/sessions/$session_id/chat?includeMetrics=true" \
+        -H "Content-Type: application/json" -d "{\"message\":\"$message\"}" 2>&1) || response="CURL_FAILED"
     end_ns=$(date +%s%N)
     elapsed_ms=$(( (end_ns - start_ns) / 1000000 ))
 

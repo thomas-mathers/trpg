@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
+using TRPG.Contracts;
 using TRPG.Extensions;
 using TRPG.Models;
 
@@ -30,7 +31,7 @@ internal class GeographyGeneratorResult {
 }
 
 internal class GeographyGenerator(
-    OllamaApiClient client,
+    IOllamaApiClient client,
     ILogger<GeographyGenerator> logger) {
     private const int MaxCitiesPerRequest = 6;
 
@@ -340,25 +341,25 @@ internal record GenerateStatesInput(GeographyGenerationContext Context, World Wo
 
 internal record GenerateRoadsInput(GeographyGenerationContext Context, World World, GeneratedStates States);
 
-file class RoadNamesSchema {
+internal class RoadNamesSchema {
     public List<RoadNameItemSchema> Roads { get; init; } = [];
 }
 
-file class RoadNameItemSchema {
+internal class RoadNameItemSchema {
     public int Index { get; init; }
     public string Name { get; init; } = "";
 }
 
-file class CityListSchema {
+internal class CityListSchema {
     public List<CityItemSchema> Cities { get; init; } = [];
 }
 
-file class CityItemSchema {
+internal class CityItemSchema {
     public string Description { get; init; } = "";
     public string Name { get; init; } = "";
 }
 
-file class GeographyEntitySchema {
+internal class GeographyEntitySchema {
     public string Description { get; init; } = "";
     public string Name { get; init; } = "";
 }

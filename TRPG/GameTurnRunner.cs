@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
-using OllamaSharp.Models;
 using OllamaSharp.Models.Chat;
 using TRPG.Services;
 using TRPG.Tools;
@@ -16,11 +15,11 @@ internal record TurnMetrics(string Response, long FirstTokenMs, long TotalMs, in
 }
 
 internal class GameTurnRunner(
-    OllamaApiClient ollamaClient,
-    ToolFactory toolFactory,
+    Chat chat,
+    GameSession session,
+    IEnumerable<Tool> tools,
     WorldService worldService,
     SceneService sceneService,
-    AppConfiguration appConfiguration,
     ILogger<GameTurnRunner> logger
 ) {
     internal const string SystemPrompt =
@@ -42,32 +41,17 @@ internal class GameTurnRunner(
         Tone: Gritty low fantasy. Factions scheme, roads are dangerous, and most people are just trying to survive. Magic exists but is rare and unsettling. Humour is welcome; heroism is earned.
         """;
 
-    private Chat _chat = null!;
-    private IReadOnlyList<Tool> _tools = null!;
-    private GameSession _session = null!;
-
-    public void StartSession(GameSession session) {
-        _session = session;
-        _tools = toolFactory.Create(session);
-        _chat = new Chat(ollamaClient, SystemPrompt) {
-            Think = appConfiguration.OllamaThink,
-            Options = new RequestOptions { NumCtx = 8192, Temperature = appConfiguration.OllamaTemperature }
-        };
-    }
-
-    public async Task<TurnMetrics> SendOpening(Action<string>? onToken = null,
-        CancellationToken cancellationToken = default) {
+    public async Task<TurnMetrics> SendOpening(CancellationToken cancellationToken = default) {
         var openingPrompt = await BuildOpeningPrompt(cancellationToken);
-        return await SendAndLog(openingPrompt, onToken, cancellationToken);
+        return await SendAndLog(openingPrompt, cancellationToken);
     }
 
-    public async Task<TurnMetrics> ProcessTurn(string input, Action<string>? onToken = null,
-        CancellationToken cancellationToken = default) {
-        _session.DidMoveThisTurn = false;
-        var metrics = await SendAndLog(input, onToken, cancellationToken);
+    public async Task<TurnMetrics> ProcessTurn(string input, CancellationToken cancellationToken = default) {
+        session.DidMoveThisTurn = false;
+        var metrics = await SendAndLog(input, cancellationToken);
 
-        if (_session.DidMoveThisTurn) {
-            var currentTurnStart = _chat.Messages.FindLastIndex(m => m.Role == ChatRole.User);
+        if (session.DidMoveThisTurn) {
+            var currentTurnStart = chat.Messages.FindLastIndex(m => m.Role == ChatRole.User);
             await CloseLingeringConversations(cancellationToken);
             ClearPreviousTurns(currentTurnStart);
         }
@@ -76,9 +60,9 @@ internal class GameTurnRunner(
     }
 
     private async Task<string> BuildOpeningPrompt(CancellationToken cancellationToken) {
-        var world = await worldService.GetWorld(_session.WorldId, cancellationToken);
-        var currentDate = GameClock.GetCurrentInGameDate(_session);
-        var query = new SceneQuery(_session.WorldId, _session.PlayerId, currentDate);
+        var world = await worldService.GetWorld(session.WorldId, cancellationToken);
+        var currentDate = GameClock.GetCurrentInGameDate(session);
+        var query = new SceneQuery(session.WorldId, session.PlayerId, currentDate);
         var scene = await sceneService.GetScene(query, cancellationToken);
 
         var worldInfo = new { world!.Name, world.Description };
@@ -89,7 +73,7 @@ internal class GameTurnRunner(
                 """;
     }
 
-    private async Task<TurnMetrics> SendAndLog(string input, Action<string>? onToken, CancellationToken cancellationToken) {
+    private async Task<TurnMetrics> SendAndLog(string input, CancellationToken cancellationToken) {
         logger.LogInformation("[game] >>> {Message}", input);
 
         var thinking = new StringBuilder();
@@ -98,21 +82,20 @@ internal class GameTurnRunner(
             thinking.Append(token);
         }
 
-        _chat.OnThink += AppendThinking;
+        chat.OnThink += AppendThinking;
         var buffer = new StringBuilder();
         var stopwatch = Stopwatch.StartNew();
         long? firstTokenElapsedMs = null;
         var tokenCount = 0;
         try {
-            await foreach (var token in _chat.SendAsync(input, _tools, cancellationToken: cancellationToken)) {
+            await foreach (var token in chat.SendAsync(input, tools, cancellationToken: cancellationToken)) {
                 firstTokenElapsedMs ??= stopwatch.ElapsedMilliseconds;
                 tokenCount++;
-                onToken?.Invoke(token);
                 buffer.Append(token);
             }
         }
         finally {
-            _chat.OnThink -= AppendThinking;
+            chat.OnThink -= AppendThinking;
         }
 
         var totalMs = stopwatch.ElapsedMilliseconds;
@@ -129,27 +112,27 @@ internal class GameTurnRunner(
     }
 
     private async Task CloseLingeringConversations(CancellationToken cancellationToken) {
-        foreach (var npcName in _session.ActiveConversationNpcs.Keys.ToArray()) {
-            if (!_session.ActiveConversationNpcs.ContainsKey(npcName)) {
+        foreach (var npcName in session.ActiveConversationNpcs.Keys.ToArray()) {
+            if (!session.ActiveConversationNpcs.ContainsKey(npcName)) {
                 continue;
             }
 
             var prompt =
                 $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
-            await SendAndLog(prompt, null, cancellationToken);
+            await SendAndLog(prompt, cancellationToken);
 
-            if (_session.ActiveConversationNpcs.Remove(npcName)) {
+            if (session.ActiveConversationNpcs.Remove(npcName)) {
                 logger.LogWarning("[game] Failed to save conversation summary for {NpcName}", npcName);
             }
         }
     }
 
     private void ClearPreviousTurns(int currentTurnStart) {
-        var systemMessage = _chat.Messages[0];
-        var currentTurnMessages = _chat.Messages.Skip(currentTurnStart).ToList();
+        var systemMessage = chat.Messages[0];
+        var currentTurnMessages = chat.Messages.Skip(currentTurnStart).ToList();
 
-        _chat.Messages.Clear();
-        _chat.Messages.Add(systemMessage);
-        _chat.Messages.AddRange(currentTurnMessages);
+        chat.Messages.Clear();
+        chat.Messages.Add(systemMessage);
+        chat.Messages.AddRange(currentTurnMessages);
     }
 }

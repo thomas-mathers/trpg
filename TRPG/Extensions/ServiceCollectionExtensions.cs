@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
+using OllamaSharp.Models.Chat;
+using OllamaSharp.Tools;
 using TRPG.Commands;
 using TRPG.Data;
 using TRPG.Definitions;
@@ -38,12 +40,12 @@ internal static class ServiceCollectionExtensions {
         return serviceCollection.AddDbContext<TrpgDbContext>(
             (provider, options) => {
                 options.UseNpgsql(connectionString).UseLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
-            }, ServiceLifetime.Transient);
+            }, ServiceLifetime.Scoped);
     }
 
     public static IServiceCollection AddOllamaApiClient(this IServiceCollection serviceCollection,
         AppConfiguration appConfiguration) {
-        return serviceCollection.AddSingleton<OllamaApiClient>(_ => {
+        return serviceCollection.AddSingleton<IOllamaApiClient>(_ => {
             var httpClient = new HttpClient
                 { BaseAddress = appConfiguration.OllamaUri, Timeout = Timeout.InfiniteTimeSpan };
             return new OllamaApiClient(httpClient) { SelectedModel = appConfiguration.OllamaModel };
@@ -83,10 +85,17 @@ internal static class ServiceCollectionExtensions {
             .AddTransient<WorldGenerator>()
             .AddTransient<BootstrapWorldCommandHandler>()
             .AddTransient<DropWorldCommandHandler>()
-            .AddTransient<Menu>()
-            .AddTransient<Game>()
-            .AddTransient<AgentServer>()
             .AddTransient<GameTurnRunner>()
-            .AddTransient<ToolFactory>();
+            .AddSingleton<GameSessionStore>()
+            .AddScoped<CurrentGameSessionAccessor>()
+            .AddScoped(sp => sp.GetRequiredService<CurrentGameSessionAccessor>().State.Session)
+            .AddScoped(sp => sp.GetRequiredService<CurrentGameSessionAccessor>().State.Chat)
+            .AddScoped<Tool, WorldInfoTool>()
+            .AddScoped<Tool, LookTool>()
+            .AddScoped<Tool, MoveTool>()
+            .AddScoped<Tool, InventoryTool>()
+            .AddScoped<Tool, CharacterTool>()
+            .AddScoped<Tool, StartConversationTool>()
+            .AddScoped<Tool, EndConversationTool>();
     }
 }

@@ -12,7 +12,7 @@ internal class FactionsGeneratorInput {
     public required Guid WorldId { get; init; }
 }
 
-internal class FactionsGenerator(OllamaApiClient client, ILogger<FactionsGenerator> logger) {
+internal class FactionsGenerator(IOllamaApiClient client, ILogger<FactionsGenerator> logger) {
     public async Task<IReadOnlyList<Faction>> Generate(
         FactionsGeneratorInput command,
         CancellationToken cancellationToken
@@ -37,11 +37,11 @@ internal class FactionsGenerator(OllamaApiClient client, ILogger<FactionsGenerat
     }
 }
 
-file class FactionListSchema {
+internal class FactionListSchema {
     public List<FactionItemSchema> Factions { get; init; } = [];
 }
 
-file class FactionItemSchema {
+internal class FactionItemSchema {
     public string Description { get; init; } = "";
     public string Name { get; init; } = "";
 }

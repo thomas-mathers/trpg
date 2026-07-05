@@ -12,7 +12,7 @@ internal class RaceGeneratorInput {
     public required Guid WorldId { get; init; }
 }
 
-internal class RaceGenerator(OllamaApiClient client, ILogger<RaceGenerator> logger) {
+internal class RaceGenerator(IOllamaApiClient client, ILogger<RaceGenerator> logger) {
     public async Task<IReadOnlyList<Race>> Generate(
         RaceGeneratorInput generatorInput,
         CancellationToken cancellationToken
@@ -41,11 +41,11 @@ internal class RaceGenerator(OllamaApiClient client, ILogger<RaceGenerator> logg
     }
 }
 
-file class RaceListSchema {
+internal class RaceListSchema {
     public List<RaceItemSchema> Races { get; init; } = [];
 }
 
-file class RaceItemSchema {
+internal class RaceItemSchema {
     public string CultureStyle { get; init; } = "";
     public string Description { get; init; } = "";
     public string Name { get; init; } = "";

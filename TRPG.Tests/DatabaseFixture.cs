@@ -19,9 +19,11 @@ public sealed class DatabaseFixture : IAsyncLifetime {
         await _container.DisposeAsync();
     }
 
+    internal string ConnectionString => _container.GetConnectionString();
+
     internal TrpgDbContext CreateContext() {
         var options = new DbContextOptionsBuilder<TrpgDbContext>()
-            .UseNpgsql(_container.GetConnectionString())
+            .UseNpgsql(ConnectionString)
             .Options;
 
         return new TrpgDbContext(options);

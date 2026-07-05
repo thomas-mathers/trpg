@@ -11,7 +11,7 @@ internal static class OllamaExtensions {
     private static readonly RequestOptions DefaultOptions = new() { MinP = 0.1f };
 
     internal static async Task<T> GetJson<T>(
-        this OllamaApiClient client,
+        this IOllamaApiClient client,
         ILogger logger,
         string systemPrompt,
         string userPrompt,

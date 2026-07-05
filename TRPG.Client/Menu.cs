@@ -1,26 +1,9 @@
-using Microsoft.EntityFrameworkCore;
-using TRPG.Commands;
-using TRPG.Data;
-using TRPG.Generators;
-using TRPG.Models;
+using TRPG.Contracts;
 
-namespace TRPG;
+namespace TRPG.Client;
 
-internal class Menu(
-    TrpgDbContext context,
-    WorldGenerator worldGenerator,
-    PersonGenerator personGenerator,
-    BootstrapWorldCommandHandler bootstrapHandler,
-    DropWorldCommandHandler dropHandler,
-    Game game,
-    AgentServer agentServer
-) {
+internal sealed class Menu(GameServerClient client, Game game) {
     public async Task Run(string[] args, CancellationToken cancellationToken) {
-        if (args.Contains("--agent")) {
-            await RunAgent(cancellationToken);
-            return;
-        }
-
         if (args.Contains("--continue")) {
             await RunContinue(cancellationToken);
             return;
@@ -40,7 +23,7 @@ internal class Menu(
                     await RunNew(cancellationToken);
                     break;
                 case "2":
-                    await RunDrop();
+                    await RunDrop(cancellationToken);
                     break;
                 case "3":
                     await RunContinue(cancellationToken);
@@ -51,59 +34,29 @@ internal class Menu(
         }
     }
 
-    private async Task RunAgent(CancellationToken cancellationToken) {
-        var world = await AutoSelectWorld(cancellationToken);
-        if (world == null) {
-            return;
-        }
-
-        await agentServer.Run(new GameSession(world.Id, world.PlayerId!.Value, world.Playtime), cancellationToken);
-    }
-
     private async Task RunNew(CancellationToken cancellationToken) {
         var playerName = PromptForString("Choose your name");
         var profession = PromptForOption("Choose your profession", Enum.GetValues<Profession>(), r => r.ToString());
 
-        var input = PromptWorldGenerationParameters();
+        var request = PromptWorldGenerationParameters(playerName, profession);
 
         Console.WriteLine("Generating world...");
 
-        var worldResult = await worldGenerator.Generate(input, cancellationToken);
+        var world = await client.CreateWorld(request, cancellationToken);
 
-        Console.WriteLine($"\nWorld \"{worldResult.World.Name}\" generated.");
+        Console.WriteLine($"\nWorld \"{world.WorldName}\" generated.");
+        Console.WriteLine($"Entering \"{world.WorldName}\" as {playerName} the {profession}...");
 
-        var selectedRace = PromptForOption("Choose your race", worldResult.Races, r => r.Name);
-
-        var startingCity = worldResult.Cities.First(c => c.IsCapital);
-        var startingState = worldResult.States.First(s => s.Id == startingCity.StateId);
-        var startingDistrict = worldResult.Districts.First(d =>
-            d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter);
-
-        var playerResult = personGenerator.Generate(
-            new PersonGeneratorInput(
-                selectedRace,
-                profession,
-                worldResult.World.Id,
-                startingState.Id,
-                startingState.Id,
-                1,
-                playerName
-            )
-        );
-        playerResult.Person.CityId = startingCity.Id;
-        playerResult.Person.DistrictId = startingDistrict.Id;
-
-        var result = await bootstrapHandler.Handle(worldResult, playerResult, cancellationToken);
-
-        Console.WriteLine($"Entering \"{worldResult.World.Name}\" as {playerName} the {profession}...");
-
-        await game.Run(new GameSession(result.WorldId, result.PlayerId, TimeSpan.Zero), cancellationToken);
+        var session = await client.StartSession(world.WorldId, cancellationToken);
+        await game.Run(session.SessionId, session.Response, cancellationToken);
     }
 
-    private static WorldGeneratorInput PromptWorldGenerationParameters() {
+    private static CreateWorldRequest PromptWorldGenerationParameters(string playerName, Profession profession) {
         Console.WriteLine("Configure generation (press Enter to use defaults):");
 
-        var input = new WorldGeneratorInput {
+        return new CreateWorldRequest {
+            PlayerName = playerName,
+            Profession = profession,
             Description = PromptForString("  Description", WorldGenerationDefaults.Description),
             MinCountries = PromptForInt("  Countries min", WorldGenerationDefaults.MinCountries),
             MaxCountries = PromptForInt("  Countries max", WorldGenerationDefaults.MaxCountries),
@@ -121,8 +74,6 @@ internal class Menu(
             RaceCount = PromptForInt("  Races", WorldGenerationDefaults.RaceCount),
             FactionCount = PromptForInt("  Factions", WorldGenerationDefaults.FactionCount)
         };
-
-        return input;
     }
 
     private async Task RunContinue(CancellationToken cancellationToken) {
@@ -131,23 +82,47 @@ internal class Menu(
             return;
         }
 
-        await game.Run(new GameSession(world.Id, world.PlayerId!.Value, world.Playtime), cancellationToken);
+        var session = await client.StartSession(world.WorldId, cancellationToken);
+        await game.Run(session.SessionId, session.Response, cancellationToken);
     }
 
-    private async Task<World?> AutoSelectWorld(CancellationToken cancellationToken) {
-        var worlds = await context.Worlds
-            .Where(w => w.PlayerId != null)
+    private async Task<WorldSummary?> AutoSelectWorld(CancellationToken cancellationToken) {
+        var worlds = (await client.ListWorlds(cancellationToken))
+            .Where(w => w.HasPlayer)
             .OrderBy(w => w.Name)
-            .ToListAsync(cancellationToken);
+            .ToArray();
 
-        if (worlds.Count == 0) {
+        if (worlds.Length == 0) {
             Console.WriteLine("No saved games found.");
             return null;
         }
 
-        return worlds.Count == 1
+        return worlds.Length == 1
             ? worlds[0]
             : PromptForOption("Choose a world to continue:", worlds, w => w.Name);
+    }
+
+    private async Task RunDrop(CancellationToken cancellationToken) {
+        var worlds = (await client.ListWorlds(cancellationToken))
+            .OrderBy(w => w.Name)
+            .ToArray();
+
+        if (worlds.Length == 0) {
+            Console.WriteLine("No worlds found.");
+            return;
+        }
+
+        var world = PromptForOption("Choose a world to drop:", worlds, w => w.Name);
+
+        var confirmed = PromptForConfirmation($"Drop \"{world.Name}\"? This cannot be undone. (y/N): ");
+
+        if (!confirmed) {
+            return;
+        }
+
+        await client.DropWorld(world.WorldId, cancellationToken);
+
+        Console.WriteLine($"World \"{world.Name}\" dropped.");
     }
 
     private static int PromptForInt(string label, int defaultValue) {
@@ -201,29 +176,5 @@ internal class Menu(
     private static bool PromptForConfirmation(string label) {
         Console.Write(label);
         return string.Equals(Console.ReadLine()?.Trim(), "y", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private async Task RunDrop() {
-        var worlds = await context.Worlds.OrderBy(w => w.Name).ToListAsync(CancellationToken.None);
-
-        if (worlds.Count == 0) {
-            Console.WriteLine("No worlds found.");
-            return;
-        }
-
-        var world = PromptForOption("Choose a world to drop:", worlds, w => w.Name);
-
-        var confirmed = PromptForConfirmation($"Drop \"{world.Name}\"? This cannot be undone. (y/N): ");
-
-        if (!confirmed) {
-            return;
-        }
-
-        await dropHandler.Handle(
-            new DropWorldCommand { WorldId = world.Id },
-            CancellationToken.None
-        );
-
-        Console.WriteLine($"World \"{world.Name}\" dropped.");
     }
 }

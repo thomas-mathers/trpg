@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.Models;
 using TRPG.Services;

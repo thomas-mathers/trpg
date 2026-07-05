@@ -11,7 +11,15 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <InternalsVisibleTo Include="TRPG.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -20,7 +28,6 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9"/>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2"/>
         <PackageReference Include="OllamaSharp" Version="5.4.25"/>
         <PackageReference Include="SharpVoronoiLib" Version="1.2.0"/>

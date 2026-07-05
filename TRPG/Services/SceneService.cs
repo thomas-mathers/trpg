@@ -1,61 +1,13 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-internal record SceneStateInfo(string Name, string? Description);
-
-internal record SceneDistrictInfo(string Name, string Type, bool IsCurrent);
-
-internal record SceneCityInfo(string Name, string? Description, IReadOnlyCollection<SceneDistrictInfo> Districts);
-
-internal record SceneBuildingInfo(
-    string Name,
-    string Type,
-    string? OwnerName,
-    string? FactionName,
-    string? FactionDescription);
-
-internal record SceneExitInfo(string Description, string DestinationRoomName, bool IsLocked);
-
-internal record SceneRoomInfo(
-    string Name,
-    string Description,
-    int FloorNumber,
-    IReadOnlyCollection<SceneExitInfo> Exits);
-
-internal record ScenePlayerInfo(string Name, string Race, string Profession, int Level, int Gold, int Age);
-
-internal record ScenePropInfo(string Name, string Description, string Type);
-
-internal record ScenePersonInfo(
-    string Name,
-    string Race,
-    string Profession,
-    int Level,
-    int Age,
-    IReadOnlyCollection<string> FactionNames,
-    string State,
-    int Reputation);
-
 internal record SceneQuery(Guid WorldId, Guid PlayerId, InGameDate CurrentDate);
-
-internal record SceneNearbyBuildingInfo(string Name, string Type);
-
-internal record SceneResult(
-    InGameDate CurrentDate,
-    SceneStateInfo? State,
-    SceneCityInfo? City,
-    SceneBuildingInfo? Building,
-    SceneRoomInfo? Room,
-    ScenePlayerInfo Player,
-    IReadOnlyCollection<ScenePropInfo> NearbyProps,
-    IReadOnlyCollection<ScenePersonInfo> NearbyPeople,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
-);
 
 internal class SceneService(
     TrpgDbContext context,

@@ -1,8 +1,7 @@
 using System.Globalization;
+using TRPG.Contracts;
 
 namespace TRPG;
-
-internal record InGameDate(int Year, string MonthName, int Day, string WeekdayName, int Hour);
 
 internal static class GameClock {
     public const double InGameHoursPerRealHour = 20.0;

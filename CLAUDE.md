@@ -4,8 +4,8 @@
 
 - C# .NET 9, EF Core 9.0.4, Npgsql 9.0.4
 - PostgreSQL via Testcontainers in tests
-- xUnit for integration tests — no unit tests, no mocking
-- No ASP.NET Core — local single-player game
+- xUnit for integration tests — no unit tests, no mocking, except HTTP endpoint tests (see Integration Tests § Endpoint Tests) which mock the Ollama client deliberately
+- `TRPG` is an ASP.NET Core minimal API host; `TRPG.Client` is a separate thin console client talking to it over HTTP; `TRPG.Contracts` holds the shared request/response DTOs both reference
 
 ---
 
@@ -142,10 +142,11 @@
 
 ## Ollama Model Benchmarking
 
-- `scripts/benchmark-model.sh` and `scripts/benchmark-models.sh` measure move-command reliability and latency for a given Ollama model + thinking-mode combination, run against the `--agent` HTTP mode (`AgentServer`/`GameTurnRunner`) — built to replace manual edit-source-and-rebuild A/B testing
+- `scripts/benchmark-model.sh` and `scripts/benchmark-models.sh` measure move-command reliability and latency for a given Ollama model + thinking-mode combination, run against the server's real HTTP endpoints (`POST /worlds/{id}/sessions` then `POST /sessions/{id}/chat`) — built to replace manual edit-source-and-rebuild A/B testing
 - Full usage, argument syntax, and design rationale (why the server restarts per trial, why there's an untimed warmup, why there's no capability auto-detection) live in each script's own header comment — read that first, don't rely on this note for exact syntax
-- Some models crash `AgentServer` if asked to think when they don't support it (e.g. `mistral-nemo:12b`) — there's no auto-detection, the caller has to know which models can take `@true`/`@both`
+- Some models crash the server if asked to think when they don't support it (e.g. `mistral-nemo:12b`) — there's no auto-detection, the caller has to know which models can take `@true`/`@both`
 - Results accumulate across every invocation in `scripts/benchmark-results.csv` (gitignored — local experiment output, not committed), grouped by a `tag` column
+- Readiness polling uses `curl` against a real endpoint, not `Get-NetTCPConnection`/`Get-Process` — repeated `powershell.exe` spawns alongside a backgrounded process have been observed to stall badly in some shells
 
 ---
 
@@ -204,3 +205,11 @@ public class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 ### Unique name collisions
 - Tests share one Postgres container with no rollback between tests
 - Any entity with a unique name constraint must use a Guid-suffixed name in builders and seed helpers
+
+### Endpoint tests
+- The one deliberate exception to "no mocking": HTTP endpoint tests (`WorldEndpointsTests`, `SessionEndpointsTests`) mock the Ollama client, because Ollama is an external, non-deterministic, slow LLM service — unlike Postgres, it can't be spun up reliably via Testcontainers, and real narration text isn't what these tests are checking
+- `EndpointTestFixture` wraps `WebApplicationFactory<Program>` in its own `[Collection("Endpoints")]` (a separate Postgres container from the `"Database"` collection), and swaps in `FakeOllamaApiClient` (`TRPG.Tests.Helpers`) for `IOllamaApiClient`
+- `FakeOllamaApiClient.GenerateAsync` detects which of the 5 world-generation schemas is being requested (races/factions/cities/roads/geography-entity) from keywords in the prompt text, then constructs and serializes **the real production schema types** (`RaceListSchema`, `FactionListSchema`, etc., widened from `file class` to `internal class` in their generator files specifically so tests can reference them) — never loosely-typed anonymous objects, so a breaking change to those schemas forces the test to be updated rather than silently drifting
+- Tests that exercise world generation (`CreateWorld_...`) pass a `CreateWorldRequest` with every count knob set to 1 (or 0 for optional entities) to keep the fake's canned responses trivial
+- Corner-case tests (404s for an unknown session id, 400 for invalid `/wait` input) use the same fixture — those code paths never reach Ollama, so no special handling is needed
+- Seed data for session tests goes straight through a `TrpgDbContext` pulled from `fixture.CreateScope()`, the same way non-HTTP integration tests seed via `DatabaseFixture.CreateContext()`
