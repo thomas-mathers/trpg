@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.SignalR;
+
 namespace TRPG.Client;
 
 internal sealed class Game(GameServerClient client) {
@@ -7,8 +9,10 @@ internal sealed class Game(GameServerClient client) {
         Console.WriteLine("Type 'exit' to quit.");
         Console.WriteLine();
 
-        await foreach (var token in client.ReceiveOpening(cancellationToken)) {
-            Console.Write(token);
+        client.ConnectionStatusChanged += status => Console.WriteLine($"\n[{status}]");
+
+        if (!await TryStreamTurn(client.ReceiveOpening(cancellationToken))) {
+            return;
         }
 
         PrintStatus();
@@ -42,11 +46,9 @@ internal sealed class Game(GameServerClient client) {
                 continue;
             }
 
-            await foreach (var token in client.SendChat(input, cancellationToken)) {
-                Console.Write(token);
+            if (await TryStreamTurn(client.SendChat(input, cancellationToken))) {
+                PrintStatus();
             }
-
-            PrintStatus();
         }
     }
 
@@ -57,11 +59,23 @@ internal sealed class Game(GameServerClient client) {
             return;
         }
 
-        await foreach (var token in client.SendWait(hours, cancellationToken)) {
-            Console.Write(token);
+        if (await TryStreamTurn(client.SendWait(hours, cancellationToken))) {
+            PrintStatus();
         }
+    }
 
-        PrintStatus();
+    private static async Task<bool> TryStreamTurn(IAsyncEnumerable<string> tokens) {
+        try {
+            await foreach (var token in tokens) {
+                Console.Write(token);
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (ex is HubException or IOException) {
+            Console.WriteLine($"\n[Turn failed: {ex.Message}]");
+            return false;
+        }
     }
 
     private void PrintStatus() {

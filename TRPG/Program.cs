@@ -8,6 +8,7 @@ using TRPG;
 using TRPG.Data;
 using TRPG.Endpoints;
 using TRPG.Extensions;
+using TRPG.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5000");
@@ -27,7 +28,8 @@ builder.Services
     .AddTrpgDbContext(appConfiguration.PostgresConnectionString)
     .AddOllamaApiClient(appConfiguration)
     .AddSingleton(appConfiguration)
-    .AddTrpgApplicationServices();
+    .AddTrpgApplicationServices()
+    .AddSignalR();
 
 builder.Services.ConfigureHttpJsonOptions(options => {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -35,8 +37,6 @@ builder.Services.ConfigureHttpJsonOptions(options => {
 });
 
 var app = builder.Build();
-
-app.UseWebSockets();
 
 _ = Task.Run(async () => {
     await using var scope = app.Services.CreateAsyncScope();
@@ -46,5 +46,6 @@ _ = Task.Run(async () => {
 
 app.MapWorldEndpoints();
 app.MapSessionEndpoints();
+app.MapHub<ChatHub>("/hubs/chat");
 
 await app.RunAsync();

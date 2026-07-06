@@ -9,7 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj"/>
+        <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.9" />
     </ItemGroup>
 
 </Project>

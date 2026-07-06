@@ -1,11 +1,9 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
 using OllamaSharp.Models.Chat;
-using TRPG.Services;
 using TRPG.Tools;
 
 namespace TRPG;
@@ -19,8 +17,6 @@ internal class GameTurnRunner(
     Chat chat,
     GameSession session,
     IEnumerable<Tool> tools,
-    WorldService worldService,
-    SceneService sceneService,
     ILogger<GameTurnRunner> logger
 ) {
     internal const string SystemPrompt =
@@ -44,7 +40,8 @@ internal class GameTurnRunner(
 
     public async IAsyncEnumerable<string> SendOpeningStreaming(
         [EnumeratorCancellation] CancellationToken cancellationToken = default) {
-        var openingPrompt = await BuildOpeningPrompt(cancellationToken);
+        const string openingPrompt =
+            "This is the start of the session. Call look now, then narrate the opening scene based on what it returns.";
         logger.LogInformation("[game] >>> {Message}", openingPrompt);
 
         var buffer = new StringBuilder();
@@ -66,7 +63,8 @@ internal class GameTurnRunner(
         session.SceneRefreshedThisTurn = false;
         GameClock.AdvanceHours(session, hours);
 
-        var waitPrompt = await BuildWaitPrompt(hours, cancellationToken);
+        var waitPrompt =
+            $"{hours} hour(s) have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns.";
         logger.LogInformation("[game] >>> {Message}", waitPrompt);
 
         var buffer = new StringBuilder();
@@ -117,31 +115,6 @@ internal class GameTurnRunner(
         var currentTurnStart = chat.Messages.FindLastIndex(m => m.Role == ChatRole.User);
         await CloseLingeringConversations(cancellationToken);
         ClearPreviousTurns(currentTurnStart);
-    }
-
-    private async Task<string> BuildOpeningPrompt(CancellationToken cancellationToken) {
-        var world = await worldService.GetWorld(session.WorldId, cancellationToken);
-        var currentDate = GameClock.GetCurrentInGameDate(session);
-        var query = new SceneQuery(session.WorldId, session.PlayerId, currentDate);
-        var scene = await sceneService.GetScene(query, cancellationToken);
-
-        var worldInfo = new { world!.Name, world.Description };
-        return $"""
-                This is the start of the session. Narrate the opening scene using ONLY the data below — do not call world or look for this turn.
-                World: {JsonSerializer.Serialize(worldInfo, ToolJsonOptions.Options)}
-                Scene: {JsonSerializer.Serialize(scene, ToolJsonOptions.Options)}
-                """;
-    }
-
-    private async Task<string> BuildWaitPrompt(int hours, CancellationToken cancellationToken) {
-        var currentDate = GameClock.GetCurrentInGameDate(session);
-        var query = new SceneQuery(session.WorldId, session.PlayerId, currentDate);
-        var scene = await sceneService.GetScene(query, cancellationToken);
-
-        return $"""
-                {hours} hour(s) have passed. Narrate the passage of time and the player's surroundings now, using ONLY the data below — do not call world or look for this turn.
-                Scene: {JsonSerializer.Serialize(scene, ToolJsonOptions.Options)}
-                """;
     }
 
     private async Task<TurnMetrics> SendAndLog(string input, CancellationToken cancellationToken) {

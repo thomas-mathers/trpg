@@ -1,9 +1,6 @@
-using System.Net.WebSockets;
-using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using OllamaSharp;
 using OllamaSharp.Models;
 using TRPG.Contracts;
@@ -15,7 +12,6 @@ internal static class SessionEndpoints {
     public static void MapSessionEndpoints(this WebApplication app) {
         app.MapPost("/worlds/{worldId:guid}/sessions", StartSession);
         app.MapPost("/sessions/{sessionId:guid}/chat", SendChat);
-        app.Map("/sessions/{sessionId:guid}/chat/stream", ChatStream);
         app.MapPost("/sessions/{sessionId:guid}/wait", Wait);
         app.MapDelete("/sessions/{sessionId:guid}", EndSession);
     }
@@ -60,131 +56,6 @@ internal static class SessionEndpoints {
         var metrics = await turnRunner.ProcessTurn(request.Message, cancellationToken);
 
         return Results.Ok(new ChatResponse(metrics.Response, includeMetrics == true ? ToDto(metrics) : null));
-    }
-
-    private static async Task ChatStream(
-        HttpContext httpContext,
-        Guid sessionId,
-        GameSessionStore sessionStore,
-        IServiceScopeFactory scopeFactory,
-        WorldService worldService,
-        ILogger<GameTurnRunner> logger) {
-        if (!httpContext.WebSockets.IsWebSocketRequest) {
-            httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
-        }
-
-        var state = sessionStore.Get(sessionId);
-        if (state == null) {
-            httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            return;
-        }
-
-        using var socket = await httpContext.WebSockets.AcceptWebSocketAsync();
-        var cancellationToken = httpContext.RequestAborted;
-
-        try {
-            await StreamTurn(socket, state, scopeFactory,
-                turnRunner => turnRunner.SendOpeningStreaming(cancellationToken), alwaysSendScene: true,
-                cancellationToken);
-
-            while (socket.State == WebSocketState.Open) {
-                var command = await ReceiveMessage<ClientCommand>(socket, cancellationToken);
-                if (command == null) {
-                    break;
-                }
-
-                switch (command) {
-                    case ChatCommand chatCommand:
-                        await StreamTurn(socket, state, scopeFactory,
-                            turnRunner => turnRunner.ProcessTurnStreaming(chatCommand.Message, cancellationToken),
-                            alwaysSendScene: false, cancellationToken);
-                        break;
-                    case WaitCommand waitCommand:
-                        await StreamTurn(socket, state, scopeFactory,
-                            turnRunner => turnRunner.SendWaitStreaming(waitCommand.Hours, cancellationToken),
-                            alwaysSendScene: true, cancellationToken);
-                        break;
-                }
-            }
-
-            if (socket.State == WebSocketState.CloseReceived) {
-                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, cancellationToken);
-            }
-        }
-        catch (WebSocketException ex) {
-            logger.LogInformation(ex, "[chat-stream] socket disconnected for session {SessionId}", sessionId);
-        }
-        catch (OperationCanceledException) {
-            logger.LogInformation("[chat-stream] request aborted for session {SessionId}", sessionId);
-        }
-        finally {
-            await EndSessionCleanup(sessionId, state, sessionStore, worldService, CancellationToken.None);
-        }
-    }
-
-    private static async Task StreamTurn(
-        WebSocket socket,
-        GameSessionState state,
-        IServiceScopeFactory scopeFactory,
-        Func<GameTurnRunner, IAsyncEnumerable<string>> runTurn,
-        bool alwaysSendScene,
-        CancellationToken cancellationToken) {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<CurrentGameSessionAccessor>().State = state;
-        var turnRunner = scope.ServiceProvider.GetRequiredService<GameTurnRunner>();
-
-        await foreach (var token in runTurn(turnRunner)) {
-            await SendMessage(socket, new ChatStreamToken(token), cancellationToken);
-        }
-
-        if ((alwaysSendScene || state.Session.SceneRefreshedThisTurn) && state.LastScene != null) {
-            await SendMessage(socket, new ChatStreamScene(ToSnapshot(state.LastScene)), cancellationToken);
-        }
-
-        await SendMessage(socket, new ChatStreamDone(), cancellationToken);
-    }
-
-    private static SceneSnapshot ToSnapshot(SceneResult scene) {
-        var currentDistrict = scene.City?.Districts.FirstOrDefault(d => d.IsCurrent);
-        return new SceneSnapshot(
-            scene.State?.Name ?? "",
-            scene.City?.Name,
-            currentDistrict?.Name,
-            scene.Building?.Name,
-            scene.Room?.Name,
-            scene.CurrentDate.Year,
-            scene.CurrentDate.MonthName,
-            scene.CurrentDate.Day,
-            scene.CurrentDate.WeekdayName,
-            scene.CurrentDate.Hour,
-            scene.NearbyPeople.Select(p => new NearbyPersonSnapshot(
-                p.Name, p.CreatureType, p.Profession, p.Level, p.Age, p.FactionNames, p.State, p.Reputation)).ToArray(),
-            scene.NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type)).ToArray(),
-            scene.Room?.Exits.Select(e => new NearbyExitSnapshot(e.Description, e.DestinationRoomName)).ToArray() ?? []
-        );
-    }
-
-    private static async Task<T?> ReceiveMessage<T>(WebSocket socket, CancellationToken cancellationToken) {
-        using var stream = new MemoryStream();
-        var buffer = new byte[4096];
-        WebSocketReceiveResult result;
-        do {
-            result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
-            if (result.MessageType == WebSocketMessageType.Close) {
-                return default;
-            }
-
-            await stream.WriteAsync(buffer.AsMemory(0, result.Count), cancellationToken);
-        } while (!result.EndOfMessage);
-
-        stream.Position = 0;
-        return await JsonSerializer.DeserializeAsync<T>(stream, JsonSerializerOptions.Web, cancellationToken);
-    }
-
-    private static async Task SendMessage(WebSocket socket, ChatStreamMessage message, CancellationToken cancellationToken) {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(message, JsonSerializerOptions.Web);
-        await socket.SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
     }
 
     private static async Task<IResult> Wait(

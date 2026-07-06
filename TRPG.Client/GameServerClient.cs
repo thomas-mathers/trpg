@@ -1,15 +1,16 @@
 using System.Net.Http.Json;
-using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 using TRPG.Contracts;
 
 namespace TRPG.Client;
 
 internal sealed class GameServerClient(HttpClient httpClient) {
-    private ClientWebSocket? _chatSocket;
+    private HubConnection? _connection;
+    private Guid? _sessionId;
 
     public SceneSnapshot? CurrentScene { get; private set; }
+
+    public event Action<string>? ConnectionStatusChanged;
 
     public async Task<CreateWorldResponse> CreateWorld(CreateWorldRequest request,
         CancellationToken cancellationToken) {
@@ -42,94 +43,68 @@ internal sealed class GameServerClient(HttpClient httpClient) {
     }
 
     private async Task ConnectChatStream(Guid sessionId, CancellationToken cancellationToken) {
-        var socket = new ClientWebSocket();
-        var scheme = httpClient.BaseAddress!.Scheme == "https" ? "wss" : "ws";
-        var uri = new UriBuilder(httpClient.BaseAddress)
-            { Scheme = scheme, Path = $"/sessions/{sessionId}/chat/stream" }.Uri;
-        await socket.ConnectAsync(uri, cancellationToken);
-        _chatSocket = socket;
+        var uri = new UriBuilder(httpClient.BaseAddress!) { Path = "/hubs/chat", Query = $"sessionId={sessionId}" }
+            .Uri;
+
+        var connection = new HubConnectionBuilder().WithUrl(uri).WithAutomaticReconnect().Build();
+        connection.On<SceneSnapshot>("Scene", scene => CurrentScene = scene);
+        connection.Reconnecting += _ => {
+            ConnectionStatusChanged?.Invoke("Connection lost, reconnecting...");
+            return Task.CompletedTask;
+        };
+        connection.Reconnected += _ => {
+            ConnectionStatusChanged?.Invoke("Reconnected.");
+            return Task.CompletedTask;
+        };
+        connection.Closed += _ => {
+            ConnectionStatusChanged?.Invoke("Connection closed.");
+            return Task.CompletedTask;
+        };
+
+        await connection.StartAsync(cancellationToken);
+
+        _connection = connection;
+        _sessionId = sessionId;
     }
 
     public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken = default) {
-        if (_chatSocket == null) {
+        if (_connection == null) {
             throw new InvalidOperationException("Chat stream is not connected — call StartSession first.");
         }
 
-        return ReceiveTokensUntilDone(_chatSocket, cancellationToken);
+        return _connection.StreamAsync<string>("ReceiveOpening", cancellationToken);
     }
 
-    public async IAsyncEnumerable<string> SendChat(string message,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
-        if (_chatSocket == null) {
+    public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken = default) {
+        if (_connection == null) {
             throw new InvalidOperationException("Chat stream is not connected — call StartSession first.");
         }
 
-        var requestBytes = JsonSerializer.SerializeToUtf8Bytes<ClientCommand>(new ChatCommand(message),
-            JsonSerializerOptions.Web);
-        await _chatSocket.SendAsync(requestBytes, WebSocketMessageType.Text, true, cancellationToken);
-
-        await foreach (var token in ReceiveTokensUntilDone(_chatSocket, cancellationToken)) {
-            yield return token;
-        }
+        return _connection.StreamAsync<string>("SendChat", message, cancellationToken);
     }
 
-    public async IAsyncEnumerable<string> SendWait(int hours,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
-        if (_chatSocket == null) {
+    public IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken = default) {
+        if (_connection == null) {
             throw new InvalidOperationException("Chat stream is not connected — call StartSession first.");
         }
 
-        var requestBytes = JsonSerializer.SerializeToUtf8Bytes<ClientCommand>(new WaitCommand(hours),
-            JsonSerializerOptions.Web);
-        await _chatSocket.SendAsync(requestBytes, WebSocketMessageType.Text, true, cancellationToken);
-
-        await foreach (var token in ReceiveTokensUntilDone(_chatSocket, cancellationToken)) {
-            yield return token;
-        }
-    }
-
-    private async IAsyncEnumerable<string> ReceiveTokensUntilDone(WebSocket socket,
-        [EnumeratorCancellation] CancellationToken cancellationToken) {
-        while (true) {
-            var streamMessage = await ReceiveStreamMessage(socket, cancellationToken);
-            switch (streamMessage) {
-                case ChatStreamDone:
-                    yield break;
-                case ChatStreamToken token:
-                    yield return token.Text;
-                    break;
-                case ChatStreamScene scene:
-                    CurrentScene = scene.Scene;
-                    break;
-            }
-        }
-    }
-
-    private static async Task<ChatStreamMessage> ReceiveStreamMessage(WebSocket socket,
-        CancellationToken cancellationToken) {
-        using var stream = new MemoryStream();
-        var buffer = new byte[4096];
-        WebSocketReceiveResult result;
-        do {
-            result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
-            await stream.WriteAsync(buffer.AsMemory(0, result.Count), cancellationToken);
-        } while (!result.EndOfMessage);
-
-        stream.Position = 0;
-        return (await JsonSerializer.DeserializeAsync<ChatStreamMessage>(stream, JsonSerializerOptions.Web,
-            cancellationToken))!;
+        return _connection.StreamAsync<string>("SendWait", hours, cancellationToken);
     }
 
     public async Task EndSession(CancellationToken cancellationToken) {
-        if (_chatSocket == null) {
+        if (_sessionId == null) {
             return;
         }
 
-        if (_chatSocket.State == WebSocketState.Open) {
-            await _chatSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "session ended", cancellationToken);
+        var response = await httpClient.DeleteAsync(new Uri($"/sessions/{_sessionId}", UriKind.Relative),
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        if (_connection != null) {
+            await _connection.DisposeAsync();
+            _connection = null;
         }
 
-        _chatSocket.Dispose();
-        _chatSocket = null;
+        _sessionId = null;
     }
 }
