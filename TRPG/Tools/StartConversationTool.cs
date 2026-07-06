@@ -9,15 +9,15 @@ namespace TRPG.Tools;
 internal record StartConversationResult(string Summary);
 
 internal class StartConversationTool : Tool, IInvokableTool {
+    private readonly CreatureService _creatureService;
     private readonly ILogger<StartConversationTool> _logger;
     private readonly NpcConversationService _npcConversationService;
-    private readonly PersonService _personService;
     private readonly GameSession _session;
 
-    public StartConversationTool(GameSession session, PersonService personService,
+    public StartConversationTool(GameSession session, CreatureService creatureService,
         NpcConversationService npcConversationService, ILogger<StartConversationTool> logger) {
         _session = session;
-        _personService = personService;
+        _creatureService = creatureService;
         _npcConversationService = npcConversationService;
         _logger = logger;
 
@@ -47,16 +47,16 @@ internal class StartConversationTool : Tool, IInvokableTool {
 
         var npcName = npcNameRaw.ToString()!;
 
-        _logger.LogDebug("[start_conversation] npcName={NpcName}", npcName);
+        _logger.LogInformation("[start_conversation] npcName={NpcName}", npcName);
         var result = InvokeMethodAsync(npcName, CancellationToken.None).GetAwaiter().GetResult();
         var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogDebug("[start_conversation] result: {Result}", json);
+        _logger.LogInformation("[start_conversation] result: {Result}", json);
         return json;
     }
 
     private async Task<object?> InvokeMethodAsync(string npcName, CancellationToken cancellationToken) {
-        var player = await _personService.GetById(_session.PlayerId, cancellationToken);
-        var npc = await _personService.GetByNameNearby(_session.WorldId, player!, npcName, cancellationToken);
+        var player = await _creatureService.GetById(_session.PlayerId, cancellationToken);
+        var npc = await _creatureService.GetByNameNearby(_session.WorldId, player!, npcName, cancellationToken);
 
         if (npc == null) {
             return new { Error = $"No one named '{npcName}' found nearby. Call look to see who's around." };

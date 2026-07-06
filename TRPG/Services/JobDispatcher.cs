@@ -9,16 +9,16 @@ internal class JobDispatcher(
     IdleJobHandler idleHandler,
     ILogger<JobDispatcher> logger
 ) {
-    public async Task Dispatch(Person person, Job job, CancellationToken cancellationToken = default) {
+    public async Task Dispatch(Creature creature, Job job, CancellationToken cancellationToken = default) {
         switch (job.Action) {
             case JobAction.Sleep:
-                await sleepHandler.Execute(person, job, cancellationToken);
+                await sleepHandler.Execute(creature, job, cancellationToken);
                 break;
             case JobAction.Work:
-                await workHandler.Execute(person, job, cancellationToken);
+                await workHandler.Execute(creature, job, cancellationToken);
                 break;
             case JobAction.Idle:
-                await idleHandler.Execute(person, job, cancellationToken);
+                await idleHandler.Execute(creature, job, cancellationToken);
                 break;
             case JobAction.Patrol:
             case JobAction.Socialize:

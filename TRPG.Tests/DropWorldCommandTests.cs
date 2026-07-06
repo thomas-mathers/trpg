@@ -29,16 +29,16 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     private async Task SeedWorldData(Guid worldId) {
-        var person = Builders.MakePerson(worldId);
+        var creature = Builders.MakeCreature(worldId);
         var faction = Builders.MakeFaction(worldId);
         var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: worldId);
         var room = Builders.MakeRoom(building.Id, worldId: worldId);
         var bed = new Bed { RoomId = room.Id, Name = "Bed", Description = "A test bed.", WorldId = worldId };
         var item = Builders.MakeItem(worldId);
         var factionMember = new FactionMember
-            { FactionId = faction.Id, PersonId = person.Id, Role = FactionRole.Member, WorldId = worldId };
+            { FactionId = faction.Id, CreatureId = creature.Id, Role = FactionRole.Member, WorldId = worldId };
 
-        _context.Persons.Add(person);
+        _context.Creatures.Add(creature);
         _context.Factions.Add(faction);
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);
@@ -56,7 +56,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime {
         // Assert
         await using var verifyContext = db.CreateContext();
 
-        Assert.False(await verifyContext.Persons.AnyAsync(x => x.WorldId == _worldId,
+        Assert.False(await verifyContext.Creatures.AnyAsync(x => x.WorldId == _worldId,
             TestContext.Current.CancellationToken));
         Assert.False(await verifyContext.Factions.AnyAsync(x => x.WorldId == _worldId,
             TestContext.Current.CancellationToken));
@@ -71,7 +71,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime {
         Assert.False(await verifyContext.FactionMembers.AnyAsync(x => x.WorldId == _worldId,
             TestContext.Current.CancellationToken));
 
-        Assert.True(await verifyContext.Persons.AnyAsync(x => x.WorldId == _otherWorldId,
+        Assert.True(await verifyContext.Creatures.AnyAsync(x => x.WorldId == _otherWorldId,
             TestContext.Current.CancellationToken));
         Assert.True(await verifyContext.Factions.AnyAsync(x => x.WorldId == _otherWorldId,
             TestContext.Current.CancellationToken));

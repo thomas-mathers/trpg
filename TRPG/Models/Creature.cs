@@ -1,5 +1,36 @@
 namespace TRPG.Models;
 
+internal enum CreatureType {
+    Human,
+    Elf,
+    Dwarf,
+    Orc,
+    Halfling,
+    Gnome,
+    Undead,
+    Demon,
+    Beast,
+    Construct,
+    Elemental
+}
+
+internal static class CreatureTypes {
+    public static readonly IReadOnlyList<CreatureType> Humanoid = [
+        CreatureType.Human, 
+        CreatureType.Elf, 
+        CreatureType.Dwarf, 
+        CreatureType.Orc, 
+        CreatureType.Halfling,
+        CreatureType.Gnome
+    ];
+}
+
+internal enum CreatureState {
+    Sleeping,
+    Idle,
+    Busy
+}
+
 internal enum Profession {
     Knight,
     Rogue,
@@ -17,13 +48,7 @@ internal enum Profession {
     Guard
 }
 
-internal enum PersonState {
-    Sleeping,
-    Idle,
-    Busy
-}
-
-internal class Person {
+internal class Creature {
     public Dictionary<ConditionType, int> ActiveConditions { get; set; } = [];
     public List<ActiveModifier> ActiveModifiers { get; set; } = [];
     public Attributes Attributes { get; set; } = null!;
@@ -31,16 +56,16 @@ internal class Person {
     public Guid BirthStateId { get; init; }
     public int BirthYear { get; init; }
     public Guid? CityId { get; set; }
+    public CreatureType CreatureType { get; init; }
     public Guid? DistrictId { get; set; }
     public int Experience { get; set; }
     public int Gold { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Level { get; set; }
     public string Name { get; init; } = "";
-    public Profession Profession { get; init; }
-    public Guid RaceId { get; init; }
+    public Profession? Profession { get; init; }
     public Guid? RoomId { get; set; }
-    public PersonState State { get; set; }
+    public CreatureState State { get; set; }
     public Guid StateId { get; set; }
     public Guid WorldId { get; init; }
 }

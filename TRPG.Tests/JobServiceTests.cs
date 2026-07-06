@@ -9,19 +9,19 @@ namespace TRPG.Tests;
 [Collection("Database")]
 public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
+    private Creature _creature = null!;
     private Job _job = null!;
-    private Person _person = null!;
     private JobService _service = null!;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         _service = new JobService(_context);
 
-        _person = Builders.MakePerson();
-        _context.Persons.Add(_person);
+        _creature = Builders.MakeCreature();
+        _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync();
 
-        _job = Builders.MakeJob(_person.Id);
+        _job = Builders.MakeJob(_creature.Id);
         await _service.Add(_job);
     }
 
@@ -32,28 +32,28 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime {
     [Fact]
     public async Task Add_PersistsJob() {
         // Arrange
-        var job = Builders.MakeJob(_person.Id);
+        var job = Builders.MakeJob(_creature.Id);
 
         // Act
         await _service.Add(job, TestContext.Current.CancellationToken);
 
         // Assert
-        var jobs = await _service.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
+        var jobs = await _service.GetAllByCreatureId(_creature.Id, TestContext.Current.CancellationToken);
         Assert.Contains(jobs, j => j.Id == job.Id);
     }
 
     [Fact]
-    public async Task GetAllByPersonId_ReturnsJobsOrderedByPriorityDescending() {
+    public async Task GetAllByCreatureId_ReturnsJobsOrderedByPriorityDescending() {
         // Arrange
-        var low = Builders.MakeJob(_person.Id);
-        var high = Builders.MakeJob(_person.Id, 10);
-        var mid = Builders.MakeJob(_person.Id, 5);
+        var low = Builders.MakeJob(_creature.Id);
+        var high = Builders.MakeJob(_creature.Id, 10);
+        var mid = Builders.MakeJob(_creature.Id, 5);
         await _service.Add(low, TestContext.Current.CancellationToken);
         await _service.Add(high, TestContext.Current.CancellationToken);
         await _service.Add(mid, TestContext.Current.CancellationToken);
 
         // Act
-        var jobs = await _service.GetAllByPersonId(_person.Id, TestContext.Current.CancellationToken);
+        var jobs = await _service.GetAllByCreatureId(_creature.Id, TestContext.Current.CancellationToken);
 
         // Assert — seeded _job (priority 1) plus three new ones; highest priority first
         Assert.Equal(high.Id, jobs[0].Id);
@@ -66,7 +66,7 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var newStateId = Guid.NewGuid();
         var updated = new Job {
             Id = _job.Id,
-            PersonId = _job.PersonId,
+            CreatureId = _job.CreatureId,
             Action = _job.Action,
             StartHour = _job.StartHour,
             EndHour = _job.EndHour,
@@ -86,32 +86,32 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetPersonIdsByRoomId_ReturnsDistinctPersonIds() {
+    public async Task GetCreatureIdsByRoomId_ReturnsDistinctCreatureIds() {
         // Arrange
         var roomId = Guid.NewGuid();
-        var otherPerson = Builders.MakePerson();
-        _context.Persons.Add(otherPerson);
+        var otherCreature = Builders.MakeCreature();
+        _context.Creatures.Add(otherCreature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await _service.Add(Builders.MakeJob(_person.Id, action: JobAction.Sleep, roomId: roomId),
+        await _service.Add(Builders.MakeJob(_creature.Id, action: JobAction.Sleep, roomId: roomId),
             TestContext.Current.CancellationToken);
-        await _service.Add(Builders.MakeJob(_person.Id, action: JobAction.Work, roomId: roomId),
+        await _service.Add(Builders.MakeJob(_creature.Id, action: JobAction.Work, roomId: roomId),
             TestContext.Current.CancellationToken);
-        await _service.Add(Builders.MakeJob(otherPerson.Id, action: JobAction.Sleep, roomId: Guid.NewGuid()),
+        await _service.Add(Builders.MakeJob(otherCreature.Id, action: JobAction.Sleep, roomId: Guid.NewGuid()),
             TestContext.Current.CancellationToken);
 
         // Act
-        var personIds = await _service.GetPersonIdsByRoomId(roomId, TestContext.Current.CancellationToken);
+        var creatureIds = await _service.GetCreatureIdsByRoomId(roomId, TestContext.Current.CancellationToken);
 
         // Assert
-        var id = Assert.Single(personIds);
-        Assert.Equal(_person.Id, id);
+        var id = Assert.Single(creatureIds);
+        Assert.Equal(_creature.Id, id);
     }
 
     [Fact]
     public async Task Delete_RemovesJob() {
         // Arrange
-        var job = Builders.MakeJob(_person.Id);
+        var job = Builders.MakeJob(_creature.Id);
         await _service.Add(job, TestContext.Current.CancellationToken);
 
         // Act

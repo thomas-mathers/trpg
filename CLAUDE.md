@@ -13,7 +13,7 @@
 
 ### General
 - File-scoped namespaces (`namespace TRPG.Models;`)
-- Primary constructors everywhere (`public class PersonService(TrpgDbContext context)`)
+- Primary constructors everywhere (`public class CreatureService(TrpgDbContext context)`)
 - Expression-bodied members for simple one-liners
 - Place related types (classes, records, enums) in the same file as the class they primarily support — no standalone `Enums.cs` or similar
 - Use named parameters when constructing records or objects with multiple positional arguments of the same or similar types (e.g. `new StatAffinities(Strength: 3, Defense: 2, ...)` not `new StatAffinities(3, 2, ...)`)

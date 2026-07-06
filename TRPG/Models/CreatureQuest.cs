@@ -1,4 +1,4 @@
-﻿namespace TRPG.Models;
+namespace TRPG.Models;
 
 internal enum QuestStatus {
     Accepted,
@@ -7,9 +7,9 @@ internal enum QuestStatus {
     Abandoned
 }
 
-internal class PersonQuest {
+internal class CreatureQuest {
+    public Guid CreatureId { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid PersonId { get; init; }
     public Quest Quest { get; init; } = null!;
     public Guid QuestId { get; init; }
     public QuestStatus Status { get; set; }

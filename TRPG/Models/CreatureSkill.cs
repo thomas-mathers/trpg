@@ -1,10 +1,10 @@
 namespace TRPG.Models;
 
-internal class PersonSkill {
+internal class CreatureSkill {
+    public Guid CreatureId { get; init; }
     public int Experience { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Level { get; set; }
-    public Guid PersonId { get; init; }
     public Skill Skill { get; init; }
     public Guid WorldId { get; init; }
 }

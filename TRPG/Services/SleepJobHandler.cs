@@ -2,14 +2,14 @@ using TRPG.Models;
 
 namespace TRPG.Services;
 
-internal class SleepJobHandler(PersonService personService) {
-    public async Task Execute(Person person, Job job, CancellationToken cancellationToken = default) {
-        if (person.RoomId == job.RoomId && person.State == PersonState.Sleeping) {
+internal class SleepJobHandler(CreatureService creatureService) {
+    public async Task Execute(Creature creature, Job job, CancellationToken cancellationToken = default) {
+        if (creature.RoomId == job.RoomId && creature.State == CreatureState.Sleeping) {
             return;
         }
 
-        person.RoomId = job.RoomId;
-        person.State = PersonState.Sleeping;
-        await personService.Update(person, cancellationToken);
+        creature.RoomId = job.RoomId;
+        creature.State = CreatureState.Sleeping;
+        await creatureService.Update(creature, cancellationToken);
     }
 }

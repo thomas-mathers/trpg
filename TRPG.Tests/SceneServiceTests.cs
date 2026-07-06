@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.Models;
 using TRPG.Services;
@@ -10,9 +9,8 @@ namespace TRPG.Tests;
 [Collection("Database")]
 public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
-    private Person _nearbyPerson = null!;
-    private Person _player = null!;
-    private Race _race = null!;
+    private Creature _nearbyCreature = null!;
+    private Creature _player = null!;
     private SceneService _service = null!;
     private State _state = null!;
     private Guid _worldId;
@@ -20,15 +18,15 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
         var jobService = new JobService(_context);
-        var personService = new PersonService(_context);
+        var creatureService = new CreatureService(_context);
         var buildingService = new BuildingService(_context);
         var inventoryService = new InventoryService(_context);
         var dispatcher = new JobDispatcher(
-            new SleepJobHandler(personService), new WorkJobHandler(personService), new IdleJobHandler(personService),
-            NullLogger<JobDispatcher>.Instance);
+            new SleepJobHandler(creatureService), new WorkJobHandler(creatureService),
+            new IdleJobHandler(creatureService), NullLogger<JobDispatcher>.Instance);
         var lockService = new LockService(buildingService, jobService, inventoryService);
         var reputationService = new ReputationService(_context);
-        var jobCatchUpService = new JobCatchUpService(jobService, personService, dispatcher,
+        var jobCatchUpService = new JobCatchUpService(jobService, creatureService, dispatcher,
             NullLogger<JobCatchUpService>.Instance);
         _service = new SceneService(_context, jobCatchUpService, lockService, reputationService,
             NullLogger<SceneService>.Instance);
@@ -36,15 +34,13 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
         _worldId = Guid.NewGuid();
         var country = Builders.MakeCountry(_worldId);
         _state = Builders.MakeState(country.Id);
-        _race = Builders.MakeRace(_worldId);
 
-        _player = Builders.MakePerson(_worldId, _race.Id, stateId: _state.Id, birthYear: 950);
-        _nearbyPerson = Builders.MakePerson(_worldId, _race.Id, stateId: _state.Id, birthYear: 900);
+        _player = Builders.MakeCreature(_worldId, stateId: _state.Id, birthYear: 950);
+        _nearbyCreature = Builders.MakeCreature(_worldId, stateId: _state.Id, birthYear: 900);
 
         _context.Countries.Add(country);
         _context.States.Add(_state);
-        _context.Races.Add(_race);
-        _context.Persons.AddRange(_player, _nearbyPerson);
+        _context.Creatures.AddRange(_player, _nearbyCreature);
         await _context.SaveChangesAsync();
     }
 
@@ -65,7 +61,7 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetScene_ComputesNearbyPersonAge_FromCurrentInGameYear() {
+    public async Task GetScene_ComputesNearbyCreatureAge_FromCurrentInGameYear() {
         // Arrange
         var query = new SceneQuery(_worldId, _player.Id, new InGameDate(975, "Thawmoon", 1, "Stormday", 14));
 
@@ -73,7 +69,7 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var result = await _service.GetScene(query, TestContext.Current.CancellationToken);
 
         // Assert
-        var nearby = Assert.Single(result.NearbyPeople, p => p.Name == _nearbyPerson.Name);
+        var nearby = Assert.Single(result.NearbyPeople, p => p.Name == _nearbyCreature.Name);
         Assert.Equal(75, nearby.Age);
     }
 

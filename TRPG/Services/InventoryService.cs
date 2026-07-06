@@ -1,15 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
 internal class InventoryService(TrpgDbContext context) {
-    public async Task Add(Guid personId, Guid itemId, int quantity, CancellationToken cancellationToken = default) {
+    public async Task Add(Guid creatureId, Guid itemId, int quantity, CancellationToken cancellationToken = default) {
         var item = await context.Items.FindAsync([itemId], cancellationToken);
         if (item is { IsStackable: true }) {
             var existing = await context.InventoryItems
-                .FirstOrDefaultAsync(i => i.PersonId == personId && i.ItemId == itemId, cancellationToken);
+                .FirstOrDefaultAsync(i => i.CreatureId == creatureId && i.ItemId == itemId, cancellationToken);
 
             if (existing != null) {
                 existing.Quantity += quantity;
@@ -19,17 +19,17 @@ internal class InventoryService(TrpgDbContext context) {
         }
 
         var maxIndex = await context.InventoryItems
-            .Where(i => i.PersonId == personId)
+            .Where(i => i.CreatureId == creatureId)
             .MaxAsync(i => (int?) i.Index, cancellationToken) ?? -1;
 
-        var worldId = await context.Persons
-            .Where(p => p.Id == personId)
+        var worldId = await context.Creatures
+            .Where(p => p.Id == creatureId)
             .Select(p => p.WorldId)
             .FirstAsync(cancellationToken);
 
         context.InventoryItems.Add(new InventoryItem {
             Id = Guid.NewGuid(),
-            PersonId = personId,
+            CreatureId = creatureId,
             ItemId = itemId,
             Quantity = quantity,
             Index = maxIndex + 1,
@@ -39,17 +39,17 @@ internal class InventoryService(TrpgDbContext context) {
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task Equip(Guid personId, Guid itemId, EquipmentSlot slot,
+    public async Task Equip(Guid creatureId, Guid itemId, EquipmentSlot slot,
         CancellationToken cancellationToken = default) {
         var toEquip = await context.InventoryItems
-            .FirstOrDefaultAsync(i => i.PersonId == personId && i.ItemId == itemId, cancellationToken);
+            .FirstOrDefaultAsync(i => i.CreatureId == creatureId && i.ItemId == itemId, cancellationToken);
 
         if (toEquip == null) {
-            throw new InvalidOperationException($"Item {itemId} not found in person {personId}'s inventory.");
+            throw new InvalidOperationException($"Item {itemId} not found in creature {creatureId}'s inventory.");
         }
 
         var currentlyEquipped = await context.InventoryItems
-            .FirstOrDefaultAsync(i => i.PersonId == personId && i.EquippedSlot == slot, cancellationToken);
+            .FirstOrDefaultAsync(i => i.CreatureId == creatureId && i.EquippedSlot == slot, cancellationToken);
 
         if (currentlyEquipped != null) {
             currentlyEquipped.EquippedSlot = null;
@@ -60,12 +60,12 @@ internal class InventoryService(TrpgDbContext context) {
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task Unequip(Guid personId, EquipmentSlot slot, CancellationToken cancellationToken = default) {
+    public async Task Unequip(Guid creatureId, EquipmentSlot slot, CancellationToken cancellationToken = default) {
         var item = await context.InventoryItems
-            .FirstOrDefaultAsync(i => i.PersonId == personId && i.EquippedSlot == slot, cancellationToken);
+            .FirstOrDefaultAsync(i => i.CreatureId == creatureId && i.EquippedSlot == slot, cancellationToken);
 
         if (item == null) {
-            throw new InvalidOperationException($"No item equipped in slot {slot} for person {personId}.");
+            throw new InvalidOperationException($"No item equipped in slot {slot} for creature {creatureId}.");
         }
 
         item.EquippedSlot = null;
@@ -73,22 +73,22 @@ internal class InventoryService(TrpgDbContext context) {
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<InventoryItem>> GetAllByPersonId(Guid personId,
+    public async Task<IReadOnlyCollection<InventoryItem>> GetAllByCreatureId(Guid creatureId,
         CancellationToken cancellationToken = default) {
         var list = await context.InventoryItems
             .Include(i => i.Item)
-            .Where(i => i.PersonId == personId)
+            .Where(i => i.CreatureId == creatureId)
             .OrderBy(i => i.Index)
             .ToArrayAsync(cancellationToken);
         return list;
     }
 
-    public async Task Remove(Guid personId, Guid itemId, int quantity, CancellationToken cancellationToken = default) {
+    public async Task Remove(Guid creatureId, Guid itemId, int quantity, CancellationToken cancellationToken = default) {
         var existing = await context.InventoryItems
-            .FirstOrDefaultAsync(i => i.PersonId == personId && i.ItemId == itemId, cancellationToken);
+            .FirstOrDefaultAsync(i => i.CreatureId == creatureId && i.ItemId == itemId, cancellationToken);
 
         if (existing == null) {
-            throw new InvalidOperationException($"Item {itemId} not found in person {personId}'s inventory.");
+            throw new InvalidOperationException($"Item {itemId} not found in creature {creatureId}'s inventory.");
         }
 
         existing.Quantity -= quantity;

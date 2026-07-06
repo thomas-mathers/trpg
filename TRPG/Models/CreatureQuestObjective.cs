@@ -1,10 +1,10 @@
-﻿namespace TRPG.Models;
+namespace TRPG.Models;
 
-internal class PersonQuestObjective {
+internal class CreatureQuestObjective {
     public int Amount { get; set; }
+    public Guid CreatureId { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public QuestObjective Objective { get; init; } = null!;
     public Guid ObjectiveId { get; init; }
-    public Guid PersonId { get; init; }
     public Guid WorldId { get; init; }
 }

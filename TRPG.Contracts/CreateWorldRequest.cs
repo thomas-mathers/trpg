@@ -1,7 +1,34 @@
 namespace TRPG.Contracts;
 
+public enum Race {
+    Human,
+    Elf,
+    Dwarf,
+    Orc,
+    Halfling,
+    Gnome,
+}
+
+public enum Profession {
+    Knight,
+    Rogue,
+    Ranger,
+    Mage,
+    Cleric,
+    Mercenary,
+    Alchemist,
+    Blacksmith,
+    Scholar,
+    Merchant,
+    Politician,
+    StableMaster,
+    Bartender,
+    Guard
+}
+
 public record CreateWorldRequest {
     public required string PlayerName { get; init; }
+    public required Race Race { get; init; }
     public required Profession Profession { get; init; }
     public string Description { get; init; } = WorldGenerationDefaults.Description;
     public int MinCountries { get; init; } = WorldGenerationDefaults.MinCountries;
@@ -17,10 +44,5 @@ public record CreateWorldRequest {
     public int HousesPerCity { get; init; } = WorldGenerationDefaults.HousesPerCity;
     public int MinHouseholdSize { get; init; } = WorldGenerationDefaults.MinHouseholdSize;
     public int MaxHouseholdSize { get; init; } = WorldGenerationDefaults.MaxHouseholdSize;
-    public int RaceCount { get; init; } = WorldGenerationDefaults.RaceCount;
     public int FactionCount { get; init; } = WorldGenerationDefaults.FactionCount;
 }
-
-public record CreateWorldResponse(Guid WorldId, Guid PlayerId, string WorldName);
-
-public record WorldSummary(Guid WorldId, string Name, bool HasPlayer);

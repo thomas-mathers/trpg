@@ -36,6 +36,8 @@ builder.Services.ConfigureHttpJsonOptions(options => {
 
 var app = builder.Build();
 
+app.UseWebSockets();
+
 _ = Task.Run(async () => {
     await using var scope = app.Services.CreateAsyncScope();
     var warmupContext = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();

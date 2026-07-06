@@ -17,7 +17,7 @@ internal class LockService(BuildingService buildingService, JobService jobServic
             return;
         }
 
-        var jobs = await jobService.GetAllByPersonId(ownerId.Value, cancellationToken);
+        var jobs = await jobService.GetAllByCreatureId(ownerId.Value, cancellationToken);
         var activeJob = jobs
             .Where(j => JobScheduling.IsActiveAtHour(j, hour))
             .OrderByDescending(j => j.Priority)
@@ -30,7 +30,7 @@ internal class LockService(BuildingService buildingService, JobService jobServic
         await buildingService.SetFrontDoorLocked(buildingId, activeJob.Action == JobAction.Sleep, cancellationToken);
     }
 
-    public async Task<bool> CanEnter(Guid entranceRoomId, Guid enteringPersonId,
+    public async Task<bool> CanEnter(Guid entranceRoomId, Guid enteringCreatureId,
         CancellationToken cancellationToken = default) {
         var door = await buildingService.GetFrontDoor(entranceRoomId, cancellationToken);
         if (door is not { IsLocked: true }) {
@@ -42,7 +42,7 @@ internal class LockService(BuildingService buildingService, JobService jobServic
             return true;
         }
 
-        var inventory = await inventoryService.GetAllByPersonId(enteringPersonId, cancellationToken);
+        var inventory = await inventoryService.GetAllByCreatureId(enteringCreatureId, cancellationToken);
         return inventory.Any(i => validKeyItemIds.Contains(i.ItemId));
     }
 }

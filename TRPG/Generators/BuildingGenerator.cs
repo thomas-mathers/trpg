@@ -235,14 +235,14 @@ internal class BuildingGenerator {
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter", Description = "A wooden counter for trading.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             new RoomSpec("Living Quarters", "Simple living quarters above the shop.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -266,14 +266,14 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter",
                         Description = "A counter for selling remedies.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             new RoomSpec("Living Quarters", "Modest living quarters above the apothecary.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -295,14 +295,14 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter",
                         Description = "A counter for selling baked goods.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             new RoomSpec("Living Quarters", "Living quarters above the bakery.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -325,14 +325,14 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter",
                         Description = "A counter for selling arcane wares.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             new RoomSpec("Living Quarters", "Living quarters above the arcane shop.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -349,7 +349,7 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter",
                         Description = "A counter for general trading.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Crate",
                     (id, worldId) => new Container
@@ -362,7 +362,7 @@ internal class BuildingGenerator {
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -398,14 +398,14 @@ internal class BuildingGenerator {
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for lending books.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             new RoomSpec("Study", "A private study for the librarian.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Bookcase",
                     (id, worldId) => new Workstation {
@@ -441,14 +441,14 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter",
                         Description = "A counter for donations and offerings.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             new RoomSpec("Quarters", "Living quarters for the temple keeper.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A simple bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -483,14 +483,14 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Bar Counter",
                         Description = "A long counter for serving drinks.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             new RoomSpec("Owner's Quarters", "The owner's private living space.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "The owner's bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -527,7 +527,7 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Innkeeper's Counter",
                         Description = "A counter for booking rooms.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             ..guestRooms,
@@ -535,7 +535,7 @@ internal class BuildingGenerator {
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "The innkeeper's bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -555,7 +555,7 @@ internal class BuildingGenerator {
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
-                        AssignedPersonId = memberId
+                        AssignedCreatureId = memberId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -581,7 +581,7 @@ internal class BuildingGenerator {
                 new PropSpec("Counter",
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter", Description = "A counter for guild business.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             ..memberRooms
@@ -594,7 +594,7 @@ internal class BuildingGenerator {
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
-                        AssignedPersonId = memberId
+                        AssignedCreatureId = memberId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -623,7 +623,7 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter",
                         Description = "A counter for selling horses and supplies.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Barrel",
                     (id, worldId) => new Container
@@ -633,7 +633,7 @@ internal class BuildingGenerator {
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A simple bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     })
             ])
         ];
@@ -651,14 +651,14 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter",
                         Description = "A counter for issuing orders and supplies.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             new RoomSpec("Officer's Quarters", "A spartan private room for the commanding officer.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A simple cot.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
@@ -688,14 +688,14 @@ internal class BuildingGenerator {
                     (id, worldId) => new Workstation {
                         RoomId = id, WorldId = worldId, Name = "Counter",
                         Description = "A counter for receiving tribute and trade.",
-                        WorkstationType = WorkstationType.Trade, AssignedPersonId = ownerId
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
                     })
             ]),
             new RoomSpec("Royal Chambers", "Lavish private chambers for the lord.", 1, 1, [
                 new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A grand four-poster bed.",
-                        AssignedPersonId = ownerId
+                        AssignedCreatureId = ownerId
                     }),
                 new PropSpec("Chest",
                     (id, worldId) => new Container

@@ -12,15 +12,15 @@ internal record InventoryItemInfo(string Name, int Quantity);
 internal record InventoryResult(string OwnerName, int Gold, IReadOnlyCollection<InventoryItemInfo> Items);
 
 internal class InventoryTool : Tool, IInvokableTool {
+    private readonly CreatureService _creatureService;
     private readonly InventoryService _inventoryService;
     private readonly ILogger<InventoryTool> _logger;
-    private readonly PersonService _personService;
     private readonly GameSession _session;
 
-    public InventoryTool(GameSession session, PersonService personService, InventoryService inventoryService,
+    public InventoryTool(GameSession session, CreatureService creatureService, InventoryService inventoryService,
         ILogger<InventoryTool> logger) {
         _session = session;
-        _personService = personService;
+        _creatureService = creatureService;
         _inventoryService = inventoryService;
         _logger = logger;
 
@@ -45,29 +45,29 @@ internal class InventoryTool : Tool, IInvokableTool {
     public object? InvokeMethod(IDictionary<string, object?>? args) {
         var targetName = args != null && args.TryGetValue("targetName", out var raw) ? raw?.ToString() : null;
 
-        _logger.LogDebug("[inventory] targetName={TargetName}", targetName ?? "(self)");
+        _logger.LogInformation("[inventory] targetName={TargetName}", targetName ?? "(self)");
         var result = InvokeMethodAsync(targetName, CancellationToken.None).GetAwaiter().GetResult();
         var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogDebug("[inventory] result: {Result}", json);
+        _logger.LogInformation("[inventory] result: {Result}", json);
         return json;
     }
 
     private async Task<object?> InvokeMethodAsync(string? targetName, CancellationToken cancellationToken) {
-        var player = await _personService.GetById(_session.PlayerId, cancellationToken);
+        var player = await _creatureService.GetById(_session.PlayerId, cancellationToken);
 
-        Person? target;
+        Creature? target;
         if (string.IsNullOrWhiteSpace(targetName)) {
             target = player;
         }
         else {
-            target = await _personService.GetByNameNearby(_session.WorldId, player!, targetName, cancellationToken);
+            target = await _creatureService.GetByNameNearby(_session.WorldId, player!, targetName, cancellationToken);
 
             if (target == null) {
                 return new { Error = $"No one named '{targetName}' found nearby. Call look to see who's around." };
             }
         }
 
-        var items = await _inventoryService.GetAllByPersonId(target!.Id, cancellationToken);
+        var items = await _inventoryService.GetAllByCreatureId(target!.Id, cancellationToken);
 
         return new InventoryResult(
             target.Name,

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Models;
 
@@ -10,18 +10,18 @@ internal class JobService(TrpgDbContext context) {
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Job>> GetAllByPersonId(Guid personId,
+    public async Task<IReadOnlyList<Job>> GetAllByCreatureId(Guid creatureId,
         CancellationToken cancellationToken = default) {
         var list = await context.Jobs
-            .Where(j => j.PersonId == personId)
+            .Where(j => j.CreatureId == creatureId)
             .OrderByDescending(j => j.Priority)
             .ToArrayAsync(cancellationToken);
         return list;
     }
 
-    public async Task<IReadOnlyList<Guid>> GetPersonIdsByRoomId(Guid roomId,
+    public async Task<IReadOnlyList<Guid>> GetCreatureIdsByRoomId(Guid roomId,
         CancellationToken cancellationToken = default) {
-        var ids = await context.Jobs.Where(j => j.RoomId == roomId).Select(j => j.PersonId).Distinct()
+        var ids = await context.Jobs.Where(j => j.RoomId == roomId).Select(j => j.CreatureId).Distinct()
             .ToArrayAsync(cancellationToken);
         return ids;
     }

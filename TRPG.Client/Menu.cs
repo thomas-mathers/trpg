@@ -36,9 +36,10 @@ internal sealed class Menu(GameServerClient client, Game game) {
 
     private async Task RunNew(CancellationToken cancellationToken) {
         var playerName = PromptForString("Choose your name");
+        var creatureType = PromptForOption("Choose your race", Enum.GetValues<Race>(), r => r.ToString());
         var profession = PromptForOption("Choose your profession", Enum.GetValues<Profession>(), r => r.ToString());
 
-        var request = PromptWorldGenerationParameters(playerName, profession);
+        var request = PromptWorldGenerationParameters(playerName, creatureType, profession);
 
         Console.WriteLine("Generating world...");
 
@@ -47,15 +48,16 @@ internal sealed class Menu(GameServerClient client, Game game) {
         Console.WriteLine($"\nWorld \"{world.WorldName}\" generated.");
         Console.WriteLine($"Entering \"{world.WorldName}\" as {playerName} the {profession}...");
 
-        var session = await client.StartSession(world.WorldId, cancellationToken);
-        await game.Run(session.SessionId, session.Response, cancellationToken);
+        var sessionId = await client.StartSession(world.WorldId, cancellationToken);
+        await game.Run(sessionId, cancellationToken);
     }
 
-    private static CreateWorldRequest PromptWorldGenerationParameters(string playerName, Profession profession) {
+    private static CreateWorldRequest PromptWorldGenerationParameters(string playerName, Race creatureType, Profession profession) {
         Console.WriteLine("Configure generation (press Enter to use defaults):");
 
         return new CreateWorldRequest {
             PlayerName = playerName,
+            Race = creatureType,
             Profession = profession,
             Description = PromptForString("  Description", WorldGenerationDefaults.Description),
             MinCountries = PromptForInt("  Countries min", WorldGenerationDefaults.MinCountries),
@@ -71,7 +73,6 @@ internal sealed class Menu(GameServerClient client, Game game) {
             HousesPerCity = PromptForInt("  Houses/city", WorldGenerationDefaults.HousesPerCity),
             MinHouseholdSize = PromptForInt("  Household size min", WorldGenerationDefaults.MinHouseholdSize),
             MaxHouseholdSize = PromptForInt("  Household size max", WorldGenerationDefaults.MaxHouseholdSize),
-            RaceCount = PromptForInt("  Races", WorldGenerationDefaults.RaceCount),
             FactionCount = PromptForInt("  Factions", WorldGenerationDefaults.FactionCount)
         };
     }
@@ -82,8 +83,8 @@ internal sealed class Menu(GameServerClient client, Game game) {
             return;
         }
 
-        var session = await client.StartSession(world.WorldId, cancellationToken);
-        await game.Run(session.SessionId, session.Response, cancellationToken);
+        var sessionId = await client.StartSession(world.WorldId, cancellationToken);
+        await game.Run(sessionId, cancellationToken);
     }
 
     private async Task<WorldSummary?> AutoSelectWorld(CancellationToken cancellationToken) {

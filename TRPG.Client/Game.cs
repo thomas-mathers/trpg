@@ -1,14 +1,15 @@
-using System.Text.Json;
-
 namespace TRPG.Client;
 
 internal sealed class Game(GameServerClient client) {
-    public async Task Run(Guid sessionId, string openingResponse, CancellationToken cancellationToken) {
+    public async Task Run(Guid sessionId, CancellationToken cancellationToken) {
         Console.Clear();
         Console.WriteLine("Welcome to the TRPG Game Master!");
         Console.WriteLine("Type 'exit' to quit.");
         Console.WriteLine();
-        Console.Write(openingResponse);
+
+        await foreach (var token in client.ReceiveOpening(cancellationToken)) {
+            Console.Write(token);
+        }
 
         while (true) {
             Console.Write("\n> ");
@@ -20,7 +21,7 @@ internal sealed class Game(GameServerClient client) {
             }
 
             if (input.Equals("exit", StringComparison.OrdinalIgnoreCase)) {
-                await client.EndSession(sessionId, cancellationToken);
+                await client.EndSession(cancellationToken);
                 break;
             }
 
@@ -29,8 +30,9 @@ internal sealed class Game(GameServerClient client) {
                 continue;
             }
 
-            var response = await client.SendChat(sessionId, input, cancellationToken);
-            Console.Write(response.Response);
+            await foreach (var token in client.SendChat(input, cancellationToken)) {
+                Console.Write(token);
+            }
         }
     }
 
@@ -43,6 +45,5 @@ internal sealed class Game(GameServerClient client) {
 
         var wait = await client.Wait(sessionId, hours, cancellationToken);
         Console.WriteLine(wait.Message);
-        Console.WriteLine(JsonSerializer.Serialize(wait.Scene));
     }
 }

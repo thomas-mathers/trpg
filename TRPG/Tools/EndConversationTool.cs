@@ -53,10 +53,10 @@ internal class EndConversationTool : Tool, IInvokableTool {
         var npcName = npcNameRaw.ToString()!;
         var summary = summaryRaw.ToString()!;
 
-        _logger.LogDebug("[end_conversation] npcName={NpcName}", npcName);
+        _logger.LogInformation("[end_conversation] npcName={NpcName}", npcName);
         var result = InvokeMethodAsync(npcName, summary, CancellationToken.None).GetAwaiter().GetResult();
         var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogDebug("[end_conversation] result: {Result}", json);
+        _logger.LogInformation("[end_conversation] result: {Result}", json);
         return json;
     }
 

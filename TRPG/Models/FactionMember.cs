@@ -6,9 +6,9 @@ internal enum FactionRole {
 }
 
 internal class FactionMember {
+    public Guid CreatureId { get; init; }
     public Guid FactionId { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid PersonId { get; init; }
     public FactionRole Role { get; set; }
     public Guid WorldId { get; init; }
 }

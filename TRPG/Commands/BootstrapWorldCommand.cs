@@ -12,11 +12,11 @@ internal class BootstrapWorldCommandHandler(
 ) {
     public async Task<BootstrapWorldResult> Handle(
         WorldGeneratorResult world,
-        PersonGeneratorResult? player,
+        CreatureGeneratorResult? player,
         CancellationToken cancellationToken
     ) {
         if (player != null) {
-            world.World.PlayerId = player.Person.Id;
+            world.World.PlayerId = player.Creature.Id;
         }
 
         context.Worlds.Add(world.World);
@@ -24,28 +24,27 @@ internal class BootstrapWorldCommandHandler(
         context.States.AddRange(world.States);
         context.Cities.AddRange(world.Cities);
         context.Districts.AddRange(world.Districts);
-        context.Races.AddRange(world.Races);
         context.Factions.AddRange(world.Factions);
         context.FactionMembers.AddRange(world.FactionMembers);
         context.Roads.AddRange(world.Roads);
         context.Buildings.AddRange(world.Buildings);
-        context.Persons.AddRange(world.Persons);
+        context.Creatures.AddRange(world.Creatures);
         context.BuildingOwners.AddRange(world.BuildingOwners);
         context.Items.AddRange(world.Items);
         context.InventoryItems.AddRange(world.InventoryItems);
         context.Rooms.AddRange(world.Rooms);
         context.Props.AddRange(world.Props);
-        context.PersonSkills.AddRange(world.Skills);
-        context.PersonAbilities.AddRange(world.Abilities);
+        context.CreatureSkills.AddRange(world.Skills);
+        context.CreatureAbilities.AddRange(world.Abilities);
         context.Jobs.AddRange(world.Jobs);
         context.RoomConnectorKeys.AddRange(world.RoomConnectorKeys);
 
         if (player != null) {
-            context.Persons.Add(player.Person);
+            context.Creatures.Add(player.Creature);
             context.Items.AddRange(player.Items);
             context.InventoryItems.AddRange(player.InventoryItems);
-            context.PersonSkills.AddRange(player.Skills);
-            context.PersonAbilities.AddRange(player.Abilities);
+            context.CreatureSkills.AddRange(player.Skills);
+            context.CreatureAbilities.AddRange(player.Abilities);
         }
 
         await context.SaveChangesAsync(cancellationToken);

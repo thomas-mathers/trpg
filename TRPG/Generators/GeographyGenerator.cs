@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
-using TRPG.Contracts;
 using TRPG.Extensions;
 using TRPG.Models;
 
@@ -9,16 +8,15 @@ namespace TRPG.Generators;
 
 internal class GeographyGeneratorInput {
     public required string Description { get; init; }
-    public int MaxCityStates { get; init; } = WorldGenerationDefaults.MaxCityStates;
-    public int MaxCountries { get; init; } = WorldGenerationDefaults.MaxCountries;
-    public int MaxRuralStates { get; init; } = WorldGenerationDefaults.MaxRuralStates;
-    public int MinCityStates { get; init; } = WorldGenerationDefaults.MinCityStates;
-    public int MinCountries { get; init; } = WorldGenerationDefaults.MinCountries;
-    public int MinRuralStates { get; init; } = WorldGenerationDefaults.MinRuralStates;
-    public IReadOnlyList<Race>? Races { get; init; }
-    public int WorldHeight { get; init; } = WorldGenerationDefaults.WorldHeight;
+    public int MaxCityStates { get; init; }
+    public int MaxCountries { get; init; }
+    public int MaxRuralStates { get; init; }
+    public int MinCityStates { get; init; }
+    public int MinCountries { get; init; }
+    public int MinRuralStates { get; init; }
+    public int WorldHeight { get; init; } = 10000;
     public Guid? WorldId { get; init; }
-    public int WorldWidth { get; init; } = WorldGenerationDefaults.WorldWidth;
+    public int WorldWidth { get; init; } = 10000;
 }
 
 internal class GeographyGeneratorResult {
@@ -34,6 +32,7 @@ internal class GeographyGenerator(
     IOllamaApiClient client,
     ILogger<GeographyGenerator> logger) {
     private const int MaxCitiesPerRequest = 6;
+    private const int CityTileSize = 100;
 
     private static readonly string[] CityFocusList = [
         "trade and commerce",
@@ -49,13 +48,12 @@ internal class GeographyGenerator(
     ];
 
     private static readonly string[] NamingStyles = [
-        "Norse (e.g., Halvard, Ironvik, Skaldmere, Dawnfjord, Ashvik)",
-        "Roman (e.g., Varentum, Ostara, Caelis, Viridunum, Arvona)",
-        "Celtic-inspired invented names (e.g., Dun Mhor, Carath, Briga, Valdun, Erenmor) — do NOT use real-world place names",
-        "Arabic (e.g., Qadir, Zafar, Tariq, Basira, Sulkhan)",
-        "Persian (e.g., Shirat, Karaj, Firuz, Ardahan, Marvast)",
-        "Slavic (e.g., Vrathok, Kazan, Novik, Srebren, Mirov)",
-        "Japanese-inspired (e.g., Hakurei, Tsuruga, Midori, Karaten, Shiran)"
+        "Human (e.g., Ashford, Ravencrest, Stonebridge, Kingsley, Larkspur)",
+        "Elvish (e.g., Silverhollow, Moonspire, Duskmere, Starfall Vale, Evenwood)",
+        "Dwarvish (e.g., Ironhold, Stonereach, Emberforge, Deepdelve, Granitespire)",
+        "Orcish (e.g., Skarnhold, Ghazbul's Rest, Bloodfang Camp, Grimtusk Hold, Warscar)",
+        "Halfling (e.g., Applewood Hollow, Meadowbrook, Thistledown, Hayworth Crossing, Oakhollow)",
+        "Gnomish (e.g., Cogsworth Junction, Sprocketville, Tinkerhollow, Gearford, Fizzlewick)"
     ];
 
     public async Task<GeographyGeneratorResult> Generate(
@@ -168,7 +166,6 @@ internal class GeographyGenerator(
         var cities = new List<City>();
         var cityFocuses = new Dictionary<Guid, string>();
         var stateById = new Dictionary<Guid, State>();
-        var races = context.GeneratorInput.Races;
         var countryIndex = 0;
 
         foreach (var (countryLayoutId, country) in countries.CountryById) {
@@ -181,9 +178,7 @@ internal class GeographyGenerator(
             var nonCityStates = countryStates.Where(s => !s.HasCity).ToList();
 
             if (cityStates.Count > 0) {
-                var namingStyle = races is { Count: > 0 }
-                    ? $"{races[countryIndex % races.Count].CultureStyle} (matching the {races[countryIndex % races.Count].Name} race who dominate this country)"
-                    : NamingStyles[countryIndex % NamingStyles.Length];
+                var namingStyle = NamingStyles[countryIndex % NamingStyles.Length];
 
                 for (var chunkStart = 0; chunkStart < cityStates.Count; chunkStart += MaxCitiesPerRequest) {
                     var chunk = cityStates.Skip(chunkStart).Take(MaxCitiesPerRequest).ToList();
@@ -234,8 +229,8 @@ internal class GeographyGenerator(
                             CountryId = country.Id,
                             Name = $"{schema.Cities[j].Name} Territory",
                             Description = schema.Cities[j].Description,
-                            Width = WorldGenerationDefaults.CityTileSize,
-                            Height = WorldGenerationDefaults.CityTileSize,
+                            Width = CityTileSize,
+                            Height = CityTileSize,
                             Center = mapState.Center,
                             Boundary = new Polygon { Points = new List<Point>(mapState.Boundary.Points.ToArray()) },
                             WorldId = world.Id
@@ -263,8 +258,8 @@ internal class GeographyGenerator(
                     CountryId = country.Id,
                     Name = $"Wilderness {j + 1}",
                     Description = "An untamed wilderness region.",
-                    Width = WorldGenerationDefaults.CityTileSize,
-                    Height = WorldGenerationDefaults.CityTileSize,
+                    Width = CityTileSize,
+                    Height = CityTileSize,
                     Center = mapState.Center,
                     Boundary = new Polygon { Points = new List<Point>(mapState.Boundary.Points.ToArray()) },
                     WorldId = world.Id

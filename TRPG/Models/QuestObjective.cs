@@ -8,11 +8,10 @@ internal enum QuestObjectiveType {
 }
 
 internal enum QuestTargetType {
-    Person,
+    Creature,
     Item,
     City,
-    Building,
-    Race
+    Building
 }
 
 internal class QuestObjective {

@@ -26,6 +26,7 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         // Arrange
         var request = new CreateWorldRequest {
             PlayerName = "Test Player",
+            Race = Race.Human,
             Profession = Profession.Knight,
             MinCountries = 1,
             MaxCountries = 1,
@@ -38,7 +39,6 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
             MinFactionMembers = 1,
             MaxFactionMembers = 1,
             FactionCount = 1,
-            RaceCount = 1,
             HousesPerCity = 1,
             MinHouseholdSize = 1,
             MaxHouseholdSize = 1

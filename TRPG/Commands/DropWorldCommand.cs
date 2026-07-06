@@ -19,12 +19,12 @@ internal class DropWorldCommandHandler(TrpgDbContext context) {
         await context.BuildingOwners.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.FactionMembers.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Reputations.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.PersonQuestObjectives.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.PersonQuests.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.CreatureQuestObjectives.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.CreatureQuests.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.QuestObjectives.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Quests.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.PersonAbilities.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.PersonSkills.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.CreatureAbilities.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.CreatureSkills.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Jobs.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.NpcConversations.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.WorldEvents.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
@@ -35,9 +35,8 @@ internal class DropWorldCommandHandler(TrpgDbContext context) {
         await context.Roads.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.States.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Countries.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.Races.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Factions.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.Persons.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Creatures.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Worlds.Where(x => x.Id == worldId).ExecuteDeleteAsync(cancellationToken);
     }
 }

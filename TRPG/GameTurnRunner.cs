@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -41,9 +42,22 @@ internal class GameTurnRunner(
         Tone: Gritty low fantasy. Factions scheme, roads are dangerous, and most people are just trying to survive. Magic exists but is rare and unsettling. Humour is welcome; heroism is earned.
         """;
 
-    public async Task<TurnMetrics> SendOpening(CancellationToken cancellationToken = default) {
+    public async IAsyncEnumerable<string> SendOpeningStreaming(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
         var openingPrompt = await BuildOpeningPrompt(cancellationToken);
-        return await SendAndLog(openingPrompt, cancellationToken);
+        logger.LogInformation("[game] >>> {Message}", openingPrompt);
+
+        var buffer = new StringBuilder();
+        await foreach (var token in chat.SendAsync(openingPrompt, tools, cancellationToken: cancellationToken)) {
+            buffer.Append(token);
+            yield return token;
+        }
+
+        logger.LogInformation("[game] <<< {Response}", buffer.ToString());
+
+        if (session.DidMoveThisTurn) {
+            await RunPostMoveCleanup(cancellationToken);
+        }
     }
 
     public async Task<TurnMetrics> ProcessTurn(string input, CancellationToken cancellationToken = default) {
@@ -51,12 +65,34 @@ internal class GameTurnRunner(
         var metrics = await SendAndLog(input, cancellationToken);
 
         if (session.DidMoveThisTurn) {
-            var currentTurnStart = chat.Messages.FindLastIndex(m => m.Role == ChatRole.User);
-            await CloseLingeringConversations(cancellationToken);
-            ClearPreviousTurns(currentTurnStart);
+            await RunPostMoveCleanup(cancellationToken);
         }
 
         return metrics;
+    }
+
+    public async IAsyncEnumerable<string> ProcessTurnStreaming(string input,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+        session.DidMoveThisTurn = false;
+        logger.LogInformation("[game] >>> {Message}", input);
+
+        var buffer = new StringBuilder();
+        await foreach (var token in chat.SendAsync(input, tools, cancellationToken: cancellationToken)) {
+            buffer.Append(token);
+            yield return token;
+        }
+
+        logger.LogInformation("[game] <<< {Response}", buffer.ToString());
+
+        if (session.DidMoveThisTurn) {
+            await RunPostMoveCleanup(cancellationToken);
+        }
+    }
+
+    private async Task RunPostMoveCleanup(CancellationToken cancellationToken) {
+        var currentTurnStart = chat.Messages.FindLastIndex(m => m.Role == ChatRole.User);
+        await CloseLingeringConversations(cancellationToken);
+        ClearPreviousTurns(currentTurnStart);
     }
 
     private async Task<string> BuildOpeningPrompt(CancellationToken cancellationToken) {

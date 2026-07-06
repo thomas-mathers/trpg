@@ -5,8 +5,8 @@ namespace TRPG.Tests;
 
 [Collection("Database")]
 public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLifetime {
+    private readonly Guid _creatureId = Guid.NewGuid();
     private readonly Guid _npcId = Guid.NewGuid();
-    private readonly Guid _personId = Guid.NewGuid();
     private readonly Guid _worldId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private NpcConversationService _service = null!;
@@ -24,7 +24,7 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
     [Fact]
     public async Task GetSummary_ReturnsEmpty_WhenNoConversation() {
         // Act
-        var summary = await _service.GetSummary(_personId, _npcId, TestContext.Current.CancellationToken);
+        var summary = await _service.GetSummary(_creatureId, _npcId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("", summary);
@@ -33,42 +33,42 @@ public sealed class NpcConversationServiceTests(DatabaseFixture db) : IAsyncLife
     [Fact]
     public async Task SetSummary_CreatesConversationOnFirstCall() {
         // Act
-        await _service.SetSummary(_worldId, _personId, _npcId, "They greeted each other.",
+        await _service.SetSummary(_worldId, _creatureId, _npcId, "They greeted each other.",
             TestContext.Current.CancellationToken);
 
         // Assert
-        var summary = await _service.GetSummary(_personId, _npcId, TestContext.Current.CancellationToken);
+        var summary = await _service.GetSummary(_creatureId, _npcId, TestContext.Current.CancellationToken);
         Assert.Equal("They greeted each other.", summary);
     }
 
     [Fact]
     public async Task SetSummary_OverwritesExistingSummary() {
         // Arrange
-        await _service.SetSummary(_worldId, _personId, _npcId, "First summary.",
+        await _service.SetSummary(_worldId, _creatureId, _npcId, "First summary.",
             TestContext.Current.CancellationToken);
 
         // Act
-        await _service.SetSummary(_worldId, _personId, _npcId, "Second summary.",
+        await _service.SetSummary(_worldId, _creatureId, _npcId, "Second summary.",
             TestContext.Current.CancellationToken);
 
         // Assert
-        var summary = await _service.GetSummary(_personId, _npcId, TestContext.Current.CancellationToken);
+        var summary = await _service.GetSummary(_creatureId, _npcId, TestContext.Current.CancellationToken);
         Assert.Equal("Second summary.", summary);
     }
 
     [Fact]
     public async Task SetSummary_DoesNotCreateDuplicateConversations() {
         // Arrange
-        await _service.SetSummary(_worldId, _personId, _npcId, "First summary.",
+        await _service.SetSummary(_worldId, _creatureId, _npcId, "First summary.",
             TestContext.Current.CancellationToken);
 
         // Act
-        await _service.SetSummary(_worldId, _personId, _npcId, "Second summary.",
+        await _service.SetSummary(_worldId, _creatureId, _npcId, "Second summary.",
             TestContext.Current.CancellationToken);
 
         // Assert
         var conversations = _context.NpcConversations
-            .Where(c => c.PersonId == _personId && c.NpcId == _npcId)
+            .Where(c => c.CreatureId == _creatureId && c.NpcId == _npcId)
             .ToList();
         Assert.Single(conversations);
     }

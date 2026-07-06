@@ -1,13 +1,61 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
 internal record SceneQuery(Guid WorldId, Guid PlayerId, InGameDate CurrentDate);
+
+internal record SceneStateInfo(string Name, string? Description);
+
+internal record SceneDistrictInfo(string Name, string Type, bool IsCurrent);
+
+internal record SceneCityInfo(string Name, string? Description, IReadOnlyCollection<SceneDistrictInfo> Districts);
+
+internal record SceneBuildingInfo(
+    string Name,
+    string Type,
+    string? OwnerName,
+    string? FactionName,
+    string? FactionDescription);
+
+internal record SceneExitInfo(string Description, string DestinationRoomName, bool IsLocked);
+
+internal record SceneRoomInfo(
+    string Name,
+    string Description,
+    int FloorNumber,
+    IReadOnlyCollection<SceneExitInfo> Exits);
+
+internal record ScenePlayerInfo(string Name, string CreatureType, string Profession, int Level, int Gold, int Age);
+
+internal record ScenePropInfo(string Name, string Description, string Type);
+
+internal record SceneCreatureInfo(
+    string Name,
+    string CreatureType,
+    string Profession,
+    int Level,
+    int Age,
+    IReadOnlyCollection<string> FactionNames,
+    string State,
+    int Reputation);
+
+internal record SceneNearbyBuildingInfo(string Name, string Type);
+
+internal record SceneResult(
+    InGameDate CurrentDate,
+    SceneStateInfo? State,
+    SceneCityInfo? City,
+    SceneBuildingInfo? Building,
+    SceneRoomInfo? Room,
+    ScenePlayerInfo Player,
+    IReadOnlyCollection<ScenePropInfo> NearbyProps,
+    IReadOnlyCollection<SceneCreatureInfo> NearbyPeople,
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
+);
 
 internal class SceneService(
     TrpgDbContext context,
@@ -22,9 +70,8 @@ internal class SceneService(
         var playerId = query.PlayerId;
 
         var bootstrap = await (
-            from p in context.Persons
+            from p in context.Creatures
             where p.Id == playerId
-            join race in context.Races on p.RaceId equals race.Id
             join region in context.States on p.StateId equals region.Id
             join city in context.Cities on p.CityId equals city.Id into cityGroup
             from city in cityGroup.DefaultIfEmpty()
@@ -42,14 +89,14 @@ internal class SceneService(
                 p.CityId,
                 p.DistrictId,
                 p.RoomId,
-                RaceName = race.Name
+                CreatureTypeName = p.CreatureType.ToString()
             }
         ).FirstAsync(cancellationToken);
 
         SceneBuildingInfo? buildingInfo = null;
         SceneRoomInfo? roomInfo = null;
         IReadOnlyCollection<ScenePropInfo> nearbyProps = [];
-        IReadOnlyCollection<ScenePersonInfo> nearbyPeople = [];
+        IReadOnlyCollection<SceneCreatureInfo> nearbyPeople = [];
         IReadOnlyCollection<SceneNearbyBuildingInfo> nearbyBuildings = [];
         string? regionDescription = null;
 
@@ -86,7 +133,7 @@ internal class SceneService(
             var ownerName = await (
                 from bo in context.BuildingOwners
                 where bo.BuildingId == roomAndBuilding.BuildingId
-                join owner in context.Persons on bo.OwnerId equals owner.Id
+                join owner in context.Creatures on bo.OwnerId equals owner.Id
                 select owner.Name
             ).FirstOrDefaultAsync(cancellationToken);
 
@@ -119,34 +166,33 @@ internal class SceneService(
                 : [];
 
             var nearbyPeopleRaw = await (
-                from p in context.Persons
+                from p in context.Creatures
                 where p.WorldId == worldId && p.RoomId == bootstrap.RoomId.Value && p.Id != playerId
-                join race in context.Races on p.RaceId equals race.Id
                 select new {
-                    p.Id, p.Name, RaceName = race.Name, Profession = p.Profession.ToString(), p.Level, p.BirthYear,
-                    State = p.State.ToString()
+                    p.Id, p.Name, CreatureTypeName = p.CreatureType.ToString(), Profession = p.Profession.ToString(),
+                    p.Level, p.BirthYear, State = p.State.ToString()
                 }
             ).ToArrayAsync(cancellationToken);
 
-            var nearbyPersonIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
-            var factionNamesByPerson = (await (
+            var nearbyCreatureIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
+            var factionNamesByCreature = (await (
                     from fm in context.FactionMembers
-                    where nearbyPersonIds.Contains(fm.PersonId)
+                    where nearbyCreatureIds.Contains(fm.CreatureId)
                     join f in context.Factions on fm.FactionId equals f.Id
-                    select new { fm.PersonId, f.Name }
+                    select new { fm.CreatureId, f.Name }
                 ).ToArrayAsync(cancellationToken))
-                .GroupBy(x => x.PersonId)
+                .GroupBy(x => x.CreatureId)
                 .ToDictionary(g => g.Key, g => (IReadOnlyCollection<string>) g.Select(x => x.Name).ToArray());
 
             var reputationStopwatch = Stopwatch.StartNew();
-            var nearbyPeopleList = new List<ScenePersonInfo>();
+            var nearbyPeopleList = new List<SceneCreatureInfo>();
             foreach (var x in nearbyPeopleRaw) {
                 var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
-                nearbyPeopleList.Add(new ScenePersonInfo(x.Name, x.RaceName, x.Profession, x.Level,
-                    query.CurrentDate.Year - x.BirthYear, factionNamesByPerson.GetValueOrDefault(x.Id, []), x.State,
+                nearbyPeopleList.Add(new SceneCreatureInfo(x.Name, x.CreatureTypeName, x.Profession, x.Level,
+                    query.CurrentDate.Year - x.BirthYear, factionNamesByCreature.GetValueOrDefault(x.Id, []), x.State,
                     reputation));
             }
-            logger.LogInformation("[perf] Reputation lookups for {PersonCount} indoor people took {ElapsedMs}ms",
+            logger.LogInformation("[perf] Reputation lookups for {CreatureCount} indoor people took {ElapsedMs}ms",
                 nearbyPeopleRaw.Length, reputationStopwatch.ElapsedMilliseconds);
 
             nearbyPeople = nearbyPeopleList;
@@ -199,41 +245,40 @@ internal class SceneService(
                 .ToArrayAsync(cancellationToken);
 
             var nearbyPeopleRaw = await (
-                from p in context.Persons
+                from p in context.Creatures
                 where p.WorldId == worldId && p.StateId == bootstrap.StateId && p.DistrictId == bootstrap.DistrictId &&
                       p.RoomId == null && p.Id != playerId
-                join race in context.Races on p.RaceId equals race.Id
                 select new {
-                    p.Id, p.Name, RaceName = race.Name, Profession = p.Profession.ToString(), p.Level, p.BirthYear,
-                    State = p.State.ToString()
+                    p.Id, p.Name, CreatureTypeName = p.CreatureType.ToString(), Profession = p.Profession.ToString(),
+                    p.Level, p.BirthYear, State = p.State.ToString()
                 }
             ).ToArrayAsync(cancellationToken);
 
-            var nearbyPersonIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
-            var factionNamesByPerson = (await (
+            var nearbyCreatureIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
+            var factionNamesByCreature = (await (
                     from fm in context.FactionMembers
-                    where nearbyPersonIds.Contains(fm.PersonId)
+                    where nearbyCreatureIds.Contains(fm.CreatureId)
                     join f in context.Factions on fm.FactionId equals f.Id
-                    select new { fm.PersonId, f.Name }
+                    select new { fm.CreatureId, f.Name }
                 ).ToArrayAsync(cancellationToken))
-                .GroupBy(x => x.PersonId)
+                .GroupBy(x => x.CreatureId)
                 .ToDictionary(g => g.Key, g => (IReadOnlyCollection<string>) g.Select(x => x.Name).ToArray());
 
             var reputationStopwatch = Stopwatch.StartNew();
-            var nearbyPeopleList = new List<ScenePersonInfo>();
+            var nearbyPeopleList = new List<SceneCreatureInfo>();
             foreach (var x in nearbyPeopleRaw) {
                 var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
-                nearbyPeopleList.Add(new ScenePersonInfo(x.Name, x.RaceName, x.Profession, x.Level,
-                    query.CurrentDate.Year - x.BirthYear, factionNamesByPerson.GetValueOrDefault(x.Id, []), x.State,
+                nearbyPeopleList.Add(new SceneCreatureInfo(x.Name, x.CreatureTypeName, x.Profession, x.Level,
+                    query.CurrentDate.Year - x.BirthYear, factionNamesByCreature.GetValueOrDefault(x.Id, []), x.State,
                     reputation));
             }
-            logger.LogInformation("[perf] Reputation lookups for {PersonCount} outdoor people took {ElapsedMs}ms",
+            logger.LogInformation("[perf] Reputation lookups for {CreatureCount} outdoor people took {ElapsedMs}ms",
                 nearbyPeopleRaw.Length, reputationStopwatch.ElapsedMilliseconds);
 
             nearbyPeople = nearbyPeopleList;
         }
 
-        logger.LogInformation("[perf] GetScene ({Branch}) took {ElapsedMs}ms, {PersonCount} nearby people",
+        logger.LogInformation("[perf] GetScene ({Branch}) took {ElapsedMs}ms, {CreatureCount} nearby people",
             bootstrap.RoomId != null ? "indoor" : "outdoor", stopwatch.ElapsedMilliseconds, nearbyPeople.Count);
 
         return new SceneResult(
@@ -242,7 +287,7 @@ internal class SceneService(
             cityInfo,
             buildingInfo,
             roomInfo,
-            new ScenePlayerInfo(bootstrap.PlayerName, bootstrap.RaceName, bootstrap.Profession.ToString(),
+            new ScenePlayerInfo(bootstrap.PlayerName, bootstrap.CreatureTypeName, bootstrap.Profession.ToString()!,
                 bootstrap.Level, bootstrap.Gold, query.CurrentDate.Year - bootstrap.BirthYear),
             nearbyProps,
             nearbyPeople,

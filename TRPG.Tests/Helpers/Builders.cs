@@ -3,17 +3,18 @@ using TRPG.Models;
 namespace TRPG.Tests.Helpers;
 
 internal static class Builders {
-    public static Person MakePerson(Guid? worldId = null, Guid? raceId = null,
+    public static Creature MakeCreature(Guid? worldId = null, 
+        CreatureType creatureType = CreatureType.Human,
         Profession profession = Profession.Knight,
         Guid? birthStateId = null,
         Guid? stateId = null,
         Guid? cityId = null,
         Guid? districtId = null,
         int birthYear = 1000) {
-        return new Person {
+        return new Creature {
             WorldId = worldId ?? Guid.NewGuid(),
-            Name = "Test Person",
-            RaceId = raceId ?? Guid.NewGuid(),
+            Name = "Test Creature",
+            CreatureType = creatureType,
             BirthStateId = birthStateId ?? Guid.NewGuid(),
             BirthYear = birthYear,
             Profession = profession,
@@ -138,12 +139,6 @@ internal static class Builders {
         };
     }
 
-    public static Race MakeRace(Guid? worldId = null) {
-        return new Race
-            { WorldId = worldId ?? Guid.NewGuid(), Name = $"Race-{Guid.NewGuid():N}", Description = "A test race" };
-    }
-
-
     public static Faction MakeFaction(Guid? worldId = null) {
         return new Faction {
             WorldId = worldId ?? Guid.NewGuid(), Name = $"Faction-{Guid.NewGuid():N}", Description = "A test faction"
@@ -227,10 +222,10 @@ internal static class Builders {
         };
     }
 
-    public static Job MakeJob(Guid personId, int priority = 1, JobAction action = JobAction.Idle,
+    public static Job MakeJob(Guid creatureId, int priority = 1, JobAction action = JobAction.Idle,
         int startHour = 8, int endHour = 17, Guid? roomId = null, Guid? worldId = null) {
         return new Job {
-            PersonId = personId,
+            CreatureId = creatureId,
             Action = action,
             StartHour = startHour,
             EndHour = endHour,

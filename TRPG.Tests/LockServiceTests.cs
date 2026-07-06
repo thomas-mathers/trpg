@@ -14,7 +14,7 @@ public sealed class LockServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private RoomConnector _frontDoor = null!;
     private InventoryService _inventoryService = null!;
     private JobService _jobService = null!;
-    private Person _owner = null!;
+    private Creature _owner = null!;
     private LockService _service = null!;
     private Guid _stateId;
 
@@ -26,7 +26,7 @@ public sealed class LockServiceTests(DatabaseFixture db) : IAsyncLifetime {
         _service = new LockService(_buildingService, _jobService, _inventoryService);
 
         _stateId = Guid.NewGuid();
-        _owner = Builders.MakePerson(stateId: _stateId);
+        _owner = Builders.MakeCreature(stateId: _stateId);
         _building = Builders.MakeBuilding(_stateId);
         _entranceRoom = Builders.MakeRoom(_building.Id);
         _frontDoor = new RoomConnector {
@@ -34,7 +34,7 @@ public sealed class LockServiceTests(DatabaseFixture db) : IAsyncLifetime {
             DestinationRoomId = null, IsLocked = false
         };
 
-        _context.Persons.Add(_owner);
+        _context.Creatures.Add(_owner);
         _context.Buildings.Add(_building);
         _context.Rooms.Add(_entranceRoom);
         _context.Props.Add(_frontDoor);
@@ -100,7 +100,7 @@ public sealed class LockServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
     [Fact]
     public async Task CanEnter_ReturnsFalse_WhenLockedAndNoKey() {
-        // Arrange — a key exists for this door, just not in the entering person's inventory
+        // Arrange — a key exists for this door, just not in the entering creature's inventory
         await _buildingService.SetFrontDoorLocked(_building.Id, true, TestContext.Current.CancellationToken);
         var keyItem = new Item { Name = "Test Key", Description = "A test key." };
         _context.Items.Add(keyItem);
@@ -118,9 +118,9 @@ public sealed class LockServiceTests(DatabaseFixture db) : IAsyncLifetime {
     public async Task CanEnter_ReturnsTrue_WhenLockedAndCarryingKey() {
         // Arrange
         await _buildingService.SetFrontDoorLocked(_building.Id, true, TestContext.Current.CancellationToken);
-        var player = Builders.MakePerson(stateId: _stateId);
+        var player = Builders.MakeCreature(stateId: _stateId);
         var keyItem = new Item { Name = "Test Key", Description = "A test key." };
-        _context.Persons.Add(player);
+        _context.Creatures.Add(player);
         _context.Items.Add(keyItem);
         _context.RoomConnectorKeys.Add(new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = _frontDoor.Id });
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -137,11 +137,11 @@ public sealed class LockServiceTests(DatabaseFixture db) : IAsyncLifetime {
     public async Task CanEnter_ReturnsTrue_ForEachDistinctKeyToTheSameDoor() {
         // Arrange — two residents, each with their own distinct key item, both unlocking the same door
         await _buildingService.SetFrontDoorLocked(_building.Id, true, TestContext.Current.CancellationToken);
-        var residentA = Builders.MakePerson(stateId: _stateId);
-        var residentB = Builders.MakePerson(stateId: _stateId);
+        var residentA = Builders.MakeCreature(stateId: _stateId);
+        var residentB = Builders.MakeCreature(stateId: _stateId);
         var keyA = new Item { Name = "Key A", Description = "Resident A's key." };
         var keyB = new Item { Name = "Key B", Description = "Resident B's key." };
-        _context.Persons.AddRange(residentA, residentB);
+        _context.Creatures.AddRange(residentA, residentB);
         _context.Items.AddRange(keyA, keyB);
         _context.RoomConnectorKeys.AddRange(
             new RoomConnectorKey { ItemId = keyA.Id, RoomConnectorId = _frontDoor.Id },

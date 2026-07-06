@@ -29,12 +29,12 @@ internal class LookTool : Tool, IInvokableTool {
     }
 
     public object? InvokeMethod(IDictionary<string, object?>? args) {
-        _logger.LogDebug("[look] tool invoked");
+        _logger.LogInformation("[look] tool invoked");
         var currentDate = GameClock.GetCurrentInGameDate(_session);
         var query = new SceneQuery(_session.WorldId, _session.PlayerId, currentDate);
         var result = _sceneService.GetScene(query).GetAwaiter().GetResult();
         var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogDebug("[look] result: {Result}", json);
+        _logger.LogInformation("[look] result: {Result}", json);
         return json;
     }
 }

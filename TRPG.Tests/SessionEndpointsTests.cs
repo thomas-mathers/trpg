@@ -21,15 +21,13 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
         var world = Builders.MakeWorld();
         var country = Builders.MakeCountry(world.Id);
         var state = Builders.MakeState(country.Id, world.Id);
-        var race = Builders.MakeRace(world.Id);
-        var player = Builders.MakePerson(world.Id, race.Id, stateId: state.Id);
+        var player = Builders.MakeCreature(world.Id, stateId: state.Id);
         world.PlayerId = player.Id;
 
         context.Worlds.Add(world);
         context.Countries.Add(country);
         context.States.Add(state);
-        context.Races.Add(race);
-        context.Persons.Add(player);
+        context.Creatures.Add(player);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _worldId = world.Id;
@@ -49,7 +47,7 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
     }
 
     [Fact]
-    public async Task StartSession_ReturnsSessionIdAndOpening_WhenWorldHasPlayer() {
+    public async Task StartSession_ReturnsSessionId_WhenWorldHasPlayer() {
         // Act
         var response = await _client.PostAsync(new Uri($"/worlds/{_worldId}/sessions", UriKind.Relative), null,
             TestContext.Current.CancellationToken);
@@ -60,21 +58,6 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
             await response.Content.ReadFromJsonAsync<CreateSessionResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.NotEqual(Guid.Empty, result.SessionId);
-        Assert.False(string.IsNullOrWhiteSpace(result.Response));
-        Assert.Null(result.Metrics);
-    }
-
-    [Fact]
-    public async Task StartSession_IncludesMetrics_WhenRequested() {
-        // Act
-        var response = await _client.PostAsync(
-            new Uri($"/worlds/{_worldId}/sessions?includeMetrics=true", UriKind.Relative), null,
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        var result =
-            await response.Content.ReadFromJsonAsync<CreateSessionResponse>(TestContext.Current.CancellationToken);
-        Assert.NotNull(result?.Metrics);
     }
 
     [Fact]
@@ -95,7 +78,7 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
     }
 
     [Fact]
-    public async Task Wait_AdvancesTimeAndReturnsScene_WhenSessionExists() {
+    public async Task Wait_AdvancesTimeAndReturnsMessage_WhenSessionExists() {
         // Arrange
         var sessionId = await StartSession();
 
@@ -108,7 +91,7 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
         var result = await response.Content.ReadFromJsonAsync<WaitResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.Contains("Time passes", result.Message, StringComparison.Ordinal);
-        Assert.Equal(5, result.Scene.CurrentDate.Hour);
+        Assert.Contains("hour 5", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]

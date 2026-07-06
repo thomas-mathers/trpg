@@ -5,22 +5,22 @@ using TRPG.Models;
 namespace TRPG.Services;
 
 internal class NpcConversationService(TrpgDbContext context) {
-    public async Task<string> GetSummary(Guid personId, Guid npcId, CancellationToken cancellationToken = default) {
+    public async Task<string> GetSummary(Guid creatureId, Guid npcId, CancellationToken cancellationToken = default) {
         var conversation = await context.NpcConversations
-            .FirstOrDefaultAsync(c => c.PersonId == personId && c.NpcId == npcId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.CreatureId == creatureId && c.NpcId == npcId, cancellationToken);
 
         return conversation?.Summary ?? "";
     }
 
-    public async Task SetSummary(Guid worldId, Guid personId, Guid npcId, string summary,
+    public async Task SetSummary(Guid worldId, Guid creatureId, Guid npcId, string summary,
         CancellationToken cancellationToken = default) {
         var conversation = await context.NpcConversations
-            .FirstOrDefaultAsync(c => c.PersonId == personId && c.NpcId == npcId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.CreatureId == creatureId && c.NpcId == npcId, cancellationToken);
 
         if (conversation == null) {
             context.NpcConversations.Add(new NpcConversation {
                 WorldId = worldId,
-                PersonId = personId,
+                CreatureId = creatureId,
                 NpcId = npcId,
                 Summary = summary
             });

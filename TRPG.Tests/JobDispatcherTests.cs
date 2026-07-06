@@ -9,18 +9,18 @@ namespace TRPG.Tests;
 [Collection("Database")]
 public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
     private TrpgDbContext _context = null!;
+    private Creature _creature = null!;
     private JobDispatcher _dispatcher = null!;
-    private Person _person = null!;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
-        var personService = new PersonService(_context);
+        var creatureService = new CreatureService(_context);
         _dispatcher = new JobDispatcher(
-            new SleepJobHandler(personService), new WorkJobHandler(personService), new IdleJobHandler(personService),
-            NullLogger<JobDispatcher>.Instance);
+            new SleepJobHandler(creatureService), new WorkJobHandler(creatureService),
+            new IdleJobHandler(creatureService), NullLogger<JobDispatcher>.Instance);
 
-        _person = Builders.MakePerson();
-        _context.Persons.Add(_person);
+        _creature = Builders.MakeCreature();
+        _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync();
     }
 
@@ -29,54 +29,54 @@ public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForSleepJob() {
-        await AssertRoomIdUpdated(JobAction.Sleep, PersonState.Sleeping);
+    public async Task Dispatch_UpdatesCreatureRoomIdAndState_ForSleepJob() {
+        await AssertRoomIdUpdated(JobAction.Sleep, CreatureState.Sleeping);
     }
 
     [Fact]
-    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForWorkJob() {
-        await AssertRoomIdUpdated(JobAction.Work, PersonState.Busy);
+    public async Task Dispatch_UpdatesCreatureRoomIdAndState_ForWorkJob() {
+        await AssertRoomIdUpdated(JobAction.Work, CreatureState.Busy);
     }
 
     [Fact]
-    public async Task Dispatch_UpdatesPersonRoomIdAndState_ForIdleJob() {
-        await AssertRoomIdUpdated(JobAction.Idle, PersonState.Idle);
+    public async Task Dispatch_UpdatesCreatureRoomIdAndState_ForIdleJob() {
+        await AssertRoomIdUpdated(JobAction.Idle, CreatureState.Idle);
     }
 
     [Fact]
-    public async Task Dispatch_LeavesPersonUnchanged_ForPatrolJob() {
+    public async Task Dispatch_LeavesCreatureUnchanged_ForPatrolJob() {
         await AssertRoomIdUnchanged(JobAction.Patrol);
     }
 
     [Fact]
-    public async Task Dispatch_LeavesPersonUnchanged_ForSocializeJob() {
+    public async Task Dispatch_LeavesCreatureUnchanged_ForSocializeJob() {
         await AssertRoomIdUnchanged(JobAction.Socialize);
     }
 
-    private async Task AssertRoomIdUpdated(JobAction action, PersonState expectedState) {
+    private async Task AssertRoomIdUpdated(JobAction action, CreatureState expectedState) {
         // Arrange
         var roomId = Guid.NewGuid();
-        var job = Builders.MakeJob(_person.Id, action: action, roomId: roomId);
+        var job = Builders.MakeJob(_creature.Id, action: action, roomId: roomId);
 
         // Act
-        await _dispatcher.Dispatch(_person, job, TestContext.Current.CancellationToken);
+        await _dispatcher.Dispatch(_creature, job, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(roomId, _person.RoomId);
-        Assert.Equal(expectedState, _person.State);
+        Assert.Equal(roomId, _creature.RoomId);
+        Assert.Equal(expectedState, _creature.State);
     }
 
     private async Task AssertRoomIdUnchanged(JobAction action) {
         // Arrange
-        var originalRoomId = _person.RoomId;
-        var originalState = _person.State;
-        var job = Builders.MakeJob(_person.Id, action: action, roomId: Guid.NewGuid());
+        var originalRoomId = _creature.RoomId;
+        var originalState = _creature.State;
+        var job = Builders.MakeJob(_creature.Id, action: action, roomId: Guid.NewGuid());
 
         // Act
-        await _dispatcher.Dispatch(_person, job, TestContext.Current.CancellationToken);
+        await _dispatcher.Dispatch(_creature, job, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(originalRoomId, _person.RoomId);
-        Assert.Equal(originalState, _person.State);
+        Assert.Equal(originalRoomId, _creature.RoomId);
+        Assert.Equal(originalState, _creature.State);
     }
 }

@@ -37,17 +37,6 @@ public sealed class FakeOllamaApiClient : IOllamaApiClient {
     }
 
     private static string BuildJson(string text) {
-        if (text.Contains("unique races", StringComparison.OrdinalIgnoreCase)) {
-            var count = ExtractCount(text, @"Generate (\d+) unique races");
-            var schema = new RaceListSchema {
-                Races = Enumerable.Range(0, count)
-                    .Select(_ => new RaceItemSchema
-                        { Name = NextName("Race"), Description = "A fake race.", CultureStyle = "Nordic/Viking" })
-                    .ToList()
-            };
-            return JsonSerializer.Serialize(schema);
-        }
-
         if (text.Contains("unique factions", StringComparison.OrdinalIgnoreCase)) {
             var count = ExtractCount(text, @"Generate (\d+) unique factions");
             var schema = new FactionListSchema {

@@ -4,25 +4,25 @@ using Microsoft.Extensions.Logging;
 namespace TRPG.Services;
 
 internal class JobCatchUpService(
-    JobService jobService, PersonService personService, JobDispatcher dispatcher, ILogger<JobCatchUpService> logger
+    JobService jobService, CreatureService creatureService, JobDispatcher dispatcher, ILogger<JobCatchUpService> logger
 ) {
     public async Task CatchUpRoom(Guid roomId, int hour, CancellationToken cancellationToken = default) {
-        var personIds = await jobService.GetPersonIdsByRoomId(roomId, cancellationToken);
-        await CatchUp("Room", personIds, hour, cancellationToken);
+        var creatureIds = await jobService.GetCreatureIdsByRoomId(roomId, cancellationToken);
+        await CatchUp("Room", creatureIds, hour, cancellationToken);
     }
 
     public async Task CatchUpDistrict(Guid worldId, Guid districtId, int hour,
         CancellationToken cancellationToken = default) {
-        var personIds = await personService.GetIdsByDistrict(worldId, districtId, cancellationToken);
-        await CatchUp("District", personIds, hour, cancellationToken);
+        var creatureIds = await creatureService.GetIdsByDistrict(worldId, districtId, cancellationToken);
+        await CatchUp("District", creatureIds, hour, cancellationToken);
     }
 
-    private async Task CatchUp(string scope, IReadOnlyCollection<Guid> personIds, int hour,
+    private async Task CatchUp(string scope, IReadOnlyCollection<Guid> creatureIds, int hour,
         CancellationToken cancellationToken) {
         var stopwatch = Stopwatch.StartNew();
 
-        foreach (var personId in personIds) {
-            var jobs = await jobService.GetAllByPersonId(personId, cancellationToken);
+        foreach (var creatureId in creatureIds) {
+            var jobs = await jobService.GetAllByCreatureId(creatureId, cancellationToken);
 
             var dueJob = jobs
                 .Where(j => JobScheduling.IsActiveAtHour(j, hour))
@@ -34,15 +34,15 @@ internal class JobCatchUpService(
                 continue;
             }
 
-            var person = await personService.GetById(personId, cancellationToken);
+            var creature = await creatureService.GetById(creatureId, cancellationToken);
 
-            if (person != null) {
-                await dispatcher.Dispatch(person, dueJob, cancellationToken);
+            if (creature != null) {
+                await dispatcher.Dispatch(creature, dueJob, cancellationToken);
             }
         }
 
         stopwatch.Stop();
-        logger.LogInformation("[perf] CatchUp{Scope} processed {PersonCount} people in {ElapsedMs}ms",
-            scope, personIds.Count, stopwatch.ElapsedMilliseconds);
+        logger.LogInformation("[perf] CatchUp{Scope} processed {CreatureCount} people in {ElapsedMs}ms",
+            scope, creatureIds.Count, stopwatch.ElapsedMilliseconds);
     }
 }

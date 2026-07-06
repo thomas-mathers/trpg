@@ -16,6 +16,11 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<City> Cities => Set<City>();
     public DbSet<ContainerItem> ContainerItems => Set<ContainerItem>();
     public DbSet<Country> Countries => Set<Country>();
+    public DbSet<CreatureAbility> CreatureAbilities => Set<CreatureAbility>();
+    public DbSet<CreatureQuestObjective> CreatureQuestObjectives => Set<CreatureQuestObjective>();
+    public DbSet<CreatureQuest> CreatureQuests => Set<CreatureQuest>();
+    public DbSet<Creature> Creatures => Set<Creature>();
+    public DbSet<CreatureSkill> CreatureSkills => Set<CreatureSkill>();
     public DbSet<District> Districts => Set<District>();
     public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
     public DbSet<Faction> Factions => Set<Faction>();
@@ -23,15 +28,9 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Job> Jobs => Set<Job>();
     public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
-    public DbSet<PersonAbility> PersonAbilities => Set<PersonAbility>();
-    public DbSet<PersonQuestObjective> PersonQuestObjectives => Set<PersonQuestObjective>();
-    public DbSet<PersonQuest> PersonQuests => Set<PersonQuest>();
-    public DbSet<Person> Persons => Set<Person>();
-    public DbSet<PersonSkill> PersonSkills => Set<PersonSkill>();
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
-    public DbSet<Race> Races => Set<Race>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<Road> Roads => Set<Road>();
     public DbSet<RoomConnectorKey> RoomConnectorKeys => Set<RoomConnectorKey>();
@@ -65,14 +64,15 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<QuestObjectiveType>().HaveConversion<string>();
         configurationBuilder.Properties<JobAction>().HaveConversion<string>();
         configurationBuilder.Properties<Profession>().HaveConversion<string>();
-        configurationBuilder.Properties<PersonState>().HaveConversion<string>();
+        configurationBuilder.Properties<CreatureState>().HaveConversion<string>();
+        configurationBuilder.Properties<CreatureType>().HaveConversion<string>();
         configurationBuilder.Properties<DistrictType>().HaveConversion<string>();
         configurationBuilder.Properties<Skill>().HaveConversion<string>();
         configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {
-        modelBuilder.Entity<Person>(entity => {
+        modelBuilder.Entity<Creature>(entity => {
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => new { p.StateId, p.RoomId });
             entity.OwnsOne(p => p.Attributes, s => s.ToJson());
@@ -111,7 +111,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<InventoryItem>(entity => {
             entity.HasOne(i => i.Item).WithMany().HasForeignKey(i => i.ItemId);
-            entity.HasIndex(i => i.PersonId);
+            entity.HasIndex(i => i.CreatureId);
             entity.HasIndex(i => i.WorldId);
         });
 
@@ -191,41 +191,37 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.HasIndex(o => o.WorldId);
         });
 
-        modelBuilder.Entity<PersonAbility>(entity => {
-            entity.HasIndex(pa => new { pa.PersonId, pa.AbilityName }).IsUnique();
+        modelBuilder.Entity<CreatureAbility>(entity => {
+            entity.HasIndex(pa => new { pa.CreatureId, pa.AbilityName }).IsUnique();
             entity.HasIndex(pa => pa.WorldId);
         });
 
-        modelBuilder.Entity<PersonSkill>(entity => {
-            entity.HasIndex(ps => new { ps.PersonId, ps.Skill }).IsUnique();
+        modelBuilder.Entity<CreatureSkill>(entity => {
+            entity.HasIndex(ps => new { ps.CreatureId, ps.Skill }).IsUnique();
             entity.HasIndex(ps => ps.WorldId);
         });
 
-        modelBuilder.Entity<PersonQuest>(entity => {
+        modelBuilder.Entity<CreatureQuest>(entity => {
             entity.HasOne(pq => pq.Quest).WithMany().HasForeignKey(pq => pq.QuestId);
-            entity.HasIndex(pq => new { pq.PersonId, pq.QuestId }).IsUnique();
+            entity.HasIndex(pq => new { pq.CreatureId, pq.QuestId }).IsUnique();
             entity.HasIndex(pq => pq.WorldId);
         });
 
-        modelBuilder.Entity<PersonQuestObjective>(entity => {
+        modelBuilder.Entity<CreatureQuestObjective>(entity => {
             entity.HasOne(po => po.Objective).WithMany().HasForeignKey(po => po.ObjectiveId);
-            entity.HasIndex(po => new { po.PersonId, po.ObjectiveId }).IsUnique();
+            entity.HasIndex(po => new { po.CreatureId, po.ObjectiveId }).IsUnique();
             entity.HasIndex(po => po.WorldId);
         });
 
         modelBuilder.Entity<Job>(entity => {
             entity.HasIndex(j => new { j.StateId, j.RoomId });
-            entity.HasIndex(j => j.PersonId);
+            entity.HasIndex(j => j.CreatureId);
             entity.HasIndex(j => j.RoomId);
             entity.HasIndex(j => j.WorldId);
         });
 
         modelBuilder.Entity<World>()
             .HasIndex(w => w.Name).IsUnique();
-
-        modelBuilder.Entity<Race>()
-            .HasIndex(r => new { r.WorldId, r.Name }).IsUnique();
-
 
         modelBuilder.Entity<Faction>()
             .HasIndex(f => new { f.WorldId, f.Name }).IsUnique();
@@ -250,19 +246,19 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
 
         modelBuilder.Entity<NpcConversation>(entity => {
             entity.HasIndex(c => c.WorldId);
-            entity.HasIndex(c => new { c.NpcId, c.PersonId }).IsUnique();
+            entity.HasIndex(c => new { c.NpcId, c.CreatureId }).IsUnique();
         });
 
         modelBuilder.Entity<WorldEvent>()
             .HasIndex(e => e.WorldId);
 
         modelBuilder.Entity<Reputation>(entity => {
-            entity.HasIndex(r => new { r.PersonId, r.TargetId, r.TargetType }).IsUnique();
+            entity.HasIndex(r => new { r.CreatureId, r.TargetId, r.TargetType }).IsUnique();
             entity.HasIndex(r => r.WorldId);
         });
 
         modelBuilder.Entity<FactionMember>(entity => {
-            entity.HasIndex(fm => new { fm.PersonId, fm.FactionId }).IsUnique();
+            entity.HasIndex(fm => new { fm.CreatureId, fm.FactionId }).IsUnique();
             entity.HasIndex(fm => fm.FactionId);
             entity.HasIndex(fm => fm.WorldId);
         });

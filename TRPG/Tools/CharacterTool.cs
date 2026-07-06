@@ -40,13 +40,13 @@ internal record CharacterSheetResult(
 );
 
 internal class CharacterTool : Tool, IInvokableTool {
+    private readonly CreatureService _creatureService;
     private readonly ILogger<CharacterTool> _logger;
-    private readonly PersonService _personService;
     private readonly GameSession _session;
 
-    public CharacterTool(GameSession session, PersonService personService, ILogger<CharacterTool> logger) {
+    public CharacterTool(GameSession session, CreatureService creatureService, ILogger<CharacterTool> logger) {
         _session = session;
-        _personService = personService;
+        _creatureService = creatureService;
         _logger = logger;
 
         Function = new Function {
@@ -70,22 +70,22 @@ internal class CharacterTool : Tool, IInvokableTool {
     public object? InvokeMethod(IDictionary<string, object?>? args) {
         var targetName = args != null && args.TryGetValue("targetName", out var raw) ? raw?.ToString() : null;
 
-        _logger.LogDebug("[character] targetName={TargetName}", targetName ?? "(self)");
+        _logger.LogInformation("[character] targetName={TargetName}", targetName ?? "(self)");
         var result = InvokeMethodAsync(targetName, CancellationToken.None).GetAwaiter().GetResult();
         var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogDebug("[character] result: {Result}", json);
+        _logger.LogInformation("[character] result: {Result}", json);
         return json;
     }
 
     private async Task<object?> InvokeMethodAsync(string? targetName, CancellationToken cancellationToken) {
-        var player = await _personService.GetById(_session.PlayerId, cancellationToken);
+        var player = await _creatureService.GetById(_session.PlayerId, cancellationToken);
 
-        Person? target;
+        Creature? target;
         if (string.IsNullOrWhiteSpace(targetName)) {
             target = player;
         }
         else {
-            target = await _personService.GetByNameNearby(_session.WorldId, player!, targetName, cancellationToken);
+            target = await _creatureService.GetByNameNearby(_session.WorldId, player!, targetName, cancellationToken);
 
             if (target == null) {
                 return new { Error = $"No one named '{targetName}' found nearby. Call look to see who's around." };

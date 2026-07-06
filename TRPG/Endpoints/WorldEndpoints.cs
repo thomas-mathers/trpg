@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Commands;
 using TRPG.Contracts;
 using TRPG.Data;
+using TRPG.Extensions;
 using TRPG.Generators;
 using TRPG.Models;
 
@@ -19,7 +20,7 @@ internal static class WorldEndpoints {
     private static async Task<IResult> CreateWorld(
         CreateWorldRequest request,
         WorldGenerator worldGenerator,
-        PersonGenerator personGenerator,
+        CreatureGenerator creatureGenerator,
         BootstrapWorldCommandHandler bootstrapHandler,
         CancellationToken cancellationToken) {
         var input = new WorldGeneratorInput {
@@ -37,22 +38,20 @@ internal static class WorldEndpoints {
             HousesPerCity = request.HousesPerCity,
             MinHouseholdSize = request.MinHouseholdSize,
             MaxHouseholdSize = request.MaxHouseholdSize,
-            RaceCount = request.RaceCount,
             FactionCount = request.FactionCount
         };
 
         var worldResult = await worldGenerator.Generate(input, cancellationToken);
-
-        var selectedRace = worldResult.Races[Random.Shared.Next(worldResult.Races.Count)];
+        
         var startingCity = worldResult.Cities.First(c => c.IsCapital);
         var startingState = worldResult.States.First(s => s.Id == startingCity.StateId);
         var startingDistrict = worldResult.Districts.First(d =>
             d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter);
-        var profession = Enum.Parse<TRPG.Models.Profession>(request.Profession.ToString());
+        var profession = Enum.Parse<Models.Profession>(request.Profession.ToString());
 
-        var playerResult = personGenerator.Generate(
-            new PersonGeneratorInput(
-                Race: selectedRace,
+        var playerResult = creatureGenerator.Generate(
+            new CreatureGeneratorInput(
+                CreatureType: request.Race.ToCreatureType(),
                 Profession: profession,
                 WorldId: worldResult.World.Id,
                 BirthStateId: startingState.Id,
@@ -61,8 +60,8 @@ internal static class WorldEndpoints {
                 Name: request.PlayerName
             )
         );
-        playerResult.Person.CityId = startingCity.Id;
-        playerResult.Person.DistrictId = startingDistrict.Id;
+        playerResult.Creature.CityId = startingCity.Id;
+        playerResult.Creature.DistrictId = startingDistrict.Id;
 
         var result = await bootstrapHandler.Handle(worldResult, playerResult, cancellationToken);
 

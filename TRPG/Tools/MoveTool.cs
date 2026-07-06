@@ -9,19 +9,19 @@ namespace TRPG.Tools;
 
 internal class MoveTool : Tool, IInvokableTool {
     private readonly BuildingService _buildingService;
+    private readonly CreatureService _creatureService;
     private readonly LocationService _locationService;
     private readonly LockService _lockService;
     private readonly ILogger<MoveTool> _logger;
-    private readonly PersonService _personService;
     private readonly SceneService _sceneService;
     private readonly GameSession _session;
 
-    public MoveTool(GameSession session, SceneService sceneService, PersonService personService,
+    public MoveTool(GameSession session, SceneService sceneService, CreatureService creatureService,
         BuildingService buildingService, LocationService locationService, LockService lockService,
         ILogger<MoveTool> logger) {
         _session = session;
         _sceneService = sceneService;
-        _personService = personService;
+        _creatureService = creatureService;
         _buildingService = buildingService;
         _locationService = locationService;
         _lockService = lockService;
@@ -53,15 +53,15 @@ internal class MoveTool : Tool, IInvokableTool {
 
         var destinationName = destinationNameRaw.ToString()!;
 
-        _logger.LogDebug("[move] destinationName={DestinationName}", destinationName);
+        _logger.LogInformation("[move] destinationName={DestinationName}", destinationName);
         var result = InvokeMethodAsync(destinationName, CancellationToken.None).GetAwaiter().GetResult();
         var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogDebug("[move] result: {Result}", json);
+        _logger.LogInformation("[move] result: {Result}", json);
         return json;
     }
 
     private async Task<object?> InvokeMethodAsync(string destinationName, CancellationToken cancellationToken) {
-        var player = await _personService.GetById(_session.PlayerId, cancellationToken);
+        var player = await _creatureService.GetById(_session.PlayerId, cancellationToken);
 
         var error = player!.RoomId == null
             ? await MoveOutdoors(player, destinationName, cancellationToken)
@@ -71,7 +71,7 @@ internal class MoveTool : Tool, IInvokableTool {
             return error;
         }
 
-        await _personService.Update(player, cancellationToken);
+        await _creatureService.Update(player, cancellationToken);
         _session.DidMoveThisTurn = true;
 
         var currentDate = GameClock.GetCurrentInGameDate(_session);
@@ -79,7 +79,7 @@ internal class MoveTool : Tool, IInvokableTool {
         return await _sceneService.GetScene(query, cancellationToken);
     }
 
-    private async Task<object?> MoveOutdoors(Person player, string destinationName,
+    private async Task<object?> MoveOutdoors(Creature player, string destinationName,
         CancellationToken cancellationToken) {
         var building = await _buildingService.GetByNameInState(player.StateId, destinationName, cancellationToken);
         if (building != null) {
@@ -115,7 +115,7 @@ internal class MoveTool : Tool, IInvokableTool {
     }
 
     private async Task<object?>
-        MoveIndoors(Person player, string destinationName, CancellationToken cancellationToken) {
+        MoveIndoors(Creature player, string destinationName, CancellationToken cancellationToken) {
         var exitMatch =
             await _buildingService.FindExitByDestinationName(player.RoomId!.Value, destinationName, cancellationToken);
         if (!exitMatch.Matched) {

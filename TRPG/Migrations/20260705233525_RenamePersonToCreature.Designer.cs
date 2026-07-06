@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
@@ -12,9 +13,11 @@ using TRPG.Data;
 namespace TRPG.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260705233525_RenamePersonToCreature")]
+    partial class RenamePersonToCreature
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -263,11 +266,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("city_id");
 
-                    b.Property<string>("CreatureType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("creature_type");
-
                     b.Property<Guid?>("DistrictId")
                         .HasColumnType("uuid")
                         .HasColumnName("district_id");
@@ -290,8 +288,13 @@ namespace TRPG.Migrations
                         .HasColumnName("name");
 
                     b.Property<string>("Profession")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("profession");
+
+                    b.Property<Guid>("RaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("race_id");
 
                     b.Property<Guid?>("RoomId")
                         .HasColumnType("uuid")
@@ -962,6 +965,42 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_quest_objectives_world_id");
 
                     b.ToTable("quest_objectives", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Models.Race", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CultureStyle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("culture_style");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_races");
+
+                    b.HasIndex("WorldId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_races_world_id_name");
+
+                    b.ToTable("races", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Models.Reputation", b =>
