@@ -9,6 +9,8 @@ namespace TRPG.Client;
 internal sealed class GameServerClient(HttpClient httpClient) {
     private ClientWebSocket? _chatSocket;
 
+    public SceneSnapshot? CurrentScene { get; private set; }
+
     public async Task<CreateWorldResponse> CreateWorld(CreateWorldRequest request,
         CancellationToken cancellationToken) {
         var response = await httpClient.PostAsJsonAsync("/worlds", request, cancellationToken);
@@ -62,7 +64,8 @@ internal sealed class GameServerClient(HttpClient httpClient) {
             throw new InvalidOperationException("Chat stream is not connected — call StartSession first.");
         }
 
-        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(new ChatRequest(message), JsonSerializerOptions.Web);
+        var requestBytes = JsonSerializer.SerializeToUtf8Bytes<ClientCommand>(new ChatCommand(message),
+            JsonSerializerOptions.Web);
         await _chatSocket.SendAsync(requestBytes, WebSocketMessageType.Text, true, cancellationToken);
 
         await foreach (var token in ReceiveTokensUntilDone(_chatSocket, cancellationToken)) {
@@ -70,16 +73,34 @@ internal sealed class GameServerClient(HttpClient httpClient) {
         }
     }
 
-    private static async IAsyncEnumerable<string> ReceiveTokensUntilDone(WebSocket socket,
+    public async IAsyncEnumerable<string> SendWait(int hours,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+        if (_chatSocket == null) {
+            throw new InvalidOperationException("Chat stream is not connected — call StartSession first.");
+        }
+
+        var requestBytes = JsonSerializer.SerializeToUtf8Bytes<ClientCommand>(new WaitCommand(hours),
+            JsonSerializerOptions.Web);
+        await _chatSocket.SendAsync(requestBytes, WebSocketMessageType.Text, true, cancellationToken);
+
+        await foreach (var token in ReceiveTokensUntilDone(_chatSocket, cancellationToken)) {
+            yield return token;
+        }
+    }
+
+    private async IAsyncEnumerable<string> ReceiveTokensUntilDone(WebSocket socket,
         [EnumeratorCancellation] CancellationToken cancellationToken) {
         while (true) {
             var streamMessage = await ReceiveStreamMessage(socket, cancellationToken);
-            if (streamMessage is ChatStreamDone) {
-                yield break;
-            }
-
-            if (streamMessage is ChatStreamToken token) {
-                yield return token.Text;
+            switch (streamMessage) {
+                case ChatStreamDone:
+                    yield break;
+                case ChatStreamToken token:
+                    yield return token.Text;
+                    break;
+                case ChatStreamScene scene:
+                    CurrentScene = scene.Scene;
+                    break;
             }
         }
     }
@@ -97,14 +118,6 @@ internal sealed class GameServerClient(HttpClient httpClient) {
         stream.Position = 0;
         return (await JsonSerializer.DeserializeAsync<ChatStreamMessage>(stream, JsonSerializerOptions.Web,
             cancellationToken))!;
-    }
-
-    public async Task<WaitResponse> Wait(Guid sessionId, int hours, CancellationToken cancellationToken) {
-        var response = await httpClient.PostAsJsonAsync($"/sessions/{sessionId}/wait", new WaitRequest(hours),
-            cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<WaitResponse>(cancellationToken);
-        return result!;
     }
 
     public async Task EndSession(CancellationToken cancellationToken) {

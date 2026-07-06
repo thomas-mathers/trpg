@@ -49,19 +49,9 @@ public sealed class FakeOllamaApiClient : IOllamaApiClient {
 
         if (text.Contains("Cities array containing exactly", StringComparison.OrdinalIgnoreCase)) {
             var count = ExtractCount(text, @"Cities array containing exactly (\d+)");
-            var schema = new CityListSchema {
-                Cities = Enumerable.Range(0, count)
-                    .Select(_ => new CityItemSchema { Name = NextName("City"), Description = "A fake city." })
-                    .ToList()
-            };
-            return JsonSerializer.Serialize(schema);
-        }
-
-        if (text.Contains("Roads array containing exactly", StringComparison.OrdinalIgnoreCase)) {
-            var count = ExtractCount(text, @"Roads array containing exactly (\d+)");
-            var schema = new RoadNamesSchema {
-                Roads = Enumerable.Range(1, count)
-                    .Select(i => new RoadNameItemSchema { Index = i, Name = NextName("Road") })
+            var schema = new CityDescriptionListSchema {
+                Cities = Enumerable.Range(1, count)
+                    .Select(i => new CityDescriptionItemSchema { Index = i, Description = "A fake city." })
                     .ToList()
             };
             return JsonSerializer.Serialize(schema);

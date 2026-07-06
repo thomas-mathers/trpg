@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using OllamaSharp;
 using TRPG.Data;
 using TRPG.Models;
 using TRPG.Services;
@@ -28,7 +29,11 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var reputationService = new ReputationService(_context);
         var jobCatchUpService = new JobCatchUpService(jobService, creatureService, dispatcher,
             NullLogger<JobCatchUpService>.Instance);
-        _service = new SceneService(_context, jobCatchUpService, lockService, reputationService,
+        var sessionAccessor = new CurrentGameSessionAccessor {
+            State = new GameSessionState(new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero),
+                new Chat(new FakeOllamaApiClient()))
+        };
+        _service = new SceneService(_context, jobCatchUpService, lockService, reputationService, sessionAccessor,
             NullLogger<SceneService>.Instance);
 
         _worldId = Guid.NewGuid();

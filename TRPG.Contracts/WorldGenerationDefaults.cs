@@ -11,9 +11,7 @@ public static class WorldGenerationDefaults {
     public const int MaxHouseholdSize = 3;
     public const int MaxRuralStates = 10;
     public const int MaxCityStates = 40;
-    public const int MaxCountries = 5;
     public const int MinRuralStates = 5;
     public const int MinCityStates = 20;
-    public const int MinCountries = 3;
     public const string Description = "Medieval";
 }

@@ -85,17 +85,27 @@ internal static class SessionEndpoints {
 
         try {
             await StreamTurn(socket, state, scopeFactory,
-                turnRunner => turnRunner.SendOpeningStreaming(cancellationToken), cancellationToken);
+                turnRunner => turnRunner.SendOpeningStreaming(cancellationToken), alwaysSendScene: true,
+                cancellationToken);
 
             while (socket.State == WebSocketState.Open) {
-                var request = await ReceiveMessage<ChatRequest>(socket, cancellationToken);
-                if (request == null) {
+                var command = await ReceiveMessage<ClientCommand>(socket, cancellationToken);
+                if (command == null) {
                     break;
                 }
 
-                await StreamTurn(socket, state, scopeFactory,
-                    turnRunner => turnRunner.ProcessTurnStreaming(request.Message, cancellationToken),
-                    cancellationToken);
+                switch (command) {
+                    case ChatCommand chatCommand:
+                        await StreamTurn(socket, state, scopeFactory,
+                            turnRunner => turnRunner.ProcessTurnStreaming(chatCommand.Message, cancellationToken),
+                            alwaysSendScene: false, cancellationToken);
+                        break;
+                    case WaitCommand waitCommand:
+                        await StreamTurn(socket, state, scopeFactory,
+                            turnRunner => turnRunner.SendWaitStreaming(waitCommand.Hours, cancellationToken),
+                            alwaysSendScene: true, cancellationToken);
+                        break;
+                }
             }
 
             if (socket.State == WebSocketState.CloseReceived) {
@@ -118,6 +128,7 @@ internal static class SessionEndpoints {
         GameSessionState state,
         IServiceScopeFactory scopeFactory,
         Func<GameTurnRunner, IAsyncEnumerable<string>> runTurn,
+        bool alwaysSendScene,
         CancellationToken cancellationToken) {
         await using var scope = scopeFactory.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<CurrentGameSessionAccessor>().State = state;
@@ -127,7 +138,31 @@ internal static class SessionEndpoints {
             await SendMessage(socket, new ChatStreamToken(token), cancellationToken);
         }
 
+        if ((alwaysSendScene || state.Session.SceneRefreshedThisTurn) && state.LastScene != null) {
+            await SendMessage(socket, new ChatStreamScene(ToSnapshot(state.LastScene)), cancellationToken);
+        }
+
         await SendMessage(socket, new ChatStreamDone(), cancellationToken);
+    }
+
+    private static SceneSnapshot ToSnapshot(SceneResult scene) {
+        var currentDistrict = scene.City?.Districts.FirstOrDefault(d => d.IsCurrent);
+        return new SceneSnapshot(
+            scene.State?.Name ?? "",
+            scene.City?.Name,
+            currentDistrict?.Name,
+            scene.Building?.Name,
+            scene.Room?.Name,
+            scene.CurrentDate.Year,
+            scene.CurrentDate.MonthName,
+            scene.CurrentDate.Day,
+            scene.CurrentDate.WeekdayName,
+            scene.CurrentDate.Hour,
+            scene.NearbyPeople.Select(p => new NearbyPersonSnapshot(
+                p.Name, p.CreatureType, p.Profession, p.Level, p.Age, p.FactionNames, p.State, p.Reputation)).ToArray(),
+            scene.NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type)).ToArray(),
+            scene.Room?.Exits.Select(e => new NearbyExitSnapshot(e.Description, e.DestinationRoomName)).ToArray() ?? []
+        );
     }
 
     private static async Task<T?> ReceiveMessage<T>(WebSocket socket, CancellationToken cancellationToken) {

@@ -5,7 +5,7 @@ namespace TRPG;
 
 internal static class GameClock {
     private const double InGameHoursPerRealHour = 20.0;
-    private static readonly DateTime WorldEpoch = new(975, 1, 1);
+    private static readonly DateTime WorldEpoch = new(975, 1, 1, 8, 0, 0);
 
     private static readonly DateTimeFormatInfo CalendarFormat = new() {
         DayNames = ["Emberday", "Ashday", "Ironday", "Ravenday", "Stormday", "Hollowday", "Duskday"],

@@ -91,7 +91,7 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
         var result = await response.Content.ReadFromJsonAsync<WaitResponse>(TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.Contains("Time passes", result.Message, StringComparison.Ordinal);
-        Assert.Contains("hour 5", result.Message, StringComparison.Ordinal);
+        Assert.Contains("hour 13", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]

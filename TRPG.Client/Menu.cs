@@ -48,8 +48,8 @@ internal sealed class Menu(GameServerClient client, Game game) {
         Console.WriteLine($"\nWorld \"{world.WorldName}\" generated.");
         Console.WriteLine($"Entering \"{world.WorldName}\" as {playerName} the {profession}...");
 
-        var sessionId = await client.StartSession(world.WorldId, cancellationToken);
-        await game.Run(sessionId, cancellationToken);
+        await client.StartSession(world.WorldId, cancellationToken);
+        await game.Run(cancellationToken);
     }
 
     private static CreateWorldRequest PromptWorldGenerationParameters(string playerName, Race creatureType, Profession profession) {
@@ -60,8 +60,6 @@ internal sealed class Menu(GameServerClient client, Game game) {
             Race = creatureType,
             Profession = profession,
             Description = PromptForString("  Description", WorldGenerationDefaults.Description),
-            MinCountries = PromptForInt("  Countries min", WorldGenerationDefaults.MinCountries),
-            MaxCountries = PromptForInt("  Countries max", WorldGenerationDefaults.MaxCountries),
             MinCityStates = PromptForInt("  City states min", WorldGenerationDefaults.MinCityStates),
             MaxCityStates = PromptForInt("  City states max", WorldGenerationDefaults.MaxCityStates),
             MinRuralStates = PromptForInt("  Rural states min", WorldGenerationDefaults.MinRuralStates),
@@ -83,8 +81,8 @@ internal sealed class Menu(GameServerClient client, Game game) {
             return;
         }
 
-        var sessionId = await client.StartSession(world.WorldId, cancellationToken);
-        await game.Run(sessionId, cancellationToken);
+        await client.StartSession(world.WorldId, cancellationToken);
+        await game.Run(cancellationToken);
     }
 
     private async Task<WorldSummary?> AutoSelectWorld(CancellationToken cancellationToken) {

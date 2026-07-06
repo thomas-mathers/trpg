@@ -60,8 +60,31 @@ internal class GameTurnRunner(
         }
     }
 
+    public async IAsyncEnumerable<string> SendWaitStreaming(int hours,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+        session.DidMoveThisTurn = false;
+        session.SceneRefreshedThisTurn = false;
+        GameClock.AdvanceHours(session, hours);
+
+        var waitPrompt = await BuildWaitPrompt(hours, cancellationToken);
+        logger.LogInformation("[game] >>> {Message}", waitPrompt);
+
+        var buffer = new StringBuilder();
+        await foreach (var token in chat.SendAsync(waitPrompt, tools, cancellationToken: cancellationToken)) {
+            buffer.Append(token);
+            yield return token;
+        }
+
+        logger.LogInformation("[game] <<< {Response}", buffer.ToString());
+
+        if (session.DidMoveThisTurn) {
+            await RunPostMoveCleanup(cancellationToken);
+        }
+    }
+
     public async Task<TurnMetrics> ProcessTurn(string input, CancellationToken cancellationToken = default) {
         session.DidMoveThisTurn = false;
+        session.SceneRefreshedThisTurn = false;
         var metrics = await SendAndLog(input, cancellationToken);
 
         if (session.DidMoveThisTurn) {
@@ -74,6 +97,7 @@ internal class GameTurnRunner(
     public async IAsyncEnumerable<string> ProcessTurnStreaming(string input,
         [EnumeratorCancellation] CancellationToken cancellationToken = default) {
         session.DidMoveThisTurn = false;
+        session.SceneRefreshedThisTurn = false;
         logger.LogInformation("[game] >>> {Message}", input);
 
         var buffer = new StringBuilder();
@@ -105,6 +129,17 @@ internal class GameTurnRunner(
         return $"""
                 This is the start of the session. Narrate the opening scene using ONLY the data below — do not call world or look for this turn.
                 World: {JsonSerializer.Serialize(worldInfo, ToolJsonOptions.Options)}
+                Scene: {JsonSerializer.Serialize(scene, ToolJsonOptions.Options)}
+                """;
+    }
+
+    private async Task<string> BuildWaitPrompt(int hours, CancellationToken cancellationToken) {
+        var currentDate = GameClock.GetCurrentInGameDate(session);
+        var query = new SceneQuery(session.WorldId, session.PlayerId, currentDate);
+        var scene = await sceneService.GetScene(query, cancellationToken);
+
+        return $"""
+                {hours} hour(s) have passed. Narrate the passage of time and the player's surroundings now, using ONLY the data below — do not call world or look for this turn.
                 Scene: {JsonSerializer.Serialize(scene, ToolJsonOptions.Options)}
                 """;
     }

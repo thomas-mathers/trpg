@@ -31,8 +31,6 @@ public record CreateWorldRequest {
     public required Race Race { get; init; }
     public required Profession Profession { get; init; }
     public string Description { get; init; } = WorldGenerationDefaults.Description;
-    public int MinCountries { get; init; } = WorldGenerationDefaults.MinCountries;
-    public int MaxCountries { get; init; } = WorldGenerationDefaults.MaxCountries;
     public int MinCityStates { get; init; } = WorldGenerationDefaults.MinCityStates;
     public int MaxCityStates { get; init; } = WorldGenerationDefaults.MaxCityStates;
     public int MinRuralStates { get; init; } = WorldGenerationDefaults.MinRuralStates;

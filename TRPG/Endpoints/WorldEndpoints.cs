@@ -25,8 +25,6 @@ internal static class WorldEndpoints {
         CancellationToken cancellationToken) {
         var input = new WorldGeneratorInput {
             Description = request.Description,
-            MinCountries = request.MinCountries,
-            MaxCountries = request.MaxCountries,
             MinCityStates = request.MinCityStates,
             MaxCityStates = request.MaxCityStates,
             MinRuralStates = request.MinRuralStates,
@@ -42,8 +40,10 @@ internal static class WorldEndpoints {
         };
 
         var worldResult = await worldGenerator.Generate(input, cancellationToken);
-        
-        var startingCity = worldResult.Cities.First(c => c.IsCapital);
+
+        var playerCreatureType = request.Race.ToCreatureType();
+        var homeCountry = worldResult.Countries.First(c => c.DominantRace == playerCreatureType);
+        var startingCity = worldResult.Cities.First(c => c.IsCapital && c.CountryId == homeCountry.Id);
         var startingState = worldResult.States.First(s => s.Id == startingCity.StateId);
         var startingDistrict = worldResult.Districts.First(d =>
             d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter);
@@ -51,7 +51,7 @@ internal static class WorldEndpoints {
 
         var playerResult = creatureGenerator.Generate(
             new CreatureGeneratorInput(
-                CreatureType: request.Race.ToCreatureType(),
+                CreatureType: playerCreatureType,
                 Profession: profession,
                 WorldId: worldResult.World.Id,
                 BirthStateId: startingState.Id,

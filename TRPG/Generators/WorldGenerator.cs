@@ -10,13 +10,11 @@ internal class WorldGeneratorInput {
     public int HousesPerCity { get; init; }
     public int MaxBuildingsPerState { get; init; }
     public int MaxCityStates { get; init; }
-    public int MaxCountries { get; init; }
     public int MaxFactionMembers { get; init; }
     public int MaxHouseholdSize { get; init; }
     public int MaxRuralStates { get; init; }
     public int MinBuildingsPerState { get; init; }
     public int MinCityStates { get; init; }
-    public int MinCountries { get; init; }
     public int MinFactionMembers { get; init; }
     public int MinHouseholdSize { get; init; }
     public int MinRuralStates { get; init; }
@@ -51,6 +49,8 @@ internal class WorldGenerator(
     CreatureGenerator creatureGenerator,
     ILogger<WorldGenerator> logger
 ) {
+    private const double DominantRaceWeight = 0.7;
+
     private static readonly BuildingType[] StandardBuildingTypes = [
         BuildingType.ArcaneShop, BuildingType.Apothecary, BuildingType.Bakery, BuildingType.Barracks,
         BuildingType.Blacksmith, BuildingType.Castle, BuildingType.GeneralGoods,
@@ -82,8 +82,6 @@ internal class WorldGenerator(
             undead, demons, and beasts may lurk at the margins of civilization.
             """;
 
-        var races = CreatureTypes.Humanoid;
-
         var factions = (await factionsGenerator.Generate(
             new FactionsGeneratorInput {
                 WorldId = worldId,
@@ -99,10 +97,8 @@ internal class WorldGenerator(
                 Description = groundedDescription,
                 MaxRuralStates = generatorInput.MaxRuralStates,
                 MaxCityStates = generatorInput.MaxCityStates,
-                MaxCountries = generatorInput.MaxCountries,
                 MinRuralStates = generatorInput.MinRuralStates,
-                MinCityStates = generatorInput.MinCityStates,
-                MinCountries = generatorInput.MinCountries
+                MinCityStates = generatorInput.MinCityStates
             },
             cancellationToken
         );
@@ -117,19 +113,19 @@ internal class WorldGenerator(
         var props = new List<Prop>();
         var skills = new List<CreatureSkill>();
         var abilities = new List<CreatureAbility>();
-        var districts = new List<District>();
         var jobs = new List<Job>();
         var roomConnectorKeys = new List<RoomConnectorKey>();
         var guildHallIndex = 0;
 
         var stateById = geography.States.ToDictionary(s => s.Id);
+        var districtsByCityId = geography.Districts.GroupBy(d => d.CityId)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         foreach (var city in geography.Cities) {
             var state = stateById[city.StateId];
-            var cityDistricts = Enum.GetValues<DistrictType>()
-                .Select(type => DistrictGenerator.Generate(type, city.Id, worldId))
-                .ToDictionary(d => d.DistrictType);
-            districts.AddRange(cityDistricts.Values);
+            var dominantRace = geography.DominantRaceByCountryId[city.CountryId];
+            var usedBuildingNames = new HashSet<string>();
+            var cityDistricts = districtsByCityId[city.Id].ToDictionary(d => d.DistrictType);
 
             var cityFaction = new Faction {
                 WorldId = worldId, Name = $"The People of {city.Name}", Description = $"The common folk of {city.Name}."
@@ -143,9 +139,11 @@ internal class WorldGenerator(
             var pendingIdleMembers = new List<Creature>();
 
             foreach (var type in StandardBuildingTypes) {
-                var district = cityDistricts[DistrictGenerator.DistrictTypeByBuildingType[type]];
+                if (!cityDistricts.TryGetValue(DistrictGenerator.DistrictTypeByBuildingType[type], out var district)) {
+                    continue;
+                }
 
-                var creatureType = races[Random.Shared.Next(races.Count)];
+                var creatureType = PickCreatureType(dominantRace);
                 var creatureResult = creatureGenerator.Generate(
                     new CreatureGeneratorInput(creatureType, GetProfessionForBuilding(type), worldId, state.Id, state.Id)
                 );
@@ -159,7 +157,7 @@ internal class WorldGenerator(
                     var numMembers = Random.Shared.Next(generatorInput.MinFactionMembers,
                         generatorInput.MaxFactionMembers + 1);
                     for (var m = 1; m < numMembers; m++) {
-                        var memberRace = races[Random.Shared.Next(races.Count)];
+                        var memberRace = PickCreatureType(dominantRace);
                         var memberCreature = creatureGenerator.Generate(
                             new CreatureGeneratorInput(memberRace, Profession.Mercenary, worldId, state.Id, state.Id)
                         );
@@ -171,10 +169,12 @@ internal class WorldGenerator(
                 }
 
                 var isLockable = type is not (BuildingType.Inn or BuildingType.Tavern);
+                var buildingName = SettlementNameGenerator.GenerateBuildingName(dominantRace, type, usedBuildingNames);
 
                 var buildingResult = buildingGenerator.Generate(
                     new BuildingGeneratorInput(state.Id, city.Id, district.Id,
                         creatureResult.Creature.Id, type, worldId) {
+                        Name = buildingName,
                         MemberIds = memberIds,
                         IsLockable = isLockable
                     }
@@ -258,15 +258,13 @@ internal class WorldGenerator(
             }
 
             var residentialDistrict = cityDistricts[DistrictType.Residential];
-            var houseNames = new Queue<string>(BuildingGenerator.Names[BuildingType.House].Shuffle()
-                .Take(generatorInput.HousesPerCity));
 
             for (var h = 0; h < generatorInput.HousesPerCity; h++) {
                 var householdSize =
                     Random.Shared.Next(generatorInput.MinHouseholdSize, generatorInput.MaxHouseholdSize + 1);
                 var household = new List<CreatureGeneratorResult>();
                 for (var m = 0; m < householdSize; m++) {
-                    var creatureType = races[Random.Shared.Next(races.Count)];
+                    var creatureType = PickCreatureType(dominantRace);
                     var member = creatureGenerator.Generate(
                         new CreatureGeneratorInput(creatureType, GetProfessionForBuilding(BuildingType.House), worldId,
                             state.Id, state.Id)
@@ -276,10 +274,12 @@ internal class WorldGenerator(
                 }
 
                 var owner = household[0];
+                var houseName =
+                    SettlementNameGenerator.GenerateBuildingName(dominantRace, BuildingType.House, usedBuildingNames);
                 var houseResult = buildingGenerator.Generate(
                     new BuildingGeneratorInput(state.Id, city.Id, residentialDistrict.Id,
                         owner.Creature.Id, BuildingType.House, worldId) {
-                        Name = houseNames.Dequeue(),
+                        Name = houseName,
                         MemberIds = household.Select(m => m.Creature.Id).ToList(),
                         IsLockable = true
                     }
@@ -366,7 +366,7 @@ internal class WorldGenerator(
             Countries = geography.Countries,
             States = geography.States,
             Cities = geography.Cities,
-            Districts = districts,
+            Districts = geography.Districts,
             Roads = geography.Roads,
             Factions = factions,
             Buildings = buildings,
@@ -382,6 +382,15 @@ internal class WorldGenerator(
             Jobs = jobs,
             RoomConnectorKeys = roomConnectorKeys
         };
+    }
+
+    private static CreatureType PickCreatureType(CreatureType dominantRace) {
+        if (Random.Shared.NextDouble() < DominantRaceWeight) {
+            return dominantRace;
+        }
+
+        var others = CreatureTypes.Humanoid.Where(r => r != dominantRace).ToArray();
+        return others[Random.Shared.Next(others.Length)];
     }
 
     private static Profession GetProfessionForBuilding(BuildingType type) {

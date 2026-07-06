@@ -62,6 +62,7 @@ internal class SceneService(
     JobCatchUpService jobCatchUpService,
     LockService lockService,
     ReputationService reputationService,
+    CurrentGameSessionAccessor currentGameSessionAccessor,
     ILogger<SceneService> logger
 ) {
     public async Task<SceneResult> GetScene(SceneQuery query, CancellationToken cancellationToken = default) {
@@ -281,7 +282,7 @@ internal class SceneService(
         logger.LogInformation("[perf] GetScene ({Branch}) took {ElapsedMs}ms, {CreatureCount} nearby people",
             bootstrap.RoomId != null ? "indoor" : "outdoor", stopwatch.ElapsedMilliseconds, nearbyPeople.Count);
 
-        return new SceneResult(
+        var result = new SceneResult(
             query.CurrentDate,
             new SceneStateInfo(bootstrap.RegionName, regionDescription),
             cityInfo,
@@ -293,6 +294,10 @@ internal class SceneService(
             nearbyPeople,
             nearbyBuildings
         );
+
+        currentGameSessionAccessor.State.LastScene = result;
+        currentGameSessionAccessor.State.Session.SceneRefreshedThisTurn = true;
+        return result;
     }
 
     private static string GetPropType(Prop prop) {
