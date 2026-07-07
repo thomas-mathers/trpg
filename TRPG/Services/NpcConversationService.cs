@@ -6,7 +6,7 @@ namespace TRPG.Services;
 
 internal class NpcConversationService(TrpgDbContext context) {
     public async Task<string> GetSummary(Guid creatureId, Guid npcId, CancellationToken cancellationToken = default) {
-        var conversation = await context.NpcConversations
+        var conversation = await context.NpcConversations.AsNoTracking()
             .FirstOrDefaultAsync(c => c.CreatureId == creatureId && c.NpcId == npcId, cancellationToken);
 
         return conversation?.Summary ?? "";

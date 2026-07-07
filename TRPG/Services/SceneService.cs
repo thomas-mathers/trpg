@@ -103,7 +103,7 @@ internal class SceneService(
 
         SceneCityInfo? cityInfo = null;
         if (bootstrap.CityId != null) {
-            var districts = await context.Districts
+            var districts = await context.Districts.AsNoTracking()
                 .Where(d => d.CityId == bootstrap.CityId.Value)
                 .ToArrayAsync(cancellationToken);
             var districtInfos = districts
@@ -149,7 +149,7 @@ internal class SceneService(
                 factionDescription = faction?.Description;
             }
 
-            var props = await context.Props
+            var props = await context.Props.AsNoTracking()
                 .Where(p => p.RoomId == bootstrap.RoomId.Value)
                 .ToArrayAsync(cancellationToken);
 
@@ -212,12 +212,14 @@ internal class SceneService(
                                       destinationNameById.TryGetValue(c.DestinationRoomId.Value, out var name)
                     ? name
                     : "Outside";
+
+                var isLocked = c.IsLocked;
                 if (c.DestinationRoomId == null) {
-                    await lockService.SyncScheduleLock(roomAndBuilding.BuildingId, roomAndBuilding.BuildingType,
-                        query.CurrentDate.Hour, cancellationToken);
+                    isLocked = await lockService.SyncScheduleLock(roomAndBuilding.BuildingId,
+                        roomAndBuilding.BuildingType, query.CurrentDate.Hour, cancellationToken) ?? c.IsLocked;
                 }
 
-                exitInfos.Add(new SceneExitInfo(c.Description, destinationName, c.IsLocked));
+                exitInfos.Add(new SceneExitInfo(c.Description, destinationName, isLocked));
             }
 
             roomInfo = new SceneRoomInfo(

@@ -75,7 +75,7 @@ internal class InventoryService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<InventoryItem>> GetAllByCreatureId(Guid creatureId,
         CancellationToken cancellationToken = default) {
-        var list = await context.InventoryItems
+        var list = await context.InventoryItems.AsNoTracking()
             .Include(i => i.Item)
             .Where(i => i.CreatureId == creatureId)
             .OrderBy(i => i.Index)

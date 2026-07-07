@@ -5,16 +5,16 @@ namespace TRPG.Services;
 internal class LockService(BuildingService buildingService, JobService jobService, InventoryService inventoryService) {
     private static readonly HashSet<BuildingType> NeverLocked = [BuildingType.Inn, BuildingType.Tavern];
 
-    public async Task SyncScheduleLock(Guid buildingId, BuildingType buildingType, int hour,
+    public async Task<bool?> SyncScheduleLock(Guid buildingId, BuildingType buildingType, int hour,
         CancellationToken cancellationToken = default) {
         if (NeverLocked.Contains(buildingType)) {
-            return;
+            return null;
         }
 
         var owners = await buildingService.GetAllOwnersByBuildingId(buildingId, cancellationToken);
         var ownerId = owners.FirstOrDefault()?.OwnerId;
         if (ownerId == null) {
-            return;
+            return null;
         }
 
         var jobs = await jobService.GetAllByCreatureId(ownerId.Value, cancellationToken);
@@ -24,10 +24,11 @@ internal class LockService(BuildingService buildingService, JobService jobServic
             .ThenBy(j => j.Id)
             .FirstOrDefault();
         if (activeJob == null) {
-            return;
+            return null;
         }
 
-        await buildingService.SetFrontDoorLocked(buildingId, activeJob.Action == JobAction.Sleep, cancellationToken);
+        return await buildingService.SetFrontDoorLocked(buildingId, activeJob.Action == JobAction.Sleep,
+            cancellationToken);
     }
 
     public async Task<bool> CanEnter(Guid entranceRoomId, Guid enteringCreatureId,

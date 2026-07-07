@@ -15,7 +15,7 @@ internal class LocationService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<Country>> GetAllCountriesByWorldId(Guid worldId,
         CancellationToken cancellationToken = default) {
-        var list = await context.Countries
+        var list = await context.Countries.AsNoTracking()
             .Where(c => c.WorldId == worldId)
             .ToArrayAsync(cancellationToken);
         return list;
@@ -27,7 +27,7 @@ internal class LocationService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<State>> GetAllStatesByCountryId(Guid countryId,
         CancellationToken cancellationToken = default) {
-        var list = await context.States
+        var list = await context.States.AsNoTracking()
             .Where(r => r.CountryId == countryId)
             .ToArrayAsync(cancellationToken);
         return list;
@@ -39,7 +39,7 @@ internal class LocationService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<City>> GetAllCitiesByStateId(Guid stateId,
         CancellationToken cancellationToken = default) {
-        var list = await context.Cities
+        var list = await context.Cities.AsNoTracking()
             .Where(c => c.StateId == stateId)
             .ToArrayAsync(cancellationToken);
         return list;
@@ -51,7 +51,7 @@ internal class LocationService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<District>> GetAllDistrictsByCityId(Guid cityId,
         CancellationToken cancellationToken = default) {
-        var list = await context.Districts
+        var list = await context.Districts.AsNoTracking()
             .Where(d => d.CityId == cityId)
             .ToArrayAsync(cancellationToken);
         return list;
@@ -59,7 +59,7 @@ internal class LocationService(TrpgDbContext context) {
 
     public async Task<District?> GetDistrictByNameInCity(Guid cityId, string name,
         CancellationToken cancellationToken = default) {
-        return await context.Districts
+        return await context.Districts.AsNoTracking()
             .FirstOrDefaultAsync(d => d.CityId == cityId && EF.Functions.ILike(d.Name, name), cancellationToken);
     }
 }

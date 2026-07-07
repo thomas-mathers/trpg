@@ -28,18 +28,18 @@ internal class BuildingService(TrpgDbContext context) {
 
     public async Task<Building?> GetByNameInState(Guid stateId, string name,
         CancellationToken cancellationToken = default) {
-        return await context.Buildings.FirstOrDefaultAsync(
+        return await context.Buildings.AsNoTracking().FirstOrDefaultAsync(
             b => b.StateId == stateId && EF.Functions.ILike(b.Name, name), cancellationToken);
     }
 
     public async Task<Room?> GetEntranceRoom(Guid buildingId, CancellationToken cancellationToken = default) {
-        return await context.Rooms.FirstOrDefaultAsync(r => r.BuildingId == buildingId && r.FloorNumber == 0,
-            cancellationToken);
+        return await context.Rooms.AsNoTracking().FirstOrDefaultAsync(
+            r => r.BuildingId == buildingId && r.FloorNumber == 0, cancellationToken);
     }
 
     public async Task<ExitMatch> FindExitByDestinationName(Guid roomId, string destinationName,
         CancellationToken cancellationToken = default) {
-        var connectors = await context.Props
+        var connectors = await context.Props.AsNoTracking()
             .Where(p => p.RoomId == roomId)
             .OfType<RoomConnector>()
             .ToArrayAsync(cancellationToken);
@@ -65,12 +65,12 @@ internal class BuildingService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<Room>> GetRoomByIds(HashSet<Guid> roomIds,
         CancellationToken cancellationToken = default) {
-        return await context.Rooms.Where(b => roomIds.Contains(b.Id)).ToListAsync(cancellationToken);
+        return await context.Rooms.AsNoTracking().Where(b => roomIds.Contains(b.Id)).ToListAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<Building>> GetAllByStateId(Guid stateId,
         CancellationToken cancellationToken = default) {
-        var list = await context.Buildings
+        var list = await context.Buildings.AsNoTracking()
             .Where(b => b.StateId == stateId)
             .ToArrayAsync(cancellationToken);
         return list;
@@ -78,14 +78,14 @@ internal class BuildingService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<Room>> GetEntranceRoomsByBuildingIds(IReadOnlyCollection<Guid> buildingIds,
         CancellationToken cancellationToken = default) {
-        return await context.Rooms
+        return await context.Rooms.AsNoTracking()
             .Where(r => buildingIds.Contains(r.BuildingId) && r.FloorNumber == 0)
             .ToArrayAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<Prop>> GetAllPropsByRoomId(Guid roomId,
         CancellationToken cancellationToken = default) {
-        var list = await context.Props
+        var list = await context.Props.AsNoTracking()
             .Where(p => p.RoomId == roomId)
             .ToArrayAsync(cancellationToken);
         return list;
@@ -93,7 +93,7 @@ internal class BuildingService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<BuildingOwner>> GetAllOwnersByBuildingId(Guid buildingId,
         CancellationToken cancellationToken = default) {
-        var list = await context.BuildingOwners
+        var list = await context.BuildingOwners.AsNoTracking()
             .Where(o => o.BuildingId == buildingId)
             .ToArrayAsync(cancellationToken);
         return list;
@@ -106,26 +106,22 @@ internal class BuildingService(TrpgDbContext context) {
     }
 
     public async Task<RoomConnector?> GetFrontDoor(Guid roomId, CancellationToken cancellationToken = default) {
-        return await context.Props
+        return await context.Props.AsNoTracking()
             .Where(p => p.RoomId == roomId)
             .OfType<RoomConnector>()
             .FirstOrDefaultAsync(c => c.DestinationRoomId == null, cancellationToken);
     }
 
-    public async Task SetFrontDoorLocked(Guid buildingId, bool isLocked,
+    public async Task<bool?> SetFrontDoorLocked(Guid buildingId, bool isLocked,
         CancellationToken cancellationToken = default) {
-        var entranceRoom = await GetEntranceRoom(buildingId, cancellationToken);
-        if (entranceRoom == null) {
-            return;
-        }
+        var updatedCount = await (
+            from c in context.Props.OfType<RoomConnector>()
+            join r in context.Rooms on c.RoomId equals r.Id
+            where r.BuildingId == buildingId && r.FloorNumber == 0 && c.DestinationRoomId == null
+            select c
+        ).ExecuteUpdateAsync(s => s.SetProperty(c => c.IsLocked, isLocked), cancellationToken);
 
-        var door = await GetFrontDoor(entranceRoom.Id, cancellationToken);
-        if (door == null) {
-            return;
-        }
-
-        door.IsLocked = isLocked;
-        await context.SaveChangesAsync(cancellationToken);
+        return updatedCount > 0 ? isLocked : null;
     }
 
     public async Task<IReadOnlyList<Guid>> GetKeyItemIds(Guid roomConnectorId,

@@ -12,7 +12,7 @@ internal class JobService(TrpgDbContext context) {
 
     public async Task<IReadOnlyList<Job>> GetAllByCreatureId(Guid creatureId,
         CancellationToken cancellationToken = default) {
-        var list = await context.Jobs
+        var list = await context.Jobs.AsNoTracking()
             .Where(j => j.CreatureId == creatureId)
             .OrderByDescending(j => j.Priority)
             .ToArrayAsync(cancellationToken);

@@ -38,7 +38,8 @@ internal class ReputationService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<Reputation>> GetAllByCreatureId(Guid creatureId,
         CancellationToken cancellationToken = default) {
-        var list = await context.Reputations.Where(r => r.CreatureId == creatureId).ToArrayAsync(cancellationToken);
+        var list = await context.Reputations.AsNoTracking().Where(r => r.CreatureId == creatureId)
+            .ToArrayAsync(cancellationToken);
         return list;
     }
 

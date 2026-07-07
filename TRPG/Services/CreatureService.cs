@@ -16,7 +16,7 @@ internal class CreatureService(TrpgDbContext context) {
 
     public async Task<IReadOnlyCollection<Creature>> GetAllInState(Guid worldId, Guid stateId,
         CancellationToken cancellationToken = default) {
-        return await context.Creatures
+        return await context.Creatures.AsNoTracking()
             .Where(p => p.WorldId == worldId && p.StateId == stateId)
             .ToArrayAsync(cancellationToken);
     }
@@ -32,13 +32,13 @@ internal class CreatureService(TrpgDbContext context) {
 
     public async Task<Creature?> GetByNameInRoom(Guid worldId, Guid roomId, string name,
         CancellationToken cancellationToken = default) {
-        return await context.Creatures
+        return await context.Creatures.AsNoTracking()
             .FirstOrDefaultAsync(p => p.WorldId == worldId && p.RoomId == roomId && p.Name == name, cancellationToken);
     }
 
     public async Task<Creature?> GetByNameOutdoorsInState(Guid worldId, Guid stateId, string name,
         CancellationToken cancellationToken = default) {
-        return await context.Creatures
+        return await context.Creatures.AsNoTracking()
             .FirstOrDefaultAsync(
                 p => p.WorldId == worldId && p.StateId == stateId && p.RoomId == null && p.Name == name,
                 cancellationToken);
@@ -46,7 +46,7 @@ internal class CreatureService(TrpgDbContext context) {
 
     public async Task<Creature?> GetByNameOutdoorsInDistrict(Guid worldId, Guid districtId, string name,
         CancellationToken cancellationToken = default) {
-        return await context.Creatures
+        return await context.Creatures.AsNoTracking()
             .FirstOrDefaultAsync(
                 p => p.WorldId == worldId && p.DistrictId == districtId && p.RoomId == null && p.Name == name,
                 cancellationToken);

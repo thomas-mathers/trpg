@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
 using OllamaSharp.Models.Chat;
-using OllamaSharp.Tools;
 using TRPG.Commands;
 using TRPG.Data;
 using TRPG.Definitions;
@@ -64,6 +63,7 @@ internal static class ServiceCollectionExtensions {
             .AddTransient<NpcConversationService>()
             .AddSingleton(AbilityDefinitions.Create())
             .AddTransient<CreatureService>()
+            .AddTransient<CreatureKnowledgeService>()
             .AddTransient<ReputationService>()
             .AddTransient<SceneService>()
             .AddTransient<WorldService>()
@@ -91,6 +91,7 @@ internal static class ServiceCollectionExtensions {
             .AddScoped<Tool, InventoryTool>()
             .AddScoped<Tool, CharacterTool>()
             .AddScoped<Tool, StartConversationTool>()
-            .AddScoped<Tool, EndConversationTool>();
+            .AddScoped<Tool, EndConversationTool>()
+            .AddScoped<Tool, LookupTool>();
     }
 }

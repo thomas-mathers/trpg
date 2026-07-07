@@ -19,7 +19,7 @@ internal class LookTool : Tool, IInvokableTool {
         Function = new Function {
             Name = "look",
             Description =
-                "Returns everything currently observable at the player's location: the current region; the building and room (with its exits) if indoors; nearby props and people; and nearby buildings if outdoors. Call this before narrating any location, and again after anything might have changed what's nearby.",
+                "Returns everything currently observable at the player's location: CurrentDate (Year, MonthName, Day, WeekdayName, and a 24-hour Hour where 0 is midnight); the current region; the building and room (with its exits) if indoors; nearby props and people; and nearby buildings (only populated outdoors — empty indoors because you can't see outside from in here, not because the city has no buildings). Call this before narrating any location, and again after anything might have changed what's nearby.",
             Parameters = new Parameters {
                 Type = "object",
                 Properties = new Dictionary<string, Property>(),
