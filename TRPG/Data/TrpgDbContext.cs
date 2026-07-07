@@ -66,6 +66,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<Profession>().HaveConversion<string>();
         configurationBuilder.Properties<CreatureState>().HaveConversion<string>();
         configurationBuilder.Properties<CreatureType>().HaveConversion<string>();
+        configurationBuilder.Properties<Gender>().HaveConversion<string>();
         configurationBuilder.Properties<DistrictType>().HaveConversion<string>();
         configurationBuilder.Properties<Skill>().HaveConversion<string>();
         configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();

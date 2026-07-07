@@ -1,7 +1,7 @@
 namespace TRPG.Contracts;
 
 public record SceneSnapshot(
-    string RegionName,
+    string StateName,
     string? CityName,
     string? DistrictName,
     string? BuildingName,
@@ -12,13 +12,16 @@ public record SceneSnapshot(
     string WeekdayName,
     int Hour,
     IReadOnlyCollection<NearbyPersonSnapshot> NearbyPeople,
+    IReadOnlyCollection<NearbyDistrictSnapshot> NearbyDistricts,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyBuildings,
+    IReadOnlyCollection<NearbyPropSnapshot> NearbyProps,
     IReadOnlyCollection<NearbyExitSnapshot> Exits
 );
 
 public record NearbyPersonSnapshot(
     string Name,
     string CreatureType,
+    string Gender,
     string Profession,
     int Level,
     int Age,
@@ -27,6 +30,10 @@ public record NearbyPersonSnapshot(
     int Reputation
 );
 
+public record NearbyDistrictSnapshot(string Name, string Type);
+
 public record NearbyBuildingSnapshot(string Name, string Type);
+
+public record NearbyPropSnapshot(string Name, string Type);
 
 public record NearbyExitSnapshot(string Description, string DestinationRoomName);

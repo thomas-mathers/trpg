@@ -90,6 +90,7 @@ internal class WorldGenerator(
             },
             cancellationToken
         )).ToList();
+        var namedFactionCount = factions.Count;
 
         var geography = await geographyGenerator.Generate(
             new GeographyGeneratorInput {
@@ -115,6 +116,7 @@ internal class WorldGenerator(
         var abilities = new List<CreatureAbility>();
         var jobs = new List<Job>();
         var roomConnectorKeys = new List<RoomConnectorKey>();
+        var cityFactionIds = new HashSet<Guid>();
         var guildHallIndex = 0;
 
         var stateById = geography.States.ToDictionary(s => s.Id);
@@ -131,6 +133,7 @@ internal class WorldGenerator(
                 WorldId = worldId, Name = $"The People of {city.Name}", Description = $"The common folk of {city.Name}."
             };
             factions.Add(cityFaction);
+            cityFactionIds.Add(cityFaction.Id);
 
             var cityBuildings = new List<Building>();
             var cityIdleCandidates = cityDistricts.Values
@@ -204,17 +207,26 @@ internal class WorldGenerator(
                 }
 
                 if (type == BuildingType.GuildHall) {
-                    var factionId = factions[guildHallIndex++ % factions.Count].Id;
-                    buildingResult.Building.FactionId = factionId;
-                    factionMembers.Add(new FactionMember {
-                        FactionId = factionId, CreatureId = creatureResult.Creature.Id, Role = FactionRole.Leader,
-                        WorldId = worldId
-                    });
-                    foreach (var memberCreature in memberCreatures) {
+                    var guildFactionId = namedFactionCount > 0
+                        ? factions[guildHallIndex++ % namedFactionCount].Id
+                        : (Guid?) null;
+
+                    if (guildFactionId != null) {
+                        buildingResult.Building.FactionId = guildFactionId;
                         factionMembers.Add(new FactionMember {
-                            FactionId = factionId, CreatureId = memberCreature.Creature.Id, Role = FactionRole.Member,
-                            WorldId = worldId
+                            FactionId = guildFactionId.Value, CreatureId = creatureResult.Creature.Id,
+                            Role = FactionRole.Leader, WorldId = worldId
                         });
+                    }
+
+                    foreach (var memberCreature in memberCreatures) {
+                        if (guildFactionId != null) {
+                            factionMembers.Add(new FactionMember {
+                                FactionId = guildFactionId.Value, CreatureId = memberCreature.Creature.Id,
+                                Role = FactionRole.Member, WorldId = worldId
+                            });
+                        }
+
                         factionMembers.Add(new FactionMember {
                             FactionId = cityFaction.Id, CreatureId = memberCreature.Creature.Id,
                             Role = FactionRole.Member, WorldId = worldId
@@ -358,6 +370,9 @@ internal class WorldGenerator(
                 rooms.Add(result.Room);
             }
         }
+
+        BiographyGenerator.AssignBiographies(
+            new BiographyGeneratorInput(creatures, stateById, factionMembers, factions, cityFactionIds));
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 

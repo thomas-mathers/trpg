@@ -44,6 +44,7 @@ internal sealed record FactionLookupResult(
 internal sealed record PersonLookupResult(
     string Name,
     string CreatureType,
+    string Gender,
     string? Profession,
     int Level,
     int Age,
@@ -151,6 +152,7 @@ internal class CreatureKnowledgeService(TrpgDbContext context) {
         return new PersonLookupResult(
             creature.Name,
             creature.CreatureType.ToString(),
+            creature.Gender.ToString(),
             creature.Profession?.ToString(),
             creature.Level,
             currentYear - creature.BirthYear,

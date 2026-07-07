@@ -85,8 +85,11 @@ internal sealed class ChatHub(IServiceProvider serviceProvider, GameSessionStore
             scene.CurrentDate.WeekdayName,
             scene.CurrentDate.Hour,
             scene.NearbyPeople.Select(p => new NearbyPersonSnapshot(
-                p.Name, p.CreatureType, p.Profession, p.Level, p.Age, p.FactionNames, p.State, p.Reputation)).ToArray(),
+                p.Name, p.CreatureType, p.Gender, p.Profession, p.Level, p.Age, p.FactionNames, p.State,
+                p.Reputation)).ToArray(),
+            scene.City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type)).ToArray() ?? [],
             scene.NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type)).ToArray(),
+            scene.NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type)).ToArray(),
             scene.Room?.Exits.Select(e => new NearbyExitSnapshot(e.Description, e.DestinationRoomName)).ToArray() ?? []
         );
     }

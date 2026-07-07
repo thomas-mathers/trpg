@@ -4,8 +4,9 @@ using TRPG.Models;
 namespace TRPG;
 
 internal static class GameClock {
+    internal const int EpochYear = 975;
     private const double InGameHoursPerRealHour = 20.0;
-    private static readonly DateTime WorldEpoch = new(975, 1, 1, 8, 0, 0);
+    private static readonly DateTime WorldEpoch = new(EpochYear, 1, 1, 8, 0, 0);
 
     private static readonly DateTimeFormatInfo CalendarFormat = new() {
         DayNames = ["Emberday", "Ashday", "Ironday", "Ravenday", "Stormday", "Hollowday", "Duskday"],

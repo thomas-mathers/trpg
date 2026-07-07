@@ -84,7 +84,7 @@ internal sealed class Game(GameServerClient client) {
             return;
         }
 
-        var breadcrumb = string.Join(" > ", new[] { scene.RegionName, scene.CityName, scene.DistrictName, scene.BuildingName, scene.RoomName }
+        var breadcrumb = string.Join(" > ", new[] { scene.StateName, scene.CityName, scene.DistrictName, scene.BuildingName, scene.RoomName }
             .Where(name => !string.IsNullOrEmpty(name)));
         Console.WriteLine($"\n[{breadcrumb} | {scene.WeekdayName}, Hour {scene.Hour}]");
     }
@@ -96,7 +96,7 @@ internal sealed class Game(GameServerClient client) {
             return;
         }
 
-        if (scene.NearbyPeople.Count == 0 && scene.NearbyBuildings.Count == 0 && scene.Exits.Count == 0) {
+        if (scene.NearbyPeople.Count == 0 && scene.NearbyBuildings.Count == 0 && scene.Exits.Count == 0 && scene.NearbyDistricts.Count == 0 && scene.NearbyProps.Count == 0) {
             Console.WriteLine("Nothing nearby.");
             return;
         }
@@ -107,11 +107,25 @@ internal sealed class Game(GameServerClient client) {
                 Console.WriteLine($"  {person.Name,-20} {person.CreatureType,-10} {person.Profession,-12} Lvl {person.Level,-3} Age {person.Age}");
             }
         }
+        
+        if (scene.NearbyDistricts.Count > 0) {
+            Console.WriteLine("Districts:");
+            foreach (var district in scene.NearbyDistricts) {
+                Console.WriteLine($"  {district.Name,-25} {district.Type}");
+            }
+        }
 
         if (scene.NearbyBuildings.Count > 0) {
             Console.WriteLine("Buildings:");
             foreach (var building in scene.NearbyBuildings) {
                 Console.WriteLine($"  {building.Name,-25} {building.Type}");
+            }
+        }
+        
+        if (scene.NearbyProps.Count > 0) {
+            Console.WriteLine("Props:");
+            foreach (var prop in scene.NearbyProps) {
+                Console.WriteLine($"  {prop.Name,-25} {prop.Type}");
             }
         }
 

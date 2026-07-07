@@ -17,6 +17,10 @@ dotnet_diagnostic.CA1822.severity = suggestion
 # CA1859: Concrete return types on private methods add noise without meaningful benefit here
 dotnet_diagnostic.CA1859.severity = none
 
+# CA1308: guidance against ToLowerInvariant is about normalization for security-sensitive comparisons —
+# doesn't apply to lowercasing enum names for narrative prose (e.g. BiographyGenerator)
+dotnet_diagnostic.CA1308.severity = none
+
 # EF Core materializes init properties via reflection — Rider cannot see these assignments
 resharper_auto_property_can_be_made_get_only_global_highlighting = none
 resharper_auto_property_can_be_made_get_only_local_highlighting = none

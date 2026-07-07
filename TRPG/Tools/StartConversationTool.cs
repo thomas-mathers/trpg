@@ -6,7 +6,7 @@ using TRPG.Services;
 
 namespace TRPG.Tools;
 
-internal record StartConversationResult(string Summary);
+internal record StartConversationResult(string Summary, string Biography);
 
 internal class StartConversationTool : Tool, IInvokableTool {
     private readonly CreatureService _creatureService;
@@ -24,7 +24,7 @@ internal class StartConversationTool : Tool, IInvokableTool {
         Function = new Function {
             Name = "start_conversation",
             Description =
-                "Call this when you begin talking to someone, to remember what was discussed the last time you spoke with them. Returns an empty summary if you've never spoken before.",
+                "Call this when you begin talking to someone, to remember what was discussed the last time you spoke with them and to learn their personality, background, and manner of speech. Returns an empty summary if you've never spoken before — use the biography to voice them consistently regardless.",
             Parameters = new Parameters {
                 Type = "object",
                 Properties = new Dictionary<string, Property> {
@@ -66,6 +66,6 @@ internal class StartConversationTool : Tool, IInvokableTool {
 
         _session.ActiveConversationNpcs[npc.Name] = npc.Id;
 
-        return new StartConversationResult(summary);
+        return new StartConversationResult(summary, npc.Biography);
     }
 }

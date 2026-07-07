@@ -29,13 +29,15 @@ internal record SceneRoomInfo(
     int FloorNumber,
     IReadOnlyCollection<SceneExitInfo> Exits);
 
-internal record ScenePlayerInfo(string Name, string CreatureType, string Profession, int Level, int Gold, int Age);
+internal record ScenePlayerInfo(
+    string Name, string CreatureType, string Gender, string Profession, int Level, int Gold, int Age);
 
 internal record ScenePropInfo(string Name, string Description, string Type);
 
 internal record SceneCreatureInfo(
     string Name,
     string CreatureType,
+    string Gender,
     string Profession,
     int Level,
     int Age,
@@ -90,7 +92,8 @@ internal class SceneService(
                 p.CityId,
                 p.DistrictId,
                 p.RoomId,
-                CreatureTypeName = p.CreatureType.ToString()
+                CreatureTypeName = p.CreatureType.ToString(),
+                GenderName = p.Gender.ToString()
             }
         ).FirstAsync(cancellationToken);
 
@@ -170,8 +173,8 @@ internal class SceneService(
                 from p in context.Creatures
                 where p.WorldId == worldId && p.RoomId == bootstrap.RoomId.Value && p.Id != playerId
                 select new {
-                    p.Id, p.Name, CreatureTypeName = p.CreatureType.ToString(), Profession = p.Profession.ToString(),
-                    p.Level, p.BirthYear, State = p.State.ToString()
+                    p.Id, p.Name, CreatureTypeName = p.CreatureType.ToString(), GenderName = p.Gender.ToString(),
+                    Profession = p.Profession.ToString(), p.Level, p.BirthYear, State = p.State.ToString()
                 }
             ).ToArrayAsync(cancellationToken);
 
@@ -189,9 +192,9 @@ internal class SceneService(
             var nearbyPeopleList = new List<SceneCreatureInfo>();
             foreach (var x in nearbyPeopleRaw) {
                 var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
-                nearbyPeopleList.Add(new SceneCreatureInfo(x.Name, x.CreatureTypeName, x.Profession, x.Level,
-                    query.CurrentDate.Year - x.BirthYear, factionNamesByCreature.GetValueOrDefault(x.Id, []), x.State,
-                    reputation));
+                nearbyPeopleList.Add(new SceneCreatureInfo(x.Name, x.CreatureTypeName, x.GenderName, x.Profession,
+                    x.Level, query.CurrentDate.Year - x.BirthYear,
+                    factionNamesByCreature.GetValueOrDefault(x.Id, []), x.State, reputation));
             }
             logger.LogInformation("[perf] Reputation lookups for {CreatureCount} indoor people took {ElapsedMs}ms",
                 nearbyPeopleRaw.Length, reputationStopwatch.ElapsedMilliseconds);
@@ -252,8 +255,8 @@ internal class SceneService(
                 where p.WorldId == worldId && p.StateId == bootstrap.StateId && p.DistrictId == bootstrap.DistrictId &&
                       p.RoomId == null && p.Id != playerId
                 select new {
-                    p.Id, p.Name, CreatureTypeName = p.CreatureType.ToString(), Profession = p.Profession.ToString(),
-                    p.Level, p.BirthYear, State = p.State.ToString()
+                    p.Id, p.Name, CreatureTypeName = p.CreatureType.ToString(), GenderName = p.Gender.ToString(),
+                    Profession = p.Profession.ToString(), p.Level, p.BirthYear, State = p.State.ToString()
                 }
             ).ToArrayAsync(cancellationToken);
 
@@ -271,9 +274,9 @@ internal class SceneService(
             var nearbyPeopleList = new List<SceneCreatureInfo>();
             foreach (var x in nearbyPeopleRaw) {
                 var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
-                nearbyPeopleList.Add(new SceneCreatureInfo(x.Name, x.CreatureTypeName, x.Profession, x.Level,
-                    query.CurrentDate.Year - x.BirthYear, factionNamesByCreature.GetValueOrDefault(x.Id, []), x.State,
-                    reputation));
+                nearbyPeopleList.Add(new SceneCreatureInfo(x.Name, x.CreatureTypeName, x.GenderName, x.Profession,
+                    x.Level, query.CurrentDate.Year - x.BirthYear,
+                    factionNamesByCreature.GetValueOrDefault(x.Id, []), x.State, reputation));
             }
             logger.LogInformation("[perf] Reputation lookups for {CreatureCount} outdoor people took {ElapsedMs}ms",
                 nearbyPeopleRaw.Length, reputationStopwatch.ElapsedMilliseconds);
@@ -290,8 +293,9 @@ internal class SceneService(
             cityInfo,
             buildingInfo,
             roomInfo,
-            new ScenePlayerInfo(bootstrap.PlayerName, bootstrap.CreatureTypeName, bootstrap.Profession.ToString()!,
-                bootstrap.Level, bootstrap.Gold, query.CurrentDate.Year - bootstrap.BirthYear),
+            new ScenePlayerInfo(bootstrap.PlayerName, bootstrap.CreatureTypeName, bootstrap.GenderName,
+                bootstrap.Profession.ToString()!, bootstrap.Level, bootstrap.Gold,
+                query.CurrentDate.Year - bootstrap.BirthYear),
             nearbyProps,
             nearbyPeople,
             nearbyBuildings

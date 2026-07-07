@@ -31,6 +31,11 @@ internal enum CreatureState {
     Busy
 }
 
+internal enum Gender {
+    Male,
+    Female
+}
+
 internal enum Profession {
     Knight,
     Rogue,
@@ -59,6 +64,7 @@ internal class Creature {
     public CreatureType CreatureType { get; init; }
     public Guid? DistrictId { get; set; }
     public int Experience { get; set; }
+    public Gender Gender { get; init; }
     public int Gold { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Level { get; set; }

@@ -25,7 +25,9 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
             "Alden", "Alric", "Ansel", "Aric", "Baldric", "Bennet", "Beric", "Brand", "Brenner", "Cedric",
             "Corwin", "Darian", "Edric", "Edwin", "Eldric", "Emric", "Errol", "Falk", "Gareth", "Gavin",
             "Godric", "Hadrian", "Halric", "Harwin", "Jareth", "Kellan", "Leoric", "Lucan", "Merrick", "Osric",
-            "Roderic", "Roland", "Stefan", "Theron", "Tristan", "Ulric", "Wulfric", "Alaric", "Bastian", "Calder",
+            "Roderic", "Roland", "Stefan", "Theron", "Tristan", "Ulric", "Wulfric", "Alaric", "Bastian", "Calder"
+        ],
+        [
             "Adela", "Alena", "Anya", "Brienne", "Brynn", "Celia", "Clarice", "Delia", "Edith", "Elena",
             "Elise", "Evelyn", "Fiona", "Freya", "Gwen", "Helena", "Isolde", "Jocelyn", "Kaela", "Liora",
             "Lyanna", "Mara", "Maris", "Meriel", "Mirabel", "Nerys", "Roslyn", "Rowena", "Selene", "Serena",
@@ -43,11 +45,14 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
 
     private static readonly NamePool ElfPool = new(
         [
-            "Aerendyl", "Aelar", "Althaea", "Arannis", "Arwen", "Caeleth", "Daenor", "Eilistra", "Elaith",
-            "Elenwe", "Elowen", "Faelar", "Galadrian", "Ithilwen", "Kaelith", "Laeroth", "Lethariel",
-            "Lirael", "Lorindel", "Maeralya", "Melian", "Miriel", "Naivara", "Nimrodel", "Nuala",
-            "Rhovan", "Saelihn", "Selanar", "Shalana", "Silvyr", "Sylvaris", "Sylwen", "Thalindra",
-            "Thamior", "Theren", "Vaelith", "Vaeril", "Vanya", "Ylyndar", "Zeren"
+            "Aerendyl", "Aelar", "Arannis", "Caeleth", "Daenor", "Elaith", "Faelar", "Galadrian",
+            "Laeroth", "Lorindel", "Rhovan", "Saelihn", "Selanar", "Silvyr", "Thamior", "Theren",
+            "Vaeril", "Ylyndar", "Zeren", "Erevan", "Aramil"
+        ],
+        [
+            "Althaea", "Arwen", "Eilistra", "Elenwe", "Elowen", "Ithilwen", "Kaelith", "Lethariel",
+            "Lirael", "Maeralya", "Melian", "Miriel", "Naivara", "Nimrodel", "Nuala", "Shalana",
+            "Sylvaris", "Sylwen", "Thalindra", "Vaelith", "Vanya"
         ],
         [
             "Amakiir", "Brightwater", "Dawnstrider", "Duskbrook", "Evenstar", "Goldenleaf",
@@ -60,12 +65,15 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
 
     private static readonly NamePool DwarfPool = new(
         [
-            "Anrik", "Astrid", "Balgrim", "Balina", "Bofri", "Borin", "Bruni", "Dagnal",
-            "Dain", "Dorin", "Dunric", "Durga", "Durgan", "Eitri", "Freygund",
-            "Grimnar", "Harbek", "Helga", "Hilde", "Kadrin", "Ketra", "Morgran",
-            "Nordri", "Orsik", "Rurik", "Sindri", "Sigrun", "Thorgrim", "Thrain",
-            "Thror", "Torbera", "Travok", "Ulfar", "Vala", "Vondal", "Baldor",
-            "Grundi", "Hargin", "Korin", "Vistra"
+            "Anrik", "Balgrim", "Bofri", "Borin", "Bruni", "Dain", "Dorin", "Dunric", "Durgan",
+            "Eitri", "Grimnar", "Harbek", "Kadrin", "Morgran", "Nordri", "Orsik", "Rurik", "Sindri",
+            "Thorgrim", "Thrain", "Thror", "Travok", "Ulfar", "Vondal", "Baldor", "Grundi", "Hargin", "Korin"
+        ],
+        [
+            "Astrid", "Balina", "Dagnal", "Durga", "Freygund", "Helga", "Hilde", "Ketra",
+            "Sigrun", "Torbera", "Vala", "Vistra", "Amber", "Artin", "Audhild", "Bardryn",
+            "Diesa", "Eldeth", "Falkrunn", "Finellen", "Gunnloda", "Gurdis", "Helja", "Hlin",
+            "Kathra", "Kristryd", "Liftrasa", "Torgga"
         ],
         [
             "Anvilfist", "Battleaxe", "Bronzebeard", "Coalbeard", "Deepdelver",
@@ -78,12 +86,15 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
 
     private static readonly NamePool OrcPool = new(
         [
-            "Brakka", "Drakka", "Ghak", "Ghazbul", "Gorak", "Grukk", "Grul",
-            "Kagra", "Karg", "Krenna", "Krusk", "Mogthar", "Morgash", "Nagga",
-            "Ruzka", "Skarn", "Thokk", "Throggar", "Ugluk", "Ulzara",
-            "Urgan", "Uzgash", "Uzarg", "Varg", "Vashak", "Vorak", "Vorn",
-            "Yarg", "Zagga", "Zogar", "Zulgar", "Brug", "Grom", "Hruk",
-            "Krosh", "Murg", "Rakka", "Shura", "Torzug", "Urgash"
+            "Ghak", "Ghazbul", "Gorak", "Grukk", "Grul", "Karg", "Krusk", "Mogthar", "Morgash",
+            "Skarn", "Thokk", "Throggar", "Ugluk", "Urgan", "Uzgash", "Uzarg", "Varg", "Vashak",
+            "Vorak", "Vorn", "Yarg", "Zogar", "Zulgar", "Brug", "Grom", "Hruk", "Krosh", "Murg",
+            "Torzug", "Urgash"
+        ],
+        [
+            "Brakka", "Drakka", "Kagra", "Krenna", "Nagga", "Ruzka", "Ulzara", "Zagga", "Rakka", "Shura",
+            "Baggi", "Emen", "Engong", "Kansif", "Myev", "Neega", "Ovak", "Ownka", "Shautha", "Sutha",
+            "Vola", "Volen", "Yevelda", "Mogra", "Skarza", "Vorka", "Grazna", "Uzka", "Thura", "Zulga"
         ],
         [
             "Ashclaw", "Bloodfang", "Bonegnaw", "Bonecrusher", "Doomhowl",
@@ -96,12 +107,14 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
 
     private static readonly NamePool HalflingPool = new(
         [
-            "Alton", "Bella", "Bramble", "Cora", "Daisy", "Dudo", "Elly",
-            "Fenwick", "Finnan", "Fosco", "Hamish", "Hob", "Ivy", "Jasper",
-            "Lavinia", "Lily", "Marigold", "Merri", "Milo", "Nora",
-            "Perrin", "Pip", "Poppy", "Primrose", "Rosalind", "Ruby",
-            "Samwise", "Seraphina", "Tobias", "Wendell", "Willow", "Roscoe",
-            "Minta", "Posy", "Rollo", "Tansy", "Wilbur", "Briony", "Esme", "Hugo"
+            "Alton", "Dudo", "Fenwick", "Finnan", "Fosco", "Hamish", "Hob", "Jasper", "Merri",
+            "Milo", "Perrin", "Pip", "Samwise", "Tobias", "Wendell", "Roscoe", "Rollo", "Wilbur", "Hugo",
+            "Ander", "Wellby"
+        ],
+        [
+            "Bella", "Bramble", "Cora", "Daisy", "Elly", "Ivy", "Lavinia", "Lily", "Marigold", "Nora",
+            "Poppy", "Primrose", "Rosalind", "Ruby", "Seraphina", "Willow", "Minta", "Posy", "Tansy",
+            "Briony", "Esme"
         ],
         [
             "Applewood", "Appleford", "Berrybrook", "Brambleburr", "Brushgather",
@@ -114,12 +127,14 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
 
     private static readonly NamePool GnomePool = new(
         [
-            "Alston", "Bimble", "Boddynock", "Bumblenoot", "Dimble", "Dobbin",
-            "Fizzwick", "Frizzle", "Gimble", "Glimmerpop", "Jebeddo", "Mardnab",
-            "Nib", "Nooble", "Ordo", "Pipkin", "Quibble", "Rill", "Sprocket",
-            "Tana", "Tink", "Tobin", "Twyla", "Widget", "Wizzle", "Zilly",
-            "Bramblewick", "Cog", "Dapple", "Ellywick", "Fonkin", "Nissa",
-            "Pog", "Rumpadump", "Sivli", "Tock", "Whim", "Yaffle", "Zook", "Zanna"
+            "Alston", "Boddynock", "Bumblenoot", "Dimble", "Dobbin", "Fizzwick", "Gimble", "Jebeddo",
+            "Nib", "Ordo", "Pipkin", "Sprocket", "Tink", "Tobin", "Widget", "Bramblewick", "Cog",
+            "Fonkin", "Pog", "Rumpadump", "Tock", "Yaffle", "Zook"
+        ],
+        [
+            "Bimble", "Frizzle", "Glimmerpop", "Mardnab", "Nooble", "Quibble", "Rill", "Tana",
+            "Twyla", "Wizzle", "Zilly", "Dapple", "Ellywick", "Nissa", "Sivli", "Whim", "Zanna",
+            "Bimpnottin", "Breena", "Donella", "Ella", "Nyx", "Oda"
         ],
         [
             "Bramblegear", "Bristlecog", "Cogsworth", "Copperwing", "Fidgetgear",
@@ -130,8 +145,12 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         ]
     );
 
+    private static readonly string[] MonsterEpithets =
+        ["Grim", "Foul", "Ancient", "Feral", "Ravenous", "Withered", "Nameless", "Restless"];
+
     private static readonly NamePool MonsterPool = new(
-        ["Grim", "Foul", "Ancient", "Feral", "Ravenous", "Withered", "Nameless", "Restless"],
+        MonsterEpithets,
+        MonsterEpithets,
         ["Wraith", "Husk", "Fiend", "Beast", "Horror", "Shade", "Abomination", "Stalker"]
     );
 
@@ -202,11 +221,13 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
 
     public CreatureGeneratorResult Generate(CreatureGeneratorInput generatorInput) {
         var level = generatorInput.Level > 0 ? generatorInput.Level : Random.Shared.Next(1, GameRules.MaxLevel + 1);
+        var gender = Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female;
 
         var creature = new Creature {
             WorldId = generatorInput.WorldId,
-            Name = generatorInput.Name ?? GetName(generatorInput.CreatureType),
+            Name = generatorInput.Name ?? GetName(generatorInput.CreatureType, gender),
             CreatureType = generatorInput.CreatureType,
+            Gender = gender,
             Profession = generatorInput.Profession,
             BirthStateId = generatorInput.BirthStateId,
             BirthYear = Random.Shared.Next(900, 975),
@@ -384,15 +405,16 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         ];
     }
 
-    public static string GetName(CreatureType creatureType) {
+    public static string GetName(CreatureType creatureType, Gender gender) {
         var pools = Pools.GetValueOrDefault(creatureType, [MonsterPool]);
         var pool = pools[Random.Shared.Next(pools.Length)];
-        var first = pool.FirstNames[Random.Shared.Next(pool.FirstNames.Length)];
+        var firstNames = gender == Gender.Male ? pool.MaleFirstNames : pool.FemaleFirstNames;
+        var first = firstNames[Random.Shared.Next(firstNames.Length)];
         var last = pool.LastNames[Random.Shared.Next(pool.LastNames.Length)];
         return $"{first} {last}";
     }
 
-    private record NamePool(string[] FirstNames, string[] LastNames);
+    private record NamePool(string[] MaleFirstNames, string[] FemaleFirstNames, string[] LastNames);
 
     private record StatAffinities(
         int Strength,
