@@ -10,7 +10,10 @@ internal record CreatureGeneratorInput(
     Guid BirthStateId,
     Guid StateId,
     int Level = 0,
-    string? Name = null);
+    string? Name = null,
+    Gender? Gender = null,
+    int? MinBirthYear = null,
+    int? MaxBirthYear = null);
 
 internal record CreatureGeneratorResult(
     Creature Creature,
@@ -25,13 +28,16 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
             "Alden", "Alric", "Ansel", "Aric", "Baldric", "Bennet", "Beric", "Brand", "Brenner", "Cedric",
             "Corwin", "Darian", "Edric", "Edwin", "Eldric", "Emric", "Errol", "Falk", "Gareth", "Gavin",
             "Godric", "Hadrian", "Halric", "Harwin", "Jareth", "Kellan", "Leoric", "Lucan", "Merrick", "Osric",
-            "Roderic", "Roland", "Stefan", "Theron", "Tristan", "Ulric", "Wulfric", "Alaric", "Bastian", "Calder"
+            "Roderic", "Roland", "Stefan", "Theron", "Tristan", "Ulric", "Wulfric", "Alaric", "Bastian", "Calder",
+            "Aldous", "Barnaby", "Cassian", "Dorian", "Edmund", "Garrick", "Holt", "Percival", "Rowan", "Warrick"
         ],
         [
             "Adela", "Alena", "Anya", "Brienne", "Brynn", "Celia", "Clarice", "Delia", "Edith", "Elena",
             "Elise", "Evelyn", "Fiona", "Freya", "Gwen", "Helena", "Isolde", "Jocelyn", "Kaela", "Liora",
             "Lyanna", "Mara", "Maris", "Meriel", "Mirabel", "Nerys", "Roslyn", "Rowena", "Selene", "Serena",
-            "Sylva", "Talia", "Thalia", "Valena", "Vera", "Vivienne", "Ysolde", "Arwen", "Catrin", "Maeve"
+            "Sylva", "Talia", "Thalia", "Valena", "Vera", "Vivienne", "Ysolde", "Arwen", "Catrin", "Maeve",
+            "Cassandra", "Elowen", "Ginevra", "Iona", "Marguerite", "Odessa", "Perpetua", "Wilhelmina",
+            "Ysabel", "Wren"
         ],
         [
             "Ashford", "Ashmere", "Blackwood", "Briar", "Brighton", "Coldbrook", "Dawnmere", "Dunridge",
@@ -39,7 +45,11 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
             "Hawthorne", "Highmore", "Hillcrest", "Ironwood", "Kingsley", "Larkspur", "Longford", "Marwood",
             "Mournhill", "Northmere", "Oakheart", "Ravencrest", "Redbrook", "Riverstone",
             "Silverbrook", "Stonebridge", "Stormholt", "Thorne", "Valewood", "Westbrook", "Whitehill",
-            "Wintermere", "Wolfhart", "Woodcroft"
+            "Wintermere", "Wolfhart", "Woodcroft", "Ashvale", "Barrowfield", "Blackthorn", "Briarwood",
+            "Cinderfall", "Dunmoor", "Eastwick", "Elmsworth", "Fallowmere", "Farrow", "Foxglove", "Graywood",
+            "Greenvale", "Hallowell", "Harrowgate", "Ironcastle", "Kestrel", "Lockhart", "Millbrook",
+            "Nightingale", "Oakhurst", "Pemberton", "Ravensworth", "Rosewood", "Shadowmere", "Summerfield",
+            "Thistlewood", "Vane", "Wintercross", "Wyndham"
         ]
     );
 
@@ -47,19 +57,24 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [
             "Aerendyl", "Aelar", "Arannis", "Caeleth", "Daenor", "Elaith", "Faelar", "Galadrian",
             "Laeroth", "Lorindel", "Rhovan", "Saelihn", "Selanar", "Silvyr", "Thamior", "Theren",
-            "Vaeril", "Ylyndar", "Zeren", "Erevan", "Aramil"
+            "Vaeril", "Ylyndar", "Zeren", "Erevan", "Aramil", "Beiro", "Dayereth", "Enialis",
+            "Immeral", "Mindartis", "Paelias", "Peren", "Soveliss", "Varis"
         ],
         [
             "Althaea", "Arwen", "Eilistra", "Elenwe", "Elowen", "Ithilwen", "Kaelith", "Lethariel",
             "Lirael", "Maeralya", "Melian", "Miriel", "Naivara", "Nimrodel", "Nuala", "Shalana",
-            "Sylvaris", "Sylwen", "Thalindra", "Vaelith", "Vanya"
+            "Sylvaris", "Sylwen", "Thalindra", "Vaelith", "Vanya", "Anastrianna", "Antinua",
+            "Bethrynna", "Caelynn", "Drusilia", "Ielenia", "Keyleth", "Sariel", "Shanairra"
         ],
         [
             "Amakiir", "Brightwater", "Dawnstrider", "Duskbrook", "Evenstar", "Goldenleaf",
             "Lightbringer", "Moonbrook", "Moonwhisper", "Nightbloom", "Silverbranch",
             "Silverleaf", "Starfall", "Starweaver", "Sunshadow", "Swiftbrook",
             "Whisperwind", "Willowmere", "Windrunner", "Winterbough", "Wyldwood",
-            "Mistwalker", "Shadowmere", "Greenbriar", "Ashgrove"
+            "Mistwalker", "Shadowmere", "Greenbriar", "Ashgrove", "Autumnwind", "Brightspear",
+            "Dawnsinger", "Emberleaf", "Fallowbrook", "Frostwhisper", "Glimmerdale", "Hollowbrook",
+            "Ironflower", "Lightweaver", "Mistbourne", "Moonshadow", "Nightwhisper", "Oakenshield",
+            "Ravenmoor", "Silvermist", "Stormrider", "Sunwhisper", "Thornbrook", "Wintermoon"
         ]
     );
 
@@ -67,20 +82,26 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [
             "Anrik", "Balgrim", "Bofri", "Borin", "Bruni", "Dain", "Dorin", "Dunric", "Durgan",
             "Eitri", "Grimnar", "Harbek", "Kadrin", "Morgran", "Nordri", "Orsik", "Rurik", "Sindri",
-            "Thorgrim", "Thrain", "Thror", "Travok", "Ulfar", "Vondal", "Baldor", "Grundi", "Hargin", "Korin"
+            "Thorgrim", "Thrain", "Thror", "Travok", "Ulfar", "Vondal", "Baldor", "Grundi", "Hargin", "Korin",
+            "Bruenor", "Darrak", "Delg", "Fargrim", "Oskar", "Tordek", "Veit"
         ],
         [
             "Astrid", "Balina", "Dagnal", "Durga", "Freygund", "Helga", "Hilde", "Ketra",
             "Sigrun", "Torbera", "Vala", "Vistra", "Amber", "Artin", "Audhild", "Bardryn",
             "Diesa", "Eldeth", "Falkrunn", "Finellen", "Gunnloda", "Gurdis", "Helja", "Hlin",
-            "Kathra", "Kristryd", "Liftrasa", "Torgga"
+            "Kathra", "Kristryd", "Liftrasa", "Torgga", "Mardred", "Riswynn", "Sannl", "Dagmar",
+            "Gudrun", "Ingrid", "Ragna"
         ],
         [
             "Anvilfist", "Battleaxe", "Bronzebeard", "Coalbeard", "Deepdelver",
             "Emberforge", "Firemantle", "Forgehammer", "Goldfinder", "Granitehelm",
             "Grimforge", "Hammerfall", "Ironbeard", "Ironforge", "Ironjaw",
             "Rockfist", "Stonebeard", "Stonebreaker", "Stonehammer", "Steelheart",
-            "Strongpick", "Deepstone", "Oreseeker", "Runehammer", "Blackanvil"
+            "Strongpick", "Deepstone", "Oreseeker", "Runehammer", "Blackanvil",
+            "Boulderfist", "Coppervein", "Copperforge", "Deephammer", "Emberbeard", "Flintlock",
+            "Goldbeard", "Graniteforge", "Hardstone", "Ironclad", "Mountainheart", "Oreforge",
+            "Quarryson", "Redbeard", "Rockbreaker", "Silverpick", "Stonefist", "Steelforge",
+            "Thundershield", "Warhammer"
         ]
     );
 
@@ -89,19 +110,23 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
             "Ghak", "Ghazbul", "Gorak", "Grukk", "Grul", "Karg", "Krusk", "Mogthar", "Morgash",
             "Skarn", "Thokk", "Throggar", "Ugluk", "Urgan", "Uzgash", "Uzarg", "Varg", "Vashak",
             "Vorak", "Vorn", "Yarg", "Zogar", "Zulgar", "Brug", "Grom", "Hruk", "Krosh", "Murg",
-            "Torzug", "Urgash"
+            "Torzug", "Urgash", "Dench", "Feng", "Gell", "Henk", "Holg"
         ],
         [
             "Brakka", "Drakka", "Kagra", "Krenna", "Nagga", "Ruzka", "Ulzara", "Zagga", "Rakka", "Shura",
             "Baggi", "Emen", "Engong", "Kansif", "Myev", "Neega", "Ovak", "Ownka", "Shautha", "Sutha",
-            "Vola", "Volen", "Yevelda", "Mogra", "Skarza", "Vorka", "Grazna", "Uzka", "Thura", "Zulga"
+            "Vola", "Volen", "Yevelda", "Mogra", "Skarza", "Vorka", "Grazna", "Uzka", "Thura", "Zulga",
+            "Draka", "Geyah", "Grazka", "Morza", "Zulkra"
         ],
         [
             "Ashclaw", "Bloodfang", "Bonegnaw", "Bonecrusher", "Doomhowl",
             "Deathgrip", "Grimtusk", "Gutripper", "Ironhide", "Ragefist",
             "Rotmaw", "Skullcrusher", "Skullsplitter", "Skinflayer", "Spinebreaker",
             "Stormmaw", "The Butcher", "The Ravager", "Warscar", "Wolfkiller",
-            "Blacktooth", "Redblade", "Fleshtearer", "Gravemaw", "Hellscar"
+            "Blacktooth", "Redblade", "Fleshtearer", "Gravemaw", "Hellscar",
+            "Axebiter", "Boneshatter", "Bloodmaw", "Deathfang", "Doomfist", "Firescar", "Gorehowl",
+            "Ironmaw", "Nightclaw", "Painbringer", "Ragescar", "Rotgrip", "Scarhide", "Skullbiter",
+            "Stormfang", "Thornmaw", "Warhowl", "Wolfscar", "Bloodrend", "Grimhowl"
         ]
     );
 
@@ -109,19 +134,23 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [
             "Alton", "Dudo", "Fenwick", "Finnan", "Fosco", "Hamish", "Hob", "Jasper", "Merri",
             "Milo", "Perrin", "Pip", "Samwise", "Tobias", "Wendell", "Roscoe", "Rollo", "Wilbur", "Hugo",
-            "Ander", "Wellby"
+            "Ander", "Wellby", "Cade", "Corrin", "Errich", "Garret", "Lindal", "Lyle", "Reed"
         ],
         [
             "Bella", "Bramble", "Cora", "Daisy", "Elly", "Ivy", "Lavinia", "Lily", "Marigold", "Nora",
             "Poppy", "Primrose", "Rosalind", "Ruby", "Seraphina", "Willow", "Minta", "Posy", "Tansy",
-            "Briony", "Esme"
+            "Briony", "Esme", "Carlin", "Dahlia", "Euphemia", "Lavender", "Meadow", "Peony", "Wisteria"
         ],
         [
             "Applewood", "Appleford", "Berrybrook", "Brambleburr", "Brushgather",
             "Cobblestone", "Fairmeadow", "Goodbarrel", "Greenhill", "Hayworth",
             "Hilltopple", "Meadowlight", "Oakbottom", "Oakhollow", "Puddlefoot",
             "Riverburrow", "Softstep", "Thistledown", "Underbough", "Underhill",
-            "Warmwater", "Whitethistle", "Honeyfoot", "Leafhopper", "Tealeaf"
+            "Warmwater", "Whitethistle", "Honeyfoot", "Leafhopper", "Tealeaf",
+            "Berryfield", "Bramblewood", "Brookshire", "Clovermead", "Cottonwood", "Elderberry",
+            "Fernwhistle", "Foxburrow", "Goodfellow", "Greenbottle", "Hollyhock", "Honeysuckle",
+            "Meadowbrook", "Millhouse", "Mosswood", "Quickfoot", "Sweetwater", "Tanglefoot",
+            "Thornbury", "Windmill"
         ]
     );
 
@@ -129,19 +158,25 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [
             "Alston", "Boddynock", "Bumblenoot", "Dimble", "Dobbin", "Fizzwick", "Gimble", "Jebeddo",
             "Nib", "Ordo", "Pipkin", "Sprocket", "Tink", "Tobin", "Widget", "Bramblewick", "Cog",
-            "Fonkin", "Pog", "Rumpadump", "Tock", "Yaffle", "Zook"
+            "Fonkin", "Pog", "Rumpadump", "Tock", "Yaffle", "Zook", "Alvyn", "Brocc", "Burgell",
+            "Erky", "Namfoodle", "Roondar", "Wrenn"
         ],
         [
             "Bimble", "Frizzle", "Glimmerpop", "Mardnab", "Nooble", "Quibble", "Rill", "Tana",
             "Twyla", "Wizzle", "Zilly", "Dapple", "Ellywick", "Nissa", "Sivli", "Whim", "Zanna",
-            "Bimpnottin", "Breena", "Donella", "Ella", "Nyx", "Oda"
+            "Bimpnottin", "Breena", "Donella", "Ella", "Nyx", "Oda", "Caramip", "Carlin", "Duvamil",
+            "Lorilla", "Orla", "Roywyn", "Waywocket"
         ],
         [
             "Bramblegear", "Bristlecog", "Cogsworth", "Copperwing", "Fidgetgear",
             "Fizzlewhistle", "Fumblebrass", "Geargrin", "Gearwhistle", "Nimblecog",
             "Pennywhistle", "Quickgear", "Rattlebolt", "Sparkspinner", "Sprocketstitch",
             "Tinkerbolt", "Togglegear", "Wobblegear", "Wondergear", "Whistlewick",
-            "Clockspinner", "Steamcog", "Coppercog", "Gadgetgrin", "Boltspinner"
+            "Clockspinner", "Steamcog", "Coppercog", "Gadgetgrin", "Boltspinner",
+            "Brasswhistle", "Cogwhistle", "Dazzlespark", "Fizzbang", "Gearspring", "Glimmerbolt",
+            "Ironcog", "Jinglegear", "Nimblewick", "Puzzlegear", "Quicksprocket", "Rustynut",
+            "Silvercog", "Sparkwrench", "Springheel", "Tinkergear", "Twistbolt", "Whirligig",
+            "Wickerspark", "Zigzaggear"
         ]
     );
 
@@ -221,7 +256,7 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
 
     public CreatureGeneratorResult Generate(CreatureGeneratorInput generatorInput) {
         var level = generatorInput.Level > 0 ? generatorInput.Level : Random.Shared.Next(1, GameRules.MaxLevel + 1);
-        var gender = Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female;
+        var gender = generatorInput.Gender ?? (Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female);
 
         var creature = new Creature {
             WorldId = generatorInput.WorldId,
@@ -230,7 +265,7 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
             Gender = gender,
             Profession = generatorInput.Profession,
             BirthStateId = generatorInput.BirthStateId,
-            BirthYear = Random.Shared.Next(900, 975),
+            BirthYear = Random.Shared.Next(generatorInput.MinBirthYear ?? 900, generatorInput.MaxBirthYear ?? 975),
             Gold = GetGold(level, generatorInput.Profession),
             StateId = generatorInput.StateId,
             Attributes = GetAttributes(level, generatorInput.Profession),
@@ -405,13 +440,77 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         ];
     }
 
+    // Humans get an optional middle name (a second given name). The other humanoid races each get an
+    // optional second surname instead, reusing the same lore-appropriate slot for a different reason
+    // per race: a Dwarf clan name, an Orc battle-epithet, an Elf ceremonial name, a Halfling maternal
+    // family name, or a Gnome's habit of tacking on extra name components. The chance reflects how
+    // central that convention is to each culture — dwarves care most, orcs least (it has to be earned).
+    private static readonly Dictionary<CreatureType, double> MiddleNameChanceByRace = new() {
+        [CreatureType.Human] = 0.3
+    };
+
+    private static readonly Dictionary<CreatureType, double> ExtraSurnameChanceByRace = new() {
+        [CreatureType.Dwarf] = 0.5,
+        [CreatureType.Gnome] = 0.4,
+        [CreatureType.Elf] = 0.3,
+        [CreatureType.Halfling] = 0.3,
+        [CreatureType.Orc] = 0.2
+    };
+
     public static string GetName(CreatureType creatureType, Gender gender) {
-        var pools = Pools.GetValueOrDefault(creatureType, [MonsterPool]);
-        var pool = pools[Random.Shared.Next(pools.Length)];
+        var firstName = GetFirstName(creatureType, gender);
+        var lastName = GetLastName(creatureType);
+        return ComposeFullName(creatureType, gender, firstName, lastName);
+    }
+
+    public static string ComposeFullName(CreatureType creatureType, Gender gender, string firstName,
+        string lastName) {
+        if (MiddleNameChanceByRace.TryGetValue(creatureType, out var middleNameChance) &&
+            Random.Shared.NextDouble() < middleNameChance) {
+            var middleName = GetMiddleName(creatureType, gender, firstName);
+            if (middleName != null) {
+                return $"{firstName} {middleName} {lastName}";
+            }
+        }
+
+        if (ExtraSurnameChanceByRace.TryGetValue(creatureType, out var extraSurnameChance) &&
+            Random.Shared.NextDouble() < extraSurnameChance) {
+            var extraSurname = GetExtraSurname(creatureType, lastName);
+            if (extraSurname != null) {
+                return $"{firstName} {extraSurname} {lastName}";
+            }
+        }
+
+        return $"{firstName} {lastName}";
+    }
+
+    public static string GetFirstName(CreatureType creatureType, Gender gender) {
+        var pool = GetPool(creatureType);
         var firstNames = gender == Gender.Male ? pool.MaleFirstNames : pool.FemaleFirstNames;
-        var first = firstNames[Random.Shared.Next(firstNames.Length)];
-        var last = pool.LastNames[Random.Shared.Next(pool.LastNames.Length)];
-        return $"{first} {last}";
+        return firstNames[Random.Shared.Next(firstNames.Length)];
+    }
+
+    public static string GetLastName(CreatureType creatureType) {
+        var pool = GetPool(creatureType);
+        return pool.LastNames[Random.Shared.Next(pool.LastNames.Length)];
+    }
+
+    private static string? GetMiddleName(CreatureType creatureType, Gender gender, string firstName) {
+        var pool = GetPool(creatureType);
+        var firstNames = gender == Gender.Male ? pool.MaleFirstNames : pool.FemaleFirstNames;
+        var candidates = firstNames.Where(n => n != firstName).ToArray();
+        return candidates.Length > 0 ? candidates[Random.Shared.Next(candidates.Length)] : null;
+    }
+
+    private static string? GetExtraSurname(CreatureType creatureType, string lastName) {
+        var pool = GetPool(creatureType);
+        var candidates = pool.LastNames.Where(n => n != lastName).ToArray();
+        return candidates.Length > 0 ? candidates[Random.Shared.Next(candidates.Length)] : null;
+    }
+
+    private static NamePool GetPool(CreatureType creatureType) {
+        var pools = Pools.GetValueOrDefault(creatureType, [MonsterPool]);
+        return pools[Random.Shared.Next(pools.Length)];
     }
 
     private record NamePool(string[] MaleFirstNames, string[] FemaleFirstNames, string[] LastNames);

@@ -38,6 +38,7 @@ internal class BootstrapWorldCommandHandler(
         context.CreatureAbilities.AddRange(world.Abilities);
         context.Jobs.AddRange(world.Jobs);
         context.RoomConnectorKeys.AddRange(world.RoomConnectorKeys);
+        context.Relationships.AddRange(world.Relationships);
 
         if (player != null) {
             context.Creatures.Add(player.Creature);

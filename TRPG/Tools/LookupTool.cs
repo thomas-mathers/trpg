@@ -22,7 +22,7 @@ internal class LookupTool : Tool, IInvokableTool {
         Function = new Function {
             Name = "lookup",
             Description =
-                "Returns background information about a named country, city, faction, or person anywhere in the world — automatically figures out which kind of thing the name refers to, so you don't need to know its category in advance. This represents what a specific NPC knows or has heard, not omniscient narrator knowledge — call it on behalf of the NPC who would be recalling or sharing this information in dialogue, never to generate the narrator's own scene-setting exposition. Returns an Error if the name isn't recognized as any of these.",
+                "Returns background information about a named country, city, faction, or person anywhere in the world — automatically figures out which kind of thing the name refers to, so you don't need to know its category in advance. This represents what a specific NPC knows or has heard, not omniscient narrator knowledge — call it on behalf of the NPC who would be recalling or sharing this information in dialogue, never to generate the narrator's own scene-setting exposition. Call this whenever dialogue turns to someone or something other than the NPC you're currently speaking with — a family member, acquaintance, distant place, or faction mentioned by name — rather than repeating what start_conversation already returned about the NPC being spoken to, or inventing detail that isn't grounded in a tool result. Returns an Error if the name isn't recognized as any of these, or if the speaker wouldn't know about it.",
             Parameters = new Parameters {
                 Type = "object",
                 Properties = new Dictionary<string, Property> {
@@ -75,10 +75,13 @@ internal class LookupTool : Tool, IInvokableTool {
         }
 
         var currentYear = GameClock.GetCurrentInGameDate(_session).Year;
-        var query = new KnowledgeQuery(_session.WorldId, subjectName, currentYear);
+        var query = new KnowledgeQuery(_session.WorldId, subjectName, currentYear, askingPerson);
         var result = await _creatureKnowledgeService.GetInfo(query, cancellationToken);
 
         return (object?) result ??
-               new { Error = $"'{subjectName}' isn't recognized as a country, city, faction, or person in this world." };
+               new {
+                   Error =
+                       $"'{subjectName}' isn't recognized as a country, city, faction, or person that {askingPersonName} would know about."
+               };
     }
 }

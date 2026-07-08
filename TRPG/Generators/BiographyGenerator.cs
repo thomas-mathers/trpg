@@ -8,7 +8,8 @@ internal record BiographyGeneratorInput(
     IReadOnlyDictionary<Guid, State> StateById,
     IReadOnlyList<FactionMember> FactionMembers,
     IReadOnlyList<Faction> Factions,
-    IReadOnlySet<Guid> CityFactionIds);
+    IReadOnlySet<Guid> CityFactionIds,
+    IReadOnlyList<Relationship> Relationships);
 
 internal static class BiographyGenerator {
     private static readonly (string Name, string HighPhrase, string LowPhrase)[] StatDescriptors = [
@@ -87,16 +88,35 @@ internal static class BiographyGenerator {
             .GroupBy(fm => fm.CreatureId)
             .ToDictionary(g => g.Key, g => factionById[g.First().FactionId].Name);
 
+        var creatureNameById = input.Creatures.ToDictionary(c => c.Id, c => c.Name);
+        var parentNamesByCreatureId = input.Relationships
+            .Where(r => r.RelationshipType is RelationshipType.Mother or RelationshipType.Father)
+            .GroupBy(r => r.SubjectId)
+            .ToDictionary(g => g.Key, g => g.Select(r => creatureNameById[r.RelativeId]).ToArray());
+        var childNamesByCreatureId = input.Relationships
+            .Where(r => r.RelationshipType is RelationshipType.Son or RelationshipType.Daughter)
+            .GroupBy(r => r.SubjectId)
+            .ToDictionary(g => g.Key, g => g.Select(r => creatureNameById[r.RelativeId]).ToArray());
+        var siblingNamesByCreatureId = input.Relationships
+            .Where(r => r.RelationshipType is RelationshipType.Brother or RelationshipType.Sister)
+            .GroupBy(r => r.SubjectId)
+            .ToDictionary(g => g.Key, g => g.Select(r => creatureNameById[r.RelativeId]).ToArray());
+
         foreach (var creature in input.Creatures) {
             var goldStats = goldStatsByLevel[creature.Level];
             factionNameByCreatureId.TryGetValue(creature.Id, out var factionName);
+            parentNamesByCreatureId.TryGetValue(creature.Id, out var parentNames);
+            childNamesByCreatureId.TryGetValue(creature.Id, out var childNames);
+            siblingNamesByCreatureId.TryGetValue(creature.Id, out var siblingNames);
             var birthplaceName = input.StateById[creature.BirthStateId].Name;
-            creature.Biography = BuildBiography(creature, birthplaceName, factionName, goldStats);
+            creature.Biography = BuildBiography(creature, birthplaceName, factionName, goldStats, parentNames,
+                childNames, siblingNames);
         }
     }
 
     private static string BuildBiography(Creature creature, string birthplaceName, string? factionName,
-        GoldStats goldStats) {
+        GoldStats goldStats, IReadOnlyList<string>? parentNames, IReadOnlyList<string>? childNames,
+        IReadOnlyList<string>? siblingNames) {
         var age = GameClock.EpochYear - creature.BirthYear;
         var raceLabel = creature.CreatureType.ToString().ToLowerInvariant();
         var professionLabel = creature.Profession?.ToString().ToLowerInvariant() ?? "wanderer";
@@ -106,6 +126,11 @@ internal static class BiographyGenerator {
             $"A {age}-year-old {raceLabel} {professionLabel} of level {creature.Level}, hailing from " +
             $"{birthplaceName}{affiliation}."
         };
+
+        var familySentence = BuildFamilySentence(parentNames, childNames, siblingNames);
+        if (familySentence != null) {
+            sentences.Add(familySentence);
+        }
 
         var statSentence = BuildStatSentence(creature.Attributes);
         if (statSentence != null) {
@@ -160,6 +185,38 @@ internal static class BiographyGenerator {
         return highPhrases.Count > 0
             ? $"They are particularly {JoinPhrases(highPhrases)}."
             : $"Despite their station, they are {JoinPhrases(lowPhrases)}.";
+    }
+
+    private static string? BuildFamilySentence(IReadOnlyList<string>? parentNames, IReadOnlyList<string>? childNames,
+        IReadOnlyList<string>? siblingNames) {
+        var sentences = new List<string>();
+
+        if (parentNames is { Count: > 0 }) {
+            sentences.Add($"Their parents are {JoinPhrases(parentNames)}.");
+        }
+
+        if (childNames is { Count: > 0 }) {
+            var childWord = childNames.Count == 1 ? "child" : "children";
+            sentences.Add($"They have {CountWord(childNames.Count)} {childWord}: {JoinPhrases(childNames)}.");
+        }
+
+        if (siblingNames is { Count: > 0 }) {
+            var siblingWord = siblingNames.Count == 1 ? "sibling" : "siblings";
+            sentences.Add($"They have {CountWord(siblingNames.Count)} {siblingWord}: {JoinPhrases(siblingNames)}.");
+        }
+
+        return sentences.Count > 0 ? string.Join(" ", sentences) : null;
+    }
+
+    private static string CountWord(int count) {
+        return count switch {
+            1 => "one",
+            2 => "two",
+            3 => "three",
+            4 => "four",
+            5 => "five",
+            _ => count.ToString(CultureInfo.InvariantCulture)
+        };
     }
 
     private static string? BuildOceanSentence() {

@@ -34,6 +34,7 @@ internal class WorldGeneratorResult {
     public required IReadOnlyList<Item> Items { get; init; }
     public required IReadOnlyList<Job> Jobs { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
+    public required IReadOnlyList<Relationship> Relationships { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
     public required IReadOnlyList<RoomConnectorKey> RoomConnectorKeys { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
@@ -50,6 +51,10 @@ internal class WorldGenerator(
     ILogger<WorldGenerator> logger
 ) {
     private const double DominantRaceWeight = 0.7;
+    private const double FamilyUnitChance = 0.6;
+    private const int MinParentBirthYear = 900;
+    private const int MaxParentBirthYear = 949;
+    private const int YoungestParentingAge = 18;
 
     private static readonly BuildingType[] StandardBuildingTypes = [
         BuildingType.ArcaneShop, BuildingType.Apothecary, BuildingType.Bakery, BuildingType.Barracks,
@@ -116,6 +121,7 @@ internal class WorldGenerator(
         var abilities = new List<CreatureAbility>();
         var jobs = new List<Job>();
         var roomConnectorKeys = new List<RoomConnectorKey>();
+        var relationships = new List<Relationship>();
         var cityFactionIds = new HashSet<Guid>();
         var guildHallIndex = 0;
 
@@ -272,17 +278,14 @@ internal class WorldGenerator(
             var residentialDistrict = cityDistricts[DistrictType.Residential];
 
             for (var h = 0; h < generatorInput.HousesPerCity; h++) {
-                var householdSize =
-                    Random.Shared.Next(generatorInput.MinHouseholdSize, generatorInput.MaxHouseholdSize + 1);
-                var household = new List<CreatureGeneratorResult>();
-                for (var m = 0; m < householdSize; m++) {
-                    var creatureType = PickCreatureType(dominantRace);
-                    var member = creatureGenerator.Generate(
-                        new CreatureGeneratorInput(creatureType, GetProfessionForBuilding(BuildingType.House), worldId,
-                            state.Id, state.Id)
-                    );
+                var householdResult = Random.Shared.NextDouble() < FamilyUnitChance
+                    ? GenerateFamilyHousehold(dominantRace, worldId, state.Id, generatorInput)
+                    : GenerateSingleHousehold(dominantRace, worldId, state.Id);
+                var household = householdResult.Members;
+                relationships.AddRange(householdResult.Relationships);
+
+                foreach (var member in household) {
                     member.Creature.CityId = city.Id;
-                    household.Add(member);
                 }
 
                 var owner = household[0];
@@ -293,6 +296,7 @@ internal class WorldGenerator(
                         owner.Creature.Id, BuildingType.House, worldId) {
                         Name = houseName,
                         MemberIds = household.Select(m => m.Creature.Id).ToList(),
+                        BedroomGroups = householdResult.BedroomGroups,
                         IsLockable = true
                     }
                 );
@@ -372,7 +376,8 @@ internal class WorldGenerator(
         }
 
         BiographyGenerator.AssignBiographies(
-            new BiographyGeneratorInput(creatures, stateById, factionMembers, factions, cityFactionIds));
+            new BiographyGeneratorInput(creatures, stateById, factionMembers, factions, cityFactionIds,
+                relationships));
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
@@ -395,8 +400,115 @@ internal class WorldGenerator(
             Skills = skills,
             Abilities = abilities,
             Jobs = jobs,
-            RoomConnectorKeys = roomConnectorKeys
+            RoomConnectorKeys = roomConnectorKeys,
+            Relationships = relationships
         };
+    }
+
+    private HouseholdResult GenerateFamilyHousehold(CreatureType dominantRace, Guid worldId, Guid stateId,
+        WorldGeneratorInput generatorInput) {
+        var creatureType = PickCreatureType(dominantRace);
+        var lastName = CreatureGenerator.GetLastName(creatureType);
+        var profession = GetProfessionForBuilding(BuildingType.House);
+
+        var motherFirstName = CreatureGenerator.GetFirstName(creatureType, Gender.Female);
+        var mother = creatureGenerator.Generate(new CreatureGeneratorInput(creatureType, profession, worldId, stateId,
+            stateId) {
+            Gender = Gender.Female,
+            Name = CreatureGenerator.ComposeFullName(creatureType, Gender.Female, motherFirstName, lastName),
+            MinBirthYear = MinParentBirthYear,
+            MaxBirthYear = MaxParentBirthYear
+        });
+        var fatherFirstName = CreatureGenerator.GetFirstName(creatureType, Gender.Male);
+        var father = creatureGenerator.Generate(new CreatureGeneratorInput(creatureType, profession, worldId, stateId,
+            stateId) {
+            Gender = Gender.Male,
+            Name = CreatureGenerator.ComposeFullName(creatureType, Gender.Male, fatherFirstName, lastName),
+            MinBirthYear = MinParentBirthYear,
+            MaxBirthYear = MaxParentBirthYear
+        });
+
+        var householdSize = Random.Shared.Next(generatorInput.MinHouseholdSize, generatorInput.MaxHouseholdSize + 1);
+        var kidCount = Math.Max(0, householdSize - 2);
+        var oldestParentBirthYear = Math.Max(mother.Creature.BirthYear, father.Creature.BirthYear);
+        var minKidBirthYear = oldestParentBirthYear + YoungestParentingAge;
+
+        var kids = new List<CreatureGeneratorResult>();
+        for (var k = 0; k < kidCount; k++) {
+            var kidGender = Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female;
+            var kidFirstName = CreatureGenerator.GetFirstName(creatureType, kidGender);
+            var kid = creatureGenerator.Generate(new CreatureGeneratorInput(creatureType, profession, worldId,
+                stateId, stateId) {
+                Gender = kidGender,
+                Name = CreatureGenerator.ComposeFullName(creatureType, kidGender, kidFirstName, lastName),
+                MinBirthYear = minKidBirthYear,
+                MaxBirthYear = GameClock.EpochYear - 1
+            });
+            kids.Add(kid);
+        }
+
+        var relationships = BuildFamilyRelationships(worldId, mother, father, kids);
+
+        var members = new List<CreatureGeneratorResult> { mother, father };
+        members.AddRange(kids);
+
+        List<IReadOnlyList<Guid>> bedroomGroups = [[mother.Creature.Id, father.Creature.Id]];
+        bedroomGroups.AddRange(kids.Select(kid => (IReadOnlyList<Guid>) [kid.Creature.Id]));
+
+        return new HouseholdResult(members, bedroomGroups, relationships);
+    }
+
+    private static IReadOnlyList<Relationship> BuildFamilyRelationships(Guid worldId, CreatureGeneratorResult mother,
+        CreatureGeneratorResult father, IReadOnlyList<CreatureGeneratorResult> kids) {
+        var relationships = new List<Relationship>();
+
+        foreach (var kid in kids) {
+            var kidRoleForParent = kid.Creature.Gender == Gender.Male ? RelationshipType.Son : RelationshipType.Daughter;
+            relationships.Add(new Relationship {
+                SubjectId = kid.Creature.Id, RelativeId = mother.Creature.Id, RelationshipType = RelationshipType.Mother,
+                WorldId = worldId
+            });
+            relationships.Add(new Relationship {
+                SubjectId = kid.Creature.Id, RelativeId = father.Creature.Id, RelationshipType = RelationshipType.Father,
+                WorldId = worldId
+            });
+            relationships.Add(new Relationship {
+                SubjectId = mother.Creature.Id, RelativeId = kid.Creature.Id, RelationshipType = kidRoleForParent,
+                WorldId = worldId
+            });
+            relationships.Add(new Relationship {
+                SubjectId = father.Creature.Id, RelativeId = kid.Creature.Id, RelationshipType = kidRoleForParent,
+                WorldId = worldId
+            });
+        }
+
+        foreach (var kid in kids) {
+            foreach (var sibling in kids) {
+                if (kid == sibling) {
+                    continue;
+                }
+
+                relationships.Add(new Relationship {
+                    SubjectId = kid.Creature.Id, RelativeId = sibling.Creature.Id,
+                    RelationshipType = sibling.Creature.Gender == Gender.Male
+                        ? RelationshipType.Brother
+                        : RelationshipType.Sister,
+                    WorldId = worldId
+                });
+            }
+        }
+
+        return relationships;
+    }
+
+    private HouseholdResult GenerateSingleHousehold(CreatureType dominantRace, Guid worldId, Guid stateId) {
+        var creatureType = PickCreatureType(dominantRace);
+        var member = creatureGenerator.Generate(
+            new CreatureGeneratorInput(creatureType, GetProfessionForBuilding(BuildingType.House), worldId, stateId,
+                stateId)
+        );
+
+        return new HouseholdResult([member], [[member.Creature.Id]], []);
     }
 
     private static CreatureType PickCreatureType(CreatureType dominantRace) {
@@ -429,4 +541,9 @@ internal class WorldGenerator(
     }
 
     private record IdleCandidate(Guid? RoomId, Guid DistrictId, int Capacity, int Weight);
+
+    private record HouseholdResult(
+        IReadOnlyList<CreatureGeneratorResult> Members,
+        IReadOnlyList<IReadOnlyList<Guid>> BedroomGroups,
+        IReadOnlyList<Relationship> Relationships);
 }

@@ -62,6 +62,13 @@ internal class StartConversationTool : Tool, IInvokableTool {
             return new { Error = $"No one named '{npcName}' found nearby. Call look to see who's around." };
         }
 
+        if (_session.ActiveConversationNpcs.ContainsKey(npc.Name)) {
+            return new {
+                Error =
+                    $"You are already in conversation with {npcName}; no need to call this again for them. If the dialogue has turned to someone else, call lookup instead."
+            };
+        }
+
         var summary = await _npcConversationService.GetSummary(player!.Id, npc.Id, cancellationToken);
 
         _session.ActiveConversationNpcs[npc.Name] = npc.Id;

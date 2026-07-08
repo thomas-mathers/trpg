@@ -18,6 +18,7 @@ internal class DropWorldCommandHandler(TrpgDbContext context) {
         await context.InventoryItems.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.BuildingOwners.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.FactionMembers.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+        await context.Relationships.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Reputations.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.CreatureQuestObjectives.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.CreatureQuests.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);

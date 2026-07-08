@@ -10,6 +10,7 @@ internal record BuildingGeneratorInput(
     BuildingType Type,
     Guid WorldId
 ) {
+    public IReadOnlyList<IReadOnlyList<Guid>>? BedroomGroups { get; init; }
     public bool IsLockable { get; init; }
     public IReadOnlyList<Guid> MemberIds { get; init; } = [];
     public string? Name { get; init; }
@@ -151,7 +152,7 @@ internal class BuildingGenerator {
             Name = input.Name ?? names[Random.Shared.Next(names.Length)],
             WorldId = input.WorldId
         };
-        var specs = GetSpecs(input.Type, input.OwnerId, input.MemberIds);
+        var specs = GetSpecs(input.Type, input.OwnerId, input.MemberIds, input.BedroomGroups);
 
         var rooms = specs.Select(s => new Room {
             BuildingId = building.Id,
@@ -196,9 +197,11 @@ internal class BuildingGenerator {
         return new BuildingGeneratorResult(building, rooms, props);
     }
 
-    private static RoomSpec[] GetSpecs(BuildingType buildingType, Guid? ownerId, IReadOnlyList<Guid> memberIds) {
+    private static RoomSpec[] GetSpecs(BuildingType buildingType, Guid? ownerId, IReadOnlyList<Guid> memberIds,
+        IReadOnlyList<IReadOnlyList<Guid>>? bedroomGroups) {
         return buildingType switch {
-            BuildingType.House => GetHouseSpecs(memberIds),
+            BuildingType.House => GetHouseSpecs(
+                bedroomGroups ?? memberIds.Select(id => (IReadOnlyList<Guid>) [id]).ToArray()),
             BuildingType.Tavern => GetTavernSpecs(ownerId),
             BuildingType.Inn => GetInnSpecs(ownerId),
             BuildingType.Blacksmith => GetBlacksmithSpecs(ownerId),
@@ -588,14 +591,14 @@ internal class BuildingGenerator {
         ];
     }
 
-    private static RoomSpec[] GetHouseSpecs(IReadOnlyList<Guid> memberIds) {
-        var bedrooms = memberIds.Select((memberId, i) => new RoomSpec(
-            $"Bedroom {i + 1}", "A modest bedroom.", 1, 1, [
-                new PropSpec("Bed",
+    private static RoomSpec[] GetHouseSpecs(IReadOnlyList<IReadOnlyList<Guid>> bedroomGroups) {
+        var bedrooms = bedroomGroups.Select((occupantIds, i) => new RoomSpec(
+            $"Bedroom {i + 1}", "A modest bedroom.", 1, occupantIds.Count, [
+                ..occupantIds.Select(occupantId => new PropSpec("Bed",
                     (id, worldId) => new Bed {
                         RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
-                        AssignedCreatureId = memberId
-                    }),
+                        AssignedCreatureId = occupantId
+                    })),
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
                         RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."

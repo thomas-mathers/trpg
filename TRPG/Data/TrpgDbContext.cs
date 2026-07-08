@@ -31,6 +31,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
+    public DbSet<Relationship> Relationships => Set<Relationship>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<Road> Roads => Set<Road>();
     public DbSet<RoomConnectorKey> RoomConnectorKeys => Set<RoomConnectorKey>();
@@ -70,6 +71,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<DistrictType>().HaveConversion<string>();
         configurationBuilder.Properties<Skill>().HaveConversion<string>();
         configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();
+        configurationBuilder.Properties<RelationshipType>().HaveConversion<string>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {
@@ -268,6 +270,12 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.HasIndex(bo => new { bo.BuildingId, bo.OwnerId }).IsUnique();
             entity.HasIndex(bo => bo.OwnerId);
             entity.HasIndex(bo => bo.WorldId);
+        });
+
+        modelBuilder.Entity<Relationship>(entity => {
+            entity.HasIndex(r => new { r.SubjectId, r.RelativeId, r.RelationshipType }).IsUnique();
+            entity.HasIndex(r => r.RelativeId);
+            entity.HasIndex(r => r.WorldId);
         });
     }
 }
