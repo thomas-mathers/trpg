@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using TRPG.Data;
 using TRPG.Models;
 
 namespace TRPG.Services;
 
-internal class LocationService(TrpgDbContext context) {
+internal class LocationService(TrpgDbContext context, IMemoryCache cache) {
     public async Task<World?> GetWorldById(Guid id, CancellationToken cancellationToken = default) {
         return await context.Worlds.FindAsync([id], cancellationToken);
     }
@@ -20,9 +21,10 @@ internal class LocationService(TrpgDbContext context) {
             .ToArrayAsync(cancellationToken);
         return list;
     }
-
+    
     public async Task<State?> GetStateById(Guid id, CancellationToken cancellationToken = default) {
-        return await context.States.FindAsync([id], cancellationToken);
+        return await cache.GetOrCreateAsync($"state:{id}",
+            _ => context.States.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, cancellationToken));
     }
 
     public async Task<IReadOnlyCollection<State>> GetAllStatesByCountryId(Guid countryId,
@@ -32,29 +34,18 @@ internal class LocationService(TrpgDbContext context) {
             .ToArrayAsync(cancellationToken);
         return list;
     }
-
+    
     public async Task<City?> GetCityById(Guid id, CancellationToken cancellationToken = default) {
-        return await context.Cities.FindAsync([id], cancellationToken);
+        return await cache.GetOrCreateAsync($"city:{id}",
+            _ => context.Cities.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, cancellationToken));
     }
-
-    public async Task<IReadOnlyCollection<City>> GetAllCitiesByStateId(Guid stateId,
-        CancellationToken cancellationToken = default) {
-        var list = await context.Cities.AsNoTracking()
-            .Where(c => c.StateId == stateId)
-            .ToArrayAsync(cancellationToken);
-        return list;
-    }
-
-    public async Task<District?> GetDistrictById(Guid id, CancellationToken cancellationToken = default) {
-        return await context.Districts.FindAsync([id], cancellationToken);
-    }
-
+    
     public async Task<IReadOnlyCollection<District>> GetAllDistrictsByCityId(Guid cityId,
         CancellationToken cancellationToken = default) {
-        var list = await context.Districts.AsNoTracking()
-            .Where(d => d.CityId == cityId)
-            .ToArrayAsync(cancellationToken);
-        return list;
+        var districts = await cache.GetOrCreateAsync<District[]>($"districts:{cityId}",
+            async _ => await context.Districts.AsNoTracking().Where(d => d.CityId == cityId)
+                .ToArrayAsync(cancellationToken));
+        return districts ?? [];
     }
 
     public async Task<District?> GetDistrictByNameInCity(Guid cityId, string name,

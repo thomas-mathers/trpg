@@ -1,5 +1,5 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
-using OllamaSharp;
 using TRPG.Data;
 using TRPG.Models;
 using TRPG.Services;
@@ -18,22 +18,12 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
-        var jobService = new JobService(_context);
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var locationService = new LocationService(_context, cache);
+        var buildingService = new BuildingService(_context, cache);
         var creatureService = new CreatureService(_context);
-        var buildingService = new BuildingService(_context);
-        var inventoryService = new InventoryService(_context);
-        var dispatcher = new JobDispatcher(
-            new SleepJobHandler(creatureService), new WorkJobHandler(creatureService),
-            new IdleJobHandler(creatureService), NullLogger<JobDispatcher>.Instance);
-        var lockService = new LockService(buildingService, jobService, inventoryService);
         var reputationService = new ReputationService(_context);
-        var jobCatchUpService = new JobCatchUpService(jobService, creatureService, dispatcher,
-            NullLogger<JobCatchUpService>.Instance);
-        var sessionAccessor = new CurrentGameSessionAccessor {
-            State = new GameSessionState(new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero),
-                new Chat(new FakeOllamaApiClient()))
-        };
-        _service = new SceneService(_context, jobCatchUpService, lockService, reputationService, sessionAccessor,
+        _service = new SceneService(_context, locationService, buildingService, creatureService, reputationService,
             NullLogger<SceneService>.Instance);
 
         _worldId = Guid.NewGuid();
@@ -89,5 +79,34 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
         // Assert
         Assert.Equal(currentDate, result.CurrentDate);
+    }
+
+    [Fact]
+    public async Task GetScene_ReturnsRoomAndExitToDestinationName_WhenIndoors() {
+        // Arrange
+        var building = Builders.MakeBuilding(_state.Id);
+        var room = Builders.MakeRoom(building.Id, worldId: _worldId);
+        var destinationRoom = Builders.MakeRoom(building.Id, worldId: _worldId);
+        var connector = new RoomConnector {
+            RoomId = room.Id, WorldId = _worldId, Name = "Wooden Door", Description = "A creaking wooden door.",
+            DestinationRoomId = destinationRoom.Id, IsLocked = false
+        };
+        _context.Buildings.Add(building);
+        _context.Rooms.AddRange(room, destinationRoom);
+        _context.Props.Add(connector);
+        _player.RoomId = room.Id;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new SceneQuery(_worldId, _player.Id, new InGameDate(975, "Thawmoon", 1, "Stormday", 14));
+
+        // Act
+        var result = await _service.GetScene(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(building.Name, result.Building!.Name);
+        Assert.Equal(room.Name, result.Room!.Name);
+        var exit = Assert.Single(result.Room.Exits);
+        Assert.Equal(destinationRoom.Name, exit.DestinationRoomName);
+        Assert.False(exit.IsLocked);
     }
 }

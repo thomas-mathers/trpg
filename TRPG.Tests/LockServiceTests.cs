@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using TRPG.Data;
 using TRPG.Models;
 using TRPG.Services;
@@ -13,20 +14,16 @@ public sealed class LockServiceTests(DatabaseFixture db) : IAsyncLifetime {
     private Room _entranceRoom = null!;
     private RoomConnector _frontDoor = null!;
     private InventoryService _inventoryService = null!;
-    private JobService _jobService = null!;
-    private Creature _owner = null!;
     private LockService _service = null!;
     private Guid _stateId;
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
-        _buildingService = new BuildingService(_context);
-        _jobService = new JobService(_context);
+        _buildingService = new BuildingService(_context, new MemoryCache(new MemoryCacheOptions()));
         _inventoryService = new InventoryService(_context);
-        _service = new LockService(_buildingService, _jobService, _inventoryService);
+        _service = new LockService(_buildingService, _inventoryService);
 
         _stateId = Guid.NewGuid();
-        _owner = Builders.MakeCreature(stateId: _stateId);
         _building = Builders.MakeBuilding(_stateId);
         _entranceRoom = Builders.MakeRoom(_building.Id);
         _frontDoor = new RoomConnector {
@@ -34,59 +31,14 @@ public sealed class LockServiceTests(DatabaseFixture db) : IAsyncLifetime {
             DestinationRoomId = null, IsLocked = false
         };
 
-        _context.Creatures.Add(_owner);
         _context.Buildings.Add(_building);
         _context.Rooms.Add(_entranceRoom);
         _context.Props.Add(_frontDoor);
         await _context.SaveChangesAsync();
-
-        await _buildingService.AddOwner(_building.Id, _owner.Id, TestContext.Current.CancellationToken);
-        await _jobService.Add(
-            Builders.MakeJob(_owner.Id, action: JobAction.Sleep, startHour: 22, endHour: 6, priority: 100),
-            TestContext.Current.CancellationToken);
-        await _jobService.Add(
-            Builders.MakeJob(_owner.Id, action: JobAction.Work, startHour: 8, endHour: 20, priority: 50),
-            TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync() {
         await _context.DisposeAsync();
-    }
-
-    [Fact]
-    public async Task SyncScheduleLock_Locks_DuringSleepHours() {
-        // Act
-        await _service.SyncScheduleLock(_building.Id, _building.BuildingType, 23,
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        var door = await _buildingService.GetFrontDoor(_entranceRoom.Id, TestContext.Current.CancellationToken);
-        Assert.True(door!.IsLocked);
-    }
-
-    [Fact]
-    public async Task SyncScheduleLock_Unlocks_DuringWorkHours() {
-        // Arrange
-        await _service.SyncScheduleLock(_building.Id, _building.BuildingType, 23,
-            TestContext.Current.CancellationToken);
-
-        // Act
-        await _service.SyncScheduleLock(_building.Id, _building.BuildingType, 12,
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        var door = await _buildingService.GetFrontDoor(_entranceRoom.Id, TestContext.Current.CancellationToken);
-        Assert.False(door!.IsLocked);
-    }
-
-    [Fact]
-    public async Task SyncScheduleLock_NeverLocks_InnOrTavern() {
-        // Act
-        await _service.SyncScheduleLock(_building.Id, BuildingType.Tavern, 23, TestContext.Current.CancellationToken);
-
-        // Assert
-        var door = await _buildingService.GetFrontDoor(_entranceRoom.Id, TestContext.Current.CancellationToken);
-        Assert.False(door!.IsLocked);
     }
 
     [Fact]

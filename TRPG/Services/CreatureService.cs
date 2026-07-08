@@ -4,6 +4,18 @@ using TRPG.Models;
 
 namespace TRPG.Services;
 
+internal record CreatureSummary(
+    Guid Id,
+    string Name,
+    string CreatureTypeName,
+    string GenderName,
+    string Profession,
+    int Level,
+    int BirthYear,
+    string State);
+
+internal record CreatureLocation(Guid WorldId, Guid? RoomId, Guid StateId, Guid? DistrictId);
+
 internal class CreatureService(TrpgDbContext context) {
     public async Task Add(Creature creature, CancellationToken cancellationToken = default) {
         context.Creatures.Add(creature);
@@ -18,6 +30,43 @@ internal class CreatureService(TrpgDbContext context) {
         CancellationToken cancellationToken = default) {
         return await context.Creatures.AsNoTracking()
             .Where(p => p.WorldId == worldId && p.StateId == stateId)
+            .ToArrayAsync(cancellationToken);
+    }
+    
+    public async Task<IReadOnlyCollection<CreatureSummary>> GetAllNearby(CreatureLocation location,
+        Guid? excludingCreatureId = null, CancellationToken cancellationToken = default) {
+        return location.RoomId is { } roomId
+            ? await GetAllInRoom(location.WorldId, roomId, excludingCreatureId, cancellationToken)
+            : await GetAllOutdoorsInLocation(location.WorldId, location.StateId, location.DistrictId,
+                excludingCreatureId, cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<CreatureSummary>> GetAllInRoom(Guid worldId, Guid roomId,
+        Guid? excludingCreatureId = null, CancellationToken cancellationToken = default) {
+        var query = context.Creatures.AsNoTracking()
+            .Where(p => p.WorldId == worldId && p.RoomId == roomId);
+        if (excludingCreatureId is not null) {
+            query = query.Where(p => p.Id != excludingCreatureId);
+        }
+
+        return await query
+            .Select(p => new CreatureSummary(p.Id, p.Name, p.CreatureType.ToString(), p.Gender.ToString(),
+                p.Profession.ToString()!, p.Level, p.BirthYear, p.State.ToString()))
+            .ToArrayAsync(cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<CreatureSummary>> GetAllOutdoorsInLocation(Guid worldId, Guid stateId,
+        Guid? districtId, Guid? excludingCreatureId = null, CancellationToken cancellationToken = default) {
+        var query = context.Creatures.AsNoTracking()
+            .Where(p => p.WorldId == worldId && p.StateId == stateId && p.DistrictId == districtId &&
+                        p.RoomId == null);
+        if (excludingCreatureId is not null) {
+            query = query.Where(p => p.Id != excludingCreatureId);
+        }
+
+        return await query
+            .Select(p => new CreatureSummary(p.Id, p.Name, p.CreatureType.ToString(), p.Gender.ToString(),
+                p.Profession.ToString()!, p.Level, p.BirthYear, p.State.ToString()))
             .ToArrayAsync(cancellationToken);
     }
 

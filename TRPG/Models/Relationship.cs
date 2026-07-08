@@ -6,7 +6,9 @@ internal enum RelationshipType {
     Sister,
     Brother,
     Son,
-    Daughter
+    Daughter,
+    Husband,
+    Wife
 }
 
 // SubjectId's RelationshipType is RelativeId — e.g. (Subject=kid, Relative=mom, Mother) reads "kid's mother is mom".

@@ -462,6 +462,15 @@ internal class WorldGenerator(
         CreatureGeneratorResult father, IReadOnlyList<CreatureGeneratorResult> kids) {
         var relationships = new List<Relationship>();
 
+        relationships.Add(new Relationship {
+            SubjectId = mother.Creature.Id, RelativeId = father.Creature.Id, RelationshipType = RelationshipType.Husband,
+            WorldId = worldId
+        });
+        relationships.Add(new Relationship {
+            SubjectId = father.Creature.Id, RelativeId = mother.Creature.Id, RelationshipType = RelationshipType.Wife,
+            WorldId = worldId
+        });
+
         foreach (var kid in kids) {
             var kidRoleForParent = kid.Creature.Gender == Gender.Male ? RelationshipType.Son : RelationshipType.Daughter;
             relationships.Add(new Relationship {

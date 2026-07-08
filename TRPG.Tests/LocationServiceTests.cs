@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using TRPG.Data;
 using TRPG.Models;
 using TRPG.Services;
@@ -15,7 +16,7 @@ public sealed class LocationServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
-        _service = new LocationService(_context);
+        _service = new LocationService(_context, new MemoryCache(new MemoryCacheOptions()));
 
         _world = Builders.MakeWorld();
         _country = Builders.MakeCountry(_world.Id);

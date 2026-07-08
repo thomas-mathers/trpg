@@ -8,8 +8,10 @@ using TRPG.Services;
 namespace TRPG.Tools;
 
 internal class MoveTool : Tool, IInvokableTool {
+    private readonly CurrentGameSessionAccessor _currentGameSessionAccessor;
     private readonly BuildingService _buildingService;
     private readonly CreatureService _creatureService;
+    private readonly SceneSyncService _sceneSyncService;
     private readonly LocationService _locationService;
     private readonly LockService _lockService;
     private readonly ILogger<MoveTool> _logger;
@@ -18,6 +20,7 @@ internal class MoveTool : Tool, IInvokableTool {
 
     public MoveTool(GameSession session, SceneService sceneService, CreatureService creatureService,
         BuildingService buildingService, LocationService locationService, LockService lockService,
+        SceneSyncService sceneSyncService, CurrentGameSessionAccessor currentGameSessionAccessor,
         ILogger<MoveTool> logger) {
         _session = session;
         _sceneService = sceneService;
@@ -25,6 +28,8 @@ internal class MoveTool : Tool, IInvokableTool {
         _buildingService = buildingService;
         _locationService = locationService;
         _lockService = lockService;
+        _sceneSyncService = sceneSyncService;
+        _currentGameSessionAccessor = currentGameSessionAccessor;
         _logger = logger;
 
         Function = new Function {
@@ -75,8 +80,22 @@ internal class MoveTool : Tool, IInvokableTool {
         _session.DidMoveThisTurn = true;
 
         var currentDate = GameClock.GetCurrentInGameDate(_session);
-        var query = new SceneQuery(_session.WorldId, _session.PlayerId, currentDate);
-        return await _sceneService.GetScene(query, cancellationToken);
+        var state = _currentGameSessionAccessor.State;
+        var sceneIsStale = await _sceneSyncService.SyncIfNeeded(_session, _session.WorldId, player.RoomId,
+            player.DistrictId, currentDate, cancellationToken);
+
+        SceneResult result;
+        if (!sceneIsStale && state.LastScene != null) {
+            result = state.LastScene;
+        }
+        else {
+            var query = new SceneQuery(_session.WorldId, _session.PlayerId, currentDate);
+            result = await _sceneService.GetScene(query, cancellationToken);
+            state.LastScene = result;
+        }
+
+        _session.SceneRefreshedThisTurn = true;
+        return result;
     }
 
     private async Task<object?> MoveOutdoors(Creature player, string destinationName,
@@ -89,7 +108,7 @@ internal class MoveTool : Tool, IInvokableTool {
             }
 
             var currentHour = GameClock.GetCurrentInGameDate(_session).Hour;
-            await _lockService.SyncScheduleLock(building.Id, building.BuildingType, currentHour, cancellationToken);
+            await _sceneSyncService.SyncScheduleLock(building.Id, building.BuildingType, currentHour, cancellationToken);
             var canEnter = await _lockService.CanEnter(entranceRoom.Id, player.Id, cancellationToken);
             if (!canEnter) {
                 return new { Error = $"The door to '{destinationName}' is locked." };

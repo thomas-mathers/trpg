@@ -159,4 +159,48 @@ public sealed class ReputationServiceTests(DatabaseFixture db) : IAsyncLifetime 
         // Assert
         Assert.Equal(18, result);
     }
+
+    [Fact]
+    public async Task GetEffectiveReputations_ReturnsEmptyDictionary_WhenNoTargetIds() {
+        // Act
+        var result = await _service.GetEffectiveReputations(_creatureId, [],
+            new Dictionary<Guid, Guid[]>(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetEffectiveReputations_ReturnsDistinctScorePerTarget_WhenTargetsBelongToDifferentFactions() {
+        // Arrange — two NPCs in different factions, each with its own personal reputation row too
+        var npcA = await SeedCreature();
+        var npcB = await SeedCreature();
+        var factionB = Builders.MakeFaction();
+        _context.Factions.Add(factionB);
+        _context.FactionMembers.AddRange(
+            new FactionMember { FactionId = _faction.Id, CreatureId = npcA.Id, Role = FactionRole.Member },
+            new FactionMember { FactionId = factionB.Id, CreatureId = npcB.Id, Role = FactionRole.Member }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _service.AdjustReputation(_creatureId, _faction.Id, ReputationTargetType.Faction, 5,
+            TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(_creatureId, factionB.Id, ReputationTargetType.Faction, 20,
+            TestContext.Current.CancellationToken);
+        await _service.AdjustReputation(_creatureId, npcA.Id, ReputationTargetType.Creature, 3,
+            TestContext.Current.CancellationToken);
+
+        var factionIdsByCreature = new Dictionary<Guid, Guid[]> {
+            [npcA.Id] = [_faction.Id],
+            [npcB.Id] = [factionB.Id]
+        };
+
+        // Act
+        var result = await _service.GetEffectiveReputations(_creatureId, [npcA.Id, npcB.Id], factionIdsByCreature,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(8, result[npcA.Id]);
+        Assert.Equal(20, result[npcB.Id]);
+    }
 }

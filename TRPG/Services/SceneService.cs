@@ -59,251 +59,170 @@ internal record SceneResult(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
+internal record SceneBootstrap(
+    string PlayerName,
+    Profession? Profession,
+    int Level,
+    int Gold,
+    int BirthYear,
+    Guid StateId,
+    Guid? CityId,
+    Guid? DistrictId,
+    Guid? RoomId,
+    string CreatureTypeName,
+    string GenderName);
+
+internal record SceneLocationDetails(
+    SceneBuildingInfo? Building,
+    SceneRoomInfo? Room,
+    string? RegionDescription,
+    IReadOnlyCollection<ScenePropInfo> NearbyProps,
+    IReadOnlyCollection<SceneCreatureInfo> NearbyPeople,
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
+);
+
 internal class SceneService(
     TrpgDbContext context,
-    JobCatchUpService jobCatchUpService,
-    LockService lockService,
+    LocationService locationService,
+    BuildingService buildingService,
+    CreatureService creatureService,
     ReputationService reputationService,
-    CurrentGameSessionAccessor currentGameSessionAccessor,
     ILogger<SceneService> logger
 ) {
     public async Task<SceneResult> GetScene(SceneQuery query, CancellationToken cancellationToken = default) {
         var stopwatch = Stopwatch.StartNew();
-        var worldId = query.WorldId;
-        var playerId = query.PlayerId;
 
-        var bootstrap = await (
-            from p in context.Creatures
-            where p.Id == playerId
-            join region in context.States on p.StateId equals region.Id
-            join city in context.Cities on p.CityId equals city.Id into cityGroup
-            from city in cityGroup.DefaultIfEmpty()
-            select new {
-                RegionName = region.Name,
-                RegionDescription = region.Description,
-                CityName = city != null ? city.Name : null,
-                CityDescription = city != null ? city.Description : null,
-                PlayerName = p.Name,
-                p.Profession,
-                p.Level,
-                p.Gold,
-                p.BirthYear,
-                p.StateId,
-                p.CityId,
-                p.DistrictId,
-                p.RoomId,
-                CreatureTypeName = p.CreatureType.ToString(),
-                GenderName = p.Gender.ToString()
-            }
-        ).FirstAsync(cancellationToken);
+        var bootstrap = await GetBootstrap(query.PlayerId, cancellationToken);
+        var state = await locationService.GetStateById(bootstrap.StateId, cancellationToken);
+        var cityInfo = await BuildCityInfo(bootstrap, cancellationToken);
 
-        SceneBuildingInfo? buildingInfo = null;
-        SceneRoomInfo? roomInfo = null;
-        IReadOnlyCollection<ScenePropInfo> nearbyProps = [];
-        IReadOnlyCollection<SceneCreatureInfo> nearbyPeople = [];
-        IReadOnlyCollection<SceneNearbyBuildingInfo> nearbyBuildings = [];
-        string? regionDescription = null;
-
-        SceneCityInfo? cityInfo = null;
-        if (bootstrap.CityId != null) {
-            var districts = await context.Districts.AsNoTracking()
-                .Where(d => d.CityId == bootstrap.CityId.Value)
-                .ToArrayAsync(cancellationToken);
-            var districtInfos = districts
-                .Select(d => new SceneDistrictInfo(d.Name, d.DistrictType.ToString(), d.Id == bootstrap.DistrictId))
-                .ToArray();
-            cityInfo = new SceneCityInfo(bootstrap.CityName!, bootstrap.CityDescription, districtInfos);
-        }
-
-        if (bootstrap.RoomId != null) {
-            await jobCatchUpService.CatchUpRoom(bootstrap.RoomId.Value, query.CurrentDate.Hour, cancellationToken);
-
-            var roomAndBuilding = await (
-                from r in context.Rooms
-                where r.Id == bootstrap.RoomId.Value
-                join b in context.Buildings on r.BuildingId equals b.Id
-                select new {
-                    RoomName = r.Name,
-                    RoomDescription = r.Description,
-                    r.FloorNumber,
-                    BuildingId = b.Id,
-                    BuildingName = b.Name,
-                    BuildingDescription = b.Description,
-                    b.BuildingType,
-                    b.FactionId
-                }
-            ).FirstAsync(cancellationToken);
-
-            var ownerName = await (
-                from bo in context.BuildingOwners
-                where bo.BuildingId == roomAndBuilding.BuildingId
-                join owner in context.Creatures on bo.OwnerId equals owner.Id
-                select owner.Name
-            ).FirstOrDefaultAsync(cancellationToken);
-
-            string? factionName = null;
-            string? factionDescription = null;
-            if (roomAndBuilding.FactionId != null) {
-                var faction = await context.Factions
-                    .Where(f => f.Id == roomAndBuilding.FactionId.Value)
-                    .Select(f => new { f.Name, f.Description })
-                    .FirstOrDefaultAsync(cancellationToken);
-                factionName = faction?.Name;
-                factionDescription = faction?.Description;
-            }
-
-            var props = await context.Props.AsNoTracking()
-                .Where(p => p.RoomId == bootstrap.RoomId.Value)
-                .ToArrayAsync(cancellationToken);
-
-            var connectors = props.OfType<RoomConnector>().ToArray();
-            var destinationIds = connectors
-                .Where(c => c.DestinationRoomId != null)
-                .Select(c => c.DestinationRoomId!.Value)
-                .ToHashSet();
-
-            var destinationNameById = destinationIds.Count > 0
-                ? await context.Rooms
-                    .Where(r => destinationIds.Contains(r.Id))
-                    .Select(r => new { r.Id, r.Name })
-                    .ToDictionaryAsync(r => r.Id, r => r.Name, cancellationToken)
-                : [];
-
-            var nearbyPeopleRaw = await (
-                from p in context.Creatures
-                where p.WorldId == worldId && p.RoomId == bootstrap.RoomId.Value && p.Id != playerId
-                select new {
-                    p.Id, p.Name, CreatureTypeName = p.CreatureType.ToString(), GenderName = p.Gender.ToString(),
-                    Profession = p.Profession.ToString(), p.Level, p.BirthYear, State = p.State.ToString()
-                }
-            ).ToArrayAsync(cancellationToken);
-
-            var nearbyCreatureIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
-            var factionNamesByCreature = (await (
-                    from fm in context.FactionMembers
-                    where nearbyCreatureIds.Contains(fm.CreatureId)
-                    join f in context.Factions on fm.FactionId equals f.Id
-                    select new { fm.CreatureId, f.Name }
-                ).ToArrayAsync(cancellationToken))
-                .GroupBy(x => x.CreatureId)
-                .ToDictionary(g => g.Key, g => (IReadOnlyCollection<string>) g.Select(x => x.Name).ToArray());
-
-            var reputationStopwatch = Stopwatch.StartNew();
-            var nearbyPeopleList = new List<SceneCreatureInfo>();
-            foreach (var x in nearbyPeopleRaw) {
-                var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
-                nearbyPeopleList.Add(new SceneCreatureInfo(x.Name, x.CreatureTypeName, x.GenderName, x.Profession,
-                    x.Level, query.CurrentDate.Year - x.BirthYear,
-                    factionNamesByCreature.GetValueOrDefault(x.Id, []), x.State, reputation));
-            }
-            logger.LogInformation("[perf] Reputation lookups for {CreatureCount} indoor people took {ElapsedMs}ms",
-                nearbyPeopleRaw.Length, reputationStopwatch.ElapsedMilliseconds);
-
-            nearbyPeople = nearbyPeopleList;
-
-            buildingInfo = new SceneBuildingInfo(
-                roomAndBuilding.BuildingName,
-                roomAndBuilding.BuildingType.ToString(),
-                ownerName,
-                factionName,
-                factionDescription
-            );
-
-            var exitInfos = new List<SceneExitInfo>();
-            foreach (var c in connectors) {
-                var destinationName = c.DestinationRoomId != null &&
-                                      destinationNameById.TryGetValue(c.DestinationRoomId.Value, out var name)
-                    ? name
-                    : "Outside";
-
-                var isLocked = c.IsLocked;
-                if (c.DestinationRoomId == null) {
-                    isLocked = await lockService.SyncScheduleLock(roomAndBuilding.BuildingId,
-                        roomAndBuilding.BuildingType, query.CurrentDate.Hour, cancellationToken) ?? c.IsLocked;
-                }
-
-                exitInfos.Add(new SceneExitInfo(c.Description, destinationName, isLocked));
-            }
-
-            roomInfo = new SceneRoomInfo(
-                roomAndBuilding.RoomName,
-                roomAndBuilding.RoomDescription,
-                roomAndBuilding.FloorNumber,
-                exitInfos
-            );
-
-            nearbyProps = props.Where(p => p is not RoomConnector)
-                .Select(p => new ScenePropInfo(p.Name, p.Description, GetPropType(p)))
-                .ToArray();
-        }
-        else {
-            regionDescription = bootstrap.RegionDescription;
-
-            if (bootstrap.DistrictId != null) {
-                await jobCatchUpService.CatchUpDistrict(worldId, bootstrap.DistrictId.Value, query.CurrentDate.Hour,
-                    cancellationToken);
-            }
-
-            nearbyBuildings = await context.Buildings
-                .Where(b => b.StateId == bootstrap.StateId && b.CityId == bootstrap.CityId &&
-                            b.DistrictId == bootstrap.DistrictId)
-                .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType.ToString()))
-                .ToArrayAsync(cancellationToken);
-
-            var nearbyPeopleRaw = await (
-                from p in context.Creatures
-                where p.WorldId == worldId && p.StateId == bootstrap.StateId && p.DistrictId == bootstrap.DistrictId &&
-                      p.RoomId == null && p.Id != playerId
-                select new {
-                    p.Id, p.Name, CreatureTypeName = p.CreatureType.ToString(), GenderName = p.Gender.ToString(),
-                    Profession = p.Profession.ToString(), p.Level, p.BirthYear, State = p.State.ToString()
-                }
-            ).ToArrayAsync(cancellationToken);
-
-            var nearbyCreatureIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
-            var factionNamesByCreature = (await (
-                    from fm in context.FactionMembers
-                    where nearbyCreatureIds.Contains(fm.CreatureId)
-                    join f in context.Factions on fm.FactionId equals f.Id
-                    select new { fm.CreatureId, f.Name }
-                ).ToArrayAsync(cancellationToken))
-                .GroupBy(x => x.CreatureId)
-                .ToDictionary(g => g.Key, g => (IReadOnlyCollection<string>) g.Select(x => x.Name).ToArray());
-
-            var reputationStopwatch = Stopwatch.StartNew();
-            var nearbyPeopleList = new List<SceneCreatureInfo>();
-            foreach (var x in nearbyPeopleRaw) {
-                var reputation = await reputationService.GetEffectiveReputation(playerId, x.Id, cancellationToken);
-                nearbyPeopleList.Add(new SceneCreatureInfo(x.Name, x.CreatureTypeName, x.GenderName, x.Profession,
-                    x.Level, query.CurrentDate.Year - x.BirthYear,
-                    factionNamesByCreature.GetValueOrDefault(x.Id, []), x.State, reputation));
-            }
-            logger.LogInformation("[perf] Reputation lookups for {CreatureCount} outdoor people took {ElapsedMs}ms",
-                nearbyPeopleRaw.Length, reputationStopwatch.ElapsedMilliseconds);
-
-            nearbyPeople = nearbyPeopleList;
-        }
+        var details = bootstrap.RoomId != null
+            ? await BuildIndoorScene(query, bootstrap, cancellationToken)
+            : await BuildOutdoorScene(query, bootstrap, state, cancellationToken);
 
         logger.LogInformation("[perf] GetScene ({Branch}) took {ElapsedMs}ms, {CreatureCount} nearby people",
-            bootstrap.RoomId != null ? "indoor" : "outdoor", stopwatch.ElapsedMilliseconds, nearbyPeople.Count);
+            bootstrap.RoomId != null ? "indoor" : "outdoor", stopwatch.ElapsedMilliseconds,
+            details.NearbyPeople.Count);
 
-        var result = new SceneResult(
+        return new SceneResult(
             query.CurrentDate,
-            new SceneStateInfo(bootstrap.RegionName, regionDescription),
+            new SceneStateInfo(state!.Name, details.RegionDescription),
             cityInfo,
-            buildingInfo,
-            roomInfo,
+            details.Building,
+            details.Room,
             new ScenePlayerInfo(bootstrap.PlayerName, bootstrap.CreatureTypeName, bootstrap.GenderName,
                 bootstrap.Profession.ToString()!, bootstrap.Level, bootstrap.Gold,
                 query.CurrentDate.Year - bootstrap.BirthYear),
-            nearbyProps,
-            nearbyPeople,
-            nearbyBuildings
+            details.NearbyProps,
+            details.NearbyPeople,
+            details.NearbyBuildings
         );
+    }
 
-        currentGameSessionAccessor.State.LastScene = result;
-        currentGameSessionAccessor.State.Session.SceneRefreshedThisTurn = true;
-        return result;
+    private async Task<SceneBootstrap> GetBootstrap(Guid playerId, CancellationToken cancellationToken) {
+        return await context.Creatures.AsNoTracking()
+            .Where(p => p.Id == playerId)
+            .Select(p => new SceneBootstrap(p.Name, p.Profession, p.Level, p.Gold, p.BirthYear, p.StateId, p.CityId,
+                p.DistrictId, p.RoomId, p.CreatureType.ToString(), p.Gender.ToString()))
+            .FirstAsync(cancellationToken);
+    }
+
+    private async Task<SceneCityInfo?> BuildCityInfo(SceneBootstrap bootstrap, CancellationToken cancellationToken) {
+        if (bootstrap.CityId == null) {
+            return null;
+        }
+
+        var city = await locationService.GetCityById(bootstrap.CityId.Value, cancellationToken);
+        var districts = await locationService.GetAllDistrictsByCityId(bootstrap.CityId.Value, cancellationToken);
+        var districtInfos = districts
+            .Select(d => new SceneDistrictInfo(d.Name, d.DistrictType.ToString(), d.Id == bootstrap.DistrictId))
+            .ToArray();
+        return new SceneCityInfo(city!.Name, city.Description, districtInfos);
+    }
+
+    private async Task<SceneLocationDetails> BuildIndoorScene(SceneQuery query, SceneBootstrap bootstrap,
+        CancellationToken cancellationToken) {
+        var roomSummary = await buildingService.GetRoomSummary(bootstrap.RoomId!.Value, cancellationToken);
+
+        var props = await buildingService.GetStaticPropsByRoomId(bootstrap.RoomId.Value, cancellationToken);
+        var connectors = await buildingService.GetConnectorsByRoomId(bootstrap.RoomId.Value, cancellationToken);
+        var exitInfos = await BuildExitInfos(connectors, cancellationToken);
+        
+        var nearbyPeople = await BuildNearbyPeople(query, bootstrap, cancellationToken);
+
+        var buildingInfo = new SceneBuildingInfo(roomSummary!.BuildingName, roomSummary.BuildingType.ToString(),
+            roomSummary.OwnerName, roomSummary.FactionName, roomSummary.FactionDescription);
+        var roomInfo = new SceneRoomInfo(roomSummary.RoomName, roomSummary.RoomDescription,
+            roomSummary.RoomFloorNumber, exitInfos);
+        var nearbyProps = props.Select(p => new ScenePropInfo(p.Name, p.Description, GetPropType(p))).ToArray();
+
+        return new SceneLocationDetails(buildingInfo, roomInfo, null, nearbyProps, nearbyPeople, []);
+    }
+
+    private async Task<SceneLocationDetails> BuildOutdoorScene(SceneQuery query, SceneBootstrap bootstrap,
+        State? state, CancellationToken cancellationToken) {
+        var buildings = await buildingService.GetAllByLocation(bootstrap.StateId, bootstrap.CityId,
+            bootstrap.DistrictId, cancellationToken);
+        var nearbyBuildings = buildings
+            .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType.ToString()))
+            .ToArray();
+        
+        var nearbyPeople = await BuildNearbyPeople(query, bootstrap, cancellationToken);
+
+        return new SceneLocationDetails(null, null, state?.Description, [], nearbyPeople, nearbyBuildings);
+    }
+
+    private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeople(
+        SceneQuery query, 
+        SceneBootstrap bootstrap,
+        CancellationToken cancellationToken) {
+        var creatureLocation = new CreatureLocation(query.WorldId, bootstrap.RoomId, bootstrap.StateId, bootstrap.DistrictId);
+        var nearbyPeopleRaw = await creatureService.GetAllNearby(creatureLocation, query.PlayerId, cancellationToken);
+
+        var nearbyCreatureIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
+        var factionMembershipsByCreature = await (
+                from fm in context.FactionMembers
+                where nearbyCreatureIds.Contains(fm.CreatureId)
+                join f in context.Factions on fm.FactionId equals f.Id
+                select new { fm.CreatureId, fm.FactionId, f.Name }
+            )
+            .GroupBy(x => x.CreatureId)
+            .ToDictionaryAsync(g => g.Key,
+                g => new { FactionIds = g.Select(x => x.FactionId).ToArray(), FactionNames = g.Select(x => x.Name).ToArray() },
+                cancellationToken);
+
+        var factionNamesByCreature = factionMembershipsByCreature
+            .ToDictionary(kv => kv.Key, kv => kv.Value.FactionNames);
+        var factionIdsByCreature = factionMembershipsByCreature
+            .ToDictionary(kv => kv.Key, kv => kv.Value.FactionIds);
+
+        var reputationStopwatch = Stopwatch.StartNew();
+        var reputationByCreature = await reputationService.GetEffectiveReputations(query.PlayerId, nearbyCreatureIds,
+            factionIdsByCreature, cancellationToken);
+        logger.LogInformation("[perf] Reputation lookups for {CreatureCount} people took {ElapsedMs}ms",
+            nearbyPeopleRaw.Count, reputationStopwatch.ElapsedMilliseconds);
+
+        return nearbyPeopleRaw
+            .Select(x => new SceneCreatureInfo(x.Name, x.CreatureTypeName, x.GenderName, x.Profession, x.Level,
+                query.CurrentDate.Year - x.BirthYear, factionNamesByCreature.GetValueOrDefault(x.Id, []), x.State,
+                reputationByCreature.GetValueOrDefault(x.Id, 0)))
+            .ToArray();
+    }
+
+    private async Task<IReadOnlyCollection<SceneExitInfo>> BuildExitInfos(IReadOnlyCollection<RoomConnector> connectors,
+        CancellationToken cancellationToken) {
+        var destinationIds = connectors
+            .Where(c => c.DestinationRoomId != null)
+            .Select(c => c.DestinationRoomId!.Value)
+            .ToArray();
+        var destinationRoomsById = await buildingService.GetRoomsByIds(destinationIds, cancellationToken);
+
+        return connectors.Select(c => {
+            var destinationName = c.DestinationRoomId != null && destinationRoomsById.TryGetValue(c.DestinationRoomId.Value, out var destinationRoom)
+                ? destinationRoom.Name
+                : "Outside";
+            return new SceneExitInfo(c.Description, destinationName, c.IsLocked);
+        }).ToArray();
     }
 
     private static string GetPropType(Prop prop) {

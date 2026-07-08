@@ -218,4 +218,68 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         Assert.NotNull(result);
         Assert.Equal(target.Id, result.Id);
     }
+
+    [Fact]
+    public async Task GetAllNearby_ReturnsCreaturesInRoom_WhenLocationHasRoomId() {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var stateId = Guid.NewGuid();
+        var roomId = Guid.NewGuid();
+        var inRoom = Builders.MakeCreature(worldId, stateId: stateId);
+        inRoom.RoomId = roomId;
+        var outdoors = Builders.MakeCreature(worldId, stateId: stateId);
+        await _service.Add(inRoom, TestContext.Current.CancellationToken);
+        await _service.Add(outdoors, TestContext.Current.CancellationToken);
+        var location = new CreatureLocation(worldId, roomId, stateId, null);
+
+        // Act
+        var result = await _service.GetAllNearby(location, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Contains(result, x => x.Id == inRoom.Id);
+        Assert.DoesNotContain(result, x => x.Id == outdoors.Id);
+    }
+
+    [Fact]
+    public async Task GetAllNearby_ReturnsCreaturesOutdoors_WhenLocationHasNoRoomId() {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var stateId = Guid.NewGuid();
+        var districtId = Guid.NewGuid();
+        var outdoors = Builders.MakeCreature(worldId, stateId: stateId, districtId: districtId);
+        var indoors = Builders.MakeCreature(worldId, stateId: stateId, districtId: districtId);
+        indoors.RoomId = Guid.NewGuid();
+        await _service.Add(outdoors, TestContext.Current.CancellationToken);
+        await _service.Add(indoors, TestContext.Current.CancellationToken);
+        var location = new CreatureLocation(worldId, null, stateId, districtId);
+
+        // Act
+        var result = await _service.GetAllNearby(location, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Contains(result, x => x.Id == outdoors.Id);
+        Assert.DoesNotContain(result, x => x.Id == indoors.Id);
+    }
+
+    [Fact]
+    public async Task GetAllNearby_ExcludesGivenCreature() {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var stateId = Guid.NewGuid();
+        var roomId = Guid.NewGuid();
+        var player = Builders.MakeCreature(worldId, stateId: stateId);
+        player.RoomId = roomId;
+        var other = Builders.MakeCreature(worldId, stateId: stateId);
+        other.RoomId = roomId;
+        await _service.Add(player, TestContext.Current.CancellationToken);
+        await _service.Add(other, TestContext.Current.CancellationToken);
+        var location = new CreatureLocation(worldId, roomId, stateId, null);
+
+        // Act
+        var result = await _service.GetAllNearby(location, player.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.DoesNotContain(result, x => x.Id == player.Id);
+        Assert.Contains(result, x => x.Id == other.Id);
+    }
 }

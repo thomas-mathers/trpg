@@ -101,6 +101,10 @@ internal static class BiographyGenerator {
             .Where(r => r.RelationshipType is RelationshipType.Brother or RelationshipType.Sister)
             .GroupBy(r => r.SubjectId)
             .ToDictionary(g => g.Key, g => g.Select(r => creatureNameById[r.RelativeId]).ToArray());
+        var spouseByCreatureId = input.Relationships
+            .Where(r => r.RelationshipType is RelationshipType.Husband or RelationshipType.Wife)
+            .ToDictionary(r => r.SubjectId, r => new SpouseInfo(
+                r.RelationshipType == RelationshipType.Husband ? "husband" : "wife", creatureNameById[r.RelativeId]));
 
         foreach (var creature in input.Creatures) {
             var goldStats = goldStatsByLevel[creature.Level];
@@ -108,15 +112,18 @@ internal static class BiographyGenerator {
             parentNamesByCreatureId.TryGetValue(creature.Id, out var parentNames);
             childNamesByCreatureId.TryGetValue(creature.Id, out var childNames);
             siblingNamesByCreatureId.TryGetValue(creature.Id, out var siblingNames);
+            spouseByCreatureId.TryGetValue(creature.Id, out var spouse);
             var birthplaceName = input.StateById[creature.BirthStateId].Name;
             creature.Biography = BuildBiography(creature, birthplaceName, factionName, goldStats, parentNames,
-                childNames, siblingNames);
+                childNames, siblingNames, spouse);
         }
     }
 
+    private sealed record SpouseInfo(string Label, string Name);
+
     private static string BuildBiography(Creature creature, string birthplaceName, string? factionName,
         GoldStats goldStats, IReadOnlyList<string>? parentNames, IReadOnlyList<string>? childNames,
-        IReadOnlyList<string>? siblingNames) {
+        IReadOnlyList<string>? siblingNames, SpouseInfo? spouse) {
         var age = GameClock.EpochYear - creature.BirthYear;
         var raceLabel = creature.CreatureType.ToString().ToLowerInvariant();
         var professionLabel = creature.Profession?.ToString().ToLowerInvariant() ?? "wanderer";
@@ -127,7 +134,7 @@ internal static class BiographyGenerator {
             $"{birthplaceName}{affiliation}."
         };
 
-        var familySentence = BuildFamilySentence(parentNames, childNames, siblingNames);
+        var familySentence = BuildFamilySentence(parentNames, childNames, siblingNames, spouse);
         if (familySentence != null) {
             sentences.Add(familySentence);
         }
@@ -188,8 +195,12 @@ internal static class BiographyGenerator {
     }
 
     private static string? BuildFamilySentence(IReadOnlyList<string>? parentNames, IReadOnlyList<string>? childNames,
-        IReadOnlyList<string>? siblingNames) {
+        IReadOnlyList<string>? siblingNames, SpouseInfo? spouse) {
         var sentences = new List<string>();
+
+        if (spouse != null) {
+            sentences.Add($"Their {spouse.Label} is {spouse.Name}.");
+        }
 
         if (parentNames is { Count: > 0 }) {
             sentences.Add($"Their parents are {JoinPhrases(parentNames)}.");

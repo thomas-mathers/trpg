@@ -7,13 +7,21 @@ using TRPG.Services;
 namespace TRPG.Tools;
 
 internal class LookTool : Tool, IInvokableTool {
+    private readonly CurrentGameSessionAccessor _currentGameSessionAccessor;
+    private readonly CreatureService _creatureService;
+    private readonly SceneSyncService _sceneSyncService;
     private readonly ILogger<LookTool> _logger;
     private readonly SceneService _sceneService;
     private readonly GameSession _session;
 
-    public LookTool(GameSession session, SceneService sceneService, ILogger<LookTool> logger) {
+    public LookTool(GameSession session, SceneService sceneService, CreatureService creatureService,
+        SceneSyncService sceneSyncService, CurrentGameSessionAccessor currentGameSessionAccessor,
+        ILogger<LookTool> logger) {
         _session = session;
         _sceneService = sceneService;
+        _creatureService = creatureService;
+        _sceneSyncService = sceneSyncService;
+        _currentGameSessionAccessor = currentGameSessionAccessor;
         _logger = logger;
 
         Function = new Function {
@@ -30,11 +38,30 @@ internal class LookTool : Tool, IInvokableTool {
 
     public object? InvokeMethod(IDictionary<string, object?>? args) {
         _logger.LogInformation("[look] tool invoked");
-        var currentDate = GameClock.GetCurrentInGameDate(_session);
-        var query = new SceneQuery(_session.WorldId, _session.PlayerId, currentDate);
-        var result = _sceneService.GetScene(query).GetAwaiter().GetResult();
+        var result = InvokeMethodAsync(CancellationToken.None).GetAwaiter().GetResult();
         var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
         _logger.LogInformation("[look] result: {Result}", json);
         return json;
+    }
+
+    private async Task<object?> InvokeMethodAsync(CancellationToken cancellationToken) {
+        var currentDate = GameClock.GetCurrentInGameDate(_session);
+        var player = await _creatureService.GetById(_session.PlayerId, cancellationToken);
+        var state = _currentGameSessionAccessor.State;
+        var sceneIsStale = await _sceneSyncService.SyncIfNeeded(_session, _session.WorldId, player!.RoomId,
+            player.DistrictId, currentDate, cancellationToken);
+
+        SceneResult result;
+        if (!sceneIsStale && state.LastScene != null) {
+            result = state.LastScene;
+        }
+        else {
+            var query = new SceneQuery(_session.WorldId, _session.PlayerId, currentDate);
+            result = await _sceneService.GetScene(query, cancellationToken);
+            state.LastScene = result;
+        }
+
+        _session.SceneRefreshedThisTurn = true;
+        return result;
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using TRPG.Data;
 using TRPG.Models;
 using TRPG.Services;
@@ -15,7 +16,7 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
     public async ValueTask InitializeAsync() {
         _context = db.CreateContext();
-        _service = new BuildingService(_context);
+        _service = new BuildingService(_context, new MemoryCache(new MemoryCacheOptions()));
 
         _building = Builders.MakeBuilding(_stateId);
         _context.Buildings.Add(_building);
@@ -83,7 +84,7 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetAllPropsByRoomId_ReturnsProps() {
+    public async Task GetStaticPropsByRoomId_ReturnsNonConnectorProps() {
         // Arrange
         var room = Builders.MakeRoom(_building.Id);
         _context.Rooms.Add(room);
@@ -94,15 +95,44 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
             Name = $"Prop-{Guid.NewGuid():N}",
             Description = "A test prop"
         };
-        _context.Props.Add(prop);
+        var connector = new RoomConnector {
+            RoomId = room.Id, Name = "Door", Description = "A door.", DestinationRoomId = null
+        };
+        _context.Props.AddRange(prop, connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetAllPropsByRoomId(room.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetStaticPropsByRoomId(room.Id, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(result);
         Assert.Equal(prop.Id, result.First().Id);
+    }
+
+    [Fact]
+    public async Task GetConnectorsByRoomId_ReturnsOnlyConnectors() {
+        // Arrange
+        var room = Builders.MakeRoom(_building.Id);
+        _context.Rooms.Add(room);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var prop = new Seat {
+            RoomId = room.Id,
+            Name = $"Prop-{Guid.NewGuid():N}",
+            Description = "A test prop"
+        };
+        var connector = new RoomConnector {
+            RoomId = room.Id, Name = "Door", Description = "A door.", DestinationRoomId = null
+        };
+        _context.Props.AddRange(prop, connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _service.GetConnectorsByRoomId(room.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal(connector.Id, result.First().Id);
     }
 
     [Fact]
