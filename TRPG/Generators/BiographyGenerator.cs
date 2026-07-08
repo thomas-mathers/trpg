@@ -8,7 +8,6 @@ internal record BiographyGeneratorInput(
     IReadOnlyDictionary<Guid, State> StateById,
     IReadOnlyList<FactionMember> FactionMembers,
     IReadOnlyList<Faction> Factions,
-    IReadOnlySet<Guid> CityFactionIds,
     IReadOnlyList<Relationship> Relationships);
 
 internal static class BiographyGenerator {
@@ -84,7 +83,7 @@ internal static class BiographyGenerator {
 
         var factionById = input.Factions.ToDictionary(f => f.Id);
         var factionNameByCreatureId = input.FactionMembers
-            .Where(fm => !input.CityFactionIds.Contains(fm.FactionId))
+            .Where(fm => !factionById[fm.FactionId].IsCityFaction)
             .GroupBy(fm => fm.CreatureId)
             .ToDictionary(g => g.Key, g => factionById[g.First().FactionId].Name);
 

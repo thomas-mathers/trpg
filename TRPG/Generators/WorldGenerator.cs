@@ -122,7 +122,6 @@ internal class WorldGenerator(
         var jobs = new List<Job>();
         var roomConnectorKeys = new List<RoomConnectorKey>();
         var relationships = new List<Relationship>();
-        var cityFactionIds = new HashSet<Guid>();
         var guildHallIndex = 0;
 
         var stateById = geography.States.ToDictionary(s => s.Id);
@@ -136,10 +135,10 @@ internal class WorldGenerator(
             var cityDistricts = districtsByCityId[city.Id].ToDictionary(d => d.DistrictType);
 
             var cityFaction = new Faction {
-                WorldId = worldId, Name = $"The People of {city.Name}", Description = $"The common folk of {city.Name}."
+                WorldId = worldId, Name = $"The People of {city.Name}", Description = $"The common folk of {city.Name}.",
+                IsCityFaction = true
             };
             factions.Add(cityFaction);
-            cityFactionIds.Add(cityFaction.Id);
 
             var cityBuildings = new List<Building>();
             var cityIdleCandidates = cityDistricts.Values
@@ -376,8 +375,7 @@ internal class WorldGenerator(
         }
 
         BiographyGenerator.AssignBiographies(
-            new BiographyGeneratorInput(creatures, stateById, factionMembers, factions, cityFactionIds,
-                relationships));
+            new BiographyGeneratorInput(creatures, stateById, factionMembers, factions, relationships));
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 

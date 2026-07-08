@@ -184,11 +184,14 @@ internal class SceneService(
                 from fm in context.FactionMembers
                 where nearbyCreatureIds.Contains(fm.CreatureId)
                 join f in context.Factions on fm.FactionId equals f.Id
-                select new { fm.CreatureId, fm.FactionId, f.Name }
+                select new { fm.CreatureId, fm.FactionId, f.Name, f.IsCityFaction }
             )
             .GroupBy(x => x.CreatureId)
             .ToDictionaryAsync(g => g.Key,
-                g => new { FactionIds = g.Select(x => x.FactionId).ToArray(), FactionNames = g.Select(x => x.Name).ToArray() },
+                g => new {
+                    FactionIds = g.Select(x => x.FactionId).ToArray(),
+                    FactionNames = g.Where(x => !x.IsCityFaction).Select(x => x.Name).ToArray()
+                },
                 cancellationToken);
 
         var factionNamesByCreature = factionMembershipsByCreature

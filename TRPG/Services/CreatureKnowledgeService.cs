@@ -201,6 +201,7 @@ internal class CreatureKnowledgeService(TrpgDbContext context) {
             from fm in context.FactionMembers
             where fm.CreatureId == creature.Id
             join f in context.Factions on fm.FactionId equals f.Id
+            where !f.IsCityFaction
             select f.Name
         ).ToArrayAsync(cancellationToken);
 
