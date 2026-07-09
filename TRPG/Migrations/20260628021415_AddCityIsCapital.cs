@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 table: "cities",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: false
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "is_capital",
-                table: "cities");
+            migrationBuilder.DropColumn(name: "is_capital", table: "cities");
         }
     }
 }

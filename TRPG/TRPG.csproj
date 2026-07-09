@@ -1,43 +1,41 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <WarningsNotAsErrors>CS9057</WarningsNotAsErrors>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <WarningsNotAsErrors>CS9057</WarningsNotAsErrors>
-        <LangVersion>latest</LangVersion>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
-    </ItemGroup>
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
-    <ItemGroup>
-        <Content Include="appsettings.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TRPG.Tests" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <InternalsVisibleTo Include="TRPG.Tests"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="EFCore.NamingConventions" Version="10.0.1"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2"/>
-        <PackageReference Include="OllamaSharp" Version="5.4.25"/>
-        <PackageReference Include="SharpVoronoiLib" Version="1.2.0"/>
-        <PackageReference Include="ZLogger" Version="2.5.10"/>
-    </ItemGroup>
-
+  <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageReference Include="OllamaSharp" Version="5.4.25" />
+    <PackageReference Include="SharpVoronoiLib" Version="1.2.0" />
+    <PackageReference Include="ZLogger" Version="2.5.10" />
+  </ItemGroup>
 </Project>

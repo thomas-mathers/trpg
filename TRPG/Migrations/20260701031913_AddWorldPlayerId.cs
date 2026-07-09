@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 name: "player_id",
                 table: "worlds",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "player_id",
-                table: "worlds");
+            migrationBuilder.DropColumn(name: "player_id", table: "worlds");
         }
     }
 }

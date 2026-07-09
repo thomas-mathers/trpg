@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 table: "rooms",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "capacity",
-                table: "rooms");
+            migrationBuilder.DropColumn(name: "capacity", table: "rooms");
         }
     }
 }

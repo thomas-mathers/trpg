@@ -1,5 +1,6 @@
 namespace TRPG.Models;
 
-internal class Trigger : Prop {
+internal class Trigger : Prop
+{
     public Guid? TargetId { get; init; }
 }

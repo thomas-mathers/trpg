@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal class Room {
+internal class Room
+{
     public Guid BuildingId { get; init; }
     public int Capacity { get; init; }
     public string Description { get; init; } = "";

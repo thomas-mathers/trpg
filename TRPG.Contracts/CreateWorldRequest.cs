@@ -1,6 +1,7 @@
 namespace TRPG.Contracts;
 
-public enum Race {
+public enum Race
+{
     Human,
     Elf,
     Dwarf,
@@ -9,7 +10,8 @@ public enum Race {
     Gnome,
 }
 
-public enum Profession {
+public enum Profession
+{
     Knight,
     Rogue,
     Ranger,
@@ -23,10 +25,11 @@ public enum Profession {
     Politician,
     StableMaster,
     Bartender,
-    Guard
+    Guard,
 }
 
-public record CreateWorldRequest {
+public record CreateWorldRequest
+{
     public required string PlayerName { get; init; }
     public required Race Race { get; init; }
     public required Profession Profession { get; init; }

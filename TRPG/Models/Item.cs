@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal enum EquipmentSlot {
+internal enum EquipmentSlot
+{
     Helm,
     Chest,
     LeftHand,
@@ -10,18 +11,20 @@ internal enum EquipmentSlot {
     Gloves,
     LeftRing,
     RightRing,
-    Belt
+    Belt,
 }
 
-internal enum ItemRarity {
+internal enum ItemRarity
+{
     Low,
     Normal,
     Magic,
     Rare,
-    Unique
+    Unique,
 }
 
-internal class Item {
+internal class Item
+{
     public virtual EquipmentSlot? DefaultSlot => null;
     public string Description { get; init; } = "";
     public int GoldValue { get; init; }

@@ -14,15 +14,14 @@ namespace TRPG.Migrations
                 name: "attack_speed",
                 table: "items",
                 type: "integer",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "attack_speed",
-                table: "items");
+            migrationBuilder.DropColumn(name: "attack_speed", table: "items");
         }
     }
 }

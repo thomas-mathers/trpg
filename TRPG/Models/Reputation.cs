@@ -1,11 +1,13 @@
 ﻿namespace TRPG.Models;
 
-internal enum ReputationTargetType {
+internal enum ReputationTargetType
+{
     Faction,
-    Creature
+    Creature,
 }
 
-internal class Reputation {
+internal class Reputation
+{
     public Guid CreatureId { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Score { get; set; }

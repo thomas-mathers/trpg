@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal enum WorkstationType {
+internal enum WorkstationType
+{
     Alchemy,
     Armorsmithing,
     Carpentry,
@@ -11,10 +12,11 @@ internal enum WorkstationType {
     Trade,
     Prayer,
     Reading,
-    Weaponsmithing
+    Weaponsmithing,
 }
 
-internal class Workstation : Prop {
+internal class Workstation : Prop
+{
     public Guid? AssignedCreatureId { get; set; }
     public Guid? OccupantId { get; set; }
     public WorkstationType WorkstationType { get; init; }

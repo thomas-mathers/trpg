@@ -10,8 +10,10 @@ using TRPG.Models;
 
 namespace TRPG.Endpoints;
 
-internal static class WorldEndpoints {
-    public static void MapWorldEndpoints(this WebApplication app) {
+internal static class WorldEndpoints
+{
+    public static void MapWorldEndpoints(this WebApplication app)
+    {
         app.MapPost("/worlds", CreateWorld);
         app.MapGet("/worlds", ListWorlds);
         app.MapDelete("/worlds/{worldId:guid}", DropWorld);
@@ -22,8 +24,11 @@ internal static class WorldEndpoints {
         WorldGenerator worldGenerator,
         CreatureGenerator creatureGenerator,
         BootstrapWorldCommandHandler bootstrapHandler,
-        CancellationToken cancellationToken) {
-        var input = new WorldGeneratorInput {
+        CancellationToken cancellationToken
+    )
+    {
+        var input = new WorldGeneratorInput
+        {
             Description = request.Description,
             MinCityStates = request.MinCityStates,
             MaxCityStates = request.MaxCityStates,
@@ -36,17 +41,20 @@ internal static class WorldEndpoints {
             HousesPerCity = request.HousesPerCity,
             MinHouseholdSize = request.MinHouseholdSize,
             MaxHouseholdSize = request.MaxHouseholdSize,
-            FactionCount = request.FactionCount
+            FactionCount = request.FactionCount,
         };
 
         var worldResult = await worldGenerator.Generate(input, cancellationToken);
 
         var playerCreatureType = request.Race.ToCreatureType();
         var homeCountry = worldResult.Countries.First(c => c.DominantRace == playerCreatureType);
-        var startingCity = worldResult.Cities.First(c => c.IsCapital && c.CountryId == homeCountry.Id);
+        var startingCity = worldResult.Cities.First(c =>
+            c.IsCapital && c.CountryId == homeCountry.Id
+        );
         var startingState = worldResult.States.First(s => s.Id == startingCity.StateId);
         var startingDistrict = worldResult.Districts.First(d =>
-            d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter);
+            d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter
+        );
         var profession = Enum.Parse<Models.Profession>(request.Profession.ToString());
 
         var playerResult = creatureGenerator.Generate(
@@ -65,12 +73,18 @@ internal static class WorldEndpoints {
 
         var result = await bootstrapHandler.Handle(worldResult, playerResult, cancellationToken);
 
-        return Results.Ok(new CreateWorldResponse(result.WorldId, result.PlayerId, worldResult.World.Name));
+        return Results.Ok(
+            new CreateWorldResponse(result.WorldId, result.PlayerId, worldResult.World.Name)
+        );
     }
 
-    private static async Task<IResult> ListWorlds(TrpgDbContext context, CancellationToken cancellationToken) {
-        var worlds = await context.Worlds
-            .OrderBy(w => w.Name)
+    private static async Task<IResult> ListWorlds(
+        TrpgDbContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var worlds = await context
+            .Worlds.OrderBy(w => w.Name)
             .Select(w => new WorldSummary(w.Id, w.Name, w.PlayerId != null))
             .ToListAsync(cancellationToken);
 
@@ -80,7 +94,9 @@ internal static class WorldEndpoints {
     private static async Task<IResult> DropWorld(
         Guid worldId,
         DropWorldCommandHandler dropHandler,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         await dropHandler.Handle(new DropWorldCommand { WorldId = worldId }, cancellationToken);
         return Results.NoContent();
     }

@@ -1,6 +1,7 @@
 ﻿namespace TRPG.Models;
 
-internal class Quest {
+internal class Quest
+{
     public string Description { get; init; } = "";
     public int ExperienceReward { get; init; }
     public Guid GiverId { get; init; }

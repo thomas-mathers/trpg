@@ -3,19 +3,28 @@ using TRPG.Models;
 
 namespace TRPG.Tests;
 
-public class JobGeneratorTests {
+public class JobGeneratorTests
+{
     private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _personId = Guid.NewGuid();
     private readonly Guid _worldId = Guid.NewGuid();
 
     [Fact]
-    public void Generate_AlwaysIncludesSleepAndIdle() {
+    public void Generate_AlwaysIncludesSleepAndIdle()
+    {
         // Arrange
         var sleepRoomId = Guid.NewGuid();
         var idleRoomId = Guid.NewGuid();
 
         // Act
-        var jobs = JobGenerator.Generate(_stateId, _personId, sleepRoomId, null, idleRoomId, _worldId);
+        var jobs = JobGenerator.Generate(
+            _stateId,
+            _personId,
+            sleepRoomId,
+            null,
+            idleRoomId,
+            _worldId
+        );
 
         // Assert
         var sleep = Assert.Single(jobs, j => j.Action == JobAction.Sleep);
@@ -32,7 +41,8 @@ public class JobGeneratorTests {
     }
 
     [Fact]
-    public void Generate_OmitsWorkJob_WhenWorkRoomIdIsNull() {
+    public void Generate_OmitsWorkJob_WhenWorkRoomIdIsNull()
+    {
         // Arrange
         var sleepRoomId = Guid.NewGuid();
 
@@ -45,13 +55,21 @@ public class JobGeneratorTests {
     }
 
     [Fact]
-    public void Generate_IncludesWorkJob_WhenWorkRoomIdProvided() {
+    public void Generate_IncludesWorkJob_WhenWorkRoomIdProvided()
+    {
         // Arrange
         var sleepRoomId = Guid.NewGuid();
         var workRoomId = Guid.NewGuid();
 
         // Act
-        var jobs = JobGenerator.Generate(_stateId, _personId, sleepRoomId, workRoomId, workRoomId, _worldId);
+        var jobs = JobGenerator.Generate(
+            _stateId,
+            _personId,
+            sleepRoomId,
+            workRoomId,
+            workRoomId,
+            _worldId
+        );
 
         // Assert
         var work = Assert.Single(jobs, j => j.Action == JobAction.Work);
@@ -63,13 +81,20 @@ public class JobGeneratorTests {
     }
 
     [Fact]
-    public void GenerateDayOff_MatchesWorkHoursAndOutranksWork() {
+    public void GenerateDayOff_MatchesWorkHoursAndOutranksWork()
+    {
         // Arrange
         var roomId = Guid.NewGuid();
 
         // Act
-        var job = JobGenerator.GenerateDayOff(_stateId, _personId, JobAction.Sit, roomId, DayOfWeek.Saturday,
-            _worldId);
+        var job = JobGenerator.GenerateDayOff(
+            _stateId,
+            _personId,
+            JobAction.Sit,
+            roomId,
+            DayOfWeek.Saturday,
+            _worldId
+        );
 
         // Assert
         Assert.Equal(JobAction.Sit, job.Action);
@@ -77,17 +102,27 @@ public class JobGeneratorTests {
         Assert.Equal(20, job.EndHour);
         Assert.Equal(DayOfWeek.Saturday, job.SpecificDay);
         Assert.Equal(roomId, job.RoomId);
-        Assert.True(job.Priority > 50, "Day-off jobs must outrank Work (50) to actually override it.");
+        Assert.True(
+            job.Priority > 50,
+            "Day-off jobs must outrank Work (50) to actually override it."
+        );
     }
 
     [Fact]
-    public void GenerateUnemployedDayActivity_MatchesIdleHoursAndOutranksIdle() {
+    public void GenerateUnemployedDayActivity_MatchesIdleHoursAndOutranksIdle()
+    {
         // Arrange
         var roomId = Guid.NewGuid();
 
         // Act
-        var job = JobGenerator.GenerateUnemployedDayActivity(_stateId, _personId, JobAction.Study, roomId,
-            DayOfWeek.Tuesday, _worldId);
+        var job = JobGenerator.GenerateUnemployedDayActivity(
+            _stateId,
+            _personId,
+            JobAction.Study,
+            roomId,
+            DayOfWeek.Tuesday,
+            _worldId
+        );
 
         // Assert
         Assert.Equal(JobAction.Study, job.Action);
@@ -95,6 +130,9 @@ public class JobGeneratorTests {
         Assert.Equal(22, job.EndHour);
         Assert.Equal(DayOfWeek.Tuesday, job.SpecificDay);
         Assert.Equal(roomId, job.RoomId);
-        Assert.True(job.Priority > 0, "Unemployed day activities must outrank the default Idle (0) to apply.");
+        Assert.True(
+            job.Priority > 0,
+            "Unemployed day activities must outrank the default Idle (0) to apply."
+        );
     }
 }

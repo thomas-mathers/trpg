@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal class CreatureAbility {
+internal class CreatureAbility
+{
     public string AbilityName { get; init; } = "";
     public int Cooldown { get; set; }
     public Guid CreatureId { get; init; }

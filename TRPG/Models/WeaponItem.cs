@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal enum WeaponType {
+internal enum WeaponType
+{
     Dagger,
     Sword,
     Axe,
@@ -10,10 +11,11 @@ internal enum WeaponType {
     Wand,
     Bow,
     Crossbow,
-    Javelin
+    Javelin,
 }
 
-internal class WeaponItem : Item {
+internal class WeaponItem : Item
+{
     public int AttackSpeed { get; init; }
     public override EquipmentSlot? DefaultSlot => EquipmentSlot.RightHand;
     public int DurabilityCurrent { get; set; }

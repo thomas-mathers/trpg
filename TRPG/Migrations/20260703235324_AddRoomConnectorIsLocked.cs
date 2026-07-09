@@ -14,15 +14,14 @@ namespace TRPG.Migrations
                 name: "is_locked",
                 table: "props",
                 type: "boolean",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "is_locked",
-                table: "props");
+            migrationBuilder.DropColumn(name: "is_locked", table: "props");
         }
     }
 }

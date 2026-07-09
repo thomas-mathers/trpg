@@ -10,28 +10,26 @@ namespace TRPG.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "ix_buildings_region_id_name",
-                table: "buildings");
+            migrationBuilder.DropIndex(name: "ix_buildings_region_id_name", table: "buildings");
 
             migrationBuilder.CreateIndex(
                 name: "ix_buildings_region_id_name",
                 table: "buildings",
                 columns: new[] { "region_id", "name" },
-                unique: true);
+                unique: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "ix_buildings_region_id_name",
-                table: "buildings");
+            migrationBuilder.DropIndex(name: "ix_buildings_region_id_name", table: "buildings");
 
             migrationBuilder.CreateIndex(
                 name: "ix_buildings_region_id_name",
                 table: "buildings",
-                columns: new[] { "region_id", "name" });
+                columns: new[] { "region_id", "name" }
+            );
         }
     }
 }

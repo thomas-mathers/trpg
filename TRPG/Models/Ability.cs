@@ -1,21 +1,24 @@
 namespace TRPG.Models;
 
-internal enum TargetType {
+internal enum TargetType
+{
     Single,
     Aoe,
-    Self
+    Self,
 }
 
-internal enum Skill {
+internal enum Skill
+{
     Swordsmanship,
     Stealth,
     Spellcasting,
     Archery,
     Devotion,
-    Warfare
+    Warfare,
 }
 
-internal class Ability {
+internal class Ability
+{
     public float? AoeRadius { get; init; }
     public int Cooldown { get; init; }
     public int Cost { get; init; }

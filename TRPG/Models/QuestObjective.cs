@@ -1,20 +1,23 @@
 ﻿namespace TRPG.Models;
 
-internal enum QuestObjectiveType {
+internal enum QuestObjectiveType
+{
     Kill,
     Collect,
     Explore,
-    Speak
+    Speak,
 }
 
-internal enum QuestTargetType {
+internal enum QuestTargetType
+{
     Creature,
     Item,
     City,
-    Building
+    Building,
 }
 
-internal class QuestObjective {
+internal class QuestObjective
+{
     public int? Amount { get; init; }
     public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();

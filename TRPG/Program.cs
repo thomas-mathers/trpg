@@ -18,27 +18,33 @@ builder.Configuration.Bind(appConfiguration);
 
 Directory.CreateDirectory(appConfiguration.LogDirectory);
 
-foreach (var old in Directory.GetFiles(appConfiguration.LogDirectory, "trpg_*.log")
-             .Where(f => File.GetLastWriteTime(f) < DateTime.Now.AddDays(-7))) {
+foreach (
+    var old in Directory
+        .GetFiles(appConfiguration.LogDirectory, "trpg_*.log")
+        .Where(f => File.GetLastWriteTime(f) < DateTime.Now.AddDays(-7))
+)
+{
     File.Delete(old);
 }
 
-builder.Services
-    .AddTrpgLogging(appConfiguration.LogDirectory)
+builder
+    .Services.AddTrpgLogging(appConfiguration.LogDirectory)
     .AddTrpgDbContext(appConfiguration.PostgresConnectionString)
     .AddOllamaApiClient(appConfiguration)
     .AddSingleton(appConfiguration)
     .AddTrpgApplicationServices()
     .AddSignalR();
 
-builder.Services.ConfigureHttpJsonOptions(options => {
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
 var app = builder.Build();
 
-_ = Task.Run(async () => {
+_ = Task.Run(async () =>
+{
     await using var scope = app.Services.CreateAsyncScope();
     var warmupContext = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
     await warmupContext.Database.CanConnectAsync();

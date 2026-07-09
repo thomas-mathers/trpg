@@ -1,29 +1,34 @@
 namespace TRPG.Models;
 
-internal enum ArmorClass {
+internal enum ArmorClass
+{
     Cloth,
     Leather,
     Mail,
-    Plate
+    Plate,
 }
 
-internal enum ArmorType {
+internal enum ArmorType
+{
     Helm,
     Chest,
     Boots,
-    Gloves
+    Gloves,
 }
 
-internal class ArmorItem : Item {
+internal class ArmorItem : Item
+{
     public ArmorClass ArmorClass { get; init; }
 
-    public override EquipmentSlot? DefaultSlot => Type switch {
-        ArmorType.Helm => EquipmentSlot.Helm,
-        ArmorType.Chest => EquipmentSlot.Chest,
-        ArmorType.Boots => EquipmentSlot.Boots,
-        ArmorType.Gloves => EquipmentSlot.Gloves,
-        _ => null
-    };
+    public override EquipmentSlot? DefaultSlot =>
+        Type switch
+        {
+            ArmorType.Helm => EquipmentSlot.Helm,
+            ArmorType.Chest => EquipmentSlot.Chest,
+            ArmorType.Boots => EquipmentSlot.Boots,
+            ArmorType.Gloves => EquipmentSlot.Gloves,
+            _ => null,
+        };
 
     public int Defense { get; init; }
     public int DurabilityCurrent { get; set; }

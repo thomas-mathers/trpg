@@ -11,9 +11,7 @@ namespace TRPG.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "room_connector_key_item_id",
-                table: "props");
+            migrationBuilder.DropColumn(name: "room_connector_key_item_id", table: "props");
 
             migrationBuilder.CreateTable(
                 name: "room_connector_keys",
@@ -21,35 +19,38 @@ namespace TRPG.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     item_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    room_connector_id = table.Column<Guid>(type: "uuid", nullable: false)
+                    room_connector_id = table.Column<Guid>(type: "uuid", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_room_connector_keys", x => x.id);
-                });
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_room_connector_keys_item_id",
                 table: "room_connector_keys",
-                column: "item_id");
+                column: "item_id"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_room_connector_keys_room_connector_id",
                 table: "room_connector_keys",
-                column: "room_connector_id");
+                column: "room_connector_id"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "room_connector_keys");
+            migrationBuilder.DropTable(name: "room_connector_keys");
 
             migrationBuilder.AddColumn<Guid>(
                 name: "room_connector_key_item_id",
                 table: "props",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
         }
     }
 }

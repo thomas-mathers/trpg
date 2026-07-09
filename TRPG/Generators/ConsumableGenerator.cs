@@ -3,13 +3,22 @@ using static TRPG.Generators.ItemModifierHelpers;
 
 namespace TRPG.Generators;
 
-internal class ConsumableGenerator {
+internal class ConsumableGenerator
+{
     private static readonly string[] BaseNames =
-        ["Health Potion", "Mana Potion", "Antidote", "Elixir", "Tonic"];
+    [
+        "Health Potion",
+        "Mana Potion",
+        "Antidote",
+        "Elixir",
+        "Tonic",
+    ];
 
-    public ConsumableItem Generate(int level, Guid worldId) {
+    public ConsumableItem Generate(int level, Guid worldId)
+    {
         var baseName = BaseNames[Random.Shared.Next(BaseNames.Length)];
-        return new ConsumableItem {
+        return new ConsumableItem
+        {
             WorldId = worldId,
             Level = level,
             Rarity = ItemRarity.Normal,
@@ -19,7 +28,7 @@ internal class ConsumableGenerator {
             GoldValue = level * 5 + Random.Shared.Next(11),
             Attribute = AttributeName.Hp,
             Amount = Roll(level, 20, 100),
-            Duration = 0
+            Duration = 0,
         };
     }
 }

@@ -9,7 +9,8 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests;
 
-public sealed class EndpointTestFixture : IAsyncLifetime {
+public sealed class EndpointTestFixture : IAsyncLifetime
+{
     private readonly DatabaseFixture _databaseFixture = new();
     private WebApplicationFactory<Program>? _factory;
 
@@ -19,16 +20,24 @@ public sealed class EndpointTestFixture : IAsyncLifetime {
 
     public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();
 
-    private WebApplicationFactory<Program> Factory => _factory ?? throw new InvalidOperationException(
-        $"{nameof(EndpointTestFixture)} was not initialized.");
+    private WebApplicationFactory<Program> Factory =>
+        _factory
+        ?? throw new InvalidOperationException(
+            $"{nameof(EndpointTestFixture)} was not initialized."
+        );
 
-    public async ValueTask InitializeAsync() {
+    public async ValueTask InitializeAsync()
+    {
         await _databaseFixture.InitializeAsync();
 
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
-            builder.ConfigureServices(services => {
+        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
                 services.RemoveAll<DbContextOptions<TrpgDbContext>>();
-                services.AddDbContext<TrpgDbContext>(options => options.UseNpgsql(_databaseFixture.ConnectionString));
+                services.AddDbContext<TrpgDbContext>(options =>
+                    options.UseNpgsql(_databaseFixture.ConnectionString)
+                );
 
                 services.RemoveAll<IOllamaApiClient>();
                 services.AddSingleton<IOllamaApiClient>(OllamaClient);
@@ -36,8 +45,10 @@ public sealed class EndpointTestFixture : IAsyncLifetime {
         });
     }
 
-    public async ValueTask DisposeAsync() {
-        if (_factory != null) {
+    public async ValueTask DisposeAsync()
+    {
+        if (_factory != null)
+        {
             await _factory.DisposeAsync();
         }
 

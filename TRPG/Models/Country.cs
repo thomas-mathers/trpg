@@ -1,13 +1,15 @@
 ﻿namespace TRPG.Models;
 
-internal enum CountryFocus {
+internal enum CountryFocus
+{
     Scientific,
     Political,
     Religious,
-    Militaristic
+    Militaristic,
 }
 
-internal class Country {
+internal class Country
+{
     public Polygon Boundary { get; init; } = null!;
     public string Description { get; init; } = "";
     public CreatureType DominantRace { get; init; }

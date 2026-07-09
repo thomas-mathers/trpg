@@ -4,7 +4,8 @@ using TRPG.Contracts;
 
 namespace TRPG.Client;
 
-internal sealed class GameServerClient(HttpClient httpClient) {
+internal sealed class GameServerClient(HttpClient httpClient)
+{
     private HubConnection? _connection;
     private Guid? _sessionId;
 
@@ -12,51 +13,76 @@ internal sealed class GameServerClient(HttpClient httpClient) {
 
     public event Action<string>? ConnectionStatusChanged;
 
-    public async Task<CreateWorldResponse> CreateWorld(CreateWorldRequest request,
-        CancellationToken cancellationToken) {
+    public async Task<CreateWorldResponse> CreateWorld(
+        CreateWorldRequest request,
+        CancellationToken cancellationToken
+    )
+    {
         var response = await httpClient.PostAsJsonAsync("/worlds", request, cancellationToken);
         response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<CreateWorldResponse>(cancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<CreateWorldResponse>(
+            cancellationToken
+        );
         return result!;
     }
 
-    public async Task<IReadOnlyList<WorldSummary>> ListWorlds(CancellationToken cancellationToken) {
-        var result = await httpClient.GetFromJsonAsync<List<WorldSummary>>("/worlds", cancellationToken);
+    public async Task<IReadOnlyList<WorldSummary>> ListWorlds(CancellationToken cancellationToken)
+    {
+        var result = await httpClient.GetFromJsonAsync<List<WorldSummary>>(
+            "/worlds",
+            cancellationToken
+        );
         return result ?? [];
     }
 
-    public async Task DropWorld(Guid worldId, CancellationToken cancellationToken) {
-        var response = await httpClient.DeleteAsync(new Uri($"/worlds/{worldId}", UriKind.Relative),
-            cancellationToken);
+    public async Task DropWorld(Guid worldId, CancellationToken cancellationToken)
+    {
+        var response = await httpClient.DeleteAsync(
+            new Uri($"/worlds/{worldId}", UriKind.Relative),
+            cancellationToken
+        );
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task<Guid> StartSession(Guid worldId, CancellationToken cancellationToken) {
-        var response = await httpClient.PostAsync(new Uri($"/worlds/{worldId}/sessions", UriKind.Relative), null,
-            cancellationToken);
+    public async Task<Guid> StartSession(Guid worldId, CancellationToken cancellationToken)
+    {
+        var response = await httpClient.PostAsync(
+            new Uri($"/worlds/{worldId}/sessions", UriKind.Relative),
+            null,
+            cancellationToken
+        );
         response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(cancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(
+            cancellationToken
+        );
 
         await ConnectChatStream(result!.SessionId, cancellationToken);
 
         return result.SessionId;
     }
 
-    private async Task ConnectChatStream(Guid sessionId, CancellationToken cancellationToken) {
-        var uri = new UriBuilder(httpClient.BaseAddress!) { Path = "/hubs/chat", Query = $"sessionId={sessionId}" }
-            .Uri;
+    private async Task ConnectChatStream(Guid sessionId, CancellationToken cancellationToken)
+    {
+        var uri = new UriBuilder(httpClient.BaseAddress!)
+        {
+            Path = "/hubs/chat",
+            Query = $"sessionId={sessionId}",
+        }.Uri;
 
         var connection = new HubConnectionBuilder().WithUrl(uri).WithAutomaticReconnect().Build();
         connection.On<SceneSnapshot>("Scene", scene => CurrentScene = scene);
-        connection.Reconnecting += _ => {
+        connection.Reconnecting += _ =>
+        {
             ConnectionStatusChanged?.Invoke("Connection lost, reconnecting...");
             return Task.CompletedTask;
         };
-        connection.Reconnected += _ => {
+        connection.Reconnected += _ =>
+        {
             ConnectionStatusChanged?.Invoke("Reconnected.");
             return Task.CompletedTask;
         };
-        connection.Closed += _ => {
+        connection.Closed += _ =>
+        {
             ConnectionStatusChanged?.Invoke("Connection closed.");
             return Task.CompletedTask;
         };
@@ -67,40 +93,63 @@ internal sealed class GameServerClient(HttpClient httpClient) {
         _sessionId = sessionId;
     }
 
-    public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken = default) {
-        if (_connection == null) {
-            throw new InvalidOperationException("Chat stream is not connected — call StartSession first.");
+    public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken = default)
+    {
+        if (_connection == null)
+        {
+            throw new InvalidOperationException(
+                "Chat stream is not connected — call StartSession first."
+            );
         }
 
         return _connection.StreamAsync<string>("ReceiveOpening", cancellationToken);
     }
 
-    public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken = default) {
-        if (_connection == null) {
-            throw new InvalidOperationException("Chat stream is not connected — call StartSession first.");
+    public IAsyncEnumerable<string> SendChat(
+        string message,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_connection == null)
+        {
+            throw new InvalidOperationException(
+                "Chat stream is not connected — call StartSession first."
+            );
         }
 
         return _connection.StreamAsync<string>("SendChat", message, cancellationToken);
     }
 
-    public IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken = default) {
-        if (_connection == null) {
-            throw new InvalidOperationException("Chat stream is not connected — call StartSession first.");
+    public IAsyncEnumerable<string> SendWait(
+        int hours,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_connection == null)
+        {
+            throw new InvalidOperationException(
+                "Chat stream is not connected — call StartSession first."
+            );
         }
 
         return _connection.StreamAsync<string>("SendWait", hours, cancellationToken);
     }
 
-    public async Task EndSession(CancellationToken cancellationToken) {
-        if (_sessionId == null) {
+    public async Task EndSession(CancellationToken cancellationToken)
+    {
+        if (_sessionId == null)
+        {
             return;
         }
 
-        var response = await httpClient.DeleteAsync(new Uri($"/sessions/{_sessionId}", UriKind.Relative),
-            cancellationToken);
+        var response = await httpClient.DeleteAsync(
+            new Uri($"/sessions/{_sessionId}", UriKind.Relative),
+            cancellationToken
+        );
         response.EnsureSuccessStatusCode();
 
-        if (_connection != null) {
+        if (_connection != null)
+        {
             await _connection.DisposeAsync();
             _connection = null;
         }

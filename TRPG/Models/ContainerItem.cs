@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal class ContainerItem {
+internal class ContainerItem
+{
     public Guid ContainerId { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Index { get; init; }

@@ -9,7 +9,8 @@ var menu = new Menu(client, game);
 
 await menu.Run(args, CancellationToken.None);
 
-static string? GetArgValue(string[] args, string flag) {
+static string? GetArgValue(string[] args, string flag)
+{
     var index = Array.IndexOf(args, flag);
     return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
 }

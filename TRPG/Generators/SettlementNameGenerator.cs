@@ -2,10 +2,22 @@ using TRPG.Models;
 
 namespace TRPG.Generators;
 
-internal static class SettlementNameGenerator {
-    private static readonly string[] RoadNouns = ["Road", "Trail", "Way", "Pass", "Route", "Path", "Trace", "Crossing"];
+internal static class SettlementNameGenerator
+{
+    private static readonly string[] RoadNouns =
+    [
+        "Road",
+        "Trail",
+        "Way",
+        "Pass",
+        "Route",
+        "Path",
+        "Trace",
+        "Crossing",
+    ];
 
-    private static readonly Dictionary<BuildingType, string[]> BuildingNouns = new() {
+    private static readonly Dictionary<BuildingType, string[]> BuildingNouns = new()
+    {
         [BuildingType.ArcaneShop] = ["Sigil", "Grimoire", "Rune", "Relic", "Ward", "Charm", "Tome"],
         [BuildingType.House] = ["House", "Cottage", "Hearth", "Dwelling", "Roof", "Home"],
         [BuildingType.Apothecary] = ["Flask", "Tonic", "Remedy", "Herb", "Elixir", "Vial"],
@@ -19,55 +31,260 @@ internal static class SettlementNameGenerator {
         [BuildingType.Jail] = ["Cell", "Gate", "Hold", "Cage", "Bar", "Pit"],
         [BuildingType.Library] = ["Pages", "Archive", "Tome", "Stack", "Scroll", "Chronicle"],
         [BuildingType.Stable] = ["Shoe", "Saddle", "Post", "Stall", "Haven", "Bale"],
-        [BuildingType.Tavern] = ["Flagon", "Barrel", "Hearth", "Keg", "Mug", "Ale", "Cask", "Tankard"],
-        [BuildingType.Temple] = ["Flame", "Shrine", "Altar", "Sanctum", "Chapel", "Gate"]
+        [BuildingType.Tavern] =
+        [
+            "Flagon",
+            "Barrel",
+            "Hearth",
+            "Keg",
+            "Mug",
+            "Ale",
+            "Cask",
+            "Tankard",
+        ],
+        [BuildingType.Temple] = ["Flame", "Shrine", "Altar", "Sanctum", "Chapel", "Gate"],
     };
 
-    private static readonly Dictionary<CreatureType, NamePool> Pools = new() {
+    private static readonly Dictionary<CreatureType, NamePool> Pools = new()
+    {
         [CreatureType.Human] = new NamePool(
-            ["Ash", "Raven", "Stone", "Kings", "Lark", "Bright", "River", "Oak", "Iron", "Wolf",
-                "Hollow", "Thorn", "Grey", "Fair", "North", "West", "East", "South", "High", "Dark"],
-            ["ford", "crest", "bridge", "ley", "spur", "haven", "vale", "mere", "wick", "field",
-                "moor", "hall", "borough", "worth", "gate", "hollow", "reach", "stead", "ridge", "brook"]
+            [
+                "Ash",
+                "Raven",
+                "Stone",
+                "Kings",
+                "Lark",
+                "Bright",
+                "River",
+                "Oak",
+                "Iron",
+                "Wolf",
+                "Hollow",
+                "Thorn",
+                "Grey",
+                "Fair",
+                "North",
+                "West",
+                "East",
+                "South",
+                "High",
+                "Dark",
+            ],
+            [
+                "ford",
+                "crest",
+                "bridge",
+                "ley",
+                "spur",
+                "haven",
+                "vale",
+                "mere",
+                "wick",
+                "field",
+                "moor",
+                "hall",
+                "borough",
+                "worth",
+                "gate",
+                "hollow",
+                "reach",
+                "stead",
+                "ridge",
+                "brook",
+            ]
         ),
         [CreatureType.Elf] = new NamePool(
-            ["Silver", "Moon", "Star", "Dusk", "Ever", "Wyld", "Sun", "Wind", "Leaf", "Bright",
-                "Whisper", "Shadow", "Dawn", "Mist", "Willow"],
-            ["hollow", "spire", "mere", "wood", "bloom", "vale", "shade", "song", "glen", "leaf",
-                "fall", "reach", "haven", "grove", "light"]
+            [
+                "Silver",
+                "Moon",
+                "Star",
+                "Dusk",
+                "Ever",
+                "Wyld",
+                "Sun",
+                "Wind",
+                "Leaf",
+                "Bright",
+                "Whisper",
+                "Shadow",
+                "Dawn",
+                "Mist",
+                "Willow",
+            ],
+            [
+                "hollow",
+                "spire",
+                "mere",
+                "wood",
+                "bloom",
+                "vale",
+                "shade",
+                "song",
+                "glen",
+                "leaf",
+                "fall",
+                "reach",
+                "haven",
+                "grove",
+                "light",
+            ]
         ),
         [CreatureType.Dwarf] = new NamePool(
-            ["Iron", "Stone", "Deep", "Grim", "Coal", "Granite", "Gold", "Silver", "Copper", "Ember",
-                "Frost", "Steel", "Rune", "Dark", "Anvil"],
-            ["hold", "forge", "reach", "delve", "gard", "spire", "deep", "vault", "hall", "watch",
-                "peak", "keep", "mine", "crag", "shield"]
+            [
+                "Iron",
+                "Stone",
+                "Deep",
+                "Grim",
+                "Coal",
+                "Granite",
+                "Gold",
+                "Silver",
+                "Copper",
+                "Ember",
+                "Frost",
+                "Steel",
+                "Rune",
+                "Dark",
+                "Anvil",
+            ],
+            [
+                "hold",
+                "forge",
+                "reach",
+                "delve",
+                "gard",
+                "spire",
+                "deep",
+                "vault",
+                "hall",
+                "watch",
+                "peak",
+                "keep",
+                "mine",
+                "crag",
+                "shield",
+            ]
         ),
         [CreatureType.Orc] = new NamePool(
-            ["Skarn", "Ghaz", "Grim", "Blood", "War", "Dread", "Iron", "Bone", "Black", "Death",
-                "Rot", "Fang", "Skull", "Ash", "Rust"],
-            ["hold", "camp", "scar", "maw", "tusk", "fang", "gash", "pit", "reach", "hollow",
-                "grip", "bane", "spire", "watch", "gate"]
+            [
+                "Skarn",
+                "Ghaz",
+                "Grim",
+                "Blood",
+                "War",
+                "Dread",
+                "Iron",
+                "Bone",
+                "Black",
+                "Death",
+                "Rot",
+                "Fang",
+                "Skull",
+                "Ash",
+                "Rust",
+            ],
+            [
+                "hold",
+                "camp",
+                "scar",
+                "maw",
+                "tusk",
+                "fang",
+                "gash",
+                "pit",
+                "reach",
+                "hollow",
+                "grip",
+                "bane",
+                "spire",
+                "watch",
+                "gate",
+            ]
         ),
         [CreatureType.Halfling] = new NamePool(
-            ["Apple", "Honey", "Meadow", "Thistle", "Hay", "Oak", "Berry", "Clover", "Fern", "Rose",
-                "Barley", "Sweet", "Green", "Sunny", "Merry"],
-            ["wood", "brook", "hollow", "burr", "field", "worth", "bottom", "dale", "shire", "burrow",
-                "meadow", "hill", "vale", "croft", "glen"]
+            [
+                "Apple",
+                "Honey",
+                "Meadow",
+                "Thistle",
+                "Hay",
+                "Oak",
+                "Berry",
+                "Clover",
+                "Fern",
+                "Rose",
+                "Barley",
+                "Sweet",
+                "Green",
+                "Sunny",
+                "Merry",
+            ],
+            [
+                "wood",
+                "brook",
+                "hollow",
+                "burr",
+                "field",
+                "worth",
+                "bottom",
+                "dale",
+                "shire",
+                "burrow",
+                "meadow",
+                "hill",
+                "vale",
+                "croft",
+                "glen",
+            ]
         ),
         [CreatureType.Gnome] = new NamePool(
-            ["Cog", "Sprocket", "Tinker", "Spark", "Gear", "Fizzle", "Bramble", "Widget", "Bolt", "Glimmer",
-                "Fumble", "Nimble", "Copper", "Bright", "Wobble"],
-            ["ville", "gear", "wick", "spring", "junction", "burrow", "hollow", "gate", "cog", "spire",
-                "dell", "haven", "crest", "hatch", "works"]
-        )
+            [
+                "Cog",
+                "Sprocket",
+                "Tinker",
+                "Spark",
+                "Gear",
+                "Fizzle",
+                "Bramble",
+                "Widget",
+                "Bolt",
+                "Glimmer",
+                "Fumble",
+                "Nimble",
+                "Copper",
+                "Bright",
+                "Wobble",
+            ],
+            [
+                "ville",
+                "gear",
+                "wick",
+                "spring",
+                "junction",
+                "burrow",
+                "hollow",
+                "gate",
+                "cog",
+                "spire",
+                "dell",
+                "haven",
+                "crest",
+                "hatch",
+                "works",
+            ]
+        ),
     };
 
-    public static string GenerateCityName(CreatureType race, ISet<string> existingNames) {
+    public static string GenerateCityName(CreatureType race, ISet<string> existingNames)
+    {
         var pool = Pools[race];
-        for (var attempt = 0; attempt < 100; attempt++) {
-            var name = pool.Prefixes[Random.Shared.Next(pool.Prefixes.Length)] +
-                       pool.Suffixes[Random.Shared.Next(pool.Suffixes.Length)];
-            if (existingNames.Add(name)) {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            var name =
+                pool.Prefixes[Random.Shared.Next(pool.Prefixes.Length)]
+                + pool.Suffixes[Random.Shared.Next(pool.Suffixes.Length)];
+            if (existingNames.Add(name))
+            {
                 return name;
             }
         }
@@ -77,14 +294,22 @@ internal static class SettlementNameGenerator {
         return fallback;
     }
 
-    public static string GenerateBuildingName(CreatureType race, BuildingType buildingType, ISet<string> existingNames) {
-        if (race != CreatureType.Human && BuildingNouns.TryGetValue(buildingType, out var nouns)) {
+    public static string GenerateBuildingName(
+        CreatureType race,
+        BuildingType buildingType,
+        ISet<string> existingNames
+    )
+    {
+        if (race != CreatureType.Human && BuildingNouns.TryGetValue(buildingType, out var nouns))
+        {
             var pool = Pools[race];
-            for (var attempt = 0; attempt < 50; attempt++) {
+            for (var attempt = 0; attempt < 50; attempt++)
+            {
                 var prefix = pool.Prefixes[Random.Shared.Next(pool.Prefixes.Length)];
                 var noun = nouns[Random.Shared.Next(nouns.Length)];
                 var name = $"The {prefix} {noun}";
-                if (existingNames.Add(name)) {
+                if (existingNames.Add(name))
+                {
                     return name;
                 }
             }
@@ -96,20 +321,24 @@ internal static class SettlementNameGenerator {
 
         var staticNames = BuildingGenerator.Names[buildingType];
         var unused = staticNames.Where(n => !existingNames.Contains(n)).ToArray();
-        var picked = unused.Length > 0
-            ? unused[Random.Shared.Next(unused.Length)]
-            : staticNames[Random.Shared.Next(staticNames.Length)];
+        var picked =
+            unused.Length > 0
+                ? unused[Random.Shared.Next(unused.Length)]
+                : staticNames[Random.Shared.Next(staticNames.Length)];
         existingNames.Add(picked);
         return picked;
     }
 
-    public static string GenerateRoadName(CreatureType race, ISet<string> existingNames) {
+    public static string GenerateRoadName(CreatureType race, ISet<string> existingNames)
+    {
         var pool = Pools[race];
-        for (var attempt = 0; attempt < 100; attempt++) {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
             var prefix = pool.Prefixes[Random.Shared.Next(pool.Prefixes.Length)];
             var noun = RoadNouns[Random.Shared.Next(RoadNouns.Length)];
             var name = $"The {prefix} {noun}";
-            if (existingNames.Add(name)) {
+            if (existingNames.Add(name))
+            {
                 return name;
             }
         }

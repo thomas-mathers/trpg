@@ -13,175 +13,795 @@ internal record CreatureGeneratorInput(
     string? Name = null,
     Gender? Gender = null,
     int? MinBirthYear = null,
-    int? MaxBirthYear = null);
+    int? MaxBirthYear = null
+);
 
 internal record CreatureGeneratorResult(
     Creature Creature,
     IReadOnlyList<Item> Items,
     IReadOnlyList<InventoryItem> InventoryItems,
     IReadOnlyCollection<CreatureSkill> Skills,
-    IReadOnlyCollection<CreatureAbility> Abilities);
+    IReadOnlyCollection<CreatureAbility> Abilities
+);
 
-internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions abilityDefinitions) {
+internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions abilityDefinitions)
+{
     private static readonly NamePool HumanPool = new(
         [
-            "Alden", "Alric", "Ansel", "Aric", "Baldric", "Bennet", "Beric", "Brand", "Brenner", "Cedric",
-            "Corwin", "Darian", "Edric", "Edwin", "Eldric", "Emric", "Errol", "Falk", "Gareth", "Gavin",
-            "Godric", "Hadrian", "Halric", "Harwin", "Jareth", "Kellan", "Leoric", "Lucan", "Merrick", "Osric",
-            "Roderic", "Roland", "Stefan", "Theron", "Tristan", "Ulric", "Wulfric", "Alaric", "Bastian", "Calder",
-            "Aldous", "Barnaby", "Cassian", "Dorian", "Edmund", "Garrick", "Holt", "Percival", "Rowan", "Warrick"
+            "Alden",
+            "Alric",
+            "Ansel",
+            "Aric",
+            "Baldric",
+            "Bennet",
+            "Beric",
+            "Brand",
+            "Brenner",
+            "Cedric",
+            "Corwin",
+            "Darian",
+            "Edric",
+            "Edwin",
+            "Eldric",
+            "Emric",
+            "Errol",
+            "Falk",
+            "Gareth",
+            "Gavin",
+            "Godric",
+            "Hadrian",
+            "Halric",
+            "Harwin",
+            "Jareth",
+            "Kellan",
+            "Leoric",
+            "Lucan",
+            "Merrick",
+            "Osric",
+            "Roderic",
+            "Roland",
+            "Stefan",
+            "Theron",
+            "Tristan",
+            "Ulric",
+            "Wulfric",
+            "Alaric",
+            "Bastian",
+            "Calder",
+            "Aldous",
+            "Barnaby",
+            "Cassian",
+            "Dorian",
+            "Edmund",
+            "Garrick",
+            "Holt",
+            "Percival",
+            "Rowan",
+            "Warrick",
         ],
         [
-            "Adela", "Alena", "Anya", "Brienne", "Brynn", "Celia", "Clarice", "Delia", "Edith", "Elena",
-            "Elise", "Evelyn", "Fiona", "Freya", "Gwen", "Helena", "Isolde", "Jocelyn", "Kaela", "Liora",
-            "Lyanna", "Mara", "Maris", "Meriel", "Mirabel", "Nerys", "Roslyn", "Rowena", "Selene", "Serena",
-            "Sylva", "Talia", "Thalia", "Valena", "Vera", "Vivienne", "Ysolde", "Arwen", "Catrin", "Maeve",
-            "Cassandra", "Elowen", "Ginevra", "Iona", "Marguerite", "Odessa", "Perpetua", "Wilhelmina",
-            "Ysabel", "Wren"
+            "Adela",
+            "Alena",
+            "Anya",
+            "Brienne",
+            "Brynn",
+            "Celia",
+            "Clarice",
+            "Delia",
+            "Edith",
+            "Elena",
+            "Elise",
+            "Evelyn",
+            "Fiona",
+            "Freya",
+            "Gwen",
+            "Helena",
+            "Isolde",
+            "Jocelyn",
+            "Kaela",
+            "Liora",
+            "Lyanna",
+            "Mara",
+            "Maris",
+            "Meriel",
+            "Mirabel",
+            "Nerys",
+            "Roslyn",
+            "Rowena",
+            "Selene",
+            "Serena",
+            "Sylva",
+            "Talia",
+            "Thalia",
+            "Valena",
+            "Vera",
+            "Vivienne",
+            "Ysolde",
+            "Arwen",
+            "Catrin",
+            "Maeve",
+            "Cassandra",
+            "Elowen",
+            "Ginevra",
+            "Iona",
+            "Marguerite",
+            "Odessa",
+            "Perpetua",
+            "Wilhelmina",
+            "Ysabel",
+            "Wren",
         ],
         [
-            "Ashford", "Ashmere", "Blackwood", "Briar", "Brighton", "Coldbrook", "Dawnmere", "Dunridge",
-            "Eastmere", "Fairchild", "Falconer", "Fenwick", "Frost", "Goldwell", "Graycastle", "Greymark",
-            "Hawthorne", "Highmore", "Hillcrest", "Ironwood", "Kingsley", "Larkspur", "Longford", "Marwood",
-            "Mournhill", "Northmere", "Oakheart", "Ravencrest", "Redbrook", "Riverstone",
-            "Silverbrook", "Stonebridge", "Stormholt", "Thorne", "Valewood", "Westbrook", "Whitehill",
-            "Wintermere", "Wolfhart", "Woodcroft", "Ashvale", "Barrowfield", "Blackthorn", "Briarwood",
-            "Cinderfall", "Dunmoor", "Eastwick", "Elmsworth", "Fallowmere", "Farrow", "Foxglove", "Graywood",
-            "Greenvale", "Hallowell", "Harrowgate", "Ironcastle", "Kestrel", "Lockhart", "Millbrook",
-            "Nightingale", "Oakhurst", "Pemberton", "Ravensworth", "Rosewood", "Shadowmere", "Summerfield",
-            "Thistlewood", "Vane", "Wintercross", "Wyndham"
+            "Ashford",
+            "Ashmere",
+            "Blackwood",
+            "Briar",
+            "Brighton",
+            "Coldbrook",
+            "Dawnmere",
+            "Dunridge",
+            "Eastmere",
+            "Fairchild",
+            "Falconer",
+            "Fenwick",
+            "Frost",
+            "Goldwell",
+            "Graycastle",
+            "Greymark",
+            "Hawthorne",
+            "Highmore",
+            "Hillcrest",
+            "Ironwood",
+            "Kingsley",
+            "Larkspur",
+            "Longford",
+            "Marwood",
+            "Mournhill",
+            "Northmere",
+            "Oakheart",
+            "Ravencrest",
+            "Redbrook",
+            "Riverstone",
+            "Silverbrook",
+            "Stonebridge",
+            "Stormholt",
+            "Thorne",
+            "Valewood",
+            "Westbrook",
+            "Whitehill",
+            "Wintermere",
+            "Wolfhart",
+            "Woodcroft",
+            "Ashvale",
+            "Barrowfield",
+            "Blackthorn",
+            "Briarwood",
+            "Cinderfall",
+            "Dunmoor",
+            "Eastwick",
+            "Elmsworth",
+            "Fallowmere",
+            "Farrow",
+            "Foxglove",
+            "Graywood",
+            "Greenvale",
+            "Hallowell",
+            "Harrowgate",
+            "Ironcastle",
+            "Kestrel",
+            "Lockhart",
+            "Millbrook",
+            "Nightingale",
+            "Oakhurst",
+            "Pemberton",
+            "Ravensworth",
+            "Rosewood",
+            "Shadowmere",
+            "Summerfield",
+            "Thistlewood",
+            "Vane",
+            "Wintercross",
+            "Wyndham",
         ]
     );
 
     private static readonly NamePool ElfPool = new(
         [
-            "Aerendyl", "Aelar", "Arannis", "Caeleth", "Daenor", "Elaith", "Faelar", "Galadrian",
-            "Laeroth", "Lorindel", "Rhovan", "Saelihn", "Selanar", "Silvyr", "Thamior", "Theren",
-            "Vaeril", "Ylyndar", "Zeren", "Erevan", "Aramil", "Beiro", "Dayereth", "Enialis",
-            "Immeral", "Mindartis", "Paelias", "Peren", "Soveliss", "Varis"
+            "Aerendyl",
+            "Aelar",
+            "Arannis",
+            "Caeleth",
+            "Daenor",
+            "Elaith",
+            "Faelar",
+            "Galadrian",
+            "Laeroth",
+            "Lorindel",
+            "Rhovan",
+            "Saelihn",
+            "Selanar",
+            "Silvyr",
+            "Thamior",
+            "Theren",
+            "Vaeril",
+            "Ylyndar",
+            "Zeren",
+            "Erevan",
+            "Aramil",
+            "Beiro",
+            "Dayereth",
+            "Enialis",
+            "Immeral",
+            "Mindartis",
+            "Paelias",
+            "Peren",
+            "Soveliss",
+            "Varis",
         ],
         [
-            "Althaea", "Arwen", "Eilistra", "Elenwe", "Elowen", "Ithilwen", "Kaelith", "Lethariel",
-            "Lirael", "Maeralya", "Melian", "Miriel", "Naivara", "Nimrodel", "Nuala", "Shalana",
-            "Sylvaris", "Sylwen", "Thalindra", "Vaelith", "Vanya", "Anastrianna", "Antinua",
-            "Bethrynna", "Caelynn", "Drusilia", "Ielenia", "Keyleth", "Sariel", "Shanairra"
+            "Althaea",
+            "Arwen",
+            "Eilistra",
+            "Elenwe",
+            "Elowen",
+            "Ithilwen",
+            "Kaelith",
+            "Lethariel",
+            "Lirael",
+            "Maeralya",
+            "Melian",
+            "Miriel",
+            "Naivara",
+            "Nimrodel",
+            "Nuala",
+            "Shalana",
+            "Sylvaris",
+            "Sylwen",
+            "Thalindra",
+            "Vaelith",
+            "Vanya",
+            "Anastrianna",
+            "Antinua",
+            "Bethrynna",
+            "Caelynn",
+            "Drusilia",
+            "Ielenia",
+            "Keyleth",
+            "Sariel",
+            "Shanairra",
         ],
         [
-            "Amakiir", "Brightwater", "Dawnstrider", "Duskbrook", "Evenstar", "Goldenleaf",
-            "Lightbringer", "Moonbrook", "Moonwhisper", "Nightbloom", "Silverbranch",
-            "Silverleaf", "Starfall", "Starweaver", "Sunshadow", "Swiftbrook",
-            "Whisperwind", "Willowmere", "Windrunner", "Winterbough", "Wyldwood",
-            "Mistwalker", "Shadowmere", "Greenbriar", "Ashgrove", "Autumnwind", "Brightspear",
-            "Dawnsinger", "Emberleaf", "Fallowbrook", "Frostwhisper", "Glimmerdale", "Hollowbrook",
-            "Ironflower", "Lightweaver", "Mistbourne", "Moonshadow", "Nightwhisper", "Oakenshield",
-            "Ravenmoor", "Silvermist", "Stormrider", "Sunwhisper", "Thornbrook", "Wintermoon"
+            "Amakiir",
+            "Brightwater",
+            "Dawnstrider",
+            "Duskbrook",
+            "Evenstar",
+            "Goldenleaf",
+            "Lightbringer",
+            "Moonbrook",
+            "Moonwhisper",
+            "Nightbloom",
+            "Silverbranch",
+            "Silverleaf",
+            "Starfall",
+            "Starweaver",
+            "Sunshadow",
+            "Swiftbrook",
+            "Whisperwind",
+            "Willowmere",
+            "Windrunner",
+            "Winterbough",
+            "Wyldwood",
+            "Mistwalker",
+            "Shadowmere",
+            "Greenbriar",
+            "Ashgrove",
+            "Autumnwind",
+            "Brightspear",
+            "Dawnsinger",
+            "Emberleaf",
+            "Fallowbrook",
+            "Frostwhisper",
+            "Glimmerdale",
+            "Hollowbrook",
+            "Ironflower",
+            "Lightweaver",
+            "Mistbourne",
+            "Moonshadow",
+            "Nightwhisper",
+            "Oakenshield",
+            "Ravenmoor",
+            "Silvermist",
+            "Stormrider",
+            "Sunwhisper",
+            "Thornbrook",
+            "Wintermoon",
         ]
     );
 
     private static readonly NamePool DwarfPool = new(
         [
-            "Anrik", "Balgrim", "Bofri", "Borin", "Bruni", "Dain", "Dorin", "Dunric", "Durgan",
-            "Eitri", "Grimnar", "Harbek", "Kadrin", "Morgran", "Nordri", "Orsik", "Rurik", "Sindri",
-            "Thorgrim", "Thrain", "Thror", "Travok", "Ulfar", "Vondal", "Baldor", "Grundi", "Hargin", "Korin",
-            "Bruenor", "Darrak", "Delg", "Fargrim", "Oskar", "Tordek", "Veit"
+            "Anrik",
+            "Balgrim",
+            "Bofri",
+            "Borin",
+            "Bruni",
+            "Dain",
+            "Dorin",
+            "Dunric",
+            "Durgan",
+            "Eitri",
+            "Grimnar",
+            "Harbek",
+            "Kadrin",
+            "Morgran",
+            "Nordri",
+            "Orsik",
+            "Rurik",
+            "Sindri",
+            "Thorgrim",
+            "Thrain",
+            "Thror",
+            "Travok",
+            "Ulfar",
+            "Vondal",
+            "Baldor",
+            "Grundi",
+            "Hargin",
+            "Korin",
+            "Bruenor",
+            "Darrak",
+            "Delg",
+            "Fargrim",
+            "Oskar",
+            "Tordek",
+            "Veit",
         ],
         [
-            "Astrid", "Balina", "Dagnal", "Durga", "Freygund", "Helga", "Hilde", "Ketra",
-            "Sigrun", "Torbera", "Vala", "Vistra", "Amber", "Artin", "Audhild", "Bardryn",
-            "Diesa", "Eldeth", "Falkrunn", "Finellen", "Gunnloda", "Gurdis", "Helja", "Hlin",
-            "Kathra", "Kristryd", "Liftrasa", "Torgga", "Mardred", "Riswynn", "Sannl", "Dagmar",
-            "Gudrun", "Ingrid", "Ragna"
+            "Astrid",
+            "Balina",
+            "Dagnal",
+            "Durga",
+            "Freygund",
+            "Helga",
+            "Hilde",
+            "Ketra",
+            "Sigrun",
+            "Torbera",
+            "Vala",
+            "Vistra",
+            "Amber",
+            "Artin",
+            "Audhild",
+            "Bardryn",
+            "Diesa",
+            "Eldeth",
+            "Falkrunn",
+            "Finellen",
+            "Gunnloda",
+            "Gurdis",
+            "Helja",
+            "Hlin",
+            "Kathra",
+            "Kristryd",
+            "Liftrasa",
+            "Torgga",
+            "Mardred",
+            "Riswynn",
+            "Sannl",
+            "Dagmar",
+            "Gudrun",
+            "Ingrid",
+            "Ragna",
         ],
         [
-            "Anvilfist", "Battleaxe", "Bronzebeard", "Coalbeard", "Deepdelver",
-            "Emberforge", "Firemantle", "Forgehammer", "Goldfinder", "Granitehelm",
-            "Grimforge", "Hammerfall", "Ironbeard", "Ironforge", "Ironjaw",
-            "Rockfist", "Stonebeard", "Stonebreaker", "Stonehammer", "Steelheart",
-            "Strongpick", "Deepstone", "Oreseeker", "Runehammer", "Blackanvil",
-            "Boulderfist", "Coppervein", "Copperforge", "Deephammer", "Emberbeard", "Flintlock",
-            "Goldbeard", "Graniteforge", "Hardstone", "Ironclad", "Mountainheart", "Oreforge",
-            "Quarryson", "Redbeard", "Rockbreaker", "Silverpick", "Stonefist", "Steelforge",
-            "Thundershield", "Warhammer"
+            "Anvilfist",
+            "Battleaxe",
+            "Bronzebeard",
+            "Coalbeard",
+            "Deepdelver",
+            "Emberforge",
+            "Firemantle",
+            "Forgehammer",
+            "Goldfinder",
+            "Granitehelm",
+            "Grimforge",
+            "Hammerfall",
+            "Ironbeard",
+            "Ironforge",
+            "Ironjaw",
+            "Rockfist",
+            "Stonebeard",
+            "Stonebreaker",
+            "Stonehammer",
+            "Steelheart",
+            "Strongpick",
+            "Deepstone",
+            "Oreseeker",
+            "Runehammer",
+            "Blackanvil",
+            "Boulderfist",
+            "Coppervein",
+            "Copperforge",
+            "Deephammer",
+            "Emberbeard",
+            "Flintlock",
+            "Goldbeard",
+            "Graniteforge",
+            "Hardstone",
+            "Ironclad",
+            "Mountainheart",
+            "Oreforge",
+            "Quarryson",
+            "Redbeard",
+            "Rockbreaker",
+            "Silverpick",
+            "Stonefist",
+            "Steelforge",
+            "Thundershield",
+            "Warhammer",
         ]
     );
 
     private static readonly NamePool OrcPool = new(
         [
-            "Ghak", "Ghazbul", "Gorak", "Grukk", "Grul", "Karg", "Krusk", "Mogthar", "Morgash",
-            "Skarn", "Thokk", "Throggar", "Ugluk", "Urgan", "Uzgash", "Uzarg", "Varg", "Vashak",
-            "Vorak", "Vorn", "Yarg", "Zogar", "Zulgar", "Brug", "Grom", "Hruk", "Krosh", "Murg",
-            "Torzug", "Urgash", "Dench", "Feng", "Gell", "Henk", "Holg"
+            "Ghak",
+            "Ghazbul",
+            "Gorak",
+            "Grukk",
+            "Grul",
+            "Karg",
+            "Krusk",
+            "Mogthar",
+            "Morgash",
+            "Skarn",
+            "Thokk",
+            "Throggar",
+            "Ugluk",
+            "Urgan",
+            "Uzgash",
+            "Uzarg",
+            "Varg",
+            "Vashak",
+            "Vorak",
+            "Vorn",
+            "Yarg",
+            "Zogar",
+            "Zulgar",
+            "Brug",
+            "Grom",
+            "Hruk",
+            "Krosh",
+            "Murg",
+            "Torzug",
+            "Urgash",
+            "Dench",
+            "Feng",
+            "Gell",
+            "Henk",
+            "Holg",
         ],
         [
-            "Brakka", "Drakka", "Kagra", "Krenna", "Nagga", "Ruzka", "Ulzara", "Zagga", "Rakka", "Shura",
-            "Baggi", "Emen", "Engong", "Kansif", "Myev", "Neega", "Ovak", "Ownka", "Shautha", "Sutha",
-            "Vola", "Volen", "Yevelda", "Mogra", "Skarza", "Vorka", "Grazna", "Uzka", "Thura", "Zulga",
-            "Draka", "Geyah", "Grazka", "Morza", "Zulkra"
+            "Brakka",
+            "Drakka",
+            "Kagra",
+            "Krenna",
+            "Nagga",
+            "Ruzka",
+            "Ulzara",
+            "Zagga",
+            "Rakka",
+            "Shura",
+            "Baggi",
+            "Emen",
+            "Engong",
+            "Kansif",
+            "Myev",
+            "Neega",
+            "Ovak",
+            "Ownka",
+            "Shautha",
+            "Sutha",
+            "Vola",
+            "Volen",
+            "Yevelda",
+            "Mogra",
+            "Skarza",
+            "Vorka",
+            "Grazna",
+            "Uzka",
+            "Thura",
+            "Zulga",
+            "Draka",
+            "Geyah",
+            "Grazka",
+            "Morza",
+            "Zulkra",
         ],
         [
-            "Ashclaw", "Bloodfang", "Bonegnaw", "Bonecrusher", "Doomhowl",
-            "Deathgrip", "Grimtusk", "Gutripper", "Ironhide", "Ragefist",
-            "Rotmaw", "Skullcrusher", "Skullsplitter", "Skinflayer", "Spinebreaker",
-            "Stormmaw", "The Butcher", "The Ravager", "Warscar", "Wolfkiller",
-            "Blacktooth", "Redblade", "Fleshtearer", "Gravemaw", "Hellscar",
-            "Axebiter", "Boneshatter", "Bloodmaw", "Deathfang", "Doomfist", "Firescar", "Gorehowl",
-            "Ironmaw", "Nightclaw", "Painbringer", "Ragescar", "Rotgrip", "Scarhide", "Skullbiter",
-            "Stormfang", "Thornmaw", "Warhowl", "Wolfscar", "Bloodrend", "Grimhowl"
+            "Ashclaw",
+            "Bloodfang",
+            "Bonegnaw",
+            "Bonecrusher",
+            "Doomhowl",
+            "Deathgrip",
+            "Grimtusk",
+            "Gutripper",
+            "Ironhide",
+            "Ragefist",
+            "Rotmaw",
+            "Skullcrusher",
+            "Skullsplitter",
+            "Skinflayer",
+            "Spinebreaker",
+            "Stormmaw",
+            "The Butcher",
+            "The Ravager",
+            "Warscar",
+            "Wolfkiller",
+            "Blacktooth",
+            "Redblade",
+            "Fleshtearer",
+            "Gravemaw",
+            "Hellscar",
+            "Axebiter",
+            "Boneshatter",
+            "Bloodmaw",
+            "Deathfang",
+            "Doomfist",
+            "Firescar",
+            "Gorehowl",
+            "Ironmaw",
+            "Nightclaw",
+            "Painbringer",
+            "Ragescar",
+            "Rotgrip",
+            "Scarhide",
+            "Skullbiter",
+            "Stormfang",
+            "Thornmaw",
+            "Warhowl",
+            "Wolfscar",
+            "Bloodrend",
+            "Grimhowl",
         ]
     );
 
     private static readonly NamePool HalflingPool = new(
         [
-            "Alton", "Dudo", "Fenwick", "Finnan", "Fosco", "Hamish", "Hob", "Jasper", "Merri",
-            "Milo", "Perrin", "Pip", "Samwise", "Tobias", "Wendell", "Roscoe", "Rollo", "Wilbur", "Hugo",
-            "Ander", "Wellby", "Cade", "Corrin", "Errich", "Garret", "Lindal", "Lyle", "Reed"
+            "Alton",
+            "Dudo",
+            "Fenwick",
+            "Finnan",
+            "Fosco",
+            "Hamish",
+            "Hob",
+            "Jasper",
+            "Merri",
+            "Milo",
+            "Perrin",
+            "Pip",
+            "Samwise",
+            "Tobias",
+            "Wendell",
+            "Roscoe",
+            "Rollo",
+            "Wilbur",
+            "Hugo",
+            "Ander",
+            "Wellby",
+            "Cade",
+            "Corrin",
+            "Errich",
+            "Garret",
+            "Lindal",
+            "Lyle",
+            "Reed",
         ],
         [
-            "Bella", "Bramble", "Cora", "Daisy", "Elly", "Ivy", "Lavinia", "Lily", "Marigold", "Nora",
-            "Poppy", "Primrose", "Rosalind", "Ruby", "Seraphina", "Willow", "Minta", "Posy", "Tansy",
-            "Briony", "Esme", "Carlin", "Dahlia", "Euphemia", "Lavender", "Meadow", "Peony", "Wisteria"
+            "Bella",
+            "Bramble",
+            "Cora",
+            "Daisy",
+            "Elly",
+            "Ivy",
+            "Lavinia",
+            "Lily",
+            "Marigold",
+            "Nora",
+            "Poppy",
+            "Primrose",
+            "Rosalind",
+            "Ruby",
+            "Seraphina",
+            "Willow",
+            "Minta",
+            "Posy",
+            "Tansy",
+            "Briony",
+            "Esme",
+            "Carlin",
+            "Dahlia",
+            "Euphemia",
+            "Lavender",
+            "Meadow",
+            "Peony",
+            "Wisteria",
         ],
         [
-            "Applewood", "Appleford", "Berrybrook", "Brambleburr", "Brushgather",
-            "Cobblestone", "Fairmeadow", "Goodbarrel", "Greenhill", "Hayworth",
-            "Hilltopple", "Meadowlight", "Oakbottom", "Oakhollow", "Puddlefoot",
-            "Riverburrow", "Softstep", "Thistledown", "Underbough", "Underhill",
-            "Warmwater", "Whitethistle", "Honeyfoot", "Leafhopper", "Tealeaf",
-            "Berryfield", "Bramblewood", "Brookshire", "Clovermead", "Cottonwood", "Elderberry",
-            "Fernwhistle", "Foxburrow", "Goodfellow", "Greenbottle", "Hollyhock", "Honeysuckle",
-            "Meadowbrook", "Millhouse", "Mosswood", "Quickfoot", "Sweetwater", "Tanglefoot",
-            "Thornbury", "Windmill"
+            "Applewood",
+            "Appleford",
+            "Berrybrook",
+            "Brambleburr",
+            "Brushgather",
+            "Cobblestone",
+            "Fairmeadow",
+            "Goodbarrel",
+            "Greenhill",
+            "Hayworth",
+            "Hilltopple",
+            "Meadowlight",
+            "Oakbottom",
+            "Oakhollow",
+            "Puddlefoot",
+            "Riverburrow",
+            "Softstep",
+            "Thistledown",
+            "Underbough",
+            "Underhill",
+            "Warmwater",
+            "Whitethistle",
+            "Honeyfoot",
+            "Leafhopper",
+            "Tealeaf",
+            "Berryfield",
+            "Bramblewood",
+            "Brookshire",
+            "Clovermead",
+            "Cottonwood",
+            "Elderberry",
+            "Fernwhistle",
+            "Foxburrow",
+            "Goodfellow",
+            "Greenbottle",
+            "Hollyhock",
+            "Honeysuckle",
+            "Meadowbrook",
+            "Millhouse",
+            "Mosswood",
+            "Quickfoot",
+            "Sweetwater",
+            "Tanglefoot",
+            "Thornbury",
+            "Windmill",
         ]
     );
 
     private static readonly NamePool GnomePool = new(
         [
-            "Alston", "Boddynock", "Bumblenoot", "Dimble", "Dobbin", "Fizzwick", "Gimble", "Jebeddo",
-            "Nib", "Ordo", "Pipkin", "Sprocket", "Tink", "Tobin", "Widget", "Bramblewick", "Cog",
-            "Fonkin", "Pog", "Rumpadump", "Tock", "Yaffle", "Zook", "Alvyn", "Brocc", "Burgell",
-            "Erky", "Namfoodle", "Roondar", "Wrenn"
+            "Alston",
+            "Boddynock",
+            "Bumblenoot",
+            "Dimble",
+            "Dobbin",
+            "Fizzwick",
+            "Gimble",
+            "Jebeddo",
+            "Nib",
+            "Ordo",
+            "Pipkin",
+            "Sprocket",
+            "Tink",
+            "Tobin",
+            "Widget",
+            "Bramblewick",
+            "Cog",
+            "Fonkin",
+            "Pog",
+            "Rumpadump",
+            "Tock",
+            "Yaffle",
+            "Zook",
+            "Alvyn",
+            "Brocc",
+            "Burgell",
+            "Erky",
+            "Namfoodle",
+            "Roondar",
+            "Wrenn",
         ],
         [
-            "Bimble", "Frizzle", "Glimmerpop", "Mardnab", "Nooble", "Quibble", "Rill", "Tana",
-            "Twyla", "Wizzle", "Zilly", "Dapple", "Ellywick", "Nissa", "Sivli", "Whim", "Zanna",
-            "Bimpnottin", "Breena", "Donella", "Ella", "Nyx", "Oda", "Caramip", "Carlin", "Duvamil",
-            "Lorilla", "Orla", "Roywyn", "Waywocket"
+            "Bimble",
+            "Frizzle",
+            "Glimmerpop",
+            "Mardnab",
+            "Nooble",
+            "Quibble",
+            "Rill",
+            "Tana",
+            "Twyla",
+            "Wizzle",
+            "Zilly",
+            "Dapple",
+            "Ellywick",
+            "Nissa",
+            "Sivli",
+            "Whim",
+            "Zanna",
+            "Bimpnottin",
+            "Breena",
+            "Donella",
+            "Ella",
+            "Nyx",
+            "Oda",
+            "Caramip",
+            "Carlin",
+            "Duvamil",
+            "Lorilla",
+            "Orla",
+            "Roywyn",
+            "Waywocket",
         ],
         [
-            "Bramblegear", "Bristlecog", "Cogsworth", "Copperwing", "Fidgetgear",
-            "Fizzlewhistle", "Fumblebrass", "Geargrin", "Gearwhistle", "Nimblecog",
-            "Pennywhistle", "Quickgear", "Rattlebolt", "Sparkspinner", "Sprocketstitch",
-            "Tinkerbolt", "Togglegear", "Wobblegear", "Wondergear", "Whistlewick",
-            "Clockspinner", "Steamcog", "Coppercog", "Gadgetgrin", "Boltspinner",
-            "Brasswhistle", "Cogwhistle", "Dazzlespark", "Fizzbang", "Gearspring", "Glimmerbolt",
-            "Ironcog", "Jinglegear", "Nimblewick", "Puzzlegear", "Quicksprocket", "Rustynut",
-            "Silvercog", "Sparkwrench", "Springheel", "Tinkergear", "Twistbolt", "Whirligig",
-            "Wickerspark", "Zigzaggear"
+            "Bramblegear",
+            "Bristlecog",
+            "Cogsworth",
+            "Copperwing",
+            "Fidgetgear",
+            "Fizzlewhistle",
+            "Fumblebrass",
+            "Geargrin",
+            "Gearwhistle",
+            "Nimblecog",
+            "Pennywhistle",
+            "Quickgear",
+            "Rattlebolt",
+            "Sparkspinner",
+            "Sprocketstitch",
+            "Tinkerbolt",
+            "Togglegear",
+            "Wobblegear",
+            "Wondergear",
+            "Whistlewick",
+            "Clockspinner",
+            "Steamcog",
+            "Coppercog",
+            "Gadgetgrin",
+            "Boltspinner",
+            "Brasswhistle",
+            "Cogwhistle",
+            "Dazzlespark",
+            "Fizzbang",
+            "Gearspring",
+            "Glimmerbolt",
+            "Ironcog",
+            "Jinglegear",
+            "Nimblewick",
+            "Puzzlegear",
+            "Quicksprocket",
+            "Rustynut",
+            "Silvercog",
+            "Sparkwrench",
+            "Springheel",
+            "Tinkergear",
+            "Twistbolt",
+            "Whirligig",
+            "Wickerspark",
+            "Zigzaggear",
         ]
     );
 
     private static readonly string[] MonsterEpithets =
-        ["Grim", "Foul", "Ancient", "Feral", "Ravenous", "Withered", "Nameless", "Restless"];
+    [
+        "Grim",
+        "Foul",
+        "Ancient",
+        "Feral",
+        "Ravenous",
+        "Withered",
+        "Nameless",
+        "Restless",
+    ];
 
     private static readonly NamePool MonsterPool = new(
         MonsterEpithets,
@@ -189,7 +809,8 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         ["Wraith", "Husk", "Fiend", "Beast", "Horror", "Shade", "Abomination", "Stalker"]
     );
 
-    private static readonly Dictionary<CreatureType, NamePool[]> Pools = new() {
+    private static readonly Dictionary<CreatureType, NamePool[]> Pools = new()
+    {
         [CreatureType.Human] = [HumanPool],
         [CreatureType.Elf] = [ElfPool],
         [CreatureType.Dwarf] = [DwarfPool],
@@ -200,10 +821,11 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [CreatureType.Demon] = [MonsterPool],
         [CreatureType.Beast] = [MonsterPool],
         [CreatureType.Construct] = [MonsterPool],
-        [CreatureType.Elemental] = [MonsterPool]
+        [CreatureType.Elemental] = [MonsterPool],
     };
 
-    private static readonly Dictionary<Profession, ArmorClass> ProfessionArmorClasses = new() {
+    private static readonly Dictionary<Profession, ArmorClass> ProfessionArmorClasses = new()
+    {
         [Profession.Knight] = ArmorClass.Plate,
         [Profession.Rogue] = ArmorClass.Leather,
         [Profession.Ranger] = ArmorClass.Leather,
@@ -224,10 +846,11 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [Profession.Carpenter] = ArmorClass.Leather,
         [Profession.Jeweler] = ArmorClass.Cloth,
         [Profession.Homemaker] = ArmorClass.Cloth,
-        [Profession.Unemployed] = ArmorClass.Cloth
+        [Profession.Unemployed] = ArmorClass.Cloth,
     };
 
-    private static readonly Dictionary<Profession, Skill[]> ProfessionSkills = new() {
+    private static readonly Dictionary<Profession, Skill[]> ProfessionSkills = new()
+    {
         [Profession.Knight] = [Skill.Swordsmanship, Skill.Warfare],
         [Profession.Rogue] = [Skill.Stealth],
         [Profession.Ranger] = [Skill.Archery],
@@ -248,10 +871,11 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [Profession.Carpenter] = [],
         [Profession.Jeweler] = [],
         [Profession.Homemaker] = [],
-        [Profession.Unemployed] = []
+        [Profession.Unemployed] = [],
     };
 
-    private static readonly Dictionary<Profession, StatAffinities> Affinities = new() {
+    private static readonly Dictionary<Profession, StatAffinities> Affinities = new()
+    {
         [Profession.Knight] = new StatAffinities(3, 3, 0, 2, 2, 0, 0, 0.8f),
         [Profession.Rogue] = new StatAffinities(1, 0, 4, 1, 2, 0, 2, 1.2f),
         [Profession.Ranger] = new StatAffinities(1, 0, 3, 2, 2, 0, 2, 0.9f),
@@ -272,25 +896,34 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [Profession.Carpenter] = new StatAffinities(2, 0, 2, 2, 2, 0, 1, 1.2f),
         [Profession.Jeweler] = new StatAffinities(0, 0, 3, 0, 1, 0, 3, 2.5f),
         [Profession.Homemaker] = new StatAffinities(0, 0, 1, 2, 2, 0, 1, 0.5f),
-        [Profession.Unemployed] = new StatAffinities(0, 0, 1, 1, 1, 0, 1, 0.3f)
+        [Profession.Unemployed] = new StatAffinities(0, 0, 1, 1, 1, 0, 1, 0.3f),
     };
 
-    public CreatureGeneratorResult Generate(CreatureGeneratorInput generatorInput) {
-        var level = generatorInput.Level > 0 ? generatorInput.Level : Random.Shared.Next(1, GameRules.MaxLevel + 1);
-        var gender = generatorInput.Gender ?? (Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female);
+    public CreatureGeneratorResult Generate(CreatureGeneratorInput generatorInput)
+    {
+        var level =
+            generatorInput.Level > 0
+                ? generatorInput.Level
+                : Random.Shared.Next(1, GameRules.MaxLevel + 1);
+        var gender =
+            generatorInput.Gender ?? (Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female);
 
-        var creature = new Creature {
+        var creature = new Creature
+        {
             WorldId = generatorInput.WorldId,
             Name = generatorInput.Name ?? GetName(generatorInput.CreatureType, gender),
             CreatureType = generatorInput.CreatureType,
             Gender = gender,
             Profession = generatorInput.Profession,
             BirthStateId = generatorInput.BirthStateId,
-            BirthYear = Random.Shared.Next(generatorInput.MinBirthYear ?? 900, generatorInput.MaxBirthYear ?? 975),
+            BirthYear = Random.Shared.Next(
+                generatorInput.MinBirthYear ?? 900,
+                generatorInput.MaxBirthYear ?? 975
+            ),
             Gold = GetGold(level, generatorInput.Profession),
             StateId = generatorInput.StateId,
             Attributes = GetAttributes(level, generatorInput.Profession),
-            Level = level
+            Level = level,
         };
 
         var (items, inventoryItems) = GenerateStartingInventory(creature);
@@ -300,55 +933,81 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         return new CreatureGeneratorResult(creature, items, inventoryItems, skills, abilities);
     }
 
-    private static IReadOnlyCollection<CreatureSkill> GetSkills(Creature creature) {
+    private static IReadOnlyCollection<CreatureSkill> GetSkills(Creature creature)
+    {
         var skillLevel = Math.Min(creature.Level, GameRules.MaxSkillLevel);
         return ProfessionSkills[creature.Profession!.Value]
-            .Select(skill => new CreatureSkill {
+            .Select(skill => new CreatureSkill
+            {
                 CreatureId = creature.Id,
                 Skill = skill,
                 Level = skillLevel,
                 Experience = GameRules.XpForSkillLevel(skillLevel),
-                WorldId = creature.WorldId
+                WorldId = creature.WorldId,
             })
             .ToArray();
     }
 
-    private IReadOnlyCollection<CreatureAbility> GetAbilities(Creature creature,
-        IReadOnlyCollection<CreatureSkill> skills) {
+    private IReadOnlyCollection<CreatureAbility> GetAbilities(
+        Creature creature,
+        IReadOnlyCollection<CreatureSkill> skills
+    )
+    {
         return skills
-            .SelectMany(cs => abilityDefinitions.Abilities
-                .Where(a => a.Skill == cs.Skill && a.RequiredSkillLevel <= cs.Level)
-                .Select(a => new CreatureAbility
-                    { CreatureId = creature.Id, AbilityName = a.Name, WorldId = creature.WorldId }))
+            .SelectMany(cs =>
+                abilityDefinitions
+                    .Abilities.Where(a => a.Skill == cs.Skill && a.RequiredSkillLevel <= cs.Level)
+                    .Select(a => new CreatureAbility
+                    {
+                        CreatureId = creature.Id,
+                        AbilityName = a.Name,
+                        WorldId = creature.WorldId,
+                    })
+            )
             .ToArray();
     }
 
-    private static int GetGold(int level, Profession profession) {
+    private static int GetGold(int level, Profession profession)
+    {
         var baseGold = level * 50;
-        var spread = Random.Shared.Next((int) (baseGold * 0.8f), (int) (baseGold * 1.2f));
-        return (int) (spread * Affinities[profession].GoldMultiplier);
+        var spread = Random.Shared.Next((int)(baseGold * 0.8f), (int)(baseGold * 1.2f));
+        return (int)(spread * Affinities[profession].GoldMultiplier);
     }
 
-    private static Attributes GetAttributes(int level, Profession profession) {
+    private static Attributes GetAttributes(int level, Profession profession)
+    {
         var a = Affinities[profession];
-        int[] pool = [a.Strength, a.Defense, a.Dexterity, a.Endurance, a.Stamina, a.Mana, a.Intelligence];
+        int[] pool =
+        [
+            a.Strength,
+            a.Defense,
+            a.Dexterity,
+            a.Endurance,
+            a.Stamina,
+            a.Mana,
+            a.Intelligence,
+        ];
         var total = pool.Sum();
         var stats = new int[7];
         Array.Fill(stats, 1);
 
-        for (var i = 0; i < level * GameRules.PointsPerLevel; i++) {
+        for (var i = 0; i < level * GameRules.PointsPerLevel; i++)
+        {
             var roll = Random.Shared.Next(total);
             var cumulative = 0;
-            for (var j = 0; j < pool.Length; j++) {
+            for (var j = 0; j < pool.Length; j++)
+            {
                 cumulative += pool[j];
-                if (roll < cumulative) {
+                if (roll < cumulative)
+                {
                     stats[j]++;
                     break;
                 }
             }
         }
 
-        return new Attributes {
+        return new Attributes
+        {
             Strength = stats[0],
             Defense = stats[1],
             Dexterity = stats[2],
@@ -358,106 +1017,173 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
             Intelligence = stats[6],
             HpPercent = 1.0f,
             ApPercent = 1.0f,
-            MpPercent = 1.0f
+            MpPercent = 1.0f,
         };
     }
 
-    private StartingInventoryResult GenerateStartingInventory(Creature creature) {
+    private StartingInventoryResult GenerateStartingInventory(Creature creature)
+    {
         var startingItems = GetStartingItems(creature);
         var items = new List<Item>();
         var inventoryItems = new List<InventoryItem>();
         var index = 0;
 
-        foreach (var (item, quantity, slotOverride) in startingItems) {
+        foreach (var (item, quantity, slotOverride) in startingItems)
+        {
             items.Add(item);
-            inventoryItems.Add(new InventoryItem {
-                CreatureId = creature.Id,
-                ItemId = item.Id,
-                Quantity = quantity,
-                Index = index++,
-                EquippedSlot = slotOverride ?? item.DefaultSlot,
-                WorldId = creature.WorldId
-            });
+            inventoryItems.Add(
+                new InventoryItem
+                {
+                    CreatureId = creature.Id,
+                    ItemId = item.Id,
+                    Quantity = quantity,
+                    Index = index++,
+                    EquippedSlot = slotOverride ?? item.DefaultSlot,
+                    WorldId = creature.WorldId,
+                }
+            );
         }
 
         return new StartingInventoryResult(items.ToArray(), inventoryItems.ToArray());
     }
 
-    private StartingItem[] GetStartingItems(Creature creature) {
+    private StartingItem[] GetStartingItems(Creature creature)
+    {
         var level = creature.Level;
         var worldId = creature.WorldId;
-        var armorClass = ProfessionArmorClasses.GetValueOrDefault(creature.Profession!.Value, ArmorClass.Leather);
+        var armorClass = ProfessionArmorClasses.GetValueOrDefault(
+            creature.Profession!.Value,
+            ArmorClass.Leather
+        );
         var armor = GetArmorItems(armorClass, level, worldId);
         var accessories = GetAccessoryItems(level, worldId);
 
-        return creature.Profession switch {
-            Profession.Knight => [
+        return creature.Profession switch
+        {
+            Profession.Knight =>
+            [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Sword, level, worldId), 1),
                 new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
-                ..armor, ..accessories
+                .. armor,
+                .. accessories,
             ],
-            Profession.Rogue => [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1,
-                    EquipmentSlot.LeftHand),
-                ..armor, ..accessories
+            Profession.Rogue =>
+            [
+                new StartingItem(
+                    itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId),
+                    1
+                ),
+                new StartingItem(
+                    itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId),
+                    1,
+                    EquipmentSlot.LeftHand
+                ),
+                .. armor,
+                .. accessories,
             ],
-            Profession.Ranger => [
+            Profession.Ranger =>
+            [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Bow, level, worldId), 1),
                 new StartingItem(itemGenerator.GenerateAmmo(AmmoType.Arrow, worldId), 20),
-                ..armor, ..accessories
+                .. armor,
+                .. accessories,
             ],
-            Profession.Mage => [
+            Profession.Mage =>
+            [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1),
                 new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 3),
-                ..armor, ..accessories
+                .. armor,
+                .. accessories,
             ],
-            Profession.Cleric => [
+            Profession.Cleric =>
+            [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Mace, level, worldId), 1),
                 new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
-                ..armor, ..accessories
+                .. armor,
+                .. accessories,
             ],
-            Profession.Mercenary => [
+            Profession.Mercenary =>
+            [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Sword, level, worldId), 1),
                 new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
-                ..armor, ..accessories
+                .. armor,
+                .. accessories,
             ],
-            Profession.Alchemist => [
+            Profession.Alchemist =>
+            [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Wand, level, worldId), 1),
                 new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 5),
-                ..armor, ..accessories
+                .. armor,
+                .. accessories,
             ],
-            Profession.Blacksmith => [
+            Profession.Blacksmith =>
+            [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Axe, level, worldId), 1),
-                ..armor, ..accessories
+                .. armor,
+                .. accessories,
             ],
-            Profession.Scholar => [
+            Profession.Scholar =>
+            [
                 new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1),
-                ..armor, ..accessories
+                .. armor,
+                .. accessories,
             ],
-            _ => [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId), 1),
-                ..armor, ..accessories
-            ]
+            _ =>
+            [
+                new StartingItem(
+                    itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId),
+                    1
+                ),
+                .. armor,
+                .. accessories,
+            ],
         };
     }
 
-    private StartingItem[] GetArmorItems(ArmorClass armorClass, int level, Guid worldId) {
-        return [
-            new StartingItem(itemGenerator.GenerateArmor(ArmorType.Helm, armorClass, level, worldId), 1),
-            new StartingItem(itemGenerator.GenerateArmor(ArmorType.Chest, armorClass, level, worldId), 1),
-            new StartingItem(itemGenerator.GenerateArmor(ArmorType.Gloves, armorClass, level, worldId), 1),
-            new StartingItem(itemGenerator.GenerateArmor(ArmorType.Boots, armorClass, level, worldId), 1)
+    private StartingItem[] GetArmorItems(ArmorClass armorClass, int level, Guid worldId)
+    {
+        return
+        [
+            new StartingItem(
+                itemGenerator.GenerateArmor(ArmorType.Helm, armorClass, level, worldId),
+                1
+            ),
+            new StartingItem(
+                itemGenerator.GenerateArmor(ArmorType.Chest, armorClass, level, worldId),
+                1
+            ),
+            new StartingItem(
+                itemGenerator.GenerateArmor(ArmorType.Gloves, armorClass, level, worldId),
+                1
+            ),
+            new StartingItem(
+                itemGenerator.GenerateArmor(ArmorType.Boots, armorClass, level, worldId),
+                1
+            ),
         ];
     }
 
-    private StartingItem[] GetAccessoryItems(int level, Guid worldId) {
-        return [
-            new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Necklace, level, worldId), 1),
-            new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Belt, level, worldId), 1),
-            new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId), 1),
-            new StartingItem(itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId), 1,
-                EquipmentSlot.RightRing)
+    private StartingItem[] GetAccessoryItems(int level, Guid worldId)
+    {
+        return
+        [
+            new StartingItem(
+                itemGenerator.GenerateAccessory(AccessoryType.Necklace, level, worldId),
+                1
+            ),
+            new StartingItem(
+                itemGenerator.GenerateAccessory(AccessoryType.Belt, level, worldId),
+                1
+            ),
+            new StartingItem(
+                itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId),
+                1
+            ),
+            new StartingItem(
+                itemGenerator.GenerateAccessory(AccessoryType.Ring, level, worldId),
+                1,
+                EquipmentSlot.RightRing
+            ),
         ];
     }
 
@@ -466,38 +1192,54 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
     // per race: a Dwarf clan name, an Orc battle-epithet, an Elf ceremonial name, a Halfling maternal
     // family name, or a Gnome's habit of tacking on extra name components. The chance reflects how
     // central that convention is to each culture — dwarves care most, orcs least (it has to be earned).
-    private static readonly Dictionary<CreatureType, double> MiddleNameChanceByRace = new() {
-        [CreatureType.Human] = 0.3
+    private static readonly Dictionary<CreatureType, double> MiddleNameChanceByRace = new()
+    {
+        [CreatureType.Human] = 0.3,
     };
 
-    private static readonly Dictionary<CreatureType, double> ExtraSurnameChanceByRace = new() {
+    private static readonly Dictionary<CreatureType, double> ExtraSurnameChanceByRace = new()
+    {
         [CreatureType.Dwarf] = 0.5,
         [CreatureType.Gnome] = 0.4,
         [CreatureType.Elf] = 0.3,
         [CreatureType.Halfling] = 0.3,
-        [CreatureType.Orc] = 0.2
+        [CreatureType.Orc] = 0.2,
     };
 
-    public static string GetName(CreatureType creatureType, Gender gender) {
+    public static string GetName(CreatureType creatureType, Gender gender)
+    {
         var firstName = GetFirstName(creatureType, gender);
         var lastName = GetLastName(creatureType);
         return ComposeFullName(creatureType, gender, firstName, lastName);
     }
 
-    public static string ComposeFullName(CreatureType creatureType, Gender gender, string firstName,
-        string lastName) {
-        if (MiddleNameChanceByRace.TryGetValue(creatureType, out var middleNameChance) &&
-            Random.Shared.NextDouble() < middleNameChance) {
+    public static string ComposeFullName(
+        CreatureType creatureType,
+        Gender gender,
+        string firstName,
+        string lastName
+    )
+    {
+        if (
+            MiddleNameChanceByRace.TryGetValue(creatureType, out var middleNameChance)
+            && Random.Shared.NextDouble() < middleNameChance
+        )
+        {
             var middleName = GetMiddleName(creatureType, gender, firstName);
-            if (middleName != null) {
+            if (middleName != null)
+            {
                 return $"{firstName} {middleName} {lastName}";
             }
         }
 
-        if (ExtraSurnameChanceByRace.TryGetValue(creatureType, out var extraSurnameChance) &&
-            Random.Shared.NextDouble() < extraSurnameChance) {
+        if (
+            ExtraSurnameChanceByRace.TryGetValue(creatureType, out var extraSurnameChance)
+            && Random.Shared.NextDouble() < extraSurnameChance
+        )
+        {
             var extraSurname = GetExtraSurname(creatureType, lastName);
-            if (extraSurname != null) {
+            if (extraSurname != null)
+            {
                 return $"{firstName} {extraSurname} {lastName}";
             }
         }
@@ -505,31 +1247,36 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         return $"{firstName} {lastName}";
     }
 
-    public static string GetFirstName(CreatureType creatureType, Gender gender) {
+    public static string GetFirstName(CreatureType creatureType, Gender gender)
+    {
         var pool = GetPool(creatureType);
         var firstNames = gender == Gender.Male ? pool.MaleFirstNames : pool.FemaleFirstNames;
         return firstNames[Random.Shared.Next(firstNames.Length)];
     }
 
-    public static string GetLastName(CreatureType creatureType) {
+    public static string GetLastName(CreatureType creatureType)
+    {
         var pool = GetPool(creatureType);
         return pool.LastNames[Random.Shared.Next(pool.LastNames.Length)];
     }
 
-    private static string? GetMiddleName(CreatureType creatureType, Gender gender, string firstName) {
+    private static string? GetMiddleName(CreatureType creatureType, Gender gender, string firstName)
+    {
         var pool = GetPool(creatureType);
         var firstNames = gender == Gender.Male ? pool.MaleFirstNames : pool.FemaleFirstNames;
         var candidates = firstNames.Where(n => n != firstName).ToArray();
         return candidates.Length > 0 ? candidates[Random.Shared.Next(candidates.Length)] : null;
     }
 
-    private static string? GetExtraSurname(CreatureType creatureType, string lastName) {
+    private static string? GetExtraSurname(CreatureType creatureType, string lastName)
+    {
         var pool = GetPool(creatureType);
         var candidates = pool.LastNames.Where(n => n != lastName).ToArray();
         return candidates.Length > 0 ? candidates[Random.Shared.Next(candidates.Length)] : null;
     }
 
-    private static NamePool GetPool(CreatureType creatureType) {
+    private static NamePool GetPool(CreatureType creatureType)
+    {
         var pools = Pools.GetValueOrDefault(creatureType, [MonsterPool]);
         return pools[Random.Shared.Next(pools.Length)];
     }
@@ -547,7 +1294,10 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         float GoldMultiplier
     );
 
-    private record StartingInventoryResult(IReadOnlyList<Item> Items, IReadOnlyList<InventoryItem> InventoryItems);
+    private record StartingInventoryResult(
+        IReadOnlyList<Item> Items,
+        IReadOnlyList<InventoryItem> InventoryItems
+    );
 
     private record StartingItem(Item Item, int Quantity, EquipmentSlot? SlotOverride = null);
 }

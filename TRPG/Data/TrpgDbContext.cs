@@ -5,10 +5,12 @@ using TRPG.Models;
 
 namespace TRPG.Data;
 
-internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options) {
-    private static readonly JsonSerializerOptions JsonOptions = new() {
+internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options)
+{
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
         Converters = { new JsonStringEnumConverter() },
-        AllowOutOfOrderMetadataProperties = true
+        AllowOutOfOrderMetadataProperties = true,
     };
 
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
@@ -40,11 +42,13 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
     public DbSet<World> Worlds => Set<World>();
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
         optionsBuilder.UseSnakeCaseNamingConvention();
     }
 
-    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) {
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
         configurationBuilder.Properties<AmountType>().HaveConversion<string>();
         configurationBuilder.Properties<BuildingType>().HaveConversion<string>();
         configurationBuilder.Properties<WorkstationType>().HaveConversion<string>();
@@ -75,23 +79,29 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<DayOfWeek>().HaveConversion<string>();
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) {
-        modelBuilder.Entity<Creature>(entity => {
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Creature>(entity =>
+        {
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => new { p.StateId, p.RoomId });
             entity.OwnsOne(p => p.Attributes, s => s.ToJson());
-            entity.Property(p => p.ActiveConditions)
+            entity
+                .Property(p => p.ActiveConditions)
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, JsonOptions),
-                    v => JsonSerializer.Deserialize<Dictionary<ConditionType, int>>(v, JsonOptions) ??
-                         new Dictionary<ConditionType, int>()
+                    v =>
+                        JsonSerializer.Deserialize<Dictionary<ConditionType, int>>(v, JsonOptions)
+                        ?? new Dictionary<ConditionType, int>()
                 )
                 .HasColumnType("jsonb");
             entity.OwnsMany(p => p.ActiveModifiers, m => m.ToJson());
         });
 
-        modelBuilder.Entity<Item>(entity => {
-            entity.HasDiscriminator<string>("item_type")
+        modelBuilder.Entity<Item>(entity =>
+        {
+            entity
+                .HasDiscriminator<string>("item_type")
                 .HasValue<Item>("generic")
                 .HasValue<WeaponItem>("weapon")
                 .HasValue<ShieldItem>("shield")
@@ -99,10 +109,13 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
                 .HasValue<ConsumableItem>("consumable")
                 .HasValue<AmmunitionItem>("ammunition")
                 .HasValue<AccessoryItem>("accessory");
-            entity.Property(i => i.Modifiers)
+            entity
+                .Property(i => i.Modifiers)
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, JsonOptions),
-                    v => JsonSerializer.Deserialize<List<ItemModifier>>(v, JsonOptions) ?? new List<ItemModifier>()
+                    v =>
+                        JsonSerializer.Deserialize<List<ItemModifier>>(v, JsonOptions)
+                        ?? new List<ItemModifier>()
                 )
                 .HasColumnType("jsonb");
             entity.HasIndex(i => i.WorldId);
@@ -113,57 +126,79 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         modelBuilder.Entity<AmmunitionItem>().Property(a => a.Type).HasColumnName("ammo_type");
         modelBuilder.Entity<AccessoryItem>().Property(a => a.Type).HasColumnName("accessory_type");
 
-        modelBuilder.Entity<InventoryItem>(entity => {
+        modelBuilder.Entity<InventoryItem>(entity =>
+        {
             entity.HasOne(i => i.Item).WithMany().HasForeignKey(i => i.ItemId);
             entity.HasIndex(i => i.CreatureId);
             entity.HasIndex(i => i.WorldId);
         });
 
-        modelBuilder.Entity<RoomConnectorKey>(entity => {
+        modelBuilder.Entity<RoomConnectorKey>(entity =>
+        {
             entity.HasIndex(k => k.RoomConnectorId);
             entity.HasIndex(k => k.ItemId);
             entity.HasIndex(k => k.WorldId);
         });
 
-        modelBuilder.Entity<WorldEvent>(entity => { entity.Property(e => e.Tags).HasColumnType("text[]"); });
-
-        modelBuilder.Entity<World>(entity => { entity.OwnsOne(w => w.Boundary, b => b.ToJson()); });
-
-        modelBuilder.Entity<Country>(entity => {
-            entity.OwnsOne(c => c.Boundary, b => {
-                b.ToJson();
-                b.OwnsMany(p => p.Points);
-            });
+        modelBuilder.Entity<WorldEvent>(entity =>
+        {
+            entity.Property(e => e.Tags).HasColumnType("text[]");
         });
 
-        modelBuilder.Entity<State>(entity => {
-            entity.OwnsOne(s => s.Boundary, b => {
-                b.ToJson();
-                b.OwnsMany(p => p.Points);
-            });
+        modelBuilder.Entity<World>(entity =>
+        {
+            entity.OwnsOne(w => w.Boundary, b => b.ToJson());
+        });
+
+        modelBuilder.Entity<Country>(entity =>
+        {
+            entity.OwnsOne(
+                c => c.Boundary,
+                b =>
+                {
+                    b.ToJson();
+                    b.OwnsMany(p => p.Points);
+                }
+            );
+        });
+
+        modelBuilder.Entity<State>(entity =>
+        {
+            entity.OwnsOne(
+                s => s.Boundary,
+                b =>
+                {
+                    b.ToJson();
+                    b.OwnsMany(p => p.Points);
+                }
+            );
             entity.OwnsOne(s => s.Center, c => c.ToJson());
         });
 
-        modelBuilder.Entity<City>(entity => {
+        modelBuilder.Entity<City>(entity =>
+        {
             entity.HasIndex(c => c.StateId).IsUnique();
             entity.HasIndex(c => new { c.CountryId, c.Name }).IsUnique();
             entity.HasIndex(c => c.WorldId);
         });
 
-        modelBuilder.Entity<District>(entity => {
+        modelBuilder.Entity<District>(entity =>
+        {
             entity.HasIndex(d => d.CityId);
             entity.HasIndex(d => new { d.CityId, d.DistrictType }).IsUnique();
             entity.HasIndex(d => d.WorldId);
         });
 
-
-        modelBuilder.Entity<Room>(entity => {
+        modelBuilder.Entity<Room>(entity =>
+        {
             entity.HasIndex(r => r.BuildingId);
             entity.HasIndex(r => r.WorldId);
         });
 
-        modelBuilder.Entity<Prop>(entity => {
-            entity.HasDiscriminator<string>("behavior_type")
+        modelBuilder.Entity<Prop>(entity =>
+        {
+            entity
+                .HasDiscriminator<string>("behavior_type")
                 .HasValue<Seat>("Seat")
                 .HasValue<Workstation>("Workstation")
                 .HasValue<Bed>("Bed")
@@ -174,107 +209,134 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
             entity.HasIndex(p => p.WorldId);
         });
 
-        modelBuilder.Entity<Container>(entity => {
+        modelBuilder.Entity<Container>(entity =>
+        {
             entity.HasMany(s => s.Items).WithOne().HasForeignKey(pi => pi.ContainerId);
         });
 
-        modelBuilder.Entity<ContainerItem>(entity => {
+        modelBuilder.Entity<ContainerItem>(entity =>
+        {
             entity.HasIndex(pi => new { pi.ContainerId, pi.Index }).IsUnique();
             entity.HasIndex(pi => pi.WorldId);
         });
 
-        modelBuilder.Entity<Quest>(entity => {
+        modelBuilder.Entity<Quest>(entity =>
+        {
             entity.Property(q => q.ItemRewards).HasColumnType("uuid[]");
             entity.Property(q => q.PrerequisiteQuestIds).HasColumnType("uuid[]");
             entity.HasIndex(q => q.WorldId);
             entity.HasIndex(q => q.GiverId);
         });
 
-        modelBuilder.Entity<QuestObjective>(entity => {
+        modelBuilder.Entity<QuestObjective>(entity =>
+        {
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
         });
 
-        modelBuilder.Entity<CreatureAbility>(entity => {
+        modelBuilder.Entity<CreatureAbility>(entity =>
+        {
             entity.HasIndex(pa => new { pa.CreatureId, pa.AbilityName }).IsUnique();
             entity.HasIndex(pa => pa.WorldId);
         });
 
-        modelBuilder.Entity<CreatureSkill>(entity => {
+        modelBuilder.Entity<CreatureSkill>(entity =>
+        {
             entity.HasIndex(ps => new { ps.CreatureId, ps.Skill }).IsUnique();
             entity.HasIndex(ps => ps.WorldId);
         });
 
-        modelBuilder.Entity<CreatureQuest>(entity => {
+        modelBuilder.Entity<CreatureQuest>(entity =>
+        {
             entity.HasOne(pq => pq.Quest).WithMany().HasForeignKey(pq => pq.QuestId);
             entity.HasIndex(pq => new { pq.CreatureId, pq.QuestId }).IsUnique();
             entity.HasIndex(pq => pq.WorldId);
         });
 
-        modelBuilder.Entity<CreatureQuestObjective>(entity => {
+        modelBuilder.Entity<CreatureQuestObjective>(entity =>
+        {
             entity.HasOne(po => po.Objective).WithMany().HasForeignKey(po => po.ObjectiveId);
             entity.HasIndex(po => new { po.CreatureId, po.ObjectiveId }).IsUnique();
             entity.HasIndex(po => po.WorldId);
         });
 
-        modelBuilder.Entity<Job>(entity => {
+        modelBuilder.Entity<Job>(entity =>
+        {
             entity.HasIndex(j => new { j.StateId, j.RoomId });
             entity.HasIndex(j => j.CreatureId);
             entity.HasIndex(j => j.RoomId);
             entity.HasIndex(j => j.WorldId);
         });
 
-        modelBuilder.Entity<World>()
-            .HasIndex(w => w.Name).IsUnique();
+        modelBuilder.Entity<World>().HasIndex(w => w.Name).IsUnique();
 
-        modelBuilder.Entity<Faction>()
-            .HasIndex(f => new { f.WorldId, f.Name }).IsUnique();
+        modelBuilder.Entity<Faction>().HasIndex(f => new { f.WorldId, f.Name }).IsUnique();
 
-        modelBuilder.Entity<Country>()
-            .HasIndex(c => new { c.WorldId, c.Name }).IsUnique();
+        modelBuilder.Entity<Country>().HasIndex(c => new { c.WorldId, c.Name }).IsUnique();
 
-        modelBuilder.Entity<State>(entity => {
+        modelBuilder.Entity<State>(entity =>
+        {
             entity.HasIndex(s => new { s.CountryId, s.Name }).IsUnique();
             entity.HasIndex(s => s.WorldId);
         });
 
-        modelBuilder.Entity<Building>(entity => {
+        modelBuilder.Entity<Building>(entity =>
+        {
             entity.HasIndex(b => new { b.StateId, b.Name }).IsUnique();
             entity.HasIndex(b => b.WorldId);
         });
 
-        modelBuilder.Entity<Road>(entity => {
+        modelBuilder.Entity<Road>(entity =>
+        {
             entity.HasIndex(r => new { r.OriginStateId, r.DestinationStateId }).IsUnique();
             entity.HasIndex(r => r.WorldId);
         });
 
-        modelBuilder.Entity<NpcConversation>(entity => {
+        modelBuilder.Entity<NpcConversation>(entity =>
+        {
             entity.HasIndex(c => c.WorldId);
             entity.HasIndex(c => new { c.NpcId, c.CreatureId }).IsUnique();
         });
 
-        modelBuilder.Entity<WorldEvent>()
-            .HasIndex(e => e.WorldId);
+        modelBuilder.Entity<WorldEvent>().HasIndex(e => e.WorldId);
 
-        modelBuilder.Entity<Reputation>(entity => {
-            entity.HasIndex(r => new { r.CreatureId, r.TargetId, r.TargetType }).IsUnique();
+        modelBuilder.Entity<Reputation>(entity =>
+        {
+            entity
+                .HasIndex(r => new
+                {
+                    r.CreatureId,
+                    r.TargetId,
+                    r.TargetType,
+                })
+                .IsUnique();
             entity.HasIndex(r => r.WorldId);
         });
 
-        modelBuilder.Entity<FactionMember>(entity => {
+        modelBuilder.Entity<FactionMember>(entity =>
+        {
             entity.HasIndex(fm => new { fm.CreatureId, fm.FactionId }).IsUnique();
             entity.HasIndex(fm => fm.FactionId);
             entity.HasIndex(fm => fm.WorldId);
         });
 
-        modelBuilder.Entity<BuildingOwner>(entity => {
+        modelBuilder.Entity<BuildingOwner>(entity =>
+        {
             entity.HasIndex(bo => new { bo.BuildingId, bo.OwnerId }).IsUnique();
             entity.HasIndex(bo => bo.OwnerId);
             entity.HasIndex(bo => bo.WorldId);
         });
 
-        modelBuilder.Entity<Relationship>(entity => {
-            entity.HasIndex(r => new { r.SubjectId, r.RelativeId, r.RelationshipType }).IsUnique();
+        modelBuilder.Entity<Relationship>(entity =>
+        {
+            entity
+                .HasIndex(r => new
+                {
+                    r.SubjectId,
+                    r.RelativeId,
+                    r.RelationshipType,
+                })
+                .IsUnique();
             entity.HasIndex(r => r.RelativeId);
             entity.HasIndex(r => r.WorldId);
         });

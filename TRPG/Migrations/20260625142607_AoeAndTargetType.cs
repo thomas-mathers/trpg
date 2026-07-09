@@ -14,26 +14,24 @@ namespace TRPG.Migrations
                 name: "aoe_radius",
                 table: "skills",
                 type: "real",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<string>(
                 name: "target_type",
                 table: "skills",
                 type: "text",
                 nullable: false,
-                defaultValue: "Single");
+                defaultValue: "Single"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "aoe_radius",
-                table: "skills");
+            migrationBuilder.DropColumn(name: "aoe_radius", table: "skills");
 
-            migrationBuilder.DropColumn(
-                name: "target_type",
-                table: "skills");
+            migrationBuilder.DropColumn(name: "target_type", table: "skills");
         }
     }
 }

@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal enum ConditionType {
+internal enum ConditionType
+{
     Blinded,
     Bleeding,
     Burning,
@@ -8,10 +9,11 @@ internal enum ConditionType {
     Poisoned,
     Silenced,
     Snared,
-    Stunned
+    Stunned,
 }
 
-internal class ConditionEffect {
+internal class ConditionEffect
+{
     public float? Amount { get; init; }
     public ConditionType Condition { get; init; }
     public int Duration { get; init; }

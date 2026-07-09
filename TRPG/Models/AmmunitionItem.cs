@@ -1,11 +1,13 @@
 namespace TRPG.Models;
 
-internal enum AmmoType {
+internal enum AmmoType
+{
     Arrow,
-    Bolt
+    Bolt,
 }
 
-internal class AmmunitionItem : Item {
+internal class AmmunitionItem : Item
+{
     public override EquipmentSlot? DefaultSlot => EquipmentSlot.LeftHand;
     public override bool IsStackable => true;
     public AmmoType Type { get; init; }

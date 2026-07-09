@@ -10,9 +10,7 @@ namespace TRPG.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "is_stackable",
-                table: "items");
+            migrationBuilder.DropColumn(name: "is_stackable", table: "items");
         }
 
         /// <inheritdoc />
@@ -23,7 +21,8 @@ namespace TRPG.Migrations
                 table: "items",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: false
+            );
         }
     }
 }

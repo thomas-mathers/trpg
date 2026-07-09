@@ -1,6 +1,7 @@
 namespace TRPG.Contracts;
 
-public static class WorldGenerationDefaults {
+public static class WorldGenerationDefaults
+{
     public const int MaxBuildingsPerState = 2;
     public const int MaxFactionMembers = 6;
     public const int MinBuildingsPerState = 0;

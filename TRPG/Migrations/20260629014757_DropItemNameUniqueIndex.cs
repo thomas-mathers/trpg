@@ -10,9 +10,7 @@ namespace TRPG.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "ix_items_world_id_name",
-                table: "items");
+            migrationBuilder.DropIndex(name: "ix_items_world_id_name", table: "items");
         }
 
         /// <inheritdoc />
@@ -22,7 +20,8 @@ namespace TRPG.Migrations
                 name: "ix_items_world_id_name",
                 table: "items",
                 columns: new[] { "world_id", "name" },
-                unique: true);
+                unique: true
+            );
         }
     }
 }

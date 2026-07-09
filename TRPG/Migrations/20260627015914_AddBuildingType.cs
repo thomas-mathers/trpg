@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 table: "buildings",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: ""
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "building_type",
-                table: "buildings");
+            migrationBuilder.DropColumn(name: "building_type", table: "buildings");
         }
     }
 }

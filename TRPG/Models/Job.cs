@@ -1,6 +1,7 @@
 ﻿namespace TRPG.Models;
 
-internal enum JobAction {
+internal enum JobAction
+{
     Sleep,
     Work,
     Idle,
@@ -9,10 +10,11 @@ internal enum JobAction {
     Study,
     Pray,
     Train,
-    Sit
+    Sit,
 }
 
-internal class Job {
+internal class Job
+{
     public JobAction Action { get; init; }
     public Guid CreatureId { get; init; }
     public int EndHour { get; init; }

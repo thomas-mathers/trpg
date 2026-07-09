@@ -9,13 +9,16 @@ internal record BootstrapWorldResult(Guid WorldId, Guid PlayerId);
 internal class BootstrapWorldCommandHandler(
     TrpgDbContext context,
     ILogger<BootstrapWorldCommandHandler> logger
-) {
+)
+{
     public async Task<BootstrapWorldResult> Handle(
         WorldGeneratorResult world,
         CreatureGeneratorResult? player,
         CancellationToken cancellationToken
-    ) {
-        if (player != null) {
+    )
+    {
+        if (player != null)
+        {
             world.World.PlayerId = player.Creature.Id;
         }
 
@@ -40,7 +43,8 @@ internal class BootstrapWorldCommandHandler(
         context.RoomConnectorKeys.AddRange(world.RoomConnectorKeys);
         context.Relationships.AddRange(world.Relationships);
 
-        if (player != null) {
+        if (player != null)
+        {
             context.Creatures.Add(player.Creature);
             context.Items.AddRange(player.Items);
             context.InventoryItems.AddRange(player.InventoryItems);

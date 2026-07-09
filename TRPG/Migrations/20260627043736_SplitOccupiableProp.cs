@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 name: "workstation_prop_occupant_id",
                 table: "props",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "workstation_prop_occupant_id",
-                table: "props");
+            migrationBuilder.DropColumn(name: "workstation_prop_occupant_id", table: "props");
         }
     }
 }

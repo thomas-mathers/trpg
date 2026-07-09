@@ -10,30 +10,28 @@ namespace TRPG.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "daily",
-                table: "jobs");
+            migrationBuilder.DropColumn(name: "daily", table: "jobs");
 
             migrationBuilder.AddColumn<string>(
                 name: "specific_day",
                 table: "jobs",
                 type: "text",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "specific_day",
-                table: "jobs");
+            migrationBuilder.DropColumn(name: "specific_day", table: "jobs");
 
             migrationBuilder.AddColumn<bool>(
                 name: "daily",
                 table: "jobs",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: false
+            );
         }
     }
 }

@@ -6,8 +6,12 @@ using OllamaSharp.Models;
 
 namespace TRPG.Extensions;
 
-internal static class OllamaExtensions {
-    private static readonly JsonSerializerOptions DeserializeOptions = new() { PropertyNameCaseInsensitive = true };
+internal static class OllamaExtensions
+{
+    private static readonly JsonSerializerOptions DeserializeOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
     private static readonly RequestOptions DefaultOptions = new() { MinP = 0.1f };
 
     internal static async Task<T> GetJson<T>(
@@ -16,19 +20,25 @@ internal static class OllamaExtensions {
         string systemPrompt,
         string userPrompt,
         Func<T, string?>? validate = null,
-        CancellationToken cancellationToken = default) where T : new() {
+        CancellationToken cancellationToken = default
+    )
+        where T : new()
+    {
         logger.LogTrace("[System] {SystemPrompt}", systemPrompt);
 
         var currentPrompt = userPrompt;
-        for (var attempt = 0; attempt < 5; attempt++) {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
             var sb = new StringBuilder();
-            var request = new GenerateRequest {
+            var request = new GenerateRequest
+            {
                 System = systemPrompt,
                 Prompt = currentPrompt,
                 Format = "json",
-                Options = DefaultOptions
+                Options = DefaultOptions,
             };
-            await foreach (var chunk in client.GenerateAsync(request, cancellationToken)) {
+            await foreach (var chunk in client.GenerateAsync(request, cancellationToken))
+            {
                 sb.Append(chunk?.Response);
             }
 
@@ -39,22 +49,34 @@ internal static class OllamaExtensions {
             var json = ExtractJson(response);
 
             T? result = default;
-            try {
+            try
+            {
                 result = JsonSerializer.Deserialize<T>(json, DeserializeOptions);
             }
-            catch (JsonException ex) {
-                logger.LogWarning(ex, "Deserialization failed (attempt {Attempt}). Raw response: {Response}",
-                    attempt + 1, response);
+            catch (JsonException ex)
+            {
+                logger.LogWarning(
+                    ex,
+                    "Deserialization failed (attempt {Attempt}). Raw response: {Response}",
+                    attempt + 1,
+                    response
+                );
             }
 
-            if (result is null) {
+            if (result is null)
+            {
                 currentPrompt = "The response was not valid JSON. " + userPrompt;
                 continue;
             }
 
             var error = validate?.Invoke(result);
-            if (error is not null) {
-                logger.LogWarning("Validation failed (attempt {Attempt}): {Error}", attempt + 1, error);
+            if (error is not null)
+            {
+                logger.LogWarning(
+                    "Validation failed (attempt {Attempt}): {Error}",
+                    attempt + 1,
+                    error
+                );
                 currentPrompt = error + " " + userPrompt;
                 continue;
             }
@@ -62,28 +84,38 @@ internal static class OllamaExtensions {
             return result;
         }
 
-        throw new InvalidOperationException($"Failed to generate valid JSON for {typeof(T).Name} after 5 attempts.");
+        throw new InvalidOperationException(
+            $"Failed to generate valid JSON for {typeof(T).Name} after 5 attempts."
+        );
     }
 
-    private static string ExtractJson(string response) {
+    private static string ExtractJson(string response)
+    {
         var trimmed = response.Trim();
-        if (trimmed.StartsWith("```", StringComparison.Ordinal)) {
+        if (trimmed.StartsWith("```", StringComparison.Ordinal))
+        {
             var start = trimmed.IndexOf('\n', StringComparison.Ordinal) + 1;
             var end = trimmed.LastIndexOf("```", StringComparison.Ordinal);
-            if (start > 0 && end > start) {
+            if (start > 0 && end > start)
+            {
                 trimmed = trimmed[start..end].Trim();
             }
         }
 
         var lastClose = trimmed.LastIndexOf('}');
-        if (lastClose >= 0) {
+        if (lastClose >= 0)
+        {
             var depth = 0;
-            for (var i = lastClose; i >= 0; i--) {
-                if (trimmed[i] == '}') {
+            for (var i = lastClose; i >= 0; i--)
+            {
+                if (trimmed[i] == '}')
+                {
                     depth++;
                 }
-                else if (trimmed[i] == '{') {
-                    if (--depth == 0) {
+                else if (trimmed[i] == '{')
+                {
+                    if (--depth == 0)
+                    {
                         return trimmed[i..(lastClose + 1)];
                     }
                 }

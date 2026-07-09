@@ -6,12 +6,14 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class WorldServiceTests(DatabaseFixture db) : IAsyncLifetime {
+public sealed class WorldServiceTests(DatabaseFixture db) : IAsyncLifetime
+{
     private TrpgDbContext _context = null!;
     private WorldService _service = null!;
     private World _world = null!;
 
-    public async ValueTask InitializeAsync() {
+    public async ValueTask InitializeAsync()
+    {
         _context = db.CreateContext();
         _service = new WorldService(_context);
 
@@ -20,12 +22,14 @@ public sealed class WorldServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() {
+    public async ValueTask DisposeAsync()
+    {
         await _context.DisposeAsync();
     }
 
     [Fact]
-    public async Task GetWorld_ReturnsNull_WhenNotFound() {
+    public async Task GetWorld_ReturnsNull_WhenNotFound()
+    {
         // Act
         var result = await _service.GetWorld(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -34,7 +38,8 @@ public sealed class WorldServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetWorld_ReturnsWorld_WhenExists() {
+    public async Task GetWorld_ReturnsWorld_WhenExists()
+    {
         // Act
         var result = await _service.GetWorld(_world.Id, TestContext.Current.CancellationToken);
 
@@ -44,7 +49,8 @@ public sealed class WorldServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task Update_PersistsPlaytime() {
+    public async Task Update_PersistsPlaytime()
+    {
         // Arrange
         _world.Playtime = TimeSpan.FromHours(5);
 
@@ -53,7 +59,10 @@ public sealed class WorldServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Worlds.FindAsync([_world.Id], TestContext.Current.CancellationToken);
+        var updated = await verifyContext.Worlds.FindAsync(
+            [_world.Id],
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(TimeSpan.FromHours(5), updated!.Playtime);
     }
 }

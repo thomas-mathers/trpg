@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 table: "factions",
                 type: "boolean",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: false
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "is_city_faction",
-                table: "factions");
+            migrationBuilder.DropColumn(name: "is_city_faction", table: "factions");
         }
     }
 }

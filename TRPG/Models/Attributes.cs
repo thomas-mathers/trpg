@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal class Attributes {
+internal class Attributes
+{
     public float ApPercent { get; set; }
     public int Defense { get; set; }
     public int Dexterity { get; set; }

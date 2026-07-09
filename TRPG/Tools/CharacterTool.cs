@@ -29,7 +29,12 @@ internal record CharacterAttributesInfo(
 
 internal record CharacterConditionInfo(string Type, int Value);
 
-internal record CharacterModifierInfo(string Attribute, string Type, float Amount, int RemainingTurns);
+internal record CharacterModifierInfo(
+    string Attribute,
+    string Type,
+    float Amount,
+    int RemainingTurns
+);
 
 internal record CharacterSheetResult(
     string Name,
@@ -39,36 +44,48 @@ internal record CharacterSheetResult(
     IReadOnlyCollection<CharacterModifierInfo> Modifiers
 );
 
-internal class CharacterTool : Tool, IInvokableTool {
+internal class CharacterTool : Tool, IInvokableTool
+{
     private readonly CreatureService _creatureService;
     private readonly ILogger<CharacterTool> _logger;
     private readonly GameSession _session;
 
-    public CharacterTool(GameSession session, CreatureService creatureService, ILogger<CharacterTool> logger) {
+    public CharacterTool(
+        GameSession session,
+        CreatureService creatureService,
+        ILogger<CharacterTool> logger
+    )
+    {
         _session = session;
         _creatureService = creatureService;
         _logger = logger;
 
-        Function = new Function {
+        Function = new Function
+        {
             Name = "character",
             Description =
                 "Returns someone's attributes and active conditions/modifiers. Omit targetName to check the player's own character sheet, or pass the exact Name of a person from NearbyPeople to check theirs.",
-            Parameters = new Parameters {
+            Parameters = new Parameters
+            {
                 Type = "object",
-                Properties = new Dictionary<string, Property> {
-                    ["targetName"] = new() {
+                Properties = new Dictionary<string, Property>
+                {
+                    ["targetName"] = new()
+                    {
                         Type = "string",
                         Description =
-                            "The exact Name of a person from NearbyPeople, copied verbatim from the most recent look or move result. Omit to check the player's own character sheet."
-                    }
+                            "The exact Name of a person from NearbyPeople, copied verbatim from the most recent look or move result. Omit to check the player's own character sheet.",
+                    },
                 },
-                Required = new List<string>()
-            }
+                Required = new List<string>(),
+            },
         };
     }
 
-    public object? InvokeMethod(IDictionary<string, object?>? args) {
-        var targetName = args != null && args.TryGetValue("targetName", out var raw) ? raw?.ToString() : null;
+    public object? InvokeMethod(IDictionary<string, object?>? args)
+    {
+        var targetName =
+            args != null && args.TryGetValue("targetName", out var raw) ? raw?.ToString() : null;
 
         _logger.LogInformation("[character] targetName={TargetName}", targetName ?? "(self)");
         var result = InvokeMethodAsync(targetName, CancellationToken.None).GetAwaiter().GetResult();
@@ -77,18 +94,33 @@ internal class CharacterTool : Tool, IInvokableTool {
         return json;
     }
 
-    private async Task<object?> InvokeMethodAsync(string? targetName, CancellationToken cancellationToken) {
+    private async Task<object?> InvokeMethodAsync(
+        string? targetName,
+        CancellationToken cancellationToken
+    )
+    {
         var player = await _creatureService.GetById(_session.PlayerId, cancellationToken);
 
         Creature? target;
-        if (string.IsNullOrWhiteSpace(targetName)) {
+        if (string.IsNullOrWhiteSpace(targetName))
+        {
             target = player;
         }
-        else {
-            target = await _creatureService.GetByNameNearby(_session.WorldId, player!, targetName, cancellationToken);
+        else
+        {
+            target = await _creatureService.GetByNameNearby(
+                _session.WorldId,
+                player!,
+                targetName,
+                cancellationToken
+            );
 
-            if (target == null) {
-                return new { Error = $"No one named '{targetName}' found nearby. Call look to see who's around." };
+            if (target == null)
+            {
+                return new
+                {
+                    Error = $"No one named '{targetName}' found nearby. Call look to see who's around.",
+                };
             }
         }
 
@@ -98,16 +130,37 @@ internal class CharacterTool : Tool, IInvokableTool {
             target.Name,
             target.Level,
             new CharacterAttributesInfo(
-                attributes.Strength, attributes.Dexterity, attributes.Intelligence, attributes.Endurance,
+                attributes.Strength,
+                attributes.Dexterity,
+                attributes.Intelligence,
+                attributes.Endurance,
                 attributes.Stamina,
-                attributes.Defense, attributes.Mana, attributes.MovementSpeed,
-                attributes.HpPercent, attributes.MpPercent, attributes.ApPercent,
-                attributes.PhysicalResistance, attributes.FireResistance, attributes.IceResistance,
-                attributes.LightningResistance, attributes.PoisonResistance, attributes.MagicResistance
+                attributes.Defense,
+                attributes.Mana,
+                attributes.MovementSpeed,
+                attributes.HpPercent,
+                attributes.MpPercent,
+                attributes.ApPercent,
+                attributes.PhysicalResistance,
+                attributes.FireResistance,
+                attributes.IceResistance,
+                attributes.LightningResistance,
+                attributes.PoisonResistance,
+                attributes.MagicResistance
             ),
-            target.ActiveConditions.Select(kvp => new CharacterConditionInfo(kvp.Key.ToString(), kvp.Value)).ToArray(),
-            target.ActiveModifiers.Select(m =>
-                    new CharacterModifierInfo(m.Attribute.ToString(), m.Type.ToString(), m.Amount, m.RemainingTurns))
+            target
+                .ActiveConditions.Select(kvp => new CharacterConditionInfo(
+                    kvp.Key.ToString(),
+                    kvp.Value
+                ))
+                .ToArray(),
+            target
+                .ActiveModifiers.Select(m => new CharacterModifierInfo(
+                    m.Attribute.ToString(),
+                    m.Type.ToString(),
+                    m.Amount,
+                    m.RemainingTurns
+                ))
                 .ToArray()
         );
     }

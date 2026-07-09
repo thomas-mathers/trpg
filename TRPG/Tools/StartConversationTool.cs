@@ -8,40 +8,55 @@ namespace TRPG.Tools;
 
 internal record StartConversationResult(string Summary, string Biography);
 
-internal class StartConversationTool : Tool, IInvokableTool {
+internal class StartConversationTool : Tool, IInvokableTool
+{
     private readonly CreatureService _creatureService;
     private readonly ILogger<StartConversationTool> _logger;
     private readonly NpcConversationService _npcConversationService;
     private readonly GameSession _session;
 
-    public StartConversationTool(GameSession session, CreatureService creatureService,
-        NpcConversationService npcConversationService, ILogger<StartConversationTool> logger) {
+    public StartConversationTool(
+        GameSession session,
+        CreatureService creatureService,
+        NpcConversationService npcConversationService,
+        ILogger<StartConversationTool> logger
+    )
+    {
         _session = session;
         _creatureService = creatureService;
         _npcConversationService = npcConversationService;
         _logger = logger;
 
-        Function = new Function {
+        Function = new Function
+        {
             Name = "start_conversation",
             Description =
                 "Call this when you begin talking to someone, to remember what was discussed the last time you spoke with them and to learn their personality, background, and manner of speech. Returns an empty summary if you've never spoken before — use the biography to voice them consistently regardless.",
-            Parameters = new Parameters {
+            Parameters = new Parameters
+            {
                 Type = "object",
-                Properties = new Dictionary<string, Property> {
-                    ["npcName"] = new() {
+                Properties = new Dictionary<string, Property>
+                {
+                    ["npcName"] = new()
+                    {
                         Type = "string",
                         Description =
-                            "The exact Name of the person you're speaking with, copied verbatim from the most recent look or move result."
-                    }
+                            "The exact Name of the person you're speaking with, copied verbatim from the most recent look or move result.",
+                    },
                 },
-                Required = new List<string> { "npcName" }
-            }
+                Required = new List<string> { "npcName" },
+            },
         };
     }
 
-    public object? InvokeMethod(IDictionary<string, object?>? args) {
-        if (args is null || !args.TryGetValue("npcName", out var npcNameRaw) ||
-            string.IsNullOrWhiteSpace(npcNameRaw?.ToString())) {
+    public object? InvokeMethod(IDictionary<string, object?>? args)
+    {
+        if (
+            args is null
+            || !args.TryGetValue("npcName", out var npcNameRaw)
+            || string.IsNullOrWhiteSpace(npcNameRaw?.ToString())
+        )
+        {
             return new { Error = "No npcName provided." };
         }
 
@@ -54,22 +69,40 @@ internal class StartConversationTool : Tool, IInvokableTool {
         return json;
     }
 
-    private async Task<object?> InvokeMethodAsync(string npcName, CancellationToken cancellationToken) {
+    private async Task<object?> InvokeMethodAsync(
+        string npcName,
+        CancellationToken cancellationToken
+    )
+    {
         var player = await _creatureService.GetById(_session.PlayerId, cancellationToken);
-        var npc = await _creatureService.GetByNameNearby(_session.WorldId, player!, npcName, cancellationToken);
+        var npc = await _creatureService.GetByNameNearby(
+            _session.WorldId,
+            player!,
+            npcName,
+            cancellationToken
+        );
 
-        if (npc == null) {
-            return new { Error = $"No one named '{npcName}' found nearby. Call look to see who's around." };
-        }
-
-        if (_session.ActiveConversationNpcs.ContainsKey(npc.Name)) {
-            return new {
-                Error =
-                    $"You are already in conversation with {npcName}; no need to call this again for them. If the dialogue has turned to someone else, call lookup instead."
+        if (npc == null)
+        {
+            return new
+            {
+                Error = $"No one named '{npcName}' found nearby. Call look to see who's around.",
             };
         }
 
-        var summary = await _npcConversationService.GetSummary(player!.Id, npc.Id, cancellationToken);
+        if (_session.ActiveConversationNpcs.ContainsKey(npc.Name))
+        {
+            return new
+            {
+                Error = $"You are already in conversation with {npcName}; no need to call this again for them. If the dialogue has turned to someone else, call lookup instead.",
+            };
+        }
+
+        var summary = await _npcConversationService.GetSummary(
+            player!.Id,
+            npc.Id,
+            cancellationToken
+        );
 
         _session.ActiveConversationNpcs[npc.Name] = npc.Id;
 

@@ -1,6 +1,7 @@
 ﻿namespace TRPG.Models;
 
-internal enum BuildingType {
+internal enum BuildingType
+{
     ArcaneShop,
     Apothecary,
     Bakery,
@@ -23,10 +24,11 @@ internal enum BuildingType {
     Tailor,
     Tavern,
     Temple,
-    Tower
+    Tower,
 }
 
-internal class Building {
+internal class Building
+{
     public BuildingType BuildingType { get; init; }
     public Guid? CityId { get; init; }
     public string Description { get; init; } = "";

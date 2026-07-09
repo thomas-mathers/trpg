@@ -1,17 +1,22 @@
 namespace TRPG.Generators;
 
-internal static class WeightedSampler {
-    public static int SampleIndex(IReadOnlyList<int> weights) {
+internal static class WeightedSampler
+{
+    public static int SampleIndex(IReadOnlyList<int> weights)
+    {
         var totalWeight = weights.Sum();
-        if (totalWeight <= 0) {
+        if (totalWeight <= 0)
+        {
             return Random.Shared.Next(weights.Count);
         }
 
         var roll = Random.Shared.Next(totalWeight);
         var cumulative = 0;
-        for (var i = 0; i < weights.Count; i++) {
+        for (var i = 0; i < weights.Count; i++)
+        {
             cumulative += weights[i];
-            if (roll < cumulative) {
+            if (roll < cumulative)
+            {
                 return i;
             }
         }

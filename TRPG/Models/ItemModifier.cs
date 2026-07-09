@@ -2,27 +2,31 @@ using System.Text.Json.Serialization;
 
 namespace TRPG.Models;
 
-internal enum CombatSpeedType {
+internal enum CombatSpeedType
+{
     IncreasedAttackSpeed,
     FasterCastRate,
-    FasterHitRecovery
+    FasterHitRecovery,
 }
 
-internal enum LeechType {
+internal enum LeechType
+{
     Life,
-    Mana
+    Mana,
 }
 
-internal enum SpecialHitType {
+internal enum SpecialHitType
+{
     CrushingBlow,
     DeadlyStrike,
-    OpenWounds
+    OpenWounds,
 }
 
-internal enum ProcTrigger {
+internal enum ProcTrigger
+{
     OnStriking,
     WhenStruck,
-    OnKill
+    OnKill,
 }
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
@@ -33,37 +37,44 @@ internal enum ProcTrigger {
 [JsonDerivedType(typeof(SpecialHitModifier), "special_hit")]
 [JsonDerivedType(typeof(SkillBonusModifier), "skill_bonus")]
 [JsonDerivedType(typeof(ProcModifier), "proc")]
-internal abstract class ItemModifier {
+internal abstract class ItemModifier
+{
     public int MinItemLevel { get; init; }
 }
 
-internal class CombatSpeedModifier : ItemModifier {
+internal class CombatSpeedModifier : ItemModifier
+{
     public float Amount { get; init; }
     public CombatSpeedType SpeedType { get; init; }
 }
 
-internal class ElementalDamageModifier : ItemModifier {
+internal class ElementalDamageModifier : ItemModifier
+{
     public DamageType DamageType { get; init; }
     public int MaxDamage { get; init; }
     public int MinDamage { get; init; }
 }
 
-internal class LeechModifier : ItemModifier {
+internal class LeechModifier : ItemModifier
+{
     public LeechType LeechType { get; init; }
     public float Percent { get; init; }
 }
 
-internal class SpecialHitModifier : ItemModifier {
+internal class SpecialHitModifier : ItemModifier
+{
     public float Chance { get; init; }
     public SpecialHitType HitType { get; init; }
 }
 
-internal class SkillBonusModifier : ItemModifier {
+internal class SkillBonusModifier : ItemModifier
+{
     public int Amount { get; init; }
     public Skill? Skill { get; init; }
 }
 
-internal class ProcModifier : ItemModifier {
+internal class ProcModifier : ItemModifier
+{
     public string AbilityName { get; init; } = "";
     public float Chance { get; init; }
     public ProcTrigger Trigger { get; init; }

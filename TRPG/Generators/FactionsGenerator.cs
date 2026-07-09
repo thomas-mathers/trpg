@@ -6,42 +6,58 @@ using TRPG.Models;
 
 namespace TRPG.Generators;
 
-internal class FactionsGeneratorInput {
+internal class FactionsGeneratorInput
+{
     public int Count { get; init; } = 4;
     public required string Description { get; init; }
     public required Guid WorldId { get; init; }
 }
 
-internal class FactionsGenerator(IOllamaApiClient client, ILogger<FactionsGenerator> logger) {
+internal class FactionsGenerator(IOllamaApiClient client, ILogger<FactionsGenerator> logger)
+{
     public async Task<IReadOnlyList<Faction>> Generate(
         FactionsGeneratorInput command,
         CancellationToken cancellationToken
-    ) {
+    )
+    {
         var sw = Stopwatch.StartNew();
 
         var schema = await client.GetJson<FactionListSchema>(
             logger,
             $"""
-             You are a creative world-building assistant for a TRPG game generating content for: {command.Description}.
-             Generate {command.Count} unique factions. Respond with a JSON object with a Factions array, each element having Name and Description. Each description must be a single sentence. You MUST respond in English only. Do not use markdown.
-             """,
+            You are a creative world-building assistant for a TRPG game generating content for: {command.Description}.
+            Generate {command.Count} unique factions. Respond with a JSON object with a Factions array, each element having Name and Description. Each description must be a single sentence. You MUST respond in English only. Do not use markdown.
+            """,
             $"Generate {command.Count} unique factions.",
-            s => s.Factions.Count != command.Count
-                ? $"Expected exactly {command.Count} factions but got {s.Factions.Count}."
-                : null,
-            cancellationToken);
+            s =>
+                s.Factions.Count != command.Count
+                    ? $"Expected exactly {command.Count} factions but got {s.Factions.Count}."
+                    : null,
+            cancellationToken
+        );
 
-        logger.LogDebug("GenerateFactions completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
-        return schema.Factions.Select(f => new Faction
-            { WorldId = command.WorldId, Name = f.Name, Description = f.Description }).ToList();
+        logger.LogDebug(
+            "GenerateFactions completed in {ElapsedSeconds:F1}s",
+            sw.Elapsed.TotalSeconds
+        );
+        return schema
+            .Factions.Select(f => new Faction
+            {
+                WorldId = command.WorldId,
+                Name = f.Name,
+                Description = f.Description,
+            })
+            .ToList();
     }
 }
 
-internal class FactionListSchema {
+internal class FactionListSchema
+{
     public List<FactionItemSchema> Factions { get; init; } = [];
 }
 
-internal class FactionItemSchema {
+internal class FactionItemSchema
+{
     public string Description { get; init; } = "";
     public string Name { get; init; } = "";
 }

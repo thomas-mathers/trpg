@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 table: "countries",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: ""
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "dominant_race",
-                table: "countries");
+            migrationBuilder.DropColumn(name: "dominant_race", table: "countries");
         }
     }
 }

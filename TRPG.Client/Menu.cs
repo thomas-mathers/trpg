@@ -2,14 +2,18 @@ using TRPG.Contracts;
 
 namespace TRPG.Client;
 
-internal sealed class Menu(GameServerClient client, Game game) {
-    public async Task Run(string[] args, CancellationToken cancellationToken) {
-        if (args.Contains("--continue")) {
+internal sealed class Menu(GameServerClient client, Game game)
+{
+    public async Task Run(string[] args, CancellationToken cancellationToken)
+    {
+        if (args.Contains("--continue"))
+        {
             await RunContinue(cancellationToken);
             return;
         }
 
-        while (true) {
+        while (true)
+        {
             Console.WriteLine();
             Console.WriteLine("=== TRPG ===");
             Console.WriteLine("1. New world");
@@ -18,7 +22,8 @@ internal sealed class Menu(GameServerClient client, Game game) {
             Console.WriteLine("4. Exit");
             Console.Write("> ");
 
-            switch (Console.ReadLine()?.Trim()) {
+            switch (Console.ReadLine()?.Trim())
+            {
                 case "1":
                     await RunNew(cancellationToken);
                     break;
@@ -34,10 +39,19 @@ internal sealed class Menu(GameServerClient client, Game game) {
         }
     }
 
-    private async Task RunNew(CancellationToken cancellationToken) {
+    private async Task RunNew(CancellationToken cancellationToken)
+    {
         var playerName = PromptForString("Choose your name");
-        var creatureType = PromptForOption("Choose your race", Enum.GetValues<Race>(), r => r.ToString());
-        var profession = PromptForOption("Choose your profession", Enum.GetValues<Profession>(), r => r.ToString());
+        var creatureType = PromptForOption(
+            "Choose your race",
+            Enum.GetValues<Race>(),
+            r => r.ToString()
+        );
+        var profession = PromptForOption(
+            "Choose your profession",
+            Enum.GetValues<Profession>(),
+            r => r.ToString()
+        );
 
         var request = PromptWorldGenerationParameters(playerName, creatureType, profession);
 
@@ -52,32 +66,70 @@ internal sealed class Menu(GameServerClient client, Game game) {
         await game.Run(cancellationToken);
     }
 
-    private static CreateWorldRequest PromptWorldGenerationParameters(string playerName, Race creatureType, Profession profession) {
+    private static CreateWorldRequest PromptWorldGenerationParameters(
+        string playerName,
+        Race creatureType,
+        Profession profession
+    )
+    {
         Console.WriteLine("Configure generation (press Enter to use defaults):");
 
-        return new CreateWorldRequest {
+        return new CreateWorldRequest
+        {
             PlayerName = playerName,
             Race = creatureType,
             Profession = profession,
             Description = PromptForString("  Description", WorldGenerationDefaults.Description),
-            MinCityStates = PromptForInt("  City states min", WorldGenerationDefaults.MinCityStates),
-            MaxCityStates = PromptForInt("  City states max", WorldGenerationDefaults.MaxCityStates),
-            MinRuralStates = PromptForInt("  Rural states min", WorldGenerationDefaults.MinRuralStates),
-            MaxRuralStates = PromptForInt("  Rural states max", WorldGenerationDefaults.MaxRuralStates),
-            MinBuildingsPerState = PromptForInt("  Buildings/state min", WorldGenerationDefaults.MinBuildingsPerState),
-            MaxBuildingsPerState = PromptForInt("  Buildings/state max", WorldGenerationDefaults.MaxBuildingsPerState),
-            MinFactionMembers = PromptForInt("  Faction members min", WorldGenerationDefaults.MinFactionMembers),
-            MaxFactionMembers = PromptForInt("  Faction members max", WorldGenerationDefaults.MaxFactionMembers),
+            MinCityStates = PromptForInt(
+                "  City states min",
+                WorldGenerationDefaults.MinCityStates
+            ),
+            MaxCityStates = PromptForInt(
+                "  City states max",
+                WorldGenerationDefaults.MaxCityStates
+            ),
+            MinRuralStates = PromptForInt(
+                "  Rural states min",
+                WorldGenerationDefaults.MinRuralStates
+            ),
+            MaxRuralStates = PromptForInt(
+                "  Rural states max",
+                WorldGenerationDefaults.MaxRuralStates
+            ),
+            MinBuildingsPerState = PromptForInt(
+                "  Buildings/state min",
+                WorldGenerationDefaults.MinBuildingsPerState
+            ),
+            MaxBuildingsPerState = PromptForInt(
+                "  Buildings/state max",
+                WorldGenerationDefaults.MaxBuildingsPerState
+            ),
+            MinFactionMembers = PromptForInt(
+                "  Faction members min",
+                WorldGenerationDefaults.MinFactionMembers
+            ),
+            MaxFactionMembers = PromptForInt(
+                "  Faction members max",
+                WorldGenerationDefaults.MaxFactionMembers
+            ),
             HousesPerCity = PromptForInt("  Houses/city", WorldGenerationDefaults.HousesPerCity),
-            MinHouseholdSize = PromptForInt("  Household size min", WorldGenerationDefaults.MinHouseholdSize),
-            MaxHouseholdSize = PromptForInt("  Household size max", WorldGenerationDefaults.MaxHouseholdSize),
-            FactionCount = PromptForInt("  Factions", WorldGenerationDefaults.FactionCount)
+            MinHouseholdSize = PromptForInt(
+                "  Household size min",
+                WorldGenerationDefaults.MinHouseholdSize
+            ),
+            MaxHouseholdSize = PromptForInt(
+                "  Household size max",
+                WorldGenerationDefaults.MaxHouseholdSize
+            ),
+            FactionCount = PromptForInt("  Factions", WorldGenerationDefaults.FactionCount),
         };
     }
 
-    private async Task RunContinue(CancellationToken cancellationToken) {
+    private async Task RunContinue(CancellationToken cancellationToken)
+    {
         var world = await AutoSelectWorld(cancellationToken);
-        if (world == null) {
+        if (world == null)
+        {
             return;
         }
 
@@ -85,13 +137,15 @@ internal sealed class Menu(GameServerClient client, Game game) {
         await game.Run(cancellationToken);
     }
 
-    private async Task<WorldSummary?> AutoSelectWorld(CancellationToken cancellationToken) {
+    private async Task<WorldSummary?> AutoSelectWorld(CancellationToken cancellationToken)
+    {
         var worlds = (await client.ListWorlds(cancellationToken))
             .Where(w => w.HasPlayer)
             .OrderBy(w => w.Name)
             .ToArray();
 
-        if (worlds.Length == 0) {
+        if (worlds.Length == 0)
+        {
             Console.WriteLine("No saved games found.");
             return null;
         }
@@ -101,21 +155,24 @@ internal sealed class Menu(GameServerClient client, Game game) {
             : PromptForOption("Choose a world to continue:", worlds, w => w.Name);
     }
 
-    private async Task RunDrop(CancellationToken cancellationToken) {
-        var worlds = (await client.ListWorlds(cancellationToken))
-            .OrderBy(w => w.Name)
-            .ToArray();
+    private async Task RunDrop(CancellationToken cancellationToken)
+    {
+        var worlds = (await client.ListWorlds(cancellationToken)).OrderBy(w => w.Name).ToArray();
 
-        if (worlds.Length == 0) {
+        if (worlds.Length == 0)
+        {
             Console.WriteLine("No worlds found.");
             return;
         }
 
         var world = PromptForOption("Choose a world to drop:", worlds, w => w.Name);
 
-        var confirmed = PromptForConfirmation($"Drop \"{world.Name}\"? This cannot be undone. (y/N): ");
+        var confirmed = PromptForConfirmation(
+            $"Drop \"{world.Name}\"? This cannot be undone. (y/N): "
+        );
 
-        if (!confirmed) {
+        if (!confirmed)
+        {
             return;
         }
 
@@ -124,27 +181,32 @@ internal sealed class Menu(GameServerClient client, Game game) {
         Console.WriteLine($"World \"{world.Name}\" dropped.");
     }
 
-    private static int PromptForInt(string label, int defaultValue) {
+    private static int PromptForInt(string label, int defaultValue)
+    {
         Console.Write($"{label} [{defaultValue}]: ");
         var input = Console.ReadLine()?.Trim();
         return int.TryParse(input, out var value) ? value : defaultValue;
     }
 
-    private static string PromptForString(string label, string defaultValue) {
+    private static string PromptForString(string label, string defaultValue)
+    {
         Console.Write($"{label} [{defaultValue}]: ");
         var value = Console.ReadLine()?.Trim();
         return string.IsNullOrWhiteSpace(value) ? defaultValue : value;
     }
 
-    private static string PromptForString(string label) {
+    private static string PromptForString(string label)
+    {
         Console.WriteLine(label);
 
-        while (true) {
+        while (true)
+        {
             Console.Write("> ");
 
             var input = Console.ReadLine()?.Trim();
 
-            if (string.IsNullOrWhiteSpace(input)) {
+            if (string.IsNullOrWhiteSpace(input))
+            {
                 Console.WriteLine("Invalid input.");
                 continue;
             }
@@ -153,17 +215,28 @@ internal sealed class Menu(GameServerClient client, Game game) {
         }
     }
 
-    private static T PromptForOption<T>(string label, IReadOnlyList<T> options, Func<T, string> labelSelector) {
+    private static T PromptForOption<T>(
+        string label,
+        IReadOnlyList<T> options,
+        Func<T, string> labelSelector
+    )
+    {
         Console.WriteLine(label);
-        for (var i = 0; i < options.Count; i++) {
+        for (var i = 0; i < options.Count; i++)
+        {
             Console.WriteLine($"  {i + 1}. {labelSelector(options[i])}");
         }
 
-        while (true) {
+        while (true)
+        {
             Console.Write("> ");
 
-            if (!int.TryParse(Console.ReadLine(), out var choiceIndex) || choiceIndex < 1 ||
-                choiceIndex > options.Count) {
+            if (
+                !int.TryParse(Console.ReadLine(), out var choiceIndex)
+                || choiceIndex < 1
+                || choiceIndex > options.Count
+            )
+            {
                 Console.WriteLine("Invalid choice.");
                 continue;
             }
@@ -172,7 +245,8 @@ internal sealed class Menu(GameServerClient client, Game game) {
         }
     }
 
-    private static bool PromptForConfirmation(string label) {
+    private static bool PromptForConfirmation(string label)
+    {
         Console.Write(label);
         return string.Equals(Console.ReadLine()?.Trim(), "y", StringComparison.OrdinalIgnoreCase);
     }

@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal enum RelationshipType {
+internal enum RelationshipType
+{
     Mother,
     Father,
     Sister,
@@ -8,11 +9,12 @@ internal enum RelationshipType {
     Son,
     Daughter,
     Husband,
-    Wife
+    Wife,
 }
 
 // SubjectId's RelationshipType is RelativeId — e.g. (Subject=kid, Relative=mom, Mother) reads "kid's mother is mom".
-internal class Relationship {
+internal class Relationship
+{
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid SubjectId { get; init; }
     public Guid RelativeId { get; init; }

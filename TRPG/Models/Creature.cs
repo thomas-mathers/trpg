@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal enum CreatureType {
+internal enum CreatureType
+{
     Human,
     Elf,
     Dwarf,
@@ -11,36 +12,41 @@ internal enum CreatureType {
     Demon,
     Beast,
     Construct,
-    Elemental
+    Elemental,
 }
 
-internal static class CreatureTypes {
-    public static readonly IReadOnlyList<CreatureType> Humanoid = [
-        CreatureType.Human, 
-        CreatureType.Elf, 
-        CreatureType.Dwarf, 
-        CreatureType.Orc, 
+internal static class CreatureTypes
+{
+    public static readonly IReadOnlyList<CreatureType> Humanoid =
+    [
+        CreatureType.Human,
+        CreatureType.Elf,
+        CreatureType.Dwarf,
+        CreatureType.Orc,
         CreatureType.Halfling,
-        CreatureType.Gnome
+        CreatureType.Gnome,
     ];
 }
 
-internal enum CreatureState {
+internal enum CreatureState
+{
     Sleeping,
     Idle,
     Busy,
     Studying,
     Praying,
     Training,
-    Sitting
+    Sitting,
 }
 
-internal enum Gender {
+internal enum Gender
+{
     Male,
-    Female
+    Female,
 }
 
-internal enum Profession {
+internal enum Profession
+{
     Knight,
     Rogue,
     Ranger,
@@ -61,10 +67,11 @@ internal enum Profession {
     Carpenter,
     Jeweler,
     Homemaker,
-    Unemployed
+    Unemployed,
 }
 
-internal class Creature {
+internal class Creature
+{
     public Dictionary<ConditionType, int> ActiveConditions { get; set; } = [];
     public List<ActiveModifier> ActiveModifiers { get; set; } = [];
     public Attributes Attributes { get; set; } = null!;

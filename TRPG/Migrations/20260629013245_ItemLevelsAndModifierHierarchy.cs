@@ -18,33 +18,32 @@ namespace TRPG.Migrations
                 defaultValue: "[]",
                 oldClrType: typeof(string),
                 oldType: "jsonb",
-                oldNullable: true);
+                oldNullable: true
+            );
 
             migrationBuilder.AddColumn<int>(
                 name: "item_level",
                 table: "items",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
 
             migrationBuilder.AddColumn<int>(
                 name: "required_level",
                 table: "items",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "item_level",
-                table: "items");
+            migrationBuilder.DropColumn(name: "item_level", table: "items");
 
-            migrationBuilder.DropColumn(
-                name: "required_level",
-                table: "items");
+            migrationBuilder.DropColumn(name: "required_level", table: "items");
 
             migrationBuilder.AlterColumn<string>(
                 name: "modifiers",
@@ -52,7 +51,8 @@ namespace TRPG.Migrations
                 type: "jsonb",
                 nullable: true,
                 oldClrType: typeof(string),
-                oldType: "jsonb");
+                oldType: "jsonb"
+            );
         }
     }
 }

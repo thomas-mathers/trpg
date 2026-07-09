@@ -1,11 +1,13 @@
 ﻿namespace TRPG.Models;
 
-internal enum FactionRole {
+internal enum FactionRole
+{
     Leader,
-    Member
+    Member,
 }
 
-internal class FactionMember {
+internal class FactionMember
+{
     public Guid CreatureId { get; init; }
     public Guid FactionId { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();

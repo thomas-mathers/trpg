@@ -10,4 +10,9 @@ public record WaitRequest(int Hours);
 
 public record WaitResponse(string Message);
 
-public record TurnMetricsDto(long FirstTokenMs, long TotalMs, int TokenCount, double TokensPerSecond);
+public record TurnMetricsDto(
+    long FirstTokenMs,
+    long TotalMs,
+    int TokenCount,
+    double TokensPerSecond
+);

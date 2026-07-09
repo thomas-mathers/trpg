@@ -14,15 +14,14 @@ namespace TRPG.Migrations
                 name: "armor_class",
                 table: "items",
                 type: "text",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "armor_class",
-                table: "items");
+            migrationBuilder.DropColumn(name: "armor_class", table: "items");
         }
     }
 }

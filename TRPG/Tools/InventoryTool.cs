@@ -9,41 +9,57 @@ namespace TRPG.Tools;
 
 internal record InventoryItemInfo(string Name, int Quantity);
 
-internal record InventoryResult(string OwnerName, int Gold, IReadOnlyCollection<InventoryItemInfo> Items);
+internal record InventoryResult(
+    string OwnerName,
+    int Gold,
+    IReadOnlyCollection<InventoryItemInfo> Items
+);
 
-internal class InventoryTool : Tool, IInvokableTool {
+internal class InventoryTool : Tool, IInvokableTool
+{
     private readonly CreatureService _creatureService;
     private readonly InventoryService _inventoryService;
     private readonly ILogger<InventoryTool> _logger;
     private readonly GameSession _session;
 
-    public InventoryTool(GameSession session, CreatureService creatureService, InventoryService inventoryService,
-        ILogger<InventoryTool> logger) {
+    public InventoryTool(
+        GameSession session,
+        CreatureService creatureService,
+        InventoryService inventoryService,
+        ILogger<InventoryTool> logger
+    )
+    {
         _session = session;
         _creatureService = creatureService;
         _inventoryService = inventoryService;
         _logger = logger;
 
-        Function = new Function {
+        Function = new Function
+        {
             Name = "inventory",
             Description =
                 "Returns the items someone is carrying. Omit targetName to check the player's own inventory, or pass the exact Name of a person from NearbyPeople to check theirs.",
-            Parameters = new Parameters {
+            Parameters = new Parameters
+            {
                 Type = "object",
-                Properties = new Dictionary<string, Property> {
-                    ["targetName"] = new() {
+                Properties = new Dictionary<string, Property>
+                {
+                    ["targetName"] = new()
+                    {
                         Type = "string",
                         Description =
-                            "The exact Name of a person from NearbyPeople, copied verbatim from the most recent look or move result. Omit to check the player's own inventory."
-                    }
+                            "The exact Name of a person from NearbyPeople, copied verbatim from the most recent look or move result. Omit to check the player's own inventory.",
+                    },
                 },
-                Required = new List<string>()
-            }
+                Required = new List<string>(),
+            },
         };
     }
 
-    public object? InvokeMethod(IDictionary<string, object?>? args) {
-        var targetName = args != null && args.TryGetValue("targetName", out var raw) ? raw?.ToString() : null;
+    public object? InvokeMethod(IDictionary<string, object?>? args)
+    {
+        var targetName =
+            args != null && args.TryGetValue("targetName", out var raw) ? raw?.ToString() : null;
 
         _logger.LogInformation("[inventory] targetName={TargetName}", targetName ?? "(self)");
         var result = InvokeMethodAsync(targetName, CancellationToken.None).GetAwaiter().GetResult();
@@ -52,18 +68,33 @@ internal class InventoryTool : Tool, IInvokableTool {
         return json;
     }
 
-    private async Task<object?> InvokeMethodAsync(string? targetName, CancellationToken cancellationToken) {
+    private async Task<object?> InvokeMethodAsync(
+        string? targetName,
+        CancellationToken cancellationToken
+    )
+    {
         var player = await _creatureService.GetById(_session.PlayerId, cancellationToken);
 
         Creature? target;
-        if (string.IsNullOrWhiteSpace(targetName)) {
+        if (string.IsNullOrWhiteSpace(targetName))
+        {
             target = player;
         }
-        else {
-            target = await _creatureService.GetByNameNearby(_session.WorldId, player!, targetName, cancellationToken);
+        else
+        {
+            target = await _creatureService.GetByNameNearby(
+                _session.WorldId,
+                player!,
+                targetName,
+                cancellationToken
+            );
 
-            if (target == null) {
-                return new { Error = $"No one named '{targetName}' found nearby. Call look to see who's around." };
+            if (target == null)
+            {
+                return new
+                {
+                    Error = $"No one named '{targetName}' found nearby. Call look to see who's around.",
+                };
             }
         }
 

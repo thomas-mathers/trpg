@@ -7,14 +7,16 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
+public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime
+{
     private readonly Guid _ownerId = Guid.NewGuid();
     private readonly Guid _stateId = Guid.NewGuid();
     private Building _building = null!;
     private TrpgDbContext _context = null!;
     private BuildingService _service = null!;
 
-    public async ValueTask InitializeAsync() {
+    public async ValueTask InitializeAsync()
+    {
         _context = db.CreateContext();
         _service = new BuildingService(_context, new MemoryCache(new MemoryCacheOptions()));
 
@@ -23,12 +25,14 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() {
+    public async ValueTask DisposeAsync()
+    {
         await _context.DisposeAsync();
     }
 
     [Fact]
-    public async Task GetById_ReturnsNull_WhenNotFound() {
+    public async Task GetById_ReturnsNull_WhenNotFound()
+    {
         // Act
         var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -37,7 +41,8 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetById_ReturnsBuilding_WhenExists() {
+    public async Task GetById_ReturnsBuilding_WhenExists()
+    {
         // Act
         var result = await _service.GetById(_building.Id, TestContext.Current.CancellationToken);
 
@@ -47,9 +52,13 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetAllByStateId_ReturnsBuildingsInState() {
+    public async Task GetAllByStateId_ReturnsBuildingsInState()
+    {
         // Act
-        var result = await _service.GetAllByStateId(_stateId, TestContext.Current.CancellationToken);
+        var result = await _service.GetAllByStateId(
+            _stateId,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Contains(result, b => b.Id == _building.Id);
@@ -57,25 +66,33 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task AddOwner_CreatesOwnership() {
+    public async Task AddOwner_CreatesOwnership()
+    {
         // Act
         await _service.AddOwner(_building.Id, _ownerId, TestContext.Current.CancellationToken);
 
         // Assert
-        var owners = await _service.GetAllOwnersByBuildingId(_building.Id, TestContext.Current.CancellationToken);
+        var owners = await _service.GetAllOwnersByBuildingId(
+            _building.Id,
+            TestContext.Current.CancellationToken
+        );
         Assert.Single(owners);
         Assert.Equal(_ownerId, owners.First().OwnerId);
     }
 
     [Fact]
-    public async Task GetAllOwnersByBuildingId_ReturnsOwners() {
+    public async Task GetAllOwnersByBuildingId_ReturnsOwners()
+    {
         // Arrange
         var ownerId2 = Guid.NewGuid();
         await _service.AddOwner(_building.Id, _ownerId, TestContext.Current.CancellationToken);
         await _service.AddOwner(_building.Id, ownerId2, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetAllOwnersByBuildingId(_building.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetAllOwnersByBuildingId(
+            _building.Id,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -84,25 +101,34 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetStaticPropsByRoomId_ReturnsNonConnectorProps() {
+    public async Task GetStaticPropsByRoomId_ReturnsNonConnectorProps()
+    {
         // Arrange
         var room = Builders.MakeRoom(_building.Id);
         _context.Rooms.Add(room);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var prop = new Seat {
+        var prop = new Seat
+        {
             RoomId = room.Id,
             Name = $"Prop-{Guid.NewGuid():N}",
-            Description = "A test prop"
+            Description = "A test prop",
         };
-        var connector = new RoomConnector {
-            RoomId = room.Id, Name = "Door", Description = "A door.", DestinationRoomId = null
+        var connector = new RoomConnector
+        {
+            RoomId = room.Id,
+            Name = "Door",
+            Description = "A door.",
+            DestinationRoomId = null,
         };
         _context.Props.AddRange(prop, connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetStaticPropsByRoomId(room.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetStaticPropsByRoomId(
+            room.Id,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Single(result);
@@ -110,25 +136,34 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetConnectorsByRoomId_ReturnsOnlyConnectors() {
+    public async Task GetConnectorsByRoomId_ReturnsOnlyConnectors()
+    {
         // Arrange
         var room = Builders.MakeRoom(_building.Id);
         _context.Rooms.Add(room);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var prop = new Seat {
+        var prop = new Seat
+        {
             RoomId = room.Id,
             Name = $"Prop-{Guid.NewGuid():N}",
-            Description = "A test prop"
+            Description = "A test prop",
         };
-        var connector = new RoomConnector {
-            RoomId = room.Id, Name = "Door", Description = "A door.", DestinationRoomId = null
+        var connector = new RoomConnector
+        {
+            RoomId = room.Id,
+            Name = "Door",
+            Description = "A door.",
+            DestinationRoomId = null,
         };
         _context.Props.AddRange(prop, connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetConnectorsByRoomId(room.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetConnectorsByRoomId(
+            room.Id,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Single(result);
@@ -136,7 +171,8 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task RemoveOwner_RemovesOwnership() {
+    public async Task RemoveOwner_RemovesOwnership()
+    {
         // Arrange
         await _service.AddOwner(_building.Id, _ownerId, TestContext.Current.CancellationToken);
 
@@ -144,7 +180,10 @@ public sealed class BuildingServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _service.RemoveOwner(_building.Id, _ownerId, TestContext.Current.CancellationToken);
 
         // Assert
-        var owners = await _service.GetAllOwnersByBuildingId(_building.Id, TestContext.Current.CancellationToken);
+        var owners = await _service.GetAllOwnersByBuildingId(
+            _building.Id,
+            TestContext.Current.CancellationToken
+        );
         Assert.Empty(owners);
     }
 }

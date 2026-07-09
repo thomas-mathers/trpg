@@ -12,9 +12,16 @@ internal class JobDispatcher(
     TrainJobHandler trainHandler,
     SitJobHandler sitHandler,
     ILogger<JobDispatcher> logger
-) {
-    public async Task Dispatch(Creature creature, Job job, CancellationToken cancellationToken = default) {
-        switch (job.Action) {
+)
+{
+    public async Task Dispatch(
+        Creature creature,
+        Job job,
+        CancellationToken cancellationToken = default
+    )
+    {
+        switch (job.Action)
+        {
             case JobAction.Sleep:
                 await sleepHandler.Execute(creature, job, cancellationToken);
                 break;
@@ -38,10 +45,18 @@ internal class JobDispatcher(
                 break;
             case JobAction.Patrol:
             case JobAction.Socialize:
-                logger.LogDebug("[job-dispatcher] {Action} not yet handled, skipping job {JobId}", job.Action, job.Id);
+                logger.LogDebug(
+                    "[job-dispatcher] {Action} not yet handled, skipping job {JobId}",
+                    job.Action,
+                    job.Id
+                );
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(job), job.Action, "Unhandled JobAction.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(job),
+                    job.Action,
+                    "Unhandled JobAction."
+                );
         }
     }
 }

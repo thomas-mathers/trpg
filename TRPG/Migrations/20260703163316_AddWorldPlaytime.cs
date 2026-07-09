@@ -16,15 +16,14 @@ namespace TRPG.Migrations
                 table: "worlds",
                 type: "interval",
                 nullable: false,
-                defaultValue: new TimeSpan(0, 0, 0, 0, 0));
+                defaultValue: new TimeSpan(0, 0, 0, 0, 0)
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "playtime",
-                table: "worlds");
+            migrationBuilder.DropColumn(name: "playtime", table: "worlds");
         }
     }
 }

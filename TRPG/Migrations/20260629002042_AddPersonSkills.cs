@@ -19,25 +19,26 @@ namespace TRPG.Migrations
                     experience = table.Column<int>(type: "integer", nullable: false),
                     level = table.Column<int>(type: "integer", nullable: false),
                     person_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    skill = table.Column<string>(type: "text", nullable: false)
+                    skill = table.Column<string>(type: "text", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_person_skills", x => x.id);
-                });
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_person_skills_person_id_skill",
                 table: "person_skills",
                 columns: new[] { "person_id", "skill" },
-                unique: true);
+                unique: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "person_skills");
+            migrationBuilder.DropTable(name: "person_skills");
         }
     }
 }

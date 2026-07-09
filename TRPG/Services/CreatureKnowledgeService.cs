@@ -5,7 +5,12 @@ using TRPG.Models;
 
 namespace TRPG.Services;
 
-internal record KnowledgeQuery(Guid WorldId, string SubjectName, int CurrentYear, Creature AskingPerson);
+internal record KnowledgeQuery(
+    Guid WorldId,
+    string SubjectName,
+    int CurrentYear,
+    Creature AskingPerson
+);
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "subjectType")]
 [JsonDerivedType(typeof(CountryLookupResult), "country")]
@@ -58,49 +63,82 @@ internal sealed record PersonLookupResult(
     string? DistrictName
 ) : LookupResult;
 
-internal class CreatureKnowledgeService(TrpgDbContext context) {
+internal class CreatureKnowledgeService(TrpgDbContext context)
+{
     // Professions whose work naturally reaches beyond their home territory — diplomacy, trade,
     // scholarship, and arcane study — versus every other profession, which stays local.
-    private static readonly HashSet<Profession> WorldlyProfessions = [
-        Profession.Merchant, Profession.Politician, Profession.Scholar, Profession.Mage
+    private static readonly HashSet<Profession> WorldlyProfessions =
+    [
+        Profession.Merchant,
+        Profession.Politician,
+        Profession.Scholar,
+        Profession.Mage,
     ];
 
-    public async Task<LookupResult?> GetInfo(KnowledgeQuery query, CancellationToken cancellationToken = default) {
+    public async Task<LookupResult?> GetInfo(
+        KnowledgeQuery query,
+        CancellationToken cancellationToken = default
+    )
+    {
         var askingPerson = query.AskingPerson;
-        var isWorldly = askingPerson.Profession is { } profession && WorldlyProfessions.Contains(profession);
-        var askingPersonState = await context.States.FindAsync([askingPerson.StateId], cancellationToken);
+        var isWorldly =
+            askingPerson.Profession is { } profession && WorldlyProfessions.Contains(profession);
+        var askingPersonState = await context.States.FindAsync(
+            [askingPerson.StateId],
+            cancellationToken
+        );
 
-        var country = await context.Countries.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.WorldId == query.WorldId && c.Name == query.SubjectName, cancellationToken);
-        if (country != null) {
+        var country = await context
+            .Countries.AsNoTracking()
+            .FirstOrDefaultAsync(
+                c => c.WorldId == query.WorldId && c.Name == query.SubjectName,
+                cancellationToken
+            );
+        if (country != null)
+        {
             var knowsCountry = isWorldly || country.Id == askingPersonState?.CountryId;
             return knowsCountry ? await BuildCountryResult(country, cancellationToken) : null;
         }
 
-        var city = await context.Cities.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.WorldId == query.WorldId && c.Name == query.SubjectName, cancellationToken);
-        if (city != null) {
+        var city = await context
+            .Cities.AsNoTracking()
+            .FirstOrDefaultAsync(
+                c => c.WorldId == query.WorldId && c.Name == query.SubjectName,
+                cancellationToken
+            );
+        if (city != null)
+        {
             var knowsCity = isWorldly || city.StateId == askingPerson.StateId;
             return knowsCity ? await BuildCityResult(city, query.WorldId, cancellationToken) : null;
         }
 
-        var faction = await context.Factions.AsNoTracking()
-            .FirstOrDefaultAsync(f => f.WorldId == query.WorldId && f.Name == query.SubjectName, cancellationToken);
-        if (faction != null) {
+        var faction = await context
+            .Factions.AsNoTracking()
+            .FirstOrDefaultAsync(
+                f => f.WorldId == query.WorldId && f.Name == query.SubjectName,
+                cancellationToken
+            );
+        if (faction != null)
+        {
             var isMember = await context.FactionMembers.AnyAsync(
-                fm => fm.CreatureId == askingPerson.Id && fm.FactionId == faction.Id, cancellationToken);
+                fm => fm.CreatureId == askingPerson.Id && fm.FactionId == faction.Id,
+                cancellationToken
+            );
             var knowsFaction = isWorldly || isMember;
             return knowsFaction ? await BuildFactionResult(faction, cancellationToken) : null;
         }
 
         // Names aren't guaranteed unique world-wide, so a name can match several creatures — search
         // among all of them for the one the asker actually knows, rather than an arbitrary first match.
-        var candidates = await context.Creatures.AsNoTracking()
+        var candidates = await context
+            .Creatures.AsNoTracking()
             .Where(p => p.WorldId == query.WorldId && p.Name == query.SubjectName)
             .ToArrayAsync(cancellationToken);
 
-        foreach (var candidate in candidates) {
-            if (await KnowsPerson(askingPerson, candidate, cancellationToken)) {
+        foreach (var candidate in candidates)
+        {
+            if (await KnowsPerson(askingPerson, candidate, cancellationToken))
+            {
                 return await BuildPersonResult(candidate, query.CurrentYear, cancellationToken);
             }
         }
@@ -110,19 +148,28 @@ internal class CreatureKnowledgeService(TrpgDbContext context) {
 
     // Personal knowledge of a specific individual never scales with profession or intelligence —
     // it comes only from a direct connection (family, faction, or living in the same city).
-    private async Task<bool> KnowsPerson(Creature askingPerson, Creature subject,
-        CancellationToken cancellationToken) {
-        if (askingPerson.Id == subject.Id) {
+    private async Task<bool> KnowsPerson(
+        Creature askingPerson,
+        Creature subject,
+        CancellationToken cancellationToken
+    )
+    {
+        if (askingPerson.Id == subject.Id)
+        {
             return true;
         }
 
-        if (askingPerson.CityId != null && askingPerson.CityId == subject.CityId) {
+        if (askingPerson.CityId != null && askingPerson.CityId == subject.CityId)
+        {
             return true;
         }
 
         var isRelated = await context.Relationships.AnyAsync(
-            r => r.SubjectId == askingPerson.Id && r.RelativeId == subject.Id, cancellationToken);
-        if (isRelated) {
+            r => r.SubjectId == askingPerson.Id && r.RelativeId == subject.Id,
+            cancellationToken
+        );
+        if (isRelated)
+        {
             return true;
         }
 
@@ -135,8 +182,11 @@ internal class CreatureKnowledgeService(TrpgDbContext context) {
         ).AnyAsync(cancellationToken);
     }
 
-    private async Task<CountryLookupResult> BuildCountryResult(Country country,
-        CancellationToken cancellationToken) {
+    private async Task<CountryLookupResult> BuildCountryResult(
+        Country country,
+        CancellationToken cancellationToken
+    )
+    {
         var capital = await (
             from city in context.Cities.AsNoTracking()
             join state in context.States on city.StateId equals state.Id
@@ -153,15 +203,25 @@ internal class CreatureKnowledgeService(TrpgDbContext context) {
         );
     }
 
-    private async Task<CityLookupResult> BuildCityResult(City city, Guid worldId,
-        CancellationToken cancellationToken) {
+    private async Task<CityLookupResult> BuildCityResult(
+        City city,
+        Guid worldId,
+        CancellationToken cancellationToken
+    )
+    {
         var state = await context.States.FindAsync([city.StateId], cancellationToken);
-        var country = state != null ? await context.Countries.FindAsync([state.CountryId], cancellationToken) : null;
-        var districts = await context.Districts.AsNoTracking()
+        var country =
+            state != null
+                ? await context.Countries.FindAsync([state.CountryId], cancellationToken)
+                : null;
+        var districts = await context
+            .Districts.AsNoTracking()
             .Where(d => d.CityId == city.Id)
             .ToArrayAsync(cancellationToken);
-        var populationCount =
-            await context.Creatures.CountAsync(p => p.WorldId == worldId && p.CityId == city.Id, cancellationToken);
+        var populationCount = await context.Creatures.CountAsync(
+            p => p.WorldId == worldId && p.CityId == city.Id,
+            cancellationToken
+        );
 
         return new CityLookupResult(
             city.Name,
@@ -169,27 +229,38 @@ internal class CreatureKnowledgeService(TrpgDbContext context) {
             city.IsCapital,
             state?.Name,
             country?.Name,
-            districts.Select(d => new CityDistrictInfo(d.Name, d.DistrictType.ToString())).ToArray(),
+            districts
+                .Select(d => new CityDistrictInfo(d.Name, d.DistrictType.ToString()))
+                .ToArray(),
             populationCount
         );
     }
 
-    private async Task<FactionLookupResult> BuildFactionResult(Faction faction,
-        CancellationToken cancellationToken) {
+    private async Task<FactionLookupResult> BuildFactionResult(
+        Faction faction,
+        CancellationToken cancellationToken
+    )
+    {
         var leaderName = await (
             from fm in context.FactionMembers
             where fm.FactionId == faction.Id && fm.Role == FactionRole.Leader
             join c in context.Creatures on fm.CreatureId equals c.Id
             select c.Name
         ).FirstOrDefaultAsync(cancellationToken);
-        var memberCount =
-            await context.FactionMembers.CountAsync(fm => fm.FactionId == faction.Id, cancellationToken);
+        var memberCount = await context.FactionMembers.CountAsync(
+            fm => fm.FactionId == faction.Id,
+            cancellationToken
+        );
 
         return new FactionLookupResult(faction.Name, faction.Description, leaderName, memberCount);
     }
 
-    private async Task<PersonLookupResult> BuildPersonResult(Creature creature, int currentYear,
-        CancellationToken cancellationToken) {
+    private async Task<PersonLookupResult> BuildPersonResult(
+        Creature creature,
+        int currentYear,
+        CancellationToken cancellationToken
+    )
+    {
         var state = await context.States.FindAsync([creature.StateId], cancellationToken);
         var city = creature.CityId is { } cityId
             ? await context.Cities.FindAsync([cityId], cancellationToken)

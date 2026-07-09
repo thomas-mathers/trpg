@@ -10,18 +10,13 @@ namespace TRPG.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateIndex(
-                name: "ix_jobs_room_id",
-                table: "jobs",
-                column: "room_id");
+            migrationBuilder.CreateIndex(name: "ix_jobs_room_id", table: "jobs", column: "room_id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "ix_jobs_room_id",
-                table: "jobs");
+            migrationBuilder.DropIndex(name: "ix_jobs_room_id", table: "jobs");
         }
     }
 }

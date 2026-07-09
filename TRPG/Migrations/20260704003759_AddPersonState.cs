@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 table: "persons",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: ""
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "state",
-                table: "persons");
+            migrationBuilder.DropColumn(name: "state", table: "persons");
         }
     }
 }

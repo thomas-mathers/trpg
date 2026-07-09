@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal class State {
+internal class State
+{
     public Polygon Boundary { get; init; } = null!;
     public Point Center { get; init; } = null!;
     public Guid CountryId { get; init; }

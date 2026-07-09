@@ -1,11 +1,13 @@
 namespace TRPG.Models;
 
-internal enum AmountType {
+internal enum AmountType
+{
     Flat,
-    Percent
+    Percent,
 }
 
-internal enum AttributeName {
+internal enum AttributeName
+{
     Hp,
     Ap,
     Mp,
@@ -22,10 +24,11 @@ internal enum AttributeName {
     LightningResistance,
     PoisonResistance,
     MagicResistance,
-    MovementSpeed
+    MovementSpeed,
 }
 
-internal class AttributeModifier : ItemModifier {
+internal class AttributeModifier : ItemModifier
+{
     public float Amount { get; init; }
     public AttributeName Attribute { get; init; }
     public AmountType Type { get; init; }

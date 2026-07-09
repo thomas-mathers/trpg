@@ -6,13 +6,15 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 [Collection("Database")]
-public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
+public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime
+{
     private readonly Guid _worldId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private Creature _creature = null!;
     private CreatureService _service = null!;
 
-    public async ValueTask InitializeAsync() {
+    public async ValueTask InitializeAsync()
+    {
         _context = db.CreateContext();
         _service = new CreatureService(_context);
 
@@ -21,12 +23,14 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _context.SaveChangesAsync();
     }
 
-    public async ValueTask DisposeAsync() {
+    public async ValueTask DisposeAsync()
+    {
         await _context.DisposeAsync();
     }
 
     [Fact]
-    public async Task Add_PersistsCreature() {
+    public async Task Add_PersistsCreature()
+    {
         // Arrange
         var creature = Builders.MakeCreature();
 
@@ -34,13 +38,17 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _service.Add(creature, TestContext.Current.CancellationToken);
 
         // Assert
-        var found = await _context.Creatures.FindAsync([creature.Id], TestContext.Current.CancellationToken);
+        var found = await _context.Creatures.FindAsync(
+            [creature.Id],
+            TestContext.Current.CancellationToken
+        );
         Assert.NotNull(found);
         Assert.Equal(creature.Name, found.Name);
     }
 
     [Fact]
-    public async Task GetById_ReturnsNull_WhenNotFound() {
+    public async Task GetById_ReturnsNull_WhenNotFound()
+    {
         // Act
         var result = await _service.GetById(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -49,7 +57,8 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetById_ReturnsCreature_WhenExists() {
+    public async Task GetById_ReturnsCreature_WhenExists()
+    {
         // Act
         var result = await _service.GetById(_creature.Id, TestContext.Current.CancellationToken);
 
@@ -59,7 +68,8 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task Update_SavesChanges() {
+    public async Task Update_SavesChanges()
+    {
         // Arrange
         _creature.Gold = 500;
 
@@ -67,12 +77,16 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _service.Update(_creature, TestContext.Current.CancellationToken);
 
         // Assert
-        var updated = await _context.Creatures.FindAsync([_creature.Id], TestContext.Current.CancellationToken);
+        var updated = await _context.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(500, updated!.Gold);
     }
 
     [Fact]
-    public async Task Delete_RemovesCreature() {
+    public async Task Delete_RemovesCreature()
+    {
         // Arrange
         var creature = Builders.MakeCreature();
         await _service.Add(creature, TestContext.Current.CancellationToken);
@@ -82,12 +96,16 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var found = await verifyContext.Creatures.FindAsync([creature.Id], TestContext.Current.CancellationToken);
+        var found = await verifyContext.Creatures.FindAsync(
+            [creature.Id],
+            TestContext.Current.CancellationToken
+        );
         Assert.Null(found);
     }
 
     [Fact]
-    public async Task GetAllInState_ReturnsOnlyCreaturesInState() {
+    public async Task GetAllInState_ReturnsOnlyCreaturesInState()
+    {
         // Arrange
         var stateId = Guid.NewGuid();
 
@@ -100,7 +118,11 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _service.Add(otherWorld, TestContext.Current.CancellationToken);
 
         // Act
-        var results = await _service.GetAllInState(_worldId, stateId, TestContext.Current.CancellationToken);
+        var results = await _service.GetAllInState(
+            _worldId,
+            stateId,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Contains(results, p => p.Id == inState.Id);
@@ -109,7 +131,8 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetIdsByDistrict_ReturnsOnlyCreaturesInDistrict() {
+    public async Task GetIdsByDistrict_ReturnsOnlyCreaturesInDistrict()
+    {
         // Arrange
         var districtId = Guid.NewGuid();
 
@@ -122,7 +145,11 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         await _service.Add(otherWorld, TestContext.Current.CancellationToken);
 
         // Act
-        var results = await _service.GetIdsByDistrict(_worldId, districtId, TestContext.Current.CancellationToken);
+        var results = await _service.GetIdsByDistrict(
+            _worldId,
+            districtId,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Contains(inDistrict.Id, results);
@@ -131,15 +158,20 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetByNameOutdoorsInDistrict_ReturnsCreature_WhenInDistrict() {
+    public async Task GetByNameOutdoorsInDistrict_ReturnsCreature_WhenInDistrict()
+    {
         // Arrange
         var districtId = Guid.NewGuid();
         var creature = Builders.MakeCreature(_worldId, districtId: districtId);
         await _service.Add(creature, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetByNameOutdoorsInDistrict(_worldId, districtId, creature.Name,
-            TestContext.Current.CancellationToken);
+        var result = await _service.GetByNameOutdoorsInDistrict(
+            _worldId,
+            districtId,
+            creature.Name,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.NotNull(result);
@@ -147,21 +179,27 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetByNameOutdoorsInDistrict_ReturnsNull_WhenInDifferentDistrict() {
+    public async Task GetByNameOutdoorsInDistrict_ReturnsNull_WhenInDifferentDistrict()
+    {
         // Arrange
         var creature = Builders.MakeCreature(_worldId, districtId: Guid.NewGuid());
         await _service.Add(creature, TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _service.GetByNameOutdoorsInDistrict(_worldId, Guid.NewGuid(), creature.Name,
-            TestContext.Current.CancellationToken);
+        var result = await _service.GetByNameOutdoorsInDistrict(
+            _worldId,
+            Guid.NewGuid(),
+            creature.Name,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Null(result);
     }
 
     [Fact]
-    public async Task GetByNameNearby_ReturnsCreature_WhenIndoors() {
+    public async Task GetByNameNearby_ReturnsCreature_WhenIndoors()
+    {
         // Arrange
         var roomId = Guid.NewGuid();
         var target = Builders.MakeCreature(_worldId);
@@ -171,8 +209,12 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         player.RoomId = roomId;
 
         // Act
-        var result =
-            await _service.GetByNameNearby(_worldId, player, target.Name, TestContext.Current.CancellationToken);
+        var result = await _service.GetByNameNearby(
+            _worldId,
+            player,
+            target.Name,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.NotNull(result);
@@ -180,7 +222,8 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetByNameNearby_ScopesToDistrict_WhenOutdoorsInCity() {
+    public async Task GetByNameNearby_ScopesToDistrict_WhenOutdoorsInCity()
+    {
         // Arrange
         var districtId = Guid.NewGuid();
         var target = Builders.MakeCreature(_worldId, districtId: districtId);
@@ -188,8 +231,12 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var player = Builders.MakeCreature(_worldId, districtId: districtId);
 
         // Act
-        var result =
-            await _service.GetByNameNearby(_worldId, player, target.Name, TestContext.Current.CancellationToken);
+        var result = await _service.GetByNameNearby(
+            _worldId,
+            player,
+            target.Name,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.NotNull(result);
@@ -197,7 +244,8 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetByNameNearby_ScopesToState_WhenOutdoorsWithNoCity() {
+    public async Task GetByNameNearby_ScopesToState_WhenOutdoorsWithNoCity()
+    {
         // Arrange
         var stateId = Guid.NewGuid();
         var target = Builders.MakeCreature(_worldId, stateId: stateId);
@@ -205,8 +253,12 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var player = Builders.MakeCreature(_worldId, stateId: stateId);
 
         // Act
-        var result =
-            await _service.GetByNameNearby(_worldId, player, target.Name, TestContext.Current.CancellationToken);
+        var result = await _service.GetByNameNearby(
+            _worldId,
+            player,
+            target.Name,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.NotNull(result);
@@ -214,7 +266,8 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetAllNearby_ReturnsCreaturesInRoom_WhenLocationHasRoomId() {
+    public async Task GetAllNearby_ReturnsCreaturesInRoom_WhenLocationHasRoomId()
+    {
         // Arrange
         var stateId = Guid.NewGuid();
         var roomId = Guid.NewGuid();
@@ -226,7 +279,10 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var location = new CreatureLocation(_worldId, roomId, stateId, null);
 
         // Act
-        var result = await _service.GetAllNearby(location, cancellationToken: TestContext.Current.CancellationToken);
+        var result = await _service.GetAllNearby(
+            location,
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Contains(result, x => x.Id == inRoom.Id);
@@ -234,7 +290,8 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetAllNearby_ReturnsCreaturesOutdoors_WhenLocationHasNoRoomId() {
+    public async Task GetAllNearby_ReturnsCreaturesOutdoors_WhenLocationHasNoRoomId()
+    {
         // Arrange
         var stateId = Guid.NewGuid();
         var districtId = Guid.NewGuid();
@@ -246,7 +303,10 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var location = new CreatureLocation(_worldId, null, stateId, districtId);
 
         // Act
-        var result = await _service.GetAllNearby(location, cancellationToken: TestContext.Current.CancellationToken);
+        var result = await _service.GetAllNearby(
+            location,
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Contains(result, x => x.Id == outdoors.Id);
@@ -254,7 +314,8 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task GetAllNearby_ExcludesGivenCreature() {
+    public async Task GetAllNearby_ExcludesGivenCreature()
+    {
         // Arrange
         var stateId = Guid.NewGuid();
         var roomId = Guid.NewGuid();
@@ -267,7 +328,11 @@ public sealed class CreatureServiceTests(DatabaseFixture db) : IAsyncLifetime {
         var location = new CreatureLocation(_worldId, roomId, stateId, null);
 
         // Act
-        var result = await _service.GetAllNearby(location, player.Id, TestContext.Current.CancellationToken);
+        var result = await _service.GetAllNearby(
+            location,
+            player.Id,
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.DoesNotContain(result, x => x.Id == player.Id);

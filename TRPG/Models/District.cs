@@ -1,15 +1,17 @@
 namespace TRPG.Models;
 
-internal enum DistrictType {
+internal enum DistrictType
+{
     Residential,
     Scientific,
     CityCenter,
     Governmental,
     HolySite,
-    Encampment
+    Encampment,
 }
 
-internal class District {
+internal class District
+{
     public Guid CityId { get; init; }
     public string Description { get; init; } = "";
     public DistrictType DistrictType { get; init; }

@@ -8,8 +8,10 @@ using TRPG.Services;
 
 namespace TRPG.Endpoints;
 
-internal static class SessionEndpoints {
-    public static void MapSessionEndpoints(this WebApplication app) {
+internal static class SessionEndpoints
+{
+    public static void MapSessionEndpoints(this WebApplication app)
+    {
         app.MapPost("/worlds/{worldId:guid}/sessions", StartSession);
         app.MapPost("/sessions/{sessionId:guid}/chat", SendChat);
         app.MapPost("/sessions/{sessionId:guid}/wait", Wait);
@@ -22,16 +24,24 @@ internal static class SessionEndpoints {
         IOllamaApiClient ollamaClient,
         AppConfiguration appConfiguration,
         GameSessionStore sessionStore,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var world = await worldService.GetWorld(worldId, cancellationToken);
-        if (world?.PlayerId == null) {
+        if (world?.PlayerId == null)
+        {
             return Results.NotFound();
         }
 
         var session = new GameSession(worldId, world.PlayerId.Value, world.Playtime);
-        var chat = new Chat(ollamaClient, GameTurnRunner.SystemPrompt) {
+        var chat = new Chat(ollamaClient, GameTurnRunner.SystemPrompt)
+        {
             Think = appConfiguration.OllamaThink,
-            Options = new RequestOptions { NumCtx = 8192, Temperature = appConfiguration.OllamaTemperature }
+            Options = new RequestOptions
+            {
+                NumCtx = 8192,
+                Temperature = appConfiguration.OllamaTemperature,
+            },
         };
         var state = new GameSessionState(session, chat);
         var sessionId = sessionStore.Add(state);
@@ -45,9 +55,12 @@ internal static class SessionEndpoints {
         bool? includeMetrics,
         GameSessionStore sessionStore,
         HttpContext httpContext,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var state = sessionStore.Get(sessionId);
-        if (state == null) {
+        if (state == null)
+        {
             return Results.NotFound();
         }
 
@@ -55,26 +68,33 @@ internal static class SessionEndpoints {
         var turnRunner = httpContext.RequestServices.GetRequiredService<GameTurnRunner>();
         var metrics = await turnRunner.ProcessTurn(request.Message, cancellationToken);
 
-        return Results.Ok(new ChatResponse(metrics.Response, includeMetrics == true ? ToDto(metrics) : null));
+        return Results.Ok(
+            new ChatResponse(metrics.Response, includeMetrics == true ? ToDto(metrics) : null)
+        );
     }
 
     private static async Task<IResult> Wait(
         Guid sessionId,
         WaitRequest request,
         GameSessionStore sessionStore,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var state = sessionStore.Get(sessionId);
-        if (state == null) {
+        if (state == null)
+        {
             return Results.NotFound();
         }
 
-        if (request.Hours <= 0) {
+        if (request.Hours <= 0)
+        {
             return Results.BadRequest();
         }
 
         GameClock.AdvanceHours(state.Session, request.Hours);
         var currentDate = GameClock.GetCurrentInGameDate(state.Session);
-        var message = $"Time passes... it is now {currentDate.WeekdayName}, hour {currentDate.Hour}.";
+        var message =
+            $"Time passes... it is now {currentDate.WeekdayName}, hour {currentDate.Hour}.";
 
         return Results.Ok(new WaitResponse(message));
     }
@@ -83,9 +103,12 @@ internal static class SessionEndpoints {
         Guid sessionId,
         GameSessionStore sessionStore,
         WorldService worldService,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var state = sessionStore.Get(sessionId);
-        if (state == null) {
+        if (state == null)
+        {
             return Results.NotFound();
         }
 
@@ -98,7 +121,9 @@ internal static class SessionEndpoints {
         GameSessionState state,
         GameSessionStore sessionStore,
         WorldService worldService,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var world = await worldService.GetWorld(state.Session.WorldId, cancellationToken);
         world!.Playtime = GameClock.GetTotalPlaytime(state.Session);
         await worldService.Update(world, cancellationToken);

@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 table: "worlds",
                 type: "jsonb",
                 nullable: false,
-                defaultValue: "{}");
+                defaultValue: "{}"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "boundary",
-                table: "worlds");
+            migrationBuilder.DropColumn(name: "boundary", table: "worlds");
         }
     }
 }

@@ -13,7 +13,8 @@ namespace TRPG.Migrations
             migrationBuilder.RenameColumn(
                 name: "coordinates",
                 table: "building_props",
-                newName: "boundary");
+                newName: "boundary"
+            );
         }
 
         /// <inheritdoc />
@@ -22,7 +23,8 @@ namespace TRPG.Migrations
             migrationBuilder.RenameColumn(
                 name: "boundary",
                 table: "building_props",
-                newName: "coordinates");
+                newName: "coordinates"
+            );
         }
     }
 }

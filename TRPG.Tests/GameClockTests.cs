@@ -1,8 +1,10 @@
 namespace TRPG.Tests;
 
-public class GameClockTests {
+public class GameClockTests
+{
     [Fact]
-    public void GetCurrentInGameDateTime_AdvancesAtConfiguredRatio() {
+    public void GetCurrentInGameDateTime_AdvancesAtConfiguredRatio()
+    {
         // Arrange
         var session = new GameSession(Guid.NewGuid(), Guid.NewGuid(), TimeSpan.Zero);
         var before = GameClock.GetCurrentInGameDateTime(session);

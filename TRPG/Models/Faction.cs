@@ -1,6 +1,7 @@
 ﻿namespace TRPG.Models;
 
-internal class Faction {
+internal class Faction
+{
     public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();
     public bool IsCityFaction { get; init; }

@@ -1,6 +1,7 @@
 ﻿namespace TRPG.Models;
 
-internal class WorldEvent {
+internal class WorldEvent
+{
     public DateTime Date { get; init; }
     public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();

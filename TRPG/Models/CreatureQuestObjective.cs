@@ -1,6 +1,7 @@
 namespace TRPG.Models;
 
-internal class CreatureQuestObjective {
+internal class CreatureQuestObjective
+{
     public int Amount { get; set; }
     public Guid CreatureId { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();

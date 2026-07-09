@@ -15,25 +15,23 @@ namespace TRPG.Migrations
                 name: "location_room_id",
                 table: "persons",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "location_room_id",
                 table: "jobs",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "location_room_id",
-                table: "persons");
+            migrationBuilder.DropColumn(name: "location_room_id", table: "persons");
 
-            migrationBuilder.DropColumn(
-                name: "location_room_id",
-                table: "jobs");
+            migrationBuilder.DropColumn(name: "location_room_id", table: "jobs");
         }
     }
 }

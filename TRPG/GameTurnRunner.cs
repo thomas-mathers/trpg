@@ -8,7 +8,8 @@ using TRPG.Tools;
 
 namespace TRPG;
 
-internal record TurnMetrics(string Response, long FirstTokenMs, long TotalMs, int TokenCount) {
+internal record TurnMetrics(string Response, long FirstTokenMs, long TotalMs, int TokenCount)
+{
     public double TokensPerSecond =>
         TotalMs > FirstTokenMs ? TokenCount / ((TotalMs - FirstTokenMs) / 1000.0) : 0;
 }
@@ -18,9 +19,9 @@ internal class GameTurnRunner(
     GameSession session,
     IEnumerable<Tool> tools,
     ILogger<GameTurnRunner> logger
-) {
-    internal const string SystemPrompt =
-        """
+)
+{
+    internal const string SystemPrompt = """
         You are the game master of a living fantasy world. Your role is to narrate the player's experience and interpret their actions to advance the story.
         Always read before you narrate. Before describing any location, NPC, item, or building, use the available tools to fetch its current state. Never invent names, people, or facts — everything that exists is in the game state. If a tool returns nothing, nothing is there, and NearbyPeople/NearbyProps are the complete list — don't pad the scene with unnamed extras like other patrons, travelers, or passersby for atmosphere.
         This also applies to what an NPC says about themselves in dialogue: start_conversation's biography is the complete record of that NPC's family, hometown, faction ties, workplace (including whether they own it or just work there), work hours, days off, and home — if it doesn't mention a spouse, parent, child, sibling, employer, or residence, that detail doesn't exist (they're unemployed, or the biography just doesn't cover it), so have them say so plainly or deflect (whichever fits their personality) rather than inventing one. Whether an NPC owns their workplace is stated explicitly in the biography ("they own X" vs "they work at X") — never hedge or guess about this, state it as given. Never state a specific personal-history fact — a relative, a spouse, a death, a past event, a coworker, a specific shift time — unless it came from a tool result. For anything else a tool hasn't covered, call lookup rather than inventing it; if it still comes back unknown, have the NPC be vague, deflect, or say they'd rather not discuss it.
@@ -36,26 +37,35 @@ internal class GameTurnRunner(
         """;
 
     public async IAsyncEnumerable<string> SendOpeningStreaming(
-        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
         const string openingPrompt =
             "This is the start of the session. Call look now, then narrate the opening scene based on what it returns.";
         logger.LogInformation("[game] >>> {Message}", openingPrompt);
 
         var buffer = new StringBuilder();
-        await foreach (var token in chat.SendAsync(openingPrompt, tools, cancellationToken: cancellationToken)) {
+        await foreach (
+            var token in chat.SendAsync(openingPrompt, tools, cancellationToken: cancellationToken)
+        )
+        {
             buffer.Append(token);
             yield return token;
         }
 
         logger.LogInformation("[game] <<< {Response}", buffer.ToString());
 
-        if (session.DidMoveThisTurn) {
+        if (session.DidMoveThisTurn)
+        {
             await RunPostMoveCleanup(cancellationToken);
         }
     }
 
-    public async IAsyncEnumerable<string> SendWaitStreaming(int hours,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+    public async IAsyncEnumerable<string> SendWaitStreaming(
+        int hours,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
         session.DidMoveThisTurn = false;
         session.SceneRefreshedThisTurn = false;
         GameClock.AdvanceHours(session, hours);
@@ -65,61 +75,80 @@ internal class GameTurnRunner(
         logger.LogInformation("[game] >>> {Message}", waitPrompt);
 
         var buffer = new StringBuilder();
-        await foreach (var token in chat.SendAsync(waitPrompt, tools, cancellationToken: cancellationToken)) {
+        await foreach (
+            var token in chat.SendAsync(waitPrompt, tools, cancellationToken: cancellationToken)
+        )
+        {
             buffer.Append(token);
             yield return token;
         }
 
         logger.LogInformation("[game] <<< {Response}", buffer.ToString());
 
-        if (session.DidMoveThisTurn) {
+        if (session.DidMoveThisTurn)
+        {
             await RunPostMoveCleanup(cancellationToken);
         }
     }
 
-    public async Task<TurnMetrics> ProcessTurn(string input, CancellationToken cancellationToken = default) {
+    public async Task<TurnMetrics> ProcessTurn(
+        string input,
+        CancellationToken cancellationToken = default
+    )
+    {
         session.DidMoveThisTurn = false;
         session.SceneRefreshedThisTurn = false;
         var metrics = await SendAndLog(input, cancellationToken);
 
-        if (session.DidMoveThisTurn) {
+        if (session.DidMoveThisTurn)
+        {
             await RunPostMoveCleanup(cancellationToken);
         }
 
         return metrics;
     }
 
-    public async IAsyncEnumerable<string> ProcessTurnStreaming(string input,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+    public async IAsyncEnumerable<string> ProcessTurnStreaming(
+        string input,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
         session.DidMoveThisTurn = false;
         session.SceneRefreshedThisTurn = false;
         logger.LogInformation("[game] >>> {Message}", input);
 
         var buffer = new StringBuilder();
-        await foreach (var token in chat.SendAsync(input, tools, cancellationToken: cancellationToken)) {
+        await foreach (
+            var token in chat.SendAsync(input, tools, cancellationToken: cancellationToken)
+        )
+        {
             buffer.Append(token);
             yield return token;
         }
 
         logger.LogInformation("[game] <<< {Response}", buffer.ToString());
 
-        if (session.DidMoveThisTurn) {
+        if (session.DidMoveThisTurn)
+        {
             await RunPostMoveCleanup(cancellationToken);
         }
     }
 
-    private async Task RunPostMoveCleanup(CancellationToken cancellationToken) {
+    private async Task RunPostMoveCleanup(CancellationToken cancellationToken)
+    {
         var currentTurnStart = chat.Messages.FindLastIndex(m => m.Role == ChatRole.User);
         await CloseLingeringConversations(cancellationToken);
         ClearPreviousTurns(currentTurnStart);
     }
 
-    private async Task<TurnMetrics> SendAndLog(string input, CancellationToken cancellationToken) {
+    private async Task<TurnMetrics> SendAndLog(string input, CancellationToken cancellationToken)
+    {
         logger.LogInformation("[game] >>> {Message}", input);
 
         var thinking = new StringBuilder();
 
-        void AppendThinking(object? _, string token) {
+        void AppendThinking(object? _, string token)
+        {
             thinking.Append(token);
         }
 
@@ -128,22 +157,31 @@ internal class GameTurnRunner(
         var stopwatch = Stopwatch.StartNew();
         long? firstTokenElapsedMs = null;
         var tokenCount = 0;
-        try {
-            await foreach (var token in chat.SendAsync(input, tools, cancellationToken: cancellationToken)) {
+        try
+        {
+            await foreach (
+                var token in chat.SendAsync(input, tools, cancellationToken: cancellationToken)
+            )
+            {
                 firstTokenElapsedMs ??= stopwatch.ElapsedMilliseconds;
                 tokenCount++;
                 buffer.Append(token);
             }
         }
-        finally {
+        finally
+        {
             chat.OnThink -= AppendThinking;
         }
 
         var totalMs = stopwatch.ElapsedMilliseconds;
-        logger.LogInformation("[perf] SendAsync first token after {FirstTokenMs}ms, total {TotalMs}ms",
-            firstTokenElapsedMs, totalMs);
+        logger.LogInformation(
+            "[perf] SendAsync first token after {FirstTokenMs}ms, total {TotalMs}ms",
+            firstTokenElapsedMs,
+            totalMs
+        );
 
-        if (thinking.Length > 0) {
+        if (thinking.Length > 0)
+        {
             logger.LogDebug("[game] think: {Thinking}", thinking.ToString().Trim());
         }
 
@@ -152,9 +190,12 @@ internal class GameTurnRunner(
         return new TurnMetrics(response, firstTokenElapsedMs ?? totalMs, totalMs, tokenCount);
     }
 
-    private async Task CloseLingeringConversations(CancellationToken cancellationToken) {
-        foreach (var npcName in session.ActiveConversationNpcs.Keys.ToArray()) {
-            if (!session.ActiveConversationNpcs.ContainsKey(npcName)) {
+    private async Task CloseLingeringConversations(CancellationToken cancellationToken)
+    {
+        foreach (var npcName in session.ActiveConversationNpcs.Keys.ToArray())
+        {
+            if (!session.ActiveConversationNpcs.ContainsKey(npcName))
+            {
                 continue;
             }
 
@@ -162,13 +203,18 @@ internal class GameTurnRunner(
                 $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
             await SendAndLog(prompt, cancellationToken);
 
-            if (session.ActiveConversationNpcs.Remove(npcName)) {
-                logger.LogWarning("[game] Failed to save conversation summary for {NpcName}", npcName);
+            if (session.ActiveConversationNpcs.Remove(npcName))
+            {
+                logger.LogWarning(
+                    "[game] Failed to save conversation summary for {NpcName}",
+                    npcName
+                );
             }
         }
     }
 
-    private void ClearPreviousTurns(int currentTurnStart) {
+    private void ClearPreviousTurns(int currentTurnStart)
+    {
         var systemMessage = chat.Messages[0];
         var currentTurnMessages = chat.Messages.Skip(currentTurnStart).ToList();
 

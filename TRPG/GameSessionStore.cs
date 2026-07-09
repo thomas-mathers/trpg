@@ -2,10 +2,12 @@ using System.Collections.Concurrent;
 
 namespace TRPG;
 
-internal class GameSessionStore {
+internal class GameSessionStore
+{
     private readonly ConcurrentDictionary<Guid, GameSessionState> _sessions = new();
 
-    public Guid Add(GameSessionState state) {
+    public Guid Add(GameSessionState state)
+    {
         var sessionId = Guid.NewGuid();
         _sessions[sessionId] = state;
         return sessionId;

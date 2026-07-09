@@ -1,6 +1,7 @@
 ﻿namespace TRPG.Models;
 
-internal class InventoryItem {
+internal class InventoryItem
+{
     public Guid CreatureId { get; init; }
     public EquipmentSlot? EquippedSlot { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();

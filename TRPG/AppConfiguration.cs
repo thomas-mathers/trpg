@@ -1,6 +1,7 @@
 namespace TRPG;
 
-internal class AppConfiguration {
+internal class AppConfiguration
+{
     public string OllamaModel { get; init; } = "llama3.1:8b";
     public bool OllamaThink { get; init; }
     public float? OllamaTemperature { get; init; }
@@ -8,6 +9,6 @@ internal class AppConfiguration {
     public string LogDirectory { get; init; } = "logs";
 
     public string PostgresConnectionString { get; init; } =
-        "Host=127.0.0.1;Port=5432;Database=trpg;Username=postgres;Password=postgres;" +
-        "Minimum Pool Size=1;Connection Idle Lifetime=86400";
+        "Host=127.0.0.1;Port=5432;Database=trpg;Username=postgres;Password=postgres;"
+        + "Minimum Pool Size=1;Connection Idle Lifetime=86400";
 }

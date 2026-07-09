@@ -15,15 +15,14 @@ namespace TRPG.Migrations
                 table: "races",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: ""
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "culture_style",
-                table: "races");
+            migrationBuilder.DropColumn(name: "culture_style", table: "races");
         }
     }
 }
