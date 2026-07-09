@@ -29,6 +29,10 @@ internal static class GameClock {
         return WorldEpoch.AddHours(inGameHoursElapsed);
     }
 
+    public static string GetDayName(DayOfWeek day) {
+        return CalendarFormat.DayNames[(int) day];
+    }
+
     public static InGameDate GetCurrentInGameDate(GameSession session) {
         var dateTime = GetCurrentInGameDateTime(session);
         return new InGameDate(
@@ -36,6 +40,7 @@ internal static class GameClock {
             dateTime.ToString("MMMM", CalendarFormat),
             dateTime.Day,
             dateTime.ToString("dddd", CalendarFormat),
+            dateTime.DayOfWeek,
             dateTime.Hour
         );
     }

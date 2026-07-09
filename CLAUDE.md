@@ -99,13 +99,13 @@
 - Let EF Core throw `DbUpdateException` on violations — no pre-check queries
 
 ### Query tracking
-- Public **query methods** (read-only, never call `SaveChangesAsync`) use `.AsNoTracking()` on their queries — e.g. `LocationService`, `CreatureKnowledgeService`, `CreatureService.GetAllInState`/`GetByName*`, `BuildingService.GetStaticPropsByRoomId`/`GetConnectorsByRoomId`, `SceneService`'s own bootstrap query
-- **Command methods** (mutate + call `SaveChangesAsync` in the same method) use the default tracked query instead — fetch the entity, mutate its properties in place, `SaveChangesAsync()` picks up the change automatically. This is what `InventoryService`, `NpcConversationService.SetSummary`, and `ReputationService.AdjustReputation` do; no explicit `.Update()` call is needed for an entity that was just fetched tracked in the same method
-- When a write only needs to set a field by id/filter and doesn't otherwise need the entity, prefer `ExecuteUpdateAsync` (or `ExecuteDeleteAsync`) over fetch-then-mutate — it issues a direct SQL statement and never touches the change tracker at all, so it can't conflict with anything else tracked in the same `DbContext`. `BuildingService.SetFrontDoorLocked` does this in one query (`Props.OfType<RoomConnector>()` joined to `Rooms`, filtered to the building's front door, `ExecuteUpdateAsync` setting `IsLocked`) rather than fetching the room then the door then saving
-- The rule that makes this safe: a command method **never returns the tracked entity it mutated** to its caller. Its effect is observed either by calling code re-querying (a fresh query always reflects what was just saved, tracked or not) or by the command method returning a plain value describing the result (see `BuildingService.SetFrontDoorLocked`, which returns the resulting `bool?` lock state rather than the `Prop`)
-- Don't mix the two within one method — a query method that also happens to save, or a command method whose fetch feeds a *different* already-tracked instance of the same row (e.g. one seeded earlier in the same `DbContext`), is exactly the shape that breaks: EF throws "another instance with the same key value is already being tracked" if a second no-tracking-fetched copy of an already-tracked row gets `.Update()`-ed, which is why command-method fetches stay tracked rather than opting into `.AsNoTracking()`
-- Watch for *cross-service* ordering/identity assumptions when two methods touch the same row through separate queries on the same `DbContext`: `SceneService.GetScene` used to read a room's front door's `IsLocked` off an already-fetched `Prop` list *after* calling `lockService.SyncScheduleLock` (which mutated that same row through `BuildingService.SetFrontDoorLocked`'s own separate query) — this only worked because both queries were tracked and EF's identity map handed back the same in-memory object. It's restructured now: `SyncScheduleLock` moved out of `LockService` (now just the `CanEnter` gameplay check) and into `SceneSyncService`, which always runs *before* `SceneService.GetScene` — `LookTool`/`MoveTool` call `SceneSyncService.SyncIfNeeded` first, then read the scene, so `SceneService` never races a same-request lock write. `SceneService` also never holds a pre-fetched `Prop` list across the sync anymore: `BuildingService.GetConnectorsByRoomId` (unlike `GetStaticPropsByRoomId`, which is cached indefinitely) is deliberately left uncached and always queries live, because `RoomConnector.IsLocked` is the one `Prop` field actually mutated at runtime — caching it would freeze whatever value was true at first read, invisible to later `SetFrontDoorLocked` writes. This was the one place in the codebase this class of bug existed, so check for it (something holding a pre-fetched entity/list across a call to another method that independently re-fetches-mutates-saves that same row and then reads the original reference afterward, or indefinitely caching a value something else mutates) before assuming a new cross-service interaction is safe
-- This is also why `BuildingService.GetEntranceRoom`/`GetFrontDoor` can be plain `.AsNoTracking()` query methods despite having both external read-only callers (`MoveTool`, `LockService.CanEnter`) and a same-service write concern (`SetFrontDoorLocked`) — the write no longer fetches through them at all, so there's no shared-tracking conflict to design around. Prefer solving this class of tension (a row needs both a cheap read accessor and a targeted write) by giving the write its own `ExecuteUpdateAsync` query rather than making the read accessor tracked to accommodate a fetch-then-mutate write
+- Public **query methods** (read-only, never call `SaveChangesAsync`) use `.AsNoTracking()`
+- **Command methods** (mutate + call `SaveChangesAsync` in the same method) use the default tracked query instead — fetch the entity, mutate its properties in place, `SaveChangesAsync()` picks up the change automatically; no explicit `.Update()` call needed
+- When a write only needs to set a field by id/filter and doesn't otherwise need the entity, prefer `ExecuteUpdateAsync` (or `ExecuteDeleteAsync`) over fetch-then-mutate — it never touches the change tracker, so it can't conflict with anything else tracked in the same `DbContext`
+- A command method never returns the tracked entity it mutated to its caller — its effect is observed either by the caller re-querying, or by the command method returning a plain value describing the result
+- Don't mix the two within one method, and don't let a second no-tracking-fetched copy of an already-tracked row get `.Update()`-ed — EF throws "another instance with the same key value is already being tracked"
+- Watch for cross-service ordering/identity assumptions when two methods touch the same row through separate queries on the same `DbContext` — don't rely on the identity map coincidentally handing back the same in-memory object; make any mutating call run before a dependent read, and don't hold a pre-fetched entity/list across a call to another method that independently re-fetches-mutates-saves that same row
+- When a row needs both a cheap read accessor and a targeted write, give the write its own `ExecuteUpdateAsync` query rather than making the read accessor tracked to accommodate a fetch-then-mutate write
 
 ### World scoping
 - Every new entity/table must have a `WorldId` column with `HasIndex(x => x.WorldId)` — no FK constraint needed (matches other loose Guid references like `Job.PersonId`), just the indexed column
@@ -128,27 +128,6 @@
 
 ---
 
-## Rider MCP Tools
-
-### Known issues
-- `mcp__rider__rename_refactoring` **does not work for C# symbols** — always returns "Couldn't find symbol 'X' in file 'Y'" regardless of path format or symbol name. Known JetBrains bug: RIDER-136391. Use the `Edit` tool for targeted renames instead.
-- `mcp__rider__get_symbol_info` always returns `{"documentation":""}` for all positions — symbol info is unavailable via MCP.
-- `mcp__rider__search_symbol` returns file-level positions (line 1, col 1) rather than actual symbol positions — behaves like a text search, not semantic search.
-
-### Path format
-- `projectPath`: use forward slashes, point to the solution root — e.g. `C:/Users/mathe/RiderProjects/TRPG`
-- `pathInProject`: use forward slashes, relative to solution root — e.g. `TRPG/Models/City.cs`
-
-### Working tools
-- `mcp__rider__build_solution` — triggers a full incremental build; confirms project compiles
-- `mcp__rider__get_file_problems` — runs Rider code analysis on a file; useful to verify edits are error-free
-- `mcp__rider__list_directory_tree` — filesystem tree exploration
-- `mcp__rider__get_solution_projects` — lists projects in the solution
-- `mcp__rider__open_file_in_editor` — opens a file in Rider (occasionally times out; retry once if so)
-- `mcp__rider__execute_terminal_command` — runs shell commands in Rider's terminal (requires "Brave Mode" enabled in MCP settings to skip confirmation prompts; otherwise times out)
-
----
-
 ## Ollama Model Benchmarking
 
 - `scripts/benchmark-model.sh` and `scripts/benchmark-models.sh` measure move-command reliability and latency for a given Ollama model + thinking-mode combination, run against the server's real HTTP endpoints (`POST /worlds/{id}/sessions` then `POST /sessions/{id}/chat`) — built to replace manual edit-source-and-rebuild A/B testing
@@ -160,6 +139,10 @@
 ---
 
 ## Integration Tests
+
+### When to skip the database entirely
+- Before writing an HTTP+Postgres test, check whether the logic under test is actually pure/in-memory (a generator method, a scheduling calculation, etc.) — if so, unit-test it directly instead: construct the real class with its real (non-LLM, non-DB) dependencies and assert on its return value, matching `WorldGeneratorEmploymentTests`/`WorldGeneratorHouseholdTests`. Reserve the full HTTP+Postgres harness for things that genuinely need it — persistence behavior, cross-service wiring, LLM-backed generation steps
+- Never write a temporary/throwaway test just to verify something works and then delete it — if the check is worth writing, it's worth keeping as a permanent test
 
 ### Infrastructure
 - `DatabaseFixture` spins up `postgres:17` via Testcontainers, runs `MigrateAsync` once
@@ -196,6 +179,7 @@ public class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 - Seed helpers add to context, save, and return the entity
 - Seed helpers return a single entity — never a tuple; use separate helpers if a test needs multiple seeded entities
 - `Builders` static class (`TRPG.Tests.Helpers`) constructs valid model objects
+- The same promotion applies to plain scalar values, not just DB entities: if most tests in a class Arrange the same `Guid.NewGuid()`/id variables from scratch, that's noise — promote them to `private` instance fields (set in `InitializeAsync`, or a constructor for a plain non-DB test class) instead of re-declaring them in every test
 
 ### Builders
 - Named `Make{Entity}`: `Builders.MakePerson()`, `Builders.MakeItem()`, `Builders.MakeSkill()`, `Builders.MakeQuest(giverId)`

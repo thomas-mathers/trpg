@@ -46,7 +46,7 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
     [Fact]
     public async Task GetScene_ComputesPlayerAge_FromCurrentInGameYear() {
         // Arrange
-        var query = new SceneQuery(_worldId, _player.Id, new InGameDate(975, "Thawmoon", 1, "Stormday", 14));
+        var query = new SceneQuery(_worldId, _player.Id, new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14));
 
         // Act
         var result = await _service.GetScene(query, TestContext.Current.CancellationToken);
@@ -58,7 +58,7 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
     [Fact]
     public async Task GetScene_ComputesNearbyCreatureAge_FromCurrentInGameYear() {
         // Arrange
-        var query = new SceneQuery(_worldId, _player.Id, new InGameDate(975, "Thawmoon", 1, "Stormday", 14));
+        var query = new SceneQuery(_worldId, _player.Id, new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14));
 
         // Act
         var result = await _service.GetScene(query, TestContext.Current.CancellationToken);
@@ -71,7 +71,7 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
     [Fact]
     public async Task GetScene_ReturnsCurrentDate_FromQuery() {
         // Arrange
-        var currentDate = new InGameDate(975, "Thawmoon", 14, "Stormday", 21);
+        var currentDate = new InGameDate(975, "Thawmoon", 14, "Stormday", DayOfWeek.Thursday, 21);
         var query = new SceneQuery(_worldId, _player.Id, currentDate);
 
         // Act
@@ -97,7 +97,7 @@ public sealed class SceneServiceTests(DatabaseFixture db) : IAsyncLifetime {
         _player.RoomId = room.Id;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var query = new SceneQuery(_worldId, _player.Id, new InGameDate(975, "Thawmoon", 1, "Stormday", 14));
+        var query = new SceneQuery(_worldId, _player.Id, new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14));
 
         // Act
         var result = await _service.GetScene(query, TestContext.Current.CancellationToken);

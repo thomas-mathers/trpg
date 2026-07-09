@@ -107,8 +107,8 @@ internal class MoveTool : Tool, IInvokableTool {
                 return new { Error = $"'{destinationName}' has no entrance. Call look to see what's around." };
             }
 
-            var currentHour = GameClock.GetCurrentInGameDate(_session).Hour;
-            await _sceneSyncService.SyncScheduleLock(building.Id, building.BuildingType, currentHour, cancellationToken);
+            var currentDate = GameClock.GetCurrentInGameDate(_session);
+            await _sceneSyncService.SyncScheduleLock(building.Id, building.BuildingType, currentDate, cancellationToken);
             var canEnter = await _lockService.CanEnter(entranceRoom.Id, player.Id, cancellationToken);
             if (!canEnter) {
                 return new { Error = $"The door to '{destinationName}' is locked." };

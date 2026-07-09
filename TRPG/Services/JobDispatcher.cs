@@ -7,6 +7,10 @@ internal class JobDispatcher(
     SleepJobHandler sleepHandler,
     WorkJobHandler workHandler,
     IdleJobHandler idleHandler,
+    StudyJobHandler studyHandler,
+    PrayJobHandler prayHandler,
+    TrainJobHandler trainHandler,
+    SitJobHandler sitHandler,
     ILogger<JobDispatcher> logger
 ) {
     public async Task Dispatch(Creature creature, Job job, CancellationToken cancellationToken = default) {
@@ -19,6 +23,18 @@ internal class JobDispatcher(
                 break;
             case JobAction.Idle:
                 await idleHandler.Execute(creature, job, cancellationToken);
+                break;
+            case JobAction.Study:
+                await studyHandler.Execute(creature, job, cancellationToken);
+                break;
+            case JobAction.Pray:
+                await prayHandler.Execute(creature, job, cancellationToken);
+                break;
+            case JobAction.Train:
+                await trainHandler.Execute(creature, job, cancellationToken);
+                break;
+            case JobAction.Sit:
+                await sitHandler.Execute(creature, job, cancellationToken);
                 break;
             case JobAction.Patrol:
             case JobAction.Socialize:

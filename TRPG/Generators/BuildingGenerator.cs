@@ -25,9 +25,9 @@ internal record BuildingGeneratorResult(
 internal class BuildingGenerator {
     internal static readonly IReadOnlyCollection<BuildingType> CityBuildingTypes = [
         BuildingType.ArcaneShop, BuildingType.Apothecary, BuildingType.Bakery, BuildingType.Barracks,
-        BuildingType.Blacksmith, BuildingType.Castle, BuildingType.GeneralGoods,
-        BuildingType.GuildHall, BuildingType.House, BuildingType.Inn, BuildingType.Jail,
-        BuildingType.Library, BuildingType.Stable, BuildingType.Tavern, BuildingType.Temple
+        BuildingType.Blacksmith, BuildingType.Carpenter, BuildingType.Castle, BuildingType.GeneralGoods,
+        BuildingType.GuildHall, BuildingType.House, BuildingType.Inn, BuildingType.Jail, BuildingType.Jeweler,
+        BuildingType.Library, BuildingType.Stable, BuildingType.Tailor, BuildingType.Tavern, BuildingType.Temple
     ];
 
     internal static readonly IReadOnlyCollection<BuildingType> DungeonBuildingTypes = [
@@ -51,7 +51,10 @@ internal class BuildingGenerator {
         [BuildingType.Blacksmith] = 3,
         [BuildingType.House] = 3,
         [BuildingType.Stable] = 2,
-        [BuildingType.Castle] = 2
+        [BuildingType.Castle] = 2,
+        [BuildingType.Tailor] = 3,
+        [BuildingType.Carpenter] = 3,
+        [BuildingType.Jeweler] = 3
     };
 
     internal static readonly Dictionary<BuildingType, string[]> Names = new() {
@@ -134,6 +137,21 @@ internal class BuildingGenerator {
             "The Sacred Flame", "The Divine Light", "The Pilgrim's Shrine", "The Holy Hearth",
             "The Sanctum of Faith", "The Blessed Hall", "The Quiet Chapel",
             "The Offering Stone", "The Votive Lantern", "The Celestial Gate"
+        ],
+        [BuildingType.Tailor] = [
+            "The Needle & Thread", "The Silken Seam", "The Woven Bolt", "The Stitched Hem",
+            "The Tailor's Cut", "The Fine Fabric", "The Buttoned Cuff",
+            "The Spool & Shears", "The Draped Mannequin", "The Fitted Sleeve"
+        ],
+        [BuildingType.Carpenter] = [
+            "The Sawdust Corner", "The Joined Plank", "The Whittled Post", "The Timber Yard",
+            "The Carved Beam", "The Oak & Chisel", "The Fitted Joint",
+            "The Wood Shaving", "The Sturdy Frame", "The Grain & Grove"
+        ],
+        [BuildingType.Jeweler] = [
+            "The Cut Gem", "The Silver Setting", "The Polished Facet", "The Gilded Clasp",
+            "The Precious Mount", "The Glinting Case", "The Faceted Stone",
+            "The Fine Filigree", "The Jeweled Band", "The Bright Bezel"
         ]
     };
 
@@ -216,6 +234,9 @@ internal class BuildingGenerator {
             BuildingType.GuildHall => GetGuildHallSpecs(ownerId, memberIds),
             BuildingType.Castle => GetCastleSpecs(ownerId),
             BuildingType.Jail => GetJailSpecs(),
+            BuildingType.Tailor => GetTailorSpecs(ownerId),
+            BuildingType.Carpenter => GetCarpenterSpecs(ownerId),
+            BuildingType.Jeweler => GetJewelerSpecs(ownerId),
             _ => []
         };
     }
@@ -370,6 +391,99 @@ internal class BuildingGenerator {
                 new PropSpec("Chest",
                     (id, worldId) => new Container {
                         RoomId = id, WorldId = worldId, Name = "Chest", Description = "A chest for personal belongings."
+                    })
+            ])
+        ];
+    }
+
+    private static RoomSpec[] GetTailorSpecs(Guid? ownerId) {
+        return [
+            new RoomSpec("Shop", "A shop filled with bolts of cloth and half-finished garments.", 0, 6, [
+                new PropSpec("Cutting Table",
+                    (id, worldId) => new Workstation {
+                        RoomId = id, WorldId = worldId, Name = "Cutting Table",
+                        Description = "A table for cutting and measuring fabric.",
+                        WorkstationType = WorkstationType.Tailoring
+                    }),
+                new PropSpec("Counter",
+                    (id, worldId) => new Workstation {
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for selling garments.",
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
+                    })
+            ]),
+            new RoomSpec("Living Quarters", "Living quarters above the tailor's shop.", 1, 1, [
+                new PropSpec("Bed",
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedCreatureId = ownerId
+                    }),
+                new PropSpec("Chest",
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest",
+                        Description = "A chest for personal belongings."
+                    })
+            ])
+        ];
+    }
+
+    private static RoomSpec[] GetCarpenterSpecs(Guid? ownerId) {
+        return [
+            new RoomSpec("Workshop", "A sawdust-covered workshop stacked with timber.", 0, 6, [
+                new PropSpec("Workbench",
+                    (id, worldId) => new Workstation {
+                        RoomId = id, WorldId = worldId, Name = "Workbench",
+                        Description = "A sturdy workbench for joining and carving wood.",
+                        WorkstationType = WorkstationType.Carpentry
+                    }),
+                new PropSpec("Counter",
+                    (id, worldId) => new Workstation {
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for selling furniture and woodwork.",
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
+                    })
+            ]),
+            new RoomSpec("Living Quarters", "Living quarters above the workshop.", 1, 1, [
+                new PropSpec("Bed",
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedCreatureId = ownerId
+                    }),
+                new PropSpec("Chest",
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest",
+                        Description = "A chest for personal belongings."
+                    })
+            ])
+        ];
+    }
+
+    private static RoomSpec[] GetJewelerSpecs(Guid? ownerId) {
+        return [
+            new RoomSpec("Shop", "A softly lit shop displaying cut gems and fine settings.", 0, 6, [
+                new PropSpec("Jeweler's Bench",
+                    (id, worldId) => new Workstation {
+                        RoomId = id, WorldId = worldId, Name = "Jeweler's Bench",
+                        Description = "A precise bench for cutting and setting gemstones.",
+                        WorkstationType = WorkstationType.Jewelcrafting
+                    }),
+                new PropSpec("Counter",
+                    (id, worldId) => new Workstation {
+                        RoomId = id, WorldId = worldId, Name = "Counter",
+                        Description = "A counter for selling jewelry.",
+                        WorkstationType = WorkstationType.Trade, AssignedCreatureId = ownerId
+                    })
+            ]),
+            new RoomSpec("Living Quarters", "Living quarters above the jeweler's shop.", 1, 1, [
+                new PropSpec("Bed",
+                    (id, worldId) => new Bed {
+                        RoomId = id, WorldId = worldId, Name = "Bed", Description = "A modest bed.",
+                        AssignedCreatureId = ownerId
+                    }),
+                new PropSpec("Chest",
+                    (id, worldId) => new Container {
+                        RoomId = id, WorldId = worldId, Name = "Chest",
+                        Description = "A chest for personal belongings."
                     })
             ])
         ];

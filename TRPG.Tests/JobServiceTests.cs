@@ -70,7 +70,7 @@ public sealed class JobServiceTests(DatabaseFixture db) : IAsyncLifetime {
             Action = _job.Action,
             StartHour = _job.StartHour,
             EndHour = _job.EndHour,
-            Daily = _job.Daily,
+            SpecificDay = _job.SpecificDay,
             Priority = _job.Priority,
             StateId = newStateId
         };

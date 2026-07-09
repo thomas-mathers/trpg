@@ -17,7 +17,9 @@ public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
         var creatureService = new CreatureService(_context);
         _dispatcher = new JobDispatcher(
             new SleepJobHandler(creatureService), new WorkJobHandler(creatureService),
-            new IdleJobHandler(creatureService), NullLogger<JobDispatcher>.Instance);
+            new IdleJobHandler(creatureService), new StudyJobHandler(creatureService),
+            new PrayJobHandler(creatureService), new TrainJobHandler(creatureService),
+            new SitJobHandler(creatureService), NullLogger<JobDispatcher>.Instance);
 
         _creature = Builders.MakeCreature();
         _context.Creatures.Add(_creature);
@@ -41,6 +43,26 @@ public sealed class JobDispatcherTests(DatabaseFixture db) : IAsyncLifetime {
     [Fact]
     public async Task Dispatch_UpdatesCreatureRoomIdAndState_ForIdleJob() {
         await AssertRoomIdUpdated(JobAction.Idle, CreatureState.Idle);
+    }
+
+    [Fact]
+    public async Task Dispatch_UpdatesCreatureRoomIdAndState_ForStudyJob() {
+        await AssertRoomIdUpdated(JobAction.Study, CreatureState.Studying);
+    }
+
+    [Fact]
+    public async Task Dispatch_UpdatesCreatureRoomIdAndState_ForPrayJob() {
+        await AssertRoomIdUpdated(JobAction.Pray, CreatureState.Praying);
+    }
+
+    [Fact]
+    public async Task Dispatch_UpdatesCreatureRoomIdAndState_ForTrainJob() {
+        await AssertRoomIdUpdated(JobAction.Train, CreatureState.Training);
+    }
+
+    [Fact]
+    public async Task Dispatch_UpdatesCreatureRoomIdAndState_ForSitJob() {
+        await AssertRoomIdUpdated(JobAction.Sit, CreatureState.Sitting);
     }
 
     [Fact]

@@ -8,7 +8,11 @@ internal record BiographyGeneratorInput(
     IReadOnlyDictionary<Guid, State> StateById,
     IReadOnlyList<FactionMember> FactionMembers,
     IReadOnlyList<Faction> Factions,
-    IReadOnlyList<Relationship> Relationships);
+    IReadOnlyList<Relationship> Relationships,
+    IReadOnlyList<Job> Jobs,
+    IReadOnlyList<Room> Rooms,
+    IReadOnlyList<Building> Buildings,
+    IReadOnlyList<BuildingOwner> BuildingOwners);
 
 internal static class BiographyGenerator {
     private static readonly (string Name, string HighPhrase, string LowPhrase)[] StatDescriptors = [
@@ -71,16 +75,7 @@ internal static class BiographyGenerator {
         "They tend to wander into long, winding tangents when they speak."
     ];
 
-    private record GoldStats(double Mean, double StdDev);
-
     public static void AssignBiographies(BiographyGeneratorInput input) {
-        var goldStatsByLevel = input.Creatures
-            .GroupBy(c => c.Level)
-            .ToDictionary(g => g.Key, g => {
-                var goldValues = g.Select(c => (double) c.Gold).ToArray();
-                return new GoldStats(goldValues.Average(), StdDev(goldValues));
-            });
-
         var factionById = input.Factions.ToDictionary(f => f.Id);
         var factionNameByCreatureId = input.FactionMembers
             .Where(fm => !factionById[fm.FactionId].IsCityFaction)
@@ -105,24 +100,54 @@ internal static class BiographyGenerator {
             .ToDictionary(r => r.SubjectId, r => new SpouseInfo(
                 r.RelationshipType == RelationshipType.Husband ? "husband" : "wife", creatureNameById[r.RelativeId]));
 
+        var buildingIdByRoomId = input.Rooms.ToDictionary(r => r.Id, r => r.BuildingId);
+        var buildingById = input.Buildings.ToDictionary(b => b.Id);
+        var workJobByCreatureId = input.Jobs
+            .Where(j => j.Action == JobAction.Work)
+            .GroupBy(j => j.CreatureId)
+            .ToDictionary(g => g.Key, g => g.First());
+        var sleepJobByCreatureId = input.Jobs
+            .Where(j => j.Action == JobAction.Sleep)
+            .GroupBy(j => j.CreatureId)
+            .ToDictionary(g => g.Key, g => g.First());
+        var ownedBuildingIdsByCreatureId = input.BuildingOwners
+            .GroupBy(bo => bo.OwnerId)
+            .ToDictionary(g => g.Key, g => g.Select(bo => bo.BuildingId).ToHashSet());
+        var daysOffByCreatureId = input.Jobs
+            .Where(j => j.SpecificDay != null)
+            .GroupBy(j => j.CreatureId)
+            .ToDictionary(g => g.Key,
+                g => g.Select(j => j.SpecificDay!.Value).Distinct().OrderBy(d => (int) d).ToArray());
+
         foreach (var creature in input.Creatures) {
-            var goldStats = goldStatsByLevel[creature.Level];
             factionNameByCreatureId.TryGetValue(creature.Id, out var factionName);
             parentNamesByCreatureId.TryGetValue(creature.Id, out var parentNames);
             childNamesByCreatureId.TryGetValue(creature.Id, out var childNames);
             siblingNamesByCreatureId.TryGetValue(creature.Id, out var siblingNames);
             spouseByCreatureId.TryGetValue(creature.Id, out var spouse);
+            workJobByCreatureId.TryGetValue(creature.Id, out var workJob);
+            sleepJobByCreatureId.TryGetValue(creature.Id, out var sleepJob);
+            ownedBuildingIdsByCreatureId.TryGetValue(creature.Id, out var ownedBuildingIds);
+            var workplace = ResolveBuilding(workJob, buildingIdByRoomId, buildingById);
+            var homeName = ResolveBuilding(sleepJob, buildingIdByRoomId, buildingById)?.Name;
+            var ownsWorkplace = workplace != null && ownedBuildingIds != null &&
+                ownedBuildingIds.Contains(workplace.Value.BuildingId);
+            // Days off only mean something for someone with a fixed job — an unemployed/homemaker/kid's
+            // whole week is already unstructured, so there's nothing distinct to call a "day off".
+            daysOffByCreatureId.TryGetValue(creature.Id, out var daysOff);
+            var daysOffOrNull = workJob != null ? daysOff : null;
             var birthplaceName = input.StateById[creature.BirthStateId].Name;
-            creature.Biography = BuildBiography(creature, birthplaceName, factionName, goldStats, parentNames,
-                childNames, siblingNames, spouse);
+            creature.Biography = BuildBiography(creature, birthplaceName, factionName, parentNames,
+                childNames, siblingNames, spouse, workplace?.Name, workJob, ownsWorkplace, daysOffOrNull, homeName);
         }
     }
 
     private sealed record SpouseInfo(string Label, string Name);
 
     private static string BuildBiography(Creature creature, string birthplaceName, string? factionName,
-        GoldStats goldStats, IReadOnlyList<string>? parentNames, IReadOnlyList<string>? childNames,
-        IReadOnlyList<string>? siblingNames, SpouseInfo? spouse) {
+        IReadOnlyList<string>? parentNames, IReadOnlyList<string>? childNames,
+        IReadOnlyList<string>? siblingNames, SpouseInfo? spouse, string? workplaceName, Job? workJob,
+        bool ownsWorkplace, DayOfWeek[]? daysOff, string? homeName) {
         var age = GameClock.EpochYear - creature.BirthYear;
         var raceLabel = creature.CreatureType.ToString().ToLowerInvariant();
         var professionLabel = creature.Profession?.ToString().ToLowerInvariant() ?? "wanderer";
@@ -138,6 +163,20 @@ internal static class BiographyGenerator {
             sentences.Add(familySentence);
         }
 
+        var workSentence = BuildWorkSentence(workplaceName, workJob, ownsWorkplace);
+        if (workSentence != null) {
+            sentences.Add(workSentence);
+        }
+
+        var daysOffSentence = BuildDaysOffSentence(daysOff);
+        if (daysOffSentence != null) {
+            sentences.Add(daysOffSentence);
+        }
+
+        if (homeName != null) {
+            sentences.Add($"They live at {homeName}.");
+        }
+
         var statSentence = BuildStatSentence(creature.Attributes);
         if (statSentence != null) {
             sentences.Add(statSentence);
@@ -146,11 +185,6 @@ internal static class BiographyGenerator {
         var oceanSentence = BuildOceanSentence();
         if (oceanSentence != null) {
             sentences.Add(oceanSentence);
-        }
-
-        var goldSentence = BuildGoldSentence(creature.Gold, goldStats);
-        if (goldSentence != null) {
-            sentences.Add(goldSentence);
         }
 
         sentences.Add(PhysicalQuirks[Random.Shared.Next(PhysicalQuirks.Length)]);
@@ -191,6 +225,45 @@ internal static class BiographyGenerator {
         return highPhrases.Count > 0
             ? $"They are particularly {JoinPhrases(highPhrases)}."
             : $"Despite their station, they are {JoinPhrases(lowPhrases)}.";
+    }
+
+    private static (Guid BuildingId, string Name)? ResolveBuilding(Job? job,
+        IReadOnlyDictionary<Guid, Guid> buildingIdByRoomId, IReadOnlyDictionary<Guid, Building> buildingById) {
+        if (job?.RoomId == null) {
+            return null;
+        }
+
+        if (!buildingIdByRoomId.TryGetValue(job.RoomId.Value, out var buildingId)) {
+            return null;
+        }
+
+        return buildingById.TryGetValue(buildingId, out var building) ? (buildingId, building.Name) : null;
+    }
+
+    private static string? BuildWorkSentence(string? workplaceName, Job? workJob, bool ownsWorkplace) {
+        if (workplaceName == null || workJob == null) {
+            return null;
+        }
+
+        var hours = $"{FormatHour(workJob.StartHour)} to {FormatHour(workJob.EndHour)}";
+        return ownsWorkplace
+            ? $"They own {workplaceName}, where they typically work {hours}."
+            : $"They work at {workplaceName}, typically {hours}.";
+    }
+
+    private static string FormatHour(int hour) {
+        var period = hour < 12 ? "am" : "pm";
+        var displayHour = hour % 12 == 0 ? 12 : hour % 12;
+        return $"{displayHour}{period}";
+    }
+
+    private static string? BuildDaysOffSentence(DayOfWeek[]? daysOff) {
+        if (daysOff is not { Length: > 0 }) {
+            return null;
+        }
+
+        var dayWord = daysOff.Length == 1 ? "day off is" : "days off are";
+        return $"Their {dayWord} {JoinPhrases(daysOff.Select(GameClock.GetDayName).ToArray())}.";
     }
 
     private static string? BuildFamilySentence(IReadOnlyList<string>? parentNames, IReadOnlyList<string>? childNames,
@@ -252,18 +325,6 @@ internal static class BiographyGenerator {
 
         var joined = highPhrases.Count > 0 ? JoinPhrases(highPhrases) : JoinPhrases(lowPhrases);
         return $"They are {joined}.";
-    }
-
-    private static string? BuildGoldSentence(int gold, GoldStats goldStats) {
-        if (gold > goldStats.Mean + goldStats.StdDev) {
-            return "They are notably wealthy for someone of their station.";
-        }
-
-        if (gold < goldStats.Mean - goldStats.StdDev) {
-            return "They scrape by with less coin than most in their position.";
-        }
-
-        return null;
     }
 
     private static string JoinPhrases(IReadOnlyList<string> phrases) {

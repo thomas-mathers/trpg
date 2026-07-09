@@ -210,12 +210,12 @@ internal static class Builders {
     }
 
     public static Building MakeBuilding(Guid stateId, Guid? cityId = null, Guid? districtId = null,
-        Guid? worldId = null) {
+        Guid? worldId = null, string? name = null) {
         return new Building {
             StateId = stateId,
             CityId = cityId,
             DistrictId = districtId,
-            Name = $"Building-{Guid.NewGuid():N}",
+            Name = name ?? $"Building-{Guid.NewGuid():N}",
             Description = "A test building",
             BuildingType = BuildingType.House,
             WorldId = worldId ?? Guid.NewGuid()
@@ -223,13 +223,14 @@ internal static class Builders {
     }
 
     public static Job MakeJob(Guid creatureId, int priority = 1, JobAction action = JobAction.Idle,
-        int startHour = 8, int endHour = 17, Guid? roomId = null, Guid? worldId = null) {
+        int startHour = 8, int endHour = 17, Guid? roomId = null, Guid? worldId = null,
+        DayOfWeek? specificDay = null) {
         return new Job {
             CreatureId = creatureId,
             Action = action,
             StartHour = startHour,
             EndHour = endHour,
-            Daily = true,
+            SpecificDay = specificDay,
             Priority = priority,
             StateId = Guid.NewGuid(),
             RoomId = roomId,

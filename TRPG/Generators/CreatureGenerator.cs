@@ -217,7 +217,14 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [Profession.Politician] = ArmorClass.Cloth,
         [Profession.StableMaster] = ArmorClass.Leather,
         [Profession.Bartender] = ArmorClass.Cloth,
-        [Profession.Guard] = ArmorClass.Mail
+        [Profession.Guard] = ArmorClass.Mail,
+        [Profession.Baker] = ArmorClass.Cloth,
+        [Profession.Innkeeper] = ArmorClass.Cloth,
+        [Profession.Tailor] = ArmorClass.Cloth,
+        [Profession.Carpenter] = ArmorClass.Leather,
+        [Profession.Jeweler] = ArmorClass.Cloth,
+        [Profession.Homemaker] = ArmorClass.Cloth,
+        [Profession.Unemployed] = ArmorClass.Cloth
     };
 
     private static readonly Dictionary<Profession, Skill[]> ProfessionSkills = new() {
@@ -234,7 +241,14 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [Profession.Politician] = [],
         [Profession.StableMaster] = [],
         [Profession.Bartender] = [],
-        [Profession.Guard] = [Skill.Swordsmanship, Skill.Warfare]
+        [Profession.Guard] = [Skill.Swordsmanship, Skill.Warfare],
+        [Profession.Baker] = [],
+        [Profession.Innkeeper] = [],
+        [Profession.Tailor] = [],
+        [Profession.Carpenter] = [],
+        [Profession.Jeweler] = [],
+        [Profession.Homemaker] = [],
+        [Profession.Unemployed] = []
     };
 
     private static readonly Dictionary<Profession, StatAffinities> Affinities = new() {
@@ -251,7 +265,14 @@ internal class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions
         [Profession.Politician] = new StatAffinities(0, 0, 1, 0, 0, 1, 8, 4.0f),
         [Profession.StableMaster] = new StatAffinities(1, 0, 3, 3, 2, 0, 1, 1.0f),
         [Profession.Bartender] = new StatAffinities(0, 0, 3, 1, 2, 0, 4, 1.2f),
-        [Profession.Guard] = new StatAffinities(2, 3, 1, 3, 1, 0, 0, 0.7f)
+        [Profession.Guard] = new StatAffinities(2, 3, 1, 3, 1, 0, 0, 0.7f),
+        [Profession.Baker] = new StatAffinities(1, 0, 2, 2, 2, 0, 2, 1.3f),
+        [Profession.Innkeeper] = new StatAffinities(0, 0, 2, 1, 2, 0, 3, 1.4f),
+        [Profession.Tailor] = new StatAffinities(0, 0, 3, 1, 1, 0, 3, 1.5f),
+        [Profession.Carpenter] = new StatAffinities(2, 0, 2, 2, 2, 0, 1, 1.2f),
+        [Profession.Jeweler] = new StatAffinities(0, 0, 3, 0, 1, 0, 3, 2.5f),
+        [Profession.Homemaker] = new StatAffinities(0, 0, 1, 2, 2, 0, 1, 0.5f),
+        [Profession.Unemployed] = new StatAffinities(0, 0, 1, 1, 1, 0, 1, 0.3f)
     };
 
     public CreatureGeneratorResult Generate(CreatureGeneratorInput generatorInput) {

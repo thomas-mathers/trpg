@@ -145,6 +145,22 @@ internal class BuildingService(TrpgDbContext context, IMemoryCache cache) {
             .ToArrayAsync(cancellationToken);
     }
 
+    // Deliberately uncached, like GetConnectorsByRoomId — OccupantId is mutated at runtime by SetWorkstationOccupant.
+    public async Task<IReadOnlyCollection<Workstation>> GetWorkstationsByRoomId(Guid roomId,
+        CancellationToken cancellationToken = default) {
+        return await context.Props.AsNoTracking()
+            .Where(p => p.RoomId == roomId)
+            .OfType<Workstation>()
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task SetWorkstationOccupant(Guid workstationId, Guid? occupantId,
+        CancellationToken cancellationToken = default) {
+        await context.Props.OfType<Workstation>()
+            .Where(w => w.Id == workstationId)
+            .ExecuteUpdateAsync(s => s.SetProperty(w => w.OccupantId, occupantId), cancellationToken);
+    }
+
     public async Task<IReadOnlyCollection<BuildingOwner>> GetAllOwnersByBuildingId(Guid buildingId,
         CancellationToken cancellationToken = default) {
         var list = await context.BuildingOwners.AsNoTracking()

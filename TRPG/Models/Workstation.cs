@@ -3,8 +3,11 @@ namespace TRPG.Models;
 internal enum WorkstationType {
     Alchemy,
     Armorsmithing,
+    Carpentry,
     Cooking,
     Enchanting,
+    Jewelcrafting,
+    Tailoring,
     Trade,
     Prayer,
     Reading,

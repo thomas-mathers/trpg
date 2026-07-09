@@ -72,6 +72,7 @@ internal class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContex
         configurationBuilder.Properties<Skill>().HaveConversion<string>();
         configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();
         configurationBuilder.Properties<RelationshipType>().HaveConversion<string>();
+        configurationBuilder.Properties<DayOfWeek>().HaveConversion<string>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {

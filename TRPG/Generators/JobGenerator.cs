@@ -2,18 +2,21 @@ using TRPG.Models;
 
 namespace TRPG.Generators;
 
-internal static class JobGenerator {
-    private const int SleepStartHour = 22;
-    private const int SleepEndHour = 6;
-    private const int WorkStartHour = 8;
-    private const int WorkEndHour = 20;
-    private const int IdleStartHour = 6;
-    private const int IdleEndHour = 22;
+internal record HourWindow(int Start, int End);
 
-    public static Job GenerateSleep(Guid stateId, Guid creatureId, Guid roomId, Guid worldId) {
+internal static class JobGenerator {
+    private static readonly HourWindow DefaultSleepHours = new(22, 6);
+    private static readonly HourWindow DefaultWorkHours = new(8, 20);
+    private static readonly HourWindow IdleHours = new(6, 22);
+    private const int DayOffPriority = 60;
+    private const int UnemployedActivityPriority = 10;
+
+    public static Job GenerateSleep(Guid stateId, Guid creatureId, Guid roomId, Guid worldId,
+        HourWindow? hours = null) {
+        var window = hours ?? DefaultSleepHours;
         return new Job {
             StateId = stateId, CreatureId = creatureId, Action = JobAction.Sleep,
-            StartHour = SleepStartHour, EndHour = SleepEndHour, Daily = true, Priority = 100, RoomId = roomId,
+            StartHour = window.Start, EndHour = window.End, Priority = 100, RoomId = roomId,
             WorldId = worldId
         };
     }
@@ -21,16 +24,40 @@ internal static class JobGenerator {
     public static Job GenerateIdle(Guid stateId, Guid creatureId, Guid? roomId, Guid worldId) {
         return new Job {
             StateId = stateId, CreatureId = creatureId, Action = JobAction.Idle,
-            StartHour = IdleStartHour, EndHour = IdleEndHour, Daily = true, Priority = 0, RoomId = roomId,
+            StartHour = IdleHours.Start, EndHour = IdleHours.End, Priority = 0, RoomId = roomId,
             WorldId = worldId
         };
     }
 
-    public static Job GenerateWork(Guid stateId, Guid creatureId, Guid roomId, Guid worldId) {
+    public static Job GenerateWork(Guid stateId, Guid creatureId, Guid roomId, Guid worldId,
+        HourWindow? hours = null) {
+        var window = hours ?? DefaultWorkHours;
         return new Job {
             StateId = stateId, CreatureId = creatureId, Action = JobAction.Work,
-            StartHour = WorkStartHour, EndHour = WorkEndHour, Daily = true, Priority = 50, RoomId = roomId,
+            StartHour = window.Start, EndHour = window.End, Priority = 50, RoomId = roomId,
             WorldId = worldId
+        };
+    }
+
+    // Overrides an employed creature's Work slot on one specific day (a day off, solo or shared as a family activity).
+    // Hours default to the standard Work window; pass the creature's actual building-specific Work hours when they differ.
+    public static Job GenerateDayOff(Guid stateId, Guid creatureId, JobAction action, Guid? roomId, DayOfWeek day,
+        Guid worldId, HourWindow? hours = null) {
+        var window = hours ?? DefaultWorkHours;
+        return new Job {
+            StateId = stateId, CreatureId = creatureId, Action = action,
+            StartHour = window.Start, EndHour = window.End, Priority = DayOffPriority, RoomId = roomId,
+            SpecificDay = day, WorldId = worldId
+        };
+    }
+
+    // Overrides an unemployed/homemaker creature's entire waking day, one random activity per weekday.
+    public static Job GenerateUnemployedDayActivity(Guid stateId, Guid creatureId, JobAction action, Guid? roomId,
+        DayOfWeek day, Guid worldId) {
+        return new Job {
+            StateId = stateId, CreatureId = creatureId, Action = action,
+            StartHour = IdleHours.Start, EndHour = IdleHours.End, Priority = UnemployedActivityPriority, RoomId = roomId,
+            SpecificDay = day, WorldId = worldId
         };
     }
 

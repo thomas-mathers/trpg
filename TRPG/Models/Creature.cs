@@ -28,7 +28,11 @@ internal static class CreatureTypes {
 internal enum CreatureState {
     Sleeping,
     Idle,
-    Busy
+    Busy,
+    Studying,
+    Praying,
+    Training,
+    Sitting
 }
 
 internal enum Gender {
@@ -50,7 +54,14 @@ internal enum Profession {
     Politician,
     StableMaster,
     Bartender,
-    Guard
+    Guard,
+    Baker,
+    Innkeeper,
+    Tailor,
+    Carpenter,
+    Jeweler,
+    Homemaker,
+    Unemployed
 }
 
 internal class Creature {
@@ -69,7 +80,7 @@ internal class Creature {
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Level { get; set; }
     public string Name { get; init; } = "";
-    public Profession? Profession { get; init; }
+    public Profession? Profession { get; set; }
     public Guid? RoomId { get; set; }
     public CreatureState State { get; set; }
     public Guid StateId { get; set; }

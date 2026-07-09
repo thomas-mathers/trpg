@@ -4,6 +4,8 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests;
 
 public class JobSchedulingTests {
+    private readonly Guid _creatureId = Guid.NewGuid();
+
     [Theory]
     [InlineData(8, true)]
     [InlineData(19, true)]
@@ -11,10 +13,10 @@ public class JobSchedulingTests {
     [InlineData(7, false)]
     public void IsActiveAtHour_HandlesNormalWindow(int hour, bool expected) {
         // Arrange
-        var job = Builders.MakeJob(Guid.NewGuid(), startHour: 8, endHour: 20);
+        var job = Builders.MakeJob(_creatureId, startHour: 8, endHour: 20);
 
         // Act
-        var result = JobScheduling.IsActiveAtHour(job, hour);
+        var result = JobScheduling.IsActiveAtHour(job, DayOfWeek.Monday, hour);
 
         // Assert
         Assert.Equal(expected, result);
@@ -29,10 +31,10 @@ public class JobSchedulingTests {
     [InlineData(21, false)]
     public void IsActiveAtHour_HandlesMidnightWraparound(int hour, bool expected) {
         // Arrange
-        var job = Builders.MakeJob(Guid.NewGuid(), startHour: 22, endHour: 6);
+        var job = Builders.MakeJob(_creatureId, startHour: 22, endHour: 6);
 
         // Act
-        var result = JobScheduling.IsActiveAtHour(job, hour);
+        var result = JobScheduling.IsActiveAtHour(job, DayOfWeek.Monday, hour);
 
         // Assert
         Assert.Equal(expected, result);
@@ -41,10 +43,34 @@ public class JobSchedulingTests {
     [Fact]
     public void IsActiveAtHour_ReturnsFalse_WhenStartEqualsEnd() {
         // Arrange
-        var job = Builders.MakeJob(Guid.NewGuid(), startHour: 0, endHour: 0);
+        var job = Builders.MakeJob(_creatureId, startHour: 0, endHour: 0);
 
         // Act
-        var result = JobScheduling.IsActiveAtHour(job, 0);
+        var result = JobScheduling.IsActiveAtHour(job, DayOfWeek.Monday, 0);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsActiveAtHour_ReturnsTrue_WhenSpecificDayMatchesCurrentWeekday() {
+        // Arrange
+        var job = Builders.MakeJob(_creatureId, startHour: 8, endHour: 20, specificDay: DayOfWeek.Monday);
+
+        // Act
+        var result = JobScheduling.IsActiveAtHour(job, DayOfWeek.Monday, 10);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsActiveAtHour_ReturnsFalse_WhenSpecificDayDoesNotMatchCurrentWeekday() {
+        // Arrange
+        var job = Builders.MakeJob(_creatureId, startHour: 8, endHour: 20, specificDay: DayOfWeek.Monday);
+
+        // Act
+        var result = JobScheduling.IsActiveAtHour(job, DayOfWeek.Tuesday, 10);
 
         // Assert
         Assert.False(result);
