@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using OllamaSharp;
 using OllamaSharp.Models;
+using TRPG.Application.Game;
+using TRPG.Application.Worlds.Commands;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts;
-using TRPG.Services;
 
 namespace TRPG.Endpoints;
 
@@ -20,14 +22,17 @@ internal static class SessionEndpoints
 
     private static async Task<IResult> StartSession(
         Guid worldId,
-        WorldService worldService,
+        GetWorldQueryHandler getWorld,
         IOllamaApiClient ollamaClient,
         AppConfiguration appConfiguration,
         GameSessionStore sessionStore,
         CancellationToken cancellationToken
     )
     {
-        var world = await worldService.GetWorld(worldId, cancellationToken);
+        var world = await getWorld.Handle(
+            new GetWorldQuery { WorldId = worldId },
+            cancellationToken
+        );
         if (world?.PlayerId == null)
         {
             return Results.NotFound();
@@ -73,12 +78,7 @@ internal static class SessionEndpoints
         );
     }
 
-    private static async Task<IResult> Wait(
-        Guid sessionId,
-        WaitRequest request,
-        GameSessionStore sessionStore,
-        CancellationToken cancellationToken
-    )
+    private static IResult Wait(Guid sessionId, WaitRequest request, GameSessionStore sessionStore)
     {
         var state = sessionStore.Get(sessionId);
         if (state == null)
@@ -102,7 +102,8 @@ internal static class SessionEndpoints
     private static async Task<IResult> EndSession(
         Guid sessionId,
         GameSessionStore sessionStore,
-        WorldService worldService,
+        GetWorldQueryHandler getWorld,
+        UpdateWorldCommandHandler updateWorld,
         CancellationToken cancellationToken
     )
     {
@@ -112,23 +113,15 @@ internal static class SessionEndpoints
             return Results.NotFound();
         }
 
-        await EndSessionCleanup(sessionId, state, sessionStore, worldService, cancellationToken);
-        return Results.NoContent();
-    }
-
-    private static async Task EndSessionCleanup(
-        Guid sessionId,
-        GameSessionState state,
-        GameSessionStore sessionStore,
-        WorldService worldService,
-        CancellationToken cancellationToken
-    )
-    {
-        var world = await worldService.GetWorld(state.Session.WorldId, cancellationToken);
+        var world = await getWorld.Handle(
+            new GetWorldQuery { WorldId = state.Session.WorldId },
+            cancellationToken
+        );
         world!.Playtime = GameClock.GetTotalPlaytime(state.Session);
-        await worldService.Update(world, cancellationToken);
+        await updateWorld.Handle(new UpdateWorldCommand { World = world }, cancellationToken);
 
         sessionStore.Remove(sessionId);
+        return Results.NoContent();
     }
 
     private static TurnMetricsDto ToDto(TurnMetrics metrics) =>

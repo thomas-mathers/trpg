@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-using TRPG.Commands;
+using TRPG.Application.Worlds.Commands;
+using TRPG.Application.Worlds.Generators;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts;
-using TRPG.Data;
-using TRPG.Data.Models;
 using TRPG.Extensions;
-using TRPG.Generators;
 using Profession = TRPG.Data.Models.Profession;
 
 namespace TRPG.Endpoints;
@@ -22,74 +20,49 @@ internal static class WorldEndpoints
 
     private static async Task<IResult> CreateWorld(
         CreateWorldRequest request,
-        WorldGenerator worldGenerator,
-        CreatureGenerator creatureGenerator,
-        BootstrapWorldCommandHandler bootstrapHandler,
+        CreateWorldCommandHandler createWorld,
         CancellationToken cancellationToken
     )
     {
-        var input = new WorldGeneratorInput
+        var command = new CreateWorldCommand
         {
-            Description = request.Description,
-            MinCityStates = request.MinCityStates,
-            MaxCityStates = request.MaxCityStates,
-            MinRuralStates = request.MinRuralStates,
-            MaxRuralStates = request.MaxRuralStates,
-            MinBuildingsPerState = request.MinBuildingsPerState,
-            MaxBuildingsPerState = request.MaxBuildingsPerState,
-            MinFactionMembers = request.MinFactionMembers,
-            MaxFactionMembers = request.MaxFactionMembers,
-            HousesPerCity = request.HousesPerCity,
-            MinHouseholdSize = request.MinHouseholdSize,
-            MaxHouseholdSize = request.MaxHouseholdSize,
-            FactionCount = request.FactionCount,
+            WorldInput = new WorldGeneratorInput
+            {
+                Description = request.Description,
+                MinCityStates = request.MinCityStates,
+                MaxCityStates = request.MaxCityStates,
+                MinRuralStates = request.MinRuralStates,
+                MaxRuralStates = request.MaxRuralStates,
+                MinBuildingsPerState = request.MinBuildingsPerState,
+                MaxBuildingsPerState = request.MaxBuildingsPerState,
+                MinFactionMembers = request.MinFactionMembers,
+                MaxFactionMembers = request.MaxFactionMembers,
+                HousesPerCity = request.HousesPerCity,
+                MinHouseholdSize = request.MinHouseholdSize,
+                MaxHouseholdSize = request.MaxHouseholdSize,
+                FactionCount = request.FactionCount,
+            },
+            PlayerCreatureType = request.Race.ToCreatureType(),
+            PlayerProfession = Enum.Parse<Profession>(request.Profession.ToString()),
+            PlayerName = request.PlayerName,
         };
 
-        var worldResult = await worldGenerator.Generate(input, cancellationToken);
-
-        var playerCreatureType = request.Race.ToCreatureType();
-        var homeCountry = worldResult.Countries.First(c => c.DominantRace == playerCreatureType);
-        var startingCity = worldResult.Cities.First(c =>
-            c.IsCapital && c.CountryId == homeCountry.Id
-        );
-        var startingState = worldResult.States.First(s => s.Id == startingCity.StateId);
-        var startingDistrict = worldResult.Districts.First(d =>
-            d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter
-        );
-        var profession = Enum.Parse<Profession>(request.Profession.ToString());
-
-        var playerResult = creatureGenerator.Generate(
-            new CreatureGeneratorInput(
-                CreatureType: playerCreatureType,
-                Profession: profession,
-                WorldId: worldResult.World.Id,
-                BirthStateId: startingState.Id,
-                StateId: startingState.Id,
-                Level: 1,
-                Name: request.PlayerName
-            )
-        );
-        playerResult.Creature.CityId = startingCity.Id;
-        playerResult.Creature.DistrictId = startingDistrict.Id;
-
-        var result = await bootstrapHandler.Handle(worldResult, playerResult, cancellationToken);
+        var result = await createWorld.Handle(command, cancellationToken);
 
         return Results.Ok(
-            new CreateWorldResponse(result.WorldId, result.PlayerId, worldResult.World.Name)
+            new CreateWorldResponse(result.WorldId, result.PlayerId, result.WorldName)
         );
     }
 
     private static async Task<IResult> ListWorlds(
-        TrpgDbContext context,
+        ListWorldsQueryHandler listWorlds,
         CancellationToken cancellationToken
     )
     {
-        var worlds = await context
-            .Worlds.OrderBy(w => w.Name)
-            .Select(w => new WorldSummary(w.Id, w.Name, w.PlayerId != null))
-            .ToListAsync(cancellationToken);
-
-        return Results.Ok(worlds);
+        var worlds = await listWorlds.Handle(new ListWorldsQuery(), cancellationToken);
+        return Results.Ok(
+            worlds.Select(w => new WorldSummary(w.Id, w.Name, w.PlayerId != null)).ToArray()
+        );
     }
 
     private static async Task<IResult> DropWorld(

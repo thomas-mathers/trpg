@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG;
+using TRPG.Application.Extensions;
 using TRPG.Data;
 using TRPG.Endpoints;
 using TRPG.Extensions;
@@ -33,6 +34,7 @@ builder
     .AddOllamaApiClient(appConfiguration)
     .AddSingleton(appConfiguration)
     .AddTrpgApplicationServices()
+    .AddTrpgSessionState()
     .AddSignalR();
 
 builder.Services.ConfigureHttpJsonOptions(options =>

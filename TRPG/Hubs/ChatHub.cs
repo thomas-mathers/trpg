@@ -1,8 +1,9 @@
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Game;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts;
-using TRPG.Services;
 
 namespace TRPG.Hubs;
 
@@ -65,9 +66,16 @@ internal sealed class ChatHub(IServiceProvider serviceProvider, GameSessionStore
             yield return token;
         }
 
-        if ((alwaysSendScene || state.Session.SceneRefreshedThisTurn) && state.LastScene != null)
+        if (
+            (alwaysSendScene || state.Session.SceneRefreshedThisTurn)
+            && state.Session.LastScene != null
+        )
         {
-            await Clients.Caller.SendAsync("Scene", ToSnapshot(state.LastScene), cancellationToken);
+            await Clients.Caller.SendAsync(
+                "Scene",
+                ToSnapshot(state.Session.LastScene),
+                cancellationToken
+            );
         }
     }
 

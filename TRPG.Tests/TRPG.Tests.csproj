@@ -26,4 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TRPG\TRPG.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Application\Buildings\Queries\" />
+  </ItemGroup>
 </Project>

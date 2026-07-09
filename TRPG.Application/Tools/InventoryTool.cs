@@ -1,0 +1,123 @@
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using OllamaSharp.Models.Chat;
+using OllamaSharp.Tools;
+using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Game;
+using TRPG.Application.Inventory.Queries;
+using TRPG.Data.Models;
+
+namespace TRPG.Application.Tools;
+
+internal record InventoryItemInfo(string Name, int Quantity);
+
+internal record InventoryResult(
+    string OwnerName,
+    int Gold,
+    IReadOnlyCollection<InventoryItemInfo> Items
+);
+
+internal class InventoryTool : Tool, IInvokableTool
+{
+    private readonly GetCreatureByIdQueryHandler _getCreatureById;
+    private readonly GetCreatureByNameNearbyQueryHandler _getCreatureByNameNearby;
+    private readonly GetInventoryByCreatureIdQueryHandler _getInventoryByCreatureId;
+    private readonly ILogger<InventoryTool> _logger;
+    private readonly GameSession _session;
+
+    public InventoryTool(
+        GameSession session,
+        GetCreatureByIdQueryHandler getCreatureById,
+        GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
+        GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
+        ILogger<InventoryTool> logger
+    )
+    {
+        _session = session;
+        _getCreatureById = getCreatureById;
+        _getCreatureByNameNearby = getCreatureByNameNearby;
+        _getInventoryByCreatureId = getInventoryByCreatureId;
+        _logger = logger;
+
+        Function = new Function
+        {
+            Name = "inventory",
+            Description =
+                "Returns the items someone is carrying. Omit targetName to check the player's own inventory, or pass the exact Name of a person from NearbyPeople to check theirs.",
+            Parameters = new Parameters
+            {
+                Type = "object",
+                Properties = new Dictionary<string, Property>
+                {
+                    ["targetName"] = new()
+                    {
+                        Type = "string",
+                        Description =
+                            "The exact Name of a person from NearbyPeople, copied verbatim from the most recent look or move result. Omit to check the player's own inventory.",
+                    },
+                },
+                Required = new List<string>(),
+            },
+        };
+    }
+
+    public object? InvokeMethod(IDictionary<string, object?>? args)
+    {
+        var targetName =
+            args != null && args.TryGetValue("targetName", out var raw) ? raw?.ToString() : null;
+
+        _logger.LogInformation("[inventory] targetName={TargetName}", targetName ?? "(self)");
+        var result = InvokeMethodAsync(targetName, CancellationToken.None).GetAwaiter().GetResult();
+        var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
+        _logger.LogInformation("[inventory] result: {Result}", json);
+        return json;
+    }
+
+    private async Task<object?> InvokeMethodAsync(
+        string? targetName,
+        CancellationToken cancellationToken
+    )
+    {
+        var player = await _getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = _session.PlayerId },
+            cancellationToken
+        );
+
+        Creature? target;
+        if (string.IsNullOrWhiteSpace(targetName))
+        {
+            target = player;
+        }
+        else
+        {
+            target = await _getCreatureByNameNearby.Handle(
+                new GetCreatureByNameNearbyQuery
+                {
+                    WorldId = _session.WorldId,
+                    Player = player!,
+                    Name = targetName,
+                },
+                cancellationToken
+            );
+
+            if (target == null)
+            {
+                return new
+                {
+                    Error = $"No one named '{targetName}' found nearby. Call look to see who's around.",
+                };
+            }
+        }
+
+        var items = await _getInventoryByCreatureId.Handle(
+            new GetInventoryByCreatureIdQuery { CreatureId = target!.Id },
+            cancellationToken
+        );
+
+        return new InventoryResult(
+            target.Name,
+            target.Gold,
+            items.Select(i => new InventoryItemInfo(i.Item.Name, i.Quantity)).ToArray()
+        );
+    }
+}

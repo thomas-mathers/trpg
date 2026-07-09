@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using OllamaSharp;
 using OllamaSharp.Models;
 using OllamaSharp.Models.Chat;
-using TRPG.Generators;
+using TRPG.Application.Worlds.Generators;
 
 namespace TRPG.Tests.Helpers;
 

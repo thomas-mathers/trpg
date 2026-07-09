@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Contracts", "TRPG.Cont
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Data", "TRPG.Data\TRPG.Data.csproj", "{E54047ED-2668-4B3F-A287-7D3D5667AD50}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application", "TRPG.Application\TRPG.Application.csproj", "{C5938DA5-8200-4B2B-965F-0E4C772C61C5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -80,6 +82,18 @@ Global
 		{E54047ED-2668-4B3F-A287-7D3D5667AD50}.Release|x64.Build.0 = Release|Any CPU
 		{E54047ED-2668-4B3F-A287-7D3D5667AD50}.Release|x86.ActiveCfg = Release|Any CPU
 		{E54047ED-2668-4B3F-A287-7D3D5667AD50}.Release|x86.Build.0 = Release|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Debug|x64.Build.0 = Debug|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Debug|x86.Build.0 = Debug|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Release|x64.ActiveCfg = Release|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Release|x64.Build.0 = Release|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Release|x86.ActiveCfg = Release|Any CPU
+		{C5938DA5-8200-4B2B-965F-0E4C772C61C5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

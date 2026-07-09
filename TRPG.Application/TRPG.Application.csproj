@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TRPG.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="OllamaSharp" Version="5.4.25" />
+    <PackageReference Include="SharpVoronoiLib" Version="1.2.0" />
+  </ItemGroup>
+</Project>

@@ -20,12 +20,11 @@
     <InternalsVisibleTo Include="TRPG.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\TRPG.Application\TRPG.Application.csproj" />
     <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
-    <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="OllamaSharp" Version="5.4.25" />
-    <PackageReference Include="SharpVoronoiLib" Version="1.2.0" />
     <PackageReference Include="ZLogger" Version="2.5.10" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,50 @@
+using TRPG.Application.Worlds.Commands;
+using TRPG.Data;
+using TRPG.Data.Models;
+using TRPG.Tests.Helpers;
+
+namespace TRPG.Tests.Application.Worlds.Commands;
+
+[Collection("Database")]
+public sealed class UpdateWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
+{
+    private TrpgDbContext _context = null!;
+    private UpdateWorldCommandHandler _handler = null!;
+    private World _world = null!;
+
+    public async ValueTask InitializeAsync()
+    {
+        _context = db.CreateContext();
+        _handler = new UpdateWorldCommandHandler(_context);
+
+        _world = Builders.MakeWorld();
+        _context.Worlds.Add(_world);
+        await _context.SaveChangesAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _context.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Handle_PersistsPlaytime()
+    {
+        // Arrange
+        _world.Playtime = TimeSpan.FromHours(5);
+
+        // Act
+        await _handler.Handle(
+            new UpdateWorldCommand { World = _world },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Worlds.FindAsync(
+            [_world.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(TimeSpan.FromHours(5), updated!.Playtime);
+    }
+}
