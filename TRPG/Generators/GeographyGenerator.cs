@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
+using TRPG.Data.Models;
 using TRPG.Extensions;
-using TRPG.Models;
 
 namespace TRPG.Generators;
 

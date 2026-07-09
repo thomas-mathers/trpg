@@ -1,4 +1,6 @@
-using TRPG.Models;
+using TRPG.Contracts;
+using TRPG.Data.Models;
+using Profession = TRPG.Data.Models.Profession;
 
 namespace TRPG.Tests.Helpers;
 

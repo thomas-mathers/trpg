@@ -4,9 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Commands;
 using TRPG.Contracts;
 using TRPG.Data;
+using TRPG.Data.Models;
 using TRPG.Extensions;
 using TRPG.Generators;
-using TRPG.Models;
+using Profession = TRPG.Data.Models.Profession;
 
 namespace TRPG.Endpoints;
 
@@ -55,7 +56,7 @@ internal static class WorldEndpoints
         var startingDistrict = worldResult.Districts.First(d =>
             d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter
         );
-        var profession = Enum.Parse<Models.Profession>(request.Profession.ToString());
+        var profession = Enum.Parse<Profession>(request.Profession.ToString());
 
         var playerResult = creatureGenerator.Generate(
             new CreatureGeneratorInput(

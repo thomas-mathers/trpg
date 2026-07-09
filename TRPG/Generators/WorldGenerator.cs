@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using TRPG.Models;
+using TRPG.Data.Models;
 
 namespace TRPG.Generators;
 

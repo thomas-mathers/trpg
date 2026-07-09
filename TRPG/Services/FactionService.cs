@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Data;
-using TRPG.Models;
+using TRPG.Data.Models;
 
 namespace TRPG.Services;
 

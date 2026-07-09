@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using TRPG.Data;
-using TRPG.Models;
+using TRPG.Data.Models;
 using TRPG.Services;
 using TRPG.Tests.Helpers;
 
@@ -50,7 +50,14 @@ public sealed class SceneSyncServiceTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     private static InGameDate MakeDate(int hour) =>
-        new(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, hour);
+        new(
+            (int)975,
+            (string)"Thawmoon",
+            (int)1,
+            (string)"Stormday",
+            (DayOfWeek)DayOfWeek.Thursday,
+            hour
+        );
 
     [Fact]
     public async Task SyncIfNeeded_MovesCreatureIntoRoom_WhenSleepJobActive()

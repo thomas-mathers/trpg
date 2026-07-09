@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
-using TRPG.Models;
+using TRPG.Data.Models;
 using TRPG.Services;
 using TRPG.Tests.Helpers;
 

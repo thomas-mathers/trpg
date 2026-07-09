@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using TRPG.Models;
+using TRPG.Data.Models;
 
 namespace TRPG.Services;
 

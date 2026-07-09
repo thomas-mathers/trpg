@@ -1,5 +1,5 @@
+using TRPG.Data.Models;
 using TRPG.Generators;
-using TRPG.Models;
 
 namespace TRPG.Tests;
 

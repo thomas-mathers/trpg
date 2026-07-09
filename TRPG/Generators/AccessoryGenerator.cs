@@ -1,4 +1,4 @@
-using TRPG.Models;
+using TRPG.Data.Models;
 using static TRPG.Generators.ItemModifierHelpers;
 
 namespace TRPG.Generators;

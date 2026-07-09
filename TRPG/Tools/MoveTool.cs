@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using OllamaSharp.Models.Chat;
 using OllamaSharp.Tools;
-using TRPG.Models;
+using TRPG.Data.Models;
 using TRPG.Services;
 
 namespace TRPG.Tools;

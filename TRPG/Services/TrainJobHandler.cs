@@ -1,4 +1,4 @@
-using TRPG.Models;
+using TRPG.Data.Models;
 
 namespace TRPG.Services;
 

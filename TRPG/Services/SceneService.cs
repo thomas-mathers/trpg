@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Data;
-using TRPG.Models;
+using TRPG.Data.Models;
 
 namespace TRPG.Services;
 

@@ -1,5 +1,3 @@
-using TRPG.Models;
-
 namespace TRPG.Services;
 
 internal class LockService(BuildingService buildingService, InventoryService inventoryService)

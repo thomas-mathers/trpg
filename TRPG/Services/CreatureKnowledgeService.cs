@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
-using TRPG.Models;
+using TRPG.Data.Models;
 
 namespace TRPG.Services;
 

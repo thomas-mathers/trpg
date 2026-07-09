@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using TRPG.Data.Models;
 using TRPG.Definitions;
 using TRPG.Generators;
-using TRPG.Models;
 
 namespace TRPG.Tests;
 

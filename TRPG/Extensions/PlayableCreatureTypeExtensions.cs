@@ -1,5 +1,5 @@
 using TRPG.Contracts;
-using TRPG.Models;
+using TRPG.Data.Models;
 
 namespace TRPG.Extensions;
 

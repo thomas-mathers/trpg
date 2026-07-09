@@ -1,5 +1,5 @@
 using TRPG.Algorithms;
-using TRPG.Models;
+using TRPG.Data.Models;
 
 namespace TRPG.Tests;
 
@@ -90,7 +90,7 @@ public class GraphsTests
         // 0 S X E
         // 1 . . .
         // 2 . . .
-        var blocked = new HashSet<Point> { new(1, 0) };
+        var blocked = new HashSet<Point> { new((double)1, (double)0) };
 
         // Act
         var result = Graphs.ShortestPath(

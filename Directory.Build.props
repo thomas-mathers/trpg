@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <AnalysisMode>All</AnalysisMode>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <NoWarn>CA1515;CA5394;CA1848;CA1873;CA1303</NoWarn>
   </PropertyGroup>

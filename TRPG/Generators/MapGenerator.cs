@@ -1,6 +1,6 @@
 using SharpVoronoiLib;
 using TRPG.Algorithms;
-using TRPG.Models;
+using TRPG.Data.Models;
 
 namespace TRPG.Generators;
 

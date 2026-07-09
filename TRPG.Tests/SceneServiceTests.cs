@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using TRPG.Data;
-using TRPG.Models;
+using TRPG.Data.Models;
 using TRPG.Services;
 using TRPG.Tests.Helpers;
 
