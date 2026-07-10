@@ -66,8 +66,6 @@ internal sealed record PersonLookupResult(
 
 internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
 {
-    // Professions whose work naturally reaches beyond their home territory — diplomacy, trade,
-    // scholarship, and arcane study — versus every other profession, which stays local.
     private static readonly HashSet<Profession> WorldlyProfessions =
     [
         Profession.Merchant,
@@ -129,8 +127,6 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
             return knowsFaction ? await BuildFactionResult(faction, cancellationToken) : null;
         }
 
-        // Names aren't guaranteed unique world-wide, so a name can match several creatures — search
-        // among all of them for the one the asker actually knows, rather than an arbitrary first match.
         var candidates = await context
             .Creatures.AsNoTracking()
             .Where(p => p.WorldId == query.WorldId && p.Name == query.SubjectName)
@@ -147,8 +143,6 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
         return null;
     }
 
-    // Personal knowledge of a specific individual never scales with profession or intelligence —
-    // it comes only from a direct connection (family, faction, or living in the same city).
     private async Task<bool> KnowsPerson(
         Creature askingPerson,
         Creature subject,

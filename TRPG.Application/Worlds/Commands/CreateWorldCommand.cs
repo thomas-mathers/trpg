@@ -1,8 +1,8 @@
 using TRPG.Application.Worlds.Generators;
 using TRPG.Contracts;
 using TRPG.Data.Models;
-using Profession = TRPG.Contracts.Profession;
 using DomainProfession = TRPG.Data.Models.Profession;
+using Profession = TRPG.Contracts.Profession;
 
 namespace TRPG.Application.Worlds.Commands;
 
@@ -32,9 +32,7 @@ public class CreateWorldCommandHandler(
 
         var worldResult = await worldGenerator.Generate(command.WorldInput, cancellationToken);
 
-        var homeCountry = worldResult.Countries.First(c =>
-            c.DominantRace == playerCreatureType
-        );
+        var homeCountry = worldResult.Countries.First(c => c.DominantRace == playerCreatureType);
         var startingCity = worldResult.Cities.First(c =>
             c.IsCapital && c.CountryId == homeCountry.Id
         );

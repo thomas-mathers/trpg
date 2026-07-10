@@ -12,7 +12,6 @@ public enum RelationshipType
     Wife,
 }
 
-// SubjectId's RelationshipType is RelativeId — e.g. (Subject=kid, Relative=mom, Mother) reads "kid's mother is mom".
 public class Relationship
 {
     public Guid Id { get; init; } = Guid.NewGuid();

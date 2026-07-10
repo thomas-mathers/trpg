@@ -76,7 +76,10 @@ internal static class ServiceCollectionExtensions
                         .Build()
             )
             .AddSingleton(
-                new GameplaySettings(appConfiguration.Gameplay.Think, appConfiguration.Gameplay.Temperature)
+                new GameplaySettings(
+                    appConfiguration.Gameplay.Think,
+                    appConfiguration.Gameplay.Temperature
+                )
             );
     }
 
@@ -99,9 +102,7 @@ internal static class ServiceCollectionExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(settings)),
         };
 
-    public static IServiceCollection AddTrpgSessionState(
-        this IServiceCollection serviceCollection
-    )
+    public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {
         return serviceCollection
             .AddSingleton<GameSessionStateStore>()

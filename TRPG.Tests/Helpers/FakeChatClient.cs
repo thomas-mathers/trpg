@@ -13,9 +13,6 @@ public sealed class FakeChatClient : IChatClient
 
     public string ChatResponseText { get; set; } = "You look around. What do you want to do next?";
 
-    // When set, the next call whose incoming messages don't yet contain that call's FunctionResultContent
-    // returns a tool-call request instead of text — letting tests drive a real AIFunction through the same
-    // FunctionInvokingChatClient pipeline production uses, rather than asserting against canned prose.
     public string? PendingToolCallName { get; set; }
     public IDictionary<string, object?>? PendingToolCallArguments { get; set; }
 
@@ -28,7 +25,9 @@ public sealed class FakeChatClient : IChatClient
         var messageList = messages.ToList();
         if (PendingToolCallName != null && !HasFunctionResult(messageList))
         {
-            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [ToolCall()])));
+            return Task.FromResult(
+                new ChatResponse(new ChatMessage(ChatRole.Assistant, [ToolCall()]))
+            );
         }
 
         var text = BuildResponseText(messageList);
@@ -101,8 +100,10 @@ public sealed class FakeChatClient : IChatClient
             return JsonSerializer.Serialize(schema);
         }
 
-        if (text.Contains("Generate the world", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Generate country", StringComparison.OrdinalIgnoreCase))
+        if (
+            text.Contains("Generate the world", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Generate country", StringComparison.OrdinalIgnoreCase)
+        )
         {
             var entity = new GeographyEntitySchema
             {

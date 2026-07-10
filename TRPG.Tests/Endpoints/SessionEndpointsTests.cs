@@ -114,11 +114,7 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
         var country = Builders.MakeCountry(world.Id);
         var state = Builders.MakeState(country.Id, world.Id);
         var city = Builders.MakeCity(state.Id, country.Id, worldId: world.Id);
-        var origin = Builders.MakeDistrict(
-            city.Id,
-            DistrictType.CityCenter,
-            worldId: world.Id
-        );
+        var origin = Builders.MakeDistrict(city.Id, DistrictType.CityCenter, worldId: world.Id);
         var destination = Builders.MakeDistrict(
             city.Id,
             DistrictType.Residential,

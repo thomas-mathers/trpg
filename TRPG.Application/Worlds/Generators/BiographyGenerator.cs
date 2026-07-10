@@ -180,8 +180,6 @@ internal static class BiographyGenerator
                 workplace != null
                 && ownedBuildingIds != null
                 && ownedBuildingIds.Contains(workplace.Value.BuildingId);
-            // Days off only mean something for someone with a fixed job — an unemployed/homemaker/kid's
-            // whole week is already unstructured, so there's nothing distinct to call a "day off".
             daysOffByCreatureId.TryGetValue(creature.Id, out var daysOff);
             var daysOffOrNull = workJob != null ? daysOff : null;
             var birthplaceName = input.StateById[creature.BirthStateId].Name;

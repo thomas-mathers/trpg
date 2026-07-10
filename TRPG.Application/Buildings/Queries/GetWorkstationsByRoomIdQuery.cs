@@ -11,8 +11,6 @@ internal class GetWorkstationsByRoomIdQuery
 
 internal class GetWorkstationsByRoomIdQueryHandler(TrpgDbContext context)
 {
-    // Deliberately uncached, like GetConnectorsByRoomIdQuery — OccupantId is mutated at runtime by
-    // SetWorkstationOccupantCommand.
     public async Task<IReadOnlyCollection<Workstation>> Handle(
         GetWorkstationsByRoomIdQuery query,
         CancellationToken cancellationToken = default

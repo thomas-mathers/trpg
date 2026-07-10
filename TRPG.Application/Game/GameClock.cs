@@ -9,7 +9,8 @@ public static class GameClock
     private const double InGameHoursPerRealHour = 12.0;
     private static readonly DateTime WorldEpoch = new(EpochYear, 1, 1, 8, 0, 0);
 
-    public static TimeSpan RealTimePerInGameHour => TimeSpan.FromHours(1.0 / InGameHoursPerRealHour);
+    public static TimeSpan RealTimePerInGameHour =>
+        TimeSpan.FromHours(1.0 / InGameHoursPerRealHour);
 
     private static readonly DateTimeFormatInfo CalendarFormat = new()
     {

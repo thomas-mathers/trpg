@@ -113,7 +113,12 @@ public class GameTurnRunner(
             await RunPostMoveCleanup(cancellationToken);
         }
 
-        return new TurnMetrics(buffer.ToString(), firstTokenElapsedMs ?? totalMs, totalMs, tokenCount);
+        return new TurnMetrics(
+            buffer.ToString(),
+            firstTokenElapsedMs ?? totalMs,
+            totalMs,
+            tokenCount
+        );
     }
 
     public async IAsyncEnumerable<string> ProcessTurnStreaming(

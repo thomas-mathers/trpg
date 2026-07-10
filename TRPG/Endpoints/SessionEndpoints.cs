@@ -38,10 +38,7 @@ internal static class SessionEndpoints
         }
 
         var session = new GameSession(worldId, world.PlayerId.Value, world.Playtime);
-        var messages = new List<ChatMessage>
-        {
-            new(ChatRole.System, GameTurnRunner.SystemPrompt),
-        };
+        var messages = new List<ChatMessage> { new(ChatRole.System, GameTurnRunner.SystemPrompt) };
         var state = new GameSessionState(session, messages);
         var sessionId = sessionStore.Add(state);
 

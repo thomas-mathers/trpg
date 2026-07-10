@@ -140,8 +140,6 @@ internal class SyncCommandHandler(
         );
     }
 
-    // Whoever's working this shift always has one person at the counter first; anyone else present fills
-    // whatever production workstation is free. Any station nobody's left to staff gets cleared.
     private async Task AssignWorkstations(
         Guid roomId,
         IReadOnlyList<Guid> presentCreatureIds,

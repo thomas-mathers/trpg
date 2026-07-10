@@ -88,7 +88,6 @@ internal static class ShopStaffingPolicy
         return type == BuildingType.Castle ? Profession.Knight : GetProfessionForBuilding(type);
     }
 
-    // Inn runs its own day/night shift model entirely separately from this — it never calls this.
     internal static HourWindow GetWorkHoursForBuilding(BuildingType type)
     {
         return type switch
