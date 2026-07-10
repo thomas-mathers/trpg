@@ -5,7 +5,7 @@ namespace TRPG.Application.Tools;
 
 internal static class ToolJsonOptions
 {
-    public static readonly JsonSerializerOptions Options = new()
+    public static readonly JsonSerializerOptions Options = new(JsonSerializerOptions.Default)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };

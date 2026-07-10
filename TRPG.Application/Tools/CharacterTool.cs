@@ -1,8 +1,7 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using OllamaSharp.Models.Chat;
-using OllamaSharp.Tools;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
 using TRPG.Data.Models;
@@ -46,71 +45,32 @@ internal record CharacterSheetResult(
     IReadOnlyCollection<CharacterModifierInfo> Modifiers
 );
 
-internal class CharacterTool : Tool, IInvokableTool
+internal class CharacterTool(
+    GameSession session,
+    GetCreatureByIdQueryHandler getCreatureById,
+    GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
+    ILogger<CharacterTool> logger
+) : IGameTool
 {
-    private readonly GetCreatureByIdQueryHandler _getCreatureById;
-    private readonly GetCreatureByNameNearbyQueryHandler _getCreatureByNameNearby;
-    private readonly ILogger<CharacterTool> _logger;
-    private readonly GameSession _session;
+    public Delegate Invoke => InvokeAsync;
 
-    public CharacterTool(
-        GameSession session,
-        GetCreatureByIdQueryHandler getCreatureById,
-        GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
-        ILogger<CharacterTool> logger
-    )
-    {
-        _session = session;
-        _getCreatureById = getCreatureById;
-        _getCreatureByNameNearby = getCreatureByNameNearby;
-        _logger = logger;
-
-        Function = new Function
-        {
-            Name = "character",
-            Description =
-                "Returns someone's attributes and active conditions/modifiers. Omit targetName to check the player's own character sheet, or pass the exact Name of a person from NearbyPeople to check theirs.",
-            Parameters = new Parameters
-            {
-                Type = "object",
-                Properties = new Dictionary<string, Property>
-                {
-                    ["targetName"] = new()
-                    {
-                        Type = "string",
-                        Description =
-                            "The exact Name of a person from NearbyPeople, copied verbatim from the most recent look or move result. Omit to check the player's own character sheet.",
-                    },
-                },
-                Required = new List<string>(),
-            },
-        };
-    }
-
-    public object? InvokeMethod(IDictionary<string, object?>? args)
-    {
-        var targetName =
-            args != null && args.TryGetValue("targetName", out var raw) ? raw?.ToString() : null;
-
-        _logger.LogInformation("[character] targetName={TargetName}", targetName ?? "(self)");
-        var stopwatch = Stopwatch.StartNew();
-        var result = InvokeMethodAsync(targetName, CancellationToken.None).GetAwaiter().GetResult();
-        var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogInformation(
-            "[perf] [character] result in {ElapsedMs}ms: {Result}",
-            stopwatch.ElapsedMilliseconds,
-            json
-        );
-        return json;
-    }
-
-    private async Task<object?> InvokeMethodAsync(
-        string? targetName,
+    [DisplayName("character")]
+    [Description(
+        "Returns someone's attributes and active conditions/modifiers. Omit targetName to check the player's own character sheet, or pass the exact Name of a person from NearbyPeople to check theirs."
+    )]
+    private async Task<object?> InvokeAsync(
+        [Description(
+            "The exact Name of a person from NearbyPeople, copied verbatim from the most recent look or move result. Omit to check the player's own character sheet."
+        )]
+            string? targetName,
         CancellationToken cancellationToken
     )
     {
-        var player = await _getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = _session.PlayerId },
+        logger.LogInformation("[character] targetName={TargetName}", targetName ?? "(self)");
+        var stopwatch = Stopwatch.StartNew();
+
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = session.PlayerId },
             cancellationToken
         );
 
@@ -121,10 +81,10 @@ internal class CharacterTool : Tool, IInvokableTool
         }
         else
         {
-            target = await _getCreatureByNameNearby.Handle(
+            target = await getCreatureByNameNearby.Handle(
                 new GetCreatureByNameNearbyQuery
                 {
-                    WorldId = _session.WorldId,
+                    WorldId = session.WorldId,
                     Player = player!,
                     Name = targetName,
                 },
@@ -142,7 +102,7 @@ internal class CharacterTool : Tool, IInvokableTool
 
         var attributes = target!.Attributes;
 
-        return new CharacterSheetResult(
+        var result = new CharacterSheetResult(
             target.Name,
             target.Level,
             new CharacterAttributesInfo(
@@ -179,5 +139,12 @@ internal class CharacterTool : Tool, IInvokableTool
                 ))
                 .ToArray()
         );
+
+        logger.LogInformation(
+            "[perf] [character] result in {ElapsedMs}ms: {Result}",
+            stopwatch.ElapsedMilliseconds,
+            JsonSerializer.Serialize(result, ToolJsonOptions.Options)
+        );
+        return result;
     }
 }

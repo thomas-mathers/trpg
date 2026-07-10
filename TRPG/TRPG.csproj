@@ -24,6 +24,8 @@
     <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Anthropic" Version="12.35.1" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.7.0" />
     <PackageReference Include="OllamaSharp" Version="5.4.25" />
     <PackageReference Include="ZLogger" Version="2.5.10" />
   </ItemGroup>

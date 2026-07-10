@@ -1,8 +1,7 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using OllamaSharp.Models.Chat;
-using OllamaSharp.Tools;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
@@ -14,105 +13,39 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Tools;
 
-internal class MoveTool : Tool, IInvokableTool
+internal class MoveTool(
+    GameSession session,
+    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
+    GetCreatureByIdQueryHandler getCreatureById,
+    UpdateCreatureCommandHandler updateCreature,
+    GetBuildingByNameInStateQueryHandler getBuildingByNameInState,
+    GetEntranceRoomQueryHandler getEntranceRoom,
+    GetExitByDestinationNameQueryHandler getExitByDestinationName,
+    GetDistrictByNameInCityQueryHandler getDistrictByNameInCity,
+    CanEnterBuildingQueryHandler canEnterBuilding,
+    SyncScheduleLockCommandHandler syncScheduleLock,
+    ILogger<MoveTool> logger
+) : IGameTool
 {
-    private readonly GetBuildingByNameInStateQueryHandler _getBuildingByNameInState;
-    private readonly GetEntranceRoomQueryHandler _getEntranceRoom;
-    private readonly GetExitByDestinationNameQueryHandler _getExitByDestinationName;
-    private readonly GetCreatureByIdQueryHandler _getCreatureById;
-    private readonly UpdateCreatureCommandHandler _updateCreature;
-    private readonly GetSceneWithCatchUpQueryHandler _getSceneWithCatchUp;
-    private readonly SyncScheduleLockCommandHandler _syncScheduleLock;
-    private readonly GetDistrictByNameInCityQueryHandler _getDistrictByNameInCity;
-    private readonly CanEnterBuildingQueryHandler _canEnterBuilding;
-    private readonly ILogger<MoveTool> _logger;
-    private readonly GameSession _session;
+    public Delegate Invoke => InvokeAsync;
 
-    public MoveTool(
-        GameSession session,
-        GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
-        GetCreatureByIdQueryHandler getCreatureById,
-        UpdateCreatureCommandHandler updateCreature,
-        GetBuildingByNameInStateQueryHandler getBuildingByNameInState,
-        GetEntranceRoomQueryHandler getEntranceRoom,
-        GetExitByDestinationNameQueryHandler getExitByDestinationName,
-        GetDistrictByNameInCityQueryHandler getDistrictByNameInCity,
-        CanEnterBuildingQueryHandler canEnterBuilding,
-        SyncScheduleLockCommandHandler syncScheduleLock,
-        ILogger<MoveTool> logger
-    )
-    {
-        _session = session;
-        _getSceneWithCatchUp = getSceneWithCatchUp;
-        _getCreatureById = getCreatureById;
-        _updateCreature = updateCreature;
-        _getBuildingByNameInState = getBuildingByNameInState;
-        _getEntranceRoom = getEntranceRoom;
-        _getExitByDestinationName = getExitByDestinationName;
-        _getDistrictByNameInCity = getDistrictByNameInCity;
-        _canEnterBuilding = canEnterBuilding;
-        _syncScheduleLock = syncScheduleLock;
-        _logger = logger;
-
-        Function = new Function
-        {
-            Name = "move",
-            Description =
-                "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact Name of a district from City.Districts to travel there. When indoors, pass the exact DestinationRoomName of an exit from Room.Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session.",
-            Parameters = new Parameters
-            {
-                Type = "object",
-                Properties = new Dictionary<string, Property>
-                {
-                    ["destinationName"] = new()
-                    {
-                        Type = "string",
-                        Description =
-                            "The exact Name of a nearby building, the exact Name of a district, or the exact DestinationRoomName of an exit (the literal value \"Outside\" for exits leading outdoors), copied verbatim from the most recent look or move result.",
-                    },
-                },
-                Required = new List<string> { "destinationName" },
-            },
-        };
-    }
-
-    public object? InvokeMethod(IDictionary<string, object?>? args)
-    {
-        if (
-            args is null
-            || !args.TryGetValue("destinationName", out var destinationNameRaw)
-            || string.IsNullOrWhiteSpace(destinationNameRaw?.ToString())
-        )
-        {
-            return new
-            {
-                Error = "No destinationName provided. Call look to get valid destination names.",
-            };
-        }
-
-        var destinationName = destinationNameRaw.ToString()!;
-
-        _logger.LogInformation("[move] destinationName={DestinationName}", destinationName);
-        var stopwatch = Stopwatch.StartNew();
-        var result = InvokeMethodAsync(destinationName, CancellationToken.None)
-            .GetAwaiter()
-            .GetResult();
-        var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogInformation(
-            "[perf] [move] result in {ElapsedMs}ms: {Result}",
-            stopwatch.ElapsedMilliseconds,
-            json
-        );
-        return json;
-    }
-
-    private async Task<object?> InvokeMethodAsync(
-        string destinationName,
+    [DisplayName("move")]
+    [Description(
+        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact Name of a district from City.Districts to travel there. When indoors, pass the exact DestinationRoomName of an exit from Room.Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session."
+    )]
+    private async Task<object?> InvokeAsync(
+        [Description(
+            "The exact Name of a nearby building, the exact Name of a district, or the exact DestinationRoomName of an exit (the literal value \"Outside\" for exits leading outdoors), copied verbatim from the most recent look or move result."
+        )]
+            string destinationName,
         CancellationToken cancellationToken
     )
     {
-        var player = await _getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = _session.PlayerId },
+        logger.LogInformation("[move] destinationName={DestinationName}", destinationName);
+        var stopwatch = Stopwatch.StartNew();
+
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = session.PlayerId },
             cancellationToken
         );
 
@@ -126,17 +59,17 @@ internal class MoveTool : Tool, IInvokableTool
             return error;
         }
 
-        await _updateCreature.Handle(
+        await updateCreature.Handle(
             new UpdateCreatureCommand { Creature = player! },
             cancellationToken
         );
-        _session.DidMoveThisTurn = true;
+        session.DidMoveThisTurn = true;
 
-        var currentDate = GameClock.GetCurrentInGameDate(_session);
-        var result = await _getSceneWithCatchUp.Handle(
+        var currentDate = GameClock.GetCurrentInGameDate(session);
+        var result = await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {
-                Session = _session,
+                Session = session,
                 RoomId = player.RoomId,
                 DistrictId = player.DistrictId,
                 CurrentDate = currentDate,
@@ -144,7 +77,12 @@ internal class MoveTool : Tool, IInvokableTool
             cancellationToken
         );
 
-        _session.DidSceneRefreshThisTurn = true;
+        session.DidSceneRefreshThisTurn = true;
+        logger.LogInformation(
+            "[perf] [move] result in {ElapsedMs}ms: {Result}",
+            stopwatch.ElapsedMilliseconds,
+            JsonSerializer.Serialize(result, ToolJsonOptions.Options)
+        );
         return result;
     }
 
@@ -154,13 +92,13 @@ internal class MoveTool : Tool, IInvokableTool
         CancellationToken cancellationToken
     )
     {
-        var building = await _getBuildingByNameInState.Handle(
+        var building = await getBuildingByNameInState.Handle(
             new GetBuildingByNameInStateQuery { StateId = player.StateId, Name = destinationName },
             cancellationToken
         );
         if (building != null)
         {
-            var entranceRoom = await _getEntranceRoom.Handle(
+            var entranceRoom = await getEntranceRoom.Handle(
                 new GetEntranceRoomQuery { BuildingId = building.Id },
                 cancellationToken
             );
@@ -172,8 +110,8 @@ internal class MoveTool : Tool, IInvokableTool
                 };
             }
 
-            var currentDate = GameClock.GetCurrentInGameDate(_session);
-            await _syncScheduleLock.Handle(
+            var currentDate = GameClock.GetCurrentInGameDate(session);
+            await syncScheduleLock.Handle(
                 new SyncScheduleLockCommand
                 {
                     BuildingId = building.Id,
@@ -182,7 +120,7 @@ internal class MoveTool : Tool, IInvokableTool
                 },
                 cancellationToken
             );
-            var canEnter = await _canEnterBuilding.Handle(
+            var canEnter = await canEnterBuilding.Handle(
                 new CanEnterBuildingQuery
                 {
                     EntranceRoomId = entranceRoom.Id,
@@ -203,7 +141,7 @@ internal class MoveTool : Tool, IInvokableTool
 
         var district =
             player.CityId != null
-                ? await _getDistrictByNameInCity.Handle(
+                ? await getDistrictByNameInCity.Handle(
                     new GetDistrictByNameInCityQuery
                     {
                         CityId = player.CityId.Value,
@@ -230,7 +168,7 @@ internal class MoveTool : Tool, IInvokableTool
         CancellationToken cancellationToken
     )
     {
-        var exitMatch = await _getExitByDestinationName.Handle(
+        var exitMatch = await getExitByDestinationName.Handle(
             new GetExitByDestinationNameQuery
             {
                 RoomId = player.RoomId!.Value,

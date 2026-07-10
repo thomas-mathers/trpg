@@ -1,5 +1,5 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using OllamaSharp.Models.Chat;
 using TRPG.Application.Abilities;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
@@ -110,13 +110,27 @@ public static class ServiceCollectionExtensions
             .AddTransient<BootstrapWorldCommandHandler>()
             .AddTransient<DropWorldCommandHandler>()
             .AddTransient<GameTurnRunner>()
-            .AddScoped<Tool, WorldInfoTool>()
-            .AddScoped<Tool, LookTool>()
-            .AddScoped<Tool, MoveTool>()
-            .AddScoped<Tool, InventoryTool>()
-            .AddScoped<Tool, CharacterTool>()
-            .AddScoped<Tool, StartConversationTool>()
-            .AddScoped<Tool, EndConversationTool>()
-            .AddScoped<Tool, LookupTool>();
+            .AddGameTool<WorldInfoTool>()
+            .AddGameTool<LookTool>()
+            .AddGameTool<MoveTool>()
+            .AddGameTool<InventoryTool>()
+            .AddGameTool<CharacterTool>()
+            .AddGameTool<StartConversationTool>()
+            .AddGameTool<EndConversationTool>()
+            .AddGameTool<LookupTool>();
     }
+
+    // Every game tool is a plain DI-constructed class implementing IGameTool — its InvokeAsync method
+    // carries its own [DisplayName]/[Description], and AIFunctionFactoryOptions.Name defaults to the
+    // DisplayName on the bound delegate, so no name string is needed here, just the delegate itself.
+    private static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)
+        where T : class, IGameTool =>
+        serviceCollection
+            .AddScoped<T>()
+            .AddScoped<AIFunction>(sp =>
+                AIFunctionFactory.Create(
+                    sp.GetRequiredService<T>().Invoke,
+                    new AIFunctionFactoryOptions { SerializerOptions = ToolJsonOptions.Options }
+                )
+            );
 }

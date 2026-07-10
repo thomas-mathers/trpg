@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using OllamaSharp;
+using TRPG.Application.Common;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
 
@@ -13,7 +14,7 @@ public sealed class EndpointTestFixture : IAsyncLifetime
     private readonly DatabaseFixture _databaseFixture = new();
     private WebApplicationFactory<Program>? _factory;
 
-    public FakeOllamaApiClient OllamaClient { get; } = new();
+    public FakeChatClient ChatClient { get; } = new();
 
     public HttpClient CreateClient() => Factory.CreateClient();
 
@@ -38,8 +39,12 @@ public sealed class EndpointTestFixture : IAsyncLifetime
                     options.UseNpgsql(_databaseFixture.ConnectionString)
                 );
 
-                services.RemoveAll<IOllamaApiClient>();
-                services.AddSingleton<IOllamaApiClient>(OllamaClient);
+                services.RemoveAll<IChatClient>();
+                services.AddKeyedSingleton<IChatClient>(LlmRoleKeys.WorldGeneration, ChatClient);
+                services.AddKeyedSingleton<IChatClient>(
+                    LlmRoleKeys.Gameplay,
+                    (_, _) => ((IChatClient)ChatClient).AsBuilder().UseFunctionInvocation().Build()
+                );
             });
         });
     }

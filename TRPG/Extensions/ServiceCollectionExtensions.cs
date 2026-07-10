@@ -1,7 +1,10 @@
+using Anthropic;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
+using TRPG.Application.Common;
 using TRPG.Application.Game;
 using TRPG.Data;
 using ZLogger;
@@ -53,21 +56,48 @@ internal static class ServiceCollectionExtensions
         );
     }
 
-    public static IServiceCollection AddOllamaApiClient(
+    public static IServiceCollection AddLlmChatClients(
         this IServiceCollection serviceCollection,
         AppConfiguration appConfiguration
     )
     {
-        return serviceCollection.AddSingleton<IOllamaApiClient>(_ =>
-        {
-            var httpClient = new HttpClient
-            {
-                BaseAddress = appConfiguration.OllamaUri,
-                Timeout = Timeout.InfiniteTimeSpan,
-            };
-            return new OllamaApiClient(httpClient) { SelectedModel = appConfiguration.OllamaModel };
-        });
+        return serviceCollection
+            .AddKeyedSingleton(
+                LlmRoleKeys.WorldGeneration,
+                (_, _) =>
+                    CreateChatClient(appConfiguration.WorldGeneration, appConfiguration.OllamaUri)
+            )
+            .AddKeyedSingleton(
+                LlmRoleKeys.Gameplay,
+                (_, _) =>
+                    CreateChatClient(appConfiguration.Gameplay, appConfiguration.OllamaUri)
+                        .AsBuilder()
+                        .UseFunctionInvocation()
+                        .Build()
+            )
+            .AddSingleton(
+                new GameplaySettings(appConfiguration.Gameplay.Think, appConfiguration.Gameplay.Temperature)
+            );
     }
+
+    private static IChatClient CreateChatClient(LlmRoleSettings settings, Uri ollamaUri) =>
+        settings.Provider switch
+        {
+            LlmProvider.Ollama => new OllamaApiClient(
+                new HttpClient { BaseAddress = ollamaUri, Timeout = Timeout.InfiniteTimeSpan }
+            )
+            {
+                SelectedModel = settings.Model,
+            },
+            LlmProvider.Anthropic => new AnthropicClient
+            {
+                ApiKey = Environment.GetEnvironmentVariable(
+                    "ANTHROPIC_API_KEY",
+                    EnvironmentVariableTarget.User
+                ),
+            }.AsIChatClient(settings.Model),
+            _ => throw new ArgumentOutOfRangeException(nameof(settings)),
+        };
 
     public static IServiceCollection AddTrpgSessionState(
         this IServiceCollection serviceCollection
@@ -77,6 +107,8 @@ internal static class ServiceCollectionExtensions
             .AddSingleton<GameSessionStateStore>()
             .AddScoped<CurrentGameSessionStateAccessor>()
             .AddScoped(sp => sp.GetRequiredService<CurrentGameSessionStateAccessor>().State.Session)
-            .AddScoped(sp => sp.GetRequiredService<CurrentGameSessionStateAccessor>().State.Chat);
+            .AddScoped(sp =>
+                sp.GetRequiredService<CurrentGameSessionStateAccessor>().State.Messages
+            );
     }
 }

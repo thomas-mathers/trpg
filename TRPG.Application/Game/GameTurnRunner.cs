@@ -1,11 +1,14 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using OllamaSharp;
-using OllamaSharp.Models.Chat;
+using TRPG.Application.Common;
 
 namespace TRPG.Application.Game;
+
+public record GameplaySettings(bool Think, float? Temperature);
 
 public record TurnMetrics(string Response, long FirstTokenMs, long TotalMs, int TokenCount)
 {
@@ -14,9 +17,11 @@ public record TurnMetrics(string Response, long FirstTokenMs, long TotalMs, int 
 }
 
 public class GameTurnRunner(
-    Chat chat,
+    [FromKeyedServices(LlmRoleKeys.Gameplay)] IChatClient chatClient,
+    List<ChatMessage> messages,
     GameSession session,
-    IEnumerable<Tool> tools,
+    IEnumerable<AIFunction> tools,
+    GameplaySettings gameplaySettings,
     ILogger<GameTurnRunner> logger
 )
 {
@@ -41,18 +46,11 @@ public class GameTurnRunner(
     {
         const string openingPrompt =
             "This is the start of the session. Call look now, then narrate the opening scene based on what it returns.";
-        logger.LogInformation("[game] >>> {Message}", openingPrompt);
 
-        var buffer = new StringBuilder();
-        await foreach (
-            var token in chat.SendAsync(openingPrompt, tools, cancellationToken: cancellationToken)
-        )
+        await foreach (var token in StreamAndLog(openingPrompt, cancellationToken))
         {
-            buffer.Append(token);
             yield return token;
         }
-
-        logger.LogInformation("[game] <<< {Response}", buffer.ToString());
 
         if (session.DidMoveThisTurn)
         {
@@ -71,18 +69,11 @@ public class GameTurnRunner(
 
         var waitPrompt =
             $"{hours} hour(s) have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns.";
-        logger.LogInformation("[game] >>> {Message}", waitPrompt);
 
-        var buffer = new StringBuilder();
-        await foreach (
-            var token in chat.SendAsync(waitPrompt, tools, cancellationToken: cancellationToken)
-        )
+        await foreach (var token in StreamAndLog(waitPrompt, cancellationToken))
         {
-            buffer.Append(token);
             yield return token;
         }
-
-        logger.LogInformation("[game] <<< {Response}", buffer.ToString());
 
         if (session.DidMoveThisTurn)
         {
@@ -97,79 +88,17 @@ public class GameTurnRunner(
     {
         session.DidMoveThisTurn = false;
         session.DidSceneRefreshThisTurn = false;
-        var metrics = await SendAndLog(input, cancellationToken);
 
-        if (session.DidMoveThisTurn)
-        {
-            await RunPostMoveCleanup(cancellationToken);
-        }
-
-        return metrics;
-    }
-
-    public async IAsyncEnumerable<string> ProcessTurnStreaming(
-        string input,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default
-    )
-    {
-        session.DidMoveThisTurn = false;
-        session.DidSceneRefreshThisTurn = false;
-        logger.LogInformation("[game] >>> {Message}", input);
-
-        var buffer = new StringBuilder();
-        await foreach (
-            var token in chat.SendAsync(input, tools, cancellationToken: cancellationToken)
-        )
-        {
-            buffer.Append(token);
-            yield return token;
-        }
-
-        logger.LogInformation("[game] <<< {Response}", buffer.ToString());
-
-        if (session.DidMoveThisTurn)
-        {
-            await RunPostMoveCleanup(cancellationToken);
-        }
-    }
-
-    private async Task RunPostMoveCleanup(CancellationToken cancellationToken)
-    {
-        var currentTurnStart = chat.Messages.FindLastIndex(m => m.Role == ChatRole.User);
-        await CloseLingeringConversations(cancellationToken);
-        ClearPreviousTurns(currentTurnStart);
-    }
-
-    private async Task<TurnMetrics> SendAndLog(string input, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("[game] >>> {Message}", input);
-
-        var thinking = new StringBuilder();
-
-        void AppendThinking(object? _, string token)
-        {
-            thinking.Append(token);
-        }
-
-        chat.OnThink += AppendThinking;
-        var buffer = new StringBuilder();
         var stopwatch = Stopwatch.StartNew();
         long? firstTokenElapsedMs = null;
         var tokenCount = 0;
-        try
+        var buffer = new StringBuilder();
+
+        await foreach (var token in StreamAndLog(input, cancellationToken))
         {
-            await foreach (
-                var token in chat.SendAsync(input, tools, cancellationToken: cancellationToken)
-            )
-            {
-                firstTokenElapsedMs ??= stopwatch.ElapsedMilliseconds;
-                tokenCount++;
-                buffer.Append(token);
-            }
-        }
-        finally
-        {
-            chat.OnThink -= AppendThinking;
+            firstTokenElapsedMs ??= stopwatch.ElapsedMilliseconds;
+            tokenCount++;
+            buffer.Append(token);
         }
 
         var totalMs = stopwatch.ElapsedMilliseconds;
@@ -179,14 +108,98 @@ public class GameTurnRunner(
             totalMs
         );
 
+        if (session.DidMoveThisTurn)
+        {
+            await RunPostMoveCleanup(cancellationToken);
+        }
+
+        return new TurnMetrics(buffer.ToString(), firstTokenElapsedMs ?? totalMs, totalMs, tokenCount);
+    }
+
+    public async IAsyncEnumerable<string> ProcessTurnStreaming(
+        string input,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        session.DidMoveThisTurn = false;
+        session.DidSceneRefreshThisTurn = false;
+
+        await foreach (var token in StreamAndLog(input, cancellationToken))
+        {
+            yield return token;
+        }
+
+        if (session.DidMoveThisTurn)
+        {
+            await RunPostMoveCleanup(cancellationToken);
+        }
+    }
+
+    private async IAsyncEnumerable<string> StreamAndLog(
+        string input,
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
+        logger.LogInformation("[game] >>> {Message}", input);
+        messages.Add(new ChatMessage(ChatRole.User, input));
+
+        var chatOptions = new ChatOptions
+        {
+            Tools = tools.Cast<AITool>().ToList(),
+            Temperature = gameplaySettings.Temperature,
+            AdditionalProperties = new AdditionalPropertiesDictionary
+            {
+                ["think"] = gameplaySettings.Think,
+                ["num_ctx"] = 8192,
+            },
+        };
+
+        var updates = new List<ChatResponseUpdate>();
+        var thinking = new StringBuilder();
+        await foreach (
+            var update in chatClient.GetStreamingResponseAsync(
+                messages,
+                chatOptions,
+                cancellationToken
+            )
+        )
+        {
+            updates.Add(update);
+            foreach (var content in update.Contents)
+            {
+                if (content is TextReasoningContent reasoning)
+                {
+                    thinking.Append(reasoning.Text);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(update.Text))
+            {
+                yield return update.Text;
+            }
+        }
+
+        var aggregated = updates.ToChatResponse();
+        messages.AddRange(aggregated.Messages);
+
         if (thinking.Length > 0)
         {
             logger.LogDebug("[game] think: {Thinking}", thinking.ToString().Trim());
         }
 
-        var response = buffer.ToString();
-        logger.LogInformation("[game] <<< {Response}", response);
-        return new TurnMetrics(response, firstTokenElapsedMs ?? totalMs, totalMs, tokenCount);
+        logger.LogInformation("[game] <<< {Response}", aggregated.Text);
+    }
+
+    private async Task SendAndDrain(string input, CancellationToken cancellationToken)
+    {
+        await foreach (var _ in StreamAndLog(input, cancellationToken)) { }
+    }
+
+    private async Task RunPostMoveCleanup(CancellationToken cancellationToken)
+    {
+        var currentTurnStart = messages.FindLastIndex(m => m.Role == ChatRole.User);
+        await CloseLingeringConversations(cancellationToken);
+        ClearPreviousTurns(currentTurnStart);
     }
 
     private async Task CloseLingeringConversations(CancellationToken cancellationToken)
@@ -200,7 +213,7 @@ public class GameTurnRunner(
 
             var prompt =
                 $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
-            await SendAndLog(prompt, cancellationToken);
+            await SendAndDrain(prompt, cancellationToken);
 
             if (session.OpenConversationCreatureIdsByName.Remove(npcName))
             {
@@ -214,11 +227,11 @@ public class GameTurnRunner(
 
     private void ClearPreviousTurns(int currentTurnStart)
     {
-        var systemMessage = chat.Messages[0];
-        var currentTurnMessages = chat.Messages.Skip(currentTurnStart).ToList();
+        var systemMessage = messages[0];
+        var currentTurnMessages = messages.Skip(currentTurnStart).ToList();
 
-        chat.Messages.Clear();
-        chat.Messages.Add(systemMessage);
-        chat.Messages.AddRange(currentTurnMessages);
+        messages.Clear();
+        messages.Add(systemMessage);
+        messages.AddRange(currentTurnMessages);
     }
 }

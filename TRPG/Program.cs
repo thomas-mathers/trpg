@@ -31,7 +31,7 @@ foreach (
 builder
     .Services.AddTrpgLogging(appConfiguration.LogDirectory)
     .AddTrpgDbContext(appConfiguration.PostgresConnectionString)
-    .AddOllamaApiClient(appConfiguration)
+    .AddLlmChatClients(appConfiguration)
     .AddSingleton(appConfiguration)
     .AddTrpgApplicationServices()
     .AddTrpgSessionState()

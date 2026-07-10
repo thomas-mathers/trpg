@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using OllamaSharp;
-using OllamaSharp.Models;
 using TRPG.Application.Game;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
@@ -25,8 +24,6 @@ internal static class SessionEndpoints
     private static async Task<IResult> StartSession(
         Guid worldId,
         GetWorldQueryHandler getWorld,
-        IOllamaApiClient ollamaClient,
-        AppConfiguration appConfiguration,
         GameSessionStateStore sessionStore,
         CancellationToken cancellationToken
     )
@@ -41,16 +38,11 @@ internal static class SessionEndpoints
         }
 
         var session = new GameSession(worldId, world.PlayerId.Value, world.Playtime);
-        var chat = new Chat(ollamaClient, GameTurnRunner.SystemPrompt)
+        var messages = new List<ChatMessage>
         {
-            Think = appConfiguration.OllamaThink,
-            Options = new RequestOptions
-            {
-                NumCtx = 8192,
-                Temperature = appConfiguration.OllamaTemperature,
-            },
+            new(ChatRole.System, GameTurnRunner.SystemPrompt),
         };
-        var state = new GameSessionState(session, chat);
+        var state = new GameSessionState(session, messages);
         var sessionId = sessionStore.Add(state);
 
         return Results.Ok(new CreateSessionResponse(sessionId));
@@ -77,7 +69,10 @@ internal static class SessionEndpoints
         var metrics = await turnRunner.ProcessTurn(request.Message, cancellationToken);
 
         return Results.Ok(
-            new ChatResponse(metrics.Response, includeMetrics == true ? ToDto(metrics) : null)
+            new TRPG.Responses.ChatResponse(
+                metrics.Response,
+                includeMetrics == true ? ToDto(metrics) : null
+            )
         );
     }
 

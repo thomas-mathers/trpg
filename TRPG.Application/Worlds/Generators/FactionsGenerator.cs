@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using OllamaSharp;
+using TRPG.Application.Common;
 using TRPG.Application.Common.Extensions;
 using TRPG.Data.Models;
 
@@ -13,7 +15,10 @@ public class FactionsGeneratorInput
     public required Guid WorldId { get; init; }
 }
 
-public class FactionsGenerator(IOllamaApiClient client, ILogger<FactionsGenerator> logger)
+public class FactionsGenerator(
+    [FromKeyedServices(LlmRoleKeys.WorldGeneration)] IChatClient client,
+    ILogger<FactionsGenerator> logger
+)
 {
     public async Task<IReadOnlyList<Faction>> Generate(
         FactionsGeneratorInput command,
@@ -22,7 +27,7 @@ public class FactionsGenerator(IOllamaApiClient client, ILogger<FactionsGenerato
     {
         var sw = Stopwatch.StartNew();
 
-        var schema = await client.GetJson<FactionListSchema>(
+        var schema = await client.GetValidatedJson<FactionListSchema>(
             logger,
             $"""
             You are a creative world-building assistant for a TRPG game generating content for: {command.Description}.

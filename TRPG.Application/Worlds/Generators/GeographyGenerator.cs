@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using OllamaSharp;
+using TRPG.Application.Common;
 using TRPG.Application.Common.Extensions;
 using TRPG.Data.Models;
 
@@ -29,7 +31,10 @@ public class GeographyGeneratorResult
     public required World World { get; init; }
 }
 
-public class GeographyGenerator(IOllamaApiClient client, ILogger<GeographyGenerator> logger)
+public class GeographyGenerator(
+    [FromKeyedServices(LlmRoleKeys.WorldGeneration)] IChatClient client,
+    ILogger<GeographyGenerator> logger
+)
 {
     private const int MaxCitiesPerRequest = 6;
     private const int CityTileSize = 100;
@@ -97,7 +102,7 @@ public class GeographyGenerator(IOllamaApiClient client, ILogger<GeographyGenera
         CancellationToken cancellationToken
     )
     {
-        var worldSchema = await client.GetJson<GeographyEntitySchema>(
+        var worldSchema = await client.GetValidatedJson<GeographyEntitySchema>(
             logger,
             $"""
             You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
@@ -149,7 +154,7 @@ public class GeographyGenerator(IOllamaApiClient client, ILogger<GeographyGenera
             var focusDescription = FocusDescriptions[focus];
             var namesHint =
                 $" Do not reuse any of these already-used names: {string.Join(", ", context.ExistingNames)}.";
-            var schema = await client.GetJson<GeographyEntitySchema>(
+            var schema = await client.GetValidatedJson<GeographyEntitySchema>(
                 logger,
                 $"""
                 You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
@@ -302,7 +307,7 @@ public class GeographyGenerator(IOllamaApiClient client, ILogger<GeographyGenera
                         )
                     );
 
-                    var schema = await client.GetJson<CityDescriptionListSchema>(
+                    var schema = await client.GetValidatedJson<CityDescriptionListSchema>(
                         logger,
                         $"""
                         You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
