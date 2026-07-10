@@ -9,7 +9,7 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Buildings.Queries;
 
 [Collection("Database")]
-public sealed class CanEnterQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private AddInventoryItemCommandHandler _addInventoryItem = null!;
     private Building _building = null!;
@@ -17,7 +17,7 @@ public sealed class CanEnterQueryTests(DatabaseFixture db) : IAsyncLifetime
     private TrpgDbContext _context = null!;
     private Room _entranceRoom = null!;
     private RoomConnector _frontDoor = null!;
-    private CanEnterQueryHandler _handler = null!;
+    private CanEnterBuildingQueryHandler _handler = null!;
     private Guid _stateId;
 
     public async ValueTask InitializeAsync()
@@ -25,7 +25,7 @@ public sealed class CanEnterQueryTests(DatabaseFixture db) : IAsyncLifetime
         _context = db.CreateContext();
         _setFrontDoorLocked = new SetFrontDoorLockedCommandHandler(_context);
         _addInventoryItem = new AddInventoryItemCommandHandler(_context);
-        _handler = new CanEnterQueryHandler(
+        _handler = new CanEnterBuildingQueryHandler(
             new GetFrontDoorQueryHandler(_context),
             new GetKeyItemIdsQueryHandler(_context),
             new GetInventoryByCreatureIdQueryHandler(_context)
@@ -59,7 +59,7 @@ public sealed class CanEnterQueryTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Act
         var canEnter = await _handler.Handle(
-            new CanEnterQuery
+            new CanEnterBuildingQuery
             {
                 EntranceRoomId = _entranceRoom.Id,
                 EnteringCreatureId = Guid.NewGuid(),
@@ -88,7 +88,7 @@ public sealed class CanEnterQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         // Act
         var canEnter = await _handler.Handle(
-            new CanEnterQuery
+            new CanEnterBuildingQuery
             {
                 EntranceRoomId = _entranceRoom.Id,
                 EnteringCreatureId = Guid.NewGuid(),
@@ -128,7 +128,11 @@ public sealed class CanEnterQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         // Act
         var canEnter = await _handler.Handle(
-            new CanEnterQuery { EntranceRoomId = _entranceRoom.Id, EnteringCreatureId = player.Id },
+            new CanEnterBuildingQuery
+            {
+                EntranceRoomId = _entranceRoom.Id,
+                EnteringCreatureId = player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -176,7 +180,7 @@ public sealed class CanEnterQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         // Act
         var canEnterA = await _handler.Handle(
-            new CanEnterQuery
+            new CanEnterBuildingQuery
             {
                 EntranceRoomId = _entranceRoom.Id,
                 EnteringCreatureId = residentA.Id,
@@ -184,7 +188,7 @@ public sealed class CanEnterQueryTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         var canEnterB = await _handler.Handle(
-            new CanEnterQuery
+            new CanEnterBuildingQuery
             {
                 EntranceRoomId = _entranceRoom.Id,
                 EnteringCreatureId = residentB.Id,
@@ -216,7 +220,7 @@ public sealed class CanEnterQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         // Act
         var canEnter = await _handler.Handle(
-            new CanEnterQuery
+            new CanEnterBuildingQuery
             {
                 EntranceRoomId = keylessDoorRoom.Id,
                 EnteringCreatureId = Guid.NewGuid(),

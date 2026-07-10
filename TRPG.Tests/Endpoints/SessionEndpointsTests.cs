@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts;
 using TRPG.Data;
+using TRPG.Requests;
+using TRPG.Responses;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;

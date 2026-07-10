@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using OllamaSharp;
 using OllamaSharp.Models;
 
-namespace TRPG.Application.Extensions;
+namespace TRPG.Application.Common.Extensions;
 
 internal static class OllamaExtensions
 {

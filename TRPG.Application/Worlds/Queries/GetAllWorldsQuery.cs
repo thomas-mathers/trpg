@@ -4,12 +4,12 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Queries;
 
-public class ListWorldsQuery;
+public class GetAllWorldsQuery;
 
-public class ListWorldsQueryHandler(TrpgDbContext context)
+public class GetAllWorldsQueryHandler(TrpgDbContext context)
 {
     public async Task<IReadOnlyList<World>> Handle(
-        ListWorldsQuery query,
+        GetAllWorldsQuery query,
         CancellationToken cancellationToken = default
     )
     {

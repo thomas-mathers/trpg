@@ -1,5 +1,5 @@
 using SharpVoronoiLib;
-using TRPG.Application.Algorithms;
+using TRPG.Application.Common.Algorithms;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;

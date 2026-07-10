@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
-using TRPG.Application.Extensions;
+using TRPG.Application.Common.Extensions;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;

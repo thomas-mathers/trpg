@@ -1,27 +1,26 @@
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Inventory.Queries;
 
 namespace TRPG.Application.Buildings.Queries;
 
-internal class CanEnterQuery
+internal class CanEnterBuildingQuery
 {
     public required Guid EntranceRoomId { get; init; }
     public required Guid EnteringCreatureId { get; init; }
 }
 
-internal class CanEnterQueryHandler(
+internal class CanEnterBuildingQueryHandler(
     GetFrontDoorQueryHandler getFrontDoor,
     GetKeyItemIdsQueryHandler getKeyItemIds,
     GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId
 )
 {
     public async Task<bool> Handle(
-        CanEnterQuery query,
+        CanEnterBuildingQuery buildingQuery,
         CancellationToken cancellationToken = default
     )
     {
         var door = await getFrontDoor.Handle(
-            new GetFrontDoorQuery { RoomId = query.EntranceRoomId },
+            new GetFrontDoorQuery { RoomId = buildingQuery.EntranceRoomId },
             cancellationToken
         );
         if (door is not { IsLocked: true })
@@ -39,7 +38,7 @@ internal class CanEnterQueryHandler(
         }
 
         var inventory = await getInventoryByCreatureId.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = query.EnteringCreatureId },
+            new GetInventoryByCreatureIdQuery { CreatureId = buildingQuery.EnteringCreatureId },
             cancellationToken
         );
         return inventory.Any(i => validKeyItemIds.Contains(i.ItemId));

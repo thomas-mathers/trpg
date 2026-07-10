@@ -4,7 +4,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-internal class FindExitByDestinationNameQuery
+internal class GetExitByDestinationNameQuery
 {
     public required Guid RoomId { get; init; }
     public required string DestinationName { get; init; }
@@ -12,10 +12,10 @@ internal class FindExitByDestinationNameQuery
 
 internal record ExitMatch(bool Matched, Guid? DestinationRoomId);
 
-internal class FindExitByDestinationNameQueryHandler(TrpgDbContext context)
+internal class GetExitByDestinationNameQueryHandler(TrpgDbContext context)
 {
     public async Task<ExitMatch> Handle(
-        FindExitByDestinationNameQuery query,
+        GetExitByDestinationNameQuery query,
         CancellationToken cancellationToken = default
     )
     {

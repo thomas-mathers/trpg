@@ -17,42 +17,39 @@ internal class MoveTool : Tool, IInvokableTool
 {
     private readonly GetBuildingByNameInStateQueryHandler _getBuildingByNameInState;
     private readonly GetEntranceRoomQueryHandler _getEntranceRoom;
-    private readonly FindExitByDestinationNameQueryHandler _findExitByDestinationName;
+    private readonly GetExitByDestinationNameQueryHandler _getExitByDestinationName;
     private readonly GetCreatureByIdQueryHandler _getCreatureById;
     private readonly UpdateCreatureCommandHandler _updateCreature;
-    private readonly SyncIfNeededCommandHandler _syncIfNeeded;
+    private readonly GetSceneWithCatchUpQueryHandler _getSceneWithCatchUp;
     private readonly SyncScheduleLockCommandHandler _syncScheduleLock;
     private readonly GetDistrictByNameInCityQueryHandler _getDistrictByNameInCity;
-    private readonly CanEnterQueryHandler _canEnter;
+    private readonly CanEnterBuildingQueryHandler _canEnterBuilding;
     private readonly ILogger<MoveTool> _logger;
-    private readonly GetSceneQueryHandler _getScene;
     private readonly GameSession _session;
 
     public MoveTool(
         GameSession session,
-        GetSceneQueryHandler getScene,
+        GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
         GetCreatureByIdQueryHandler getCreatureById,
         UpdateCreatureCommandHandler updateCreature,
         GetBuildingByNameInStateQueryHandler getBuildingByNameInState,
         GetEntranceRoomQueryHandler getEntranceRoom,
-        FindExitByDestinationNameQueryHandler findExitByDestinationName,
+        GetExitByDestinationNameQueryHandler getExitByDestinationName,
         GetDistrictByNameInCityQueryHandler getDistrictByNameInCity,
-        CanEnterQueryHandler canEnter,
-        SyncIfNeededCommandHandler syncIfNeeded,
+        CanEnterBuildingQueryHandler canEnterBuilding,
         SyncScheduleLockCommandHandler syncScheduleLock,
         ILogger<MoveTool> logger
     )
     {
         _session = session;
-        _getScene = getScene;
+        _getSceneWithCatchUp = getSceneWithCatchUp;
         _getCreatureById = getCreatureById;
         _updateCreature = updateCreature;
         _getBuildingByNameInState = getBuildingByNameInState;
         _getEntranceRoom = getEntranceRoom;
-        _findExitByDestinationName = findExitByDestinationName;
+        _getExitByDestinationName = getExitByDestinationName;
         _getDistrictByNameInCity = getDistrictByNameInCity;
-        _canEnter = canEnter;
-        _syncIfNeeded = syncIfNeeded;
+        _canEnterBuilding = canEnterBuilding;
         _syncScheduleLock = syncScheduleLock;
         _logger = logger;
 
@@ -130,11 +127,10 @@ internal class MoveTool : Tool, IInvokableTool
         _session.DidMoveThisTurn = true;
 
         var currentDate = GameClock.GetCurrentInGameDate(_session);
-        var sceneIsStale = await _syncIfNeeded.Handle(
-            new SyncIfNeededCommand
+        var result = await _getSceneWithCatchUp.Handle(
+            new GetSceneWithCatchUpQuery
             {
                 Session = _session,
-                WorldId = _session.WorldId,
                 RoomId = player.RoomId,
                 DistrictId = player.DistrictId,
                 CurrentDate = currentDate,
@@ -142,24 +138,7 @@ internal class MoveTool : Tool, IInvokableTool
             cancellationToken
         );
 
-        SceneResult result;
-        if (!sceneIsStale && _session.LastScene != null)
-        {
-            result = _session.LastScene;
-        }
-        else
-        {
-            var query = new GetSceneQuery
-            {
-                WorldId = _session.WorldId,
-                PlayerId = _session.PlayerId,
-                CurrentDate = currentDate,
-            };
-            result = await _getScene.Handle(query, cancellationToken);
-            _session.LastScene = result;
-        }
-
-        _session.SceneRefreshedThisTurn = true;
+        _session.DidSceneRefreshThisTurn = true;
         return result;
     }
 
@@ -197,8 +176,8 @@ internal class MoveTool : Tool, IInvokableTool
                 },
                 cancellationToken
             );
-            var canEnter = await _canEnter.Handle(
-                new CanEnterQuery
+            var canEnter = await _canEnterBuilding.Handle(
+                new CanEnterBuildingQuery
                 {
                     EntranceRoomId = entranceRoom.Id,
                     EnteringCreatureId = player.Id,
@@ -245,8 +224,8 @@ internal class MoveTool : Tool, IInvokableTool
         CancellationToken cancellationToken
     )
     {
-        var exitMatch = await _findExitByDestinationName.Handle(
-            new FindExitByDestinationNameQuery
+        var exitMatch = await _getExitByDestinationName.Handle(
+            new GetExitByDestinationNameQuery
             {
                 RoomId = player.RoomId!.Value,
                 DestinationName = destinationName,

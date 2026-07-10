@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Game;
 using TRPG.Application.Jobs;
 using TRPG.Application.Jobs.Commands;
 using TRPG.Application.Jobs.Queries;
@@ -11,16 +10,15 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Scenes.Commands;
 
-internal class SyncIfNeededCommand
+internal class SyncCommand
 {
-    public required GameSession Session { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid? RoomId { get; init; }
     public required Guid? DistrictId { get; init; }
     public required InGameDate CurrentDate { get; init; }
 }
 
-internal class SyncIfNeededCommandHandler(
+internal class SyncCommandHandler(
     GetCreatureIdsWithJobInRoomQueryHandler getCreatureIdsWithJobInRoom,
     GetAllJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
     GetCreatureIdsByDistrictQueryHandler getCreatureIdsByDistrict,
@@ -30,21 +28,11 @@ internal class SyncIfNeededCommandHandler(
     SetWorkstationOccupantCommandHandler setWorkstationOccupant,
     GetRoomSummaryQueryHandler getRoomSummary,
     SyncScheduleLockCommandHandler syncScheduleLock,
-    ILogger<SyncIfNeededCommandHandler> logger
+    ILogger<SyncCommandHandler> logger
 )
 {
-    public async Task<bool> Handle(
-        SyncIfNeededCommand command,
-        CancellationToken cancellationToken = default
-    )
+    public async Task Handle(SyncCommand command, CancellationToken cancellationToken = default)
     {
-        var session = command.Session;
-        var scopeId = command.RoomId ?? command.DistrictId;
-        if (scopeId == session.LastCatchUpScopeId && command.CurrentDate == session.LastCatchUpDate)
-        {
-            return false;
-        }
-
         if (command.RoomId != null)
         {
             await CatchUpRoom(command.RoomId.Value, command.CurrentDate, cancellationToken);
@@ -59,10 +47,6 @@ internal class SyncIfNeededCommandHandler(
                 cancellationToken
             );
         }
-
-        session.LastCatchUpScopeId = scopeId;
-        session.LastCatchUpDate = command.CurrentDate;
-        return true;
     }
 
     private async Task CatchUpRoom(

@@ -2,9 +2,9 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using OllamaSharp.Models.Chat;
 using OllamaSharp.Tools;
+using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
-using TRPG.Application.NpcConversations.Queries;
 
 namespace TRPG.Application.Tools;
 
@@ -15,21 +15,21 @@ internal class StartConversationTool : Tool, IInvokableTool
     private readonly GetCreatureByIdQueryHandler _getCreatureById;
     private readonly GetCreatureByNameNearbyQueryHandler _getCreatureByNameNearby;
     private readonly ILogger<StartConversationTool> _logger;
-    private readonly GetNpcConversationSummaryQueryHandler _getNpcConversationSummary;
+    private readonly GetConversationSummaryQueryHandler _getConversationSummary;
     private readonly GameSession _session;
 
     public StartConversationTool(
         GameSession session,
         GetCreatureByIdQueryHandler getCreatureById,
         GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
-        GetNpcConversationSummaryQueryHandler getNpcConversationSummary,
+        GetConversationSummaryQueryHandler getConversationSummary,
         ILogger<StartConversationTool> logger
     )
     {
         _session = session;
         _getCreatureById = getCreatureById;
         _getCreatureByNameNearby = getCreatureByNameNearby;
-        _getNpcConversationSummary = getNpcConversationSummary;
+        _getConversationSummary = getConversationSummary;
         _logger = logger;
 
         Function = new Function
@@ -101,7 +101,7 @@ internal class StartConversationTool : Tool, IInvokableTool
             };
         }
 
-        if (_session.ActiveConversationNpcs.ContainsKey(npc.Name))
+        if (_session.OpenConversationCreatureIdsByName.ContainsKey(npc.Name))
         {
             return new
             {
@@ -109,12 +109,12 @@ internal class StartConversationTool : Tool, IInvokableTool
             };
         }
 
-        var summary = await _getNpcConversationSummary.Handle(
-            new GetNpcConversationSummaryQuery { CreatureId = player!.Id, NpcId = npc.Id },
+        var summary = await _getConversationSummary.Handle(
+            new GetConversationSummaryQuery { CreatureId = player!.Id, NpcId = npc.Id },
             cancellationToken
         );
 
-        _session.ActiveConversationNpcs[npc.Name] = npc.Id;
+        _session.OpenConversationCreatureIdsByName[npc.Name] = npc.Id;
 
         return new StartConversationResult(summary, npc.Biography);
     }

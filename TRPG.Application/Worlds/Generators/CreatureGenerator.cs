@@ -24,7 +24,18 @@ public record CreatureGeneratorResult(
     IReadOnlyCollection<CreatureAbility> Abilities
 );
 
-public class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions abilityDefinitions)
+public class CreatureGeneratorSettings
+{
+    public int MaxLevel { get; init; } = 100;
+    public int MaxSkillLevel { get; init; } = 100;
+    public int PointsPerLevel { get; init; } = 5;
+}
+
+public class CreatureGenerator(
+    ItemGenerator itemGenerator,
+    AbilityDefinitions abilityDefinitions,
+    CreatureGeneratorSettings settings
+)
 {
     private static readonly NamePool HumanPool = new(
         [
@@ -904,7 +915,7 @@ public class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
         var level =
             generatorInput.Level > 0
                 ? generatorInput.Level
-                : Random.Shared.Next(1, GameRules.MaxLevel + 1);
+                : Random.Shared.Next(1, settings.MaxLevel + 1);
         var gender =
             generatorInput.Gender ?? (Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female);
 
@@ -933,20 +944,22 @@ public class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
         return new CreatureGeneratorResult(creature, items, inventoryItems, skills, abilities);
     }
 
-    private static IReadOnlyCollection<CreatureSkill> GetSkills(Creature creature)
+    private IReadOnlyCollection<CreatureSkill> GetSkills(Creature creature)
     {
-        var skillLevel = Math.Min(creature.Level, GameRules.MaxSkillLevel);
+        var skillLevel = Math.Min(creature.Level, settings.MaxSkillLevel);
         return ProfessionSkills[creature.Profession!.Value]
             .Select(skill => new CreatureSkill
             {
                 CreatureId = creature.Id,
                 Skill = skill,
                 Level = skillLevel,
-                Experience = GameRules.XpForSkillLevel(skillLevel),
+                Experience = XpForSkillLevel(skillLevel),
                 WorldId = creature.WorldId,
             })
             .ToArray();
     }
+
+    private static int XpForSkillLevel(int level) => 25 * level * (level + 3);
 
     private IReadOnlyCollection<CreatureAbility> GetAbilities(
         Creature creature,
@@ -974,7 +987,7 @@ public class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
         return (int)(spread * Affinities[profession].GoldMultiplier);
     }
 
-    private static Attributes GetAttributes(int level, Profession profession)
+    private Attributes GetAttributes(int level, Profession profession)
     {
         var a = Affinities[profession];
         int[] pool =
@@ -991,7 +1004,7 @@ public class CreatureGenerator(ItemGenerator itemGenerator, AbilityDefinitions a
         var stats = new int[7];
         Array.Fill(stats, 1);
 
-        for (var i = 0; i < level * GameRules.PointsPerLevel; i++)
+        for (var i = 0; i < level * settings.PointsPerLevel; i++)
         {
             var roll = Random.Shared.Next(total);
             var cumulative = 0;

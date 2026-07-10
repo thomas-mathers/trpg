@@ -66,7 +66,7 @@ public class GameTurnRunner(
     )
     {
         session.DidMoveThisTurn = false;
-        session.SceneRefreshedThisTurn = false;
+        session.DidSceneRefreshThisTurn = false;
         GameClock.AdvanceHours(session, hours);
 
         var waitPrompt =
@@ -96,7 +96,7 @@ public class GameTurnRunner(
     )
     {
         session.DidMoveThisTurn = false;
-        session.SceneRefreshedThisTurn = false;
+        session.DidSceneRefreshThisTurn = false;
         var metrics = await SendAndLog(input, cancellationToken);
 
         if (session.DidMoveThisTurn)
@@ -113,7 +113,7 @@ public class GameTurnRunner(
     )
     {
         session.DidMoveThisTurn = false;
-        session.SceneRefreshedThisTurn = false;
+        session.DidSceneRefreshThisTurn = false;
         logger.LogInformation("[game] >>> {Message}", input);
 
         var buffer = new StringBuilder();
@@ -191,9 +191,9 @@ public class GameTurnRunner(
 
     private async Task CloseLingeringConversations(CancellationToken cancellationToken)
     {
-        foreach (var npcName in session.ActiveConversationNpcs.Keys.ToArray())
+        foreach (var npcName in session.OpenConversationCreatureIdsByName.Keys.ToArray())
         {
-            if (!session.ActiveConversationNpcs.ContainsKey(npcName))
+            if (!session.OpenConversationCreatureIdsByName.ContainsKey(npcName))
             {
                 continue;
             }
@@ -202,7 +202,7 @@ public class GameTurnRunner(
                 $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
             await SendAndLog(prompt, cancellationToken);
 
-            if (session.ActiveConversationNpcs.Remove(npcName))
+            if (session.OpenConversationCreatureIdsByName.Remove(npcName))
             {
                 logger.LogWarning(
                     "[game] Failed to save conversation summary for {NpcName}",

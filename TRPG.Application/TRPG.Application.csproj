@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="TRPG.Tests" />
+    <InternalsVisibleTo Include="TRPG" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
@@ -14,5 +15,8 @@
   <ItemGroup>
     <PackageReference Include="OllamaSharp" Version="5.4.25" />
     <PackageReference Include="SharpVoronoiLib" Version="1.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Common\" />
   </ItemGroup>
 </Project>

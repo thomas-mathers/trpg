@@ -15,8 +15,8 @@ public class GameClockTests
         Thread.Sleep(2000);
         var after = GameClock.GetCurrentInGameDateTime(session);
 
-        // Assert — 2 real seconds * 20 in-game-hours-per-real-hour ≈ 40 in-game seconds
+        // Assert — 2 real seconds * 12 in-game-hours-per-real-hour ≈ 24 in-game seconds
         var elapsedInGameSeconds = (after - before).TotalSeconds;
-        Assert.InRange(elapsedInGameSeconds, 30, 60);
+        Assert.InRange(elapsedInGameSeconds, 18, 36);
     }
 }

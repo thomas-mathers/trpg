@@ -1,24 +1,24 @@
-using TRPG.Application.NpcConversations.Commands;
-using TRPG.Application.NpcConversations.Queries;
+using TRPG.Application.Conversations.Commands;
+using TRPG.Application.Conversations.Queries;
 using TRPG.Data;
 
-namespace TRPG.Tests.Application.NpcConversations.Commands;
+namespace TRPG.Tests.Application.Conversations.Commands;
 
 [Collection("Database")]
-public sealed class SetNpcConversationSummaryCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private readonly Guid _creatureId = Guid.NewGuid();
     private readonly Guid _npcId = Guid.NewGuid();
     private readonly Guid _worldId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
-    private GetNpcConversationSummaryQueryHandler _getSummary = null!;
-    private SetNpcConversationSummaryCommandHandler _handler = null!;
+    private GetConversationSummaryQueryHandler _getSummary = null!;
+    private SetConversationSummaryCommandHandler _handler = null!;
 
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new SetNpcConversationSummaryCommandHandler(_context);
-        _getSummary = new GetNpcConversationSummaryQueryHandler(_context);
+        _handler = new SetConversationSummaryCommandHandler(_context);
+        _getSummary = new GetConversationSummaryQueryHandler(_context);
         return ValueTask.CompletedTask;
     }
 
@@ -32,7 +32,7 @@ public sealed class SetNpcConversationSummaryCommandTests(DatabaseFixture db) : 
     {
         // Act
         await _handler.Handle(
-            new SetNpcConversationSummaryCommand
+            new SetConversationSummaryCommand
             {
                 WorldId = _worldId,
                 CreatureId = _creatureId,
@@ -44,7 +44,7 @@ public sealed class SetNpcConversationSummaryCommandTests(DatabaseFixture db) : 
 
         // Assert
         var summary = await _getSummary.Handle(
-            new GetNpcConversationSummaryQuery { CreatureId = _creatureId, NpcId = _npcId },
+            new GetConversationSummaryQuery { CreatureId = _creatureId, NpcId = _npcId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal("They greeted each other.", summary);
@@ -55,7 +55,7 @@ public sealed class SetNpcConversationSummaryCommandTests(DatabaseFixture db) : 
     {
         // Arrange
         await _handler.Handle(
-            new SetNpcConversationSummaryCommand
+            new SetConversationSummaryCommand
             {
                 WorldId = _worldId,
                 CreatureId = _creatureId,
@@ -67,7 +67,7 @@ public sealed class SetNpcConversationSummaryCommandTests(DatabaseFixture db) : 
 
         // Act
         await _handler.Handle(
-            new SetNpcConversationSummaryCommand
+            new SetConversationSummaryCommand
             {
                 WorldId = _worldId,
                 CreatureId = _creatureId,
@@ -79,7 +79,7 @@ public sealed class SetNpcConversationSummaryCommandTests(DatabaseFixture db) : 
 
         // Assert
         var summary = await _getSummary.Handle(
-            new GetNpcConversationSummaryQuery { CreatureId = _creatureId, NpcId = _npcId },
+            new GetConversationSummaryQuery { CreatureId = _creatureId, NpcId = _npcId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal("Second summary.", summary);
@@ -90,7 +90,7 @@ public sealed class SetNpcConversationSummaryCommandTests(DatabaseFixture db) : 
     {
         // Arrange
         await _handler.Handle(
-            new SetNpcConversationSummaryCommand
+            new SetConversationSummaryCommand
             {
                 WorldId = _worldId,
                 CreatureId = _creatureId,
@@ -102,7 +102,7 @@ public sealed class SetNpcConversationSummaryCommandTests(DatabaseFixture db) : 
 
         // Act
         await _handler.Handle(
-            new SetNpcConversationSummaryCommand
+            new SetConversationSummaryCommand
             {
                 WorldId = _worldId,
                 CreatureId = _creatureId,

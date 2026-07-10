@@ -53,11 +53,11 @@ internal static class WorldEndpoints
     }
 
     private static async Task<IResult> ListWorlds(
-        ListWorldsQueryHandler listWorlds,
+        GetAllWorldsQueryHandler getAllWorlds,
         CancellationToken cancellationToken
     )
     {
-        var worlds = await listWorlds.Handle(new ListWorldsQuery(), cancellationToken);
+        var worlds = await getAllWorlds.Handle(new GetAllWorldsQuery(), cancellationToken);
         return Results.Ok(
             worlds.Select(w => new WorldSummary(w.Id, w.Name, w.PlayerId != null)).ToArray()
         );

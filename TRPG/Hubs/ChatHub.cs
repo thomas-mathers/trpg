@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts;
@@ -9,7 +10,9 @@ namespace TRPG.Hubs;
 
 internal sealed class ChatHub(
     IServiceProvider serviceProvider,
-    GameSessionStateStore sessionStore
+    GameSessionStateStore sessionStore,
+    GetCreatureByIdQueryHandler getCreatureById,
+    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp
 ) : Hub
 {
     private const string SessionIdKey = "SessionId";
@@ -69,17 +72,33 @@ internal sealed class ChatHub(
             yield return token;
         }
 
-        if (
-            (alwaysSendScene || state.Session.SceneRefreshedThisTurn)
-            && state.Session.LastScene != null
-        )
+        if (alwaysSendScene || state.Session.DidSceneRefreshThisTurn)
         {
-            await Clients.Caller.SendAsync(
-                "Scene",
-                ToSnapshot(state.Session.LastScene),
-                cancellationToken
-            );
+            var scene = await GetCurrentScene(state.Session, cancellationToken);
+            await Clients.Caller.SendAsync("Scene", ToSnapshot(scene), cancellationToken);
         }
+    }
+
+    private async Task<SceneResult> GetCurrentScene(
+        GameSession session,
+        CancellationToken cancellationToken
+    )
+    {
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = session.PlayerId },
+            cancellationToken
+        );
+
+        return await getSceneWithCatchUp.Handle(
+            new GetSceneWithCatchUpQuery
+            {
+                Session = session,
+                RoomId = player!.RoomId,
+                DistrictId = player.DistrictId,
+                CurrentDate = GameClock.GetCurrentInGameDate(session),
+            },
+            cancellationToken
+        );
     }
 
     private GameTurnRunner ResolveTurnRunner(GameSessionState state)

@@ -5,7 +5,6 @@ using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Game;
 using TRPG.Application.Jobs.Commands;
 using TRPG.Application.Jobs.Queries;
 using TRPG.Application.Scenes.Commands;
@@ -16,7 +15,7 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Scenes.Commands;
 
 [Collection("Database")]
-public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private readonly Guid _worldId = Guid.NewGuid();
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
@@ -24,7 +23,7 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
     private AddJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
     private GetWorkstationsByRoomIdQueryHandler _getWorkstationsByRoomId = null!;
-    private SyncIfNeededCommandHandler _handler = null!;
+    private SyncCommandHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -41,7 +40,7 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             getAllJobsByCreatureId,
             new SetFrontDoorLockedCommandHandler(_context)
         );
-        _handler = new SyncIfNeededCommandHandler(
+        _handler = new SyncCommandHandler(
             new GetCreatureIdsWithJobInRoomQueryHandler(_context),
             getAllJobsByCreatureId,
             new GetCreatureIdsByDistrictQueryHandler(_context),
@@ -51,7 +50,7 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             new SetWorkstationOccupantCommandHandler(_context),
             new GetRoomSummaryQueryHandler(_context, new MemoryCache(new MemoryCacheOptions())),
             syncScheduleLock,
-            NullLogger<SyncIfNeededCommandHandler>.Instance
+            NullLogger<SyncCommandHandler>.Instance
         );
     }
 
@@ -87,13 +86,11 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             },
             TestContext.Current.CancellationToken
         );
-        var session = new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero);
 
         // Act — hour 23 falls inside the wraparound Sleep window
         await _handler.Handle(
-            new SyncIfNeededCommand
+            new SyncCommand
             {
-                Session = session,
                 WorldId = _worldId,
                 RoomId = sleepRoomId,
                 DistrictId = null,
@@ -150,13 +147,11 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             },
             TestContext.Current.CancellationToken
         );
-        var session = new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero);
 
         // Act — hour 10 is inside Work, and the creature is discovered via their stale Sleep-room assignment
         await _handler.Handle(
-            new SyncIfNeededCommand
+            new SyncCommand
             {
-                Session = session,
                 WorldId = _worldId,
                 RoomId = sleepRoomId,
                 DistrictId = null,
@@ -183,13 +178,11 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             new AddCreatureCommand { Creature = creature },
             TestContext.Current.CancellationToken
         );
-        var session = new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero);
 
         // Act
         await _handler.Handle(
-            new SyncIfNeededCommand
+            new SyncCommand
             {
-                Session = session,
                 WorldId = _worldId,
                 RoomId = Guid.NewGuid(),
                 DistrictId = null,
@@ -246,13 +239,11 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             },
             TestContext.Current.CancellationToken
         );
-        var session = new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero);
 
         // Act — hour 12 is inside Idle
         await _handler.Handle(
-            new SyncIfNeededCommand
+            new SyncCommand
             {
-                Session = session,
                 WorldId = _worldId,
                 RoomId = null,
                 DistrictId = districtId,
@@ -332,13 +323,11 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             },
             TestContext.Current.CancellationToken
         );
-        var session = new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero);
 
         // Act
         await _handler.Handle(
-            new SyncIfNeededCommand
+            new SyncCommand
             {
-                Session = session,
                 WorldId = _worldId,
                 RoomId = shopRoomId,
                 DistrictId = null,
@@ -406,13 +395,11 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             },
             TestContext.Current.CancellationToken
         );
-        var session = new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero);
 
         // Act
         await _handler.Handle(
-            new SyncIfNeededCommand
+            new SyncCommand
             {
-                Session = session,
                 WorldId = _worldId,
                 RoomId = shopRoomId,
                 DistrictId = null,
@@ -452,13 +439,11 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             },
             TestContext.Current.CancellationToken
         );
-        var session = new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero);
 
         // Act — hour 23 falls inside the wraparound Sleep window
         await _handler.Handle(
-            new SyncIfNeededCommand
+            new SyncCommand
             {
-                Session = session,
                 WorldId = _worldId,
                 RoomId = frontDoor.RoomId,
                 DistrictId = null,
@@ -473,42 +458,6 @@ public sealed class SyncIfNeededCommandTests(DatabaseFixture db) : IAsyncLifetim
             .OfType<RoomConnector>()
             .FirstAsync(c => c.Id == frontDoor.Id, TestContext.Current.CancellationToken);
         Assert.True(updatedDoor.IsLocked);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsFalse_WhenScopeAndDateUnchanged()
-    {
-        // Arrange
-        var roomId = Guid.NewGuid();
-        var session = new GameSession(_worldId, Guid.NewGuid(), TimeSpan.Zero);
-        var currentDate = MakeDate(12);
-        await _handler.Handle(
-            new SyncIfNeededCommand
-            {
-                Session = session,
-                WorldId = _worldId,
-                RoomId = roomId,
-                DistrictId = null,
-                CurrentDate = currentDate,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Act
-        var syncedAgain = await _handler.Handle(
-            new SyncIfNeededCommand
-            {
-                Session = session,
-                WorldId = _worldId,
-                RoomId = roomId,
-                DistrictId = null,
-                CurrentDate = currentDate,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.False(syncedAgain);
     }
 
     private async Task<Creature> SeedOwner()

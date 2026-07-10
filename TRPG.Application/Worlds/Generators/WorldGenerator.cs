@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Algorithms;
+using TRPG.Application.Common.Algorithms;
 using TRPG.Application.Game;
 using TRPG.Data.Models;
 

@@ -1,6 +1,6 @@
-using TRPG.Application.Algorithms;
+using TRPG.Application.Common.Algorithms;
 
-namespace TRPG.Tests.Application.Worlds.Generators;
+namespace TRPG.Tests.Application.Algorithms;
 
 public class WeightedSamplerTests
 {

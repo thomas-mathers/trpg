@@ -2,25 +2,25 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using OllamaSharp.Models.Chat;
 using OllamaSharp.Tools;
+using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Game;
-using TRPG.Application.NpcConversations.Commands;
 
 namespace TRPG.Application.Tools;
 
 internal class EndConversationTool : Tool, IInvokableTool
 {
     private readonly ILogger<EndConversationTool> _logger;
-    private readonly SetNpcConversationSummaryCommandHandler _setNpcConversationSummary;
+    private readonly SetConversationSummaryCommandHandler _setConversationSummary;
     private readonly GameSession _session;
 
     public EndConversationTool(
         GameSession session,
-        SetNpcConversationSummaryCommandHandler setNpcConversationSummary,
+        SetConversationSummaryCommandHandler setConversationSummary,
         ILogger<EndConversationTool> logger
     )
     {
         _session = session;
-        _setNpcConversationSummary = setNpcConversationSummary;
+        _setConversationSummary = setConversationSummary;
         _logger = logger;
 
         Function = new Function
@@ -88,7 +88,7 @@ internal class EndConversationTool : Tool, IInvokableTool
         CancellationToken cancellationToken
     )
     {
-        if (!_session.ActiveConversationNpcs.TryGetValue(npcName, out var npcId))
+        if (!_session.OpenConversationCreatureIdsByName.TryGetValue(npcName, out var npcId))
         {
             return new
             {
@@ -96,8 +96,8 @@ internal class EndConversationTool : Tool, IInvokableTool
             };
         }
 
-        await _setNpcConversationSummary.Handle(
-            new SetNpcConversationSummaryCommand
+        await _setConversationSummary.Handle(
+            new SetConversationSummaryCommand
             {
                 WorldId = _session.WorldId,
                 CreatureId = _session.PlayerId,
@@ -106,7 +106,7 @@ internal class EndConversationTool : Tool, IInvokableTool
             },
             cancellationToken
         );
-        _session.ActiveConversationNpcs.Remove(npcName);
+        _session.OpenConversationCreatureIdsByName.Remove(npcName);
 
         return new { Saved = true };
     }

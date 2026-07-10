@@ -7,6 +7,8 @@ using TRPG.Application.Game;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts;
+using TRPG.Requests;
+using TRPG.Responses;
 
 namespace TRPG.Endpoints;
 
@@ -69,9 +71,8 @@ internal static class SessionEndpoints
             return Results.NotFound();
         }
 
-        httpContext
-            .RequestServices.GetRequiredService<CurrentGameSessionStateAccessor>()
-            .State = state;
+        httpContext.RequestServices.GetRequiredService<CurrentGameSessionStateAccessor>().State =
+            state;
         var turnRunner = httpContext.RequestServices.GetRequiredService<GameTurnRunner>();
         var metrics = await turnRunner.ProcessTurn(request.Message, cancellationToken);
 
@@ -80,7 +81,11 @@ internal static class SessionEndpoints
         );
     }
 
-    private static IResult Wait(Guid sessionId, WaitRequest request, GameSessionStateStore sessionStore)
+    private static IResult Wait(
+        Guid sessionId,
+        WaitRequest request,
+        GameSessionStateStore sessionStore
+    )
     {
         var state = sessionStore.Get(sessionId);
         if (state == null)

@@ -4,7 +4,6 @@ using OllamaSharp.Models.Chat;
 using OllamaSharp.Tools;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
-using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 
 namespace TRPG.Application.Tools;
@@ -12,23 +11,20 @@ namespace TRPG.Application.Tools;
 internal class LookTool : Tool, IInvokableTool
 {
     private readonly GetCreatureByIdQueryHandler _getCreatureById;
-    private readonly SyncIfNeededCommandHandler _syncIfNeeded;
+    private readonly GetSceneWithCatchUpQueryHandler _getSceneWithCatchUp;
     private readonly ILogger<LookTool> _logger;
-    private readonly GetSceneQueryHandler _getScene;
     private readonly GameSession _session;
 
     public LookTool(
         GameSession session,
-        GetSceneQueryHandler getScene,
+        GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
         GetCreatureByIdQueryHandler getCreatureById,
-        SyncIfNeededCommandHandler syncIfNeeded,
         ILogger<LookTool> logger
     )
     {
         _session = session;
-        _getScene = getScene;
+        _getSceneWithCatchUp = getSceneWithCatchUp;
         _getCreatureById = getCreatureById;
-        _syncIfNeeded = syncIfNeeded;
         _logger = logger;
 
         Function = new Function
@@ -61,11 +57,10 @@ internal class LookTool : Tool, IInvokableTool
             new GetCreatureByIdQuery { Id = _session.PlayerId },
             cancellationToken
         );
-        var sceneIsStale = await _syncIfNeeded.Handle(
-            new SyncIfNeededCommand
+        var result = await _getSceneWithCatchUp.Handle(
+            new GetSceneWithCatchUpQuery
             {
                 Session = _session,
-                WorldId = _session.WorldId,
                 RoomId = player!.RoomId,
                 DistrictId = player.DistrictId,
                 CurrentDate = currentDate,
@@ -73,24 +68,7 @@ internal class LookTool : Tool, IInvokableTool
             cancellationToken
         );
 
-        SceneResult result;
-        if (!sceneIsStale && _session.LastScene != null)
-        {
-            result = _session.LastScene;
-        }
-        else
-        {
-            var query = new GetSceneQuery
-            {
-                WorldId = _session.WorldId,
-                PlayerId = _session.PlayerId,
-                CurrentDate = currentDate,
-            };
-            result = await _getScene.Handle(query, cancellationToken);
-            _session.LastScene = result;
-        }
-
-        _session.SceneRefreshedThisTurn = true;
+        _session.DidSceneRefreshThisTurn = true;
         return result;
     }
 }

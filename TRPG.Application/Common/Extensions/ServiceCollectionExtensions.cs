@@ -3,6 +3,8 @@ using OllamaSharp.Models.Chat;
 using TRPG.Application.Abilities;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Conversations.Commands;
+using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
@@ -10,8 +12,6 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Jobs.Commands;
 using TRPG.Application.Jobs.Queries;
-using TRPG.Application.NpcConversations.Commands;
-using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Scenes.Commands;
@@ -21,7 +21,7 @@ using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
 
-namespace TRPG.Application.Extensions;
+namespace TRPG.Application.Common.Extensions;
 
 public static class ServiceCollectionExtensions
 {
@@ -39,7 +39,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetRoomSummaryQueryHandler>()
             .AddTransient<GetBuildingByNameInStateQueryHandler>()
             .AddTransient<GetEntranceRoomQueryHandler>()
-            .AddTransient<FindExitByDestinationNameQueryHandler>()
+            .AddTransient<GetExitByDestinationNameQueryHandler>()
             .AddTransient<GetRoomsByIdsQueryHandler>()
             .AddTransient<GetAllBuildingsByStateIdQueryHandler>()
             .AddTransient<GetStaticPropsByRoomIdQueryHandler>()
@@ -61,8 +61,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetCreatureIdsWithJobInRoomQueryHandler>()
             .AddTransient<ExecuteJobCommandHandler>()
             .AddTransient<SyncScheduleLockCommandHandler>()
-            .AddTransient<SyncIfNeededCommandHandler>()
-            .AddTransient<CanEnterQueryHandler>()
+            .AddTransient<SyncCommandHandler>()
+            .AddTransient<CanEnterBuildingQueryHandler>()
             .AddTransient<GetCountryByIdQueryHandler>()
             .AddTransient<GetAllCountriesByWorldIdQueryHandler>()
             .AddTransient<GetStateByIdQueryHandler>()
@@ -70,9 +70,10 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetCityByIdQueryHandler>()
             .AddTransient<GetAllDistrictsByCityIdQueryHandler>()
             .AddTransient<GetDistrictByNameInCityQueryHandler>()
-            .AddTransient<GetNpcConversationSummaryQueryHandler>()
-            .AddTransient<SetNpcConversationSummaryCommandHandler>()
+            .AddTransient<GetConversationSummaryQueryHandler>()
+            .AddTransient<SetConversationSummaryCommandHandler>()
             .AddSingleton(AbilityDefinitions.Create())
+            .AddSingleton(new CreatureGeneratorSettings())
             .AddTransient<AddCreatureCommandHandler>()
             .AddTransient<UpdateCreatureCommandHandler>()
             .AddTransient<DeleteCreatureCommandHandler>()
@@ -90,8 +91,9 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetEffectiveReputationQueryHandler>()
             .AddTransient<GetEffectiveReputationsQueryHandler>()
             .AddTransient<GetSceneQueryHandler>()
+            .AddTransient<GetSceneWithCatchUpQueryHandler>()
             .AddTransient<GetWorldQueryHandler>()
-            .AddTransient<ListWorldsQueryHandler>()
+            .AddTransient<GetAllWorldsQueryHandler>()
             .AddTransient<UpdateWorldCommandHandler>()
             .AddTransient<WeaponGenerator>()
             .AddTransient<ArmorGenerator>()

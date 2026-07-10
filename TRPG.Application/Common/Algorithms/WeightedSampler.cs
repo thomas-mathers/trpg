@@ -1,4 +1,4 @@
-namespace TRPG.Application.Algorithms;
+namespace TRPG.Application.Common.Algorithms;
 
 internal static class WeightedSampler
 {

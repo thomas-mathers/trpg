@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG;
-using TRPG.Application.Extensions;
+using TRPG.Application.Common.Extensions;
 using TRPG.Data;
 using TRPG.Endpoints;
 using TRPG.Extensions;

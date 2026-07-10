@@ -1,4 +1,4 @@
-namespace TRPG.Contracts;
+namespace TRPG.Client;
 
 public static class WorldGenerationDefaults
 {

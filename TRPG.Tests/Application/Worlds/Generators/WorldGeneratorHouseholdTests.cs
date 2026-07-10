@@ -42,7 +42,11 @@ public class WorldGeneratorHouseholdTests
             new ConsumableGenerator(),
             new AmmoGenerator()
         );
-        var creatureGenerator = new CreatureGenerator(itemGenerator, abilityDefinitions);
+        var creatureGenerator = new CreatureGenerator(
+            itemGenerator,
+            abilityDefinitions,
+            new CreatureGeneratorSettings()
+        );
         return new WorldGenerator(
             new BuildingGenerator(),
             null!,

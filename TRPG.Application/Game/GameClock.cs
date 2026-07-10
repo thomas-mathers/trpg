@@ -6,8 +6,10 @@ namespace TRPG.Application.Game;
 public static class GameClock
 {
     internal const int EpochYear = 975;
-    private const double InGameHoursPerRealHour = 20.0;
+    private const double InGameHoursPerRealHour = 12.0;
     private static readonly DateTime WorldEpoch = new(EpochYear, 1, 1, 8, 0, 0);
+
+    public static TimeSpan RealTimePerInGameHour => TimeSpan.FromHours(1.0 / InGameHoursPerRealHour);
 
     private static readonly DateTimeFormatInfo CalendarFormat = new()
     {
