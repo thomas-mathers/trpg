@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts;
 using TRPG.Data;
+using TRPG.Data.Models;
 using TRPG.Requests;
 using TRPG.Responses;
 using TRPG.Tests.Helpers;
@@ -40,13 +42,16 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
     public ValueTask DisposeAsync()
     {
         _client.Dispose();
+        fixture.ChatClient.PendingToolCallName = null;
+        fixture.ChatClient.PendingToolCallArguments = null;
+        fixture.ChatClient.ChatResponseText = "You look around. What do you want to do next?";
         return ValueTask.CompletedTask;
     }
 
-    private async Task<Guid> StartSession()
+    private async Task<Guid> StartSession(Guid? worldId = null)
     {
         var response = await _client.PostAsync(
-            new Uri($"/worlds/{_worldId}/sessions", UriKind.Relative),
+            new Uri($"/worlds/{worldId ?? _worldId}/sessions", UriKind.Relative),
             null,
             TestContext.Current.CancellationToken
         );
@@ -96,6 +101,75 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
         Assert.NotNull(result);
         Assert.False(string.IsNullOrWhiteSpace(result.Response));
         Assert.Null(result.Metrics);
+    }
+
+    [Fact]
+    public async Task SendChat_MovesPlayerToDestination_WhenModelCallsMoveTool()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+
+        var world = Builders.MakeWorld();
+        var country = Builders.MakeCountry(world.Id);
+        var state = Builders.MakeState(country.Id, world.Id);
+        var city = Builders.MakeCity(state.Id, country.Id, worldId: world.Id);
+        var origin = Builders.MakeDistrict(
+            city.Id,
+            DistrictType.CityCenter,
+            worldId: world.Id
+        );
+        var destination = Builders.MakeDistrict(
+            city.Id,
+            DistrictType.Residential,
+            worldId: world.Id
+        );
+        var player = Builders.MakeCreature(
+            world.Id,
+            stateId: state.Id,
+            cityId: city.Id,
+            districtId: origin.Id
+        );
+        world.PlayerId = player.Id;
+
+        context.Worlds.Add(world);
+        context.Countries.Add(country);
+        context.States.Add(state);
+        context.Cities.Add(city);
+        context.Districts.AddRange(origin, destination);
+        context.Creatures.Add(player);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sessionId = await StartSession(world.Id);
+
+        fixture.ChatClient.PendingToolCallName = "move";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["destinationName"] = destination.Name,
+        };
+        fixture.ChatClient.ChatResponseText = "You arrive at the new district.";
+
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            new Uri($"/sessions/{sessionId}/chat", UriKind.Relative),
+            new ChatRequest($"I head to {destination.Name}"),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ChatResponse>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(result);
+        Assert.Equal("You arrive at the new district.", result.Response);
+
+        await using var verifyScope = fixture.CreateScope();
+        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var movedPlayer = await verifyContext
+            .Creatures.AsNoTracking()
+            .FirstAsync(c => c.Id == player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(destination.Id, movedPlayer.DistrictId);
     }
 
     [Fact]
