@@ -1328,7 +1328,14 @@ public class WorldGenerator(
         if (homemaker != null)
         {
             var father = household.First(m => m.Id == adultId);
-            var kids = household.Where(m => m.Id != adultId && m.Id != homemaker.Id).ToList();
+            // Household members who are themselves employment-eligible get their own independent day-off
+            // schedule from AssignEmployment's own EligibleForEmployment loop (run before this one) —
+            // lumping them into the father's family day off too would double-book them. Only genuine
+            // dependents, who never go through that loop, join the father's day off.
+            var eligibleIds = context.EligibleForEmployment.Select(c => c.Id).ToHashSet();
+            var kids = household
+                .Where(m => m.Id != adultId && m.Id != homemaker.Id && !eligibleIds.Contains(m.Id))
+                .ToList();
             RegisterFamilyDay(father, homemaker, kids, daysOff, workHours, needsByDay, context);
             return;
         }
