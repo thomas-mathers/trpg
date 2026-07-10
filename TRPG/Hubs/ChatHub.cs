@@ -7,7 +7,10 @@ using TRPG.Contracts;
 
 namespace TRPG.Hubs;
 
-internal sealed class ChatHub(IServiceProvider serviceProvider, GameSessionStore sessionStore) : Hub
+internal sealed class ChatHub(
+    IServiceProvider serviceProvider,
+    GameSessionStateStore sessionStore
+) : Hub
 {
     private const string SessionIdKey = "SessionId";
 
@@ -81,7 +84,7 @@ internal sealed class ChatHub(IServiceProvider serviceProvider, GameSessionStore
 
     private GameTurnRunner ResolveTurnRunner(GameSessionState state)
     {
-        serviceProvider.GetRequiredService<CurrentGameSessionAccessor>().State = state;
+        serviceProvider.GetRequiredService<CurrentGameSessionStateAccessor>().State = state;
         return serviceProvider.GetRequiredService<GameTurnRunner>();
     }
 

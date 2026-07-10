@@ -25,7 +25,7 @@ internal static class SessionEndpoints
         GetWorldQueryHandler getWorld,
         IOllamaApiClient ollamaClient,
         AppConfiguration appConfiguration,
-        GameSessionStore sessionStore,
+        GameSessionStateStore sessionStore,
         CancellationToken cancellationToken
     )
     {
@@ -58,7 +58,7 @@ internal static class SessionEndpoints
         Guid sessionId,
         ChatRequest request,
         bool? includeMetrics,
-        GameSessionStore sessionStore,
+        GameSessionStateStore sessionStore,
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
@@ -69,7 +69,9 @@ internal static class SessionEndpoints
             return Results.NotFound();
         }
 
-        httpContext.RequestServices.GetRequiredService<CurrentGameSessionAccessor>().State = state;
+        httpContext
+            .RequestServices.GetRequiredService<CurrentGameSessionStateAccessor>()
+            .State = state;
         var turnRunner = httpContext.RequestServices.GetRequiredService<GameTurnRunner>();
         var metrics = await turnRunner.ProcessTurn(request.Message, cancellationToken);
 
@@ -78,7 +80,7 @@ internal static class SessionEndpoints
         );
     }
 
-    private static IResult Wait(Guid sessionId, WaitRequest request, GameSessionStore sessionStore)
+    private static IResult Wait(Guid sessionId, WaitRequest request, GameSessionStateStore sessionStore)
     {
         var state = sessionStore.Get(sessionId);
         if (state == null)
@@ -101,7 +103,7 @@ internal static class SessionEndpoints
 
     private static async Task<IResult> EndSession(
         Guid sessionId,
-        GameSessionStore sessionStore,
+        GameSessionStateStore sessionStore,
         GetWorldQueryHandler getWorld,
         UpdateWorldCommandHandler updateWorld,
         CancellationToken cancellationToken

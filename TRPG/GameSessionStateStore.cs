@@ -3,7 +3,7 @@ using TRPG.Application;
 
 namespace TRPG;
 
-internal class GameSessionStore
+internal class GameSessionStateStore
 {
     private readonly ConcurrentDictionary<Guid, GameSessionState> _sessions = new();
 

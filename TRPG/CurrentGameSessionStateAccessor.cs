@@ -1,6 +1,6 @@
 namespace TRPG;
 
-internal class CurrentGameSessionAccessor
+internal class CurrentGameSessionStateAccessor
 {
     public GameSessionState State { get; set; } = null!;
 }
