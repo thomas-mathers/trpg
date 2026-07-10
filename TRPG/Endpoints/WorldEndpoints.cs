@@ -4,8 +4,6 @@ using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts;
-using TRPG.Extensions;
-using Profession = TRPG.Data.Models.Profession;
 
 namespace TRPG.Endpoints;
 
@@ -42,8 +40,8 @@ internal static class WorldEndpoints
                 MaxHouseholdSize = request.MaxHouseholdSize,
                 FactionCount = request.FactionCount,
             },
-            PlayerCreatureType = request.Race.ToCreatureType(),
-            PlayerProfession = Enum.Parse<Profession>(request.Profession.ToString()),
+            PlayerRace = request.Race,
+            PlayerProfession = request.Profession,
             PlayerName = request.PlayerName,
         };
 
