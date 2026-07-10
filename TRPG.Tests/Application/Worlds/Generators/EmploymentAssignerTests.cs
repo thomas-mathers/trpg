@@ -4,42 +4,10 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Generators;
 
-public class WorldGeneratorEmploymentTests
+public class EmploymentAssignerTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
     private static readonly HourWindow WorkHours = new(8, 18);
-
-    [Fact]
-    public void StaffDayOffPatterns_AreAllPairwiseDisjoint()
-    {
-        // Arrange
-        var patterns = WorldGenerator.StaffDayOffPatterns;
-
-        // Act & Assert — this is what guarantees a shop is never fully unstaffed regardless of who's hired
-        for (var i = 0; i < patterns.Length; i++)
-        {
-            for (var j = i + 1; j < patterns.Length; j++)
-            {
-                Assert.Empty(patterns[i].Intersect(patterns[j]));
-            }
-        }
-    }
-
-    [Fact]
-    public void NonOverlappingDayOffPatterns_PartitionTheWeekWithNoOverlap()
-    {
-        // Arrange
-        var patterns = WorldGenerator.NonOverlappingDayOffPatterns;
-
-        // Act
-        var daysOffByBoth = patterns[0].Intersect(patterns[1]).ToArray();
-        var allDays = patterns[0].Concat(patterns[1]).Distinct().ToArray();
-
-        // Assert — the two positions never share a day off (so someone's always covering the single workstation),
-        // and together their days off cover the whole week (each works exactly the days the other is off)
-        Assert.Empty(daysOffByBoth);
-        Assert.Equal(7, allDays.Length);
-    }
 
     [Fact]
     public void AssignEmployment_AssignsMatchingProfessionAndWorkJob_WhenSlotAvailable()
@@ -51,10 +19,10 @@ public class WorldGeneratorEmploymentTests
             eligible: [adult],
             slots:
             [
-                new WorldGenerator.ShopEmploymentSlot(
+                new ShopEmploymentSlot(
                     shopRoomId,
                     Profession.Baker,
-                    WorldGenerator.StaffDayOffPatterns[1],
+                    ShopStaffingPolicy.StaffDayOffPatterns[1],
                     WorkHours
                 ),
             ],
@@ -62,7 +30,7 @@ public class WorldGeneratorEmploymentTests
         );
 
         // Act
-        WorldGenerator.AssignEmployment(context);
+        EmploymentAssigner.AssignEmployment(context);
 
         // Assert
         Assert.Equal(Profession.Baker, adult.Profession);
@@ -84,7 +52,7 @@ public class WorldGeneratorEmploymentTests
         );
 
         // Act
-        WorldGenerator.AssignEmployment(context);
+        EmploymentAssigner.AssignEmployment(context);
 
         // Assert
         Assert.Equal(Profession.Unemployed, adult.Profession);
@@ -104,26 +72,18 @@ public class WorldGeneratorEmploymentTests
         var homemaker = Builders.MakeCreature(_worldId, profession: Profession.Homemaker);
         var kid = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
         var household = new List<Creature> { father, homemaker, kid };
-        var daysOff = WorldGenerator.StaffDayOffPatterns[0];
+        var daysOff = ShopStaffingPolicy.StaffDayOffPatterns[0];
 
         var context = MakeContext(
             eligible: [father],
-            slots:
-            [
-                new WorldGenerator.ShopEmploymentSlot(
-                    shopRoomId,
-                    Profession.Baker,
-                    daysOff,
-                    WorkHours
-                ),
-            ],
+            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Baker, daysOff, WorkHours)],
             homeRooms: household.ToDictionary(c => c.Id, _ => homeRoomId),
             households: household.ToDictionary(c => c.Id, _ => household),
             fatherIds: [father.Id]
         );
 
         // Act
-        WorldGenerator.AssignEmployment(context);
+        EmploymentAssigner.AssignEmployment(context);
 
         // Assert — with no other candidates, the family's own home is the only possible destination
         foreach (var day in daysOff)
@@ -155,26 +115,18 @@ public class WorldGeneratorEmploymentTests
         // Arrange
         var shopRoomId = Guid.NewGuid();
         var adult = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
-        var daysOff = WorldGenerator.StaffDayOffPatterns[1];
+        var daysOff = ShopStaffingPolicy.StaffDayOffPatterns[1];
 
         // Flagged as a father, but no Homemaker exists in the household — must fall back to a solo day off.
         var context = MakeContext(
             eligible: [adult],
-            slots:
-            [
-                new WorldGenerator.ShopEmploymentSlot(
-                    shopRoomId,
-                    Profession.Tailor,
-                    daysOff,
-                    WorkHours
-                ),
-            ],
+            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Tailor, daysOff, WorkHours)],
             homeRooms: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() },
             fatherIds: [adult.Id]
         );
 
         // Act
-        WorldGenerator.AssignEmployment(context);
+        EmploymentAssigner.AssignEmployment(context);
 
         // Assert
         Assert.Equal(
@@ -196,36 +148,22 @@ public class WorldGeneratorEmploymentTests
         var minorKid = Builders.MakeCreature(_worldId);
         minorKid.Profession = null;
         var household = new List<Creature> { father, homemaker, minorKid };
-        var daysOff = WorldGenerator.StaffDayOffPatterns[0];
+        var daysOff = ShopStaffingPolicy.StaffDayOffPatterns[0];
 
         var context = MakeContext(
             eligible: [father],
-            slots:
-            [
-                new WorldGenerator.ShopEmploymentSlot(
-                    shopRoomId,
-                    Profession.Baker,
-                    daysOff,
-                    WorkHours
-                ),
-            ],
+            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Baker, daysOff, WorkHours)],
             homeRooms: household.ToDictionary(c => c.Id, _ => homeRoomId),
             households: household.ToDictionary(c => c.Id, _ => household),
             fatherIds: [father.Id],
             cityIdleCandidates:
             [
-                new WorldGenerator.IdleCandidate(
-                    tavernRoomId,
-                    Guid.NewGuid(),
-                    10,
-                    1000,
-                    BuildingType.Tavern
-                ),
+                new IdleCandidate(tavernRoomId, Guid.NewGuid(), 10, 1000, BuildingType.Tavern),
             ]
         );
 
         // Act
-        WorldGenerator.AssignEmployment(context);
+        EmploymentAssigner.AssignEmployment(context);
 
         // Assert — Tavern is the only public candidate and has an overwhelming weight, but it must never be
         // picked for a family day-off with a minor present, so this always falls back to home instead
@@ -247,36 +185,22 @@ public class WorldGeneratorEmploymentTests
         var homemaker = Builders.MakeCreature(_worldId, profession: Profession.Homemaker);
         var kid = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
         var household = new List<Creature> { father, homemaker, kid };
-        var daysOff = WorldGenerator.StaffDayOffPatterns[0];
+        var daysOff = ShopStaffingPolicy.StaffDayOffPatterns[0];
 
         var context = MakeContext(
             eligible: [father],
-            slots:
-            [
-                new WorldGenerator.ShopEmploymentSlot(
-                    shopRoomId,
-                    Profession.Baker,
-                    daysOff,
-                    WorkHours
-                ),
-            ],
+            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Baker, daysOff, WorkHours)],
             homeRooms: household.ToDictionary(c => c.Id, _ => homeRoomId),
             households: household.ToDictionary(c => c.Id, _ => household),
             fatherIds: [father.Id],
             cityIdleCandidates:
             [
-                new WorldGenerator.IdleCandidate(
-                    marketRoomId,
-                    Guid.NewGuid(),
-                    2,
-                    1000,
-                    BuildingType.GeneralGoods
-                ),
+                new IdleCandidate(marketRoomId, Guid.NewGuid(), 2, 1000, BuildingType.GeneralGoods),
             ]
         );
 
         // Act
-        WorldGenerator.AssignEmployment(context);
+        EmploymentAssigner.AssignEmployment(context);
 
         // Assert — capacity 2 can't fit this group of 3, even with an overwhelming weight, so this falls back home
         var fatherJobs = context
@@ -293,17 +217,17 @@ public class WorldGeneratorEmploymentTests
         var owner = Builders.MakeCreature(_worldId, profession: Profession.Baker);
         var ownerId = owner.Id;
         var ownerHomeRoomId = Guid.NewGuid();
-        var daysOff = WorldGenerator.StaffDayOffPatterns[0];
+        var daysOff = ShopStaffingPolicy.StaffDayOffPatterns[0];
         var context = MakeContext(
             eligible: [],
             slots: [],
             homeRooms: new Dictionary<Guid, Guid> { [ownerId] = ownerHomeRoomId },
             households: new Dictionary<Guid, List<Creature>> { [ownerId] = [owner] },
-            ownerAssignments: [new WorldGenerator.StaffDayOff(ownerId, daysOff, WorkHours)]
+            ownerAssignments: [new StaffDayOff(ownerId, daysOff, WorkHours)]
         );
 
         // Act
-        WorldGenerator.AssignEmployment(context);
+        EmploymentAssigner.AssignEmployment(context);
 
         // Assert
         var ownerJobs = context.Jobs.Where(j => j.CreatureId == ownerId).ToArray();
@@ -311,17 +235,17 @@ public class WorldGeneratorEmploymentTests
         Assert.Equal(daysOff.ToHashSet(), ownerJobs.Select(j => j.SpecificDay!.Value).ToHashSet());
     }
 
-    private WorldGenerator.CityEmploymentContext MakeContext(
+    private CityEmploymentContext MakeContext(
         IReadOnlyList<Creature> eligible,
-        IReadOnlyList<WorldGenerator.ShopEmploymentSlot> slots,
+        IReadOnlyList<ShopEmploymentSlot> slots,
         IReadOnlyDictionary<Guid, Guid>? homeRooms = null,
         IReadOnlyDictionary<Guid, List<Creature>>? households = null,
         IReadOnlyList<Guid>? fatherIds = null,
-        IReadOnlyList<WorldGenerator.StaffDayOff>? ownerAssignments = null,
-        IReadOnlyList<WorldGenerator.IdleCandidate>? cityIdleCandidates = null
+        IReadOnlyList<StaffDayOff>? ownerAssignments = null,
+        IReadOnlyList<IdleCandidate>? cityIdleCandidates = null
     )
     {
-        return new WorldGenerator.CityEmploymentContext
+        return new CityEmploymentContext
         {
             OpenShopSlots = slots.ToList(),
             EligibleForEmployment = eligible.ToList(),

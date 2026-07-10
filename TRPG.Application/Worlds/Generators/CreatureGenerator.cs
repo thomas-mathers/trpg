@@ -1200,11 +1200,6 @@ public class CreatureGenerator(
         ];
     }
 
-    // Humans get an optional middle name (a second given name). The other humanoid races each get an
-    // optional second surname instead, reusing the same lore-appropriate slot for a different reason
-    // per race: a Dwarf clan name, an Orc battle-epithet, an Elf ceremonial name, a Halfling maternal
-    // family name, or a Gnome's habit of tacking on extra name components. The chance reflects how
-    // central that convention is to each culture — dwarves care most, orcs least (it has to be earned).
     private static readonly Dictionary<CreatureType, double> MiddleNameChanceByRace = new()
     {
         [CreatureType.Human] = 0.3,
@@ -1265,6 +1260,19 @@ public class CreatureGenerator(
         var pool = GetPool(creatureType);
         var firstNames = gender == Gender.Male ? pool.MaleFirstNames : pool.FemaleFirstNames;
         return firstNames[Random.Shared.Next(firstNames.Length)];
+    }
+
+    private const double DominantRaceWeight = 0.7;
+
+    public static CreatureType PickCreatureType(CreatureType dominantRace)
+    {
+        if (Random.Shared.NextDouble() < DominantRaceWeight)
+        {
+            return dominantRace;
+        }
+
+        var others = CreatureTypes.Humanoid.Where(r => r != dominantRace).ToArray();
+        return others[Random.Shared.Next(others.Length)];
     }
 
     public static string GetLastName(CreatureType creatureType)

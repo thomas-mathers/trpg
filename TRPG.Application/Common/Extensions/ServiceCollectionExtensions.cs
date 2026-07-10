@@ -102,6 +102,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<AmmoGenerator>()
             .AddTransient<ItemGenerator>()
             .AddTransient<CreatureGenerator>()
+            .AddTransient<HouseholdGenerator>()
+            .AddTransient<CityGenerator>()
             .AddTransient<GeographyGenerator>()
             .AddTransient<BuildingGenerator>()
             .AddTransient<FactionsGenerator>()
@@ -120,9 +122,6 @@ public static class ServiceCollectionExtensions
             .AddGameTool<LookupTool>();
     }
 
-    // Every game tool is a plain DI-constructed class implementing IGameTool — its InvokeAsync method
-    // carries its own [DisplayName]/[Description], and AIFunctionFactoryOptions.Name defaults to the
-    // DisplayName on the bound delegate, so no name string is needed here, just the delegate itself.
     private static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)
         where T : class, IGameTool =>
         serviceCollection

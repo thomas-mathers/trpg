@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging.Abstractions;
 using TRPG.Application.Abilities;
 using TRPG.Application.Game;
 using TRPG.Application.Worlds.Generators;
@@ -6,7 +5,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Tests.Application.Worlds.Generators;
 
-public class WorldGeneratorHouseholdTests
+public class HouseholdGeneratorTests
 {
     private const int EpochYear = GameClock.EpochYear;
     private readonly Guid _worldId = Guid.NewGuid();
@@ -30,9 +29,9 @@ public class WorldGeneratorHouseholdTests
         MinHouseholdSize = 1,
         MaxHouseholdSize = 4,
     };
-    private readonly WorldGenerator _worldGenerator = MakeWorldGenerator();
+    private readonly HouseholdGenerator _householdGenerator = MakeHouseholdGenerator();
 
-    private static WorldGenerator MakeWorldGenerator()
+    private static HouseholdGenerator MakeHouseholdGenerator()
     {
         var abilityDefinitions = AbilityDefinitions.Create();
         var itemGenerator = new ItemGenerator(
@@ -47,18 +46,12 @@ public class WorldGeneratorHouseholdTests
             abilityDefinitions,
             new CreatureGeneratorSettings()
         );
-        return new WorldGenerator(
-            new BuildingGenerator(),
-            null!,
-            null!,
-            creatureGenerator,
-            NullLogger<WorldGenerator>.Instance
-        );
+        return new HouseholdGenerator(new BuildingGenerator(), creatureGenerator);
     }
 
-    private WorldGenerator.HouseholdGenerationContext MakeContext()
+    private HouseholdGeneratorInput MakeInput()
     {
-        return new WorldGenerator.HouseholdGenerationContext
+        return new HouseholdGeneratorInput
         {
             WorldId = _worldId,
             City = _city,
@@ -67,24 +60,6 @@ public class WorldGeneratorHouseholdTests
             DominantRace = CreatureType.Human,
             GeneratorInput = _generatorInput,
             UsedBuildingNames = [],
-            CityFactionId = Guid.NewGuid(),
-            CityBuildings = [],
-            Creatures = [],
-            FactionMembers = [],
-            Items = [],
-            InventoryItems = [],
-            Skills = [],
-            Abilities = [],
-            Jobs = [],
-            BuildingOwners = [],
-            Rooms = [],
-            Props = [],
-            Relationships = [],
-            RoomConnectorKeys = [],
-            HouseholdByMemberId = [],
-            HomeRoomIdByMemberId = [],
-            FatherIds = [],
-            EligibleForEmployment = [],
         };
     }
 
@@ -94,7 +69,7 @@ public class WorldGeneratorHouseholdTests
         for (var i = 0; i < 50; i++)
         {
             // Act
-            var household = _worldGenerator.GenerateSingleHousehold(
+            var household = _householdGenerator.GenerateSingleHousehold(
                 CreatureType.Human,
                 _worldId,
                 _stateId
@@ -113,7 +88,7 @@ public class WorldGeneratorHouseholdTests
     public void GenerateFamilyHousehold_AlwaysProducesAdultParentsWithASpouseRelationship()
     {
         // Act
-        var household = _worldGenerator.GenerateFamilyHousehold(
+        var household = _householdGenerator.GenerateFamilyHousehold(
             CreatureType.Human,
             _worldId,
             _stateId,
@@ -142,45 +117,44 @@ public class WorldGeneratorHouseholdTests
     }
 
     [Fact]
-    public void GenerateAndRegisterHousehold_AssignsDesignatedProfession_AndRegistersFullSchedule()
+    public void Generate_AssignsDesignatedProfession_AndProducesFullSchedule()
     {
-        // Arrange
-        var context = MakeContext();
-
         // Act
-        var worker = _worldGenerator.GenerateAndRegisterHousehold(context, Profession.Baker);
+        var household = _householdGenerator.Generate(MakeInput(), Profession.Baker);
 
         // Assert
+        var worker = household.DesignatedWorker;
         Assert.NotNull(worker);
         Assert.Equal(Profession.Baker, worker.Profession);
-        Assert.Contains(worker.Id, context.HomeRoomIdByMemberId.Keys);
         Assert.Contains(
-            context.Jobs,
+            household.Jobs,
             j => j.CreatureId == worker.Id && j.Action == JobAction.Sleep
         );
-        Assert.Contains(context.Jobs, j => j.CreatureId == worker.Id && j.Action == JobAction.Idle);
-        Assert.Contains(context.Creatures, c => c.Id == worker.Id);
-        Assert.DoesNotContain(worker, context.EligibleForEmployment);
+        Assert.Contains(
+            household.Jobs,
+            j => j.CreatureId == worker.Id && j.Action == JobAction.Idle
+        );
+        Assert.Contains(household.Members, m => m.Creature.Id == worker.Id);
+        Assert.DoesNotContain(worker, household.EligibleForEmployment);
     }
 
     [Fact]
-    public void GenerateAndRegisterHousehold_GivesDesignatedWorkerASpouse_WhenHouseholdIsAFamily()
+    public void Generate_GivesDesignatedWorkerASpouse_WhenHouseholdIsAFamily()
     {
         // Act — the family/single split is random per call, so retry until a family household comes up
         for (var attempt = 0; attempt < 30; attempt++)
         {
-            var context = MakeContext();
-            var worker = _worldGenerator.GenerateAndRegisterHousehold(context, Profession.Baker)!;
-            var household = context.HouseholdByMemberId[worker.Id];
+            var household = _householdGenerator.Generate(MakeInput(), Profession.Baker);
+            var worker = household.DesignatedWorker!;
 
-            if (household.Count < 2)
+            if (household.Members.Count < 2)
             {
                 continue;
             }
 
             // Assert
             Assert.Contains(
-                context.Relationships,
+                household.Relationships,
                 r =>
                     r.SubjectId == worker.Id
                     && (
@@ -197,47 +171,43 @@ public class WorldGeneratorHouseholdTests
     }
 
     [Fact]
-    public void GenerateAndRegisterHousehold_NeverAssignsARealJob_WhenNoProfessionIsDesignated()
+    public void Generate_NeverAssignsARealJob_WhenNoProfessionIsDesignated()
     {
-        // Arrange
-        var context = MakeContext();
-
         // Act
-        var worker = _worldGenerator.GenerateAndRegisterHousehold(context, null);
+        var household = _householdGenerator.Generate(MakeInput(), null);
 
         // Assert — with no designated worker, a member is either Unemployed (eligible for hire later),
         // a Homemaker (a mother with kids), or a minor (null profession) — never an actual job
-        Assert.Null(worker);
+        Assert.Null(household.DesignatedWorker);
         Assert.All(
-            context.Creatures,
-            c =>
+            household.Members,
+            m =>
                 Assert.True(
-                    c.Profession is null or Profession.Unemployed or Profession.Homemaker,
-                    $"Unexpected profession {c.Profession} with no designated worker"
+                    m.Creature.Profession is null or Profession.Unemployed or Profession.Homemaker,
+                    $"Unexpected profession {m.Creature.Profession} with no designated worker"
                 )
         );
-        var expectedEligible = context.Creatures.Count(c => c.Profession == Profession.Unemployed);
-        Assert.Equal(expectedEligible, context.EligibleForEmployment.Count);
+        var expectedEligible = household.Members.Count(m =>
+            m.Creature.Profession == Profession.Unemployed
+        );
+        Assert.Equal(expectedEligible, household.EligibleForEmployment.Count);
     }
 
     [Fact]
-    public void GenerateAndRegisterHousehold_NeverMakesTheSoleHouseholderAMinor()
+    public void Generate_NeverMakesTheSoleHouseholderAMinor()
     {
         for (var i = 0; i < 30; i++)
         {
-            // Arrange
-            var context = MakeContext();
-
             // Act
-            _worldGenerator.GenerateAndRegisterHousehold(context, null);
+            var household = _householdGenerator.Generate(MakeInput(), null);
 
             // Assert
-            if (context.Creatures.Count != 1)
+            if (household.Members.Count != 1)
             {
                 continue;
             }
 
-            var soleResident = context.Creatures[0];
+            var soleResident = household.Members[0].Creature;
             Assert.True(
                 EpochYear - soleResident.BirthYear >= 18,
                 $"Sole householder was age {EpochYear - soleResident.BirthYear}"

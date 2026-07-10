@@ -71,8 +71,6 @@ internal static class JobGenerator
         };
     }
 
-    // Overrides an employed creature's Work slot on one specific day (a day off, solo or shared as a family activity).
-    // Hours default to the standard Work window; pass the creature's actual building-specific Work hours when they differ.
     public static Job GenerateDayOff(
         Guid stateId,
         Guid creatureId,
@@ -98,7 +96,6 @@ internal static class JobGenerator
         };
     }
 
-    // Overrides an unemployed/homemaker creature's entire waking day, one random activity per weekday.
     public static Job GenerateUnemployedDayActivity(
         Guid stateId,
         Guid creatureId,
@@ -120,6 +117,28 @@ internal static class JobGenerator
             SpecificDay = day,
             WorldId = worldId,
         };
+    }
+
+    public static void ApplySleepOverride(
+        Guid creatureId,
+        HourWindow? sleepHours,
+        Guid stateId,
+        Guid worldId,
+        List<Job> jobs
+    )
+    {
+        if (sleepHours == null)
+        {
+            return;
+        }
+
+        var existingSleep = jobs.First(j =>
+            j.CreatureId == creatureId && j.Action == JobAction.Sleep
+        );
+        jobs.Remove(existingSleep);
+        jobs.Add(
+            GenerateSleep(stateId, creatureId, existingSleep.RoomId!.Value, worldId, sleepHours)
+        );
     }
 
     public static IReadOnlyList<Job> Generate(
