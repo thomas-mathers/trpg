@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using OllamaSharp.Models.Chat;
@@ -67,9 +68,14 @@ internal class InventoryTool : Tool, IInvokableTool
             args != null && args.TryGetValue("targetName", out var raw) ? raw?.ToString() : null;
 
         _logger.LogInformation("[inventory] targetName={TargetName}", targetName ?? "(self)");
+        var stopwatch = Stopwatch.StartNew();
         var result = InvokeMethodAsync(targetName, CancellationToken.None).GetAwaiter().GetResult();
         var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogInformation("[inventory] result: {Result}", json);
+        _logger.LogInformation(
+            "[perf] [inventory] result in {ElapsedMs}ms: {Result}",
+            stopwatch.ElapsedMilliseconds,
+            json
+        );
         return json;
     }
 

@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using OllamaSharp.Models.Chat;
 using OllamaSharp.Tools;
 using TRPG.Application.Game;
@@ -10,11 +12,17 @@ internal class WorldInfoTool : Tool, IInvokableTool
 {
     private readonly GameSession _session;
     private readonly GetWorldQueryHandler _getWorld;
+    private readonly ILogger<WorldInfoTool> _logger;
 
-    public WorldInfoTool(GameSession session, GetWorldQueryHandler getWorld)
+    public WorldInfoTool(
+        GameSession session,
+        GetWorldQueryHandler getWorld,
+        ILogger<WorldInfoTool> logger
+    )
     {
         _session = session;
         _getWorld = getWorld;
+        _logger = logger;
 
         Function = new Function
         {
@@ -32,13 +40,21 @@ internal class WorldInfoTool : Tool, IInvokableTool
 
     public object? InvokeMethod(IDictionary<string, object?>? args)
     {
+        _logger.LogInformation("[world] tool invoked");
+        var stopwatch = Stopwatch.StartNew();
         var world = _getWorld
             .Handle(new GetWorldQuery { WorldId = _session.WorldId }, CancellationToken.None)
             .GetAwaiter()
             .GetResult();
-        return JsonSerializer.Serialize(
+        var json = JsonSerializer.Serialize(
             new { world!.Name, world.Description },
             ToolJsonOptions.Options
         );
+        _logger.LogInformation(
+            "[perf] [world] result in {ElapsedMs}ms: {Result}",
+            stopwatch.ElapsedMilliseconds,
+            json
+        );
+        return json;
     }
 }

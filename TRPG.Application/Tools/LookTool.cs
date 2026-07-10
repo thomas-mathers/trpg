@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using OllamaSharp.Models.Chat;
@@ -44,9 +45,14 @@ internal class LookTool : Tool, IInvokableTool
     public object? InvokeMethod(IDictionary<string, object?>? args)
     {
         _logger.LogInformation("[look] tool invoked");
+        var stopwatch = Stopwatch.StartNew();
         var result = InvokeMethodAsync(CancellationToken.None).GetAwaiter().GetResult();
         var json = JsonSerializer.Serialize(result, ToolJsonOptions.Options);
-        _logger.LogInformation("[look] result: {Result}", json);
+        _logger.LogInformation(
+            "[perf] [look] result in {ElapsedMs}ms: {Result}",
+            stopwatch.ElapsedMilliseconds,
+            json
+        );
         return json;
     }
 

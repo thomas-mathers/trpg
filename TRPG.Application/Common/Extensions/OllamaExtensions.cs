@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -27,8 +28,10 @@ internal static class OllamaExtensions
         logger.LogTrace("[System] {SystemPrompt}", systemPrompt);
 
         var currentPrompt = userPrompt;
+        var stopwatch = Stopwatch.StartNew();
         for (var attempt = 0; attempt < 5; attempt++)
         {
+            var attemptStopwatch = Stopwatch.StartNew();
             var sb = new StringBuilder();
             var request = new GenerateRequest
             {
@@ -57,8 +60,9 @@ internal static class OllamaExtensions
             {
                 logger.LogWarning(
                     ex,
-                    "Deserialization failed (attempt {Attempt}). Raw response: {Response}",
+                    "[perf] Deserialization failed (attempt {Attempt}) after {ElapsedMs}ms. Raw response: {Response}",
                     attempt + 1,
+                    attemptStopwatch.ElapsedMilliseconds,
                     response
                 );
             }
@@ -73,17 +77,30 @@ internal static class OllamaExtensions
             if (error is not null)
             {
                 logger.LogWarning(
-                    "Validation failed (attempt {Attempt}): {Error}",
+                    "[perf] Validation failed (attempt {Attempt}) after {ElapsedMs}ms: {Error}",
                     attempt + 1,
+                    attemptStopwatch.ElapsedMilliseconds,
                     error
                 );
                 currentPrompt = error + " " + userPrompt;
                 continue;
             }
 
+            logger.LogInformation(
+                "[perf] GetJson<{Type}> succeeded on attempt {Attempt} in {ElapsedMs}ms (total {TotalMs}ms)",
+                typeof(T).Name,
+                attempt + 1,
+                attemptStopwatch.ElapsedMilliseconds,
+                stopwatch.ElapsedMilliseconds
+            );
             return result;
         }
 
+        logger.LogError(
+            "[perf] Failed to generate valid JSON for {Type} after 5 attempts in {ElapsedMs}ms",
+            typeof(T).Name,
+            stopwatch.ElapsedMilliseconds
+        );
         throw new InvalidOperationException(
             $"Failed to generate valid JSON for {typeof(T).Name} after 5 attempts."
         );

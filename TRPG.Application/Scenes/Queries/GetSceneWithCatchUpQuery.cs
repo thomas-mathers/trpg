@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using TRPG.Application.Game;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Data.Models;
@@ -16,7 +17,8 @@ internal class GetSceneWithCatchUpQuery
 internal class GetSceneWithCatchUpQueryHandler(
     SyncCommandHandler sync,
     GetSceneQueryHandler getScene,
-    IMemoryCache cache
+    IMemoryCache cache,
+    ILogger<GetSceneWithCatchUpQueryHandler> logger
 )
 {
     public async Task<SceneResult> Handle(
@@ -29,8 +31,11 @@ internal class GetSceneWithCatchUpQueryHandler(
 
         if (cache.TryGetValue(cacheKey, out SceneResult? cachedScene))
         {
+            logger.LogInformation("[perf] Scene cache hit for {CacheKey}", cacheKey);
             return cachedScene!;
         }
+
+        logger.LogInformation("[perf] Scene cache miss for {CacheKey}, running catch-up", cacheKey);
 
         await sync.Handle(
             new SyncCommand
