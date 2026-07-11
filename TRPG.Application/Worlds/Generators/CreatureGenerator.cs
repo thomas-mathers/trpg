@@ -910,12 +910,34 @@ public class CreatureGenerator(
         [Profession.Unemployed] = new StatAffinities(0, 0, 1, 1, 1, 0, 1, 0.3f),
     };
 
+    // Combat professions span the full range — a veteran knight or mercenary is plausible anywhere —
+    // while civilian trades cap low: a baker's "level" is craft skill, not battle prowess.
+    private static readonly HashSet<Profession> CombatProfessions =
+    [
+        Profession.Knight,
+        Profession.Rogue,
+        Profession.Ranger,
+        Profession.Mage,
+        Profession.Cleric,
+        Profession.Mercenary,
+        Profession.Guard,
+    ];
+
+    private sealed record LevelRange(int Minimum, int Maximum);
+
+    private static readonly LevelRange CombatLevelRange = new(5, 100);
+    private static readonly LevelRange CivilianLevelRange = new(1, 20);
+
     public CreatureGeneratorResult Generate(CreatureGeneratorInput generatorInput)
     {
+        var levelRange = CombatProfessions.Contains(generatorInput.Profession)
+            ? CombatLevelRange
+            : CivilianLevelRange;
+        var maximumLevel = Math.Min(levelRange.Maximum, settings.MaxLevel);
         var level =
             generatorInput.Level > 0
                 ? generatorInput.Level
-                : Random.Shared.Next(1, settings.MaxLevel + 1);
+                : Random.Shared.Next(levelRange.Minimum, maximumLevel + 1);
         var gender =
             generatorInput.Gender ?? (Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female);
 
