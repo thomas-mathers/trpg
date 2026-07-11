@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -34,7 +35,7 @@ internal static class ChatClientExtensions
                     messages,
                     cancellationToken: cancellationToken
                 );
-                result = response.Result;
+                result = ParseResult(response);
             }
             catch (Exception ex)
             {
@@ -49,7 +50,9 @@ internal static class ChatClientExtensions
 
             if (result is null)
             {
-                currentUserPrompt = "The response was not valid JSON. " + userPrompt;
+                currentUserPrompt =
+                    "The response was not valid JSON. Respond with only the raw JSON — no markdown code fences, no commentary. "
+                    + userPrompt;
                 continue;
             }
 
@@ -84,5 +87,31 @@ internal static class ChatClientExtensions
         throw new InvalidOperationException(
             $"Failed to generate valid JSON for {typeof(T).Name} after 5 attempts."
         );
+    }
+
+    // Models often wrap otherwise-valid JSON in a markdown code fence or surrounding prose —
+    // salvage the first top-level JSON value from the raw text instead of burning a retry on it.
+    private static T? ParseResult<T>(ChatResponse<T> response)
+        where T : class
+    {
+        try
+        {
+            return response.Result;
+        }
+        catch (JsonException)
+        {
+            var text = response.Text;
+            var start = text.IndexOfAny(['{', '[']);
+            var end = text.LastIndexOfAny(['}', ']']);
+            if (start < 0 || end <= start)
+            {
+                throw;
+            }
+
+            return JsonSerializer.Deserialize<T>(
+                text[start..(end + 1)],
+                AIJsonUtilities.DefaultOptions
+            );
+        }
     }
 }
