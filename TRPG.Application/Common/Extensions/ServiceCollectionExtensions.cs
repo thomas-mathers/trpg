@@ -58,6 +58,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<UpdateJobCommandHandler>()
             .AddTransient<DeleteJobCommandHandler>()
             .AddTransient<GetAllJobsByCreatureIdQueryHandler>()
+            .AddTransient<GetJobsOfBuildingWorkersQueryHandler>()
             .AddTransient<GetCreatureIdsWithJobInRoomQueryHandler>()
             .AddTransient<ExecuteJobCommandHandler>()
             .AddTransient<SyncScheduleLockCommandHandler>()

@@ -31,6 +31,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         _handler = new SyncScheduleLockCommandHandler(
             new GetAllOwnersByBuildingIdQueryHandler(_context),
             new GetAllJobsByCreatureIdQueryHandler(_context),
+            new GetJobsOfBuildingWorkersQueryHandler(_context),
             new SetFrontDoorLockedCommandHandler(_context)
         );
     }
@@ -198,6 +199,152 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         Assert.False(door!.IsLocked);
     }
 
+    [Fact]
+    public async Task Handle_LocksShop_WhenNoWorkerIsOnShift()
+    {
+        // Arrange
+        var worker = await SeedOwner();
+        var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
+        var frontDoor = await SeedFrontDoor(shop.Id);
+        await _addJob.Handle(
+            new AddJobCommand
+            {
+                Job = Builders.MakeJob(
+                    worker.Id,
+                    action: JobAction.Work,
+                    startHour: 6,
+                    endHour: 14,
+                    priority: 50,
+                    roomId: frontDoor.RoomId
+                ),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _handler.Handle(
+            new SyncScheduleLockCommand
+            {
+                BuildingId = shop.Id,
+                BuildingType = shop.BuildingType,
+                CurrentDate = MakeDate(16),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var door = await _getFrontDoor.Handle(
+            new GetFrontDoorQuery { RoomId = frontDoor.RoomId },
+            TestContext.Current.CancellationToken
+        );
+        Assert.True(door!.IsLocked);
+    }
+
+    [Fact]
+    public async Task Handle_UnlocksShop_WhenAWorkerIsOnShift()
+    {
+        // Arrange
+        var worker = await SeedOwner();
+        var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
+        var frontDoor = await SeedFrontDoor(shop.Id);
+        await _addJob.Handle(
+            new AddJobCommand
+            {
+                Job = Builders.MakeJob(
+                    worker.Id,
+                    action: JobAction.Work,
+                    startHour: 6,
+                    endHour: 14,
+                    priority: 50,
+                    roomId: frontDoor.RoomId
+                ),
+            },
+            TestContext.Current.CancellationToken
+        );
+        await _handler.Handle(
+            new SyncScheduleLockCommand
+            {
+                BuildingId = shop.Id,
+                BuildingType = shop.BuildingType,
+                CurrentDate = MakeDate(16),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _handler.Handle(
+            new SyncScheduleLockCommand
+            {
+                BuildingId = shop.Id,
+                BuildingType = shop.BuildingType,
+                CurrentDate = MakeDate(10),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var door = await _getFrontDoor.Handle(
+            new GetFrontDoorQuery { RoomId = frontDoor.RoomId },
+            TestContext.Current.CancellationToken
+        );
+        Assert.False(door!.IsLocked);
+    }
+
+    [Fact]
+    public async Task Handle_LocksShop_WhenEveryWorkerIsOnADayOff()
+    {
+        // Arrange — the Work window covers this hour, but a higher-priority day-off job overrides it
+        var worker = await SeedOwner();
+        var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
+        var frontDoor = await SeedFrontDoor(shop.Id);
+        await _addJob.Handle(
+            new AddJobCommand
+            {
+                Job = Builders.MakeJob(
+                    worker.Id,
+                    action: JobAction.Work,
+                    startHour: 8,
+                    endHour: 18,
+                    priority: 50,
+                    roomId: frontDoor.RoomId
+                ),
+            },
+            TestContext.Current.CancellationToken
+        );
+        await _addJob.Handle(
+            new AddJobCommand
+            {
+                Job = Builders.MakeJob(
+                    worker.Id,
+                    action: JobAction.Idle,
+                    startHour: 8,
+                    endHour: 18,
+                    priority: 60,
+                    specificDay: DayOfWeek.Thursday
+                ),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _handler.Handle(
+            new SyncScheduleLockCommand
+            {
+                BuildingId = shop.Id,
+                BuildingType = shop.BuildingType,
+                CurrentDate = MakeDate(10),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var door = await _getFrontDoor.Handle(
+            new GetFrontDoorQuery { RoomId = frontDoor.RoomId },
+            TestContext.Current.CancellationToken
+        );
+        Assert.True(door!.IsLocked);
+    }
+
     private async Task<Creature> SeedOwner()
     {
         var owner = Builders.MakeCreature(_worldId);
@@ -208,9 +355,16 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         return owner;
     }
 
-    private async Task<Building> SeedBuilding(Guid ownerId)
+    private async Task<Building> SeedBuilding(
+        Guid ownerId,
+        BuildingType buildingType = BuildingType.House
+    )
     {
-        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: _worldId);
+        var building = Builders.MakeBuilding(
+            Guid.NewGuid(),
+            worldId: _worldId,
+            buildingType: buildingType
+        );
         _context.Buildings.Add(building);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await _addBuildingOwner.Handle(

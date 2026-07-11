@@ -2,6 +2,7 @@ using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Jobs;
 using TRPG.Application.Jobs.Queries;
+using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Scenes.Commands;
@@ -16,6 +17,7 @@ internal class SyncScheduleLockCommand
 internal class SyncScheduleLockCommandHandler(
     GetAllOwnersByBuildingIdQueryHandler getAllOwnersByBuildingId,
     GetAllJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
+    GetJobsOfBuildingWorkersQueryHandler getJobsOfBuildingWorkers,
     SetFrontDoorLockedCommandHandler setFrontDoorLocked
 )
 {
@@ -35,6 +37,60 @@ internal class SyncScheduleLockCommandHandler(
             return null;
         }
 
+        if (ShopStaffingPolicy.StandardBuildingTypes.Contains(command.BuildingType))
+        {
+            return await SyncShopLock(command, cancellationToken);
+        }
+
+        return await SyncHomeLock(command, cancellationToken);
+    }
+
+    // A shop is open exactly while someone is actually at work in it — a worker whose Work job window
+    // covers this hour may still be absent (a higher-priority day-off job overrides it), so each
+    // worker's effective job must be computed, not just the Work window checked.
+    private async Task<bool?> SyncShopLock(
+        SyncScheduleLockCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var workerJobs = await getJobsOfBuildingWorkers.Handle(
+            new GetJobsOfBuildingWorkersQuery { BuildingId = command.BuildingId },
+            cancellationToken
+        );
+
+        var anyoneWorking = workerJobs
+            .GroupBy(j => j.CreatureId)
+            .Select(creatureJobs =>
+                creatureJobs
+                    .Where(j =>
+                        JobScheduling.IsActiveAtHour(
+                            j,
+                            command.CurrentDate.Weekday,
+                            command.CurrentDate.Hour
+                        )
+                    )
+                    .OrderByDescending(j => j.Priority)
+                    .ThenBy(j => j.Id)
+                    .FirstOrDefault()
+            )
+            .Any(effectiveJob => effectiveJob is { Action: JobAction.Work });
+
+        return await setFrontDoorLocked.Handle(
+            new SetFrontDoorLockedCommand
+            {
+                BuildingId = command.BuildingId,
+                IsLocked = !anyoneWorking,
+            },
+            cancellationToken
+        );
+    }
+
+    // Homes lock while the owner sleeps — residents have keys, visitors knock during waking hours.
+    private async Task<bool?> SyncHomeLock(
+        SyncScheduleLockCommand command,
+        CancellationToken cancellationToken
+    )
+    {
         var owners = await getAllOwnersByBuildingId.Handle(
             new GetAllOwnersByBuildingIdQuery { BuildingId = command.BuildingId },
             cancellationToken

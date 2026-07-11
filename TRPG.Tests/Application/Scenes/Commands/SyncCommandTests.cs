@@ -38,6 +38,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         var syncScheduleLock = new SyncScheduleLockCommandHandler(
             new GetAllOwnersByBuildingIdQueryHandler(_context),
             getAllJobsByCreatureId,
+            new GetJobsOfBuildingWorkersQueryHandler(_context),
             new SetFrontDoorLockedCommandHandler(_context)
         );
         _handler = new SyncCommandHandler(

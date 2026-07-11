@@ -3,12 +3,15 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
 
+// OpenHours restricts when the candidate is a valid day-off destination — null means always open
+// (districts, homes, the Inn's staffed-around-the-clock lobby).
 internal record IdleCandidate(
     Guid? RoomId,
     Guid DistrictId,
     int Capacity,
     int Weight,
-    BuildingType? BuildingType
+    BuildingType? BuildingType,
+    HourWindow? OpenHours = null
 );
 
 internal class CityEmploymentContext
@@ -212,7 +215,11 @@ internal static class EmploymentAssigner
 
             foreach (var need in needs)
             {
-                var roomId = PickDayOffRoom(need, context.CityIdleCandidates, remainingCapacity);
+                var destination = PickDayOffDestination(
+                    need,
+                    context.CityIdleCandidates,
+                    remainingCapacity
+                );
 
                 foreach (var participantId in need.ParticipantIds)
                 {
@@ -222,18 +229,19 @@ internal static class EmploymentAssigner
                                 context.StateId,
                                 participantId,
                                 need.Action,
-                                roomId,
+                                destination.RoomId,
                                 day,
-                                context.WorldId
+                                context.WorldId,
+                                destination.Hours
                             )
                             : JobGenerator.GenerateDayOff(
                                 context.StateId,
                                 participantId,
                                 need.Action,
-                                roomId,
+                                destination.RoomId,
                                 day,
                                 context.WorldId,
-                                need.Hours
+                                destination.Hours
                             )
                     );
                 }
@@ -241,17 +249,29 @@ internal static class EmploymentAssigner
         }
     }
 
-    private static Guid? PickDayOffRoom(
+    private sealed record DayOffDestination(Guid? RoomId, HourWindow Hours);
+
+    // Where the group actually goes, and for which hours. A destination that's only open for part
+    // of the stay clamps the visit to its open window — the group's baseline home Idle covers the
+    // rest of the day — so an evening-only tavern visit works without splitting the day into
+    // multiple scheduled jobs.
+    private static DayOffDestination PickDayOffDestination(
         DayOffNeed need,
         IReadOnlyList<IdleCandidate> cityIdleCandidates,
         List<int> remainingCapacity
     )
     {
+        var clampedByIndex = cityIdleCandidates
+            .Select(candidate => ClampToOpenHours(need.Hours, candidate.OpenHours))
+            .ToArray();
         var eligibleIndices = Enumerable
             .Range(0, cityIdleCandidates.Count)
             .Where(i => remainingCapacity[i] >= need.ParticipantIds.Count)
             .Where(i =>
                 !need.ExcludeTavern || cityIdleCandidates[i].BuildingType != BuildingType.Tavern
+            )
+            .Where(i =>
+                clampedByIndex[i] is { } clamped && WindowLength(clamped) >= MinimumStayHours
             )
             .ToArray();
 
@@ -261,11 +281,49 @@ internal static class EmploymentAssigner
         var pickedIndex = WeightedSampler.SampleIndex(weights);
         if (pickedIndex == eligibleIndices.Length)
         {
-            return need.HomeRoomId;
+            return new DayOffDestination(need.HomeRoomId, need.Hours);
         }
 
         var candidateIndex = eligibleIndices[pickedIndex];
         remainingCapacity[candidateIndex] -= need.ParticipantIds.Count;
-        return cityIdleCandidates[candidateIndex].RoomId;
+        return new DayOffDestination(
+            cityIdleCandidates[candidateIndex].RoomId,
+            clampedByIndex[candidateIndex]!
+        );
+    }
+
+    private const int MinimumStayHours = 4;
+
+    private static int WindowLength(HourWindow window) => (window.End - window.Start + 24) % 24;
+
+    // The portion of the stay that falls within the destination's open window; null when they don't
+    // overlap at all. Both windows may wrap midnight. A doubly-wrapped pair can in theory overlap in
+    // two separate segments — only the first is returned, which is fine for the schedules generated
+    // here (waking hours never wrap).
+    private static HourWindow? ClampToOpenHours(HourWindow stay, HourWindow? openHours)
+    {
+        if (openHours == null)
+        {
+            return stay;
+        }
+
+        var stayLength = WindowLength(stay);
+        var openLength = WindowLength(openHours);
+
+        var stayOffset = (stay.Start - openHours.Start + 24) % 24;
+        if (stayOffset < openLength)
+        {
+            var length = Math.Min(stayLength, openLength - stayOffset);
+            return new HourWindow(stay.Start, (stay.Start + length) % 24);
+        }
+
+        var openOffset = (openHours.Start - stay.Start + 24) % 24;
+        if (openOffset < stayLength)
+        {
+            var length = Math.Min(openLength, stayLength - openOffset);
+            return new HourWindow(openHours.Start, (openHours.Start + length) % 24);
+        }
+
+        return null;
     }
 }

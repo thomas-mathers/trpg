@@ -96,22 +96,26 @@ internal static class JobGenerator
         };
     }
 
+    // Hours default to the full waking window; pass a narrower one when the destination is only
+    // open part of the day (an evening tavern visit, a morning at the bakery).
     public static Job GenerateUnemployedDayActivity(
         Guid stateId,
         Guid creatureId,
         JobAction action,
         Guid? roomId,
         DayOfWeek day,
-        Guid worldId
+        Guid worldId,
+        HourWindow? hours = null
     )
     {
+        var window = hours ?? IdleHours;
         return new Job
         {
             StateId = stateId,
             CreatureId = creatureId,
             Action = action,
-            StartHour = IdleHours.Start,
-            EndHour = IdleHours.End,
+            StartHour = window.Start,
+            EndHour = window.End,
             Priority = UnemployedActivityPriority,
             RoomId = roomId,
             SpecificDay = day,
