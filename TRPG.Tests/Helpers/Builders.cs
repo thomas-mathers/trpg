@@ -14,13 +14,14 @@ internal static class Builders
         Guid? stateId = null,
         Guid? cityId = null,
         Guid? districtId = null,
-        int birthYear = 1000
+        int birthYear = 1000,
+        string name = "Test Creature"
     )
     {
         return new Creature
         {
             WorldId = worldId ?? Guid.NewGuid(),
-            Name = "Test Creature",
+            Name = name,
             CreatureType = creatureType,
             BirthStateId = birthStateId ?? Guid.NewGuid(),
             BirthYear = birthYear,
@@ -239,14 +240,15 @@ internal static class Builders
         Guid stateId,
         Guid countryId,
         bool isCapital = false,
-        Guid? worldId = null
+        Guid? worldId = null,
+        string? name = null
     )
     {
         return new City
         {
             StateId = stateId,
             CountryId = countryId,
-            Name = $"City-{Guid.NewGuid():N}",
+            Name = name ?? $"City-{Guid.NewGuid():N}",
             Description = "A test city",
             IsCapital = isCapital,
             WorldId = worldId ?? Guid.NewGuid(),
@@ -287,7 +289,8 @@ internal static class Builders
         Guid? cityId = null,
         Guid? districtId = null,
         Guid? worldId = null,
-        string? name = null
+        string? name = null,
+        BuildingType buildingType = BuildingType.House
     )
     {
         return new Building
@@ -297,7 +300,7 @@ internal static class Builders
             DistrictId = districtId,
             Name = name ?? $"Building-{Guid.NewGuid():N}",
             Description = "A test building",
-            BuildingType = BuildingType.House,
+            BuildingType = buildingType,
             WorldId = worldId ?? Guid.NewGuid(),
         };
     }

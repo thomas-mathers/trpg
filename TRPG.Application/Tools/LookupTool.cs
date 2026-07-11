@@ -19,7 +19,7 @@ internal class LookupTool(
 
     [DisplayName("lookup")]
     [Description(
-        "Returns background information about a named country, city, faction, or person anywhere in the world — automatically figures out which kind of thing the name refers to, so you don't need to know its category in advance. This represents what a specific NPC knows or has heard, not omniscient narrator knowledge — call it on behalf of the NPC who would be recalling or sharing this information in dialogue, never to generate the narrator's own scene-setting exposition. Call this whenever dialogue turns to a specific person, place, or faction mentioned by name — a family member, acquaintance, distant place, or faction — other than the NPC you're currently speaking with about themselves: their family, hometown, faction ties, workplace (and whether they own it), work hours, days off, and home are already given in full by start_conversation's biography, and if it doesn't mention something, that means it doesn't exist, so don't call this tool on yourself to check. Returns an Error if the name isn't recognized as any of these, or if the speaker wouldn't know about it."
+        "Returns background information about a named country, city, faction, or person anywhere in the world — automatically figures out which kind of thing the name refers to, so you don't need to know its category in advance. Partial names and misspellings resolve automatically: results come back as a list ranked by Similarity (1.0 = exact), with full details for the best match and name-only stubs for the others — to expand a stub, call lookup again with its exact Name. This represents what a specific NPC knows or has heard, not omniscient narrator knowledge — call it on behalf of the NPC who would be recalling or sharing this information in dialogue, never to generate the narrator's own scene-setting exposition. Call this whenever dialogue turns to a specific person, place, or faction mentioned by name — a family member, acquaintance, distant place, or faction — other than the NPC you're currently speaking with about themselves: their family, hometown, faction ties, workplace (and whether they own it), work hours, days off, and home are already given in full by start_conversation's biography, and if it doesn't mention something, that means it doesn't exist, so don't call this tool on yourself to check. Returns an Error if nothing matches the name, or if the speaker wouldn't know about it."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -27,7 +27,7 @@ internal class LookupTool(
         )]
             string askingPersonName,
         [Description(
-            "The exact Name of the country, city, faction, or person to look up, as it would appear in any tool result."
+            "The name of the country, city, faction, or person to look up — a first name or close spelling is fine; the closest matches are returned."
         )]
             string subjectName,
         CancellationToken cancellationToken
@@ -69,14 +69,15 @@ internal class LookupTool(
             CurrentYear = currentYear,
             AskingPerson = askingPerson,
         };
-        var knowledge = await getCreatureKnowledge.Handle(query, cancellationToken);
+        var matches = await getCreatureKnowledge.Handle(query, cancellationToken);
 
-        object? result =
-            (object?)knowledge
-            ?? new
-            {
-                Error = $"'{subjectName}' isn't recognized as a country, city, faction, or person that {askingPersonName} would know about.",
-            };
+        object result =
+            matches.Count > 0
+                ? matches
+                : new
+                {
+                    Error = $"'{subjectName}' isn't recognized as a country, city, faction, or person that {askingPersonName} would know about.",
+                };
 
         logger.LogInformation(
             "[perf] [lookup] result in {ElapsedMs}ms: {Result}",

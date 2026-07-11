@@ -19,6 +19,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<ContainerItem> ContainerItems => Set<ContainerItem>();
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<CreatureAbility> CreatureAbilities => Set<CreatureAbility>();
+    public DbSet<CreatureKnowledge> CreatureKnowledge => Set<CreatureKnowledge>();
     public DbSet<CreatureQuestObjective> CreatureQuestObjectives => Set<CreatureQuestObjective>();
     public DbSet<CreatureQuest> CreatureQuests => Set<CreatureQuest>();
     public DbSet<Creature> Creatures => Set<Creature>();
@@ -77,10 +78,19 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();
         configurationBuilder.Properties<RelationshipType>().HaveConversion<string>();
         configurationBuilder.Properties<DayOfWeek>().HaveConversion<string>();
+        configurationBuilder.Properties<KnowledgeSubjectType>().HaveConversion<string>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresExtension("pg_trgm");
+
+        modelBuilder.Entity<CreatureKnowledge>(entity =>
+        {
+            entity.HasIndex(k => new { k.KnowerId, k.SubjectType });
+            entity.HasIndex(k => k.WorldId);
+        });
+
         modelBuilder.Entity<Creature>(entity =>
         {
             entity.HasIndex(p => p.WorldId);

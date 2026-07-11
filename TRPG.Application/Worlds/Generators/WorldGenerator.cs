@@ -35,6 +35,7 @@ public class WorldGeneratorResult
     public required IReadOnlyList<InventoryItem> InventoryItems { get; init; }
     public required IReadOnlyList<Item> Items { get; init; }
     public required IReadOnlyList<Job> Jobs { get; init; }
+    public required IReadOnlyList<CreatureKnowledge> Knowledge { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
@@ -186,6 +187,20 @@ public class WorldGenerator(
             )
         );
 
+        var knowledge = KnowledgeGenerator.Generate(
+            new KnowledgeGeneratorInput
+            {
+                WorldId = worldId,
+                Creatures = creatures,
+                Relationships = relationships,
+                FactionMembers = factionMembers,
+                Factions = factions,
+                Cities = geography.Cities,
+                States = geography.States,
+                Countries = geography.Countries,
+            }
+        );
+
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
         return new WorldGeneratorResult
@@ -208,6 +223,7 @@ public class WorldGenerator(
             Skills = skills,
             Abilities = abilities,
             Jobs = jobs,
+            Knowledge = knowledge,
             RoomConnectorKeys = roomConnectorKeys,
             Relationships = relationships,
         };

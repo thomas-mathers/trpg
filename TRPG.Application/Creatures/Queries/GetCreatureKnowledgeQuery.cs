@@ -13,6 +13,15 @@ internal class GetCreatureKnowledgeQuery
     public required Creature AskingPerson { get; init; }
 }
 
+// One ranked candidate for a name lookup. Result is populated for the best match only — the
+// rest are name stubs the model can expand by looking up the exact name.
+internal sealed record LookupMatch(
+    double Similarity,
+    string Name,
+    string SubjectType,
+    LookupResult? Result
+);
+
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "subjectType")]
 [JsonDerivedType(typeof(CountryLookupResult), "country")]
 [JsonDerivedType(typeof(CityLookupResult), "city")]
@@ -66,115 +75,133 @@ internal sealed record PersonLookupResult(
 
 internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
 {
-    private static readonly HashSet<Profession> WorldlyProfessions =
-    [
-        Profession.Merchant,
-        Profession.Politician,
-        Profession.Scholar,
-        Profession.Mage,
-    ];
+    // Low enough that a one-letter typo on a short name still clears it ("Ellie" vs "Elly" scores
+    // 0.375 on trigrams — short strings are punished hard), high enough to reject unrelated names.
+    private const double SimilarityThreshold = 0.35;
+    private const int MaxMatches = 5;
 
-    public async Task<LookupResult?> Handle(
+    // One row per candidate that survived the similarity threshold, before merging across entity types.
+    private sealed record Candidate(
+        double Similarity,
+        string Name,
+        KnowledgeSubjectType SubjectType,
+        Guid EntityId
+    );
+
+    public async Task<IReadOnlyList<LookupMatch>> Handle(
         GetCreatureKnowledgeQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var askingPerson = query.AskingPerson;
-        var isWorldly =
-            askingPerson.Profession is { } profession && WorldlyProfessions.Contains(profession);
-        var askingPersonState = await context.States.FindAsync(
-            [askingPerson.StateId],
-            cancellationToken
+        var candidates = new List<Candidate>();
+        candidates.AddRange(
+            await FindCandidates(query, context.Countries, KnowledgeSubjectType.Country, cancellationToken)
+        );
+        candidates.AddRange(
+            await FindCandidates(query, context.Cities, KnowledgeSubjectType.City, cancellationToken)
+        );
+        candidates.AddRange(
+            await FindCandidates(query, context.Factions, KnowledgeSubjectType.Faction, cancellationToken)
+        );
+        candidates.AddRange(
+            await FindCandidates(query, context.Creatures, KnowledgeSubjectType.Creature, cancellationToken)
         );
 
-        var country = await context
-            .Countries.AsNoTracking()
-            .FirstOrDefaultAsync(
-                c => c.WorldId == query.WorldId && c.Name == query.SubjectName,
-                cancellationToken
-            );
-        if (country != null)
+        var ranked = candidates
+            .OrderByDescending(c => c.Similarity)
+            .Take(MaxMatches)
+            .ToList();
+
+        var matches = new List<LookupMatch>();
+        foreach (var candidate in ranked)
         {
-            var knowsCountry = isWorldly || country.Id == askingPersonState?.CountryId;
-            return knowsCountry ? await BuildCountryResult(country, cancellationToken) : null;
+            var result =
+                matches.Count == 0
+                    ? await BuildResult(candidate, query, cancellationToken)
+                    : null;
+            matches.Add(
+                new LookupMatch(
+                    candidate.Similarity,
+                    candidate.Name,
+                    candidate.SubjectType.ToString(),
+                    result
+                )
+            );
         }
 
-        var city = await context
-            .Cities.AsNoTracking()
-            .FirstOrDefaultAsync(
-                c => c.WorldId == query.WorldId && c.Name == query.SubjectName,
-                cancellationToken
-            );
-        if (city != null)
-        {
-            var knowsCity = isWorldly || city.StateId == askingPerson.StateId;
-            return knowsCity ? await BuildCityResult(city, query.WorldId, cancellationToken) : null;
-        }
-
-        var faction = await context
-            .Factions.AsNoTracking()
-            .FirstOrDefaultAsync(
-                f => f.WorldId == query.WorldId && f.Name == query.SubjectName,
-                cancellationToken
-            );
-        if (faction != null)
-        {
-            var isMember = await context.FactionMembers.AnyAsync(
-                fm => fm.CreatureId == askingPerson.Id && fm.FactionId == faction.Id,
-                cancellationToken
-            );
-            var knowsFaction = isWorldly || isMember;
-            return knowsFaction ? await BuildFactionResult(faction, cancellationToken) : null;
-        }
-
-        var candidates = await context
-            .Creatures.AsNoTracking()
-            .Where(p => p.WorldId == query.WorldId && p.Name == query.SubjectName)
-            .ToArrayAsync(cancellationToken);
-
-        foreach (var candidate in candidates)
-        {
-            if (await KnowsPerson(askingPerson, candidate, cancellationToken))
-            {
-                return await BuildPersonResult(candidate, query.CurrentYear, cancellationToken);
-            }
-        }
-
-        return null;
+        return matches;
     }
 
-    private async Task<bool> KnowsPerson(
-        Creature askingPerson,
-        Creature subject,
+    // The knower's knowledge rows of one type, joined to the entity table and scored by pg_trgm's
+    // strict word similarity — an exact word inside a longer name (e.g. "Elly" in "Elly Tealeaf")
+    // scores 1.0, so partial references and misspellings both resolve. EF.Property is used because
+    // the four entity types share Id/Name shape but no common base type.
+    private async Task<IReadOnlyList<Candidate>> FindCandidates<TEntity>(
+        GetCreatureKnowledgeQuery query,
+        IQueryable<TEntity> entities,
+        KnowledgeSubjectType subjectType,
+        CancellationToken cancellationToken
+    )
+        where TEntity : class
+    {
+        // The asker can never be their own answer — self-knowledge rows exist, but "who is X"
+        // asked by X is handled by the biography, not lookup.
+        return await context
+            .CreatureKnowledge.AsNoTracking()
+            .Where(k =>
+                k.KnowerId == query.AskingPerson.Id
+                && k.SubjectType == subjectType
+                && k.SubjectId != query.AskingPerson.Id
+            )
+            .Join(
+                entities.AsNoTracking(),
+                k => k.SubjectId,
+                e => EF.Property<Guid>(e, "Id"),
+                (k, e) => e
+            )
+            .Select(e => new
+            {
+                Name = EF.Property<string>(e, "Name"),
+                Id = EF.Property<Guid>(e, "Id"),
+                Similarity = EF.Functions.TrigramsStrictWordSimilarity(
+                    query.SubjectName,
+                    EF.Property<string>(e, "Name")
+                ),
+            })
+            .Where(x => x.Similarity >= SimilarityThreshold)
+            .OrderByDescending(x => x.Similarity)
+            .Take(MaxMatches)
+            .Select(x => new Candidate(x.Similarity, x.Name, subjectType, x.Id))
+            .ToArrayAsync(cancellationToken);
+    }
+
+    private async Task<LookupResult?> BuildResult(
+        Candidate candidate,
+        GetCreatureKnowledgeQuery query,
         CancellationToken cancellationToken
     )
     {
-        if (askingPerson.Id == subject.Id)
+        switch (candidate.SubjectType)
         {
-            return true;
+            case KnowledgeSubjectType.Country:
+                var country = await context.Countries.AsNoTracking()
+                    .FirstAsync(c => c.Id == candidate.EntityId, cancellationToken);
+                return await BuildCountryResult(country, cancellationToken);
+            case KnowledgeSubjectType.City:
+                var city = await context.Cities.AsNoTracking()
+                    .FirstAsync(c => c.Id == candidate.EntityId, cancellationToken);
+                return await BuildCityResult(city, query.WorldId, cancellationToken);
+            case KnowledgeSubjectType.Faction:
+                var faction = await context.Factions.AsNoTracking()
+                    .FirstAsync(f => f.Id == candidate.EntityId, cancellationToken);
+                return await BuildFactionResult(faction, cancellationToken);
+            case KnowledgeSubjectType.Creature:
+                var creature = await context.Creatures.AsNoTracking()
+                    .FirstAsync(c => c.Id == candidate.EntityId, cancellationToken);
+                return await BuildPersonResult(creature, query.CurrentYear, cancellationToken);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(candidate));
         }
-
-        if (askingPerson.CityId != null && askingPerson.CityId == subject.CityId)
-        {
-            return true;
-        }
-
-        var isRelated = await context.Relationships.AnyAsync(
-            r => r.SubjectId == askingPerson.Id && r.RelativeId == subject.Id,
-            cancellationToken
-        );
-        if (isRelated)
-        {
-            return true;
-        }
-
-        return await (
-            from fm1 in context.FactionMembers
-            where fm1.CreatureId == askingPerson.Id
-            join fm2 in context.FactionMembers on fm1.FactionId equals fm2.FactionId
-            where fm2.CreatureId == subject.Id
-            select fm1
-        ).AnyAsync(cancellationToken);
     }
 
     private async Task<CountryLookupResult> BuildCountryResult(

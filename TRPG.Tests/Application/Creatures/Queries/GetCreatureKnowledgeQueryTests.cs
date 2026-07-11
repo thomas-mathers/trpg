@@ -116,6 +116,51 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
+    public async Task Handle_ExcludesTheAskingPerson_WhenTheirOwnNameMatches()
+    {
+        // Arrange — the asker shares a surname with the subject, so their own name also matches
+        var asker = Builders.MakeCreature(_worldId, name: "Thokk Warscar");
+        _context.Creatures.Add(asker);
+        _context.CreatureKnowledge.Add(
+            new CreatureKnowledge
+            {
+                KnowerId = asker.Id,
+                SubjectId = asker.Id,
+                SubjectType = KnowledgeSubjectType.Creature,
+                WorldId = _worldId,
+            }
+        );
+        var wife = Builders.MakeCreature(_worldId, name: "Ruzka Warscar");
+        _context.Creatures.Add(wife);
+        _context.CreatureKnowledge.Add(
+            new CreatureKnowledge
+            {
+                KnowerId = asker.Id,
+                SubjectId = wife.Id,
+                SubjectType = KnowledgeSubjectType.Creature,
+                WorldId = _worldId,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var matches = await _handler.Handle(
+            new GetCreatureKnowledgeQuery
+            {
+                WorldId = _worldId,
+                SubjectName = "Ruzka Warscar",
+                CurrentYear = 975,
+                AskingPerson = asker,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var match = Assert.Single(matches);
+        Assert.Equal("Ruzka Warscar", match.Name);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsEmpty_WhenNothingResemblesTheName()
     {
         // Arrange
