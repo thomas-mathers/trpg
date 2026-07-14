@@ -1,3 +1,5 @@
+using TRPG.Application.Game;
+
 namespace TRPG;
 
 internal class CurrentGameSessionStateAccessor

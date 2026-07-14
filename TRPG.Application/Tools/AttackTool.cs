@@ -26,11 +26,12 @@ internal record CombatResult(
 internal class AttackTool(
     GameSession session,
     GetCreatureByIdQueryHandler getCreatureById,
+    GetCreaturesByIdsQueryHandler getCreaturesByIds,
     GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
     GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
     GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
     GetCreatureAbilitiesQueryHandler getCreatureAbilities,
-    ApplyWeaponSwingGainsCommandHandler applyWeaponSwingGains,
+    AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     ApplyCombatRewardsCommandHandler applyCombatRewards,
     AbilityDefinitions abilityDefinitions,
     CombatEngine combatEngine,
@@ -86,12 +87,12 @@ internal class AttackTool(
         if (state.Outcome != CombatOutcome.Ongoing)
         {
             var playerId = session.Combatants!.Single(c => c.IsPlayer).CreatureId;
-            await applyWeaponSwingGains.Handle(
-                new ApplyWeaponSwingGainsCommand
+            await adjustWeaponProficiencies.Handle(
+                new AdjustWeaponProficienciesCommand
                 {
                     WorldId = session.WorldId,
                     CreatureId = playerId,
-                    SwingCounts = state.WeaponSwingCounts,
+                    ProficiencyDeltas = state.WeaponSwingCounts,
                 },
                 cancellationToken
             );
@@ -169,24 +170,22 @@ internal class AttackTool(
 
         var playerCombatant = await BuildPlayerCombatant(player, cancellationToken);
 
-        var enemyCombatants = new List<Combatant>();
-        foreach (var summary in nearby)
-        {
-            var enemyCreature = await getCreatureById.Handle(
-                new GetCreatureByIdQuery { Id = summary.Id },
-                cancellationToken
-            );
-            enemyCombatants.Add(
+        var enemyCreatures = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = nearby.Select(summary => summary.Id).ToArray() },
+            cancellationToken
+        );
+        var enemyCombatants = enemyCreatures
+            .Select(enemyCreature =>
                 Combatant.FromCreature(
-                    enemyCreature!,
+                    enemyCreature,
                     [],
                     abilityDefinitions.BasicAttack,
                     isPlayer: false,
                     [],
                     []
                 )
-            );
-        }
+            )
+            .ToList();
 
         IReadOnlyList<Combatant> combatants = [playerCombatant, .. enemyCombatants];
         return new CombatantBuildResult(combatants, null);
@@ -220,7 +219,7 @@ internal class AttackTool(
             cancellationToken
         );
         var abilities = abilityNames
-            .Select(name => abilityDefinitions.GetByName(name))
+            .Select(abilityDefinitions.GetByName)
             .OfType<Ability>()
             .ToArray();
 

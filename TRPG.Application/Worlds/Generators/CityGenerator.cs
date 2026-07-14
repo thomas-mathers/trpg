@@ -126,6 +126,11 @@ public class CityGenerator(
                 continue;
             }
 
+            if (type == BuildingType.GuildHall && _guildHallIndex >= input.NamedFactions.Count)
+            {
+                continue;
+            }
+
             GenerateStandardBuilding(workspace, type, district);
         }
 
@@ -351,9 +356,7 @@ public class CityGenerator(
         var input = workspace.Input;
         var groundFloorRoomId = buildingResult.Rooms.First(r => r.FloorNumber == 0).Id;
         var guildFactionId =
-            input.NamedFactions.Count > 0
-                ? input.NamedFactions[_guildHallIndex++ % input.NamedFactions.Count].Id
-                : (Guid?)null;
+            input.NamedFactions.Count > 0 ? input.NamedFactions[_guildHallIndex++].Id : (Guid?)null;
 
         if (guildFactionId != null)
         {

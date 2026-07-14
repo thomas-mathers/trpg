@@ -5,6 +5,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Game;
 
@@ -18,8 +19,7 @@ public record TurnMetrics(string Response, long FirstTokenMs, long TotalMs, int 
 
 public class GameTurnRunner(
     [FromKeyedServices(LlmRoleKeys.Gameplay)] IChatClient chatClient,
-    List<ChatMessage> messages,
-    GameSession session,
+    GameSessionState sessionState,
     IEnumerable<AIFunction> tools,
     GameplaySettings gameplaySettings,
     ILogger<GameTurnRunner> logger
@@ -47,14 +47,22 @@ public class GameTurnRunner(
         const string openingPrompt =
             "This is the start of the session. Call look now, then narrate the opening scene based on what it returns.";
 
-        await foreach (var token in StreamAndLog(openingPrompt, cancellationToken))
+        await sessionState.TurnLock.WaitAsync(cancellationToken);
+        try
         {
-            yield return token;
-        }
+            await foreach (var token in StreamAndLog(openingPrompt, cancellationToken))
+            {
+                yield return token;
+            }
 
-        if (session.DidMoveThisTurn)
+            if (sessionState.Session.DidMoveThisTurn)
+            {
+                await RunPostMoveCleanup(cancellationToken);
+            }
+        }
+        finally
         {
-            await RunPostMoveCleanup(cancellationToken);
+            sessionState.TurnLock.Release();
         }
     }
 
@@ -63,21 +71,29 @@ public class GameTurnRunner(
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
-        session.DidMoveThisTurn = false;
-        session.DidSceneRefreshThisTurn = false;
-        GameClock.AdvanceHours(session, hours);
-
-        var waitPrompt =
-            $"{hours} hour(s) have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns.";
-
-        await foreach (var token in StreamAndLog(waitPrompt, cancellationToken))
+        await sessionState.TurnLock.WaitAsync(cancellationToken);
+        try
         {
-            yield return token;
+            sessionState.Session.DidMoveThisTurn = false;
+            sessionState.Session.DidSceneRefreshThisTurn = false;
+            GameClock.AdvanceHours(sessionState.Session, hours);
+
+            var waitPrompt =
+                $"{hours} hour(s) have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns.";
+
+            await foreach (var token in StreamAndLog(waitPrompt, cancellationToken))
+            {
+                yield return token;
+            }
+
+            if (sessionState.Session.DidMoveThisTurn)
+            {
+                await RunPostMoveCleanup(cancellationToken);
+            }
         }
-
-        if (session.DidMoveThisTurn)
+        finally
         {
-            await RunPostMoveCleanup(cancellationToken);
+            sessionState.TurnLock.Release();
         }
     }
 
@@ -86,39 +102,47 @@ public class GameTurnRunner(
         CancellationToken cancellationToken = default
     )
     {
-        session.DidMoveThisTurn = false;
-        session.DidSceneRefreshThisTurn = false;
-
-        var stopwatch = Stopwatch.StartNew();
-        long? firstTokenElapsedMs = null;
-        var tokenCount = 0;
-        var buffer = new StringBuilder();
-
-        await foreach (var token in StreamAndLog(input, cancellationToken))
+        await sessionState.TurnLock.WaitAsync(cancellationToken);
+        try
         {
-            firstTokenElapsedMs ??= stopwatch.ElapsedMilliseconds;
-            tokenCount++;
-            buffer.Append(token);
+            sessionState.Session.DidMoveThisTurn = false;
+            sessionState.Session.DidSceneRefreshThisTurn = false;
+
+            var stopwatch = Stopwatch.StartNew();
+            long? firstTokenElapsedMs = null;
+            var tokenCount = 0;
+            var buffer = new StringBuilder();
+
+            await foreach (var token in StreamAndLog(input, cancellationToken))
+            {
+                firstTokenElapsedMs ??= stopwatch.ElapsedMilliseconds;
+                tokenCount++;
+                buffer.Append(token);
+            }
+
+            var totalMs = stopwatch.ElapsedMilliseconds;
+            logger.LogInformation(
+                "[perf] SendAsync first token after {FirstTokenMs}ms, total {TotalMs}ms",
+                firstTokenElapsedMs,
+                totalMs
+            );
+
+            if (sessionState.Session.DidMoveThisTurn)
+            {
+                await RunPostMoveCleanup(cancellationToken);
+            }
+
+            return new TurnMetrics(
+                buffer.ToString(),
+                firstTokenElapsedMs ?? totalMs,
+                totalMs,
+                tokenCount
+            );
         }
-
-        var totalMs = stopwatch.ElapsedMilliseconds;
-        logger.LogInformation(
-            "[perf] SendAsync first token after {FirstTokenMs}ms, total {TotalMs}ms",
-            firstTokenElapsedMs,
-            totalMs
-        );
-
-        if (session.DidMoveThisTurn)
+        finally
         {
-            await RunPostMoveCleanup(cancellationToken);
+            sessionState.TurnLock.Release();
         }
-
-        return new TurnMetrics(
-            buffer.ToString(),
-            firstTokenElapsedMs ?? totalMs,
-            totalMs,
-            tokenCount
-        );
     }
 
     public async IAsyncEnumerable<string> ProcessTurnStreaming(
@@ -126,17 +150,42 @@ public class GameTurnRunner(
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
-        session.DidMoveThisTurn = false;
-        session.DidSceneRefreshThisTurn = false;
-
-        await foreach (var token in StreamAndLog(input, cancellationToken))
+        await sessionState.TurnLock.WaitAsync(cancellationToken);
+        try
         {
-            yield return token;
+            sessionState.Session.DidMoveThisTurn = false;
+            sessionState.Session.DidSceneRefreshThisTurn = false;
+
+            await foreach (var token in StreamAndLog(input, cancellationToken))
+            {
+                yield return token;
+            }
+
+            if (sessionState.Session.DidMoveThisTurn)
+            {
+                await RunPostMoveCleanup(cancellationToken);
+            }
         }
-
-        if (session.DidMoveThisTurn)
+        finally
         {
-            await RunPostMoveCleanup(cancellationToken);
+            sessionState.TurnLock.Release();
+        }
+    }
+
+    public async Task<InGameDate> AdvanceTime(
+        int hours,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await sessionState.TurnLock.WaitAsync(cancellationToken);
+        try
+        {
+            GameClock.AdvanceHours(sessionState.Session, hours);
+            return GameClock.GetCurrentInGameDate(sessionState.Session);
+        }
+        finally
+        {
+            sessionState.TurnLock.Release();
         }
     }
 
@@ -145,6 +194,8 @@ public class GameTurnRunner(
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
+        var messages = sessionState.Messages;
+
         logger.LogInformation("[game] >>> {Message}", input);
         messages.Add(new ChatMessage(ChatRole.User, input));
 
@@ -202,13 +253,14 @@ public class GameTurnRunner(
 
     private async Task RunPostMoveCleanup(CancellationToken cancellationToken)
     {
-        var currentTurnStart = messages.FindLastIndex(m => m.Role == ChatRole.User);
+        var currentTurnStart = sessionState.Messages.FindLastIndex(m => m.Role == ChatRole.User);
         await CloseLingeringConversations(cancellationToken);
         ClearPreviousTurns(currentTurnStart);
     }
 
     private async Task CloseLingeringConversations(CancellationToken cancellationToken)
     {
+        var session = sessionState.Session;
         foreach (var npcName in session.OpenConversationCreatureIdsByName.Keys.ToArray())
         {
             if (!session.OpenConversationCreatureIdsByName.ContainsKey(npcName))
@@ -232,6 +284,7 @@ public class GameTurnRunner(
 
     private void ClearPreviousTurns(int currentTurnStart)
     {
+        var messages = sessionState.Messages;
         var systemMessage = messages[0];
         var currentTurnMessages = messages.Skip(currentTurnStart).ToList();
 

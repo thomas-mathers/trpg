@@ -17,11 +17,14 @@ public class GetAllWeaponProficienciesQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken
     )
     {
-        return await context
+        var existing = await context
             .CreatureWeaponProficiencies.Where(p =>
                 p.WorldId == query.WorldId && p.CreatureId == query.CreatureId
             )
             .Select(p => new { p.WeaponType, p.Proficiency })
             .ToDictionaryAsync(k => k.WeaponType, v => v.Proficiency, cancellationToken);
+
+        return Enum.GetValues<WeaponType>()
+            .ToDictionary(type => type, type => existing.GetValueOrDefault(type));
     }
 }

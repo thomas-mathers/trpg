@@ -10,7 +10,7 @@ namespace TRPG.Application.Tools;
 
 internal class FleeTool(
     GameSession session,
-    ApplyWeaponSwingGainsCommandHandler applyWeaponSwingGains,
+    AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     CombatEngine combatEngine,
     ILogger<FleeTool> logger
 ) : IGameTool
@@ -34,12 +34,12 @@ internal class FleeTool(
         var state = combatEngine.ResolveFlee(session.Combatants);
 
         var playerId = session.Combatants.Single(c => c.IsPlayer).CreatureId;
-        await applyWeaponSwingGains.Handle(
-            new ApplyWeaponSwingGainsCommand
+        await adjustWeaponProficiencies.Handle(
+            new AdjustWeaponProficienciesCommand
             {
                 WorldId = session.WorldId,
                 CreatureId = playerId,
-                SwingCounts = state.WeaponSwingCounts,
+                ProficiencyDeltas = state.WeaponSwingCounts,
             },
             cancellationToken
         );

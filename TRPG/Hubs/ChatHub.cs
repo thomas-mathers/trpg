@@ -11,6 +11,7 @@ namespace TRPG.Hubs;
 internal sealed class ChatHub(
     IServiceProvider serviceProvider,
     GameSessionStateStore sessionStore,
+    SessionTerminator sessionTerminator,
     GetCreatureByIdQueryHandler getCreatureById,
     GetSceneWithCatchUpQueryHandler getSceneWithCatchUp
 ) : Hub
@@ -22,6 +23,16 @@ internal sealed class ChatHub(
         var sessionId = GetSessionIdFromQuery();
         Context.Items[SessionIdKey] = sessionId;
         return base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        if (Context.Items[SessionIdKey] is Guid sessionId && sessionStore.Get(sessionId) is { } state)
+        {
+            await sessionTerminator.EndSession(sessionId, state);
+        }
+
+        await base.OnDisconnectedAsync(exception);
     }
 
     public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken)

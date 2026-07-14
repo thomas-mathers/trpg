@@ -65,6 +65,13 @@ public class WorldGenerator(
             );
         }
 
+        if (generatorInput.MaxBuildingsPerState > DungeonGenerator.TotalNameCount)
+        {
+            throw new InvalidOperationException(
+                $"MaxBuildingsPerState ({generatorInput.MaxBuildingsPerState}) cannot exceed the dungeon name pool size ({DungeonGenerator.TotalNameCount})."
+            );
+        }
+
         var sw = Stopwatch.StartNew();
         var worldId = Guid.NewGuid();
 

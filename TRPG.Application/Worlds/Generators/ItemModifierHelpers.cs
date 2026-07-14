@@ -80,7 +80,7 @@ internal static class ItemModifierHelpers
     };
 
     internal static IReadOnlyList<ModifierTemplate> PickModifierTemplates(
-        List<ModifierTemplate> pool,
+        IReadOnlyList<ModifierTemplate> pool,
         int count,
         int itemLevel
     )

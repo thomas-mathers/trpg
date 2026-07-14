@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Game;
-using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts;
 using TRPG.Requests;
@@ -73,10 +72,12 @@ internal static class SessionEndpoints
         );
     }
 
-    private static IResult Wait(
+    private static async Task<IResult> Wait(
         Guid sessionId,
         WaitRequest request,
-        GameSessionStateStore sessionStore
+        GameSessionStateStore sessionStore,
+        HttpContext httpContext,
+        CancellationToken cancellationToken
     )
     {
         var state = sessionStore.Get(sessionId);
@@ -90,8 +91,10 @@ internal static class SessionEndpoints
             return Results.BadRequest();
         }
 
-        GameClock.AdvanceHours(state.Session, request.Hours);
-        var currentDate = GameClock.GetCurrentInGameDate(state.Session);
+        httpContext.RequestServices.GetRequiredService<CurrentGameSessionStateAccessor>().State =
+            state;
+        var turnRunner = httpContext.RequestServices.GetRequiredService<GameTurnRunner>();
+        var currentDate = await turnRunner.AdvanceTime(request.Hours, cancellationToken);
         var message =
             $"Time passes... it is now {currentDate.WeekdayName}, hour {currentDate.Hour}.";
 
@@ -101,8 +104,7 @@ internal static class SessionEndpoints
     private static async Task<IResult> EndSession(
         Guid sessionId,
         GameSessionStateStore sessionStore,
-        GetWorldQueryHandler getWorld,
-        UpdateWorldCommandHandler updateWorld,
+        SessionTerminator sessionTerminator,
         CancellationToken cancellationToken
     )
     {
@@ -112,14 +114,7 @@ internal static class SessionEndpoints
             return Results.NotFound();
         }
 
-        var world = await getWorld.Handle(
-            new GetWorldQuery { WorldId = state.Session.WorldId },
-            cancellationToken
-        );
-        world!.Playtime = GameClock.GetTotalPlaytime(state.Session);
-        await updateWorld.Handle(new UpdateWorldCommand { World = world }, cancellationToken);
-
-        sessionStore.Remove(sessionId);
+        await sessionTerminator.EndSession(sessionId, state, cancellationToken);
         return Results.NoContent();
     }
 

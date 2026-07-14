@@ -106,7 +106,9 @@ internal static class ServiceCollectionExtensions
     {
         return serviceCollection
             .AddSingleton<GameSessionStateStore>()
+            .AddScoped<SessionTerminator>()
             .AddScoped<CurrentGameSessionStateAccessor>()
+            .AddScoped(sp => sp.GetRequiredService<CurrentGameSessionStateAccessor>().State)
             .AddScoped(sp => sp.GetRequiredService<CurrentGameSessionStateAccessor>().State.Session)
             .AddScoped(sp =>
                 sp.GetRequiredService<CurrentGameSessionStateAccessor>().State.Messages

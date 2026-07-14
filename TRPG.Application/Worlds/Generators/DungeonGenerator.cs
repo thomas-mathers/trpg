@@ -84,6 +84,8 @@ internal static class DungeonGenerator
         ],
     };
 
+    internal static readonly int TotalNameCount = Names.Values.Sum(names => names.Length);
+
     private static readonly Dictionary<BuildingType, string> RoomNames = new()
     {
         [BuildingType.Cave] = "Cave Entrance",
@@ -102,6 +104,13 @@ internal static class DungeonGenerator
                     .Select(name => (Type: type, Name: name))
             )
             .ToArray();
+
+        if (availablePairs.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"No dungeon names left for state {input.StateId} — the name pool ({TotalNameCount}) is exhausted."
+            );
+        }
 
         var (type, name) = availablePairs[Random.Shared.Next(availablePairs.Length)];
 

@@ -6,16 +6,16 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Worlds.Commands;
 
 [Collection("Database")]
-public sealed class UpdateWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SetWorldPlaytimeCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private UpdateWorldCommandHandler _handler = null!;
+    private SetWorldPlaytimeCommandHandler _handler = null!;
     private World _world = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new UpdateWorldCommandHandler(_context);
+        _handler = new SetWorldPlaytimeCommandHandler(_context);
 
         _world = Builders.MakeWorld();
         _context.Worlds.Add(_world);
@@ -30,12 +30,9 @@ public sealed class UpdateWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_PersistsPlaytime()
     {
-        // Arrange
-        _world.Playtime = TimeSpan.FromHours(5);
-
         // Act
         await _handler.Handle(
-            new UpdateWorldCommand { World = _world },
+            new SetWorldPlaytimeCommand { WorldId = _world.Id, Playtime = TimeSpan.FromHours(5) },
             TestContext.Current.CancellationToken
         );
 

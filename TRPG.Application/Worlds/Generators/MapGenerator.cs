@@ -205,6 +205,13 @@ internal static class MapGenerator
             );
         }
 
+        if (exploredEdges.Count < boundaryEdges.Count)
+        {
+            throw new InvalidOperationException(
+                $"Country {countryIndex} has a disconnected boundary — walked {exploredEdges.Count} of {boundaryEdges.Count} boundary edges."
+            );
+        }
+
         return new Polygon { Points = new List<Point>(points) };
     }
 
