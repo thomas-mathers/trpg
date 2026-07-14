@@ -108,7 +108,8 @@ internal static class ServiceCollectionExtensions
                 configuration.GetSection("GameplayLlm")
             )
             .Configure<CombatOptions>(configuration.GetSection("Combat"))
-            .Configure<CreatureGeneratorOptions>(configuration.GetSection("CreatureGenerator"));
+            .Configure<CreatureGeneratorOptions>(configuration.GetSection("CreatureGenerator"))
+            .Configure<GameClockOptions>(configuration.GetSection("GameClock"));
     }
 
     private static IChatClient CreateChatClient(

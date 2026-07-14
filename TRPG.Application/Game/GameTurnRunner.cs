@@ -21,6 +21,7 @@ public class GameTurnRunner(
     GameSessionState sessionState,
     IEnumerable<AIFunction> tools,
     IOptionsMonitor<LlmRoleOptions> optionsMonitor,
+    IOptionsSnapshot<GameClockOptions> gameClockOptions,
     ILogger<GameTurnRunner> logger
 )
 {
@@ -197,6 +198,10 @@ public class GameTurnRunner(
 
         logger.LogInformation("[game] >>> {Message}", input);
         messages.Add(new ChatMessage(ChatRole.User, input));
+        GameClock.AdvanceForMessage(
+            sessionState.Session,
+            gameClockOptions.Value.RealTimePerMessage
+        );
 
         var gameplayOptions = optionsMonitor.Get(LlmRoleKeys.Gameplay);
         var chatOptions = new ChatOptions

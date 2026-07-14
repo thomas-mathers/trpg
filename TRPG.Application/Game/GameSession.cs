@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using TRPG.Application.Combat;
 
 namespace TRPG.Application.Game;
@@ -9,6 +8,5 @@ public record GameSession(Guid WorldId, Guid PlayerId, TimeSpan BankedPlaytime)
     public TimeSpan BankedPlaytime { get; set; } = BankedPlaytime;
     public bool DidMoveThisTurn { get; set; }
     public bool DidSceneRefreshThisTurn { get; set; }
-    public Stopwatch SessionStopwatch { get; } = Stopwatch.StartNew();
     public IReadOnlyList<Combatant>? Combatants { get; set; }
 }

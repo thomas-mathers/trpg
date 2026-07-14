@@ -192,10 +192,40 @@ public sealed class SessionEndpointsTests(EndpointTestFixture fixture) : IAsyncL
     }
 
     [Fact]
-    public async Task EndSession_SavesPlaytimeAndReturnsNoContent_WhenSessionExists()
+    public async Task EndSession_ReturnsNoContent_AndKeepsPlaytimeAtZero_WhenNoMessagesWereSent()
     {
         // Arrange
         var sessionId = await StartSession();
+
+        // Act
+        var response = await _client.DeleteAsync(
+            new Uri($"/sessions/{sessionId}", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — in-game time only advances from messages/waits, never from real time alone
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var world = await context.Worlds.FindAsync(
+            [_worldId],
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(world);
+        Assert.Equal(TimeSpan.Zero, world.Playtime);
+    }
+
+    [Fact]
+    public async Task EndSession_SavesAdvancedPlaytime_AfterChatting()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await _client.PostAsJsonAsync(
+            new Uri($"/sessions/{sessionId}/chat", UriKind.Relative),
+            new ChatRequest("look around"),
+            TestContext.Current.CancellationToken
+        );
 
         // Act
         var response = await _client.DeleteAsync(

@@ -33,3 +33,8 @@ public class CreatureGeneratorOptions
     public int MaxSkillLevel { get; init; } = 100;
     public int PointsPerLevel { get; init; } = 5;
 }
+
+public class GameClockOptions
+{
+    public TimeSpan RealTimePerMessage { get; init; } = TimeSpan.FromSeconds(54);
+}

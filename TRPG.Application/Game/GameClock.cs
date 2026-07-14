@@ -44,12 +44,17 @@ public static class GameClock
 
     public static TimeSpan GetTotalPlaytime(GameSession session)
     {
-        return session.BankedPlaytime + session.SessionStopwatch.Elapsed;
+        return session.BankedPlaytime;
     }
 
     public static void AdvanceHours(GameSession session, int hours)
     {
         session.BankedPlaytime += TimeSpan.FromHours(hours / InGameHoursPerRealHour);
+    }
+
+    public static void AdvanceForMessage(GameSession session, TimeSpan realTimePerMessage)
+    {
+        session.BankedPlaytime += realTimePerMessage;
     }
 
     public static DateTime GetCurrentInGameDateTime(GameSession session)
