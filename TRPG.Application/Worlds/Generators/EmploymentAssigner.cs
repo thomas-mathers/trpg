@@ -3,8 +3,6 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
 
-// OpenHours restricts when the candidate is a valid day-off destination — null means always open
-// (districts, homes, the Inn's staffed-around-the-clock lobby).
 internal record IdleCandidate(
     Guid? RoomId,
     Guid DistrictId,
@@ -251,10 +249,6 @@ internal static class EmploymentAssigner
 
     private sealed record DayOffDestination(Guid? RoomId, HourWindow Hours);
 
-    // Where the group actually goes, and for which hours. A destination that's only open for part
-    // of the stay clamps the visit to its open window — the group's baseline home Idle covers the
-    // rest of the day — so an evening-only tavern visit works without splitting the day into
-    // multiple scheduled jobs.
     private static DayOffDestination PickDayOffDestination(
         DayOffNeed need,
         IReadOnlyList<IdleCandidate> cityIdleCandidates,
@@ -296,10 +290,6 @@ internal static class EmploymentAssigner
 
     private static int WindowLength(HourWindow window) => (window.End - window.Start + 24) % 24;
 
-    // The portion of the stay that falls within the destination's open window; null when they don't
-    // overlap at all. Both windows may wrap midnight. A doubly-wrapped pair can in theory overlap in
-    // two separate segments — only the first is returned, which is fine for the schedules generated
-    // here (waking hours never wrap).
     private static HourWindow? ClampToOpenHours(HourWindow stay, HourWindow? openHours)
     {
         if (openHours == null)

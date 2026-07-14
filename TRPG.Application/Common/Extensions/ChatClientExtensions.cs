@@ -89,8 +89,6 @@ internal static class ChatClientExtensions
         );
     }
 
-    // Models often wrap otherwise-valid JSON in a markdown code fence or surrounding prose —
-    // salvage the first top-level JSON value from the raw text instead of burning a retry on it.
     private static T? ParseResult<T>(ChatResponse<T> response)
         where T : class
     {

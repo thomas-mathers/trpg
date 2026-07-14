@@ -45,9 +45,6 @@ internal class SyncScheduleLockCommandHandler(
         return await SyncHomeLock(command, cancellationToken);
     }
 
-    // A shop is open exactly while someone is actually at work in it — a worker whose Work job window
-    // covers this hour may still be absent (a higher-priority day-off job overrides it), so each
-    // worker's effective job must be computed, not just the Work window checked.
     private async Task<bool?> SyncShopLock(
         SyncScheduleLockCommand command,
         CancellationToken cancellationToken

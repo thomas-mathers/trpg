@@ -155,6 +155,7 @@ public class WorldGenerator(
             relationships.AddRange(cityResult.Relationships);
         }
 
+        var monsters = new List<Creature>();
         foreach (var state in geography.States)
         {
             var count = Random.Shared.Next(
@@ -170,6 +171,17 @@ public class WorldGenerator(
                 usedNames.Add(result.Building.Name);
                 buildings.Add(result.Building);
                 rooms.Add(result.Room);
+
+                var dungeonMonsters = MonsterGenerator.Generate(
+                    new MonsterGeneratorInput
+                    {
+                        StateId = state.Id,
+                        RoomId = result.Room.Id,
+                        WorldId = worldId,
+                        DungeonType = result.Building.BuildingType,
+                    }
+                );
+                monsters.AddRange(dungeonMonsters.Select(m => m.Creature));
             }
         }
 
@@ -200,6 +212,8 @@ public class WorldGenerator(
                 Countries = geography.Countries,
             }
         );
+
+        creatures.AddRange(monsters);
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 

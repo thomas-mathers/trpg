@@ -22,6 +22,7 @@ internal class MoveTool(
     GetEntranceRoomQueryHandler getEntranceRoom,
     GetExitByDestinationNameQueryHandler getExitByDestinationName,
     GetDistrictByNameInCityQueryHandler getDistrictByNameInCity,
+    GetCityByStateIdQueryHandler getCityByStateId,
     CanEnterBuildingQueryHandler canEnterBuilding,
     SyncScheduleLockCommandHandler syncScheduleLock,
     ILogger<MoveTool> logger
@@ -72,6 +73,7 @@ internal class MoveTool(
                 Session = session,
                 RoomId = player.RoomId,
                 DistrictId = player.DistrictId,
+                StateId = player.StateId,
                 CurrentDate = currentDate,
             },
             cancellationToken
@@ -139,12 +141,20 @@ internal class MoveTool(
             return null;
         }
 
+        var cityId =
+            player.CityId
+            ?? (
+                await getCityByStateId.Handle(
+                    new GetCityByStateIdQuery { StateId = player.StateId },
+                    cancellationToken
+                )
+            )?.Id;
         var district =
-            player.CityId != null
+            cityId != null
                 ? await getDistrictByNameInCity.Handle(
                     new GetDistrictByNameInCityQuery
                     {
-                        CityId = player.CityId.Value,
+                        CityId = cityId.Value,
                         Name = destinationName,
                     },
                     cancellationToken
@@ -152,6 +162,7 @@ internal class MoveTool(
                 : null;
         if (district != null)
         {
+            player.CityId = cityId;
             player.DistrictId = district.Id;
             return null;
         }

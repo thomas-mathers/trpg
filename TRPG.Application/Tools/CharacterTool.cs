@@ -17,9 +17,9 @@ internal record CharacterAttributesInfo(
     int Defense,
     int Mana,
     float MovementSpeed,
-    float HpPercent,
-    float MpPercent,
-    float ApPercent,
+    int MaximumHp,
+    int MaximumMp,
+    int MaximumAp,
     float PhysicalResistance,
     float FireResistance,
     float IceResistance,
@@ -28,22 +28,7 @@ internal record CharacterAttributesInfo(
     float MagicResistance
 );
 
-internal record CharacterConditionInfo(string Type, int Value);
-
-internal record CharacterModifierInfo(
-    string Attribute,
-    string Type,
-    float Amount,
-    int RemainingTurns
-);
-
-internal record CharacterSheetResult(
-    string Name,
-    int Level,
-    CharacterAttributesInfo Attributes,
-    IReadOnlyCollection<CharacterConditionInfo> Conditions,
-    IReadOnlyCollection<CharacterModifierInfo> Modifiers
-);
+internal record CharacterSheetResult(string Name, int Level, CharacterAttributesInfo Attributes);
 
 internal class CharacterTool(
     GameSession session,
@@ -56,7 +41,7 @@ internal class CharacterTool(
 
     [DisplayName("character")]
     [Description(
-        "Returns someone's attributes and active conditions/modifiers. Omit targetName to check the player's own character sheet, or pass the exact Name of a person from NearbyPeople to check theirs."
+        "Returns someone's attributes. Omit targetName to check the player's own character sheet, or pass the exact Name of a person from NearbyPeople to check theirs."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -114,30 +99,16 @@ internal class CharacterTool(
                 attributes.Defense,
                 attributes.Mana,
                 attributes.MovementSpeed,
-                attributes.HpPercent,
-                attributes.MpPercent,
-                attributes.ApPercent,
+                attributes.MaximumHp,
+                attributes.MaximumMp,
+                attributes.MaximumAp,
                 attributes.PhysicalResistance,
                 attributes.FireResistance,
                 attributes.IceResistance,
                 attributes.LightningResistance,
                 attributes.PoisonResistance,
                 attributes.MagicResistance
-            ),
-            target
-                .ActiveConditions.Select(kvp => new CharacterConditionInfo(
-                    kvp.Key.ToString(),
-                    kvp.Value
-                ))
-                .ToArray(),
-            target
-                .ActiveModifiers.Select(m => new CharacterModifierInfo(
-                    m.Attribute.ToString(),
-                    m.Type.ToString(),
-                    m.Amount,
-                    m.RemainingTurns
-                ))
-                .ToArray()
+            )
         );
 
         logger.LogInformation(

@@ -230,8 +230,6 @@ public class CityGenerator(
             )
         )
         {
-            // The Inn's lobby is staffed around the clock, so it never closes; every other shop is
-            // only a valid hangout while someone's working there.
             workspace.IdleCandidates.Add(
                 new IdleCandidate(
                     groundFloorRoom.Id,

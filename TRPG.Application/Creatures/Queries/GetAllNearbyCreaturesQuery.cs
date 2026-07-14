@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Creatures.Queries;
 
@@ -20,6 +21,7 @@ internal class GetAllNearbyCreaturesQuery
 {
     public required CreatureLocation Location { get; init; }
     public Guid? ExcludingCreatureId { get; init; }
+    public IReadOnlyCollection<CreatureType>? CreatureTypes { get; init; }
 }
 
 internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
@@ -35,6 +37,7 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
                 location.WorldId,
                 roomId,
                 query.ExcludingCreatureId,
+                query.CreatureTypes,
                 cancellationToken
             )
             : await GetAllOutdoorsInLocation(
@@ -42,6 +45,7 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
                 location.StateId,
                 location.DistrictId,
                 query.ExcludingCreatureId,
+                query.CreatureTypes,
                 cancellationToken
             );
     }
@@ -50,6 +54,7 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
         Guid worldId,
         Guid roomId,
         Guid? excludingCreatureId,
+        IReadOnlyCollection<CreatureType>? creatureTypes,
         CancellationToken cancellationToken
     )
     {
@@ -59,6 +64,11 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
         if (excludingCreatureId is not null)
         {
             creatureQuery = creatureQuery.Where(p => p.Id != excludingCreatureId);
+        }
+
+        if (creatureTypes is not null)
+        {
+            creatureQuery = creatureQuery.Where(p => creatureTypes.Contains(p.CreatureType));
         }
 
         return await creatureQuery
@@ -80,6 +90,7 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
         Guid stateId,
         Guid? districtId,
         Guid? excludingCreatureId,
+        IReadOnlyCollection<CreatureType>? creatureTypes,
         CancellationToken cancellationToken
     )
     {
@@ -94,6 +105,11 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
         if (excludingCreatureId is not null)
         {
             creatureQuery = creatureQuery.Where(p => p.Id != excludingCreatureId);
+        }
+
+        if (creatureTypes is not null)
+        {
+            creatureQuery = creatureQuery.Where(p => creatureTypes.Contains(p.CreatureType));
         }
 
         return await creatureQuery

@@ -77,8 +77,8 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             100,
             level => new AttributeModifier
             {
-                Attribute = AttributeName.Hp,
-                Type = AmountType.Flat,
+                Attribute = AttributeName.MaximumHp,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 5, 100),
             }
         ),
@@ -88,8 +88,8 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             80,
             level => new AttributeModifier
             {
-                Attribute = AttributeName.Ap,
-                Type = AmountType.Flat,
+                Attribute = AttributeName.MaximumAp,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 3, 60),
             }
         ),
@@ -100,7 +100,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.Defense,
-                Type = AmountType.Flat,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 2, 40),
             }
         ),
@@ -111,7 +111,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.FireResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 40),
             }
         ),
@@ -122,7 +122,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.IceResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 40),
             }
         ),
@@ -133,7 +133,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.LightningResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 40),
             }
         ),
@@ -144,7 +144,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.PoisonResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 40),
             }
         ),
@@ -165,7 +165,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.Strength,
-                Type = AmountType.Flat,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 1, 10),
             }
         ),
@@ -176,7 +176,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.Endurance,
-                Type = AmountType.Flat,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 1, 10),
             }
         ),
@@ -187,7 +187,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.MagicResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 30),
             }
         ),
@@ -198,7 +198,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             level => new ProcModifier
             {
                 AbilityName = abilityDefinitions.RandomAttackAbility(),
-                Chance = Roll(level, 5, 15),
+                Chance = Roll(level, 5, 15) / 100f,
                 Trigger = ProcTrigger.WhenStruck,
             }
         ),
@@ -251,7 +251,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             GoldValue = level * 10 + modifiers.Count * 50 + Random.Shared.Next(level * 5 + 1),
             Modifiers = modifiers,
             Defense = Roll(level, 3, 25),
-            BlockChance = Roll(level, 10, 50),
+            BlockChance = Roll(level, 10, 50) / 100f,
             DurabilityMax = durabilityMax,
             DurabilityCurrent = durabilityMax,
         };

@@ -8,9 +8,9 @@ public enum AmountType
 
 public enum AttributeName
 {
-    Hp,
-    Ap,
-    Mp,
+    MaximumHp,
+    MaximumAp,
+    MaximumMp,
     Strength,
     Defense,
     Dexterity,
@@ -31,5 +31,5 @@ public class AttributeModifier : ItemModifier
 {
     public float Amount { get; init; }
     public AttributeName Attribute { get; init; }
-    public AmountType Type { get; init; }
+    public AmountType AmountType { get; init; }
 }

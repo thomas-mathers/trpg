@@ -27,7 +27,7 @@ public class AccessoryGenerator
             level => new AttributeModifier
             {
                 Attribute = AttributeName.Strength,
-                Type = AmountType.Flat,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 1, 8),
             }
         ),
@@ -38,7 +38,7 @@ public class AccessoryGenerator
             level => new AttributeModifier
             {
                 Attribute = AttributeName.Dexterity,
-                Type = AmountType.Flat,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 1, 8),
             }
         ),
@@ -49,7 +49,7 @@ public class AccessoryGenerator
             level => new AttributeModifier
             {
                 Attribute = AttributeName.Intelligence,
-                Type = AmountType.Flat,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 1, 8),
             }
         ),
@@ -59,8 +59,8 @@ public class AccessoryGenerator
             100,
             level => new AttributeModifier
             {
-                Attribute = AttributeName.Hp,
-                Type = AmountType.Flat,
+                Attribute = AttributeName.MaximumHp,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 3, 50),
             }
         ),
@@ -70,8 +70,8 @@ public class AccessoryGenerator
             80,
             level => new AttributeModifier
             {
-                Attribute = AttributeName.Ap,
-                Type = AmountType.Flat,
+                Attribute = AttributeName.MaximumAp,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 3, 50),
             }
         ),
@@ -82,7 +82,7 @@ public class AccessoryGenerator
             level => new AttributeModifier
             {
                 Attribute = AttributeName.FireResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 30),
             }
         ),
@@ -93,7 +93,7 @@ public class AccessoryGenerator
             level => new AttributeModifier
             {
                 Attribute = AttributeName.IceResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 30),
             }
         ),
@@ -104,7 +104,7 @@ public class AccessoryGenerator
             level => new AttributeModifier
             {
                 Attribute = AttributeName.LightningResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 30),
             }
         ),
@@ -115,7 +115,7 @@ public class AccessoryGenerator
             level => new AttributeModifier
             {
                 Attribute = AttributeName.PoisonResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 30),
             }
         ),
@@ -126,7 +126,7 @@ public class AccessoryGenerator
             level => new AttributeModifier
             {
                 Attribute = AttributeName.MagicResistance,
-                Type = AmountType.Percent,
+                AmountType = AmountType.Percent,
                 Amount = Roll(level, 5, 25),
             }
         ),

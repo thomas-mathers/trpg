@@ -38,7 +38,8 @@ public class ChatClientExtensionsTests
         // Arrange
         var client = new FakeChatClient
         {
-            ChatResponseText = "Here is the JSON you asked for: {\"name\":\"Aldwyn\"} Let me know if you need anything else!",
+            ChatResponseText =
+                "Here is the JSON you asked for: {\"name\":\"Aldwyn\"} Let me know if you need anything else!",
         };
 
         // Act

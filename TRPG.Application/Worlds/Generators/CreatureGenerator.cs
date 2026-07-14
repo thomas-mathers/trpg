@@ -1,4 +1,5 @@
 using TRPG.Application.Abilities;
+using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
@@ -910,8 +911,6 @@ public class CreatureGenerator(
         [Profession.Unemployed] = new StatAffinities(0, 0, 1, 1, 1, 0, 1, 0.3f),
     };
 
-    // Combat professions span the full range — a veteran knight or mercenary is plausible anywhere —
-    // while civilian trades cap low: a baker's "level" is craft skill, not battle prowess.
     private static readonly HashSet<Profession> CombatProfessions =
     [
         Profession.Knight,
@@ -1041,7 +1040,7 @@ public class CreatureGenerator(
             }
         }
 
-        return new Attributes
+        var baseAttributes = new Attributes
         {
             Strength = stats[0],
             Defense = stats[1],
@@ -1050,9 +1049,13 @@ public class CreatureGenerator(
             Stamina = stats[4],
             Mana = stats[5],
             Intelligence = stats[6],
-            HpPercent = 1.0f,
-            ApPercent = 1.0f,
-            MpPercent = 1.0f,
+        };
+
+        return baseAttributes with
+        {
+            MaximumHp = StatFormulas.CalculateMaximumHp(baseAttributes),
+            MaximumAp = StatFormulas.CalculateMaximumAp(baseAttributes),
+            MaximumMp = StatFormulas.CalculateMaximumMp(baseAttributes),
         };
     }
 

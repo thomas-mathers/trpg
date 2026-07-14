@@ -13,8 +13,6 @@ internal class GetCreatureKnowledgeQuery
     public required Creature AskingPerson { get; init; }
 }
 
-// One ranked candidate for a name lookup. Result is populated for the best match only — the
-// rest are name stubs the model can expand by looking up the exact name.
 internal sealed record LookupMatch(
     double Similarity,
     string Name,
@@ -75,12 +73,9 @@ internal sealed record PersonLookupResult(
 
 internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
 {
-    // Low enough that a one-letter typo on a short name still clears it ("Ellie" vs "Elly" scores
-    // 0.375 on trigrams — short strings are punished hard), high enough to reject unrelated names.
     private const double SimilarityThreshold = 0.35;
     private const int MaxMatches = 5;
 
-    // One row per candidate that survived the similarity threshold, before merging across entity types.
     private sealed record Candidate(
         double Similarity,
         string Name,
@@ -95,30 +90,45 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
     {
         var candidates = new List<Candidate>();
         candidates.AddRange(
-            await FindCandidates(query, context.Countries, KnowledgeSubjectType.Country, cancellationToken)
+            await FindCandidates(
+                query,
+                context.Countries,
+                KnowledgeSubjectType.Country,
+                cancellationToken
+            )
         );
         candidates.AddRange(
-            await FindCandidates(query, context.Cities, KnowledgeSubjectType.City, cancellationToken)
+            await FindCandidates(
+                query,
+                context.Cities,
+                KnowledgeSubjectType.City,
+                cancellationToken
+            )
         );
         candidates.AddRange(
-            await FindCandidates(query, context.Factions, KnowledgeSubjectType.Faction, cancellationToken)
+            await FindCandidates(
+                query,
+                context.Factions,
+                KnowledgeSubjectType.Faction,
+                cancellationToken
+            )
         );
         candidates.AddRange(
-            await FindCandidates(query, context.Creatures, KnowledgeSubjectType.Creature, cancellationToken)
+            await FindCandidates(
+                query,
+                context.Creatures,
+                KnowledgeSubjectType.Creature,
+                cancellationToken
+            )
         );
 
-        var ranked = candidates
-            .OrderByDescending(c => c.Similarity)
-            .Take(MaxMatches)
-            .ToList();
+        var ranked = candidates.OrderByDescending(c => c.Similarity).Take(MaxMatches).ToList();
 
         var matches = new List<LookupMatch>();
         foreach (var candidate in ranked)
         {
             var result =
-                matches.Count == 0
-                    ? await BuildResult(candidate, query, cancellationToken)
-                    : null;
+                matches.Count == 0 ? await BuildResult(candidate, query, cancellationToken) : null;
             matches.Add(
                 new LookupMatch(
                     candidate.Similarity,
@@ -132,10 +142,6 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
         return matches;
     }
 
-    // The knower's knowledge rows of one type, joined to the entity table and scored by pg_trgm's
-    // strict word similarity — an exact word inside a longer name (e.g. "Elly" in "Elly Tealeaf")
-    // scores 1.0, so partial references and misspellings both resolve. EF.Property is used because
-    // the four entity types share Id/Name shape but no common base type.
     private async Task<IReadOnlyList<Candidate>> FindCandidates<TEntity>(
         GetCreatureKnowledgeQuery query,
         IQueryable<TEntity> entities,
@@ -144,8 +150,6 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
     )
         where TEntity : class
     {
-        // The asker can never be their own answer — self-knowledge rows exist, but "who is X"
-        // asked by X is handled by the biography, not lookup.
         return await context
             .CreatureKnowledge.AsNoTracking()
             .Where(k =>
@@ -184,19 +188,23 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
         switch (candidate.SubjectType)
         {
             case KnowledgeSubjectType.Country:
-                var country = await context.Countries.AsNoTracking()
+                var country = await context
+                    .Countries.AsNoTracking()
                     .FirstAsync(c => c.Id == candidate.EntityId, cancellationToken);
                 return await BuildCountryResult(country, cancellationToken);
             case KnowledgeSubjectType.City:
-                var city = await context.Cities.AsNoTracking()
+                var city = await context
+                    .Cities.AsNoTracking()
                     .FirstAsync(c => c.Id == candidate.EntityId, cancellationToken);
                 return await BuildCityResult(city, query.WorldId, cancellationToken);
             case KnowledgeSubjectType.Faction:
-                var faction = await context.Factions.AsNoTracking()
+                var faction = await context
+                    .Factions.AsNoTracking()
                     .FirstAsync(f => f.Id == candidate.EntityId, cancellationToken);
                 return await BuildFactionResult(faction, cancellationToken);
             case KnowledgeSubjectType.Creature:
-                var creature = await context.Creatures.AsNoTracking()
+                var creature = await context
+                    .Creatures.AsNoTracking()
                     .FirstAsync(c => c.Id == candidate.EntityId, cancellationToken);
                 return await BuildPersonResult(creature, query.CurrentYear, cancellationToken);
             default:

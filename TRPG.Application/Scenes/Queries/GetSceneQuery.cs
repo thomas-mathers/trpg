@@ -17,6 +17,8 @@ internal class GetSceneQuery
     public required InGameDate CurrentDate { get; init; }
 }
 
+public record SceneDateInfo(int Year, string MonthName, int Day, string WeekdayName, int Hour);
+
 public record SceneStateInfo(string Name, string? Description);
 
 public record SceneDistrictInfo(string Name, string Type, bool IsCurrent);
@@ -71,7 +73,7 @@ public record SceneCreatureInfo(
 public record SceneNearbyBuildingInfo(string Name, string Type);
 
 public record SceneResult(
-    InGameDate CurrentDate,
+    SceneDateInfo CurrentDate,
     SceneStateInfo? State,
     SceneCityInfo? City,
     SceneBuildingInfo? Building,
@@ -109,6 +111,7 @@ internal class GetSceneQueryHandler(
     TrpgDbContext context,
     GetStateByIdQueryHandler getStateById,
     GetCityByIdQueryHandler getCityById,
+    GetCityByStateIdQueryHandler getCityByStateId,
     GetAllDistrictsByCityIdQueryHandler getAllDistrictsByCityId,
     GetRoomSummaryQueryHandler getRoomSummary,
     GetStaticPropsByRoomIdQueryHandler getStaticPropsByRoomId,
@@ -147,7 +150,13 @@ internal class GetSceneQueryHandler(
         );
 
         return new SceneResult(
-            query.CurrentDate,
+            new SceneDateInfo(
+                query.CurrentDate.Year,
+                query.CurrentDate.MonthName,
+                query.CurrentDate.Day,
+                query.CurrentDate.WeekdayName,
+                query.CurrentDate.Hour
+            ),
             new SceneStateInfo(state!.Name, details.RegionDescription),
             cityInfo,
             details.Building,
@@ -196,17 +205,23 @@ internal class GetSceneQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        if (bootstrap.CityId == null)
+        var city =
+            bootstrap.CityId != null
+                ? await getCityById.Handle(
+                    new GetCityByIdQuery { Id = bootstrap.CityId.Value },
+                    cancellationToken
+                )
+                : await getCityByStateId.Handle(
+                    new GetCityByStateIdQuery { StateId = bootstrap.StateId },
+                    cancellationToken
+                );
+        if (city == null)
         {
             return null;
         }
 
-        var city = await getCityById.Handle(
-            new GetCityByIdQuery { Id = bootstrap.CityId.Value },
-            cancellationToken
-        );
         var districts = await getAllDistrictsByCityId.Handle(
-            new GetAllDistrictsByCityIdQuery { CityId = bootstrap.CityId.Value },
+            new GetAllDistrictsByCityIdQuery { CityId = city.Id },
             cancellationToken
         );
         var districtInfos = districts
@@ -216,7 +231,7 @@ internal class GetSceneQueryHandler(
                 d.Id == bootstrap.DistrictId
             ))
             .ToArray();
-        return new SceneCityInfo(city!.Name, city.Description, districtInfos);
+        return new SceneCityInfo(city.Name, city.Description, districtInfos);
     }
 
     private async Task<SceneLocationDetails> BuildIndoorScene(
@@ -285,7 +300,22 @@ internal class GetSceneQueryHandler(
             },
             cancellationToken
         );
+
+        var wildBuildings =
+            bootstrap.CityId != null
+                ? await getAllBuildingsByLocation.Handle(
+                    new GetAllBuildingsByLocationQuery
+                    {
+                        StateId = bootstrap.StateId,
+                        CityId = null,
+                        DistrictId = null,
+                    },
+                    cancellationToken
+                )
+                : [];
+
         var nearbyBuildings = buildings
+            .Concat(wildBuildings)
             .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType.ToString()))
             .ToArray();
 

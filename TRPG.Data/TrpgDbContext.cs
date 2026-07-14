@@ -20,6 +20,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<CreatureAbility> CreatureAbilities => Set<CreatureAbility>();
     public DbSet<CreatureKnowledge> CreatureKnowledge => Set<CreatureKnowledge>();
+    public DbSet<CreatureWeaponProficiency> CreatureWeaponProficiencies =>
+        Set<CreatureWeaponProficiency>();
     public DbSet<CreatureQuestObjective> CreatureQuestObjectives => Set<CreatureQuestObjective>();
     public DbSet<CreatureQuest> CreatureQuests => Set<CreatureQuest>();
     public DbSet<Creature> Creatures => Set<Creature>();
@@ -54,10 +56,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         configurationBuilder.Properties<BuildingType>().HaveConversion<string>();
         configurationBuilder.Properties<WorkstationType>().HaveConversion<string>();
         configurationBuilder.Properties<AttributeName>().HaveConversion<string>();
-        configurationBuilder.Properties<ConditionType>().HaveConversion<string>();
         configurationBuilder.Properties<DamageType>().HaveConversion<string>();
         configurationBuilder.Properties<EquipmentSlot>().HaveConversion<string>();
-        configurationBuilder.Properties<TargetType>().HaveConversion<string>();
         configurationBuilder.Properties<WeaponType>().HaveConversion<string>();
         configurationBuilder.Properties<ArmorClass>().HaveConversion<string>();
         configurationBuilder.Properties<ArmorType>().HaveConversion<string>();
@@ -85,6 +85,12 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     {
         modelBuilder.HasPostgresExtension("pg_trgm");
 
+        modelBuilder.Entity<CreatureWeaponProficiency>(entity =>
+        {
+            entity.HasKey(k => new { k.CreatureId, k.WeaponType });
+            entity.HasIndex(k => new { k.WorldId });
+        });
+
         modelBuilder.Entity<CreatureKnowledge>(entity =>
         {
             entity.HasIndex(k => new { k.KnowerId, k.SubjectType });
@@ -96,16 +102,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => new { p.StateId, p.RoomId });
             entity.OwnsOne(p => p.Attributes, s => s.ToJson());
-            entity
-                .Property(p => p.ActiveConditions)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<Dictionary<ConditionType, int>>(v, JsonOptions)
-                        ?? new Dictionary<ConditionType, int>()
-                )
-                .HasColumnType("jsonb");
-            entity.OwnsMany(p => p.ActiveModifiers, m => m.ToJson());
         });
 
         modelBuilder.Entity<Item>(entity =>

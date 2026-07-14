@@ -8,9 +8,6 @@ public enum KnowledgeSubjectType
     Creature,
 }
 
-// A knower is aware a subject exists and can recall what they know of it. Populated during world
-// generation from static facts (residence, family, factions); gameplay can add rows as creatures
-// learn of new people and places.
 public class CreatureKnowledge
 {
     public Guid Id { get; init; } = Guid.NewGuid();

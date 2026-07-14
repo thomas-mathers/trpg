@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Combat;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Creatures.Commands;
@@ -17,6 +18,8 @@ using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Tools;
+using TRPG.Application.WeaponProficiency.Commands;
+using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
@@ -69,6 +72,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetStateByIdQueryHandler>()
             .AddTransient<GetAllStatesByCountryIdQueryHandler>()
             .AddTransient<GetCityByIdQueryHandler>()
+            .AddTransient<GetCityByStateIdQueryHandler>()
             .AddTransient<GetAllDistrictsByCityIdQueryHandler>()
             .AddTransient<GetDistrictByNameInCityQueryHandler>()
             .AddTransient<GetConversationSummaryQueryHandler>()
@@ -77,6 +81,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton(new CreatureGeneratorSettings())
             .AddTransient<AddCreatureCommandHandler>()
             .AddTransient<UpdateCreatureCommandHandler>()
+            .AddTransient<ApplyCombatRewardsCommandHandler>()
             .AddTransient<DeleteCreatureCommandHandler>()
             .AddTransient<GetCreatureByIdQueryHandler>()
             .AddTransient<GetAllCreaturesInStateQueryHandler>()
@@ -86,6 +91,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetCreatureByNameOutdoorsInDistrictQueryHandler>()
             .AddTransient<GetCreatureByNameNearbyQueryHandler>()
             .AddTransient<GetAllNearbyCreaturesQueryHandler>()
+            .AddTransient<GetCreatureAbilitiesQueryHandler>()
             .AddTransient<GetCreatureKnowledgeQueryHandler>()
             .AddTransient<AdjustReputationCommandHandler>()
             .AddTransient<GetAllReputationsByCreatureIdQueryHandler>()
@@ -113,6 +119,13 @@ public static class ServiceCollectionExtensions
             .AddTransient<BootstrapWorldCommandHandler>()
             .AddTransient<DropWorldCommandHandler>()
             .AddTransient<GameTurnRunner>()
+            .AddTransient<GetAllWeaponProficienciesQueryHandler>()
+            .AddTransient<SetWeaponProficiencyCommandHandler>()
+            .AddTransient<ApplyWeaponSwingGainsCommandHandler>()
+            .AddSingleton(new CombatSettings())
+            .AddTransient<HitCalculator>()
+            .AddTransient<DamageCalculator>()
+            .AddTransient<CombatEngine>()
             .AddGameTool<WorldInfoTool>()
             .AddGameTool<LookTool>()
             .AddGameTool<MoveTool>()
@@ -120,7 +133,9 @@ public static class ServiceCollectionExtensions
             .AddGameTool<CharacterTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
-            .AddGameTool<LookupTool>();
+            .AddGameTool<LookupTool>()
+            .AddGameTool<AttackTool>()
+            .AddGameTool<FleeTool>();
     }
 
     private static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)

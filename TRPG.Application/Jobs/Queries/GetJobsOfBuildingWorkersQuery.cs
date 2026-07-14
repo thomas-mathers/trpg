@@ -9,9 +9,6 @@ internal class GetJobsOfBuildingWorkersQuery
     public required Guid BuildingId { get; init; }
 }
 
-// Every job belonging to any creature employed in the building (i.e. having a Work job located in
-// one of its rooms) — the full set needed to decide each worker's effective job at a given hour,
-// since a higher-priority day-off job elsewhere overrides their Work job.
 internal class GetJobsOfBuildingWorkersQueryHandler(TrpgDbContext context)
 {
     public async Task<IReadOnlyList<Job>> Handle(

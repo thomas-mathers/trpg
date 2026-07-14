@@ -135,7 +135,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.Strength,
-                Type = AmountType.Flat,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 1, 15),
             }
         ),
@@ -146,7 +146,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             level => new AttributeModifier
             {
                 Attribute = AttributeName.Dexterity,
-                Type = AmountType.Flat,
+                AmountType = AmountType.Flat,
                 Amount = Roll(level, 1, 15),
             }
         ),
@@ -223,7 +223,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             level => new SpecialHitModifier
             {
                 HitType = SpecialHitType.DeadlyStrike,
-                Chance = Roll(level, 5, 35),
+                Chance = Roll(level, 5, 35) / 100f,
             }
         ),
         new(
@@ -233,7 +233,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             level => new SpecialHitModifier
             {
                 HitType = SpecialHitType.OpenWounds,
-                Chance = Roll(level, 5, 35),
+                Chance = Roll(level, 5, 35) / 100f,
             }
         ),
         new(
@@ -243,7 +243,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             level => new SpecialHitModifier
             {
                 HitType = SpecialHitType.CrushingBlow,
-                Chance = Roll(level, 5, 25),
+                Chance = Roll(level, 5, 25) / 100f,
             }
         ),
         new(
@@ -253,7 +253,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             level => new ProcModifier
             {
                 AbilityName = abilityDefinitions.RandomAttackAbility(),
-                Chance = Roll(level, 5, 20),
+                Chance = Roll(level, 5, 20) / 100f,
                 Trigger = ProcTrigger.OnStriking,
             }
         ),

@@ -1,4 +1,4 @@
-using TRPG.Contracts;
+using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 using Profession = TRPG.Data.Models.Profession;
 
@@ -30,19 +30,28 @@ internal static class Builders
             CityId = cityId,
             DistrictId = districtId,
             Level = 1,
-            Attributes = new Attributes
-            {
-                Strength = 10,
-                Defense = 5,
-                Dexterity = 8,
-                Endurance = 7,
-                Stamina = 6,
-                Mana = 4,
-                Intelligence = 9,
-                HpPercent = 1.0f,
-                ApPercent = 1.0f,
-                MpPercent = 1.0f,
-            },
+            Attributes = MakeAttributes(),
+        };
+    }
+
+    public static Attributes MakeAttributes()
+    {
+        var baseAttributes = new Attributes
+        {
+            Strength = 10,
+            Defense = 5,
+            Dexterity = 8,
+            Endurance = 7,
+            Stamina = 6,
+            Mana = 4,
+            Intelligence = 9,
+        };
+
+        return baseAttributes with
+        {
+            MaximumHp = StatFormulas.CalculateMaximumHp(baseAttributes),
+            MaximumAp = StatFormulas.CalculateMaximumAp(baseAttributes),
+            MaximumMp = StatFormulas.CalculateMaximumMp(baseAttributes),
         };
     }
 
@@ -106,7 +115,7 @@ internal static class Builders
             Weight = 8,
             GoldValue = 30,
             Defense = 8,
-            BlockChance = 25,
+            BlockChance = 0.25f,
             DurabilityMax = 100,
             DurabilityCurrent = 100,
         };
@@ -121,7 +130,7 @@ internal static class Builders
             Description = "A test consumable",
             Weight = 1,
             GoldValue = 10,
-            Attribute = AttributeName.Hp,
+            Attribute = AttributeName.MaximumHp,
             Amount = 50,
             Duration = 0,
         };

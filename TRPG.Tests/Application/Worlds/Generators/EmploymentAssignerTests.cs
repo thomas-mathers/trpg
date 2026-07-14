@@ -223,10 +223,7 @@ public class EmploymentAssignerTests
 
         var context = MakeContext(
             eligible: [adult],
-            slots:
-            [
-                new ShopEmploymentSlot(shopRoomId, Profession.Tailor, daysOff, WorkHours),
-            ],
+            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Tailor, daysOff, WorkHours)],
             homeRooms: new Dictionary<Guid, Guid> { [adult.Id] = homeRoomId },
             cityIdleCandidates:
             [

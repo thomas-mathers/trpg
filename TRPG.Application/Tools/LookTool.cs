@@ -37,6 +37,7 @@ internal class LookTool(
                 Session = session,
                 RoomId = player!.RoomId,
                 DistrictId = player.DistrictId,
+                StateId = player.StateId,
                 CurrentDate = currentDate,
             },
             cancellationToken

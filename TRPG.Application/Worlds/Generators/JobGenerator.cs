@@ -96,8 +96,6 @@ internal static class JobGenerator
         };
     }
 
-    // Hours default to the full waking window; pass a narrower one when the destination is only
-    // open part of the day (an evening tavern visit, a morning at the bakery).
     public static Job GenerateUnemployedDayActivity(
         Guid stateId,
         Guid creatureId,

@@ -9,6 +9,19 @@ public class AbilityDefinitions(
 {
     public IReadOnlyCollection<Ability> Abilities => byName.Values;
 
+    public AttackAbility BasicAttack { get; } =
+        new()
+        {
+            Name = "Strike",
+            Description = "A plain attack with whatever is at hand.",
+            ApCost = 0,
+            Cooldown = 0,
+            TargetType = AttackTargetType.Single,
+            DamageType = DamageType.Physical,
+            DamageAmount = 100,
+            DamageAmountType = AmountType.Flat,
+        };
+
     public static AbilityDefinitions Create()
     {
         var builder = new AbilityBuilder();
@@ -33,6 +46,8 @@ public class AbilityDefinitions(
         return attacks[Random.Shared.Next(attacks.Count)].Name;
     }
 
+    public Ability? GetByName(string name) => byName.GetValueOrDefault(name);
+
     private static void AddSwordsmanshipAbilities(AbilityBuilder builder)
     {
         var slash = builder.AddAttack(
@@ -42,10 +57,9 @@ public class AbilityDefinitions(
             1,
             2,
             0,
-            TargetType.Single,
-            null,
+            AttackTargetType.Single,
             DamageType.Physical,
-            8
+            150
         );
         var cleave = builder
             .AddAttack(
@@ -55,10 +69,9 @@ public class AbilityDefinitions(
                 2,
                 3,
                 0,
-                TargetType.Aoe,
-                2f,
+                AttackTargetType.Aoe,
                 DamageType.Physical,
-                12
+                170
             )
             .Requires(slash);
         var shieldBash = builder
@@ -69,12 +82,11 @@ public class AbilityDefinitions(
                 2,
                 2,
                 2,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                5
+                130
             )
-            .AddCondition(ConditionType.Stunned, 1)
+            .AddStatus(ConditionType.Stunned, 1)
             .Requires(slash);
         builder
             .AddAttack(
@@ -84,12 +96,12 @@ public class AbilityDefinitions(
                 4,
                 4,
                 3,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                14
+                185
             )
-            .AddCondition(ConditionType.Bleeding, 2, 3f)
+            .AddDot(2, 3f)
+            .AddStatus(ConditionType.Bleeding, 2)
             .Requires(shieldBash);
         builder
             .AddAttack(
@@ -99,10 +111,9 @@ public class AbilityDefinitions(
                 5,
                 5,
                 3,
-                TargetType.Aoe,
-                4f,
+                AttackTargetType.Aoe,
                 DamageType.Physical,
-                18
+                210
             )
             .Requires(cleave);
     }
@@ -116,10 +127,9 @@ public class AbilityDefinitions(
             20,
             6,
             4,
-            TargetType.Single,
-            null,
+            AttackTargetType.Single,
             DamageType.Physical,
-            24
+            245
         );
         builder
             .AddAttack(
@@ -129,12 +139,11 @@ public class AbilityDefinitions(
                 25,
                 5,
                 5,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                20
+                220
             )
-            .AddCondition(ConditionType.Stunned, 1);
+            .AddStatus(ConditionType.Stunned, 1);
         builder.AddPrerequisiteByName("Execute", "Whirlwind");
         builder.AddPrerequisiteByName("Riposte", "Shield Bash");
 
@@ -146,12 +155,12 @@ public class AbilityDefinitions(
                 40,
                 8,
                 6,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                22
+                230
             )
-            .AddCondition(ConditionType.Bleeding, 3, 5f);
+            .AddDot(3, 5f)
+            .AddStatus(ConditionType.Bleeding, 3);
         builder.AddAttack(
             "Bladestorm",
             "A whirling tempest of steel that strikes all nearby foes.",
@@ -159,10 +168,9 @@ public class AbilityDefinitions(
             45,
             10,
             7,
-            TargetType.Aoe,
-            5f,
+            AttackTargetType.Aoe,
             DamageType.Physical,
-            18
+            210
         );
         builder.AddPrerequisiteByName("Mortal Strike", "Execute");
         builder.AddPrerequisiteByName("Bladestorm", "Whirlwind");
@@ -175,12 +183,11 @@ public class AbilityDefinitions(
                 60,
                 12,
                 8,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                32
+                290
             )
-            .AddCondition(ConditionType.Stunned, 2);
+            .AddStatus(ConditionType.Stunned, 2);
         builder.AddAttack(
             "Hundred Blades",
             "A blinding sequence of precise cuts delivered in an instant.",
@@ -188,10 +195,9 @@ public class AbilityDefinitions(
             65,
             15,
             10,
-            TargetType.Single,
-            null,
+            AttackTargetType.Single,
             DamageType.Physical,
-            40
+            340
         );
         builder.AddPrerequisiteByName("Skull Splitter", "Mortal Strike");
         builder.AddPrerequisiteByName("Hundred Blades", "Bladestorm");
@@ -203,10 +209,9 @@ public class AbilityDefinitions(
             90,
             20,
             15,
-            TargetType.Single,
-            null,
+            AttackTargetType.Single,
             DamageType.Physical,
-            70
+            520
         );
         builder.AddAttack(
             "Eternal Whirlwind",
@@ -215,10 +220,9 @@ public class AbilityDefinitions(
             95,
             22,
             15,
-            TargetType.Aoe,
-            8f,
+            AttackTargetType.Aoe,
             DamageType.Physical,
-            45
+            370
         );
         builder.AddPrerequisiteByName("Legend's Blow", "Hundred Blades");
         builder.AddPrerequisiteByName("Eternal Whirlwind", "Bladestorm");
@@ -233,10 +237,9 @@ public class AbilityDefinitions(
             1,
             1,
             0,
-            TargetType.Single,
-            null,
+            AttackTargetType.Single,
             DamageType.Physical,
-            5
+            130
         );
         var backstab = builder
             .AddAttack(
@@ -246,10 +249,9 @@ public class AbilityDefinitions(
                 2,
                 3,
                 0,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                16
+                195
             )
             .Requires(stab);
         var hamstring = builder
@@ -260,12 +262,11 @@ public class AbilityDefinitions(
                 2,
                 2,
                 2,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                6
+                135
             )
-            .AddCondition(ConditionType.Snared, 2)
+            .AddStatus(ConditionType.Snared, 2)
             .Requires(stab);
         builder
             .AddAttack(
@@ -275,12 +276,12 @@ public class AbilityDefinitions(
                 4,
                 3,
                 2,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                8
+                150
             )
-            .AddCondition(ConditionType.Bleeding, 3, 4f)
+            .AddDot(3, 4f)
+            .AddStatus(ConditionType.Bleeding, 3)
             .Requires(hamstring);
         builder
             .AddAttack(
@@ -290,12 +291,11 @@ public class AbilityDefinitions(
                 5,
                 4,
                 3,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                20
+                220
             )
-            .AddCondition(ConditionType.Blinded, 1)
+            .AddStatus(ConditionType.Blinded, 1)
             .Requires(backstab);
     }
 
@@ -309,12 +309,11 @@ public class AbilityDefinitions(
                 20,
                 5,
                 5,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                15
+                190
             )
-            .AddCondition(ConditionType.Stunned, 2);
+            .AddStatus(ConditionType.Stunned, 2);
         builder
             .AddAttack(
                 "Cripple",
@@ -323,12 +322,11 @@ public class AbilityDefinitions(
                 25,
                 5,
                 4,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                12
+                170
             )
-            .AddCondition(ConditionType.Snared, 3);
+            .AddStatus(ConditionType.Snared, 3);
         builder.AddPrerequisiteByName("Kidney Shot", "Backstab");
         builder.AddPrerequisiteByName("Cripple", "Hamstring");
 
@@ -340,12 +338,11 @@ public class AbilityDefinitions(
                 40,
                 7,
                 6,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                18
+                210
             )
-            .AddCondition(ConditionType.Silenced, 3);
+            .AddStatus(ConditionType.Silenced, 3);
         builder
             .AddAttack(
                 "Marked for Death",
@@ -354,12 +351,12 @@ public class AbilityDefinitions(
                 45,
                 8,
                 7,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                22
+                230
             )
-            .AddCondition(ConditionType.Bleeding, 4, 6f);
+            .AddDot(4, 6f)
+            .AddStatus(ConditionType.Bleeding, 4);
         builder.AddPrerequisiteByName("Garrote", "Kidney Shot");
         builder.AddPrerequisiteByName("Marked for Death", "Hemorrhage");
 
@@ -371,12 +368,11 @@ public class AbilityDefinitions(
                 60,
                 12,
                 9,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                32
+                290
             )
-            .AddCondition(ConditionType.Blinded, 2);
+            .AddStatus(ConditionType.Blinded, 2);
         builder
             .AddAttack(
                 "Death Blossom",
@@ -385,12 +381,12 @@ public class AbilityDefinitions(
                 65,
                 14,
                 10,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                25
+                250
             )
-            .AddCondition(ConditionType.Bleeding, 4, 6f);
+            .AddDot(4, 6f)
+            .AddStatus(ConditionType.Bleeding, 4);
         builder.AddPrerequisiteByName("Phantasm", "Shadowstep Strike");
         builder.AddPrerequisiteByName("Death Blossom", "Marked for Death");
 
@@ -401,10 +397,9 @@ public class AbilityDefinitions(
             90,
             20,
             15,
-            TargetType.Single,
-            null,
+            AttackTargetType.Single,
             DamageType.Physical,
-            65
+            490
         );
         builder
             .AddAttack(
@@ -414,12 +409,12 @@ public class AbilityDefinitions(
                 95,
                 22,
                 16,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                18
+                210
             )
-            .AddCondition(ConditionType.Bleeding, 5, 8f);
+            .AddDot(5, 8f)
+            .AddStatus(ConditionType.Bleeding, 5);
         builder.AddPrerequisiteByName("Assassinate", "Phantasm");
         builder.AddPrerequisiteByName("Hemorrhagic Frenzy", "Death Blossom");
     }
@@ -434,12 +429,11 @@ public class AbilityDefinitions(
                 1,
                 3,
                 0,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Ice,
                 10
             )
-            .AddCondition(ConditionType.Snared, 1);
+            .AddStatus(ConditionType.Snared, 1);
         var fireball = builder
             .AddAttack(
                 "Fireball",
@@ -448,12 +442,12 @@ public class AbilityDefinitions(
                 1,
                 3,
                 0,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Fire,
                 12
             )
-            .AddCondition(ConditionType.Burning, 1, 3f);
+            .AddDot(1, 3f)
+            .AddStatus(ConditionType.Burning, 1);
         var chainLightning = builder.AddAttack(
             "Chain Lightning",
             "Lightning that arcs between nearby enemies.",
@@ -461,8 +455,7 @@ public class AbilityDefinitions(
             2,
             4,
             2,
-            TargetType.Aoe,
-            3f,
+            AttackTargetType.Aoe,
             DamageType.Lightning,
             15
         );
@@ -474,12 +467,12 @@ public class AbilityDefinitions(
                 2,
                 3,
                 2,
-                TargetType.Aoe,
-                4f,
+                AttackTargetType.Aoe,
                 DamageType.Poison,
                 8
             )
-            .AddCondition(ConditionType.Poisoned, 3, 3f);
+            .AddDot(3, 3f)
+            .AddStatus(ConditionType.Poisoned, 3);
         builder
             .AddAttack(
                 "Arcane Blast",
@@ -488,12 +481,11 @@ public class AbilityDefinitions(
                 3,
                 4,
                 1,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Magic,
                 18
             )
-            .AddCondition(ConditionType.Silenced, 1);
+            .AddStatus(ConditionType.Silenced, 1);
         builder
             .AddAttack(
                 "Blizzard",
@@ -502,12 +494,11 @@ public class AbilityDefinitions(
                 4,
                 5,
                 3,
-                TargetType.Aoe,
-                5f,
+                AttackTargetType.Aoe,
                 DamageType.Ice,
                 14
             )
-            .AddCondition(ConditionType.Frozen, 1)
+            .AddStatus(ConditionType.Frozen, 1)
             .Requires(frostBolt);
         builder
             .AddAttack(
@@ -517,12 +508,12 @@ public class AbilityDefinitions(
                 4,
                 6,
                 4,
-                TargetType.Aoe,
-                6f,
+                AttackTargetType.Aoe,
                 DamageType.Fire,
                 20
             )
-            .AddCondition(ConditionType.Burning, 2, 4f)
+            .AddDot(2, 4f)
+            .AddStatus(ConditionType.Burning, 2)
             .Requires(fireball);
         builder
             .AddAttack(
@@ -532,12 +523,11 @@ public class AbilityDefinitions(
                 6,
                 7,
                 5,
-                TargetType.Aoe,
-                8f,
+                AttackTargetType.Aoe,
                 DamageType.Lightning,
                 25
             )
-            .AddCondition(ConditionType.Stunned, 1)
+            .AddStatus(ConditionType.Stunned, 1)
             .Requires(chainLightning);
     }
 
@@ -551,12 +541,11 @@ public class AbilityDefinitions(
                 20,
                 6,
                 3,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Ice,
                 22
             )
-            .AddCondition(ConditionType.Frozen, 1);
+            .AddStatus(ConditionType.Frozen, 1);
         builder
             .AddAttack(
                 "Scorch",
@@ -565,12 +554,12 @@ public class AbilityDefinitions(
                 25,
                 6,
                 4,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Fire,
                 24
             )
-            .AddCondition(ConditionType.Burning, 2, 4f);
+            .AddDot(2, 4f)
+            .AddStatus(ConditionType.Burning, 2);
         builder.AddPrerequisiteByName("Ice Lance", "Frost Bolt");
         builder.AddPrerequisiteByName("Scorch", "Fireball");
 
@@ -582,12 +571,11 @@ public class AbilityDefinitions(
                 40,
                 10,
                 6,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Ice,
                 32
             )
-            .AddCondition(ConditionType.Frozen, 2);
+            .AddStatus(ConditionType.Frozen, 2);
         builder
             .AddAttack(
                 "Meteor",
@@ -596,12 +584,12 @@ public class AbilityDefinitions(
                 45,
                 12,
                 8,
-                TargetType.Aoe,
-                4f,
+                AttackTargetType.Aoe,
                 DamageType.Fire,
                 28
             )
-            .AddCondition(ConditionType.Burning, 2, 3f);
+            .AddDot(2, 3f)
+            .AddStatus(ConditionType.Burning, 2);
         builder.AddPrerequisiteByName("Glacial Spike", "Ice Lance");
         builder.AddPrerequisiteByName("Meteor", "Scorch");
 
@@ -613,12 +601,11 @@ public class AbilityDefinitions(
                 60,
                 15,
                 10,
-                TargetType.Aoe,
-                6f,
+                AttackTargetType.Aoe,
                 DamageType.Ice,
                 22
             )
-            .AddCondition(ConditionType.Frozen, 2);
+            .AddStatus(ConditionType.Frozen, 2);
         builder
             .AddAttack(
                 "Ball Lightning",
@@ -627,12 +614,11 @@ public class AbilityDefinitions(
                 65,
                 14,
                 9,
-                TargetType.Aoe,
-                5f,
+                AttackTargetType.Aoe,
                 DamageType.Lightning,
                 35
             )
-            .AddCondition(ConditionType.Stunned, 1);
+            .AddStatus(ConditionType.Stunned, 1);
         builder.AddPrerequisiteByName("Absolute Zero", "Glacial Spike");
         builder.AddPrerequisiteByName("Ball Lightning", "Thunderstorm");
 
@@ -644,12 +630,12 @@ public class AbilityDefinitions(
                 90,
                 22,
                 15,
-                TargetType.Aoe,
-                10f,
+                AttackTargetType.Aoe,
                 DamageType.Fire,
                 55
             )
-            .AddCondition(ConditionType.Burning, 3, 5f);
+            .AddDot(3, 5f)
+            .AddStatus(ConditionType.Burning, 3);
         builder
             .AddAttack(
                 "Void Bolt",
@@ -658,12 +644,11 @@ public class AbilityDefinitions(
                 100,
                 25,
                 20,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Magic,
                 80
             )
-            .AddCondition(ConditionType.Silenced, 3);
+            .AddStatus(ConditionType.Silenced, 3);
         builder.AddPrerequisiteByName("Armageddon", "Meteor");
         builder.AddPrerequisiteByName("Void Bolt", "Arcane Blast");
     }
@@ -677,10 +662,9 @@ public class AbilityDefinitions(
             1,
             2,
             0,
-            TargetType.Single,
-            null,
+            AttackTargetType.Single,
             DamageType.Physical,
-            8
+            150
         );
         builder
             .AddAttack(
@@ -690,12 +674,12 @@ public class AbilityDefinitions(
                 2,
                 3,
                 0,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                14
+                185
             )
-            .AddCondition(ConditionType.Bleeding, 1, 3f)
+            .AddDot(1, 3f)
+            .AddStatus(ConditionType.Bleeding, 1)
             .Requires(arrowShot);
         builder
             .AddAttack(
@@ -705,12 +689,12 @@ public class AbilityDefinitions(
                 3,
                 3,
                 2,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Poison,
                 6
             )
-            .AddCondition(ConditionType.Poisoned, 3, 3f)
+            .AddDot(3, 3f)
+            .AddStatus(ConditionType.Poisoned, 3)
             .Requires(arrowShot);
         builder
             .AddAttack(
@@ -720,10 +704,9 @@ public class AbilityDefinitions(
                 4,
                 5,
                 3,
-                TargetType.Aoe,
-                4f,
+                AttackTargetType.Aoe,
                 DamageType.Physical,
-                10
+                160
             )
             .Requires(arrowShot);
     }
@@ -738,12 +721,11 @@ public class AbilityDefinitions(
                 20,
                 5,
                 4,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                15
+                190
             )
-            .AddCondition(ConditionType.Snared, 3);
+            .AddStatus(ConditionType.Snared, 3);
         builder.AddAttack(
             "Multishot",
             "Release a spread of arrows simultaneously.",
@@ -751,10 +733,9 @@ public class AbilityDefinitions(
             25,
             7,
             5,
-            TargetType.Aoe,
-            3f,
+            AttackTargetType.Aoe,
             DamageType.Physical,
-            12
+            170
         );
         builder.AddPrerequisiteByName("Crippling Arrow", "Piercing Shot");
         builder.AddPrerequisiteByName("Multishot", "Volley");
@@ -766,10 +747,9 @@ public class AbilityDefinitions(
             40,
             10,
             7,
-            TargetType.Aoe,
-            5f,
+            AttackTargetType.Aoe,
             DamageType.Physical,
-            10
+            160
         );
         builder
             .AddAttack(
@@ -779,12 +759,12 @@ public class AbilityDefinitions(
                 45,
                 8,
                 6,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Poison,
                 14
             )
-            .AddCondition(ConditionType.Poisoned, 4, 6f);
+            .AddDot(4, 6f)
+            .AddStatus(ConditionType.Poisoned, 4);
         builder.AddPrerequisiteByName("Barrage", "Multishot");
         builder.AddPrerequisiteByName("Venom Strike", "Poison Arrow");
 
@@ -795,10 +775,9 @@ public class AbilityDefinitions(
             60,
             14,
             9,
-            TargetType.Aoe,
-            8f,
+            AttackTargetType.Aoe,
             DamageType.Physical,
-            16
+            195
         );
         builder
             .AddAttack(
@@ -808,12 +787,11 @@ public class AbilityDefinitions(
                 65,
                 10,
                 8,
-                TargetType.Single,
-                null,
+                AttackTargetType.Single,
                 DamageType.Physical,
-                25
+                250
             )
-            .AddCondition(ConditionType.Snared, 4);
+            .AddStatus(ConditionType.Snared, 4);
         builder.AddPrerequisiteByName("Rain of Arrows", "Barrage");
         builder.AddPrerequisiteByName("Pinning Shot", "Crippling Arrow");
 
@@ -824,10 +802,9 @@ public class AbilityDefinitions(
             90,
             20,
             14,
-            TargetType.Aoe,
-            10f,
+            AttackTargetType.Aoe,
             DamageType.Physical,
-            35
+            310
         );
         builder.AddAttack(
             "Death from Afar",
@@ -836,10 +813,9 @@ public class AbilityDefinitions(
             95,
             22,
             16,
-            TargetType.Single,
-            null,
+            AttackTargetType.Single,
             DamageType.Physical,
-            65
+            490
         );
         builder.AddPrerequisiteByName("Arrow Storm", "Rain of Arrows");
         builder.AddPrerequisiteByName("Death from Afar", "Pinning Shot");
@@ -847,21 +823,18 @@ public class AbilityDefinitions(
 
     private static void AddDevotionAbilities(AbilityBuilder builder)
     {
-        var mend = builder
-            .AddSupport(
-                "Mend",
-                "Restores a portion of an ally's health.",
-                Skill.Devotion,
-                1,
-                2,
-                0,
-                TargetType.Single,
-                null,
-                null
-            )
-            .AddModifier(AttributeName.Hp, 15);
+        var mend = builder.AddInstantHeal(
+            "Mend",
+            "Restores a portion of an ally's health.",
+            Skill.Devotion,
+            1,
+            2,
+            0,
+            TargetType.Single,
+            15
+        );
         var divineShield = builder
-            .AddSupport(
+            .AddBuff(
                 "Divine Shield",
                 "Fortifies an ally with a magical barrier.",
                 Skill.Devotion,
@@ -869,13 +842,12 @@ public class AbilityDefinitions(
                 3,
                 3,
                 TargetType.Single,
-                null,
                 2
             )
-            .AddModifier(AttributeName.PhysicalResistance, 20)
+            .AddModifier(AttributeName.PhysicalResistance, 0.2f)
             .Requires(mend);
         var regenerate = builder
-            .AddSupport(
+            .AddHealOverTime(
                 "Regenerate",
                 "Grants an ally health regeneration over time.",
                 Skill.Devotion,
@@ -883,13 +855,12 @@ public class AbilityDefinitions(
                 3,
                 3,
                 TargetType.Single,
-                null,
+                8,
                 3
             )
-            .AddModifier(AttributeName.Hp, 8)
             .Requires(mend);
         builder
-            .AddSupport(
+            .AddBuff(
                 "Aura of Protection",
                 "Grants nearby allies increased physical resistance.",
                 Skill.Devotion,
@@ -897,13 +868,12 @@ public class AbilityDefinitions(
                 5,
                 5,
                 TargetType.Aoe,
-                5f,
                 3
             )
-            .AddModifier(AttributeName.PhysicalResistance, 15)
+            .AddModifier(AttributeName.PhysicalResistance, 0.15f)
             .Requires(divineShield);
         builder
-            .AddSupport(
+            .AddInstantHeal(
                 "Mass Heal",
                 "Restores health to all nearby allies.",
                 Skill.Devotion,
@@ -911,30 +881,25 @@ public class AbilityDefinitions(
                 5,
                 4,
                 TargetType.Aoe,
-                6f,
-                null
+                12
             )
-            .AddModifier(AttributeName.Hp, 12)
             .Requires(regenerate);
     }
 
     private static void AddDevotionAdvancedAbilities(AbilityBuilder builder)
     {
+        builder.AddInstantHeal(
+            "Greater Mend",
+            "A stronger healing touch that restores more vitality.",
+            Skill.Devotion,
+            20,
+            6,
+            4,
+            TargetType.Single,
+            28
+        );
         builder
-            .AddSupport(
-                "Greater Mend",
-                "A stronger healing touch that restores more vitality.",
-                Skill.Devotion,
-                20,
-                6,
-                4,
-                TargetType.Single,
-                null,
-                null
-            )
-            .AddModifier(AttributeName.Hp, 28);
-        builder
-            .AddSupport(
+            .AddBuff(
                 "Fortify",
                 "Strengthen an ally's defenses significantly.",
                 Skill.Devotion,
@@ -942,7 +907,6 @@ public class AbilityDefinitions(
                 6,
                 5,
                 TargetType.Single,
-                null,
                 3
             )
             .AddModifier(AttributeName.Defense, 15)
@@ -950,21 +914,19 @@ public class AbilityDefinitions(
         builder.AddPrerequisiteByName("Greater Mend", "Mend");
         builder.AddPrerequisiteByName("Fortify", "Divine Shield");
 
+        builder.AddHealOverTime(
+            "Sacred Ground",
+            "Consecrate an area that heals allies who stand within.",
+            Skill.Devotion,
+            40,
+            10,
+            7,
+            TargetType.Aoe,
+            12,
+            3
+        );
         builder
-            .AddSupport(
-                "Sacred Ground",
-                "Consecrate an area that heals allies who stand within.",
-                Skill.Devotion,
-                40,
-                10,
-                7,
-                TargetType.Aoe,
-                5f,
-                3
-            )
-            .AddModifier(AttributeName.Hp, 12);
-        builder
-            .AddSupport(
+            .AddBuff(
                 "Barrier",
                 "Wrap an ally in a powerful magical shield.",
                 Skill.Devotion,
@@ -972,29 +934,26 @@ public class AbilityDefinitions(
                 10,
                 8,
                 TargetType.Single,
-                null,
                 3
             )
-            .AddModifier(AttributeName.PhysicalResistance, 30)
-            .AddModifier(AttributeName.MagicResistance, 20);
+            .AddModifier(AttributeName.PhysicalResistance, 0.3f)
+            .AddModifier(AttributeName.MagicResistance, 0.2f);
         builder.AddPrerequisiteByName("Sacred Ground", "Mass Heal");
         builder.AddPrerequisiteByName("Barrier", "Fortify");
 
+        builder.AddHealOverTime(
+            "Resurrection Pulse",
+            "A wave of healing energy that restores all nearby allies.",
+            Skill.Devotion,
+            60,
+            15,
+            10,
+            TargetType.Aoe,
+            15,
+            4
+        );
         builder
-            .AddSupport(
-                "Resurrection Pulse",
-                "A wave of healing energy that restores all nearby allies.",
-                Skill.Devotion,
-                60,
-                15,
-                10,
-                TargetType.Aoe,
-                6f,
-                4
-            )
-            .AddModifier(AttributeName.Hp, 15);
-        builder
-            .AddSupport(
+            .AddBuff(
                 "Aegis",
                 "Envelop an ally in an impenetrable divine shell.",
                 Skill.Devotion,
@@ -1002,28 +961,24 @@ public class AbilityDefinitions(
                 14,
                 9,
                 TargetType.Single,
-                null,
                 2
             )
-            .AddModifier(AttributeName.PhysicalResistance, 50);
+            .AddModifier(AttributeName.PhysicalResistance, 0.5f);
         builder.AddPrerequisiteByName("Resurrection Pulse", "Sacred Ground");
         builder.AddPrerequisiteByName("Aegis", "Barrier");
 
+        builder.AddInstantHeal(
+            "Divine Intervention",
+            "Call upon divine power to massively restore a single ally.",
+            Skill.Devotion,
+            90,
+            22,
+            15,
+            TargetType.Single,
+            70
+        );
         builder
-            .AddSupport(
-                "Divine Intervention",
-                "Call upon divine power to massively restore a single ally.",
-                Skill.Devotion,
-                90,
-                22,
-                15,
-                TargetType.Single,
-                null,
-                null
-            )
-            .AddModifier(AttributeName.Hp, 70);
-        builder
-            .AddSupport(
+            .AddBuff(
                 "Sanctuary",
                 "Create a holy sanctum that shields all within from harm.",
                 Skill.Devotion,
@@ -1031,11 +986,10 @@ public class AbilityDefinitions(
                 22,
                 16,
                 TargetType.Aoe,
-                8f,
                 4
             )
-            .AddModifier(AttributeName.PhysicalResistance, 40)
-            .AddModifier(AttributeName.MagicResistance, 40);
+            .AddModifier(AttributeName.PhysicalResistance, 0.4f)
+            .AddModifier(AttributeName.MagicResistance, 0.4f);
         builder.AddPrerequisiteByName("Divine Intervention", "Greater Mend");
         builder.AddPrerequisiteByName("Sanctuary", "Aegis");
     }
@@ -1043,7 +997,7 @@ public class AbilityDefinitions(
     private static void AddWarfareAbilities(AbilityBuilder builder)
     {
         var battleStance = builder
-            .AddSupport(
+            .AddBuff(
                 "Battle Stance",
                 "Braces the caster for combat, increasing strength.",
                 Skill.Warfare,
@@ -1051,12 +1005,11 @@ public class AbilityDefinitions(
                 1,
                 0,
                 TargetType.Self,
-                null,
                 3
             )
             .AddModifier(AttributeName.Strength, 5);
         var arcaneInfusion = builder
-            .AddSupport(
+            .AddBuff(
                 "Arcane Infusion",
                 "Infuses an ally with arcane energy, boosting intelligence.",
                 Skill.Warfare,
@@ -1064,12 +1017,11 @@ public class AbilityDefinitions(
                 2,
                 2,
                 TargetType.Single,
-                null,
                 3
             )
             .AddModifier(AttributeName.Intelligence, 10);
         builder
-            .AddSupport(
+            .AddBuff(
                 "Iron Will",
                 "Hardens the caster's resolve against physical harm.",
                 Skill.Warfare,
@@ -1077,14 +1029,13 @@ public class AbilityDefinitions(
                 2,
                 3,
                 TargetType.Self,
-                null,
                 2
             )
             .AddModifier(AttributeName.Defense, 10)
             .AddModifier(AttributeName.Endurance, 10)
             .Requires(battleStance);
         builder
-            .AddSupport(
+            .AddBuff(
                 "Haste",
                 "Accelerates an ally's movements and reflexes.",
                 Skill.Warfare,
@@ -1092,13 +1043,12 @@ public class AbilityDefinitions(
                 2,
                 3,
                 TargetType.Single,
-                null,
                 2
             )
             .AddModifier(AttributeName.Dexterity, 5)
             .AddModifier(AttributeName.MovementSpeed, 3);
         builder
-            .AddSupport(
+            .AddBuff(
                 "Rally",
                 "A battle cry that strengthens nearby allies.",
                 Skill.Warfare,
@@ -1106,13 +1056,12 @@ public class AbilityDefinitions(
                 3,
                 4,
                 TargetType.Aoe,
-                5f,
                 2
             )
             .AddModifier(AttributeName.Strength, 8)
             .Requires(battleStance);
         builder
-            .AddSupport(
+            .AddBuff(
                 "Spell Ward",
                 "Erects a magical barrier against incoming spells.",
                 Skill.Warfare,
@@ -1120,17 +1069,16 @@ public class AbilityDefinitions(
                 3,
                 4,
                 TargetType.Self,
-                null,
                 3
             )
-            .AddModifier(AttributeName.MagicResistance, 20)
+            .AddModifier(AttributeName.MagicResistance, 0.2f)
             .Requires(arcaneInfusion);
     }
 
     private static void AddWarfareAdvancedAbilities(AbilityBuilder builder)
     {
         builder
-            .AddSupport(
+            .AddBuff(
                 "War Cry",
                 "A thunderous battle cry that strengthens all nearby allies.",
                 Skill.Warfare,
@@ -1138,13 +1086,12 @@ public class AbilityDefinitions(
                 6,
                 5,
                 TargetType.Aoe,
-                5f,
                 3
             )
             .AddModifier(AttributeName.Strength, 10)
             .AddModifier(AttributeName.Defense, 5);
         builder
-            .AddSupport(
+            .AddBuff(
                 "Mystic Focus",
                 "Channel arcane energy for enhanced spellcasting.",
                 Skill.Warfare,
@@ -1152,7 +1099,6 @@ public class AbilityDefinitions(
                 6,
                 5,
                 TargetType.Self,
-                null,
                 3
             )
             .AddModifier(AttributeName.Intelligence, 15)
@@ -1161,7 +1107,7 @@ public class AbilityDefinitions(
         builder.AddPrerequisiteByName("Mystic Focus", "Arcane Infusion");
 
         builder
-            .AddSupport(
+            .AddBuff(
                 "Berserker Stance",
                 "Abandon defense for unbridled offensive power.",
                 Skill.Warfare,
@@ -1169,13 +1115,12 @@ public class AbilityDefinitions(
                 8,
                 6,
                 TargetType.Self,
-                null,
                 3
             )
             .AddModifier(AttributeName.Strength, 20)
             .AddModifier(AttributeName.Dexterity, 10);
         builder
-            .AddSupport(
+            .AddBuff(
                 "Arcane Shield",
                 "A barrier of raw magic that absorbs incoming spells.",
                 Skill.Warfare,
@@ -1183,15 +1128,14 @@ public class AbilityDefinitions(
                 8,
                 7,
                 TargetType.Self,
-                null,
                 3
             )
-            .AddModifier(AttributeName.MagicResistance, 35);
+            .AddModifier(AttributeName.MagicResistance, 0.35f);
         builder.AddPrerequisiteByName("Berserker Stance", "Battle Stance");
         builder.AddPrerequisiteByName("Arcane Shield", "Spell Ward");
 
         builder
-            .AddSupport(
+            .AddBuff(
                 "Warlord's Presence",
                 "Your commanding presence bolsters all nearby allies.",
                 Skill.Warfare,
@@ -1199,14 +1143,13 @@ public class AbilityDefinitions(
                 14,
                 9,
                 TargetType.Aoe,
-                6f,
                 3
             )
             .AddModifier(AttributeName.Strength, 15)
             .AddModifier(AttributeName.Defense, 15)
             .AddModifier(AttributeName.Endurance, 10);
         builder
-            .AddSupport(
+            .AddBuff(
                 "Time Warp",
                 "Briefly accelerate an ally far beyond their natural speed.",
                 Skill.Warfare,
@@ -1214,7 +1157,6 @@ public class AbilityDefinitions(
                 12,
                 9,
                 TargetType.Single,
-                null,
                 2
             )
             .AddModifier(AttributeName.Dexterity, 25)
@@ -1223,7 +1165,7 @@ public class AbilityDefinitions(
         builder.AddPrerequisiteByName("Time Warp", "Haste");
 
         builder
-            .AddSupport(
+            .AddBuff(
                 "Invincible",
                 "For a brief moment, nothing can stop you.",
                 Skill.Warfare,
@@ -1231,14 +1173,13 @@ public class AbilityDefinitions(
                 20,
                 14,
                 TargetType.Self,
-                null,
                 2
             )
-            .AddModifier(AttributeName.PhysicalResistance, 50)
-            .AddModifier(AttributeName.MagicResistance, 50)
+            .AddModifier(AttributeName.PhysicalResistance, 0.5f)
+            .AddModifier(AttributeName.MagicResistance, 0.5f)
             .AddModifier(AttributeName.Endurance, 20);
         builder
-            .AddSupport(
+            .AddBuff(
                 "Legion Might",
                 "A war cry of legendary power that emboldens all nearby.",
                 Skill.Warfare,
@@ -1246,7 +1187,6 @@ public class AbilityDefinitions(
                 22,
                 15,
                 TargetType.Aoe,
-                8f,
                 3
             )
             .AddModifier(AttributeName.Strength, 25)
@@ -1277,22 +1217,22 @@ public class AbilityDefinitions(
             int requiredSkillLevel,
             int cost,
             int cooldown,
-            TargetType targetType,
-            float? aoeRadius,
+            AttackTargetType targetType,
             DamageType damageType,
             float damageAmount
         )
         {
+            var (apCost, mpCost) = ResourceCost(skill, cost);
             var attack = new AttackAbility
             {
                 Name = name,
                 Description = description,
                 Skill = skill,
                 RequiredSkillLevel = requiredSkillLevel,
-                Cost = cost,
+                ApCost = apCost,
+                MpCost = mpCost,
                 Cooldown = cooldown,
                 TargetType = targetType,
-                AoeRadius = aoeRadius,
                 DamageType = damageType,
                 DamageAmountType = AmountType.Flat,
                 DamageAmount = damageAmount,
@@ -1301,7 +1241,7 @@ public class AbilityDefinitions(
             return new AttackAbilityEntry(attack, this);
         }
 
-        public SupportAbilityEntry AddSupport(
+        public InstantHealAbilityEntry AddInstantHeal(
             string name,
             string description,
             Skill skill,
@@ -1309,25 +1249,86 @@ public class AbilityDefinitions(
             int cost,
             int cooldown,
             TargetType targetType,
-            float? aoeRadius,
-            int? duration
+            int amount
         )
         {
-            var support = new SupportAbility
+            var (apCost, mpCost) = ResourceCost(skill, cost);
+            var heal = new InstantHealAbility
             {
                 Name = name,
                 Description = description,
                 Skill = skill,
                 RequiredSkillLevel = requiredSkillLevel,
-                Cost = cost,
+                ApCost = apCost,
+                MpCost = mpCost,
                 Cooldown = cooldown,
                 TargetType = targetType,
-                AoeRadius = aoeRadius,
+                Amount = amount,
+            };
+            ByName[name] = heal;
+            return new InstantHealAbilityEntry(heal, this);
+        }
+
+        public HealOverTimeAbilityEntry AddHealOverTime(
+            string name,
+            string description,
+            Skill skill,
+            int requiredSkillLevel,
+            int cost,
+            int cooldown,
+            TargetType targetType,
+            int amountPerTurn,
+            int duration
+        )
+        {
+            var (apCost, mpCost) = ResourceCost(skill, cost);
+            var heal = new HealOverTimeAbility
+            {
+                Name = name,
+                Description = description,
+                Skill = skill,
+                RequiredSkillLevel = requiredSkillLevel,
+                ApCost = apCost,
+                MpCost = mpCost,
+                Cooldown = cooldown,
+                TargetType = targetType,
+                AmountPerTurn = amountPerTurn,
                 Duration = duration,
             };
-            ByName[name] = support;
-            return new SupportAbilityEntry(support, this);
+            ByName[name] = heal;
+            return new HealOverTimeAbilityEntry(heal, this);
         }
+
+        public BuffAbilityEntry AddBuff(
+            string name,
+            string description,
+            Skill skill,
+            int requiredSkillLevel,
+            int cost,
+            int cooldown,
+            TargetType targetType,
+            int duration
+        )
+        {
+            var (apCost, mpCost) = ResourceCost(skill, cost);
+            var buff = new BuffAbility
+            {
+                Name = name,
+                Description = description,
+                Skill = skill,
+                RequiredSkillLevel = requiredSkillLevel,
+                ApCost = apCost,
+                MpCost = mpCost,
+                Cooldown = cooldown,
+                TargetType = targetType,
+                Duration = duration,
+            };
+            ByName[name] = buff;
+            return new BuffAbilityEntry(buff, this);
+        }
+
+        private static (int ApCost, int MpCost) ResourceCost(Skill skill, int cost) =>
+            skill is Skill.Spellcasting or Skill.Devotion ? (0, cost) : (cost, 0);
 
         public void AddPrerequisiteByName(string abilityName, string prerequisiteName)
         {
@@ -1361,21 +1362,26 @@ public class AbilityDefinitions(
     private class AttackAbilityEntry(AttackAbility attack, AbilityBuilder owner)
         : AbilityEntry(attack, owner)
     {
-        public AttackAbilityEntry AddCondition(
-            ConditionType condition,
+        public AttackAbilityEntry AddDot(
             int duration,
-            float? amount = null
+            float amount,
+            AmountType amountType = AmountType.Flat
         )
         {
-            attack.Conditions.Add(
-                new ConditionEffect
+            attack.Dots.Add(
+                new DotEffect
                 {
-                    Condition = condition,
                     Duration = duration,
                     Amount = amount,
-                    Type = amount.HasValue ? AmountType.Flat : null,
+                    AmountType = amountType,
                 }
             );
+            return this;
+        }
+
+        public AttackAbilityEntry AddStatus(ConditionType condition, int duration)
+        {
+            attack.Conditions.Add(new StatusEffect { Condition = condition, Duration = duration });
             return this;
         }
 
@@ -1386,23 +1392,43 @@ public class AbilityDefinitions(
         }
     }
 
-    private class SupportAbilityEntry(SupportAbility support, AbilityBuilder owner)
-        : AbilityEntry(support, owner)
+    private class InstantHealAbilityEntry(InstantHealAbility heal, AbilityBuilder owner)
+        : AbilityEntry(heal, owner)
     {
-        public SupportAbilityEntry AddModifier(AttributeName attribute, float amount)
+        public InstantHealAbilityEntry Requires(AbilityEntry prereq)
         {
-            support.Modifiers.Add(
+            Owner.AddPrerequisite(Ability, prereq.Ability);
+            return this;
+        }
+    }
+
+    private class HealOverTimeAbilityEntry(HealOverTimeAbility heal, AbilityBuilder owner)
+        : AbilityEntry(heal, owner)
+    {
+        public HealOverTimeAbilityEntry Requires(AbilityEntry prereq)
+        {
+            Owner.AddPrerequisite(Ability, prereq.Ability);
+            return this;
+        }
+    }
+
+    private class BuffAbilityEntry(BuffAbility buff, AbilityBuilder owner)
+        : AbilityEntry(buff, owner)
+    {
+        public BuffAbilityEntry AddModifier(AttributeName attribute, float amount)
+        {
+            buff.Modifiers.Add(
                 new AttributeModifier
                 {
                     Attribute = attribute,
-                    Type = AmountType.Flat,
+                    AmountType = AmountType.Flat,
                     Amount = amount,
                 }
             );
             return this;
         }
 
-        public SupportAbilityEntry Requires(AbilityEntry prereq)
+        public BuffAbilityEntry Requires(AbilityEntry prereq)
         {
             Owner.AddPrerequisite(Ability, prereq.Ability);
             return this;

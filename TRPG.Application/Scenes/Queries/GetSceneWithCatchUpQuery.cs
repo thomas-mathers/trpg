@@ -11,6 +11,7 @@ internal class GetSceneWithCatchUpQuery
     public required GameSession Session { get; init; }
     public required Guid? RoomId { get; init; }
     public required Guid? DistrictId { get; init; }
+    public required Guid StateId { get; init; }
     public required InGameDate CurrentDate { get; init; }
 }
 
@@ -26,7 +27,7 @@ internal class GetSceneWithCatchUpQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var locationId = query.RoomId ?? query.DistrictId;
+        var locationId = query.RoomId ?? query.DistrictId ?? query.StateId;
         var cacheKey = $"scene:{query.Session.WorldId}:{locationId}:{query.CurrentDate.Hour}";
 
         if (cache.TryGetValue(cacheKey, out SceneResult? cachedScene))

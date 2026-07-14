@@ -72,8 +72,6 @@ public enum Profession
 
 public class Creature
 {
-    public Dictionary<ConditionType, int> ActiveConditions { get; set; } = [];
-    public List<ActiveModifier> ActiveModifiers { get; set; } = [];
     public Attributes Attributes { get; set; } = null!;
     public string Biography { get; set; } = "";
     public Guid BirthStateId { get; init; }

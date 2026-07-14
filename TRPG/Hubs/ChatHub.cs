@@ -95,6 +95,7 @@ internal sealed class ChatHub(
                 Session = session,
                 RoomId = player!.RoomId,
                 DistrictId = player.DistrictId,
+                StateId = player.StateId,
                 CurrentDate = GameClock.GetCurrentInGameDate(session),
             },
             cancellationToken

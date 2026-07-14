@@ -31,6 +31,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
             _context,
             new GetStateByIdQueryHandler(_context, cache),
             new GetCityByIdQueryHandler(_context, cache),
+            new GetCityByStateIdQueryHandler(_context, cache),
             new GetAllDistrictsByCityIdQueryHandler(_context, cache),
             new GetRoomSummaryQueryHandler(_context, cache),
             new GetStaticPropsByRoomIdQueryHandler(_context, cache),
@@ -112,8 +113,8 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
-        // Assert
-        Assert.Equal(currentDate, result.CurrentDate);
+        // Assert — the wire date mirrors the in-game date, minus the internal DayOfWeek
+        Assert.Equal(new SceneDateInfo(975, "Thawmoon", 14, "Stormday", 21), result.CurrentDate);
     }
 
     [Fact]

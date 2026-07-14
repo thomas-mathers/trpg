@@ -251,11 +251,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("ActiveConditions")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("active_conditions");
-
                     b.Property<string>("Biography")
                         .IsRequired()
                         .HasColumnType("text")
@@ -348,10 +343,6 @@ namespace TRPG.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("ability_name");
-
-                    b.Property<int>("Cooldown")
-                        .HasColumnType("integer")
-                        .HasColumnName("cooldown");
 
                     b.Property<Guid>("CreatureId")
                         .HasColumnType("uuid")
@@ -528,6 +519,33 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_creature_skills_creature_id_skill");
 
                     b.ToTable("creature_skills", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.CreatureWeaponProficiency", b =>
+                {
+                    b.Property<Guid>("CreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creature_id");
+
+                    b.Property<string>("WeaponType")
+                        .HasColumnType("text")
+                        .HasColumnName("weapon_type");
+
+                    b.Property<int>("Proficiency")
+                        .HasColumnType("integer")
+                        .HasColumnName("proficiency");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("CreatureId", "WeaponType")
+                        .HasName("pk_creature_weapon_proficiencies");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_creature_weapon_proficiencies_world_id");
+
+                    b.ToTable("creature_weapon_proficiencies", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Data.Models.District", b =>
@@ -1432,8 +1450,8 @@ namespace TRPG.Migrations
                 {
                     b.HasBaseType("TRPG.Data.Models.Item");
 
-                    b.Property<int>("BlockChance")
-                        .HasColumnType("integer")
+                    b.Property<float>("BlockChance")
+                        .HasColumnType("real")
                         .HasColumnName("block_chance");
 
                     b.Property<int>("Defense")
@@ -1677,41 +1695,9 @@ namespace TRPG.Migrations
 
             modelBuilder.Entity("TRPG.Data.Models.Creature", b =>
                 {
-                    b.OwnsMany("TRPG.Data.Models.ActiveModifier", "ActiveModifiers", b1 =>
-                        {
-                            b1.Property<Guid>("CreatureId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<float>("Amount");
-
-                            b1.Property<string>("Attribute")
-                                .IsRequired();
-
-                            b1.Property<int>("RemainingTurns");
-
-                            b1.Property<string>("Type")
-                                .IsRequired();
-
-                            b1.HasKey("CreatureId", "__synthesizedOrdinal");
-
-                            b1.ToTable("creatures");
-
-                            b1
-                                .ToJson("active_modifiers")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("CreatureId")
-                                .HasConstraintName("fk_creatures_creatures_creature_id");
-                        });
-
                     b.OwnsOne("TRPG.Data.Models.Attributes", "Attributes", b1 =>
                         {
                             b1.Property<Guid>("CreatureId");
-
-                            b1.Property<float>("ApPercent");
 
                             b1.Property<int>("Defense");
 
@@ -1720,8 +1706,6 @@ namespace TRPG.Migrations
                             b1.Property<int>("Endurance");
 
                             b1.Property<float>("FireResistance");
-
-                            b1.Property<float>("HpPercent");
 
                             b1.Property<float>("IceResistance");
 
@@ -1733,9 +1717,13 @@ namespace TRPG.Migrations
 
                             b1.Property<int>("Mana");
 
-                            b1.Property<float>("MovementSpeed");
+                            b1.Property<int>("MaximumAp");
 
-                            b1.Property<float>("MpPercent");
+                            b1.Property<int>("MaximumHp");
+
+                            b1.Property<int>("MaximumMp");
+
+                            b1.Property<float>("MovementSpeed");
 
                             b1.Property<float>("PhysicalResistance");
 
@@ -1757,8 +1745,6 @@ namespace TRPG.Migrations
                                 .HasForeignKey("CreatureId")
                                 .HasConstraintName("fk_creatures_creatures_id");
                         });
-
-                    b.Navigation("ActiveModifiers");
 
                     b.Navigation("Attributes")
                         .IsRequired();

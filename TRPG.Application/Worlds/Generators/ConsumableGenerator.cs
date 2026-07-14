@@ -26,7 +26,7 @@ public class ConsumableGenerator
             Description = "",
             Weight = 1,
             GoldValue = level * 5 + Random.Shared.Next(11),
-            Attribute = AttributeName.Hp,
+            Attribute = AttributeName.MaximumHp,
             Amount = Roll(level, 20, 100),
             Duration = 0,
         };

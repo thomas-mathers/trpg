@@ -14,13 +14,8 @@ public class KnowledgeGeneratorInput
     public required IReadOnlyList<Country> Countries { get; init; }
 }
 
-// Materializes who knows of whom/what at generation time — the same facts the lookup gating used
-// to derive on the fly (residence, family, factions), written once so gameplay can query them with
-// a plain join and extend them as creatures learn of new people and places.
 internal static class KnowledgeGenerator
 {
-    // Professions whose work naturally reaches beyond their home territory — diplomacy, trade,
-    // scholarship, and arcane study — versus every other profession, which stays local.
     internal static readonly HashSet<Profession> WorldlyProfessions =
     [
         Profession.Merchant,
@@ -91,7 +86,9 @@ internal static class KnowledgeGenerator
             }
         }
 
-        foreach (var cityResidents in input.Creatures.Where(c => c.CityId != null).GroupBy(c => c.CityId))
+        foreach (
+            var cityResidents in input.Creatures.Where(c => c.CityId != null).GroupBy(c => c.CityId)
+        )
         {
             var residents = cityResidents.ToList();
             foreach (var knower in residents)
