@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
+using TRPG.Application.Common;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
@@ -10,12 +12,14 @@ public class DamageCalculatorTests
     private readonly Guid _worldId = Guid.NewGuid();
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
 
-    private static readonly CombatSettings Settings = new()
-    {
-        StrengthDamageBonusPerPoint = 0.01f,
-        IntelligenceDamageBonusPerPoint = 0.01f,
-        UnarmedBaseDamage = 3,
-    };
+    private static readonly IOptionsSnapshot<CombatOptions> Settings = new TestOptionsSnapshot<CombatOptions>(
+        new CombatOptions
+        {
+            StrengthDamageBonusPerPoint = 0.01f,
+            IntelligenceDamageBonusPerPoint = 0.01f,
+            UnarmedBaseDamage = 3,
+        }
+    );
 
     private Combatant MakeCombatant(
         int strength = 0,

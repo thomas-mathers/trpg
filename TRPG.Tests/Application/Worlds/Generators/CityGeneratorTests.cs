@@ -1,4 +1,5 @@
 using TRPG.Application.Abilities;
+using TRPG.Application.Common;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -47,7 +48,7 @@ public class CityGeneratorTests
         var creatureGenerator = new CreatureGenerator(
             itemGenerator,
             abilityDefinitions,
-            new CreatureGeneratorSettings()
+            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
         );
         var householdGenerator = new HouseholdGenerator(new BuildingGenerator(), creatureGenerator);
         return new CityGenerator(new BuildingGenerator(), creatureGenerator, householdGenerator);

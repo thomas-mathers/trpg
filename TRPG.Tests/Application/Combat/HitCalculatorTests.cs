@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
+using TRPG.Application.Common;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
@@ -10,31 +12,31 @@ public class HitCalculatorTests
     private readonly Guid _worldId = Guid.NewGuid();
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
 
-    private static readonly CombatSettings Settings = new()
-    {
-        BaseProficiency = 0,
-        MinHitChance = 0.05f,
-        MaxHitChance = 0.95f,
-    };
+    private static readonly IOptionsSnapshot<CombatOptions> Settings = new TestOptionsSnapshot<CombatOptions>(
+        new CombatOptions
+        {
+            BaseProficiency = 0,
+            MinHitChance = 0.05f,
+            MaxHitChance = 0.95f,
+        }
+    );
 
-    private static readonly CombatSettings BaseProficiencySettings = new()
-    {
-        BaseProficiency = 50,
-        MinHitChance = 0.05f,
-        MaxHitChance = 0.95f,
-    };
+    private static readonly IOptionsSnapshot<CombatOptions> BaseProficiencySettings = new TestOptionsSnapshot<CombatOptions>(
+        new CombatOptions
+        {
+            BaseProficiency = 50,
+            MinHitChance = 0.05f,
+            MaxHitChance = 0.95f,
+        }
+    );
 
-    private static readonly CombatSettings AlwaysHit = new()
-    {
-        MinHitChance = 1.0f,
-        MaxHitChance = 1.0f,
-    };
+    private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit = new TestOptionsSnapshot<CombatOptions>(
+        new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
+    );
 
-    private static readonly CombatSettings AlwaysMiss = new()
-    {
-        MinHitChance = 0.0f,
-        MaxHitChance = 0.0f,
-    };
+    private static readonly IOptionsSnapshot<CombatOptions> AlwaysMiss = new TestOptionsSnapshot<CombatOptions>(
+        new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
+    );
 
     private static AttackAbility MakeAttack(DamageType damageType = DamageType.Physical)
     {
@@ -114,7 +116,7 @@ public class HitCalculatorTests
         var chance = calculator.CalculateHitChance(attacker, defender);
 
         // Assert
-        Assert.Equal(Settings.MinHitChance, chance);
+        Assert.Equal(Settings.Value.MinHitChance, chance);
     }
 
     [Fact]
@@ -130,7 +132,7 @@ public class HitCalculatorTests
         var chance = calculator.CalculateHitChance(attacker, defender);
 
         // Assert
-        Assert.Equal(Settings.MaxHitChance, chance);
+        Assert.Equal(Settings.Value.MaxHitChance, chance);
     }
 
     [Fact]
@@ -146,7 +148,7 @@ public class HitCalculatorTests
         var chance = calculator.CalculateHitChance(attacker, defender);
 
         // Assert
-        Assert.Equal(Settings.MinHitChance, chance);
+        Assert.Equal(Settings.Value.MinHitChance, chance);
     }
 
     [Fact]

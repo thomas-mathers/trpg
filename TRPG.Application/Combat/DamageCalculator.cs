@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
+using TRPG.Application.Common;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat;
 
-public class DamageCalculator(CombatSettings combatSettings)
+public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 {
     public int CalculateDamage(Combatant attacker, AttackAbility ability, Combatant defender)
     {
@@ -27,11 +29,11 @@ public class DamageCalculator(CombatSettings combatSettings)
     {
         var strengthBonus =
             attacker.CalculateEffectiveAttribute(AttributeName.Strength)
-            * combatSettings.StrengthDamageBonusPerPoint;
+            * optionsSnapshot.Value.StrengthDamageBonusPerPoint;
 
         var weapon = attacker.Weapon;
         var weaponRoll = weapon is null
-            ? combatSettings.UnarmedBaseDamage
+            ? optionsSnapshot.Value.UnarmedBaseDamage
             : Random.Shared.Next(weapon.MinDamage, weapon.MaxDamage + 1);
 
         return weaponRoll * (ability.DamageAmount / 100f) * (1 + strengthBonus);
@@ -41,7 +43,7 @@ public class DamageCalculator(CombatSettings combatSettings)
     {
         var intelligenceBonus =
             attacker.CalculateEffectiveAttribute(AttributeName.Intelligence)
-            * combatSettings.IntelligenceDamageBonusPerPoint;
+            * optionsSnapshot.Value.IntelligenceDamageBonusPerPoint;
 
         return ability.DamageAmount * (1 + intelligenceBonus);
     }

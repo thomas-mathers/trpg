@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
+using TRPG.Application.Common;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat;
 
-public class HitCalculator(CombatSettings combatSettings)
+public class HitCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 {
     public bool DidHit(Combatant attacker, AttackAbility ability, Combatant defender)
     {
@@ -33,19 +35,20 @@ public class HitCalculator(CombatSettings combatSettings)
 
     public float CalculateHitChance(Combatant attacker, Combatant defender)
     {
+        var settings = optionsSnapshot.Value;
         var defense = defender.CalculateEffectiveAttribute(AttributeName.Defense);
 
-        var proficiency = combatSettings.BaseProficiency + (attacker.WeaponProficiency ?? 0);
+        var proficiency = settings.BaseProficiency + (attacker.WeaponProficiency ?? 0);
 
         if (proficiency + defense == 0)
         {
-            return combatSettings.MinHitChance;
+            return settings.MinHitChance;
         }
 
         return Math.Clamp(
             proficiency / (proficiency + defense),
-            combatSettings.MinHitChance,
-            combatSettings.MaxHitChance
+            settings.MinHitChance,
+            settings.MaxHitChance
         );
     }
 }

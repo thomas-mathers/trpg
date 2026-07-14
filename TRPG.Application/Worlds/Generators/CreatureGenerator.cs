@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
+using TRPG.Application.Common;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 
@@ -25,17 +27,10 @@ public record CreatureGeneratorResult(
     IReadOnlyCollection<CreatureAbility> Abilities
 );
 
-public class CreatureGeneratorSettings
-{
-    public int MaxLevel { get; init; } = 100;
-    public int MaxSkillLevel { get; init; } = 100;
-    public int PointsPerLevel { get; init; } = 5;
-}
-
 public class CreatureGenerator(
     ItemGenerator itemGenerator,
     AbilityDefinitions abilityDefinitions,
-    CreatureGeneratorSettings settings
+    IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
 )
 {
     private static readonly NamePool HumanPool = new(
@@ -932,7 +927,7 @@ public class CreatureGenerator(
         var levelRange = CombatProfessions.Contains(generatorInput.Profession)
             ? CombatLevelRange
             : CivilianLevelRange;
-        var maximumLevel = Math.Min(levelRange.Maximum, settings.MaxLevel);
+        var maximumLevel = Math.Min(levelRange.Maximum, optionsSnapshot.Value.MaxLevel);
         var level =
             generatorInput.Level > 0
                 ? generatorInput.Level
@@ -967,7 +962,7 @@ public class CreatureGenerator(
 
     private IReadOnlyCollection<CreatureSkill> GetSkills(Creature creature)
     {
-        var skillLevel = Math.Min(creature.Level, settings.MaxSkillLevel);
+        var skillLevel = Math.Min(creature.Level, optionsSnapshot.Value.MaxSkillLevel);
         return ProfessionSkills[creature.Profession!.Value]
             .Select(skill => new CreatureSkill
             {
@@ -1025,7 +1020,7 @@ public class CreatureGenerator(
         var stats = new int[7];
         Array.Fill(stats, 1);
 
-        for (var i = 0; i < level * settings.PointsPerLevel; i++)
+        for (var i = 0; i < level * optionsSnapshot.Value.PointsPerLevel; i++)
         {
             var roll = Random.Shared.Next(total);
             var cumulative = 0;

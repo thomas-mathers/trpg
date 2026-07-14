@@ -1,11 +1,15 @@
 using Anthropic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OllamaSharp;
+using TRPG.Application.Combat;
 using TRPG.Application.Common;
 using TRPG.Application.Game;
+using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
 using ZLogger;
 using ZLogger.Providers;
@@ -41,14 +45,14 @@ internal static class ServiceCollectionExtensions
         });
     }
 
-    public static IServiceCollection AddTrpgDbContext(
-        this IServiceCollection serviceCollection,
-        string connectionString
-    )
+    public static IServiceCollection AddTrpgDbContext(this IServiceCollection serviceCollection)
     {
         return serviceCollection.AddDbContext<TrpgDbContext>(
             (provider, options) =>
             {
+                var connectionString = provider
+                    .GetRequiredService<IConfiguration>()
+                    .GetConnectionString("Trpg");
                 options
                     .UseNpgsql(connectionString)
                     .UseLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
@@ -56,50 +60,72 @@ internal static class ServiceCollectionExtensions
         );
     }
 
-    public static IServiceCollection AddLlmChatClients(
-        this IServiceCollection serviceCollection,
-        AppConfiguration appConfiguration
-    )
+    public static IServiceCollection AddLlmChatClients(this IServiceCollection serviceCollection)
     {
         return serviceCollection
             .AddKeyedSingleton(
                 LlmRoleKeys.WorldGeneration,
-                (_, _) =>
-                    CreateChatClient(appConfiguration.WorldGeneration, appConfiguration.OllamaUri)
+                (sp, _) =>
+                {
+                    var worldGeneration = sp.GetRequiredService<IOptionsMonitor<LlmRoleOptions>>()
+                        .Get(LlmRoleKeys.WorldGeneration);
+                    var ollamaUri = sp.GetRequiredService<IOptions<OllamaOptions>>().Value.Uri;
+                    return CreateChatClient(
+                        worldGeneration.Provider,
+                        worldGeneration.Model,
+                        ollamaUri
+                    );
+                }
             )
             .AddKeyedSingleton(
                 LlmRoleKeys.Gameplay,
-                (_, _) =>
-                    CreateChatClient(appConfiguration.Gameplay, appConfiguration.OllamaUri)
+                (sp, _) =>
+                {
+                    var gameplay = sp.GetRequiredService<IOptionsMonitor<LlmRoleOptions>>()
+                        .Get(LlmRoleKeys.Gameplay);
+                    var ollamaUri = sp.GetRequiredService<IOptions<OllamaOptions>>().Value.Uri;
+                    return CreateChatClient(gameplay.Provider, gameplay.Model, ollamaUri)
                         .AsBuilder()
                         .UseFunctionInvocation()
-                        .Build()
-            )
-            .AddSingleton(
-                new GameplaySettings(
-                    appConfiguration.Gameplay.Think,
-                    appConfiguration.Gameplay.Temperature
-                )
+                        .Build();
+                }
             );
     }
 
-    private static IChatClient CreateChatClient(LlmRoleSettings settings, Uri ollamaUri) =>
-        settings.Provider switch
+    public static IServiceCollection AddTrpgOptions(
+        this IServiceCollection serviceCollection,
+        IConfiguration configuration
+    )
+    {
+        return serviceCollection
+            .Configure<OllamaOptions>(configuration.GetSection("Ollama"))
+            .Configure<LlmRoleOptions>(
+                LlmRoleKeys.WorldGeneration,
+                configuration.GetSection("WorldGenerationLlm")
+            )
+            .Configure<LlmRoleOptions>(
+                LlmRoleKeys.Gameplay,
+                configuration.GetSection("GameplayLlm")
+            )
+            .Configure<CombatOptions>(configuration.GetSection("Combat"))
+            .Configure<CreatureGeneratorOptions>(configuration.GetSection("CreatureGenerator"));
+    }
+
+    private static IChatClient CreateChatClient(
+        LlmProvider provider,
+        string model,
+        Uri ollamaUri
+    ) =>
+        provider switch
         {
             LlmProvider.Ollama => new OllamaApiClient(
                 new HttpClient { BaseAddress = ollamaUri, Timeout = Timeout.InfiniteTimeSpan }
             )
             {
-                SelectedModel = settings.Model,
+                SelectedModel = model,
             },
-            LlmProvider.Anthropic => new AnthropicClient
-            {
-                ApiKey = Environment.GetEnvironmentVariable(
-                    "ANTHROPIC_API_KEY",
-                    EnvironmentVariableTarget.User
-                ),
-            }.AsIChatClient(settings.Model),
-            _ => throw new ArgumentOutOfRangeException(nameof(settings)),
+            LlmProvider.Anthropic => new AnthropicClient().AsIChatClient(model),
+            _ => throw new ArgumentOutOfRangeException(nameof(provider)),
         };
 
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)

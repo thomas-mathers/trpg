@@ -1,24 +1,13 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Extensions;
+using TRPG.Application.Common;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat;
 
-public class CombatSettings
-{
-    public int ApRegenPerRound { get; init; } = 3;
-    public int MpRegenPerRound { get; init; } = 1;
-    public int XpPerEnemyLevel { get; init; } = 25;
-    public int BaseProficiency { get; init; } = 50;
-    public int UnarmedBaseDamage { get; init; } = 3;
-    public float MinHitChance { get; set; } = 0.05f;
-    public float MaxHitChance { get; set; } = 0.95f;
-    public float StrengthDamageBonusPerPoint { get; init; } = 0.01f;
-    public float IntelligenceDamageBonusPerPoint { get; init; } = 0.01f;
-}
-
 public class CombatEngine(
-    CombatSettings settings,
+    IOptionsSnapshot<CombatOptions> optionsSnapshot,
     HitCalculator hitCalculator,
     DamageCalculator damageCalculator
 )
@@ -156,8 +145,14 @@ public class CombatEngine(
             return tickEvents;
         }
 
-        actor.CurrentAp = Math.Min(actor.CurrentAp + settings.ApRegenPerRound, actor.MaximumAp);
-        actor.CurrentMp = Math.Min(actor.CurrentMp + settings.MpRegenPerRound, actor.MaximumMp);
+        actor.CurrentAp = Math.Min(
+            actor.CurrentAp + optionsSnapshot.Value.ApRegenPerRound,
+            actor.MaximumAp
+        );
+        actor.CurrentMp = Math.Min(
+            actor.CurrentMp + optionsSnapshot.Value.MpRegenPerRound,
+            actor.MaximumMp
+        );
 
         foreach (var abilityName in actor.CooldownRemainingByAbility.Keys)
         {
@@ -510,7 +505,7 @@ public class CombatEngine(
     }
 
     private int GetTotalExperienceFromEnemies(IReadOnlyList<Combatant> enemies) =>
-        enemies.Sum(e => e.Level * settings.XpPerEnemyLevel);
+        enemies.Sum(e => e.Level * optionsSnapshot.Value.XpPerEnemyLevel);
 
     private static int GetTotalGoldFromEnemies(IReadOnlyList<Combatant> enemies) =>
         enemies.Sum(e => e.Gold);

@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
+using TRPG.Application.Common;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -11,23 +13,19 @@ public class CombatEngineTests
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
     private readonly Guid _worldId = Guid.NewGuid();
 
-    private static readonly CombatSettings AlwaysHit = new()
-    {
-        MinHitChance = 1.0f,
-        MaxHitChance = 1.0f,
-    };
+    private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit = new TestOptionsSnapshot<CombatOptions>(
+        new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
+    );
 
-    private static readonly CombatSettings AlwaysMiss = new()
-    {
-        MinHitChance = 0.0f,
-        MaxHitChance = 0.0f,
-    };
+    private static readonly IOptionsSnapshot<CombatOptions> AlwaysMiss = new TestOptionsSnapshot<CombatOptions>(
+        new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
+    );
 
-    private static CombatEngine MakeEngine(CombatSettings settings)
+    private static CombatEngine MakeEngine(IOptionsSnapshot<CombatOptions> optionsSnapshot)
     {
-        var hitCalculator = new HitCalculator(settings);
-        var damageCalculator = new DamageCalculator(settings);
-        return new CombatEngine(settings, hitCalculator, damageCalculator);
+        var hitCalculator = new HitCalculator(optionsSnapshot);
+        var damageCalculator = new DamageCalculator(optionsSnapshot);
+        return new CombatEngine(optionsSnapshot, hitCalculator, damageCalculator);
     }
 
     private static AttackAbility MakeAttack(

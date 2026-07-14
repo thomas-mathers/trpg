@@ -135,6 +135,21 @@ internal sealed class GameServerClient(HttpClient httpClient)
         return _connection.StreamAsync<string>("SendWait", hours, cancellationToken);
     }
 
+    public async Task GrantAllAbilities(CancellationToken cancellationToken)
+    {
+        if (_sessionId == null)
+        {
+            return;
+        }
+
+        var response = await httpClient.PostAsync(
+            new Uri($"/sessions/{_sessionId}/cheat/grant-all-abilities", UriKind.Relative),
+            null,
+            cancellationToken
+        );
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task EndSession(CancellationToken cancellationToken)
     {
         if (_sessionId == null)

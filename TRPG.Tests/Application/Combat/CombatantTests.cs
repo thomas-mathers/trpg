@@ -28,7 +28,6 @@ public class CombatantTests
     {
         // Arrange
         var creature = Builders.MakeCreature(_worldId);
-        var settings = new CombatSettings();
 
         // Act
         var combatant = Combatant.FromCreature(creature, [], BasicAttack, isPlayer: false, [], []);

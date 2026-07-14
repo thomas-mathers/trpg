@@ -55,6 +55,12 @@ internal sealed class Game(GameServerClient client)
                 continue;
             }
 
+            if (input.Equals("/cheat", StringComparison.OrdinalIgnoreCase))
+            {
+                await HandleCheatCommand(cancellationToken);
+                continue;
+            }
+
             if (await TryStreamTurn(client.SendChat(input, cancellationToken)))
             {
                 PrintStatus();
@@ -75,6 +81,14 @@ internal sealed class Game(GameServerClient client)
         {
             PrintStatus();
         }
+    }
+
+    private async Task HandleCheatCommand(CancellationToken cancellationToken)
+    {
+        await client.GrantAllAbilities(cancellationToken);
+        Console.WriteLine(
+            "[Cheat] All abilities granted. AP/MP and cooldowns reset if you're in combat."
+        );
     }
 
     private static async Task<bool> TryStreamTurn(IAsyncEnumerable<string> tokens)

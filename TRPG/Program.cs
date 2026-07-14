@@ -13,14 +13,14 @@ using TRPG.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5000");
 
-var appConfiguration = new AppConfiguration();
-builder.Configuration.Bind(appConfiguration);
+var loggingOptions =
+    builder.Configuration.GetSection("Logging").Get<LoggingOptions>() ?? new LoggingOptions();
 
-Directory.CreateDirectory(appConfiguration.LogDirectory);
+Directory.CreateDirectory(loggingOptions.LogDirectory);
 
 foreach (
     var old in Directory
-        .GetFiles(appConfiguration.LogDirectory, "trpg_*.log")
+        .GetFiles(loggingOptions.LogDirectory, "trpg_*.log")
         .Where(f => File.GetLastWriteTime(f) < DateTime.Now.AddDays(-7))
 )
 {
@@ -28,10 +28,10 @@ foreach (
 }
 
 builder
-    .Services.AddTrpgLogging(appConfiguration.LogDirectory)
-    .AddTrpgDbContext(appConfiguration.PostgresConnectionString)
-    .AddLlmChatClients(appConfiguration)
-    .AddSingleton(appConfiguration)
+    .Services.AddTrpgLogging(loggingOptions.LogDirectory)
+    .AddTrpgDbContext()
+    .AddLlmChatClients()
+    .AddTrpgOptions(builder.Configuration)
     .AddTrpgApplicationServices()
     .AddTrpgSessionState()
     .AddSignalR();
@@ -53,6 +53,7 @@ _ = Task.Run(async () =>
 
 app.MapWorldEndpoints();
 app.MapSessionEndpoints();
+app.MapCheatEndpoints();
 app.MapHub<ChatHub>("/hubs/chat");
 
 await app.RunAsync();

@@ -1,6 +1,8 @@
 using TRPG.Application.Abilities;
+using TRPG.Application.Common;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
+using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Generators;
 
@@ -23,7 +25,7 @@ public class CreatureGeneratorTests
         return new CreatureGenerator(
             itemGenerator,
             abilityDefinitions,
-            new CreatureGeneratorSettings()
+            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
         );
     }
 

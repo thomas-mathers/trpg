@@ -4,12 +4,11 @@ using System.Text;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Game;
-
-public record GameplaySettings(bool Think, float? Temperature);
 
 public record TurnMetrics(string Response, long FirstTokenMs, long TotalMs, int TokenCount)
 {
@@ -21,7 +20,7 @@ public class GameTurnRunner(
     [FromKeyedServices(LlmRoleKeys.Gameplay)] IChatClient chatClient,
     GameSessionState sessionState,
     IEnumerable<AIFunction> tools,
-    GameplaySettings gameplaySettings,
+    IOptionsMonitor<LlmRoleOptions> optionsMonitor,
     ILogger<GameTurnRunner> logger
 )
 {
@@ -199,13 +198,14 @@ public class GameTurnRunner(
         logger.LogInformation("[game] >>> {Message}", input);
         messages.Add(new ChatMessage(ChatRole.User, input));
 
+        var gameplayOptions = optionsMonitor.Get(LlmRoleKeys.Gameplay);
         var chatOptions = new ChatOptions
         {
             Tools = tools.Cast<AITool>().ToList(),
-            Temperature = gameplaySettings.Temperature,
+            Temperature = gameplayOptions.Temperature,
             AdditionalProperties = new AdditionalPropertiesDictionary
             {
-                ["think"] = gameplaySettings.Think,
+                ["think"] = gameplayOptions.Think ?? false,
                 ["num_ctx"] = 8192,
             },
         };
