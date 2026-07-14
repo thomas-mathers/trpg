@@ -16,8 +16,8 @@ public class LlmRoleOptions
 
 public class CombatOptions
 {
-    public int ApRegenPerRound { get; init; } = 3;
-    public int MpRegenPerRound { get; init; } = 1;
+    public float ApRegenPercentPerRound { get; init; } = 0.25f;
+    public float MpRegenPercentPerRound { get; init; } = 0.10f;
     public int XpPerEnemyLevel { get; init; } = 25;
     public int BaseProficiency { get; init; } = 50;
     public int UnarmedBaseDamage { get; init; } = 3;

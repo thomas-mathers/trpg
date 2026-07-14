@@ -145,22 +145,8 @@ public class CombatEngine(
             return tickEvents;
         }
 
-        actor.CurrentAp = Math.Min(
-            actor.CurrentAp + optionsSnapshot.Value.ApRegenPerRound,
-            actor.MaximumAp
-        );
-        actor.CurrentMp = Math.Min(
-            actor.CurrentMp + optionsSnapshot.Value.MpRegenPerRound,
-            actor.MaximumMp
-        );
-
-        foreach (var abilityName in actor.CooldownRemainingByAbility.Keys)
-        {
-            actor.CooldownRemainingByAbility[abilityName] = Math.Max(
-                0,
-                actor.CooldownRemainingByAbility[abilityName] - 1
-            );
-        }
+        RegenerateResources(actor);
+        TickCooldowns(actor);
 
         var incapacitationEvent = GetIncapacitationEvent(actor, ability);
         if (incapacitationEvent is not null)
@@ -182,6 +168,31 @@ public class CombatEngine(
         };
 
         return tickEvents.Concat(actionEvents).ToList();
+    }
+
+    private void RegenerateResources(Combatant actor)
+    {
+        var apRegenAmount = Math.Max(
+            1,
+            (int)Math.Round(actor.MaximumAp * optionsSnapshot.Value.ApRegenPercentPerRound)
+        );
+        var mpRegenAmount = Math.Max(
+            1,
+            (int)Math.Round(actor.MaximumMp * optionsSnapshot.Value.MpRegenPercentPerRound)
+        );
+        actor.CurrentAp = Math.Min(actor.CurrentAp + apRegenAmount, actor.MaximumAp);
+        actor.CurrentMp = Math.Min(actor.CurrentMp + mpRegenAmount, actor.MaximumMp);
+    }
+
+    private static void TickCooldowns(Combatant actor)
+    {
+        foreach (var abilityName in actor.CooldownRemainingByAbility.Keys)
+        {
+            actor.CooldownRemainingByAbility[abilityName] = Math.Max(
+                0,
+                actor.CooldownRemainingByAbility[abilityName] - 1
+            );
+        }
     }
 
     private static List<CombatEvent> ApplyInstantHeal(
