@@ -5,8 +5,10 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
+using TRPG.Application.Tools;
+using TRPG.Application.Tools.Common;
 
-namespace TRPG.Application.Tools;
+namespace TRPG.Application.Conversations.Tools;
 
 internal record StartConversationResult(string Summary, string Biography);
 
@@ -51,18 +53,16 @@ internal class StartConversationTool(
 
         if (npc == null)
         {
-            return new
-            {
-                Error = $"No one named '{npcName}' found nearby. Call look to see who's around.",
-            };
+            return new ToolError(
+                $"No one named '{npcName}' found nearby. Call look to see who's around."
+            );
         }
 
         if (session.OpenConversationCreatureIdsByName.ContainsKey(npc.Name))
         {
-            return new
-            {
-                Error = $"You are already in conversation with {npcName}; no need to call this again for them. If the dialogue has turned to someone else, call lookup instead.",
-            };
+            return new ToolError(
+                $"You are already in conversation with {npcName}; no need to call this again for them. If the dialogue has turned to someone else, call lookup instead."
+            );
         }
 
         var summary = await getConversationSummary.Handle(

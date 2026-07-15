@@ -3,25 +3,17 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Abilities;
-using TRPG.Application.Combat;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Tools;
+using TRPG.Application.Tools.Common;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Tools;
-
-internal record CombatResult(
-    CombatOutcome Outcome,
-    PlayerCombatState Player,
-    IReadOnlyList<EnemyCombatState> Enemies,
-    IReadOnlyList<CombatEvent> Events,
-    int? XpGained,
-    int? GoldLooted
-);
+namespace TRPG.Application.Combat.Tools;
 
 internal class AttackTool(
     GameSession session,
@@ -33,6 +25,7 @@ internal class AttackTool(
     GetCreatureAbilitiesQueryHandler getCreatureAbilities,
     AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     ApplyCombatRewardsCommandHandler applyCombatRewards,
+    UpdateCreaturesCommandHandler updateCreatureCommandHandler,
     AbilityDefinitions abilityDefinitions,
     CombatEngine combatEngine,
     ILogger<AttackTool> logger
@@ -65,62 +58,17 @@ internal class AttackTool(
 
         if (session.Combatants is not { Count: > 0 })
         {
-            var (combatants, error) = await BuildCombatants(targetName, cancellationToken);
-            if (error is not null)
-            {
-                return new { Error = error };
-            }
-
-            session.Combatants = combatants;
+            await StartFight(targetName, cancellationToken);
         }
 
-        CombatState state;
-        try
+        var state = combatEngine.ProcessRound(session.Combatants!, abilityName, targetName);
+
+        if (state.Outcome is CombatOutcome.Victory or CombatOutcome.Defeat or CombatOutcome.Fled)
         {
-            state = combatEngine.ProcessRound(session.Combatants!, abilityName, targetName);
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
-        {
-            return new { Error = ex.Message };
+            await EndFight(state, cancellationToken);
         }
 
-        if (state.Outcome != CombatOutcome.Ongoing)
-        {
-            var playerId = session.Combatants!.Single(c => c.IsPlayer).CreatureId;
-            await adjustWeaponProficiencies.Handle(
-                new AdjustWeaponProficienciesCommand
-                {
-                    WorldId = session.WorldId,
-                    CreatureId = playerId,
-                    ProficiencyDeltas = state.WeaponSwingCounts,
-                },
-                cancellationToken
-            );
-
-            if (state.Outcome == CombatOutcome.Victory)
-            {
-                await applyCombatRewards.Handle(
-                    new ApplyCombatRewardsCommand
-                    {
-                        CreatureId = playerId,
-                        ExperienceGained = state.XpGained ?? 0,
-                        GoldGained = state.GoldLooted ?? 0,
-                    },
-                    cancellationToken
-                );
-            }
-
-            session.Combatants = null;
-        }
-
-        var result = new CombatResult(
-            state.Outcome,
-            state.Player,
-            state.Enemies,
-            state.Events,
-            state.XpGained,
-            state.GoldLooted
-        );
+        var result = state.ToCombatResult();
 
         logger.LogInformation(
             "[perf] [attack] result in {ElapsedMs}ms: {Result}",
@@ -130,10 +78,7 @@ internal class AttackTool(
         return result;
     }
 
-    private async Task<CombatantBuildResult> BuildCombatants(
-        string targetName,
-        CancellationToken cancellationToken
-    )
+    private async Task StartFight(string targetName, CancellationToken cancellationToken)
     {
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = session.PlayerId },
@@ -144,26 +89,26 @@ internal class AttackTool(
             new GetAllNearbyCreaturesQuery
             {
                 Location = new CreatureLocation(
-                    session.WorldId,
-                    player!.RoomId,
+                    player!.WorldId,
+                    player.RoomId,
                     player.StateId,
                     player.DistrictId
                 ),
                 ExcludingCreatureId = player.Id,
                 CreatureTypes = HostileCreatureTypes,
+                IncludeDead = false,
             },
             cancellationToken
         );
 
         if (nearby.Count == 0)
         {
-            return new CombatantBuildResult(null, "There's nothing here to attack.");
+            throw new InvalidOperationException("There's nothing here to attack.");
         }
 
         if (nearby.All(c => c.Name != targetName))
         {
-            return new CombatantBuildResult(
-                null,
+            throw new InvalidOperationException(
                 $"No '{targetName}' found nearby to attack. Call look to see what's around."
             );
         }
@@ -187,8 +132,51 @@ internal class AttackTool(
             )
             .ToList();
 
-        IReadOnlyList<Combatant> combatants = [playerCombatant, .. enemyCombatants];
-        return new CombatantBuildResult(combatants, null);
+        session.Combatants = new[] { playerCombatant }.Concat(enemyCombatants).ToArray();
+    }
+
+    private async Task EndFight(CombatState state, CancellationToken cancellationToken)
+    {
+        var playerId = state.Combatants.Single(c => c.IsPlayer).Id;
+
+        await adjustWeaponProficiencies.Handle(
+            new AdjustWeaponProficienciesCommand
+            {
+                WorldId = session.WorldId,
+                CreatureId = playerId,
+                ProficiencyDeltas = state.WeaponSwingCounts,
+            },
+            cancellationToken
+        );
+
+        if (state.Outcome == CombatOutcome.Victory)
+        {
+            await applyCombatRewards.Handle(
+                new ApplyCombatRewardsCommand
+                {
+                    CreatureId = playerId,
+                    ExperienceGained = state.XpGained ?? 0,
+                    GoldGained = state.GoldLooted ?? 0,
+                },
+                cancellationToken
+            );
+
+            var enemyCreatureIds = state
+                .Combatants.Where(c => !c.IsPlayer)
+                .Select(c => c.Id)
+                .ToArray();
+
+            await updateCreatureCommandHandler.Handle(
+                new UpdateCreaturesCommand
+                {
+                    CreatureIds = enemyCreatureIds,
+                    State = CreatureState.Dead,
+                },
+                cancellationToken
+            );
+        }
+
+        session.Combatants = null;
     }
 
     private async Task<Combatant> BuildPlayerCombatant(
@@ -232,6 +220,4 @@ internal class AttackTool(
             weaponProficiencies.ToDictionary()
         );
     }
-
-    private record CombatantBuildResult(IReadOnlyList<Combatant>? Combatants, string? Error);
 }

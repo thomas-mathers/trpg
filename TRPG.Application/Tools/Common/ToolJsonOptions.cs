@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace TRPG.Application.Tools;
+namespace TRPG.Application.Tools.Common;
 
 internal static class ToolJsonOptions
 {

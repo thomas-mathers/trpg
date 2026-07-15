@@ -18,8 +18,12 @@ internal class AddInventoryItemCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var item = await context.Items.FindAsync([command.ItemId], cancellationToken);
-        if (item is { IsStackable: true })
+        var isStackable = await context
+            .Items.Where(i => i.Id == command.ItemId)
+            .Select(i => i.IsStackable)
+            .FirstAsync(cancellationToken);
+
+        if (isStackable)
         {
             var existing = await context.InventoryItems.FirstOrDefaultAsync(
                 i => i.CreatureId == command.CreatureId && i.ItemId == command.ItemId,

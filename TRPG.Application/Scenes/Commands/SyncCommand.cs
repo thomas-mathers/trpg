@@ -113,7 +113,14 @@ internal class SyncCommandHandler(
             if (creature != null)
             {
                 await executeJob.Handle(
-                    new ExecuteJobCommand { Creature = creature, Job = dueJob },
+                    new ExecuteJobCommand
+                    {
+                        CreatureId = creature.Id,
+                        CurrentRoomId = creature.RoomId,
+                        CurrentState = creature.State,
+                        JobAction = dueJob.Action,
+                        JobRoomId = dueJob.RoomId,
+                    },
                     cancellationToken
                 );
             }

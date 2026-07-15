@@ -3,9 +3,11 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Game;
+using TRPG.Application.Tools;
+using TRPG.Application.Tools.Common;
 using TRPG.Application.Worlds.Queries;
 
-namespace TRPG.Application.Tools;
+namespace TRPG.Application.Worlds.Tools;
 
 internal class WorldInfoTool(
     GameSession session,

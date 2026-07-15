@@ -11,25 +11,20 @@ public enum CombatOutcome
     Fled,
 }
 
-public record PlayerCombatState(
+public record CombatantState(
+    Guid Id,
     string Name,
+    bool IsPlayer,
     int CurrentHp,
     int MaximumHp,
+    bool IsAlive,
     IReadOnlyList<string> Abilities,
-    IReadOnlyDictionary<ConditionType, int> ActiveConditions
-);
-
-public record EnemyCombatState(
-    string Name,
-    int CurrentHp,
-    int MaximumHp,
     IReadOnlyDictionary<ConditionType, int> ActiveConditions
 );
 
 public record CombatState(
     CombatOutcome Outcome,
-    PlayerCombatState Player,
-    IReadOnlyList<EnemyCombatState> Enemies,
+    IReadOnlyList<CombatantState> Combatants,
     IReadOnlyList<CombatEvent> Events,
     int? XpGained,
     int? GoldLooted,

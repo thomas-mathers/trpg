@@ -178,6 +178,7 @@ public class WorldGenerator(
                 usedNames.Add(result.Building.Name);
                 buildings.Add(result.Building);
                 rooms.Add(result.Room);
+                props.AddRange(result.Props);
 
                 var dungeonMonsters = MonsterGenerator.Generate(
                     new MonsterGeneratorInput

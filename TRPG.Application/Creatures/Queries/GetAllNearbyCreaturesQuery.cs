@@ -22,6 +22,7 @@ internal class GetAllNearbyCreaturesQuery
     public required CreatureLocation Location { get; init; }
     public Guid? ExcludingCreatureId { get; init; }
     public IReadOnlyCollection<CreatureType>? CreatureTypes { get; init; }
+    public bool IncludeDead { get; init; } = true;
 }
 
 internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
@@ -35,9 +36,11 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
         return location.RoomId is { } roomId
             ? await GetAllInRoom(
                 location.WorldId,
+                location.StateId,
                 roomId,
                 query.ExcludingCreatureId,
                 query.CreatureTypes,
+                query.IncludeDead,
                 cancellationToken
             )
             : await GetAllOutdoorsInLocation(
@@ -46,21 +49,24 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
                 location.DistrictId,
                 query.ExcludingCreatureId,
                 query.CreatureTypes,
+                query.IncludeDead,
                 cancellationToken
             );
     }
 
     private async Task<IReadOnlyCollection<CreatureSummary>> GetAllInRoom(
         Guid worldId,
+        Guid stateId,
         Guid roomId,
         Guid? excludingCreatureId,
         IReadOnlyCollection<CreatureType>? creatureTypes,
+        bool includeDead,
         CancellationToken cancellationToken
     )
     {
         var creatureQuery = context
             .Creatures.AsNoTracking()
-            .Where(p => p.WorldId == worldId && p.RoomId == roomId);
+            .Where(p => p.WorldId == worldId && p.StateId == stateId && p.RoomId == roomId);
         if (excludingCreatureId is not null)
         {
             creatureQuery = creatureQuery.Where(p => p.Id != excludingCreatureId);
@@ -69,6 +75,11 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
         if (creatureTypes is not null)
         {
             creatureQuery = creatureQuery.Where(p => creatureTypes.Contains(p.CreatureType));
+        }
+
+        if (!includeDead)
+        {
+            creatureQuery = creatureQuery.Where(p => p.State != CreatureState.Dead);
         }
 
         return await creatureQuery
@@ -91,6 +102,7 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
         Guid? districtId,
         Guid? excludingCreatureId,
         IReadOnlyCollection<CreatureType>? creatureTypes,
+        bool includeDead,
         CancellationToken cancellationToken
     )
     {
@@ -110,6 +122,11 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
         if (creatureTypes is not null)
         {
             creatureQuery = creatureQuery.Where(p => creatureTypes.Contains(p.CreatureType));
+        }
+
+        if (!includeDead)
+        {
+            creatureQuery = creatureQuery.Where(p => p.State != CreatureState.Dead);
         }
 
         return await creatureQuery

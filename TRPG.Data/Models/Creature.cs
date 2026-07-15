@@ -37,6 +37,7 @@ public enum CreatureState
     Praying,
     Training,
     Sitting,
+    Dead,
 }
 
 public enum Gender

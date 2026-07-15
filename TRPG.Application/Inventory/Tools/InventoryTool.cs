@@ -5,9 +5,11 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Tools;
+using TRPG.Application.Tools.Common;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Tools;
+namespace TRPG.Application.Inventory.Tools;
 
 internal record InventoryItemInfo(string Name, int Quantity);
 
@@ -66,10 +68,9 @@ internal class InventoryTool(
 
             if (target == null)
             {
-                return new
-                {
-                    Error = $"No one named '{targetName}' found nearby. Call look to see who's around.",
-                };
+                return new ToolError(
+                    $"No one named '{targetName}' found nearby. Call look to see who's around."
+                );
             }
         }
 

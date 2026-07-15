@@ -39,11 +39,7 @@ public class CombatEngine(
 
         return new CombatState(
             Outcome: outcome,
-            Player: player.ToPlayerCombatState(),
-            Enemies: enemies
-                .Where(e => e.IsAlive)
-                .Select(enemy => enemy.ToEnemyCombatState())
-                .ToArray(),
+            Combatants: combatants.Select(c => c.ToCombatantState()).ToArray(),
             Events: combatEvents,
             XpGained: outcome == CombatOutcome.Victory
                 ? GetTotalExperienceFromEnemies(enemies)
@@ -546,11 +542,7 @@ public class CombatEngine(
 
         return new CombatState(
             Outcome: outcome,
-            Player: player.ToPlayerCombatState(),
-            Enemies: enemies
-                .Where(e => e.IsAlive)
-                .Select(enemy => enemy.ToEnemyCombatState())
-                .ToArray(),
+            Combatants: combatants.Select(c => c.ToCombatantState()).ToArray(),
             Events: combatEvents,
             XpGained: null,
             GoldLooted: null,

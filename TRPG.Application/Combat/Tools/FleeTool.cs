@@ -2,11 +2,12 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Combat;
 using TRPG.Application.Game;
+using TRPG.Application.Tools;
+using TRPG.Application.Tools.Common;
 using TRPG.Application.WeaponProficiency.Commands;
 
-namespace TRPG.Application.Tools;
+namespace TRPG.Application.Combat.Tools;
 
 internal class FleeTool(
     GameSession session,
@@ -28,12 +29,12 @@ internal class FleeTool(
 
         if (session.Combatants is not { Count: > 0 })
         {
-            return new { Error = "There's no fight to flee from right now." };
+            return new ToolError("There's no fight to flee from right now.");
         }
 
         var state = combatEngine.ResolveFlee(session.Combatants);
 
-        var playerId = session.Combatants.Single(c => c.IsPlayer).CreatureId;
+        var playerId = state.Combatants.Single(c => c.IsPlayer).Id;
         await adjustWeaponProficiencies.Handle(
             new AdjustWeaponProficienciesCommand
             {
@@ -45,14 +46,7 @@ internal class FleeTool(
         );
         session.Combatants = null;
 
-        var result = new CombatResult(
-            state.Outcome,
-            state.Player,
-            state.Enemies,
-            state.Events,
-            state.XpGained,
-            state.GoldLooted
-        );
+        var result = state.ToCombatResult();
 
         logger.LogInformation(
             "[perf] [flee] result in {ElapsedMs}ms: {Result}",

@@ -4,13 +4,16 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Combat;
+using TRPG.Application.Combat.Tools;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
+using TRPG.Application.Conversations.Tools;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Inventory.Tools;
 using TRPG.Application.Jobs.Commands;
 using TRPG.Application.Jobs.Queries;
 using TRPG.Application.Reputations.Commands;
@@ -18,11 +21,13 @@ using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Tools;
+using TRPG.Application.Tools.Common;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Application.Worlds.Tools;
 
 namespace TRPG.Application.Common.Extensions;
 
@@ -58,7 +63,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<RemoveInventoryItemCommandHandler>()
             .AddTransient<GetInventoryByCreatureIdQueryHandler>()
             .AddTransient<AddJobCommandHandler>()
-            .AddTransient<UpdateJobCommandHandler>()
             .AddTransient<DeleteJobCommandHandler>()
             .AddTransient<GetAllJobsByCreatureIdQueryHandler>()
             .AddTransient<GetJobsOfBuildingWorkersQueryHandler>()
@@ -79,10 +83,10 @@ public static class ServiceCollectionExtensions
             .AddTransient<SetConversationSummaryCommandHandler>()
             .AddSingleton(AbilityDefinitions.Create())
             .AddTransient<AddCreatureCommandHandler>()
-            .AddTransient<UpdateCreatureCommandHandler>()
+            .AddTransient<UpdateCreaturesCommandHandler>()
             .AddTransient<ApplyCombatRewardsCommandHandler>()
             .AddTransient<GrantAllAbilitiesCommandHandler>()
-            .AddTransient<DeleteCreatureCommandHandler>()
+            .AddTransient<DeleteCreaturesCommandHandler>()
             .AddTransient<GetCreatureByIdQueryHandler>()
             .AddTransient<GetCreaturesByIdsQueryHandler>()
             .AddTransient<GetAllCreaturesInStateQueryHandler>()
@@ -129,7 +133,7 @@ public static class ServiceCollectionExtensions
             .AddGameTool<LookTool>()
             .AddGameTool<MoveTool>()
             .AddGameTool<InventoryTool>()
-            .AddGameTool<CharacterTool>()
+            .AddGameTool<CreatureInspectTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
             .AddGameTool<LookupTool>()

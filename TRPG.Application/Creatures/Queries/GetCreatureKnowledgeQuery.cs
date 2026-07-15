@@ -239,10 +239,14 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken
     )
     {
-        var state = await context.States.FindAsync([city.StateId], cancellationToken);
+        var state = await context
+            .States.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == city.StateId, cancellationToken);
         var country =
             state != null
-                ? await context.Countries.FindAsync([state.CountryId], cancellationToken)
+                ? await context
+                    .Countries.AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == state.CountryId, cancellationToken)
                 : null;
         var districts = await context
             .Districts.AsNoTracking()
@@ -291,12 +295,18 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken
     )
     {
-        var state = await context.States.FindAsync([creature.StateId], cancellationToken);
+        var state = await context
+            .States.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == creature.StateId, cancellationToken);
         var city = creature.CityId is { } cityId
-            ? await context.Cities.FindAsync([cityId], cancellationToken)
+            ? await context
+                .Cities.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == cityId, cancellationToken)
             : null;
         var district = creature.DistrictId is { } districtId
-            ? await context.Districts.FindAsync([districtId], cancellationToken)
+            ? await context
+                .Districts.AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Id == districtId, cancellationToken)
             : null;
         var factionNames = await (
             from fm in context.FactionMembers

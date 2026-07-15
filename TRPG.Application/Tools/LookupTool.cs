@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
+using TRPG.Application.Tools.Common;
 
 namespace TRPG.Application.Tools;
 
@@ -55,10 +56,9 @@ internal class LookupTool(
         );
         if (askingPerson == null)
         {
-            return new
-            {
-                Error = $"No one named '{askingPersonName}' found nearby. Call look to see who's around.",
-            };
+            return new ToolError(
+                $"No one named '{askingPersonName}' found nearby. Call look to see who's around."
+            );
         }
 
         var currentYear = GameClock.GetCurrentInGameDate(session).Year;
@@ -74,10 +74,9 @@ internal class LookupTool(
         object result =
             matches.Count > 0
                 ? matches
-                : new
-                {
-                    Error = $"'{subjectName}' isn't recognized as a country, city, faction, or person that {askingPersonName} would know about.",
-                };
+                : new ToolError(
+                    $"'{subjectName}' isn't recognized as a country, city, faction, or person that {askingPersonName} would know about."
+                );
 
         logger.LogInformation(
             "[perf] [lookup] result in {ElapsedMs}ms: {Result}",

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -15,6 +16,8 @@ internal class GetCreatureByIdQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        return await context.Creatures.FindAsync([query.Id], cancellationToken);
+        return await context
+            .Creatures.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == query.Id, cancellationToken);
     }
 }

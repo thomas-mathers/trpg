@@ -1,3 +1,4 @@
+using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data.Models;
 
@@ -5,18 +6,21 @@ namespace TRPG.Application.Jobs.Commands;
 
 internal class ExecuteJobCommand
 {
-    public required Creature Creature { get; init; }
-    public required Job Job { get; init; }
+    public required Guid CreatureId { get; init; }
+    public required Guid? CurrentRoomId { get; init; }
+    public required CreatureState CurrentState { get; init; }
+    public required JobAction JobAction { get; init; }
+    public required Guid? JobRoomId { get; init; }
 }
 
-internal class ExecuteJobCommandHandler(UpdateCreatureCommandHandler updateCreature)
+internal class ExecuteJobCommandHandler(UpdateCreaturesCommandHandler updateCreature)
 {
     public async Task Handle(
         ExecuteJobCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var targetState = command.Job.Action switch
+        var targetState = command.JobAction switch
         {
             JobAction.Sleep => CreatureState.Sleeping,
             JobAction.Work => CreatureState.Busy,
@@ -28,7 +32,7 @@ internal class ExecuteJobCommandHandler(UpdateCreatureCommandHandler updateCreat
             JobAction.Patrol or JobAction.Socialize => (CreatureState?)null,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(command),
-                command.Job.Action,
+                command.JobAction,
                 "Unhandled JobAction."
             ),
         };
@@ -38,16 +42,18 @@ internal class ExecuteJobCommandHandler(UpdateCreatureCommandHandler updateCreat
             return;
         }
 
-        var creature = command.Creature;
-        if (creature.RoomId == command.Job.RoomId && creature.State == targetState)
+        if (command.CurrentRoomId == command.JobRoomId && command.CurrentState == targetState)
         {
             return;
         }
 
-        creature.RoomId = command.Job.RoomId;
-        creature.State = targetState.Value;
         await updateCreature.Handle(
-            new UpdateCreatureCommand { Creature = creature },
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [command.CreatureId],
+                RoomId = Optional<Guid?>.Of(command.JobRoomId),
+                State = targetState.Value,
+            },
             cancellationToken
         );
     }

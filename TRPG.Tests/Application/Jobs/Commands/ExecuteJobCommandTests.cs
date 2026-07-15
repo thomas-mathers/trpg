@@ -16,7 +16,7 @@ public sealed class ExecuteJobCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new ExecuteJobCommandHandler(new UpdateCreatureCommandHandler(_context));
+        _handler = new ExecuteJobCommandHandler(new UpdateCreaturesCommandHandler(_context));
 
         _creature = Builders.MakeCreature();
         _context.Creatures.Add(_creature);
@@ -86,17 +86,28 @@ public sealed class ExecuteJobCommandTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var roomId = Guid.NewGuid();
-        var job = Builders.MakeJob(_creature.Id, action: action, roomId: roomId);
 
         // Act
         await _handler.Handle(
-            new ExecuteJobCommand { Creature = _creature, Job = job },
+            new ExecuteJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentRoomId = _creature.RoomId,
+                CurrentState = _creature.State,
+                JobAction = action,
+                JobRoomId = roomId,
+            },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(roomId, _creature.RoomId);
-        Assert.Equal(expectedState, _creature.State);
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(roomId, updated!.RoomId);
+        Assert.Equal(expectedState, updated.State);
     }
 
     private async Task AssertRoomIdUnchanged(JobAction action)
@@ -104,16 +115,27 @@ public sealed class ExecuteJobCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var originalRoomId = _creature.RoomId;
         var originalState = _creature.State;
-        var job = Builders.MakeJob(_creature.Id, action: action, roomId: Guid.NewGuid());
 
         // Act
         await _handler.Handle(
-            new ExecuteJobCommand { Creature = _creature, Job = job },
+            new ExecuteJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentRoomId = _creature.RoomId,
+                CurrentState = _creature.State,
+                JobAction = action,
+                JobRoomId = Guid.NewGuid(),
+            },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(originalRoomId, _creature.RoomId);
-        Assert.Equal(originalState, _creature.State);
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(originalRoomId, updated!.RoomId);
+        Assert.Equal(originalState, updated.State);
     }
 }

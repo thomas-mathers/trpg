@@ -3,11 +3,13 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Tools.Common;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.Models;
 
@@ -17,7 +19,9 @@ internal class MoveTool(
     GameSession session,
     GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
     GetCreatureByIdQueryHandler getCreatureById,
-    UpdateCreatureCommandHandler updateCreature,
+    GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
+    UpdateCreaturesCommandHandler updateCreature,
+    DeleteCreaturesCommandHandler deleteCreatures,
     GetBuildingByNameInStateQueryHandler getBuildingByNameInState,
     GetEntranceRoomQueryHandler getEntranceRoom,
     GetExitByDestinationNameQueryHandler getExitByDestinationName,
@@ -50,8 +54,11 @@ internal class MoveTool(
             cancellationToken
         );
 
+        var oldRoomId = player!.RoomId;
+        var oldDistrictId = player.DistrictId;
+
         var error =
-            player!.RoomId == null
+            player.RoomId == null
                 ? await MoveOutdoors(player, destinationName, cancellationToken)
                 : await MoveIndoors(player, destinationName, cancellationToken);
 
@@ -60,8 +67,22 @@ internal class MoveTool(
             return error;
         }
 
+        await CleanUpDeadCreatures(
+            player.WorldId,
+            player.StateId,
+            oldRoomId,
+            oldDistrictId,
+            cancellationToken
+        );
+
         await updateCreature.Handle(
-            new UpdateCreatureCommand { Creature = player! },
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [player!.Id],
+                CityId = Optional<Guid?>.Of(player.CityId),
+                DistrictId = Optional<Guid?>.Of(player.DistrictId),
+                RoomId = Optional<Guid?>.Of(player.RoomId),
+            },
             cancellationToken
         );
         session.DidMoveThisTurn = true;
@@ -88,6 +109,44 @@ internal class MoveTool(
         return result;
     }
 
+    private async Task CleanUpDeadCreatures(
+        Guid worldId,
+        Guid stateId,
+        Guid? oldRoomId,
+        Guid? oldDistrictId,
+        CancellationToken cancellationToken
+    )
+    {
+        var nearby = await getAllNearbyCreatures.Handle(
+            new GetAllNearbyCreaturesQuery
+            {
+                Location = new CreatureLocation(worldId, oldRoomId, stateId, oldDistrictId),
+            },
+            cancellationToken
+        );
+
+        var deadCreatureIds = nearby
+            .Where(creature => creature.State == nameof(CreatureState.Dead))
+            .Select(creature => creature.Id)
+            .ToArray();
+
+        if (deadCreatureIds.Length == 0)
+        {
+            return;
+        }
+
+        logger.LogInformation(
+            "[move] deleting {Count} dead creature(s) left behind: {CreatureIds}",
+            deadCreatureIds.Length,
+            string.Join(", ", deadCreatureIds)
+        );
+
+        await deleteCreatures.Handle(
+            new DeleteCreaturesCommand { CreatureIds = deadCreatureIds },
+            cancellationToken
+        );
+    }
+
     private async Task<object?> MoveOutdoors(
         Creature player,
         string destinationName,
@@ -106,10 +165,9 @@ internal class MoveTool(
             );
             if (entranceRoom == null)
             {
-                return new
-                {
-                    Error = $"'{destinationName}' has no entrance. Call look to see what's around.",
-                };
+                return new ToolError(
+                    $"'{destinationName}' has no entrance. Call look to see what's around."
+                );
             }
 
             var currentDate = GameClock.GetCurrentInGameDate(session);
@@ -132,7 +190,7 @@ internal class MoveTool(
             );
             if (!canEnter)
             {
-                return new { Error = $"The door to '{destinationName}' is locked." };
+                return new ToolError($"The door to '{destinationName}' is locked.");
             }
 
             player.CityId = building.CityId;
@@ -167,10 +225,9 @@ internal class MoveTool(
             return null;
         }
 
-        return new
-        {
-            Error = $"No building or district named '{destinationName}' found nearby. Call look to see what's around.",
-        };
+        return new ToolError(
+            $"No building or district named '{destinationName}' found nearby. Call look to see what's around."
+        );
     }
 
     private async Task<object?> MoveIndoors(
@@ -189,10 +246,9 @@ internal class MoveTool(
         );
         if (!exitMatch.Matched)
         {
-            return new
-            {
-                Error = $"No exit named '{destinationName}' found here. Call look to see the available exits.",
-            };
+            return new ToolError(
+                $"No exit named '{destinationName}' found here. Call look to see the available exits."
+            );
         }
 
         player.RoomId = exitMatch.DestinationRoomId;

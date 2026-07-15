@@ -4,11 +4,12 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
+using TRPG.Application.Tools.Common;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Tools;
 
-internal record CharacterAttributesInfo(
+internal record CreatureAttributesInfo(
     int Strength,
     int Dexterity,
     int Intelligence,
@@ -28,13 +29,13 @@ internal record CharacterAttributesInfo(
     float MagicResistance
 );
 
-internal record CharacterSheetResult(string Name, int Level, CharacterAttributesInfo Attributes);
+internal record CreatureInspectResult(string Name, int Level, CreatureAttributesInfo Attributes);
 
-internal class CharacterTool(
+internal class CreatureInspectTool(
     GameSession session,
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
-    ILogger<CharacterTool> logger
+    ILogger<CreatureInspectTool> logger
 ) : IGameTool
 {
     public Delegate Invoke => InvokeAsync;
@@ -78,19 +79,18 @@ internal class CharacterTool(
 
             if (target == null)
             {
-                return new
-                {
-                    Error = $"No one named '{targetName}' found nearby. Call look to see who's around.",
-                };
+                return new ToolError(
+                    $"No one named '{targetName}' found nearby. Call look to see who's around."
+                );
             }
         }
 
         var attributes = target!.Attributes;
 
-        var result = new CharacterSheetResult(
+        var result = new CreatureInspectResult(
             target.Name,
             target.Level,
-            new CharacterAttributesInfo(
+            new CreatureAttributesInfo(
                 attributes.Strength,
                 attributes.Dexterity,
                 attributes.Intelligence,

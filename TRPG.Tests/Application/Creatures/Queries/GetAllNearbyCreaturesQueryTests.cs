@@ -1,5 +1,6 @@
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
+using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
@@ -94,5 +95,54 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         // Assert
         Assert.DoesNotContain(result, x => x.Id == player.Id);
         Assert.Contains(result, x => x.Id == other.Id);
+    }
+
+    [Fact]
+    public async Task Handle_IncludesDeadCreatures_ByDefault()
+    {
+        // Arrange
+        var stateId = Guid.NewGuid();
+        var roomId = Guid.NewGuid();
+        var corpse = Builders.MakeCreature(_worldId, stateId: stateId);
+        corpse.RoomId = roomId;
+        corpse.State = CreatureState.Dead;
+        _context.Creatures.Add(corpse);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var location = new CreatureLocation(_worldId, roomId, stateId, null);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetAllNearbyCreaturesQuery { Location = location },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Contains(result, x => x.Id == corpse.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesDeadCreatures_WhenIncludeDeadIsFalse()
+    {
+        // Arrange
+        var stateId = Guid.NewGuid();
+        var roomId = Guid.NewGuid();
+        var corpse = Builders.MakeCreature(_worldId, stateId: stateId);
+        corpse.RoomId = roomId;
+        corpse.State = CreatureState.Dead;
+        var alive = Builders.MakeCreature(_worldId, stateId: stateId);
+        alive.RoomId = roomId;
+        _context.Creatures.AddRange(corpse, alive);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var location = new CreatureLocation(_worldId, roomId, stateId, null);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetAllNearbyCreaturesQuery { Location = location, IncludeDead = false },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.DoesNotContain(result, x => x.Id == corpse.Id);
+        Assert.Contains(result, x => x.Id == alive.Id);
     }
 }

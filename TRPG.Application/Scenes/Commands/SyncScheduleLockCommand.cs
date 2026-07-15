@@ -82,7 +82,6 @@ internal class SyncScheduleLockCommandHandler(
         );
     }
 
-    // Homes lock while the owner sleeps — residents have keys, visitors knock during waking hours.
     private async Task<bool?> SyncHomeLock(
         SyncScheduleLockCommand command,
         CancellationToken cancellationToken

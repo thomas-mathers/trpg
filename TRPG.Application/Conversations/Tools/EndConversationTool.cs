@@ -4,8 +4,10 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Game;
+using TRPG.Application.Tools;
+using TRPG.Application.Tools.Common;
 
-namespace TRPG.Application.Tools;
+namespace TRPG.Application.Conversations.Tools;
 
 internal class EndConversationTool(
     GameSession session,
@@ -36,10 +38,9 @@ internal class EndConversationTool(
 
         if (!session.OpenConversationCreatureIdsByName.TryGetValue(npcName, out var npcId))
         {
-            return new
-            {
-                Error = $"No open conversation with '{npcName}'. Call start_conversation first.",
-            };
+            return new ToolError(
+                $"No open conversation with '{npcName}'. Call start_conversation first."
+            );
         }
 
         await setConversationSummary.Handle(

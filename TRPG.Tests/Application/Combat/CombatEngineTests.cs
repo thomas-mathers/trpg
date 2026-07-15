@@ -122,7 +122,8 @@ public class CombatEngineTests
         Assert.Equal(2, state.Events.Count);
         Assert.Equal("Hero", Assert.IsType<Hit>(state.Events[0]).AttackerName);
         Assert.Equal("Wraith", Assert.IsType<Hit>(state.Events[1]).AttackerName);
-        Assert.True(state.Player.CurrentHp < state.Player.MaximumHp);
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.True(playerState.CurrentHp < playerState.MaximumHp);
     }
 
     [Fact]
@@ -139,7 +140,8 @@ public class CombatEngineTests
 
         // Assert
         Assert.All(state.Events, t => Assert.IsType<Miss>(t));
-        Assert.Equal(state.Player.MaximumHp, state.Player.CurrentHp);
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.Equal(playerState.MaximumHp, playerState.CurrentHp);
     }
 
     [Fact]
@@ -163,7 +165,7 @@ public class CombatEngineTests
         Assert.Equal(CombatOutcome.Victory, state.Outcome);
         var hit = Assert.IsType<Hit>(Assert.Single(state.Events));
         Assert.True(hit.Killed);
-        Assert.Empty(state.Enemies);
+        Assert.False(state.Combatants.Single(c => !c.IsPlayer).IsAlive);
         Assert.NotNull(state.XpGained);
         Assert.NotNull(state.GoldLooted);
     }
@@ -237,7 +239,8 @@ public class CombatEngineTests
         Assert.Equal(ConditionType.Stunned, noAction.Condition);
         var playerHit = Assert.IsType<Hit>(state.Events[0]);
         Assert.Equal(ConditionType.Stunned, Assert.Single(playerHit.AppliedConditions));
-        Assert.True(state.Enemies.Single().ActiveConditions.ContainsKey(ConditionType.Stunned));
+        var enemyState = state.Combatants.Single(c => !c.IsPlayer);
+        Assert.True(enemyState.ActiveConditions.ContainsKey(ConditionType.Stunned));
     }
 
     [Fact]
@@ -517,7 +520,8 @@ public class CombatEngineTests
         Assert.Equal(CombatOutcome.Fled, state.Outcome);
         var partingHit = Assert.IsType<Hit>(Assert.Single(state.Events));
         Assert.Equal("Wraith", partingHit.AttackerName);
-        Assert.True(state.Player.CurrentHp < state.Player.MaximumHp);
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.True(playerState.CurrentHp < playerState.MaximumHp);
     }
 
     [Fact]

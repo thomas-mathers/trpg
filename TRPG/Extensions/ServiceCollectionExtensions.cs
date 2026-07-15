@@ -9,6 +9,8 @@ using OllamaSharp;
 using TRPG.Application.Combat;
 using TRPG.Application.Common;
 using TRPG.Application.Game;
+using TRPG.Application.Tools;
+using TRPG.Application.Tools.Common;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
 using ZLogger;
@@ -84,9 +86,39 @@ internal static class ServiceCollectionExtensions
                     var gameplay = sp.GetRequiredService<IOptionsMonitor<LlmRoleOptions>>()
                         .Get(LlmRoleKeys.Gameplay);
                     var ollamaUri = sp.GetRequiredService<IOptions<OllamaOptions>>().Value.Uri;
+                    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                    var toolLogger = loggerFactory.CreateLogger(
+                        "TRPG.Extensions.GameplayFunctionInvoker"
+                    );
                     return CreateChatClient(gameplay.Provider, gameplay.Model, ollamaUri)
                         .AsBuilder()
-                        .UseFunctionInvocation()
+                        .UseFunctionInvocation(
+                            loggerFactory,
+                            configure: client =>
+                            {
+                                client.FunctionInvoker = async (context, cancellationToken) =>
+                                {
+                                    try
+                                    {
+                                        return await context.Function.InvokeAsync(
+                                            context.Arguments,
+                                            cancellationToken
+                                        );
+                                    }
+                                    catch (Exception ex)
+                                        when (ex is InvalidOperationException or ArgumentException)
+                                    {
+                                        toolLogger.LogWarning(
+                                            ex,
+                                            "[tool] {ToolName} failed: {Message}",
+                                            context.Function.Name,
+                                            ex.Message
+                                        );
+                                        return new ToolError(ex.Message);
+                                    }
+                                };
+                            }
+                        )
                         .Build();
                 }
             );

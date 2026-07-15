@@ -24,6 +24,18 @@ public class DungeonGeneratorTests
     }
 
     [Fact]
+    public void Generate_ReturnsAFrontDoorConnector_LeadingOutside()
+    {
+        // Act
+        var result = DungeonGenerator.Generate(new DungeonGeneratorInput(_stateId, [], _worldId));
+
+        // Assert
+        var connector = Assert.IsType<RoomConnector>(Assert.Single(result.Props));
+        Assert.Equal(result.Room.Id, connector.RoomId);
+        Assert.Null(connector.DestinationRoomId);
+    }
+
+    [Fact]
     public void Generate_NeverPicksAnExcludedName()
     {
         // Act

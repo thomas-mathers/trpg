@@ -5,24 +5,17 @@ namespace TRPG.Application.Combat.Extensions;
 
 public static class CombatantExtensions
 {
-    public static EnemyCombatState ToEnemyCombatState(this Combatant enemy)
+    public static CombatantState ToCombatantState(this Combatant combatant)
     {
-        return new EnemyCombatState(
-            enemy.Name,
-            enemy.CurrentHp,
-            enemy.MaximumHp,
-            enemy.ActiveConditions.Where(c => c.Value > 0).ToDictionary()
-        );
-    }
-
-    public static PlayerCombatState ToPlayerCombatState(this Combatant player)
-    {
-        return new PlayerCombatState(
-            player.Name,
-            player.CurrentHp,
-            player.MaximumHp,
-            player.Abilities.Select(a => a.Name).ToArray(),
-            player.ActiveConditions.Where(c => c.Value > 0).ToDictionary()
+        return new CombatantState(
+            combatant.CreatureId,
+            combatant.Name,
+            combatant.IsPlayer,
+            combatant.CurrentHp,
+            combatant.MaximumHp,
+            combatant.IsAlive,
+            combatant.Abilities.Select(a => a.Name).ToArray(),
+            combatant.ActiveConditions.Where(c => c.Value > 0).ToDictionary()
         );
     }
 }

@@ -32,8 +32,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         _addCreature = new AddCreatureCommandHandler(_context);
         _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
         _getWorkstationsByRoomId = new GetWorkstationsByRoomIdQueryHandler(_context);
-        var updateCreature = new UpdateCreatureCommandHandler(_context);
-        var executeJob = new ExecuteJobCommandHandler(updateCreature);
+        var executeJob = new ExecuteJobCommandHandler(new UpdateCreaturesCommandHandler(_context));
         var getAllJobsByCreatureId = new GetAllJobsByCreatureIdQueryHandler(_context);
         var syncScheduleLock = new SyncScheduleLockCommandHandler(
             new GetAllOwnersByBuildingIdQueryHandler(_context),
@@ -101,7 +100,8 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
 
         // Assert
-        var updated = await _context.Creatures.FindAsync(
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
             [creature.Id],
             TestContext.Current.CancellationToken
         );
@@ -162,7 +162,8 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
 
         // Assert
-        var updated = await _context.Creatures.FindAsync(
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
             [creature.Id],
             TestContext.Current.CancellationToken
         );
@@ -193,7 +194,8 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
 
         // Assert
-        var updated = await _context.Creatures.FindAsync(
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
             [creature.Id],
             TestContext.Current.CancellationToken
         );
@@ -254,7 +256,8 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
 
         // Assert
-        var updated = await _context.Creatures.FindAsync(
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
             [creature.Id],
             TestContext.Current.CancellationToken
         );

@@ -8,7 +8,7 @@ internal record DungeonGeneratorInput(
     Guid WorldId
 );
 
-internal record DungeonGeneratorResult(Building Building, Room Room);
+internal record DungeonGeneratorResult(Building Building, Room Room, IReadOnlyList<Prop> Props);
 
 internal static class DungeonGenerator
 {
@@ -129,6 +129,14 @@ internal static class DungeonGenerator
             FloorNumber = 0,
             WorldId = input.WorldId,
         };
-        return new DungeonGeneratorResult(building, room);
+        var frontDoor = new RoomConnector
+        {
+            RoomId = room.Id,
+            Name = "Front Door",
+            Description = "The way back outside.",
+            DestinationRoomId = null,
+            WorldId = input.WorldId,
+        };
+        return new DungeonGeneratorResult(building, room, [frontDoor]);
     }
 }
