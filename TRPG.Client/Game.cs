@@ -159,7 +159,7 @@ internal sealed class Game(GameServerClient client)
             foreach (var person in scene.NearbyPeople)
             {
                 Console.WriteLine(
-                    $"  {person.Name, -20} {person.CreatureType, -10} {person.Profession, -12} Lvl {person.Level, -3} Age {person.Age}"
+                    $"  {person.Name, -20} {person.CreatureType, -10} {person.Profession, -12} Lvl {person.Level, -3} Age {person.Age, -4} HP {person.CurrentHp}/{person.MaximumHp}"
                 );
             }
         }
@@ -234,6 +234,7 @@ internal sealed class Game(GameServerClient client)
             Console.WriteLine(
                 $"{person.Name} — {person.CreatureType} {person.Profession}, Level {person.Level}, Age {person.Age}"
             );
+            Console.WriteLine($"HP: {person.CurrentHp}/{person.MaximumHp}");
             Console.WriteLine($"State: {person.State}");
             if (person.FactionNames.Count > 0)
             {

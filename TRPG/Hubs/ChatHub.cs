@@ -192,7 +192,9 @@ internal sealed class ChatHub(
                     p.Age,
                     p.FactionNames,
                     p.State,
-                    p.Reputation
+                    p.Reputation,
+                    p.CurrentHp,
+                    p.MaximumHp
                 ))
                 .ToArray(),
             scene.City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type)).ToArray()

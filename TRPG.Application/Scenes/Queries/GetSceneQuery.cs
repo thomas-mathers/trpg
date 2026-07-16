@@ -53,7 +53,9 @@ public record ScenePlayerInfo(
     string Profession,
     int Level,
     int Gold,
-    int Age
+    int Age,
+    int CurrentHp,
+    int MaximumHp
 );
 
 public record ScenePropInfo(string Name, string Description, string Type);
@@ -67,7 +69,9 @@ public record SceneCreatureInfo(
     int Age,
     IReadOnlyCollection<string> FactionNames,
     string State,
-    int Reputation
+    int Reputation,
+    int CurrentHp,
+    int MaximumHp
 );
 
 public record SceneNearbyBuildingInfo(string Name, string Type);
@@ -96,7 +100,9 @@ internal record SceneBootstrap(
     Guid? DistrictId,
     Guid? RoomId,
     string CreatureTypeName,
-    string GenderName
+    string GenderName,
+    int CurrentHp,
+    int MaximumHp
 );
 
 internal record SceneLocationDetails(
@@ -170,7 +176,9 @@ internal class GetSceneQueryHandler(
                 bootstrap.Profession.ToString()!,
                 bootstrap.Level,
                 bootstrap.Gold,
-                query.CurrentDate.Year - bootstrap.BirthYear
+                query.CurrentDate.Year - bootstrap.BirthYear,
+                bootstrap.CurrentHp,
+                bootstrap.MaximumHp
             ),
             details.NearbyProps,
             details.NearbyPeople,
@@ -198,7 +206,9 @@ internal class GetSceneQueryHandler(
                 p.DistrictId,
                 p.RoomId,
                 p.CreatureType.ToString(),
-                p.Gender.ToString()
+                p.Gender.ToString(),
+                p.CurrentHp,
+                p.Attributes.MaximumHp
             ))
             .FirstAsync(cancellationToken);
     }
@@ -415,7 +425,9 @@ internal class GetSceneQueryHandler(
                 query.CurrentDate.Year - x.BirthYear,
                 factionNamesByCreature.GetValueOrDefault(x.Id, []),
                 x.State,
-                reputationByCreature.GetValueOrDefault(x.Id, 0)
+                reputationByCreature.GetValueOrDefault(x.Id, 0),
+                x.CurrentHp,
+                x.MaximumHp
             ))
             .ToArray();
     }

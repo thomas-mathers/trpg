@@ -12,7 +12,9 @@ internal record CreatureSummary(
     string Profession,
     int Level,
     int BirthYear,
-    string State
+    string State,
+    int CurrentHp,
+    int MaximumHp
 );
 
 internal record CreatureLocation(Guid WorldId, Guid? RoomId, Guid StateId, Guid? DistrictId);
@@ -91,7 +93,9 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
                 p.Profession.ToString()!,
                 p.Level,
                 p.BirthYear,
-                p.State.ToString()
+                p.State.ToString(),
+                p.CurrentHp,
+                p.Attributes.MaximumHp
             ))
             .ToArrayAsync(cancellationToken);
     }
@@ -138,7 +142,9 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
                 p.Profession.ToString()!,
                 p.Level,
                 p.BirthYear,
-                p.State.ToString()
+                p.State.ToString(),
+                p.CurrentHp,
+                p.Attributes.MaximumHp
             ))
             .ToArrayAsync(cancellationToken);
     }

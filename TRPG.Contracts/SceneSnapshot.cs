@@ -28,7 +28,9 @@ public record NearbyPersonSnapshot(
     int Age,
     IReadOnlyCollection<string> FactionNames,
     string State,
-    int Reputation
+    int Reputation,
+    int CurrentHp,
+    int MaximumHp
 );
 
 public record NearbyDistrictSnapshot(string Name, string Type);

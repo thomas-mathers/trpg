@@ -121,6 +121,30 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
     }
 
     [Fact]
+    public async Task Handle_ReturnsCurrentAndMaximumHp()
+    {
+        // Arrange
+        var stateId = Guid.NewGuid();
+        var roomId = Guid.NewGuid();
+        var creature = Builders.MakeCreature(_worldId, stateId: stateId, currentHp: 5);
+        creature.RoomId = roomId;
+        _context.Creatures.Add(creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var location = new CreatureLocation(_worldId, roomId, stateId, null);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetAllNearbyCreaturesQuery { Location = location },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var summary = Assert.Single(result, x => x.Id == creature.Id);
+        Assert.Equal(5, summary.CurrentHp);
+        Assert.Equal(creature.Attributes.MaximumHp, summary.MaximumHp);
+    }
+
+    [Fact]
     public async Task Handle_ExcludesDeadCreatures_WhenIncludeDeadIsFalse()
     {
         // Arrange

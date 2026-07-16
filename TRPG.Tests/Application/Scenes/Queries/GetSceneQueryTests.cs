@@ -161,6 +161,32 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Handle_ReturnsCurrentAndMaximumHp_ForPlayerAndNearbyPeople()
+    {
+        // Arrange
+        _player.CurrentHp = 12;
+        _nearbyCreature.CurrentHp = 7;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = _worldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(12, result.Player.CurrentHp);
+        Assert.Equal(_player.Attributes.MaximumHp, result.Player.MaximumHp);
+        var nearby = Assert.Single(result.NearbyPeople, p => p.Name == _nearbyCreature.Name);
+        Assert.Equal(7, nearby.CurrentHp);
+        Assert.Equal(_nearbyCreature.Attributes.MaximumHp, nearby.MaximumHp);
+    }
+
+    [Fact]
     public async Task Handle_SeparatesDungeonsFromOrdinaryBuildings_WhenOutdoors()
     {
         // Arrange
