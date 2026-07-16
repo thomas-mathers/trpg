@@ -935,6 +935,8 @@ public class CreatureGenerator(
         var gender =
             generatorInput.Gender ?? (Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female);
 
+        var attributes = GetAttributes(level, generatorInput.Profession);
+
         var creature = new Creature
         {
             WorldId = generatorInput.WorldId,
@@ -949,7 +951,11 @@ public class CreatureGenerator(
             ),
             Gold = GetGold(level, generatorInput.Profession),
             StateId = generatorInput.StateId,
-            Attributes = GetAttributes(level, generatorInput.Profession),
+            Attributes = attributes,
+            CurrentHp = attributes.MaximumHp,
+            CurrentAp = attributes.MaximumAp,
+            CurrentMp = attributes.MaximumMp,
+            LastRegenPlaytime = TimeSpan.Zero,
             Level = level,
         };
 

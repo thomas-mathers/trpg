@@ -67,4 +67,26 @@ public class MonsterGeneratorTests
         Assert.All(monsters, m => Assert.Null(m.Creature.CityId));
         Assert.All(monsters, m => Assert.False(string.IsNullOrWhiteSpace(m.Creature.Biography)));
     }
+
+    [Fact]
+    public void Generate_StartsMonstersAtFullResources()
+    {
+        // Act
+        var monsters = MonsterGenerator.Generate(MakeInput(BuildingType.Cave));
+
+        // Assert
+        Assert.All(
+            monsters,
+            m => Assert.Equal(m.Creature.Attributes.MaximumHp, m.Creature.CurrentHp)
+        );
+        Assert.All(
+            monsters,
+            m => Assert.Equal(m.Creature.Attributes.MaximumAp, m.Creature.CurrentAp)
+        );
+        Assert.All(
+            monsters,
+            m => Assert.Equal(m.Creature.Attributes.MaximumMp, m.Creature.CurrentMp)
+        );
+        Assert.All(monsters, m => Assert.Equal(TimeSpan.Zero, m.Creature.LastRegenPlaytime));
+    }
 }

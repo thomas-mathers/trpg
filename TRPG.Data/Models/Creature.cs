@@ -79,11 +79,15 @@ public class Creature
     public int BirthYear { get; init; }
     public Guid? CityId { get; set; }
     public CreatureType CreatureType { get; init; }
+    public int CurrentAp { get; set; }
+    public int CurrentHp { get; set; }
+    public int CurrentMp { get; set; }
     public Guid? DistrictId { get; set; }
     public int Experience { get; set; }
     public Gender Gender { get; init; }
     public int Gold { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
+    public TimeSpan LastRegenPlaytime { get; set; }
     public int Level { get; set; }
     public string Name { get; init; } = "";
     public Profession? Profession { get; set; }

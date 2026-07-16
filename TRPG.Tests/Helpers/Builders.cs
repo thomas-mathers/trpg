@@ -15,9 +15,14 @@ internal static class Builders
         Guid? cityId = null,
         Guid? districtId = null,
         int birthYear = 1000,
-        string name = "Test Creature"
+        string name = "Test Creature",
+        int? currentHp = null,
+        int? currentAp = null,
+        int? currentMp = null
     )
     {
+        var attributes = MakeAttributes();
+
         return new Creature
         {
             WorldId = worldId ?? Guid.NewGuid(),
@@ -30,7 +35,10 @@ internal static class Builders
             CityId = cityId,
             DistrictId = districtId,
             Level = 1,
-            Attributes = MakeAttributes(),
+            Attributes = attributes,
+            CurrentHp = currentHp ?? attributes.MaximumHp,
+            CurrentAp = currentAp ?? attributes.MaximumAp,
+            CurrentMp = currentMp ?? attributes.MaximumMp,
         };
     }
 

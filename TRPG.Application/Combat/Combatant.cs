@@ -81,9 +81,9 @@ public class Combatant
             Attributes = creature.Attributes,
             Abilities = allAbilities,
             Gold = creature.Gold,
-            CurrentHp = Math.Max(1, startingAttributes.MaximumHp),
-            CurrentAp = startingAttributes.MaximumAp,
-            CurrentMp = startingAttributes.MaximumMp,
+            CurrentHp = Math.Clamp(creature.CurrentHp, 1, startingAttributes.MaximumHp),
+            CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
+            CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),
             Inventory = inventory,
             WeaponProficiencies = Enum.GetValues<WeaponType>()
                 .ToDictionary(type => type, type => weaponProficiencies.GetValueOrDefault(type)),

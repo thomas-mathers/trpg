@@ -96,6 +96,9 @@ public class CombatEngineTests
         creature.Attributes.MaximumHp = StatFormulas.CalculateMaximumHp(creature.Attributes);
         creature.Attributes.MaximumAp = StatFormulas.CalculateMaximumAp(creature.Attributes);
         creature.Attributes.MaximumMp = StatFormulas.CalculateMaximumMp(creature.Attributes);
+        creature.CurrentHp = creature.Attributes.MaximumHp;
+        creature.CurrentAp = creature.Attributes.MaximumAp;
+        creature.CurrentMp = creature.Attributes.MaximumMp;
         var inventory = weapon != null ? new Item[] { weapon } : [];
         return Combatant.FromCreature(
             creature,

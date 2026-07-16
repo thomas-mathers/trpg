@@ -1,5 +1,7 @@
 using TRPG.Application.Abilities;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Game.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Data.Models;
@@ -21,6 +23,8 @@ internal class StartCombatCommandHandler(
     GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
     GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
     GetCreatureAbilitiesQueryHandler getCreatureAbilities,
+    GetPlaytimeQueryHandler getPlaytime,
+    ApplyPassiveRegenCommandHandler applyPassiveRegen,
     SetCombatantsCommandHandler setCombatants,
     AbilityDefinitions abilityDefinitions
 )
@@ -66,10 +70,30 @@ internal class StartCombatCommandHandler(
             );
         }
 
-        var playerCombatant = await BuildPlayerCombatant(player, command.WorldId, cancellationToken);
+        var enemyIds = nearby.Select(summary => summary.Id).ToArray();
+
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
+        await applyPassiveRegen.Handle(
+            new ApplyPassiveRegenCommand
+            {
+                CreatureIds = [player.Id, .. enemyIds],
+                Playtime = playtime,
+            },
+            cancellationToken
+        );
+
+        player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = command.PlayerId },
+            cancellationToken
+        );
+
+        var playerCombatant = await BuildPlayerCombatant(player!, command.WorldId, cancellationToken);
 
         var enemyCreatures = await getCreaturesByIds.Handle(
-            new GetCreaturesByIdsQuery { Ids = nearby.Select(summary => summary.Id).ToArray() },
+            new GetCreaturesByIdsQuery { Ids = enemyIds },
             cancellationToken
         );
         var enemyCombatants = enemyCreatures

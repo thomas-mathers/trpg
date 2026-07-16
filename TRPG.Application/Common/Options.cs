@@ -27,6 +27,13 @@ public class CombatOptions
     public float IntelligenceDamageBonusPerPoint { get; init; } = 0.01f;
 }
 
+public class CreatureRegenOptions
+{
+    public float HpRegenPercentPerHour { get; init; } = 0.05f;
+    public float ApRegenPercentPerHour { get; init; } = 0.10f;
+    public float MpRegenPercentPerHour { get; init; } = 0.05f;
+}
+
 public class CreatureGeneratorOptions
 {
     public int MaxLevel { get; init; } = 100;

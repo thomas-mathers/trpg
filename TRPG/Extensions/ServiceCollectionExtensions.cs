@@ -164,6 +164,7 @@ internal static class ServiceCollectionExtensions
             )
             .Configure<CombatOptions>(configuration.GetSection("Combat"))
             .Configure<CreatureGeneratorOptions>(configuration.GetSection("CreatureGenerator"))
+            .Configure<CreatureRegenOptions>(configuration.GetSection("CreatureRegen"))
             .Configure<GameClockOptions>(configuration.GetSection("GameClock"));
     }
 

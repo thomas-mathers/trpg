@@ -61,6 +61,8 @@ internal static class MonsterGenerator
         var level = Random.Shared.Next(MinimumLevel, MaximumLevel + 1);
         var gender = Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female;
 
+        var attributes = GetAttributes(level);
+
         var creature = new Creature
         {
             WorldId = input.WorldId,
@@ -74,7 +76,11 @@ internal static class MonsterGenerator
             RoomId = input.RoomId,
             Level = level,
             Biography = Descriptions[creatureType],
-            Attributes = GetAttributes(level),
+            Attributes = attributes,
+            CurrentHp = attributes.MaximumHp,
+            CurrentAp = attributes.MaximumAp,
+            CurrentMp = attributes.MaximumMp,
+            LastRegenPlaytime = TimeSpan.Zero,
         };
 
         return new CreatureGeneratorResult(creature, [], [], [], []);

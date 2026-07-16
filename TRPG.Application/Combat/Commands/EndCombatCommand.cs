@@ -1,7 +1,7 @@
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Game.Queries;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data;
-using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Commands;
 
@@ -16,7 +16,8 @@ internal class EndCombatCommandHandler(
     TrpgDbContext context,
     AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     ApplyCombatRewardsCommandHandler applyCombatRewards,
-    UpdateCreaturesCommandHandler updateCreatures,
+    GetPlaytimeQueryHandler getPlaytime,
+    PersistCombatantResourcesCommandHandler persistCombatantResources,
     ClearCombatantsCommandHandler clearCombatants
 )
 {
@@ -48,21 +49,16 @@ internal class EndCombatCommandHandler(
                 },
                 cancellationToken
             );
-
-            var enemyCreatureIds = state
-                .Combatants.Where(c => !c.IsPlayer)
-                .Select(c => c.Id)
-                .ToArray();
-
-            await updateCreatures.Handle(
-                new UpdateCreaturesCommand
-                {
-                    CreatureIds = enemyCreatureIds,
-                    State = CreatureState.Dead,
-                },
-                cancellationToken
-            );
         }
+
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
+        await persistCombatantResources.Handle(
+            new PersistCombatantResourcesCommand { Combatants = state.Combatants, Playtime = playtime },
+            cancellationToken
+        );
 
         await clearCombatants.Handle(
             new ClearCombatantsCommand { SessionId = command.SessionId },

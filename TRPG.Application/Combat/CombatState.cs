@@ -17,6 +17,8 @@ public record CombatantState(
     bool IsPlayer,
     int CurrentHp,
     int MaximumHp,
+    int CurrentAp,
+    int CurrentMp,
     bool IsAlive,
     IReadOnlyList<string> Abilities,
     IReadOnlyDictionary<ConditionType, int> ActiveConditions
