@@ -14,6 +14,7 @@ public record SceneSnapshot(
     IReadOnlyCollection<NearbyPersonSnapshot> NearbyPeople,
     IReadOnlyCollection<NearbyDistrictSnapshot> NearbyDistricts,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyBuildings,
+    IReadOnlyCollection<NearbyBuildingSnapshot> NearbyDungeons,
     IReadOnlyCollection<NearbyPropSnapshot> NearbyProps,
     IReadOnlyCollection<NearbyExitSnapshot> Exits
 );

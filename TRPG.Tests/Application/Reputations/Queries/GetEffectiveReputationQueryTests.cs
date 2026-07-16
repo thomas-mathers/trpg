@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
@@ -21,7 +22,10 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
         _adjustReputation = new AdjustReputationCommandHandler(_context);
         _handler = new GetEffectiveReputationQueryHandler(
             _context,
-            new GetEffectiveReputationsQueryHandler(_context)
+            new GetEffectiveReputationsQueryHandler(
+                _context,
+                NullLogger<GetEffectiveReputationsQueryHandler>.Instance
+            )
         );
 
         _faction = Builders.MakeFaction();

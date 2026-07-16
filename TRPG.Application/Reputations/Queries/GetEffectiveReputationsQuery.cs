@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,7 +13,10 @@ internal class GetEffectiveReputationsQuery
     public required IReadOnlyDictionary<Guid, Guid[]> FactionIdsByCreature { get; init; }
 }
 
-internal class GetEffectiveReputationsQueryHandler(TrpgDbContext context)
+internal class GetEffectiveReputationsQueryHandler(
+    TrpgDbContext context,
+    ILogger<GetEffectiveReputationsQueryHandler> logger
+)
 {
     public async Task<IReadOnlyDictionary<Guid, int>> Handle(
         GetEffectiveReputationsQuery query,
@@ -22,6 +27,8 @@ internal class GetEffectiveReputationsQueryHandler(TrpgDbContext context)
         {
             return new Dictionary<Guid, int>();
         }
+
+        var stopwatch = Stopwatch.StartNew();
 
         var allFactionIds = query
             .TargetCreatureIds.SelectMany(id =>
@@ -53,7 +60,7 @@ internal class GetEffectiveReputationsQueryHandler(TrpgDbContext context)
             .Where(r => r.TargetType == ReputationTargetType.Creature)
             .ToDictionary(r => r.TargetId, r => r.Score);
 
-        return query.TargetCreatureIds.ToDictionary(
+        var result = query.TargetCreatureIds.ToDictionary(
             id => id,
             id =>
             {
@@ -64,5 +71,13 @@ internal class GetEffectiveReputationsQueryHandler(TrpgDbContext context)
                 return directScore + factionScore;
             }
         );
+
+        logger.LogInformation(
+            "[perf] GetEffectiveReputations for {CreatureCount} people took {ElapsedMs}ms",
+            query.TargetCreatureIds.Count,
+            stopwatch.ElapsedMilliseconds
+        );
+
+        return result;
     }
 }

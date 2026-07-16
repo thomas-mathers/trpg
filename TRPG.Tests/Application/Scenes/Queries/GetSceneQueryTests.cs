@@ -26,7 +26,10 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         _context = db.CreateContext();
         var cache = new MemoryCache(new MemoryCacheOptions());
         var getAllNearbyCreatures = new GetAllNearbyCreaturesQueryHandler(_context);
-        var getEffectiveReputations = new GetEffectiveReputationsQueryHandler(_context);
+        var getEffectiveReputations = new GetEffectiveReputationsQueryHandler(
+            _context,
+            NullLogger<GetEffectiveReputationsQueryHandler>.Instance
+        );
         _handler = new GetSceneQueryHandler(
             _context,
             new GetStateByIdQueryHandler(_context, cache),
@@ -155,5 +158,39 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var exit = Assert.Single(result.Room.Exits);
         Assert.Equal(destinationRoom.Name, exit.DestinationRoomName);
         Assert.False(exit.IsLocked);
+    }
+
+    [Fact]
+    public async Task Handle_SeparatesDungeonsFromOrdinaryBuildings_WhenOutdoors()
+    {
+        // Arrange
+        var shop = Builders.MakeBuilding(
+            _state.Id,
+            worldId: _worldId,
+            buildingType: BuildingType.Blacksmith
+        );
+        var cave = Builders.MakeBuilding(
+            _state.Id,
+            worldId: _worldId,
+            buildingType: BuildingType.Cave
+        );
+        _context.Buildings.AddRange(shop, cave);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = _worldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var building = Assert.Single(result.NearbyBuildings);
+        Assert.Equal(shop.Name, building.Name);
+        var dungeon = Assert.Single(result.NearbyDungeons);
+        Assert.Equal(cave.Name, dungeon.Name);
     }
 }

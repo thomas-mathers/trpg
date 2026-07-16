@@ -27,6 +27,18 @@ public enum BuildingType
     Tower,
 }
 
+public static class BuildingTypes
+{
+    public static readonly IReadOnlyCollection<BuildingType> Dungeon =
+    [
+        BuildingType.Cave,
+        BuildingType.Crypt,
+        BuildingType.Mine,
+        BuildingType.Ruins,
+        BuildingType.Tower,
+    ];
+}
+
 public class Building
 {
     public BuildingType BuildingType { get; init; }

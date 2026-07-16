@@ -81,7 +81,8 @@ public record SceneResult(
     ScenePlayerInfo Player,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<SceneCreatureInfo> NearbyPeople,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyDungeons
 );
 
 internal record SceneBootstrap(
@@ -104,7 +105,8 @@ internal record SceneLocationDetails(
     string? RegionDescription,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<SceneCreatureInfo> NearbyPeople,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyDungeons
 );
 
 internal class GetSceneQueryHandler(
@@ -172,7 +174,8 @@ internal class GetSceneQueryHandler(
             ),
             details.NearbyProps,
             details.NearbyPeople,
-            details.NearbyBuildings
+            details.NearbyBuildings,
+            details.NearbyDungeons
         );
     }
 
@@ -280,6 +283,7 @@ internal class GetSceneQueryHandler(
             null,
             nearbyProps,
             nearbyPeople,
+            [],
             []
         );
     }
@@ -314,8 +318,13 @@ internal class GetSceneQueryHandler(
                 )
                 : [];
 
-        var nearbyBuildings = buildings
-            .Concat(wildBuildings)
+        var allBuildings = buildings.Concat(wildBuildings).ToArray();
+        var nearbyBuildings = allBuildings
+            .Where(b => !BuildingTypes.Dungeon.Contains(b.BuildingType))
+            .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType.ToString()))
+            .ToArray();
+        var nearbyDungeons = allBuildings
+            .Where(b => BuildingTypes.Dungeon.Contains(b.BuildingType))
             .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType.ToString()))
             .ToArray();
 
@@ -327,7 +336,8 @@ internal class GetSceneQueryHandler(
             state?.Description,
             [],
             nearbyPeople,
-            nearbyBuildings
+            nearbyBuildings,
+            nearbyDungeons
         );
     }
 
@@ -385,7 +395,6 @@ internal class GetSceneQueryHandler(
             kv => kv.Value.FactionIds
         );
 
-        var reputationStopwatch = Stopwatch.StartNew();
         var reputationByCreature = await getEffectiveReputations.Handle(
             new GetEffectiveReputationsQuery
             {
@@ -394,11 +403,6 @@ internal class GetSceneQueryHandler(
                 FactionIdsByCreature = factionIdsByCreature,
             },
             cancellationToken
-        );
-        logger.LogInformation(
-            "[perf] Reputation lookups for {CreatureCount} people took {ElapsedMs}ms",
-            nearbyPeopleRaw.Count,
-            reputationStopwatch.ElapsedMilliseconds
         );
 
         return nearbyPeopleRaw

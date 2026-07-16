@@ -198,6 +198,7 @@ internal sealed class ChatHub(
             scene.City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type)).ToArray()
                 ?? [],
             scene.NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type)).ToArray(),
+            scene.NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type)).ToArray(),
             scene.NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type)).ToArray(),
             scene
                 .Room?.Exits.Select(e => new NearbyExitSnapshot(

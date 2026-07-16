@@ -143,6 +143,7 @@ internal sealed class Game(GameServerClient client)
         if (
             scene.NearbyPeople.Count == 0
             && scene.NearbyBuildings.Count == 0
+            && scene.NearbyDungeons.Count == 0
             && scene.Exits.Count == 0
             && scene.NearbyDistricts.Count == 0
             && scene.NearbyProps.Count == 0
@@ -178,6 +179,15 @@ internal sealed class Game(GameServerClient client)
             foreach (var building in scene.NearbyBuildings)
             {
                 Console.WriteLine($"  {building.Name, -25} {building.Type}");
+            }
+        }
+
+        if (scene.NearbyDungeons.Count > 0)
+        {
+            Console.WriteLine("Dungeons:");
+            foreach (var dungeon in scene.NearbyDungeons)
+            {
+                Console.WriteLine($"  {dungeon.Name, -25} {dungeon.Type}");
             }
         }
 
@@ -240,6 +250,15 @@ internal sealed class Game(GameServerClient client)
         if (building != null)
         {
             Console.WriteLine($"{building.Name} — {building.Type}");
+            return;
+        }
+
+        var dungeon = scene.NearbyDungeons.FirstOrDefault(d =>
+            d.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+        );
+        if (dungeon != null)
+        {
+            Console.WriteLine($"{dungeon.Name} — {dungeon.Type}");
             return;
         }
 

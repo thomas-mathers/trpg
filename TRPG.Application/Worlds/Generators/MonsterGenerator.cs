@@ -38,6 +38,9 @@ internal static class MonsterGenerator
         [CreatureType.Elemental] = "Raw elemental force bound loosely into a walking shape.",
     };
 
+    public static bool SupportsDungeonType(BuildingType buildingType) =>
+        MonsterTypesByDungeonType.ContainsKey(buildingType);
+
     public static IReadOnlyList<CreatureGeneratorResult> Generate(MonsterGeneratorInput input)
     {
         var monsterTypes = MonsterTypesByDungeonType[input.DungeonType];
