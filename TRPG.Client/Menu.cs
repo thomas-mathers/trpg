@@ -41,44 +41,50 @@ internal sealed class Menu(GameServerClient client, Game game)
 
     private async Task RunNew(CancellationToken cancellationToken)
     {
-        var playerName = PromptForString("Choose your name");
-        var creatureType = PromptForOption(
-            "Choose your race",
-            Enum.GetValues<Race>(),
+        var name = PromptForString("Choose your name");
+        var gender = PromptForOption(
+            "Choose your gender",
+            Enum.GetValues<Gender>(),
             r => r.ToString()
         );
+        var age = PromptForOption("Choose your age", Enum.GetValues<Age>(), r => r.ToString());
+        var race = PromptForOption("Choose your race", Enum.GetValues<Race>(), r => r.ToString());
         var profession = PromptForOption(
             "Choose your profession",
-            Enum.GetValues<Profession>(),
+            Enum.GetValues<PlayerClass>(),
             r => r.ToString()
         );
 
-        var request = PromptWorldGenerationParameters(playerName, creatureType, profession);
+        var request = PromptWorldGenerationParameters(name, gender, age, race, profession);
 
         Console.WriteLine("Generating world...");
 
         var world = await client.CreateWorld(request, cancellationToken);
 
         Console.WriteLine($"\nWorld \"{world.WorldName}\" generated.");
-        Console.WriteLine($"Entering \"{world.WorldName}\" as {playerName} the {profession}...");
+        Console.WriteLine($"Entering \"{world.WorldName}\" as {name} the {profession}...");
 
         await client.StartSession(world.WorldId, cancellationToken);
         await game.Run(cancellationToken);
     }
 
     private static CreateWorldRequest PromptWorldGenerationParameters(
-        string playerName,
-        Race creatureType,
-        Profession profession
+        string name,
+        Gender gender,
+        Age age,
+        Race race,
+        PlayerClass playerClass
     )
     {
         Console.WriteLine("Configure generation (press Enter to use defaults):");
 
         return new CreateWorldRequest
         {
-            PlayerName = playerName,
-            Race = creatureType,
-            Profession = profession,
+            PlayerName = name,
+            Race = race,
+            Gender = gender,
+            Age = age,
+            PlayerClass = playerClass,
             Description = PromptForString("  Description", WorldGenerationDefaults.Description),
             MinCityStates = PromptForInt(
                 "  City states min",

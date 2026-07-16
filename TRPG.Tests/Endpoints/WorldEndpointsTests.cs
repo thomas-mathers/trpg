@@ -31,8 +31,10 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         var request = new CreateWorldRequest
         {
             PlayerName = "Test Player",
+            Gender = Gender.Male,
+            Age = Age.Teenager,
             Race = Race.Human,
-            Profession = Profession.Knight,
+            PlayerClass = PlayerClass.Knight,
             MinCityStates = 1,
             MaxCityStates = 1,
             MinRuralStates = 5,

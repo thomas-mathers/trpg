@@ -1,5 +1,18 @@
 namespace TRPG.Contracts;
 
+public enum Gender
+{
+    Male,
+    Female,
+}
+
+public enum Age
+{
+    Teenager = 18,
+    MiddleAged = 40,
+    Old = 75,
+}
+
 public enum Race
 {
     Human,
@@ -10,30 +23,23 @@ public enum Race
     Gnome,
 }
 
-public enum Profession
+public enum PlayerClass
 {
     Knight,
     Rogue,
     Ranger,
     Mage,
     Cleric,
-    Mercenary,
-    Alchemist,
-    Blacksmith,
-    Scholar,
-    Merchant,
-    Politician,
-    StableMaster,
-    Bartender,
-    Guard,
 }
 
 public record CreateWorldRequest
 {
     public required string PlayerName { get; init; }
+    public required Gender Gender { get; init; }
+    public required Age Age { get; init; }
     public required Race Race { get; init; }
-    public required Profession Profession { get; init; }
-    public string Description { get; init; }
+    public required PlayerClass PlayerClass { get; init; }
+    public string Description { get; init; } = "";
     public int MinCityStates { get; init; }
     public int MaxCityStates { get; init; }
     public int MinRuralStates { get; init; }

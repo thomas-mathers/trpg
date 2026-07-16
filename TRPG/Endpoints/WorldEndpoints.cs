@@ -40,9 +40,11 @@ internal static class WorldEndpoints
                 MaxHouseholdSize = request.MaxHouseholdSize,
                 FactionCount = request.FactionCount,
             },
-            PlayerRace = request.Race,
-            PlayerProfession = request.Profession,
-            PlayerName = request.PlayerName,
+            Race = request.Race,
+            PlayerClass = request.PlayerClass,
+            Name = request.PlayerName,
+            Age = request.Age,
+            Gender = request.Gender,
         };
 
         var result = await createWorld.Handle(command, cancellationToken);

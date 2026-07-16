@@ -1,17 +1,20 @@
+using TRPG.Application.Game;
 using TRPG.Application.Worlds.Generators;
+using TRPG.Application.Worlds.Mappers;
 using TRPG.Contracts;
 using TRPG.Data.Models;
-using DomainProfession = TRPG.Data.Models.Profession;
-using Profession = TRPG.Contracts.Profession;
+using Gender = TRPG.Contracts.Gender;
 
 namespace TRPG.Application.Worlds.Commands;
 
 public class CreateWorldCommand
 {
     public required WorldGeneratorInput WorldInput { get; init; }
-    public required Race PlayerRace { get; init; }
-    public required Profession PlayerProfession { get; init; }
-    public required string PlayerName { get; init; }
+    public required string Name { get; init; }
+    public required Gender Gender { get; init; }
+    public required Age Age { get; init; }
+    public required Race Race { get; init; }
+    public required PlayerClass PlayerClass { get; init; }
 }
 
 public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);
@@ -27,12 +30,13 @@ public class CreateWorldCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var playerCreatureType = ToCreatureType(command.PlayerRace);
-        var playerProfession = ToDomainProfession(command.PlayerProfession);
+        var creatureType = command.Race.ToCreatureType();
+        var profession = command.PlayerClass.ToProfession();
 
         var worldResult = await worldGenerator.Generate(command.WorldInput, cancellationToken);
 
-        var homeCountry = worldResult.Countries.First(c => c.DominantRace == playerCreatureType);
+        var homeCountry = worldResult.Countries.First(c => c.DominantRace == creatureType);
+
         var startingCity = worldResult.Cities.First(c =>
             c.IsCapital && c.CountryId == homeCountry.Id
         );
@@ -41,15 +45,20 @@ public class CreateWorldCommandHandler(
             d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter
         );
 
+        var birthYear = GameClock.EpochYear - (int)command.Age;
+
         var playerResult = creatureGenerator.Generate(
             new CreatureGeneratorInput(
-                CreatureType: playerCreatureType,
-                Profession: playerProfession,
+                CreatureType: creatureType,
+                Profession: profession,
                 WorldId: worldResult.World.Id,
                 BirthStateId: startingState.Id,
                 StateId: startingState.Id,
                 Level: 1,
-                Name: command.PlayerName
+                Name: command.Name,
+                Gender: command.Gender.ToGender(),
+                MinBirthYear: birthYear,
+                MaxBirthYear: birthYear
             )
         );
         playerResult.Creature.CityId = startingCity.Id;
@@ -67,36 +76,4 @@ public class CreateWorldCommandHandler(
             worldResult.World.Name
         );
     }
-
-    private static CreatureType ToCreatureType(Race race) =>
-        race switch
-        {
-            Race.Human => CreatureType.Human,
-            Race.Elf => CreatureType.Elf,
-            Race.Dwarf => CreatureType.Dwarf,
-            Race.Orc => CreatureType.Orc,
-            Race.Halfling => CreatureType.Halfling,
-            Race.Gnome => CreatureType.Gnome,
-            _ => throw new ArgumentOutOfRangeException(nameof(race), race, null),
-        };
-
-    private static DomainProfession ToDomainProfession(Profession profession) =>
-        profession switch
-        {
-            Profession.Knight => DomainProfession.Knight,
-            Profession.Rogue => DomainProfession.Rogue,
-            Profession.Ranger => DomainProfession.Ranger,
-            Profession.Mage => DomainProfession.Mage,
-            Profession.Cleric => DomainProfession.Cleric,
-            Profession.Mercenary => DomainProfession.Mercenary,
-            Profession.Alchemist => DomainProfession.Alchemist,
-            Profession.Blacksmith => DomainProfession.Blacksmith,
-            Profession.Scholar => DomainProfession.Scholar,
-            Profession.Merchant => DomainProfession.Merchant,
-            Profession.Politician => DomainProfession.Politician,
-            Profession.StableMaster => DomainProfession.StableMaster,
-            Profession.Bartender => DomainProfession.Bartender,
-            Profession.Guard => DomainProfession.Guard,
-            _ => throw new ArgumentOutOfRangeException(nameof(profession), profession, null),
-        };
 }

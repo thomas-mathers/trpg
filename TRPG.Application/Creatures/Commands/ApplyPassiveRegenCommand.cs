@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common;
-using TRPG.Application.Creatures;
 using TRPG.Application.Game;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -40,7 +39,10 @@ internal class ApplyPassiveRegenCommandHandler(
             .ToArrayAsync(cancellationToken);
         var equippedByCreatureId = equippedItems
             .GroupBy(i => i.CreatureId)
-            .ToDictionary(g => g.Key, g => (IReadOnlyCollection<Item>)g.Select(i => i.Item).ToArray());
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyCollection<Item>)g.Select(i => i.Item).ToArray()
+            );
 
         foreach (var creature in creatures)
         {
@@ -50,7 +52,12 @@ internal class ApplyPassiveRegenCommandHandler(
                 [],
                 equipped
             );
-            ApplyPassiveRegen(creature, command.Playtime, effectiveAttributes, optionsSnapshot.Value);
+            ApplyPassiveRegen(
+                creature,
+                command.Playtime,
+                effectiveAttributes,
+                optionsSnapshot.Value
+            );
         }
 
         await context.SaveChangesAsync(cancellationToken);
