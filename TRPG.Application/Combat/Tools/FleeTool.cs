@@ -7,15 +7,13 @@ using TRPG.Application.Combat.Queries;
 using TRPG.Application.Game;
 using TRPG.Application.Tools;
 using TRPG.Application.Tools.Common;
-using TRPG.Application.WeaponProficiency.Commands;
 
 namespace TRPG.Application.Combat.Tools;
 
 internal class FleeTool(
     GameTurnContext turnContext,
-    AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     GetCombatantsQueryHandler getCombatants,
-    ClearCombatantsCommandHandler clearCombatants,
+    EndCombatCommandHandler endCombat,
     CombatEngine combatEngine,
     ILogger<FleeTool> logger
 ) : IGameTool
@@ -32,7 +30,7 @@ internal class FleeTool(
         var stopwatch = Stopwatch.StartNew();
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery { Lock = turnContext.Lock! },
+            new GetCombatantsQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
         if (combatants is not { Count: > 0 })
@@ -42,18 +40,13 @@ internal class FleeTool(
 
         var state = combatEngine.ResolveFlee(combatants);
 
-        var playerId = state.Combatants.Single(c => c.IsPlayer).Id;
-        await adjustWeaponProficiencies.Handle(
-            new AdjustWeaponProficienciesCommand
+        await endCombat.Handle(
+            new EndCombatCommand
             {
+                SessionId = turnContext.SessionId,
                 WorldId = turnContext.WorldId,
-                CreatureId = playerId,
-                ProficiencyDeltas = state.WeaponSwingCounts,
+                State = state,
             },
-            cancellationToken
-        );
-        await clearCombatants.Handle(
-            new ClearCombatantsCommand { Lock = turnContext.Lock! },
             cancellationToken
         );
 

@@ -63,7 +63,7 @@ internal class StartConversationTool(
         }
 
         var snapshot = await getGameSession.Handle(
-            new GetGameSessionQuery { Lock = turnContext.Lock! },
+            new GetGameSessionQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
         if (snapshot.OpenConversationCreatureIdsByName.ContainsKey(npc.Name))
@@ -82,7 +82,7 @@ internal class StartConversationTool(
         await updateGameSession.Handle(
             new UpdateGameSessionCommand
             {
-                Lock = turnContext.Lock!,
+                SessionId = turnContext.SessionId,
                 OpenConversationCreatureIdsByName = snapshot.OpenConversationCreatureIdsByName,
             },
             cancellationToken

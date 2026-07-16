@@ -1,28 +1,32 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Data;
 
 namespace TRPG.Application.Game.Commands;
 
 internal class DeleteGameSessionCommand
 {
-    public required GameSessionLock Lock { get; init; }
+    public required Guid SessionId { get; init; }
 }
 
-internal class DeleteGameSessionCommandHandler
+internal class DeleteGameSessionCommandHandler(TrpgDbContext context)
 {
     public async Task Handle(
         DeleteGameSessionCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        await using var context = GameSessionDbContextFactory.Create(command.Lock.Connection);
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
         await context
-            .ChatMessages.Where(m => m.SessionId == command.Lock.SessionId)
+            .ChatMessages.Where(m => m.SessionId == command.SessionId)
             .ExecuteDeleteAsync(cancellationToken);
         await context
-            .Combatants.Where(c => c.SessionId == command.Lock.SessionId)
+            .Combatants.Where(c => c.SessionId == command.SessionId)
             .ExecuteDeleteAsync(cancellationToken);
         await context
-            .GameSessions.Where(s => s.Id == command.Lock.SessionId)
+            .GameSessions.Where(s => s.Id == command.SessionId)
             .ExecuteDeleteAsync(cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
     }
 }

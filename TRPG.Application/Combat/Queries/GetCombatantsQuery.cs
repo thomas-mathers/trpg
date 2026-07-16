@@ -1,19 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Abilities;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Game;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
+using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Queries;
 
 internal class GetCombatantsQuery
 {
-    public required GameSessionLock Lock { get; init; }
+    public required Guid SessionId { get; init; }
 }
 
 internal class GetCombatantsQueryHandler(
+    TrpgDbContext context,
     GetCreatureByIdQueryHandler getCreatureById,
     GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
     GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
@@ -26,10 +27,9 @@ internal class GetCombatantsQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        await using var context = GameSessionDbContextFactory.Create(query.Lock.Connection);
         var rows = await context
             .Combatants.AsNoTracking()
-            .Where(c => c.SessionId == query.Lock.SessionId)
+            .Where(c => c.SessionId == query.SessionId)
             .ToArrayAsync(cancellationToken);
 
         var combatants = new List<Combatant>();

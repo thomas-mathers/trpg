@@ -17,6 +17,8 @@ public class DropWorldCommandHandler(TrpgDbContext context)
     {
         var worldId = command.WorldId;
 
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
         await context
             .ContainerItems.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
@@ -86,5 +88,7 @@ public class DropWorldCommandHandler(TrpgDbContext context)
             .Creatures.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
         await context.Worlds.Where(x => x.Id == worldId).ExecuteDeleteAsync(cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
     }
 }

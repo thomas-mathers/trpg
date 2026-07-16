@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
 using TRPG.Application.Game.Commands;
+using TRPG.Application.Game.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts;
 using TRPG.Data.Models;
@@ -13,27 +14,50 @@ namespace TRPG.Hubs;
 internal sealed class ChatHub(
     IServiceProvider serviceProvider,
     EndGameSessionCommandHandler endGameSession,
+    GetGameSessionQueryHandler getGameSession,
+    WorldConnectionRegistry worldConnections,
     GetCreatureByIdQueryHandler getCreatureById,
     GetSceneWithCatchUpQueryHandler getSceneWithCatchUp
 ) : Hub
 {
     private const string SessionIdKey = "SessionId";
+    private const string WorldIdKey = "WorldId";
 
-    public override Task OnConnectedAsync()
+    public override async Task OnConnectedAsync()
     {
         var sessionId = GetSessionIdFromQuery();
         Context.Items[SessionIdKey] = sessionId;
-        return base.OnConnectedAsync();
+
+        var worldId = await ResolveWorldId(sessionId);
+        Context.Items[WorldIdKey] = worldId;
+
+        if (!worldConnections.TryAdd(worldId, Context.ConnectionId))
+        {
+            throw new HubException("Another connection is already active for this world.");
+        }
+
+        await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        if (Context.Items[WorldIdKey] is Guid worldId)
+        {
+            worldConnections.Remove(worldId, Context.ConnectionId);
+        }
+
         if (Context.Items[SessionIdKey] is Guid sessionId)
         {
             await endGameSession.Handle(new EndGameSessionCommand { SessionId = sessionId });
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    private async Task<Guid> ResolveWorldId(Guid sessionId)
+    {
+        var snapshot = await getGameSession.Handle(new GetGameSessionQuery { SessionId = sessionId });
+        return snapshot.WorldId;
     }
 
     public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken)

@@ -3,15 +3,19 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using TRPG.Data;
 
 namespace TRPG.Application.Game.Queries;
 
 internal class GetChatMessagesQuery
 {
-    public required GameSessionLock Lock { get; init; }
+    public required Guid SessionId { get; init; }
 }
 
-internal class GetChatMessagesQueryHandler(ILogger<GetChatMessagesQueryHandler> logger)
+internal class GetChatMessagesQueryHandler(
+    TrpgDbContext context,
+    ILogger<GetChatMessagesQueryHandler> logger
+)
 {
     public async Task<IReadOnlyList<ChatMessage>> Handle(
         GetChatMessagesQuery query,
@@ -19,10 +23,9 @@ internal class GetChatMessagesQueryHandler(ILogger<GetChatMessagesQueryHandler> 
     )
     {
         var stopwatch = Stopwatch.StartNew();
-        await using var context = GameSessionDbContextFactory.Create(query.Lock.Connection);
         var rows = await context
             .ChatMessages.AsNoTracking()
-            .Where(m => m.SessionId == query.Lock.SessionId)
+            .Where(m => m.SessionId == query.SessionId)
             .OrderBy(m => m.Ordinal)
             .ToArrayAsync(cancellationToken);
         var queryMs = stopwatch.ElapsedMilliseconds;

@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +21,21 @@ public sealed class EndpointTestFixture : IAsyncLifetime
     public HttpClient CreateClient() => Factory.CreateClient();
 
     public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();
+
+    public HubConnection CreateHubConnection(Guid sessionId)
+    {
+        var uri = new Uri(Factory.Server.BaseAddress, $"/hubs/chat?sessionId={sessionId}");
+        return new HubConnectionBuilder()
+            .WithUrl(
+                uri,
+                options =>
+                {
+                    options.HttpMessageHandlerFactory = _ => Factory.Server.CreateHandler();
+                    options.Transports = HttpTransportType.LongPolling;
+                }
+            )
+            .Build();
+    }
 
     private WebApplicationFactory<Program> Factory =>
         _factory

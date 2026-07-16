@@ -30,7 +30,7 @@ internal class LookTool(
         var stopwatch = Stopwatch.StartNew();
 
         var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { Lock = turnContext.Lock! },
+            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
         var currentDate = GameClock.GetCurrentInGameDate(playtime);

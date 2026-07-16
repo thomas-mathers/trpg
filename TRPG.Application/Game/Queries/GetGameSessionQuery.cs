@@ -1,37 +1,34 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using TRPG.Data;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Game.Queries;
 
-internal record GameSessionSnapshot(
-    Guid WorldId,
-    Guid PlayerId,
-    TimeSpan Playtime,
-    Dictionary<string, Guid> OpenConversationCreatureIdsByName
-);
-
 internal class GetGameSessionQuery
 {
-    public required GameSessionLock Lock { get; init; }
+    public required Guid SessionId { get; init; }
 }
 
-internal class GetGameSessionQueryHandler(ILogger<GetGameSessionQueryHandler> logger)
+internal class GetGameSessionQueryHandler(
+    TrpgDbContext context,
+    ILogger<GetGameSessionQueryHandler> logger
+)
 {
-    public async Task<GameSessionSnapshot> Handle(
+    public async Task<GameSession> Handle(
         GetGameSessionQuery query,
         CancellationToken cancellationToken = default
     )
     {
         var stopwatch = Stopwatch.StartNew();
-        await using var context = GameSessionDbContextFactory.Create(query.Lock.Connection);
         var row = await context
             .GameSessions.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == query.Lock.SessionId, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == query.SessionId, cancellationToken);
 
         if (row == null)
         {
-            throw new GameSessionNotFoundException(query.Lock.SessionId);
+            throw new GameSessionNotFoundException(query.SessionId);
         }
 
         logger.LogInformation(
@@ -39,11 +36,6 @@ internal class GetGameSessionQueryHandler(ILogger<GetGameSessionQueryHandler> lo
             stopwatch.ElapsedMilliseconds
         );
 
-        return new GameSessionSnapshot(
-            row.WorldId,
-            row.PlayerId,
-            row.Playtime,
-            row.OpenConversationCreatureIdsByName
-        );
+        return row;
     }
 }

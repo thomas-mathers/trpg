@@ -4,7 +4,7 @@ namespace TRPG.Application.Game.Commands;
 
 internal class AdvanceTimeCommand
 {
-    public required GameSessionLock Lock { get; init; }
+    public required Guid SessionId { get; init; }
     public required TimeSpan Delta { get; init; }
 }
 
@@ -19,12 +19,12 @@ internal class AdvanceTimeCommandHandler(
     )
     {
         var currentPlaytime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { Lock = command.Lock },
+            new GetPlaytimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
         var playtime = currentPlaytime + command.Delta;
         await updateGameSession.Handle(
-            new UpdateGameSessionCommand { Lock = command.Lock, Playtime = playtime },
+            new UpdateGameSessionCommand { SessionId = command.SessionId, Playtime = playtime },
             cancellationToken
         );
 

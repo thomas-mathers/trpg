@@ -1,23 +1,22 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Game;
+using TRPG.Data;
 
 namespace TRPG.Application.Combat.Commands;
 
 internal class ClearCombatantsCommand
 {
-    public required GameSessionLock Lock { get; init; }
+    public required Guid SessionId { get; init; }
 }
 
-internal class ClearCombatantsCommandHandler
+internal class ClearCombatantsCommandHandler(TrpgDbContext context)
 {
     public async Task Handle(
         ClearCombatantsCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        await using var context = GameSessionDbContextFactory.Create(command.Lock.Connection);
         await context
-            .Combatants.Where(c => c.SessionId == command.Lock.SessionId)
+            .Combatants.Where(c => c.SessionId == command.SessionId)
             .ExecuteDeleteAsync(cancellationToken);
     }
 }

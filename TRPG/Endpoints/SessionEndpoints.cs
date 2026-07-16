@@ -69,7 +69,6 @@ internal static class SessionEndpoints
     private static async Task<IResult> Wait(
         Guid sessionId,
         WaitRequest request,
-        GameSessionLocks sessionLocks,
         AdvanceTimeCommandHandler advanceTime,
         CancellationToken cancellationToken
     )
@@ -79,11 +78,10 @@ internal static class SessionEndpoints
             return Results.BadRequest();
         }
 
-        await using var @lock = await sessionLocks.Acquire(sessionId, cancellationToken);
         var bankedPlaytime = await advanceTime.Handle(
             new AdvanceTimeCommand
             {
-                Lock = @lock,
+                SessionId = sessionId,
                 Delta = request.Hours * GameClock.RealTimePerInGameHour,
             },
             cancellationToken

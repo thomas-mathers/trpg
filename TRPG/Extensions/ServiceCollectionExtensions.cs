@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Anthropic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
@@ -10,6 +12,7 @@ using TRPG.Application.Common;
 using TRPG.Application.Game;
 using TRPG.Application.Tools.Common;
 using TRPG.Data;
+using TRPG.Hubs;
 using ZLogger;
 using ZLogger.Providers;
 
@@ -32,12 +35,29 @@ internal static class ServiceCollectionExtensions
                         $"trpg_{timestamp.LocalDateTime:yyyyMMdd}_{sequence:000}.log"
                     );
                 options.RollingInterval = RollingInterval.Day;
+                options.IncludeScopes = true;
                 options.UsePlainTextFormatter(formatter =>
                 {
                     formatter.SetPrefixFormatter(
-                        $"{0:yyyy-MM-dd HH:mm:ss} [{1}] {2}: ",
+                        $"{0:yyyy-MM-dd HH:mm:ss} [{1}] {2}{3}: ",
                         (in template, in info) =>
-                            template.Format(info.Timestamp.Local, info.LogLevel, info.Category)
+                        {
+                            var scopeText = "";
+                            if (info.ScopeState != null)
+                            {
+                                foreach (var property in info.ScopeState.Properties)
+                                {
+                                    scopeText += $" {property.Key}={property.Value}";
+                                }
+                            }
+
+                            template.Format(
+                                info.Timestamp.Local,
+                                info.LogLevel,
+                                info.Category,
+                                scopeText
+                            );
+                        }
                     );
                 });
             });
@@ -89,6 +109,10 @@ internal static class ServiceCollectionExtensions
                     );
                     return CreateChatClient(gameplay.Provider, gameplay.Model, ollamaUri)
                         .AsBuilder()
+                        .Use(innerClient => new LoggingChatClient(
+                            innerClient,
+                            loggerFactory.CreateLogger<LoggingChatClient>()
+                        ))
                         .UseFunctionInvocation(
                             loggerFactory,
                             configure: client =>
@@ -160,6 +184,35 @@ internal static class ServiceCollectionExtensions
 
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {
-        return serviceCollection.AddScoped<GameTurnContext>();
+        return serviceCollection
+            .AddScoped<GameTurnContext>()
+            .AddSingleton<WorldConnectionRegistry>();
+    }
+}
+
+internal sealed class LoggingChatClient(IChatClient innerClient, ILogger<LoggingChatClient> logger)
+    : DelegatingChatClient(innerClient)
+{
+    public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var updateCount = 0;
+        await foreach (
+            var update in base.GetStreamingResponseAsync(messages, options, cancellationToken)
+        )
+        {
+            updateCount++;
+            yield return update;
+        }
+
+        logger.LogInformation(
+            "[perf] Underlying model call took {ElapsedMs}ms, {UpdateCount} update(s)",
+            stopwatch.ElapsedMilliseconds,
+            updateCount
+        );
     }
 }

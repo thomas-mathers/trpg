@@ -3,17 +3,21 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using TRPG.Data;
 using ChatMessageRow = TRPG.Data.Models.ChatMessage;
 
 namespace TRPG.Application.Game.Commands;
 
 internal class AppendChatMessagesCommand
 {
-    public required GameSessionLock Lock { get; init; }
+    public required Guid SessionId { get; init; }
     public required IReadOnlyList<ChatMessage> Messages { get; init; }
 }
 
-internal class AppendChatMessagesCommandHandler(ILogger<AppendChatMessagesCommandHandler> logger)
+internal class AppendChatMessagesCommandHandler(
+    TrpgDbContext context,
+    ILogger<AppendChatMessagesCommandHandler> logger
+)
 {
     public async Task<int> Handle(
         AppendChatMessagesCommand command,
@@ -21,10 +25,9 @@ internal class AppendChatMessagesCommandHandler(ILogger<AppendChatMessagesComman
     )
     {
         var stopwatch = Stopwatch.StartNew();
-        await using var context = GameSessionDbContextFactory.Create(command.Lock.Connection);
         var nextOrdinal =
             await context
-                .ChatMessages.Where(m => m.SessionId == command.Lock.SessionId)
+                .ChatMessages.Where(m => m.SessionId == command.SessionId)
                 .MaxAsync(m => (int?)m.Ordinal, cancellationToken)
             ?? -1;
         nextOrdinal++;
@@ -35,7 +38,7 @@ internal class AppendChatMessagesCommandHandler(ILogger<AppendChatMessagesComman
             context.ChatMessages.Add(
                 new ChatMessageRow
                 {
-                    SessionId = command.Lock.SessionId,
+                    SessionId = command.SessionId,
                     Ordinal = nextOrdinal,
                     Role = message.Role.Value,
                     MessageJson = JsonSerializer.Serialize(message, AIJsonUtilities.DefaultOptions),

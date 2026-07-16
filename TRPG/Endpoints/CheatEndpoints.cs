@@ -4,7 +4,6 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Game;
 using TRPG.Application.Game.Queries;
 
 namespace TRPG.Endpoints;
@@ -18,7 +17,6 @@ internal static class CheatEndpoints
 
     private static async Task<IResult> GrantAllAbilities(
         Guid sessionId,
-        GameSessionLocks sessionLocks,
         GetGameSessionQueryHandler getGameSession,
         GetCombatantsQueryHandler getCombatants,
         SetCombatantsCommandHandler setCombatants,
@@ -27,9 +25,8 @@ internal static class CheatEndpoints
         CancellationToken cancellationToken
     )
     {
-        await using var @lock = await sessionLocks.Acquire(sessionId, cancellationToken);
         var snapshot = await getGameSession.Handle(
-            new GetGameSessionQuery { Lock = @lock },
+            new GetGameSessionQuery { SessionId = sessionId },
             cancellationToken
         );
 
@@ -44,7 +41,7 @@ internal static class CheatEndpoints
         );
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery { Lock = @lock },
+            new GetCombatantsQuery { SessionId = sessionId },
             cancellationToken
         );
         if (combatants is { Count: > 0 })
@@ -58,7 +55,7 @@ internal static class CheatEndpoints
             }
 
             await setCombatants.Handle(
-                new SetCombatantsCommand { Lock = @lock, Combatants = combatants },
+                new SetCombatantsCommand { SessionId = sessionId, Combatants = combatants },
                 cancellationToken
             );
         }

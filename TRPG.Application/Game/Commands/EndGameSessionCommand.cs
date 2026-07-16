@@ -10,7 +10,6 @@ internal class EndGameSessionCommand
 
 internal class EndGameSessionCommandHandler(
     SetWorldPlaytimeCommandHandler setWorldPlaytime,
-    GameSessionLocks sessionLocks,
     GetGameSessionQueryHandler getGameSession,
     DeleteGameSessionCommandHandler deleteGameSession
 )
@@ -20,9 +19,8 @@ internal class EndGameSessionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        await using var @lock = await sessionLocks.Acquire(command.SessionId, cancellationToken);
         var snapshot = await getGameSession.Handle(
-            new GetGameSessionQuery { Lock = @lock },
+            new GetGameSessionQuery { SessionId = command.SessionId },
             cancellationToken
         );
 
@@ -36,7 +34,7 @@ internal class EndGameSessionCommandHandler(
         );
 
         await deleteGameSession.Handle(
-            new DeleteGameSessionCommand { Lock = @lock },
+            new DeleteGameSessionCommand { SessionId = command.SessionId },
             cancellationToken
         );
     }

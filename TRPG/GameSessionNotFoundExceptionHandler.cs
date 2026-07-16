@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using TRPG.Application.Game;
-using TRPG.Data.Models;
 
 namespace TRPG;
 

@@ -2,43 +2,24 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
-using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Tools;
 using TRPG.Application.Tools.Common;
-using TRPG.Application.WeaponProficiency.Commands;
-using TRPG.Application.WeaponProficiency.Queries;
-using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Tools;
 
 internal class AttackTool(
     GameTurnContext turnContext,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetCreaturesByIdsQueryHandler getCreaturesByIds,
-    GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
-    GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
-    GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
-    GetCreatureAbilitiesQueryHandler getCreatureAbilities,
-    AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
-    ApplyCombatRewardsCommandHandler applyCombatRewards,
-    UpdateCreaturesCommandHandler updateCreatureCommandHandler,
     GetCombatantsQueryHandler getCombatants,
     SetCombatantsCommandHandler setCombatants,
-    ClearCombatantsCommandHandler clearCombatants,
-    AbilityDefinitions abilityDefinitions,
+    StartCombatCommandHandler startCombat,
+    EndCombatCommandHandler endCombat,
     CombatEngine combatEngine,
     ILogger<AttackTool> logger
 ) : IGameTool
 {
-    private static readonly IReadOnlyCollection<CreatureType> HostileCreatureTypes =
-        Enum.GetValues<CreatureType>().Except(CreatureTypes.Humanoid).ToArray();
-
     public Delegate Invoke => InvokeAsync;
 
     [DisplayName("attack")]
@@ -62,14 +43,19 @@ internal class AttackTool(
         var stopwatch = Stopwatch.StartNew();
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery { Lock = turnContext.Lock! },
+            new GetCombatantsQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
         if (combatants is not { Count: > 0 })
         {
-            await StartFight(targetName, cancellationToken);
-            combatants = await getCombatants.Handle(
-                new GetCombatantsQuery { Lock = turnContext.Lock! },
+            combatants = await startCombat.Handle(
+                new StartCombatCommand
+                {
+                    SessionId = turnContext.SessionId,
+                    WorldId = turnContext.WorldId,
+                    PlayerId = turnContext.PlayerId,
+                    TargetName = targetName,
+                },
                 cancellationToken
             );
         }
@@ -78,12 +64,24 @@ internal class AttackTool(
 
         if (state.Outcome is CombatOutcome.Victory or CombatOutcome.Defeat or CombatOutcome.Fled)
         {
-            await EndFight(state, cancellationToken);
+            await endCombat.Handle(
+                new EndCombatCommand
+                {
+                    SessionId = turnContext.SessionId,
+                    WorldId = turnContext.WorldId,
+                    State = state,
+                },
+                cancellationToken
+            );
         }
         else
         {
             await setCombatants.Handle(
-                new SetCombatantsCommand { Lock = turnContext.Lock!, Combatants = combatants! },
+                new SetCombatantsCommand
+                {
+                    SessionId = turnContext.SessionId,
+                    Combatants = combatants!,
+                },
                 cancellationToken
             );
         }
@@ -96,158 +94,5 @@ internal class AttackTool(
             JsonSerializer.Serialize(result, ToolJsonOptions.Options)
         );
         return result;
-    }
-
-    private async Task StartFight(string targetName, CancellationToken cancellationToken)
-    {
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
-            cancellationToken
-        );
-
-        var nearby = await getAllNearbyCreatures.Handle(
-            new GetAllNearbyCreaturesQuery
-            {
-                Location = new CreatureLocation(
-                    player!.WorldId,
-                    player.RoomId,
-                    player.StateId,
-                    player.DistrictId
-                ),
-                ExcludingCreatureId = player.Id,
-                CreatureTypes = HostileCreatureTypes,
-                IncludeDead = false,
-            },
-            cancellationToken
-        );
-
-        if (nearby.Count == 0)
-        {
-            throw new InvalidOperationException("There's nothing here to attack.");
-        }
-
-        if (nearby.All(c => c.Name != targetName))
-        {
-            throw new InvalidOperationException(
-                $"No '{targetName}' found nearby to attack. Call look to see what's around."
-            );
-        }
-
-        var playerCombatant = await BuildPlayerCombatant(player, cancellationToken);
-
-        var enemyCreatures = await getCreaturesByIds.Handle(
-            new GetCreaturesByIdsQuery { Ids = nearby.Select(summary => summary.Id).ToArray() },
-            cancellationToken
-        );
-        var enemyCombatants = enemyCreatures
-            .Select(enemyCreature =>
-                Combatant.FromCreature(
-                    enemyCreature,
-                    [],
-                    abilityDefinitions.BasicAttack,
-                    isPlayer: false,
-                    [],
-                    []
-                )
-            )
-            .ToList();
-
-        await setCombatants.Handle(
-            new SetCombatantsCommand
-            {
-                Lock = turnContext.Lock!,
-                Combatants = new[] { playerCombatant }.Concat(enemyCombatants).ToArray(),
-            },
-            cancellationToken
-        );
-    }
-
-    private async Task EndFight(CombatState state, CancellationToken cancellationToken)
-    {
-        var playerId = state.Combatants.Single(c => c.IsPlayer).Id;
-
-        await adjustWeaponProficiencies.Handle(
-            new AdjustWeaponProficienciesCommand
-            {
-                WorldId = turnContext.WorldId,
-                CreatureId = playerId,
-                ProficiencyDeltas = state.WeaponSwingCounts,
-            },
-            cancellationToken
-        );
-
-        if (state.Outcome == CombatOutcome.Victory)
-        {
-            await applyCombatRewards.Handle(
-                new ApplyCombatRewardsCommand
-                {
-                    CreatureId = playerId,
-                    ExperienceGained = state.XpGained ?? 0,
-                    GoldGained = state.GoldLooted ?? 0,
-                },
-                cancellationToken
-            );
-
-            var enemyCreatureIds = state
-                .Combatants.Where(c => !c.IsPlayer)
-                .Select(c => c.Id)
-                .ToArray();
-
-            await updateCreatureCommandHandler.Handle(
-                new UpdateCreaturesCommand
-                {
-                    CreatureIds = enemyCreatureIds,
-                    State = CreatureState.Dead,
-                },
-                cancellationToken
-            );
-        }
-
-        await clearCombatants.Handle(
-            new ClearCombatantsCommand { Lock = turnContext.Lock! },
-            cancellationToken
-        );
-    }
-
-    private async Task<Combatant> BuildPlayerCombatant(
-        Creature player,
-        CancellationToken cancellationToken
-    )
-    {
-        var inventoryItems = await getInventoryByCreatureId.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = player.Id },
-            cancellationToken
-        );
-        var equipped = inventoryItems
-            .Where(i => i.EquippedSlot != null)
-            .Select(i => i.Item)
-            .ToArray();
-
-        var weaponProficiencies = await getAllWeaponProficiencies.Handle(
-            new GetAllWeaponProficienciesQuery
-            {
-                WorldId = turnContext.WorldId,
-                CreatureId = player.Id,
-            },
-            cancellationToken
-        );
-
-        var abilityNames = await getCreatureAbilities.Handle(
-            new GetCreatureAbilitiesQuery { WorldId = turnContext.WorldId, CreatureId = player.Id },
-            cancellationToken
-        );
-        var abilities = abilityNames
-            .Select(abilityDefinitions.GetByName)
-            .OfType<Ability>()
-            .ToArray();
-
-        return Combatant.FromCreature(
-            player,
-            abilities,
-            abilityDefinitions.BasicAttack,
-            isPlayer: true,
-            equipped,
-            weaponProficiencies.ToDictionary()
-        );
     }
 }

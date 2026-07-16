@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common;
 using TRPG.Application.Game.Commands;
 using TRPG.Application.Game.Queries;
+using TRPG.Data;
 
 namespace TRPG.Application.Game;
 
@@ -19,8 +20,8 @@ public record TurnMetrics(string Response, long FirstTokenMs, long TotalMs, int 
 
 internal class GameTurnRunner(
     [FromKeyedServices(LlmRoleKeys.Gameplay)] IChatClient chatClient,
+    TrpgDbContext context,
     GameTurnContext turnContext,
-    GameSessionLocks sessionLocks,
     GetGameSessionQueryHandler getGameSession,
     GetOpenConversationsQueryHandler getOpenConversations,
     GetPlaytimeQueryHandler getPlaytime,
@@ -43,21 +44,23 @@ internal class GameTurnRunner(
         const string openingPrompt =
             "This is the start of the session. Call look now, then narrate the opening scene based on what it returns.";
 
-        await using var @lock = await BeginTurn(cancellationToken);
-        try
-        {
-            var inputOrdinal = await AppendUserMessage(@lock, openingPrompt, cancellationToken);
-            await foreach (var token in StreamReply(@lock, cancellationToken))
+        using var _ = logger.BeginScope(
+            new Dictionary<string, object>
             {
-                yield return token;
+                ["SessionId"] = turnContext.SessionId,
+                ["TurnId"] = Guid.NewGuid().ToString("N")[..8],
             }
+        );
 
-            await FinishTurn(@lock, inputOrdinal, result, cancellationToken);
-        }
-        finally
+        await BeginTurn(cancellationToken);
+
+        var inputOrdinal = await AppendUserMessage(openingPrompt, cancellationToken);
+        await foreach (var token in StreamReply(cancellationToken))
         {
-            turnContext.Lock = null;
+            yield return token;
         }
+
+        await FinishTurn(inputOrdinal, result, cancellationToken);
     }
 
     public async IAsyncEnumerable<string> StreamWaitResponse(
@@ -66,33 +69,35 @@ internal class GameTurnRunner(
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
-        await using var @lock = await BeginTurn(cancellationToken);
-        try
-        {
-            await advanceTime.Handle(
-                new AdvanceTimeCommand
-                {
-                    Lock = @lock,
-                    Delta = hours * GameClock.RealTimePerInGameHour,
-                },
-                cancellationToken
-            );
-
-            var waitPrompt =
-                $"{hours} hour(s) have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns.";
-
-            var inputOrdinal = await AppendUserMessage(@lock, waitPrompt, cancellationToken);
-            await foreach (var token in StreamReply(@lock, cancellationToken))
+        using var _ = logger.BeginScope(
+            new Dictionary<string, object>
             {
-                yield return token;
+                ["SessionId"] = turnContext.SessionId,
+                ["TurnId"] = Guid.NewGuid().ToString("N")[..8],
             }
+        );
 
-            await FinishTurn(@lock, inputOrdinal, result, cancellationToken);
-        }
-        finally
+        await BeginTurn(cancellationToken);
+
+        await advanceTime.Handle(
+            new AdvanceTimeCommand
+            {
+                SessionId = turnContext.SessionId,
+                Delta = hours * GameClock.RealTimePerInGameHour,
+            },
+            cancellationToken
+        );
+
+        var waitPrompt =
+            $"{hours} hour(s) have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns.";
+
+        var inputOrdinal = await AppendUserMessage(waitPrompt, cancellationToken);
+        await foreach (var token in StreamReply(cancellationToken))
         {
-            turnContext.Lock = null;
+            yield return token;
         }
+
+        await FinishTurn(inputOrdinal, result, cancellationToken);
     }
 
     public async Task<TurnMetrics> GetResponseWithMetrics(
@@ -100,37 +105,34 @@ internal class GameTurnRunner(
         CancellationToken cancellationToken = default
     )
     {
-        await using var @lock = await BeginTurn(cancellationToken);
-        try
-        {
-            var stopwatch = Stopwatch.StartNew();
-            long? firstTokenElapsedMs = null;
-            var tokenCount = 0;
-            var buffer = new StringBuilder();
-
-            var inputOrdinal = await AppendUserMessage(@lock, input, cancellationToken);
-            await foreach (var token in StreamReply(@lock, cancellationToken))
+        using var _ = logger.BeginScope(
+            new Dictionary<string, object>
             {
-                firstTokenElapsedMs ??= stopwatch.ElapsedMilliseconds;
-                tokenCount++;
-                buffer.Append(token);
+                ["SessionId"] = turnContext.SessionId,
+                ["TurnId"] = Guid.NewGuid().ToString("N")[..8],
             }
+        );
 
-            var totalMs = stopwatch.ElapsedMilliseconds;
+        await BeginTurn(cancellationToken);
 
-            await FinishTurn(@lock, inputOrdinal, new TurnStreamResult(), cancellationToken);
+        var stopwatch = Stopwatch.StartNew();
+        long? firstTokenElapsedMs = null;
+        var tokenCount = 0;
+        var buffer = new StringBuilder();
 
-            return new TurnMetrics(
-                buffer.ToString(),
-                firstTokenElapsedMs ?? totalMs,
-                totalMs,
-                tokenCount
-            );
-        }
-        finally
+        var inputOrdinal = await AppendUserMessage(input, cancellationToken);
+        await foreach (var token in StreamReply(cancellationToken))
         {
-            turnContext.Lock = null;
+            firstTokenElapsedMs ??= stopwatch.ElapsedMilliseconds;
+            tokenCount++;
+            buffer.Append(token);
         }
+
+        var totalMs = stopwatch.ElapsedMilliseconds;
+
+        await FinishTurn(inputOrdinal, new TurnStreamResult(), cancellationToken);
+
+        return new TurnMetrics(buffer.ToString(), firstTokenElapsedMs ?? totalMs, totalMs, tokenCount);
     }
 
     public async IAsyncEnumerable<string> StreamResponse(
@@ -139,51 +141,39 @@ internal class GameTurnRunner(
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
-        await using var @lock = await BeginTurn(cancellationToken);
-        try
-        {
-            var inputOrdinal = await AppendUserMessage(@lock, input, cancellationToken);
-            await foreach (var token in StreamReply(@lock, cancellationToken))
+        using var _ = logger.BeginScope(
+            new Dictionary<string, object>
             {
-                yield return token;
+                ["SessionId"] = turnContext.SessionId,
+                ["TurnId"] = Guid.NewGuid().ToString("N")[..8],
             }
+        );
 
-            await FinishTurn(@lock, inputOrdinal, result, cancellationToken);
-        }
-        finally
+        await BeginTurn(cancellationToken);
+
+        var inputOrdinal = await AppendUserMessage(input, cancellationToken);
+        await foreach (var token in StreamReply(cancellationToken))
         {
-            turnContext.Lock = null;
+            yield return token;
         }
+
+        await FinishTurn(inputOrdinal, result, cancellationToken);
     }
 
-    private async Task<GameSessionLock> BeginTurn(CancellationToken cancellationToken)
+    private async Task BeginTurn(CancellationToken cancellationToken)
     {
-        var @lock = await sessionLocks.Acquire(turnContext.SessionId, cancellationToken);
-        try
-        {
-            turnContext.Lock = @lock;
-            turnContext.DidMoveThisTurn = false;
-            turnContext.DidSceneRefreshThisTurn = false;
+        turnContext.DidMoveThisTurn = false;
+        turnContext.DidSceneRefreshThisTurn = false;
 
-            var snapshot = await getGameSession.Handle(
-                new GetGameSessionQuery { Lock = @lock },
-                cancellationToken
-            );
-            turnContext.WorldId = snapshot.WorldId;
-            turnContext.PlayerId = snapshot.PlayerId;
-
-            return @lock;
-        }
-        catch
-        {
-            turnContext.Lock = null;
-            await @lock.DisposeAsync();
-            throw;
-        }
+        var snapshot = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+        turnContext.WorldId = snapshot.WorldId;
+        turnContext.PlayerId = snapshot.PlayerId;
     }
 
     private async Task FinishTurn(
-        GameSessionLock @lock,
         int currentTurnStart,
         TurnStreamResult result,
         CancellationToken cancellationToken
@@ -192,15 +182,11 @@ internal class GameTurnRunner(
         var stopwatch = Stopwatch.StartNew();
         if (turnContext.DidMoveThisTurn)
         {
-            await CloseLingeringConversations(@lock, cancellationToken);
-            await clearChatMessages.Handle(
-                new ClearChatMessagesCommand { Lock = @lock, KeepFromOrdinal = currentTurnStart },
-                cancellationToken
-            );
+            await CloseLingeringConversations(currentTurnStart, cancellationToken);
         }
 
         var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { Lock = @lock },
+            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
         result.DidSceneRefreshThisTurn = turnContext.DidSceneRefreshThisTurn;
@@ -208,18 +194,16 @@ internal class GameTurnRunner(
         logger.LogInformation("[perf] FinishTurn took {ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
     }
 
-    private async Task<int> AppendUserMessage(
-        GameSessionLock @lock,
-        string input,
-        CancellationToken cancellationToken
-    )
+    private async Task<int> AppendUserMessage(string input, CancellationToken cancellationToken)
     {
         logger.LogInformation("[game] >>> {Message}", input);
         var stopwatch = Stopwatch.StartNew();
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
         var inputOrdinal = await appendChatMessages.Handle(
             new AppendChatMessagesCommand
             {
-                Lock = @lock,
+                SessionId = turnContext.SessionId,
                 Messages = [new ChatMessage(ChatRole.User, input)],
             },
             cancellationToken
@@ -228,11 +212,13 @@ internal class GameTurnRunner(
         await advanceTime.Handle(
             new AdvanceTimeCommand
             {
-                Lock = @lock,
+                SessionId = turnContext.SessionId,
                 Delta = gameClockOptions.Value.RealTimePerMessage,
             },
             cancellationToken
         );
+
+        await transaction.CommitAsync(cancellationToken);
         logger.LogInformation(
             "[perf] AppendUserMessage (append + advance time) took {ElapsedMs}ms",
             stopwatch.ElapsedMilliseconds
@@ -242,7 +228,6 @@ internal class GameTurnRunner(
     }
 
     private async IAsyncEnumerable<string> StreamReply(
-        GameSessionLock @lock,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
@@ -259,7 +244,7 @@ internal class GameTurnRunner(
         };
 
         var messages = await getChatMessages.Handle(
-            new GetChatMessagesQuery { Lock = @lock },
+            new GetChatMessagesQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
@@ -305,7 +290,7 @@ internal class GameTurnRunner(
         await appendChatMessages.Handle(
             new AppendChatMessagesCommand
             {
-                Lock = @lock,
+                SessionId = turnContext.SessionId,
                 Messages = aggregated.Messages.ToArray(),
             },
             cancellationToken
@@ -319,17 +304,13 @@ internal class GameTurnRunner(
         logger.LogInformation("[game] <<< {Response}", aggregated.Text);
     }
 
-    private async Task ForceEndConversation(
-        GameSessionLock @lock,
-        string npcName,
-        CancellationToken cancellationToken
-    )
+    private async Task ForceEndConversation(string npcName, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         var prompt =
             $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
-        await AppendUserMessage(@lock, prompt, cancellationToken);
-        await foreach (var _ in StreamReply(@lock, cancellationToken)) { }
+        await AppendUserMessage(prompt, cancellationToken);
+        await foreach (var _ in StreamReply(cancellationToken)) { }
         logger.LogInformation(
             "[perf] ForceEndConversation for {NpcName} took {ElapsedMs}ms",
             npcName,
@@ -338,23 +319,23 @@ internal class GameTurnRunner(
     }
 
     private async Task CloseLingeringConversations(
-        GameSessionLock @lock,
+        int currentTurnStart,
         CancellationToken cancellationToken
     )
     {
         var stopwatch = Stopwatch.StartNew();
         var openConversations = await getOpenConversations.Handle(
-            new GetOpenConversationsQuery { Lock = @lock },
+            new GetOpenConversationsQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
         foreach (var npcName in openConversations.Keys)
         {
-            await ForceEndConversation(@lock, npcName, cancellationToken);
+            await ForceEndConversation(npcName, cancellationToken);
         }
 
         var stillOpenConversations = await getOpenConversations.Handle(
-            new GetOpenConversationsQuery { Lock = @lock },
+            new GetOpenConversationsQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
@@ -363,10 +344,27 @@ internal class GameTurnRunner(
             logger.LogWarning("[game] Failed to save conversation summary for {NpcName}", npcName);
         }
 
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
         await updateGameSession.Handle(
-            new UpdateGameSessionCommand { Lock = @lock, OpenConversationCreatureIdsByName = [] },
+            new UpdateGameSessionCommand
+            {
+                SessionId = turnContext.SessionId,
+                OpenConversationCreatureIdsByName = [],
+            },
             cancellationToken
         );
+
+        await clearChatMessages.Handle(
+            new ClearChatMessagesCommand
+            {
+                SessionId = turnContext.SessionId,
+                KeepFromOrdinal = currentTurnStart,
+            },
+            cancellationToken
+        );
+
+        await transaction.CommitAsync(cancellationToken);
 
         if (openConversations.Count > 0)
         {
