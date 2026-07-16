@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Anthropic;
+using Anthropic.Models.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -140,6 +141,7 @@ internal static class ServiceCollectionExtensions
                                 };
                             }
                         )
+                        .Use(innerClient => new PromptCachingChatClient(innerClient))
                         .Build();
                 }
             );
@@ -214,5 +216,29 @@ internal sealed class LoggingChatClient(IChatClient innerClient, ILogger<Logging
             stopwatch.ElapsedMilliseconds,
             updateCount
         );
+    }
+}
+
+// No-op on non-Anthropic clients (e.g. Ollama) — WithCacheControl only takes
+// effect when the innermost client comes from AnthropicClient.AsIChatClient.
+internal sealed class PromptCachingChatClient(IChatClient innerClient)
+    : DelegatingChatClient(innerClient)
+{
+    public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var messageList = messages as IReadOnlyList<ChatMessage> ?? messages.ToList();
+
+        // Fixed breakpoint: caches tools + system prompt as one shared, long-lived unit.
+        messageList[0].Contents[^1].WithCacheControl(Ttl.Ttl1h);
+
+        // Rolling breakpoint: advances to the newest message every turn, so each
+        // subsequent turn only pays full price for what's new since the last one.
+        messageList[^1].Contents[^1].WithCacheControl(Ttl.Ttl5m);
+
+        return base.GetStreamingResponseAsync(messageList, options, cancellationToken);
     }
 }

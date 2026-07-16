@@ -287,6 +287,22 @@ internal class GameTurnRunner(
         );
 
         var aggregated = updates.ToChatResponse();
+        if (aggregated.Usage is { } usage)
+        {
+            logger.LogInformation(
+                "[perf] Usage input={InputTokens} cachedInput={CachedInputTokens} output={OutputTokens} additional={AdditionalCounts}",
+                usage.InputTokenCount,
+                usage.CachedInputTokenCount,
+                usage.OutputTokenCount,
+                usage.AdditionalCounts is null
+                    ? ""
+                    : string.Join(
+                        ", ",
+                        usage.AdditionalCounts.Select(pair => $"{pair.Key}={pair.Value}")
+                    )
+            );
+        }
+
         await appendChatMessages.Handle(
             new AppendChatMessagesCommand
             {
