@@ -6,12 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OllamaSharp;
-using TRPG.Application.Combat;
 using TRPG.Application.Common;
 using TRPG.Application.Game;
-using TRPG.Application.Tools;
 using TRPG.Application.Tools.Common;
-using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
 using ZLogger;
 using ZLogger.Providers;
@@ -163,14 +160,6 @@ internal static class ServiceCollectionExtensions
 
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {
-        return serviceCollection
-            .AddSingleton<GameSessionStateStore>()
-            .AddScoped<SessionTerminator>()
-            .AddScoped<CurrentGameSessionStateAccessor>()
-            .AddScoped(sp => sp.GetRequiredService<CurrentGameSessionStateAccessor>().State)
-            .AddScoped(sp => sp.GetRequiredService<CurrentGameSessionStateAccessor>().State.Session)
-            .AddScoped(sp =>
-                sp.GetRequiredService<CurrentGameSessionStateAccessor>().State.Messages
-            );
+        return serviceCollection.AddScoped<GameTurnContext>();
     }
 }

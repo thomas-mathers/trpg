@@ -42,24 +42,9 @@ public static class GameClock
         ],
     };
 
-    public static TimeSpan GetTotalPlaytime(GameSession session)
+    public static DateTime GetCurrentInGameDateTime(TimeSpan bankedPlaytime)
     {
-        return session.BankedPlaytime;
-    }
-
-    public static void AdvanceHours(GameSession session, int hours)
-    {
-        session.BankedPlaytime += TimeSpan.FromHours(hours / InGameHoursPerRealHour);
-    }
-
-    public static void AdvanceForMessage(GameSession session, TimeSpan realTimePerMessage)
-    {
-        session.BankedPlaytime += realTimePerMessage;
-    }
-
-    public static DateTime GetCurrentInGameDateTime(GameSession session)
-    {
-        var inGameHoursElapsed = GetTotalPlaytime(session).TotalHours * InGameHoursPerRealHour;
+        var inGameHoursElapsed = bankedPlaytime.TotalHours * InGameHoursPerRealHour;
         return WorldEpoch.AddHours(inGameHoursElapsed);
     }
 
@@ -68,9 +53,9 @@ public static class GameClock
         return CalendarFormat.DayNames[(int)day];
     }
 
-    public static InGameDate GetCurrentInGameDate(GameSession session)
+    public static InGameDate GetCurrentInGameDate(TimeSpan bankedPlaytime)
     {
-        var dateTime = GetCurrentInGameDateTime(session);
+        var dateTime = GetCurrentInGameDateTime(bankedPlaytime);
         return new InGameDate(
             dateTime.Year,
             dateTime.ToString("MMMM", CalendarFormat),

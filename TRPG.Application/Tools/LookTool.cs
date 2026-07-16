@@ -4,15 +4,17 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
+using TRPG.Application.Game.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Tools.Common;
 
 namespace TRPG.Application.Tools;
 
 internal class LookTool(
-    GameSession session,
+    GameTurnContext turnContext,
     GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
     GetCreatureByIdQueryHandler getCreatureById,
+    GetPlaytimeQueryHandler getPlaytime,
     ILogger<LookTool> logger
 ) : IGameTool
 {
@@ -27,15 +29,20 @@ internal class LookTool(
         logger.LogInformation("[look] tool invoked");
         var stopwatch = Stopwatch.StartNew();
 
-        var currentDate = GameClock.GetCurrentInGameDate(session);
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { Lock = turnContext.Lock! },
+            cancellationToken
+        );
+        var currentDate = GameClock.GetCurrentInGameDate(playtime);
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = session.PlayerId },
+            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
         var result = await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {
-                Session = session,
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
                 RoomId = player!.RoomId,
                 DistrictId = player.DistrictId,
                 StateId = player.StateId,
@@ -44,7 +51,7 @@ internal class LookTool(
             cancellationToken
         );
 
-        session.DidSceneRefreshThisTurn = true;
+        turnContext.DidSceneRefreshThisTurn = true;
         logger.LogInformation(
             "[perf] [look] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,

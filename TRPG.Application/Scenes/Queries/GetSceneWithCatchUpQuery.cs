@@ -8,7 +8,8 @@ namespace TRPG.Application.Scenes.Queries;
 
 internal class GetSceneWithCatchUpQuery
 {
-    public required GameSession Session { get; init; }
+    public required Guid WorldId { get; init; }
+    public required Guid PlayerId { get; init; }
     public required Guid? RoomId { get; init; }
     public required Guid? DistrictId { get; init; }
     public required Guid StateId { get; init; }
@@ -28,7 +29,7 @@ internal class GetSceneWithCatchUpQueryHandler(
     )
     {
         var locationId = query.RoomId ?? query.DistrictId ?? query.StateId;
-        var cacheKey = $"scene:{query.Session.WorldId}:{locationId}:{query.CurrentDate.Hour}";
+        var cacheKey = $"scene:{query.WorldId}:{locationId}:{query.CurrentDate.Hour}";
 
         if (cache.TryGetValue(cacheKey, out SceneResult? cachedScene))
         {
@@ -41,7 +42,7 @@ internal class GetSceneWithCatchUpQueryHandler(
         await sync.Handle(
             new SyncCommand
             {
-                WorldId = query.Session.WorldId,
+                WorldId = query.WorldId,
                 RoomId = query.RoomId,
                 DistrictId = query.DistrictId,
                 CurrentDate = query.CurrentDate,
@@ -52,8 +53,8 @@ internal class GetSceneWithCatchUpQueryHandler(
         var scene = await getScene.Handle(
             new GetSceneQuery
             {
-                WorldId = query.Session.WorldId,
-                PlayerId = query.Session.PlayerId,
+                WorldId = query.WorldId,
+                PlayerId = query.PlayerId,
                 CurrentDate = query.CurrentDate,
             },
             cancellationToken

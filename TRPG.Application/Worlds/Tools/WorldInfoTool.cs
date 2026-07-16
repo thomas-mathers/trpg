@@ -10,7 +10,7 @@ using TRPG.Application.Worlds.Queries;
 namespace TRPG.Application.Worlds.Tools;
 
 internal class WorldInfoTool(
-    GameSession session,
+    GameTurnContext turnContext,
     GetWorldQueryHandler getWorld,
     ILogger<WorldInfoTool> logger
 ) : IGameTool
@@ -27,7 +27,7 @@ internal class WorldInfoTool(
         var stopwatch = Stopwatch.StartNew();
 
         var world = await getWorld.Handle(
-            new GetWorldQuery { WorldId = session.WorldId },
+            new GetWorldQuery { WorldId = turnContext.WorldId },
             cancellationToken
         );
         var result = new { world!.Name, world.Description };

@@ -92,7 +92,9 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         await using var verifyContext = db.CreateContext();
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        Assert.False(await verifyContext.Creatures.AnyAsync(x => x.Id == target.Id, cancellationToken));
+        Assert.False(
+            await verifyContext.Creatures.AnyAsync(x => x.Id == target.Id, cancellationToken)
+        );
         Assert.False(
             await verifyContext.CreatureAbilities.AnyAsync(
                 x => x.CreatureId == target.Id,
@@ -100,7 +102,10 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.False(
-            await verifyContext.CreatureSkills.AnyAsync(x => x.CreatureId == target.Id, cancellationToken)
+            await verifyContext.CreatureSkills.AnyAsync(
+                x => x.CreatureId == target.Id,
+                cancellationToken
+            )
         );
         Assert.False(
             await verifyContext.CreatureWeaponProficiencies.AnyAsync(
@@ -115,16 +120,25 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.False(
-            await verifyContext.CreatureQuests.AnyAsync(x => x.CreatureId == target.Id, cancellationToken)
+            await verifyContext.CreatureQuests.AnyAsync(
+                x => x.CreatureId == target.Id,
+                cancellationToken
+            )
         );
         Assert.False(
-            await verifyContext.InventoryItems.AnyAsync(x => x.CreatureId == target.Id, cancellationToken)
+            await verifyContext.InventoryItems.AnyAsync(
+                x => x.CreatureId == target.Id,
+                cancellationToken
+            )
         );
         Assert.False(
             await verifyContext.Jobs.AnyAsync(x => x.CreatureId == target.Id, cancellationToken)
         );
         Assert.False(
-            await verifyContext.FactionMembers.AnyAsync(x => x.CreatureId == target.Id, cancellationToken)
+            await verifyContext.FactionMembers.AnyAsync(
+                x => x.CreatureId == target.Id,
+                cancellationToken
+            )
         );
         Assert.False(
             await verifyContext.NpcConversations.AnyAsync(
@@ -133,13 +147,22 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.False(
-            await verifyContext.NpcConversations.AnyAsync(x => x.NpcId == target.Id, cancellationToken)
+            await verifyContext.NpcConversations.AnyAsync(
+                x => x.NpcId == target.Id,
+                cancellationToken
+            )
         );
         Assert.False(
-            await verifyContext.BuildingOwners.AnyAsync(x => x.OwnerId == target.Id, cancellationToken)
+            await verifyContext.BuildingOwners.AnyAsync(
+                x => x.OwnerId == target.Id,
+                cancellationToken
+            )
         );
         Assert.False(
-            await verifyContext.Reputations.AnyAsync(x => x.CreatureId == target.Id, cancellationToken)
+            await verifyContext.Reputations.AnyAsync(
+                x => x.CreatureId == target.Id,
+                cancellationToken
+            )
         );
         Assert.False(
             await verifyContext.Relationships.AnyAsync(
@@ -158,20 +181,32 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         Assert.Null(updatedBed.AssignedCreatureId);
         Assert.Null(updatedBed.OccupantId);
 
-        var updatedWorkstation = await verifyContext.Set<Workstation>().SingleAsync(cancellationToken);
+        var updatedWorkstation = await verifyContext
+            .Set<Workstation>()
+            .SingleAsync(cancellationToken);
         Assert.Null(updatedWorkstation.AssignedCreatureId);
         Assert.Null(updatedWorkstation.OccupantId);
 
         Assert.False(
-            await verifyContext.Set<Seat>().AnyAsync(seat => seat.OccupantId == target.Id, cancellationToken)
+            await verifyContext
+                .Set<Seat>()
+                .AnyAsync(seat => seat.OccupantId == target.Id, cancellationToken)
         );
 
-        Assert.True(await verifyContext.Creatures.AnyAsync(x => x.Id == other.Id, cancellationToken));
         Assert.True(
-            await verifyContext.CreatureAbilities.AnyAsync(x => x.CreatureId == other.Id, cancellationToken)
+            await verifyContext.Creatures.AnyAsync(x => x.Id == other.Id, cancellationToken)
         );
         Assert.True(
-            await verifyContext.CreatureSkills.AnyAsync(x => x.CreatureId == other.Id, cancellationToken)
+            await verifyContext.CreatureAbilities.AnyAsync(
+                x => x.CreatureId == other.Id,
+                cancellationToken
+            )
+        );
+        Assert.True(
+            await verifyContext.CreatureSkills.AnyAsync(
+                x => x.CreatureId == other.Id,
+                cancellationToken
+            )
         );
         Assert.True(
             await verifyContext.CreatureWeaponProficiencies.AnyAsync(
@@ -186,29 +221,54 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.True(
-            await verifyContext.CreatureQuests.AnyAsync(x => x.CreatureId == other.Id, cancellationToken)
+            await verifyContext.CreatureQuests.AnyAsync(
+                x => x.CreatureId == other.Id,
+                cancellationToken
+            )
         );
         Assert.True(
-            await verifyContext.InventoryItems.AnyAsync(x => x.CreatureId == other.Id, cancellationToken)
-        );
-        Assert.True(await verifyContext.Jobs.AnyAsync(x => x.CreatureId == other.Id, cancellationToken));
-        Assert.True(
-            await verifyContext.FactionMembers.AnyAsync(x => x.CreatureId == other.Id, cancellationToken)
-        );
-        Assert.True(
-            await verifyContext.NpcConversations.AnyAsync(x => x.CreatureId == other.Id, cancellationToken)
+            await verifyContext.InventoryItems.AnyAsync(
+                x => x.CreatureId == other.Id,
+                cancellationToken
+            )
         );
         Assert.True(
-            await verifyContext.NpcConversations.AnyAsync(x => x.NpcId == other.Id, cancellationToken)
+            await verifyContext.Jobs.AnyAsync(x => x.CreatureId == other.Id, cancellationToken)
         );
         Assert.True(
-            await verifyContext.BuildingOwners.AnyAsync(x => x.OwnerId == other.Id, cancellationToken)
+            await verifyContext.FactionMembers.AnyAsync(
+                x => x.CreatureId == other.Id,
+                cancellationToken
+            )
         );
         Assert.True(
-            await verifyContext.Set<Seat>().AnyAsync(seat => seat.OccupantId == other.Id, cancellationToken)
+            await verifyContext.NpcConversations.AnyAsync(
+                x => x.CreatureId == other.Id,
+                cancellationToken
+            )
         );
         Assert.True(
-            await verifyContext.Reputations.AnyAsync(x => x.CreatureId == other.Id, cancellationToken)
+            await verifyContext.NpcConversations.AnyAsync(
+                x => x.NpcId == other.Id,
+                cancellationToken
+            )
+        );
+        Assert.True(
+            await verifyContext.BuildingOwners.AnyAsync(
+                x => x.OwnerId == other.Id,
+                cancellationToken
+            )
+        );
+        Assert.True(
+            await verifyContext
+                .Set<Seat>()
+                .AnyAsync(seat => seat.OccupantId == other.Id, cancellationToken)
+        );
+        Assert.True(
+            await verifyContext.Reputations.AnyAsync(
+                x => x.CreatureId == other.Id,
+                cancellationToken
+            )
         );
         Assert.True(
             await verifyContext.Relationships.AnyAsync(

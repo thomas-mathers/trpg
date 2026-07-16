@@ -85,10 +85,7 @@ public class ItemModifierHelpersTests
     public void BuildName_AddsPrefix_WhenChosenModifierHasOnlyPrefixNames()
     {
         // Act
-        var name = ItemModifierHelpers.BuildName(
-            "Sword",
-            [MakeTemplate(ModifierKey.FireDamage)]
-        );
+        var name = ItemModifierHelpers.BuildName("Sword", [MakeTemplate(ModifierKey.FireDamage)]);
 
         // Assert
         Assert.Matches("^(Fiery|Burning|Blazing) Sword$", name);

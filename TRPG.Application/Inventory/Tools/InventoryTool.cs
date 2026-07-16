@@ -20,7 +20,7 @@ internal record InventoryResult(
 );
 
 internal class InventoryTool(
-    GameSession session,
+    GameTurnContext turnContext,
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
     GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
@@ -45,7 +45,7 @@ internal class InventoryTool(
         var stopwatch = Stopwatch.StartNew();
 
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = session.PlayerId },
+            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
 
@@ -59,7 +59,7 @@ internal class InventoryTool(
             target = await getCreatureByNameNearby.Handle(
                 new GetCreatureByNameNearbyQuery
                 {
-                    WorldId = session.WorldId,
+                    WorldId = turnContext.WorldId,
                     Player = player!,
                     Name = targetName,
                 },

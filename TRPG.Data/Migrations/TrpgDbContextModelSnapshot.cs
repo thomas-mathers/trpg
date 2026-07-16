@@ -114,6 +114,44 @@ namespace TRPG.Migrations
                     b.ToTable("building_owners", (string)null);
                 });
 
+            modelBuilder.Entity("TRPG.Data.Models.ChatMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("MessageJson")
+                        .IsRequired()
+                        .HasColumnType("json")
+                        .HasColumnName("message_json");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordinal");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_chat_messages");
+
+                    b.HasIndex("SessionId", "Ordinal")
+                        .IsUnique()
+                        .HasDatabaseName("ix_chat_messages_session_id_ordinal");
+
+                    b.HasIndex("SessionId", "Role")
+                        .HasDatabaseName("ix_chat_messages_session_id_role");
+
+                    b.ToTable("chat_messages", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Data.Models.City", b =>
                 {
                     b.Property<Guid>("Id")
@@ -162,6 +200,76 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_cities_country_id_name");
 
                     b.ToTable("cities", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.CombatantSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActiveBuffs")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("active_buffs");
+
+                    b.Property<string>("ActiveConditions")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("active_conditions");
+
+                    b.Property<string>("ActiveDots")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("active_dots");
+
+                    b.Property<string>("ActiveHots")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("active_hots");
+
+                    b.Property<string>("CooldownRemainingByAbility")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("cooldown_remaining_by_ability");
+
+                    b.Property<Guid>("CreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creature_id");
+
+                    b.Property<int>("CurrentAp")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_ap");
+
+                    b.Property<int>("CurrentHp")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_hp");
+
+                    b.Property<int>("CurrentMp")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_mp");
+
+                    b.Property<bool>("IsPlayer")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_player");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<string>("WeaponSwingCounts")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("weapon_swing_counts");
+
+                    b.HasKey("Id")
+                        .HasName("pk_combatants");
+
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("ix_combatants_session_id");
+
+                    b.ToTable("combatants", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Data.Models.ContainerItem", b =>
@@ -667,6 +775,39 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_faction_members_creature_id_faction_id");
 
                     b.ToTable("faction_members", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.GameSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("OpenConversationCreatureIdsByName")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("open_conversation_creature_ids_by_name");
+
+                    b.Property<Guid>("PlayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("player_id");
+
+                    b.Property<TimeSpan>("Playtime")
+                        .HasColumnType("interval")
+                        .HasColumnName("playtime");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_game_sessions");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_game_sessions_world_id");
+
+                    b.ToTable("game_sessions", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Data.Models.InventoryItem", b =>

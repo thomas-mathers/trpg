@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Abilities;
+using TRPG.Application.Combat.Commands;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
@@ -16,7 +18,7 @@ using TRPG.Data.Models;
 namespace TRPG.Application.Combat.Tools;
 
 internal class AttackTool(
-    GameSession session,
+    GameTurnContext turnContext,
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreaturesByIdsQueryHandler getCreaturesByIds,
     GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
@@ -26,6 +28,9 @@ internal class AttackTool(
     AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     ApplyCombatRewardsCommandHandler applyCombatRewards,
     UpdateCreaturesCommandHandler updateCreatureCommandHandler,
+    GetCombatantsQueryHandler getCombatants,
+    SetCombatantsCommandHandler setCombatants,
+    ClearCombatantsCommandHandler clearCombatants,
     AbilityDefinitions abilityDefinitions,
     CombatEngine combatEngine,
     ILogger<AttackTool> logger
@@ -56,16 +61,31 @@ internal class AttackTool(
         );
         var stopwatch = Stopwatch.StartNew();
 
-        if (session.Combatants is not { Count: > 0 })
+        var combatants = await getCombatants.Handle(
+            new GetCombatantsQuery { Lock = turnContext.Lock! },
+            cancellationToken
+        );
+        if (combatants is not { Count: > 0 })
         {
             await StartFight(targetName, cancellationToken);
+            combatants = await getCombatants.Handle(
+                new GetCombatantsQuery { Lock = turnContext.Lock! },
+                cancellationToken
+            );
         }
 
-        var state = combatEngine.ProcessRound(session.Combatants!, abilityName, targetName);
+        var state = combatEngine.ProcessRound(combatants!, abilityName, targetName);
 
         if (state.Outcome is CombatOutcome.Victory or CombatOutcome.Defeat or CombatOutcome.Fled)
         {
             await EndFight(state, cancellationToken);
+        }
+        else
+        {
+            await setCombatants.Handle(
+                new SetCombatantsCommand { Lock = turnContext.Lock!, Combatants = combatants! },
+                cancellationToken
+            );
         }
 
         var result = state.ToCombatResult();
@@ -81,7 +101,7 @@ internal class AttackTool(
     private async Task StartFight(string targetName, CancellationToken cancellationToken)
     {
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = session.PlayerId },
+            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
 
@@ -132,7 +152,14 @@ internal class AttackTool(
             )
             .ToList();
 
-        session.Combatants = new[] { playerCombatant }.Concat(enemyCombatants).ToArray();
+        await setCombatants.Handle(
+            new SetCombatantsCommand
+            {
+                Lock = turnContext.Lock!,
+                Combatants = new[] { playerCombatant }.Concat(enemyCombatants).ToArray(),
+            },
+            cancellationToken
+        );
     }
 
     private async Task EndFight(CombatState state, CancellationToken cancellationToken)
@@ -142,7 +169,7 @@ internal class AttackTool(
         await adjustWeaponProficiencies.Handle(
             new AdjustWeaponProficienciesCommand
             {
-                WorldId = session.WorldId,
+                WorldId = turnContext.WorldId,
                 CreatureId = playerId,
                 ProficiencyDeltas = state.WeaponSwingCounts,
             },
@@ -176,7 +203,10 @@ internal class AttackTool(
             );
         }
 
-        session.Combatants = null;
+        await clearCombatants.Handle(
+            new ClearCombatantsCommand { Lock = turnContext.Lock! },
+            cancellationToken
+        );
     }
 
     private async Task<Combatant> BuildPlayerCombatant(
@@ -196,14 +226,14 @@ internal class AttackTool(
         var weaponProficiencies = await getAllWeaponProficiencies.Handle(
             new GetAllWeaponProficienciesQuery
             {
-                WorldId = session.WorldId,
+                WorldId = turnContext.WorldId,
                 CreatureId = player.Id,
             },
             cancellationToken
         );
 
         var abilityNames = await getCreatureAbilities.Handle(
-            new GetCreatureAbilitiesQuery { WorldId = session.WorldId, CreatureId = player.Id },
+            new GetCreatureAbilitiesQuery { WorldId = turnContext.WorldId, CreatureId = player.Id },
             cancellationToken
         );
         var abilities = abilityNames

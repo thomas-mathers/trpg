@@ -3,15 +3,16 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
+using TRPG.Application.Game.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts;
+using TRPG.Data.Models;
 
 namespace TRPG.Hubs;
 
 internal sealed class ChatHub(
     IServiceProvider serviceProvider,
-    GameSessionStateStore sessionStore,
-    SessionTerminator sessionTerminator,
+    EndGameSessionCommandHandler endGameSession,
     GetCreatureByIdQueryHandler getCreatureById,
     GetSceneWithCatchUpQueryHandler getSceneWithCatchUp
 ) : Hub
@@ -27,9 +28,9 @@ internal sealed class ChatHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        if (Context.Items[SessionIdKey] is Guid sessionId && sessionStore.Get(sessionId) is { } state)
+        if (Context.Items[SessionIdKey] is Guid sessionId)
         {
-            await sessionTerminator.EndSession(sessionId, state);
+            await endGameSession.Handle(new EndGameSessionCommand { SessionId = sessionId });
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -37,11 +38,13 @@ internal sealed class ChatHub(
 
     public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken)
     {
-        var state = GetState();
-        var turnRunner = ResolveTurnRunner(state);
+        var turnContext = ResolveTurnContext();
+        var turnRunner = ResolveTurnRunner();
+        var result = new TurnStreamResult();
         return StreamTurn(
-            turnRunner.SendOpeningStreaming(cancellationToken),
-            state,
+            turnRunner.StreamOpeningResponse(result, cancellationToken),
+            turnContext,
+            result,
             alwaysSendScene: true,
             cancellationToken
         );
@@ -49,11 +52,13 @@ internal sealed class ChatHub(
 
     public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken)
     {
-        var state = GetState();
-        var turnRunner = ResolveTurnRunner(state);
+        var turnContext = ResolveTurnContext();
+        var turnRunner = ResolveTurnRunner();
+        var result = new TurnStreamResult();
         return StreamTurn(
-            turnRunner.ProcessTurnStreaming(message, cancellationToken),
-            state,
+            turnRunner.StreamResponse(message, result, cancellationToken),
+            turnContext,
+            result,
             alwaysSendScene: false,
             cancellationToken
         );
@@ -61,11 +66,13 @@ internal sealed class ChatHub(
 
     public IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken)
     {
-        var state = GetState();
-        var turnRunner = ResolveTurnRunner(state);
+        var turnContext = ResolveTurnContext();
+        var turnRunner = ResolveTurnRunner();
+        var result = new TurnStreamResult();
         return StreamTurn(
-            turnRunner.SendWaitStreaming(hours, cancellationToken),
-            state,
+            turnRunner.StreamWaitResponse(hours, result, cancellationToken),
+            turnContext,
+            result,
             alwaysSendScene: true,
             cancellationToken
         );
@@ -73,7 +80,8 @@ internal sealed class ChatHub(
 
     private async IAsyncEnumerable<string> StreamTurn(
         IAsyncEnumerable<string> tokens,
-        GameSessionState state,
+        GameTurnContext turnContext,
+        TurnStreamResult result,
         bool alwaysSendScene,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
@@ -83,52 +91,46 @@ internal sealed class ChatHub(
             yield return token;
         }
 
-        if (alwaysSendScene || state.Session.DidSceneRefreshThisTurn)
+        if (alwaysSendScene || result.DidSceneRefreshThisTurn)
         {
-            var scene = await GetCurrentScene(state.Session, cancellationToken);
+            var scene = await GetCurrentScene(turnContext, result.CurrentDate, cancellationToken);
             await Clients.Caller.SendAsync("Scene", ToSnapshot(scene), cancellationToken);
         }
     }
 
     private async Task<SceneResult> GetCurrentScene(
-        GameSession session,
+        GameTurnContext turnContext,
+        InGameDate currentDate,
         CancellationToken cancellationToken
     )
     {
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = session.PlayerId },
+            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
 
         return await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {
-                Session = session,
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
                 RoomId = player!.RoomId,
                 DistrictId = player.DistrictId,
                 StateId = player.StateId,
-                CurrentDate = GameClock.GetCurrentInGameDate(session),
+                CurrentDate = currentDate,
             },
             cancellationToken
         );
     }
 
-    private GameTurnRunner ResolveTurnRunner(GameSessionState state)
-    {
-        serviceProvider.GetRequiredService<CurrentGameSessionStateAccessor>().State = state;
-        return serviceProvider.GetRequiredService<GameTurnRunner>();
-    }
+    private GameTurnRunner ResolveTurnRunner() =>
+        serviceProvider.GetRequiredService<GameTurnRunner>();
 
-    private GameSessionState GetState()
+    private GameTurnContext ResolveTurnContext()
     {
-        var sessionId = (Guid)Context.Items[SessionIdKey]!;
-        var state = sessionStore.Get(sessionId);
-        if (state == null)
-        {
-            throw new HubException($"Session {sessionId} not found.");
-        }
-
-        return state;
+        var turnContext = serviceProvider.GetRequiredService<GameTurnContext>();
+        turnContext.SessionId = (Guid)Context.Items[SessionIdKey]!;
+        return turnContext;
     }
 
     private Guid GetSessionIdFromQuery()

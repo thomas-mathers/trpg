@@ -1,6 +1,5 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
-using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Combat;

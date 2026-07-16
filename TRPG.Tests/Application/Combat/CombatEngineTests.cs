@@ -13,13 +13,15 @@ public class CombatEngineTests
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
     private readonly Guid _worldId = Guid.NewGuid();
 
-    private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit = new TestOptionsSnapshot<CombatOptions>(
-        new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
-    );
+    private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit =
+        new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
+        );
 
-    private static readonly IOptionsSnapshot<CombatOptions> AlwaysMiss = new TestOptionsSnapshot<CombatOptions>(
-        new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
-    );
+    private static readonly IOptionsSnapshot<CombatOptions> AlwaysMiss =
+        new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
+        );
 
     private static CombatEngine MakeEngine(IOptionsSnapshot<CombatOptions> optionsSnapshot)
     {

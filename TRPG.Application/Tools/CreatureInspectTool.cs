@@ -32,7 +32,7 @@ internal record CreatureAttributesInfo(
 internal record CreatureInspectResult(string Name, int Level, CreatureAttributesInfo Attributes);
 
 internal class CreatureInspectTool(
-    GameSession session,
+    GameTurnContext turnContext,
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
     ILogger<CreatureInspectTool> logger
@@ -56,7 +56,7 @@ internal class CreatureInspectTool(
         var stopwatch = Stopwatch.StartNew();
 
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = session.PlayerId },
+            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
 
@@ -70,7 +70,7 @@ internal class CreatureInspectTool(
             target = await getCreatureByNameNearby.Handle(
                 new GetCreatureByNameNearbyQuery
                 {
-                    WorldId = session.WorldId,
+                    WorldId = turnContext.WorldId,
                     Player = player!,
                     Name = targetName,
                 },

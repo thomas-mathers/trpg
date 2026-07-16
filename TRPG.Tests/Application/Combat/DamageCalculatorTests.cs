@@ -12,14 +12,15 @@ public class DamageCalculatorTests
     private readonly Guid _worldId = Guid.NewGuid();
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
 
-    private static readonly IOptionsSnapshot<CombatOptions> Settings = new TestOptionsSnapshot<CombatOptions>(
-        new CombatOptions
-        {
-            StrengthDamageBonusPerPoint = 0.01f,
-            IntelligenceDamageBonusPerPoint = 0.01f,
-            UnarmedBaseDamage = 3,
-        }
-    );
+    private static readonly IOptionsSnapshot<CombatOptions> Settings =
+        new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions
+            {
+                StrengthDamageBonusPerPoint = 0.01f,
+                IntelligenceDamageBonusPerPoint = 0.01f,
+                UnarmedBaseDamage = 3,
+            }
+        );
 
     private Combatant MakeCombatant(
         int strength = 0,

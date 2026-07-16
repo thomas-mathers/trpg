@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG;
@@ -34,7 +35,9 @@ builder
     .AddTrpgOptions(builder.Configuration)
     .AddTrpgApplicationServices()
     .AddTrpgSessionState()
-    .AddSignalR();
+    .AddExceptionHandler<GameSessionNotFoundExceptionHandler>()
+    .AddProblemDetails()
+    .AddSignalR(options => options.AddFilter<GameSessionNotFoundHubFilter>());
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -43,6 +46,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 _ = Task.Run(async () =>
 {

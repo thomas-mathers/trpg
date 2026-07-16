@@ -44,6 +44,9 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<State> States => Set<State>();
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
     public DbSet<World> Worlds => Set<World>();
+    public DbSet<GameSession> GameSessions => Set<GameSession>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+    public DbSet<CombatantSnapshot> Combatants => Set<CombatantSnapshot>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -345,6 +348,86 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .IsUnique();
             entity.HasIndex(r => r.RelativeId);
             entity.HasIndex(r => r.WorldId);
+        });
+
+        modelBuilder.Entity<GameSession>(entity =>
+        {
+            entity.HasIndex(s => s.WorldId);
+            entity
+                .Property(s => s.OpenConversationCreatureIdsByName)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<Dictionary<string, Guid>>(v, JsonOptions)
+                        ?? new Dictionary<string, Guid>()
+                )
+                .HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasIndex(m => new { m.SessionId, m.Ordinal }).IsUnique();
+            entity.HasIndex(m => new { m.SessionId, m.Role });
+            entity.Property(m => m.MessageJson).HasColumnType("json");
+        });
+
+        modelBuilder.Entity<CombatantSnapshot>(entity =>
+        {
+            entity.HasIndex(c => c.SessionId);
+            entity
+                .Property(c => c.WeaponSwingCounts)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
+                        ?? new Dictionary<string, int>()
+                )
+                .HasColumnType("jsonb");
+            entity
+                .Property(c => c.ActiveConditions)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
+                        ?? new Dictionary<string, int>()
+                )
+                .HasColumnType("jsonb");
+            entity
+                .Property(c => c.CooldownRemainingByAbility)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
+                        ?? new Dictionary<string, int>()
+                )
+                .HasColumnType("jsonb");
+            entity
+                .Property(c => c.ActiveDots)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<List<ActiveDotSnapshot>>(v, JsonOptions)
+                        ?? new List<ActiveDotSnapshot>()
+                )
+                .HasColumnType("jsonb");
+            entity
+                .Property(c => c.ActiveHots)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<List<ActiveHotSnapshot>>(v, JsonOptions)
+                        ?? new List<ActiveHotSnapshot>()
+                )
+                .HasColumnType("jsonb");
+            entity
+                .Property(c => c.ActiveBuffs)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<List<ActiveBuffSnapshot>>(v, JsonOptions)
+                        ?? new List<ActiveBuffSnapshot>()
+                )
+                .HasColumnType("jsonb");
         });
     }
 }

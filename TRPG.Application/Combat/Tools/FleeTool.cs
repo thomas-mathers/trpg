@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Combat.Commands;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Game;
 using TRPG.Application.Tools;
 using TRPG.Application.Tools.Common;
@@ -10,8 +12,10 @@ using TRPG.Application.WeaponProficiency.Commands;
 namespace TRPG.Application.Combat.Tools;
 
 internal class FleeTool(
-    GameSession session,
+    GameTurnContext turnContext,
     AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
+    GetCombatantsQueryHandler getCombatants,
+    ClearCombatantsCommandHandler clearCombatants,
     CombatEngine combatEngine,
     ILogger<FleeTool> logger
 ) : IGameTool
@@ -27,24 +31,31 @@ internal class FleeTool(
         logger.LogInformation("[flee] tool invoked");
         var stopwatch = Stopwatch.StartNew();
 
-        if (session.Combatants is not { Count: > 0 })
+        var combatants = await getCombatants.Handle(
+            new GetCombatantsQuery { Lock = turnContext.Lock! },
+            cancellationToken
+        );
+        if (combatants is not { Count: > 0 })
         {
             return new ToolError("There's no fight to flee from right now.");
         }
 
-        var state = combatEngine.ResolveFlee(session.Combatants);
+        var state = combatEngine.ResolveFlee(combatants);
 
         var playerId = state.Combatants.Single(c => c.IsPlayer).Id;
         await adjustWeaponProficiencies.Handle(
             new AdjustWeaponProficienciesCommand
             {
-                WorldId = session.WorldId,
+                WorldId = turnContext.WorldId,
                 CreatureId = playerId,
                 ProficiencyDeltas = state.WeaponSwingCounts,
             },
             cancellationToken
         );
-        session.Combatants = null;
+        await clearCombatants.Handle(
+            new ClearCombatantsCommand { Lock = turnContext.Lock! },
+            cancellationToken
+        );
 
         var result = state.ToCombatResult();
 

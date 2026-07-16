@@ -4,14 +4,18 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Game;
+using TRPG.Application.Game.Commands;
+using TRPG.Application.Game.Queries;
 using TRPG.Application.Tools;
 using TRPG.Application.Tools.Common;
 
 namespace TRPG.Application.Conversations.Tools;
 
 internal class EndConversationTool(
-    GameSession session,
+    GameTurnContext turnContext,
     SetConversationSummaryCommandHandler setConversationSummary,
+    GetGameSessionQueryHandler getGameSession,
+    UpdateGameSessionCommandHandler updateGameSession,
     ILogger<EndConversationTool> logger
 ) : IGameTool
 {
@@ -36,7 +40,11 @@ internal class EndConversationTool(
         logger.LogInformation("[end_conversation] npcName={NpcName}", npcName);
         var stopwatch = Stopwatch.StartNew();
 
-        if (!session.OpenConversationCreatureIdsByName.TryGetValue(npcName, out var npcId))
+        var snapshot = await getGameSession.Handle(
+            new GetGameSessionQuery { Lock = turnContext.Lock! },
+            cancellationToken
+        );
+        if (!snapshot.OpenConversationCreatureIdsByName.TryGetValue(npcName, out var npcId))
         {
             return new ToolError(
                 $"No open conversation with '{npcName}'. Call start_conversation first."
@@ -46,14 +54,22 @@ internal class EndConversationTool(
         await setConversationSummary.Handle(
             new SetConversationSummaryCommand
             {
-                WorldId = session.WorldId,
-                CreatureId = session.PlayerId,
+                WorldId = turnContext.WorldId,
+                CreatureId = turnContext.PlayerId,
                 NpcId = npcId,
                 Summary = summary,
             },
             cancellationToken
         );
-        session.OpenConversationCreatureIdsByName.Remove(npcName);
+        snapshot.OpenConversationCreatureIdsByName.Remove(npcName);
+        await updateGameSession.Handle(
+            new UpdateGameSessionCommand
+            {
+                Lock = turnContext.Lock!,
+                OpenConversationCreatureIdsByName = snapshot.OpenConversationCreatureIdsByName,
+            },
+            cancellationToken
+        );
 
         var result = new { Saved = true };
         logger.LogInformation(

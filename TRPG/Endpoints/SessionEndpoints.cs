@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Game;
+using TRPG.Application.Game.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts;
 using TRPG.Requests;
@@ -23,7 +23,7 @@ internal static class SessionEndpoints
     private static async Task<IResult> StartSession(
         Guid worldId,
         GetWorldQueryHandler getWorld,
-        GameSessionStateStore sessionStore,
+        CreateGameSessionCommandHandler createGameSession,
         CancellationToken cancellationToken
     )
     {
@@ -36,10 +36,15 @@ internal static class SessionEndpoints
             return Results.NotFound();
         }
 
-        var session = new GameSession(worldId, world.PlayerId.Value, world.Playtime);
-        var messages = new List<ChatMessage> { new(ChatRole.System, GameTurnRunner.SystemPrompt) };
-        var state = new GameSessionState(session, messages);
-        var sessionId = sessionStore.Add(state);
+        var sessionId = await createGameSession.Handle(
+            new CreateGameSessionCommand
+            {
+                WorldId = worldId,
+                PlayerId = world.PlayerId.Value,
+                Playtime = world.Playtime,
+            },
+            cancellationToken
+        );
 
         return Results.Ok(new CreateSessionResponse(sessionId));
     }
@@ -48,73 +53,58 @@ internal static class SessionEndpoints
         Guid sessionId,
         ChatRequest request,
         bool? includeMetrics,
-        GameSessionStateStore sessionStore,
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
-        var state = sessionStore.Get(sessionId);
-        if (state == null)
-        {
-            return Results.NotFound();
-        }
-
-        httpContext.RequestServices.GetRequiredService<CurrentGameSessionStateAccessor>().State =
-            state;
+        httpContext.RequestServices.GetRequiredService<GameTurnContext>().SessionId = sessionId;
         var turnRunner = httpContext.RequestServices.GetRequiredService<GameTurnRunner>();
-        var metrics = await turnRunner.ProcessTurn(request.Message, cancellationToken);
 
+        var metrics = await turnRunner.GetResponseWithMetrics(request.Message, cancellationToken);
         return Results.Ok(
-            new TRPG.Responses.ChatResponse(
-                metrics.Response,
-                includeMetrics == true ? ToDto(metrics) : null
-            )
+            new ChatResponse(metrics.Response, includeMetrics == true ? ToDto(metrics) : null)
         );
     }
 
     private static async Task<IResult> Wait(
         Guid sessionId,
         WaitRequest request,
-        GameSessionStateStore sessionStore,
-        HttpContext httpContext,
+        GameSessionLocks sessionLocks,
+        AdvanceTimeCommandHandler advanceTime,
         CancellationToken cancellationToken
     )
     {
-        var state = sessionStore.Get(sessionId);
-        if (state == null)
-        {
-            return Results.NotFound();
-        }
-
         if (request.Hours <= 0)
         {
             return Results.BadRequest();
         }
 
-        httpContext.RequestServices.GetRequiredService<CurrentGameSessionStateAccessor>().State =
-            state;
-        var turnRunner = httpContext.RequestServices.GetRequiredService<GameTurnRunner>();
-        var currentDate = await turnRunner.AdvanceTime(request.Hours, cancellationToken);
+        await using var @lock = await sessionLocks.Acquire(sessionId, cancellationToken);
+        var bankedPlaytime = await advanceTime.Handle(
+            new AdvanceTimeCommand
+            {
+                Lock = @lock,
+                Delta = request.Hours * GameClock.RealTimePerInGameHour,
+            },
+            cancellationToken
+        );
+
+        var currentDate = GameClock.GetCurrentInGameDate(bankedPlaytime);
         var message =
             $"Time passes... it is now {currentDate.WeekdayName}, hour {currentDate.Hour}.";
-
         return Results.Ok(new WaitResponse(message));
     }
 
     private static async Task<IResult> EndSession(
         Guid sessionId,
-        GameSessionStateStore sessionStore,
-        SessionTerminator sessionTerminator,
+        EndGameSessionCommandHandler endGameSession,
         CancellationToken cancellationToken
     )
     {
-        var state = sessionStore.Get(sessionId);
-        if (state == null)
-        {
-            return Results.NotFound();
-        }
-
-        await sessionTerminator.EndSession(sessionId, state, cancellationToken);
+        await endGameSession.Handle(
+            new EndGameSessionCommand { SessionId = sessionId },
+            cancellationToken
+        );
         return Results.NoContent();
     }
 

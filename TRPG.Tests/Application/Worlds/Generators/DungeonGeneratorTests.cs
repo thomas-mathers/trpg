@@ -12,9 +12,7 @@ public class DungeonGeneratorTests
     public void Generate_ReturnsBuildingAndGroundFloorRoom()
     {
         // Act
-        var result = DungeonGenerator.Generate(
-            new DungeonGeneratorInput(_stateId, [], _worldId)
-        );
+        var result = DungeonGenerator.Generate(new DungeonGeneratorInput(_stateId, [], _worldId));
 
         // Assert
         Assert.Equal(_stateId, result.Building.StateId);
@@ -39,9 +37,7 @@ public class DungeonGeneratorTests
     public void Generate_NeverPicksAnExcludedName()
     {
         // Act
-        var result = DungeonGenerator.Generate(
-            new DungeonGeneratorInput(_stateId, [], _worldId)
-        );
+        var result = DungeonGenerator.Generate(new DungeonGeneratorInput(_stateId, [], _worldId));
         var next = DungeonGenerator.Generate(
             new DungeonGeneratorInput(_stateId, [result.Building.Name], _worldId)
         );

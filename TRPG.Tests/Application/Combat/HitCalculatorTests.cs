@@ -12,31 +12,35 @@ public class HitCalculatorTests
     private readonly Guid _worldId = Guid.NewGuid();
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
 
-    private static readonly IOptionsSnapshot<CombatOptions> Settings = new TestOptionsSnapshot<CombatOptions>(
-        new CombatOptions
-        {
-            BaseProficiency = 0,
-            MinHitChance = 0.05f,
-            MaxHitChance = 0.95f,
-        }
-    );
+    private static readonly IOptionsSnapshot<CombatOptions> Settings =
+        new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions
+            {
+                BaseProficiency = 0,
+                MinHitChance = 0.05f,
+                MaxHitChance = 0.95f,
+            }
+        );
 
-    private static readonly IOptionsSnapshot<CombatOptions> BaseProficiencySettings = new TestOptionsSnapshot<CombatOptions>(
-        new CombatOptions
-        {
-            BaseProficiency = 50,
-            MinHitChance = 0.05f,
-            MaxHitChance = 0.95f,
-        }
-    );
+    private static readonly IOptionsSnapshot<CombatOptions> BaseProficiencySettings =
+        new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions
+            {
+                BaseProficiency = 50,
+                MinHitChance = 0.05f,
+                MaxHitChance = 0.95f,
+            }
+        );
 
-    private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit = new TestOptionsSnapshot<CombatOptions>(
-        new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
-    );
+    private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit =
+        new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
+        );
 
-    private static readonly IOptionsSnapshot<CombatOptions> AlwaysMiss = new TestOptionsSnapshot<CombatOptions>(
-        new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
-    );
+    private static readonly IOptionsSnapshot<CombatOptions> AlwaysMiss =
+        new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
+        );
 
     private static AttackAbility MakeAttack(DamageType damageType = DamageType.Physical)
     {

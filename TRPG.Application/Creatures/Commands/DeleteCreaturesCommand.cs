@@ -22,13 +22,17 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
             return;
         }
 
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
 
         await DeleteDirectReferences(ids, cancellationToken);
         await DeleteRelationships(ids, cancellationToken);
         await DeleteKnowledge(ids, cancellationToken);
         await ClearOccupancy(ids, cancellationToken);
-        await context.Creatures.Where(c => ids.Contains(c.Id)).ExecuteDeleteAsync(cancellationToken);
+        await context
+            .Creatures.Where(c => ids.Contains(c.Id))
+            .ExecuteDeleteAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
     }
@@ -56,7 +60,9 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
         await context
             .InventoryItems.Where(x => ids.Contains(x.CreatureId))
             .ExecuteDeleteAsync(cancellationToken);
-        await context.Jobs.Where(x => ids.Contains(x.CreatureId)).ExecuteDeleteAsync(cancellationToken);
+        await context
+            .Jobs.Where(x => ids.Contains(x.CreatureId))
+            .ExecuteDeleteAsync(cancellationToken);
         await context
             .FactionMembers.Where(x => ids.Contains(x.CreatureId))
             .ExecuteDeleteAsync(cancellationToken);
@@ -102,7 +108,10 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
             .ExecuteDeleteAsync(cancellationToken);
     }
 
-    private async Task ClearOccupancy(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken)
+    private async Task ClearOccupancy(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken
+    )
     {
         await context
             .Set<Bed>()
@@ -114,7 +123,10 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
         await context
             .Set<Bed>()
             .Where(b => b.OccupantId != null && ids.Contains(b.OccupantId.Value))
-            .ExecuteUpdateAsync(s => s.SetProperty(b => b.OccupantId, (Guid?)null), cancellationToken);
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(b => b.OccupantId, (Guid?)null),
+                cancellationToken
+            );
 
         await context
             .Set<Workstation>()
@@ -126,7 +138,10 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
         await context
             .Set<Workstation>()
             .Where(w => w.OccupantId != null && ids.Contains(w.OccupantId.Value))
-            .ExecuteUpdateAsync(s => s.SetProperty(w => w.OccupantId, (Guid?)null), cancellationToken);
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(w => w.OccupantId, (Guid?)null),
+                cancellationToken
+            );
 
         await context
             .Set<Seat>()

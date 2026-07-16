@@ -4,15 +4,17 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
+using TRPG.Application.Game.Queries;
 using TRPG.Application.Tools.Common;
 
 namespace TRPG.Application.Tools;
 
 internal class LookupTool(
-    GameSession session,
+    GameTurnContext turnContext,
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
     GetCreatureKnowledgeQueryHandler getCreatureKnowledge,
+    GetPlaytimeQueryHandler getPlaytime,
     ILogger<LookupTool> logger
 ) : IGameTool
 {
@@ -42,13 +44,13 @@ internal class LookupTool(
         var stopwatch = Stopwatch.StartNew();
 
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = session.PlayerId },
+            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
         var askingPerson = await getCreatureByNameNearby.Handle(
             new GetCreatureByNameNearbyQuery
             {
-                WorldId = session.WorldId,
+                WorldId = turnContext.WorldId,
                 Player = player!,
                 Name = askingPersonName,
             },
@@ -61,10 +63,14 @@ internal class LookupTool(
             );
         }
 
-        var currentYear = GameClock.GetCurrentInGameDate(session).Year;
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { Lock = turnContext.Lock! },
+            cancellationToken
+        );
+        var currentYear = GameClock.GetCurrentInGameDate(playtime).Year;
         var query = new GetCreatureKnowledgeQuery
         {
-            WorldId = session.WorldId,
+            WorldId = turnContext.WorldId,
             SubjectName = subjectName,
             CurrentYear = currentYear,
             AskingPerson = askingPerson,

@@ -8,44 +8,30 @@ public class GameClockTests
     public void GetCurrentInGameDateTime_DoesNotAdvance_FromRealTimeAlone()
     {
         // Arrange
-        var session = new GameSession(Guid.NewGuid(), Guid.NewGuid(), TimeSpan.Zero);
-        var before = GameClock.GetCurrentInGameDateTime(session);
+        var bankedPlaytime = TimeSpan.Zero;
+        var before = GameClock.GetCurrentInGameDateTime(bankedPlaytime);
 
         // Act — real time passing on its own must not move the in-game clock
         Thread.Sleep(500);
-        var after = GameClock.GetCurrentInGameDateTime(session);
+        var after = GameClock.GetCurrentInGameDateTime(bankedPlaytime);
 
         // Assert
         Assert.Equal(before, after);
     }
 
     [Fact]
-    public void AdvanceHours_MovesTheInGameClockByExactlyTheRequestedAmount()
+    public void RealTimePerInGameHour_ConvertsInGameHoursToRealTime_AtTheConfiguredRatio()
     {
         // Arrange
-        var session = new GameSession(Guid.NewGuid(), Guid.NewGuid(), TimeSpan.Zero);
-        var before = GameClock.GetCurrentInGameDateTime(session);
+        var bankedPlaytime = TimeSpan.Zero;
+        var before = GameClock.GetCurrentInGameDateTime(bankedPlaytime);
 
-        // Act
-        GameClock.AdvanceHours(session, 5);
-        var after = GameClock.GetCurrentInGameDateTime(session);
+        // Act — 5 in-game hours at the 12-in-game-hours-per-real-hour ratio is 5/12 of a real hour
+        var after = GameClock.GetCurrentInGameDateTime(
+            bankedPlaytime + 5 * GameClock.RealTimePerInGameHour
+        );
 
         // Assert
         Assert.Equal(TimeSpan.FromHours(5), after - before);
-    }
-
-    [Fact]
-    public void AdvanceForMessage_ConvertsRealSecondsToInGameTime_AtTheConfiguredRatio()
-    {
-        // Arrange
-        var session = new GameSession(Guid.NewGuid(), Guid.NewGuid(), TimeSpan.Zero);
-        var before = GameClock.GetCurrentInGameDateTime(session);
-
-        // Act — 60 real seconds at the 12-in-game-hours-per-real-hour ratio is 12 in-game minutes
-        GameClock.AdvanceForMessage(session, realTimePerMessage: TimeSpan.FromSeconds(60));
-        var after = GameClock.GetCurrentInGameDateTime(session);
-
-        // Assert
-        Assert.Equal(TimeSpan.FromMinutes(12), after - before);
     }
 }

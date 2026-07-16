@@ -7,6 +7,7 @@ using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
+using TRPG.Application.Game.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Tools.Common;
@@ -16,7 +17,7 @@ using TRPG.Data.Models;
 namespace TRPG.Application.Tools;
 
 internal class MoveTool(
-    GameSession session,
+    GameTurnContext turnContext,
     GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
     GetCreatureByIdQueryHandler getCreatureById,
     GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
@@ -29,6 +30,7 @@ internal class MoveTool(
     GetCityByStateIdQueryHandler getCityByStateId,
     CanEnterBuildingQueryHandler canEnterBuilding,
     SyncScheduleLockCommandHandler syncScheduleLock,
+    GetPlaytimeQueryHandler getPlaytime,
     ILogger<MoveTool> logger
 ) : IGameTool
 {
@@ -50,7 +52,7 @@ internal class MoveTool(
         var stopwatch = Stopwatch.StartNew();
 
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = session.PlayerId },
+            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
 
@@ -85,13 +87,17 @@ internal class MoveTool(
             },
             cancellationToken
         );
-        session.DidMoveThisTurn = true;
 
-        var currentDate = GameClock.GetCurrentInGameDate(session);
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { Lock = turnContext.Lock! },
+            cancellationToken
+        );
+        var currentDate = GameClock.GetCurrentInGameDate(playtime);
         var result = await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {
-                Session = session,
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
                 RoomId = player.RoomId,
                 DistrictId = player.DistrictId,
                 StateId = player.StateId,
@@ -100,7 +106,8 @@ internal class MoveTool(
             cancellationToken
         );
 
-        session.DidSceneRefreshThisTurn = true;
+        turnContext.DidMoveThisTurn = true;
+        turnContext.DidSceneRefreshThisTurn = true;
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,
@@ -170,7 +177,11 @@ internal class MoveTool(
                 );
             }
 
-            var currentDate = GameClock.GetCurrentInGameDate(session);
+            var schedulePlaytime = await getPlaytime.Handle(
+                new GetPlaytimeQuery { Lock = turnContext.Lock! },
+                cancellationToken
+            );
+            var currentDate = GameClock.GetCurrentInGameDate(schedulePlaytime);
             await syncScheduleLock.Handle(
                 new SyncScheduleLockCommand
                 {
