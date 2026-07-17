@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Game;
+using TRPG.Application.GameSessions;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Data.Models;
 

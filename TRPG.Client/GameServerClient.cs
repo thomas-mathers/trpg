@@ -1,6 +1,11 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using TRPG.Contracts;
+using TRPG.Contracts.GameSessions.Responses;
+using TRPG.Contracts.Jobs.Responses;
+using TRPG.Contracts.Scenes.Responses;
+using TRPG.Contracts.Worlds.Requests;
+using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 
@@ -13,7 +18,10 @@ internal sealed class GameServerClient(HttpClient httpClient)
 
     public event Action<string>? ConnectionStatusChanged;
 
-    public async Task<Guid> CreateWorld(CreateWorldRequest request, CancellationToken cancellationToken)
+    public async Task<Guid> CreateWorld(
+        CreateWorldRequest request,
+        CancellationToken cancellationToken
+    )
     {
         var response = await httpClient.PostAsJsonAsync(
             "/worlds",
@@ -29,7 +37,10 @@ internal sealed class GameServerClient(HttpClient httpClient)
         return result!.JobId;
     }
 
-    public async Task<JobStatusResponse> GetJobStatus(Guid jobId, CancellationToken cancellationToken)
+    public async Task<JobStatusResponse> GetJobStatus(
+        Guid jobId,
+        CancellationToken cancellationToken
+    )
     {
         var response = await httpClient.GetAsync(
             new Uri($"/jobs/{jobId}", UriKind.Relative),
@@ -65,7 +76,7 @@ internal sealed class GameServerClient(HttpClient httpClient)
     public async Task<Guid> StartSession(Guid worldId, CancellationToken cancellationToken)
     {
         var response = await httpClient.PostAsync(
-            new Uri($"/worlds/{worldId}/sessions", UriKind.Relative),
+            new Uri($"/sessions?worldId={worldId}", UriKind.Relative),
             null,
             cancellationToken
         );

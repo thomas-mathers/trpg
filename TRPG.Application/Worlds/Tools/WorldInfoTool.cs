@@ -2,9 +2,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Game;
-using TRPG.Application.Tools;
-using TRPG.Application.Tools.Common;
+using TRPG.Application.GameSessions;
+using TRPG.Application.Common.Tools;
 using TRPG.Application.Worlds.Queries;
 
 namespace TRPG.Application.Worlds.Tools;

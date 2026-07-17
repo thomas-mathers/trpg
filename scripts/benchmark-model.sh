@@ -165,7 +165,7 @@ start_server() {
 # server starts, so its opening-turn chat history never leaks between trials.
 start_session() {
     local response session_id
-    response=$(curl -s -X POST "http://localhost:5000/worlds/$WORLD_ID/sessions")
+    response=$(curl -s -X POST "http://localhost:5000/sessions?worldId=$WORLD_ID")
     session_id=$(echo "$response" | grep -oE '"sessionId":"[^"]+"' | grep -oE '[0-9a-fA-F-]{36}')
     if [ -z "$session_id" ]; then
         echo "ERROR: failed to start session for world $WORLD_ID: $response" >&2

@@ -4,7 +4,7 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Game.Queries;
+using TRPG.Application.GameSessions.Queries;
 
 namespace TRPG.Endpoints;
 

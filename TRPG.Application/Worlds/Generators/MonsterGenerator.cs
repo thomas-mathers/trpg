@@ -1,5 +1,5 @@
 using TRPG.Application.Creatures;
-using TRPG.Application.Game;
+using TRPG.Application.GameSessions;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;

@@ -4,9 +4,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Game;
-using TRPG.Application.Tools;
-using TRPG.Application.Tools.Common;
+using TRPG.Application.GameSessions;
+using TRPG.Application.Common.Tools;
 
 namespace TRPG.Application.Combat.Tools;
 

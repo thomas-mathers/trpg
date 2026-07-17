@@ -1,5 +1,7 @@
 using System.Text.Json;
-using TRPG.Contracts;
+using TRPG.Contracts.Jobs.Responses;
+using TRPG.Contracts.Worlds.Requests;
+using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 

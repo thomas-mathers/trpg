@@ -1,10 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Contracts;
+using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
-using TRPG.Requests;
+using TRPG.GameSessions.Requests;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;
@@ -62,7 +62,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
     private async Task<Guid> StartSession()
     {
         var response = await _client.PostAsync(
-            new Uri($"/worlds/{_worldId}/sessions", UriKind.Relative),
+            new Uri($"/sessions?worldId={_worldId}", UriKind.Relative),
             null,
             TestContext.Current.CancellationToken
         );

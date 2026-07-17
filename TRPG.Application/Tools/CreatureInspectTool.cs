@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Game;
-using TRPG.Application.Tools.Common;
+using TRPG.Application.GameSessions;
+using TRPG.Application.Common.Tools;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Tools;

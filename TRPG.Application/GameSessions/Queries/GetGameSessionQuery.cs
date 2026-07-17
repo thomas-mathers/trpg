@@ -1,0 +1,42 @@
+using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using TRPG.Application.GameSessions.Exceptions;
+using TRPG.Data;
+using TRPG.Data.Models;
+
+namespace TRPG.Application.GameSessions.Queries;
+
+internal class GetGameSessionQuery
+{
+    public required Guid SessionId { get; init; }
+}
+
+internal class GetGameSessionQueryHandler(
+    TrpgDbContext context,
+    ILogger<GetGameSessionQueryHandler> logger
+)
+{
+    public async Task<GameSession> Handle(
+        GetGameSessionQuery query,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var row = await context
+            .GameSessions.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == query.SessionId, cancellationToken);
+
+        if (row == null)
+        {
+            throw new GameSessionNotFoundException(query.SessionId);
+        }
+
+        logger.LogInformation(
+            "[perf] GetGameSession took {ElapsedMs}ms",
+            stopwatch.ElapsedMilliseconds
+        );
+
+        return row;
+    }
+}

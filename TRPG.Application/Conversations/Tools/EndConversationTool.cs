@@ -3,11 +3,10 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Conversations.Commands;
-using TRPG.Application.Game;
-using TRPG.Application.Game.Commands;
-using TRPG.Application.Game.Queries;
-using TRPG.Application.Tools;
-using TRPG.Application.Tools.Common;
+using TRPG.Application.GameSessions;
+using TRPG.Application.GameSessions.Commands;
+using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Common.Tools;
 
 namespace TRPG.Application.Conversations.Tools;
 

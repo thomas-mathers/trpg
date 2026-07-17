@@ -1,9 +1,9 @@
-using TRPG.Application.Game;
+using TRPG.Application.GameSessions;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Mappers;
-using TRPG.Contracts;
+using TRPG.Contracts.Worlds.Requests;
 using TRPG.Data.Models;
-using Gender = TRPG.Contracts.Gender;
+using Gender = TRPG.Contracts.Worlds.Requests.Gender;
 
 namespace TRPG.Application.Worlds.Commands;
 

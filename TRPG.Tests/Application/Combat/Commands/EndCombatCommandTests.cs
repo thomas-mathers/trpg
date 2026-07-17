@@ -3,7 +3,7 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Game.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -58,7 +58,12 @@ public sealed class EndCombatCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _context.DisposeAsync();
     }
 
-    private CombatantState MakeCombatantState(Guid id, bool isPlayer, int currentHp, bool isAlive) =>
+    private CombatantState MakeCombatantState(
+        Guid id,
+        bool isPlayer,
+        int currentHp,
+        bool isAlive
+    ) =>
         new(
             Id: id,
             Name: isPlayer ? _player.Name : _enemy.Name,

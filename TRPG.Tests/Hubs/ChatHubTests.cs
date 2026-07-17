@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Contracts;
+using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
 
@@ -44,7 +44,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     private async Task<Guid> StartSession()
     {
         var response = await _client.PostAsync(
-            new Uri($"/worlds/{_worldId}/sessions", UriKind.Relative),
+            new Uri($"/sessions?worldId={_worldId}", UriKind.Relative),
             null,
             TestContext.Current.CancellationToken
         );

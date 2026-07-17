@@ -3,6 +3,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts;
+using TRPG.Contracts.Jobs.Responses;
+using TRPG.Contracts.Worlds.Requests;
+using TRPG.Contracts.Worlds.Responses;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
 

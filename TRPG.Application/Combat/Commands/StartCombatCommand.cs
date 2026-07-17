@@ -1,7 +1,7 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Game.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Data.Models;
@@ -90,7 +90,11 @@ internal class StartCombatCommandHandler(
             cancellationToken
         );
 
-        var playerCombatant = await BuildPlayerCombatant(player!, command.WorldId, cancellationToken);
+        var playerCombatant = await BuildPlayerCombatant(
+            player!,
+            command.WorldId,
+            cancellationToken
+        );
 
         var enemyCreatures = await getCreaturesByIds.Handle(
             new GetCreaturesByIdsQuery { Ids = enemyIds },

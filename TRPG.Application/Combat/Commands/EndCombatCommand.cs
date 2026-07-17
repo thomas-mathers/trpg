@@ -1,5 +1,5 @@
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Game.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data;
 
@@ -21,12 +21,17 @@ internal class EndCombatCommandHandler(
     ClearCombatantsCommandHandler clearCombatants
 )
 {
-    public async Task Handle(EndCombatCommand command, CancellationToken cancellationToken = default)
+    public async Task Handle(
+        EndCombatCommand command,
+        CancellationToken cancellationToken = default
+    )
     {
         var state = command.State;
         var playerId = state.Combatants.Single(c => c.IsPlayer).Id;
 
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
 
         await adjustWeaponProficiencies.Handle(
             new AdjustWeaponProficienciesCommand
@@ -56,7 +61,11 @@ internal class EndCombatCommandHandler(
             cancellationToken
         );
         await persistCombatantResources.Handle(
-            new PersistCombatantResourcesCommand { Combatants = state.Combatants, Playtime = playtime },
+            new PersistCombatantResourcesCommand
+            {
+                Combatants = state.Combatants,
+                Playtime = playtime,
+            },
             cancellationToken
         );
 

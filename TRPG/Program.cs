@@ -10,7 +10,9 @@ using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.Endpoints;
 using TRPG.Extensions;
-using TRPG.Hubs;
+using TRPG.GameSessions.Endpoints;
+using TRPG.GameSessions.Hubs;
+using TRPG.Worlds.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5000");
@@ -67,7 +69,7 @@ _ = Task.Run(async () =>
 });
 
 app.MapWorldEndpoints();
-app.MapSessionEndpoints();
+app.MapGameSessionEndpoints();
 app.MapCheatEndpoints();
 app.MapJobsEndpoints();
 app.MapHub<ChatHub>("/hubs/chat");

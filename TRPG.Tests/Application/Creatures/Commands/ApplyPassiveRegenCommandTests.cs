@@ -1,6 +1,6 @@
 using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Game;
+using TRPG.Application.GameSessions;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;

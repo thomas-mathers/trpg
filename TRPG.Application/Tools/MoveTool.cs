@@ -6,11 +6,11 @@ using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Game;
-using TRPG.Application.Game.Queries;
+using TRPG.Application.GameSessions;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Application.Tools.Common;
+using TRPG.Application.Common.Tools;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.Models;
 

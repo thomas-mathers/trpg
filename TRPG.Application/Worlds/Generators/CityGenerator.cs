@@ -1,4 +1,4 @@
-using TRPG.Application.Game;
+using TRPG.Application.GameSessions;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
@@ -447,7 +447,12 @@ public class CityGenerator(
         if (type == BuildingType.GuildHall)
         {
             workspace.Jobs.Add(
-                CreatureJobGenerator.GenerateWork(input.State.Id, ownerId, groundFloorRoomId, input.WorldId)
+                CreatureJobGenerator.GenerateWork(
+                    input.State.Id,
+                    ownerId,
+                    groundFloorRoomId,
+                    input.WorldId
+                )
             );
             return;
         }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Abilities;
+using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
@@ -27,16 +28,16 @@ internal class GetCombatantsQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var rows = await context
+        var snapshots = await context
             .Combatants.AsNoTracking()
             .Where(c => c.SessionId == query.SessionId)
             .ToArrayAsync(cancellationToken);
 
         var combatants = new List<Combatant>();
-        foreach (var row in rows)
+        foreach (var snapshot in snapshots)
         {
             var creature = await getCreatureById.Handle(
-                new GetCreatureByIdQuery { Id = row.CreatureId },
+                new GetCreatureByIdQuery { Id = snapshot.CreatureId },
                 cancellationToken
             );
             var weaponProficiencies = (
@@ -44,7 +45,7 @@ internal class GetCombatantsQueryHandler(
                     new GetAllWeaponProficienciesQuery
                     {
                         WorldId = creature!.WorldId,
-                        CreatureId = row.CreatureId,
+                        CreatureId = snapshot.CreatureId,
                     },
                     cancellationToken
                 )
@@ -52,10 +53,10 @@ internal class GetCombatantsQueryHandler(
 
             IReadOnlyList<Item> inventory;
             IReadOnlyList<Ability> abilities;
-            if (row.IsPlayer)
+            if (snapshot.IsPlayer)
             {
                 var inventoryItems = await getInventoryByCreatureId.Handle(
-                    new GetInventoryByCreatureIdQuery { CreatureId = row.CreatureId },
+                    new GetInventoryByCreatureIdQuery { CreatureId = snapshot.CreatureId },
                     cancellationToken
                 );
                 inventory = inventoryItems
@@ -67,7 +68,7 @@ internal class GetCombatantsQueryHandler(
                     new GetCreatureAbilitiesQuery
                     {
                         WorldId = creature.WorldId,
-                        CreatureId = row.CreatureId,
+                        CreatureId = snapshot.CreatureId,
                     },
                     cancellationToken
                 );
@@ -86,13 +87,7 @@ internal class GetCombatantsQueryHandler(
             }
 
             combatants.Add(
-                CombatantMapper.ToCombatant(
-                    row,
-                    creature,
-                    abilities,
-                    inventory,
-                    weaponProficiencies
-                )
+                snapshot.ToCombatant(creature, abilities, inventory, weaponProficiencies)
             );
         }
 

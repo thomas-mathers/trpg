@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Combat.Mappers;
 using TRPG.Data;
 
 namespace TRPG.Application.Combat.Commands;
@@ -16,7 +17,9 @@ internal class SetCombatantsCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
 
         await context
             .Combatants.Where(c => c.SessionId == command.SessionId)
@@ -24,7 +27,7 @@ internal class SetCombatantsCommandHandler(TrpgDbContext context)
 
         foreach (var combatant in command.Combatants)
         {
-            context.Combatants.Add(CombatantMapper.ToRow(combatant, command.SessionId));
+            context.Combatants.Add(combatant.ToSnapshot(command.SessionId));
         }
 
         await context.SaveChangesAsync(cancellationToken);
