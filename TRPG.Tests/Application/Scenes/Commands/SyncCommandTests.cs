@@ -32,7 +32,9 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         _addCreature = new AddCreatureCommandHandler(_context);
         _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
         _getWorkstationsByRoomId = new GetWorkstationsByRoomIdQueryHandler(_context);
-        var executeJob = new ExecuteCreatureJobCommandHandler(new UpdateCreaturesCommandHandler(_context));
+        var executeJob = new ExecuteCreatureJobCommandHandler(
+            new UpdateCreaturesCommandHandler(_context)
+        );
         var getAllJobsByCreatureId = new GetAllCreatureJobsByCreatureIdQueryHandler(_context);
         var syncScheduleLock = new SyncScheduleLockCommandHandler(
             new GetAllOwnersByBuildingIdQueryHandler(_context),

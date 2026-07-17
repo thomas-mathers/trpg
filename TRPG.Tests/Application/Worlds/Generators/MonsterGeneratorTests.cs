@@ -95,7 +95,10 @@ public class MonsterGeneratorTests
     {
         // Assert — keeps the scene's dungeon/building split from drifting out of sync
         // with the building types this generator actually knows how to populate
-        Assert.All(BuildingTypes.Dungeon, t => Assert.True(MonsterGenerator.SupportsDungeonType(t)));
+        Assert.All(
+            BuildingTypes.Dungeon,
+            t => Assert.True(MonsterGenerator.SupportsDungeonType(t))
+        );
         Assert.All(
             Enum.GetValues<BuildingType>().Except(BuildingTypes.Dungeon),
             t => Assert.False(MonsterGenerator.SupportsDungeonType(t))

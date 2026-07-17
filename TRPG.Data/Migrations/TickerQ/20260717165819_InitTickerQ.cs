@@ -11,8 +11,7 @@ namespace TRPG.Data.Migrations.TickerQ
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.EnsureSchema(
-                name: "ticker");
+            migrationBuilder.EnsureSchema(name: "ticker");
 
             migrationBuilder.CreateTable(
                 name: "CronTickers",
@@ -23,19 +22,30 @@ namespace TRPG.Data.Migrations.TickerQ
                     Function = table.Column<string>(type: "text", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true),
                     InitIdentifier = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    UpdatedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                     Expression = table.Column<string>(type: "text", nullable: true),
                     Request = table.Column<byte[]>(type: "bytea", nullable: true),
                     Retries = table.Column<int>(type: "integer", nullable: false),
                     RetryIntervals = table.Column<int[]>(type: "integer[]", nullable: true),
                     IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    IsSystemPaused = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
+                    IsSystemPaused = table.Column<bool>(
+                        type: "boolean",
+                        nullable: false,
+                        defaultValue: false
+                    ),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_CronTickers", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "TimeTickers",
@@ -47,14 +57,29 @@ namespace TRPG.Data.Migrations.TickerQ
                     Function = table.Column<string>(type: "text", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true),
                     InitIdentifier = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    UpdatedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     LockHolder = table.Column<string>(type: "text", nullable: true),
                     Request = table.Column<byte[]>(type: "bytea", nullable: true),
-                    ExecutionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LockedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ExecutedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ExecutionTime = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: true
+                    ),
+                    LockedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: true
+                    ),
+                    ExecutedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: true
+                    ),
                     ExceptionMessage = table.Column<string>(type: "text", nullable: true),
                     SkippedReason = table.Column<string>(type: "text", nullable: true),
                     ElapsedTime = table.Column<long>(type: "bigint", nullable: false),
@@ -62,7 +87,7 @@ namespace TRPG.Data.Migrations.TickerQ
                     RetryCount = table.Column<int>(type: "integer", nullable: false),
                     RetryIntervals = table.Column<int[]>(type: "integer[]", nullable: true),
                     ParentId = table.Column<Guid>(type: "uuid", nullable: true),
-                    RunCondition = table.Column<int>(type: "integer", nullable: true)
+                    RunCondition = table.Column<int>(type: "integer", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -72,8 +97,10 @@ namespace TRPG.Data.Migrations.TickerQ
                         column: x => x.ParentId,
                         principalSchema: "ticker",
                         principalTable: "TimeTickers",
-                        principalColumn: "Id");
-                });
+                        principalColumn: "Id"
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "CronTickerOccurrences",
@@ -83,16 +110,31 @@ namespace TRPG.Data.Migrations.TickerQ
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     LockHolder = table.Column<string>(type: "text", nullable: true),
-                    ExecutionTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ExecutionTime = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                     CronTickerId = table.Column<Guid>(type: "uuid", nullable: false),
-                    LockedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ExecutedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LockedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: true
+                    ),
+                    ExecutedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: true
+                    ),
                     ExceptionMessage = table.Column<string>(type: "text", nullable: true),
                     SkippedReason = table.Column<string>(type: "text", nullable: true),
                     ElapsedTime = table.Column<long>(type: "bigint", nullable: false),
                     RetryCount = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
+                    UpdatedAt = table.Column<DateTime>(
+                        type: "timestamp with time zone",
+                        nullable: false
+                    ),
                 },
                 constraints: table =>
                 {
@@ -103,79 +145,84 @@ namespace TRPG.Data.Migrations.TickerQ
                         principalSchema: "ticker",
                         principalTable: "CronTickers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_CronTickerOccurrence_CronTickerId",
                 schema: "ticker",
                 table: "CronTickerOccurrences",
-                column: "CronTickerId");
+                column: "CronTickerId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_CronTickerOccurrence_ExecutionTime",
                 schema: "ticker",
                 table: "CronTickerOccurrences",
-                column: "ExecutionTime");
+                column: "ExecutionTime"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_CronTickerOccurrence_Status_ExecutionTime",
                 schema: "ticker",
                 table: "CronTickerOccurrences",
-                columns: new[] { "Status", "ExecutionTime" });
+                columns: new[] { "Status", "ExecutionTime" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "UQ_CronTickerId_ExecutionTime",
                 schema: "ticker",
                 table: "CronTickerOccurrences",
                 columns: new[] { "CronTickerId", "ExecutionTime" },
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_CronTickers_Expression",
                 schema: "ticker",
                 table: "CronTickers",
-                column: "Expression");
+                column: "Expression"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_Function_Expression",
                 schema: "ticker",
                 table: "CronTickers",
-                columns: new[] { "Function", "Expression" });
+                columns: new[] { "Function", "Expression" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_TimeTicker_ExecutionTime",
                 schema: "ticker",
                 table: "TimeTickers",
-                column: "ExecutionTime");
+                column: "ExecutionTime"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_TimeTicker_Status_ExecutionTime",
                 schema: "ticker",
                 table: "TimeTickers",
-                columns: new[] { "Status", "ExecutionTime" });
+                columns: new[] { "Status", "ExecutionTime" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_TimeTickers_ParentId",
                 schema: "ticker",
                 table: "TimeTickers",
-                column: "ParentId");
+                column: "ParentId"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "CronTickerOccurrences",
-                schema: "ticker");
+            migrationBuilder.DropTable(name: "CronTickerOccurrences", schema: "ticker");
 
-            migrationBuilder.DropTable(
-                name: "TimeTickers",
-                schema: "ticker");
+            migrationBuilder.DropTable(name: "TimeTickers", schema: "ticker");
 
-            migrationBuilder.DropTable(
-                name: "CronTickers",
-                schema: "ticker");
+            migrationBuilder.DropTable(name: "CronTickers", schema: "ticker");
         }
     }
 }

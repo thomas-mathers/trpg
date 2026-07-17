@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Exceptions;
 
-namespace TRPG.GameSessions.Hubs;
+namespace TRPG.GameSessions.Filters;
 
 internal class GameSessionNotFoundHubFilter : IHubFilter
 {

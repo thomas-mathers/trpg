@@ -1,7 +1,7 @@
 using Anthropic.Models.Messages;
 using Microsoft.Extensions.AI;
 
-namespace TRPG;
+namespace TRPG.GameSessions.ChatClients;
 
 internal sealed class PromptCachingChatClient(IChatClient innerClient)
     : DelegatingChatClient(innerClient)

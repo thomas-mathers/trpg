@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using TRPG.Application.Common;
+using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions;
 using TRPG.Data;
 using TRPG.Data.Models;

@@ -6,11 +6,13 @@ using Microsoft.Extensions.DependencyInjection;
 using TickerQ.DependencyInjection;
 using TRPG;
 using TRPG.Application.Common.Extensions;
+using TRPG.Configuration;
 using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.Endpoints;
 using TRPG.Extensions;
 using TRPG.GameSessions.Endpoints;
+using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
 using TRPG.Worlds.Endpoints;
 
@@ -49,7 +51,9 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.PropertyNameCaseInsensitive = TrpgJsonOptions
         .Default
         .PropertyNameCaseInsensitive;
-    options.SerializerOptions.DefaultIgnoreCondition = TrpgJsonOptions.Default.DefaultIgnoreCondition;
+    options.SerializerOptions.DefaultIgnoreCondition = TrpgJsonOptions
+        .Default
+        .DefaultIgnoreCondition;
     foreach (var converter in TrpgJsonOptions.Default.Converters)
     {
         options.SerializerOptions.Converters.Add(converter);

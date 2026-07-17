@@ -16,48 +16,44 @@ namespace TRPG.Data.Migrations
                 table: "creatures",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
 
             migrationBuilder.AddColumn<int>(
                 name: "current_hp",
                 table: "creatures",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
 
             migrationBuilder.AddColumn<int>(
                 name: "current_mp",
                 table: "creatures",
                 type: "integer",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
 
             migrationBuilder.AddColumn<TimeSpan>(
                 name: "last_regen_playtime",
                 table: "creatures",
                 type: "interval",
                 nullable: false,
-                defaultValue: new TimeSpan(0, 0, 0, 0, 0));
+                defaultValue: new TimeSpan(0, 0, 0, 0, 0)
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "current_ap",
-                table: "creatures");
+            migrationBuilder.DropColumn(name: "current_ap", table: "creatures");
 
-            migrationBuilder.DropColumn(
-                name: "current_hp",
-                table: "creatures");
+            migrationBuilder.DropColumn(name: "current_hp", table: "creatures");
 
-            migrationBuilder.DropColumn(
-                name: "current_mp",
-                table: "creatures");
+            migrationBuilder.DropColumn(name: "current_mp", table: "creatures");
 
-            migrationBuilder.DropColumn(
-                name: "last_regen_playtime",
-                table: "creatures");
+            migrationBuilder.DropColumn(name: "last_regen_playtime", table: "creatures");
         }
     }
 }

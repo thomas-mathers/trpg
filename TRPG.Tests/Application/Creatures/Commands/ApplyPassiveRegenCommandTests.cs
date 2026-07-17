@@ -1,4 +1,4 @@
-using TRPG.Application.Common;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
 using TRPG.Data;

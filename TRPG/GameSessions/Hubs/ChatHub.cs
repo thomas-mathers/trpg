@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
@@ -213,4 +214,15 @@ internal sealed class ChatHub(
                 ?? []
         );
     }
+}
+
+internal sealed class WorldConnectionRegistry
+{
+    private readonly ConcurrentDictionary<Guid, string> _connectionIdsByWorldId = new();
+
+    public bool TryAdd(Guid worldId, string connectionId) =>
+        _connectionIdsByWorldId.TryAdd(worldId, connectionId);
+
+    public void Remove(Guid worldId, string connectionId) =>
+        _connectionIdsByWorldId.TryRemove(new KeyValuePair<Guid, string>(worldId, connectionId));
 }

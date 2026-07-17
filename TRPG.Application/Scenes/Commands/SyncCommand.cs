@@ -2,10 +2,10 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Scenes.Commands;

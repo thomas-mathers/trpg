@@ -1,5 +1,5 @@
-using TRPG.Application.Creatures.Commands;
 using TRPG.Application.CreatureJobs.Commands;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -16,7 +16,9 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new ExecuteCreatureJobCommandHandler(new UpdateCreaturesCommandHandler(_context));
+        _handler = new ExecuteCreatureJobCommandHandler(
+            new UpdateCreaturesCommandHandler(_context)
+        );
 
         _creature = Builders.MakeCreature();
         _context.Creatures.Add(_creature);

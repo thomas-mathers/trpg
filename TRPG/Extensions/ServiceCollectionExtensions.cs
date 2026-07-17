@@ -10,13 +10,17 @@ using TickerQ.DependencyInjection;
 using TickerQ.EntityFrameworkCore.DependencyInjection;
 using TRPG.Application.Common;
 using TRPG.Application.Common.Tools;
+using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Configuration;
 using TRPG.Data;
+using TRPG.GameSessions.ChatClients;
 using TRPG.GameSessions.Hubs;
 using TRPG.Worlds.Jobs;
 using ZLogger;
 using ZLogger.Providers;
+using LoggingChatClient = TRPG.GameSessions.ChatClients.LoggingChatClient;
 
 namespace TRPG.Extensions;
 

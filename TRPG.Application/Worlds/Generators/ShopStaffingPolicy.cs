@@ -125,7 +125,13 @@ internal static class ShopStaffingPolicy
         var nightShiftSleepHours = new HourWindow(6, 14);
 
         jobs.Add(
-            CreatureJobGenerator.GenerateWork(stateId, ownerId, groundFloorRoomId, worldId, dayShiftHours)
+            CreatureJobGenerator.GenerateWork(
+                stateId,
+                ownerId,
+                groundFloorRoomId,
+                worldId,
+                dayShiftHours
+            )
         );
 
         shopOwnerAssignments.Add(

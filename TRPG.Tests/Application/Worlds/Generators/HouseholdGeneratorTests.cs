@@ -1,5 +1,5 @@
 using TRPG.Application.Abilities;
-using TRPG.Application.Common;
+using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;

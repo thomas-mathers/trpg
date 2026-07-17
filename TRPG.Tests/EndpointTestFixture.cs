@@ -50,15 +50,17 @@ public sealed class EndpointTestFixture : IAsyncLifetime
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["ConnectionStrings:Trpg"] = _databaseFixture.ConnectionString,
-                    }
-                );
-            });
+            builder.ConfigureAppConfiguration(
+                (_, config) =>
+                {
+                    config.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["ConnectionStrings:Trpg"] = _databaseFixture.ConnectionString,
+                        }
+                    );
+                }
+            );
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<TrpgDbContext>>();

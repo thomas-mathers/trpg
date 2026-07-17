@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
-using TRPG.Application.Common;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 

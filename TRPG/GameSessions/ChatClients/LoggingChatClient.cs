@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace TRPG;
+namespace TRPG.GameSessions.ChatClients;
 
 internal sealed class LoggingChatClient(IChatClient innerClient, ILogger<LoggingChatClient> logger)
     : DelegatingChatClient(innerClient)
