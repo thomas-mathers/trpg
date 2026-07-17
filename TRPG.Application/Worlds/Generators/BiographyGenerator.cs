@@ -10,7 +10,7 @@ internal record BiographyGeneratorInput(
     IReadOnlyList<FactionMember> FactionMembers,
     IReadOnlyList<Faction> Factions,
     IReadOnlyList<Relationship> Relationships,
-    IReadOnlyList<Job> Jobs,
+    IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<Room> Rooms,
     IReadOnlyList<Building> Buildings,
     IReadOnlyList<BuildingOwner> BuildingOwners
@@ -146,11 +146,11 @@ internal static class BiographyGenerator
         var buildingIdByRoomId = input.Rooms.ToDictionary(r => r.Id, r => r.BuildingId);
         var buildingById = input.Buildings.ToDictionary(b => b.Id);
         var workJobByCreatureId = input
-            .Jobs.Where(j => j.Action == JobAction.Work)
+            .Jobs.Where(j => j.Action == CreatureJobAction.Work)
             .GroupBy(j => j.CreatureId)
             .ToDictionary(g => g.Key, g => g.First());
         var sleepJobByCreatureId = input
-            .Jobs.Where(j => j.Action == JobAction.Sleep)
+            .Jobs.Where(j => j.Action == CreatureJobAction.Sleep)
             .GroupBy(j => j.CreatureId)
             .ToDictionary(g => g.Key, g => g.First());
         var ownedBuildingIdsByCreatureId = input
@@ -211,7 +211,7 @@ internal static class BiographyGenerator
         IReadOnlyList<string>? siblingNames,
         SpouseInfo? spouse,
         string? workplaceName,
-        Job? workJob,
+        CreatureJob? workJob,
         bool ownsWorkplace,
         DayOfWeek[]? daysOff,
         string? homeName
@@ -323,7 +323,7 @@ internal static class BiographyGenerator
     }
 
     private static (Guid BuildingId, string Name)? ResolveBuilding(
-        Job? job,
+        CreatureJob? job,
         IReadOnlyDictionary<Guid, Guid> buildingIdByRoomId,
         IReadOnlyDictionary<Guid, Building> buildingById
     )
@@ -345,7 +345,7 @@ internal static class BiographyGenerator
 
     private static string? BuildWorkSentence(
         string? workplaceName,
-        Job? workJob,
+        CreatureJob? workJob,
         bool ownsWorkplace
     )
     {

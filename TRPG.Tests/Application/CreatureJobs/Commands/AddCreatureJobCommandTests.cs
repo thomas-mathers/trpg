@@ -1,24 +1,24 @@
-using TRPG.Application.Jobs.Commands;
-using TRPG.Application.Jobs.Queries;
+using TRPG.Application.CreatureJobs.Commands;
+using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Jobs.Commands;
+namespace TRPG.Tests.Application.CreatureJobs.Commands;
 
 [Collection("Database")]
-public sealed class AddJobCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class AddCreatureJobCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private Creature _creature = null!;
     private TrpgDbContext _context = null!;
-    private GetAllJobsByCreatureIdQueryHandler _getAllByCreatureId = null!;
-    private AddJobCommandHandler _handler = null!;
+    private GetAllCreatureJobsByCreatureIdQueryHandler _getAllByCreatureId = null!;
+    private AddCreatureJobCommandHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new AddJobCommandHandler(_context);
-        _getAllByCreatureId = new GetAllJobsByCreatureIdQueryHandler(_context);
+        _handler = new AddCreatureJobCommandHandler(_context);
+        _getAllByCreatureId = new GetAllCreatureJobsByCreatureIdQueryHandler(_context);
 
         _creature = Builders.MakeCreature();
         _context.Creatures.Add(_creature);
@@ -34,17 +34,17 @@ public sealed class AddJobCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_PersistsJob()
     {
         // Arrange
-        var job = Builders.MakeJob(_creature.Id);
+        var job = Builders.MakeCreatureJob(_creature.Id);
 
         // Act
         await _handler.Handle(
-            new AddJobCommand { Job = job },
+            new AddCreatureJobCommand { CreatureJob = job },
             TestContext.Current.CancellationToken
         );
 
         // Assert
         var jobs = await _getAllByCreatureId.Handle(
-            new GetAllJobsByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetAllCreatureJobsByCreatureIdQuery { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
         Assert.Contains(jobs, j => j.Id == job.Id);

@@ -61,7 +61,7 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
             .InventoryItems.Where(x => ids.Contains(x.CreatureId))
             .ExecuteDeleteAsync(cancellationToken);
         await context
-            .Jobs.Where(x => ids.Contains(x.CreatureId))
+            .CreatureJobs.Where(x => ids.Contains(x.CreatureId))
             .ExecuteDeleteAsync(cancellationToken);
         await context
             .FactionMembers.Where(x => ids.Contains(x.CreatureId))

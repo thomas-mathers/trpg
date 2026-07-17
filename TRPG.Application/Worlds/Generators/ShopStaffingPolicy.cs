@@ -115,7 +115,7 @@ internal static class ShopStaffingPolicy
         Guid worldId,
         Guid ownerId,
         Guid groundFloorRoomId,
-        List<Job> jobs,
+        List<CreatureJob> jobs,
         List<StaffDayOff> shopOwnerAssignments,
         List<ShopEmploymentSlot> openShopSlots
     )
@@ -125,7 +125,7 @@ internal static class ShopStaffingPolicy
         var nightShiftSleepHours = new HourWindow(6, 14);
 
         jobs.Add(
-            JobGenerator.GenerateWork(stateId, ownerId, groundFloorRoomId, worldId, dayShiftHours)
+            CreatureJobGenerator.GenerateWork(stateId, ownerId, groundFloorRoomId, worldId, dayShiftHours)
         );
 
         shopOwnerAssignments.Add(

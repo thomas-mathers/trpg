@@ -130,11 +130,11 @@ public class HouseholdGeneratorTests
         Assert.Equal(Profession.Baker, worker.Profession);
         Assert.Contains(
             household.Jobs,
-            j => j.CreatureId == worker.Id && j.Action == JobAction.Sleep
+            j => j.CreatureId == worker.Id && j.Action == CreatureJobAction.Sleep
         );
         Assert.Contains(
             household.Jobs,
-            j => j.CreatureId == worker.Id && j.Action == JobAction.Idle
+            j => j.CreatureId == worker.Id && j.Action == CreatureJobAction.Idle
         );
         Assert.Contains(household.Members, m => m.Creature.Id == worker.Id);
         Assert.DoesNotContain(worker, household.EligibleForEmployment);

@@ -132,7 +132,10 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.False(
-            await verifyContext.Jobs.AnyAsync(x => x.CreatureId == target.Id, cancellationToken)
+            await verifyContext.CreatureJobs.AnyAsync(
+                x => x.CreatureId == target.Id,
+                cancellationToken
+            )
         );
         Assert.False(
             await verifyContext.FactionMembers.AnyAsync(
@@ -233,7 +236,10 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.True(
-            await verifyContext.Jobs.AnyAsync(x => x.CreatureId == other.Id, cancellationToken)
+            await verifyContext.CreatureJobs.AnyAsync(
+                x => x.CreatureId == other.Id,
+                cancellationToken
+            )
         );
         Assert.True(
             await verifyContext.FactionMembers.AnyAsync(
@@ -351,7 +357,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 WorldId = _worldId,
             }
         );
-        _context.Jobs.Add(Builders.MakeJob(creatureId, worldId: _worldId));
+        _context.CreatureJobs.Add(Builders.MakeCreatureJob(creatureId, worldId: _worldId));
         _context.FactionMembers.Add(
             new FactionMember
             {

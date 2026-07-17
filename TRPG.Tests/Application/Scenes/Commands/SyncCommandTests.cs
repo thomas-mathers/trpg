@@ -3,10 +3,10 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.CreatureJobs.Commands;
+using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Jobs.Commands;
-using TRPG.Application.Jobs.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -20,7 +20,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     private readonly Guid _worldId = Guid.NewGuid();
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private AddCreatureCommandHandler _addCreature = null!;
-    private AddJobCommandHandler _addJob = null!;
+    private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
     private GetWorkstationsByRoomIdQueryHandler _getWorkstationsByRoomId = null!;
     private SyncCommandHandler _handler = null!;
@@ -28,20 +28,20 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _addJob = new AddJobCommandHandler(_context);
+        _addJob = new AddCreatureJobCommandHandler(_context);
         _addCreature = new AddCreatureCommandHandler(_context);
         _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
         _getWorkstationsByRoomId = new GetWorkstationsByRoomIdQueryHandler(_context);
-        var executeJob = new ExecuteJobCommandHandler(new UpdateCreaturesCommandHandler(_context));
-        var getAllJobsByCreatureId = new GetAllJobsByCreatureIdQueryHandler(_context);
+        var executeJob = new ExecuteCreatureJobCommandHandler(new UpdateCreaturesCommandHandler(_context));
+        var getAllJobsByCreatureId = new GetAllCreatureJobsByCreatureIdQueryHandler(_context);
         var syncScheduleLock = new SyncScheduleLockCommandHandler(
             new GetAllOwnersByBuildingIdQueryHandler(_context),
             getAllJobsByCreatureId,
-            new GetJobsOfBuildingWorkersQueryHandler(_context),
+            new GetCreatureJobsOfBuildingWorkersQueryHandler(_context),
             new SetFrontDoorLockedCommandHandler(_context)
         );
         _handler = new SyncCommandHandler(
-            new GetCreatureIdsWithJobInRoomQueryHandler(_context),
+            new GetCreatureIdsWithCreatureJobInRoomQueryHandler(_context),
             getAllJobsByCreatureId,
             new GetCreatureIdsByDistrictQueryHandler(_context),
             new GetCreatureByIdQueryHandler(_context),
@@ -73,11 +73,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         await _addJob.Handle(
-            new AddJobCommand
+            new AddCreatureJobCommand
             {
-                Job = Builders.MakeJob(
+                CreatureJob = Builders.MakeCreatureJob(
                     creature.Id,
-                    action: JobAction.Sleep,
+                    action: CreatureJobAction.Sleep,
                     startHour: 22,
                     endHour: 6,
                     roomId: sleepRoomId,
@@ -121,11 +121,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         await _addJob.Handle(
-            new AddJobCommand
+            new AddCreatureJobCommand
             {
-                Job = Builders.MakeJob(
+                CreatureJob = Builders.MakeCreatureJob(
                     creature.Id,
-                    action: JobAction.Sleep,
+                    action: CreatureJobAction.Sleep,
                     startHour: 22,
                     endHour: 6,
                     roomId: sleepRoomId,
@@ -135,11 +135,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         await _addJob.Handle(
-            new AddJobCommand
+            new AddCreatureJobCommand
             {
-                Job = Builders.MakeJob(
+                CreatureJob = Builders.MakeCreatureJob(
                     creature.Id,
-                    action: JobAction.Work,
+                    action: CreatureJobAction.Work,
                     startHour: 8,
                     endHour: 20,
                     roomId: workRoomId,
@@ -215,11 +215,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         await _addJob.Handle(
-            new AddJobCommand
+            new AddCreatureJobCommand
             {
-                Job = Builders.MakeJob(
+                CreatureJob = Builders.MakeCreatureJob(
                     creature.Id,
-                    action: JobAction.Sleep,
+                    action: CreatureJobAction.Sleep,
                     startHour: 22,
                     endHour: 6,
                     roomId: sleepRoomId,
@@ -229,11 +229,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         await _addJob.Handle(
-            new AddJobCommand
+            new AddCreatureJobCommand
             {
-                Job = Builders.MakeJob(
+                CreatureJob = Builders.MakeCreatureJob(
                     creature.Id,
-                    action: JobAction.Idle,
+                    action: CreatureJobAction.Idle,
                     startHour: 6,
                     endHour: 22,
                     roomId: null,
@@ -300,11 +300,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         await _addJob.Handle(
-            new AddJobCommand
+            new AddCreatureJobCommand
             {
-                Job = Builders.MakeJob(
+                CreatureJob = Builders.MakeCreatureJob(
                     owner.Id,
-                    action: JobAction.Work,
+                    action: CreatureJobAction.Work,
                     startHour: 8,
                     endHour: 20,
                     roomId: shopRoomId,
@@ -314,11 +314,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         await _addJob.Handle(
-            new AddJobCommand
+            new AddCreatureJobCommand
             {
-                Job = Builders.MakeJob(
+                CreatureJob = Builders.MakeCreatureJob(
                     employee.Id,
-                    action: JobAction.Work,
+                    action: CreatureJobAction.Work,
                     startHour: 8,
                     endHour: 20,
                     roomId: shopRoomId,
@@ -386,11 +386,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         await _addJob.Handle(
-            new AddJobCommand
+            new AddCreatureJobCommand
             {
-                Job = Builders.MakeJob(
+                CreatureJob = Builders.MakeCreatureJob(
                     owner.Id,
-                    action: JobAction.Work,
+                    action: CreatureJobAction.Work,
                     startHour: 8,
                     endHour: 20,
                     roomId: shopRoomId,
@@ -431,11 +431,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         var building = await SeedBuilding(owner.Id);
         var frontDoor = await SeedFrontDoor(building.Id);
         await _addJob.Handle(
-            new AddJobCommand
+            new AddCreatureJobCommand
             {
-                Job = Builders.MakeJob(
+                CreatureJob = Builders.MakeCreatureJob(
                     owner.Id,
-                    action: JobAction.Sleep,
+                    action: CreatureJobAction.Sleep,
                     startHour: 22,
                     endHour: 6,
                     priority: 100

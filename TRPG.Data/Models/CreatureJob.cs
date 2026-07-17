@@ -1,6 +1,6 @@
 ﻿namespace TRPG.Data.Models;
 
-public enum JobAction
+public enum CreatureJobAction
 {
     Sleep,
     Work,
@@ -13,9 +13,9 @@ public enum JobAction
     Sit,
 }
 
-public class Job
+public class CreatureJob
 {
-    public JobAction Action { get; init; }
+    public CreatureJobAction Action { get; init; }
     public Guid CreatureId { get; init; }
     public int EndHour { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();

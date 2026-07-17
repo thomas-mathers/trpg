@@ -25,9 +25,9 @@ public class BiographyGeneratorTests
             name: "The Rising Crust"
         );
         var room = Builders.MakeRoom(building.Id, worldId: _worldId);
-        var workJob = Builders.MakeJob(
+        var workJob = Builders.MakeCreatureJob(
             creature.Id,
-            action: JobAction.Work,
+            action: CreatureJobAction.Work,
             startHour: 6,
             endHour: 14,
             roomId: room.Id,
@@ -68,9 +68,9 @@ public class BiographyGeneratorTests
             name: "The Stitched Hem"
         );
         var room = Builders.MakeRoom(building.Id, worldId: _worldId);
-        var workJob = Builders.MakeJob(
+        var workJob = Builders.MakeCreatureJob(
             creature.Id,
-            action: JobAction.Work,
+            action: CreatureJobAction.Work,
             startHour: 8,
             endHour: 18,
             roomId: room.Id,
@@ -118,23 +118,23 @@ public class BiographyGeneratorTests
             name: "The Rising Crust"
         );
         var room = Builders.MakeRoom(building.Id, worldId: _worldId);
-        var workJob = Builders.MakeJob(
+        var workJob = Builders.MakeCreatureJob(
             creature.Id,
-            action: JobAction.Work,
+            action: CreatureJobAction.Work,
             startHour: 6,
             endHour: 14,
             roomId: room.Id,
             worldId: _worldId
         );
-        var mondayOff = Builders.MakeJob(
+        var mondayOff = Builders.MakeCreatureJob(
             creature.Id,
-            action: JobAction.Sit,
+            action: CreatureJobAction.Sit,
             specificDay: DayOfWeek.Monday,
             worldId: _worldId
         );
-        var tuesdayOff = Builders.MakeJob(
+        var tuesdayOff = Builders.MakeCreatureJob(
             creature.Id,
-            action: JobAction.Sit,
+            action: CreatureJobAction.Sit,
             specificDay: DayOfWeek.Tuesday,
             worldId: _worldId
         );
@@ -175,9 +175,9 @@ public class BiographyGeneratorTests
         );
         var jobs = Enum.GetValues<DayOfWeek>()
             .Select(day =>
-                Builders.MakeJob(
+                Builders.MakeCreatureJob(
                     creature.Id,
-                    action: JobAction.Sit,
+                    action: CreatureJobAction.Sit,
                     specificDay: day,
                     worldId: _worldId
                 )
@@ -214,9 +214,9 @@ public class BiographyGeneratorTests
             name: "Winterbough House"
         );
         var room = Builders.MakeRoom(building.Id, worldId: _worldId);
-        var sleepJob = Builders.MakeJob(
+        var sleepJob = Builders.MakeCreatureJob(
             creature.Id,
-            action: JobAction.Sleep,
+            action: CreatureJobAction.Sleep,
             startHour: 22,
             endHour: 6,
             roomId: room.Id,

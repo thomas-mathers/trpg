@@ -27,7 +27,7 @@ public class CityGeneratorResult
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<CreatureSkill> Skills { get; init; }
     public required IReadOnlyList<CreatureAbility> Abilities { get; init; }
-    public required IReadOnlyList<Job> Jobs { get; init; }
+    public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required IReadOnlyList<RoomConnectorKey> RoomConnectorKeys { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
 }
@@ -60,7 +60,7 @@ public class CityGenerator(
         public List<Prop> Props { get; } = [];
         public List<CreatureSkill> Skills { get; } = [];
         public List<CreatureAbility> Abilities { get; } = [];
-        public List<Job> Jobs { get; } = [];
+        public List<CreatureJob> Jobs { get; } = [];
         public List<RoomConnectorKey> RoomConnectorKeys { get; } = [];
         public List<Relationship> Relationships { get; } = [];
         public List<ShopEmploymentSlot> OpenShopSlots { get; } = [];
@@ -408,7 +408,7 @@ public class CityGenerator(
                 .First(b => b.AssignedCreatureId == memberCreature.Creature.Id)
                 .RoomId;
             workspace.Jobs.AddRange(
-                JobGenerator.Generate(
+                CreatureJobGenerator.Generate(
                     input.State.Id,
                     memberCreature.Creature.Id,
                     memberBedRoomId,
@@ -447,7 +447,7 @@ public class CityGenerator(
         if (type == BuildingType.GuildHall)
         {
             workspace.Jobs.Add(
-                JobGenerator.GenerateWork(input.State.Id, ownerId, groundFloorRoomId, input.WorldId)
+                CreatureJobGenerator.GenerateWork(input.State.Id, ownerId, groundFloorRoomId, input.WorldId)
             );
             return;
         }
@@ -455,7 +455,7 @@ public class CityGenerator(
         var workHours = ShopStaffingPolicy.GetWorkHoursForBuilding(type);
         var sleepHours = ShopStaffingPolicy.GetSleepHoursForBuilding(type);
         workspace.Jobs.Add(
-            JobGenerator.GenerateWork(
+            CreatureJobGenerator.GenerateWork(
                 input.State.Id,
                 ownerId,
                 groundFloorRoomId,
@@ -463,7 +463,7 @@ public class CityGenerator(
                 workHours
             )
         );
-        JobGenerator.ApplySleepOverride(
+        CreatureJobGenerator.ApplySleepOverride(
             ownerId,
             sleepHours,
             input.State.Id,

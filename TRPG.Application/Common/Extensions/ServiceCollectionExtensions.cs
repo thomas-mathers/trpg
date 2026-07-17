@@ -10,6 +10,8 @@ using TRPG.Application.Combat.Tools;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Conversations.Tools;
+using TRPG.Application.CreatureJobs.Commands;
+using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Game;
@@ -18,8 +20,6 @@ using TRPG.Application.Game.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Tools;
-using TRPG.Application.Jobs.Commands;
-using TRPG.Application.Jobs.Queries;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Scenes.Commands;
@@ -66,12 +66,12 @@ public static class ServiceCollectionExtensions
             .AddTransient<UnequipInventoryItemCommandHandler>()
             .AddTransient<RemoveInventoryItemCommandHandler>()
             .AddTransient<GetInventoryByCreatureIdQueryHandler>()
-            .AddTransient<AddJobCommandHandler>()
-            .AddTransient<DeleteJobCommandHandler>()
-            .AddTransient<GetAllJobsByCreatureIdQueryHandler>()
-            .AddTransient<GetJobsOfBuildingWorkersQueryHandler>()
-            .AddTransient<GetCreatureIdsWithJobInRoomQueryHandler>()
-            .AddTransient<ExecuteJobCommandHandler>()
+            .AddTransient<AddCreatureJobCommandHandler>()
+            .AddTransient<DeleteCreatureJobCommandHandler>()
+            .AddTransient<GetAllCreatureJobsByCreatureIdQueryHandler>()
+            .AddTransient<GetCreatureJobsOfBuildingWorkersQueryHandler>()
+            .AddTransient<GetCreatureIdsWithCreatureJobInRoomQueryHandler>()
+            .AddTransient<ExecuteCreatureJobCommandHandler>()
             .AddTransient<SyncScheduleLockCommandHandler>()
             .AddTransient<SyncCommandHandler>()
             .AddTransient<CanEnterBuildingQueryHandler>()

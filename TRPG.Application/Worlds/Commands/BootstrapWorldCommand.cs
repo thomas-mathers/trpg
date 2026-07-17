@@ -39,7 +39,7 @@ public class BootstrapWorldCommandHandler(
         context.Props.AddRange(world.Props);
         context.CreatureSkills.AddRange(world.Skills);
         context.CreatureAbilities.AddRange(world.Abilities);
-        context.Jobs.AddRange(world.Jobs);
+        context.CreatureJobs.AddRange(world.Jobs);
         context.CreatureKnowledge.AddRange(world.Knowledge);
         context.RoomConnectorKeys.AddRange(world.RoomConnectorKeys);
         context.Relationships.AddRange(world.Relationships);

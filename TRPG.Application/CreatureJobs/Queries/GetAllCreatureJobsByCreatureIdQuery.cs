@@ -2,22 +2,22 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Jobs.Queries;
+namespace TRPG.Application.CreatureJobs.Queries;
 
-internal class GetAllJobsByCreatureIdQuery
+internal class GetAllCreatureJobsByCreatureIdQuery
 {
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetAllJobsByCreatureIdQueryHandler(TrpgDbContext context)
+internal class GetAllCreatureJobsByCreatureIdQueryHandler(TrpgDbContext context)
 {
-    public async Task<IReadOnlyList<Job>> Handle(
-        GetAllJobsByCreatureIdQuery query,
+    public async Task<IReadOnlyList<CreatureJob>> Handle(
+        GetAllCreatureJobsByCreatureIdQuery query,
         CancellationToken cancellationToken = default
     )
     {
         var list = await context
-            .Jobs.AsNoTracking()
+            .CreatureJobs.AsNoTracking()
             .Where(j => j.CreatureId == query.CreatureId)
             .OrderByDescending(j => j.Priority)
             .ToArrayAsync(cancellationToken);

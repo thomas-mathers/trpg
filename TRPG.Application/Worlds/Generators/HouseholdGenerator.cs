@@ -24,7 +24,7 @@ public class HouseholdGeneratorResult
     public required IReadOnlyList<Item> KeyItems { get; init; }
     public required IReadOnlyList<InventoryItem> KeyInventoryItems { get; init; }
     public required IReadOnlyList<RoomConnectorKey> KeyConnectorKeys { get; init; }
-    public required IReadOnlyList<Job> Jobs { get; init; }
+    public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required Creature? DesignatedWorker { get; init; }
     public required Guid? FatherId { get; init; }
     public required IReadOnlyList<Creature> EligibleForEmployment { get; init; }
@@ -142,7 +142,7 @@ public class HouseholdGenerator(
         var homeRoom = houseResult.Rooms.First(r => r.FloorNumber == 0);
         var homeRoomId = homeRoom.Id;
 
-        var jobs = new List<Job>();
+        var jobs = new List<CreatureJob>();
         foreach (var member in household)
         {
             var memberBedRoomId = houseResult
@@ -150,7 +150,7 @@ public class HouseholdGenerator(
                 .First(b => b.AssignedCreatureId == member.Creature.Id)
                 .RoomId;
             jobs.Add(
-                JobGenerator.GenerateSleep(
+                CreatureJobGenerator.GenerateSleep(
                     input.StateId,
                     member.Creature.Id,
                     memberBedRoomId,
@@ -158,7 +158,7 @@ public class HouseholdGenerator(
                 )
             );
             jobs.Add(
-                JobGenerator.GenerateIdle(
+                CreatureJobGenerator.GenerateIdle(
                     input.StateId,
                     member.Creature.Id,
                     homeRoomId,

@@ -34,7 +34,7 @@ public class WorldGeneratorResult
     public required IReadOnlyList<Faction> Factions { get; init; }
     public required IReadOnlyList<InventoryItem> InventoryItems { get; init; }
     public required IReadOnlyList<Item> Items { get; init; }
-    public required IReadOnlyList<Job> Jobs { get; init; }
+    public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required IReadOnlyList<CreatureKnowledge> Knowledge { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
@@ -122,7 +122,7 @@ public class WorldGenerator(
         var props = new List<Prop>();
         var skills = new List<CreatureSkill>();
         var abilities = new List<CreatureAbility>();
-        var jobs = new List<Job>();
+        var jobs = new List<CreatureJob>();
         var roomConnectorKeys = new List<RoomConnectorKey>();
         var relationships = new List<Relationship>();
 

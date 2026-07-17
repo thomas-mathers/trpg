@@ -4,7 +4,7 @@ namespace TRPG.Application.Worlds.Generators;
 
 internal record HourWindow(int Start, int End);
 
-internal static class JobGenerator
+internal static class CreatureJobGenerator
 {
     private static readonly HourWindow DefaultSleepHours = new(22, 6);
     private static readonly HourWindow DefaultWorkHours = new(8, 20);
@@ -12,7 +12,7 @@ internal static class JobGenerator
     private const int DayOffPriority = 60;
     private const int UnemployedActivityPriority = 10;
 
-    public static Job GenerateSleep(
+    public static CreatureJob GenerateSleep(
         Guid stateId,
         Guid creatureId,
         Guid roomId,
@@ -21,11 +21,11 @@ internal static class JobGenerator
     )
     {
         var window = hours ?? DefaultSleepHours;
-        return new Job
+        return new CreatureJob
         {
             StateId = stateId,
             CreatureId = creatureId,
-            Action = JobAction.Sleep,
+            Action = CreatureJobAction.Sleep,
             StartHour = window.Start,
             EndHour = window.End,
             Priority = 100,
@@ -34,13 +34,18 @@ internal static class JobGenerator
         };
     }
 
-    public static Job GenerateIdle(Guid stateId, Guid creatureId, Guid? roomId, Guid worldId)
+    public static CreatureJob GenerateIdle(
+        Guid stateId,
+        Guid creatureId,
+        Guid? roomId,
+        Guid worldId
+    )
     {
-        return new Job
+        return new CreatureJob
         {
             StateId = stateId,
             CreatureId = creatureId,
-            Action = JobAction.Idle,
+            Action = CreatureJobAction.Idle,
             StartHour = IdleHours.Start,
             EndHour = IdleHours.End,
             Priority = 0,
@@ -49,7 +54,7 @@ internal static class JobGenerator
         };
     }
 
-    public static Job GenerateWork(
+    public static CreatureJob GenerateWork(
         Guid stateId,
         Guid creatureId,
         Guid roomId,
@@ -58,11 +63,11 @@ internal static class JobGenerator
     )
     {
         var window = hours ?? DefaultWorkHours;
-        return new Job
+        return new CreatureJob
         {
             StateId = stateId,
             CreatureId = creatureId,
-            Action = JobAction.Work,
+            Action = CreatureJobAction.Work,
             StartHour = window.Start,
             EndHour = window.End,
             Priority = 50,
@@ -71,10 +76,10 @@ internal static class JobGenerator
         };
     }
 
-    public static Job GenerateDayOff(
+    public static CreatureJob GenerateDayOff(
         Guid stateId,
         Guid creatureId,
-        JobAction action,
+        CreatureJobAction action,
         Guid? roomId,
         DayOfWeek day,
         Guid worldId,
@@ -82,7 +87,7 @@ internal static class JobGenerator
     )
     {
         var window = hours ?? DefaultWorkHours;
-        return new Job
+        return new CreatureJob
         {
             StateId = stateId,
             CreatureId = creatureId,
@@ -96,10 +101,10 @@ internal static class JobGenerator
         };
     }
 
-    public static Job GenerateUnemployedDayActivity(
+    public static CreatureJob GenerateUnemployedDayActivity(
         Guid stateId,
         Guid creatureId,
-        JobAction action,
+        CreatureJobAction action,
         Guid? roomId,
         DayOfWeek day,
         Guid worldId,
@@ -107,7 +112,7 @@ internal static class JobGenerator
     )
     {
         var window = hours ?? IdleHours;
-        return new Job
+        return new CreatureJob
         {
             StateId = stateId,
             CreatureId = creatureId,
@@ -126,7 +131,7 @@ internal static class JobGenerator
         HourWindow? sleepHours,
         Guid stateId,
         Guid worldId,
-        List<Job> jobs
+        List<CreatureJob> jobs
     )
     {
         if (sleepHours == null)
@@ -135,7 +140,7 @@ internal static class JobGenerator
         }
 
         var existingSleep = jobs.First(j =>
-            j.CreatureId == creatureId && j.Action == JobAction.Sleep
+            j.CreatureId == creatureId && j.Action == CreatureJobAction.Sleep
         );
         jobs.Remove(existingSleep);
         jobs.Add(
@@ -143,7 +148,7 @@ internal static class JobGenerator
         );
     }
 
-    public static IReadOnlyList<Job> Generate(
+    public static IReadOnlyList<CreatureJob> Generate(
         Guid stateId,
         Guid creatureId,
         Guid sleepRoomId,
@@ -152,7 +157,7 @@ internal static class JobGenerator
         Guid worldId
     )
     {
-        var jobs = new List<Job>
+        var jobs = new List<CreatureJob>
         {
             GenerateSleep(stateId, creatureId, sleepRoomId, worldId),
             GenerateIdle(stateId, creatureId, idleRoomId, worldId),

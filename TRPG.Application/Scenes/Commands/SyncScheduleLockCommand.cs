@@ -1,7 +1,7 @@
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
-using TRPG.Application.Jobs;
-using TRPG.Application.Jobs.Queries;
+using TRPG.Application.CreatureJobs;
+using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
 
@@ -16,8 +16,8 @@ internal class SyncScheduleLockCommand
 
 internal class SyncScheduleLockCommandHandler(
     GetAllOwnersByBuildingIdQueryHandler getAllOwnersByBuildingId,
-    GetAllJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
-    GetJobsOfBuildingWorkersQueryHandler getJobsOfBuildingWorkers,
+    GetAllCreatureJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
+    GetCreatureJobsOfBuildingWorkersQueryHandler getJobsOfBuildingWorkers,
     SetFrontDoorLockedCommandHandler setFrontDoorLocked
 )
 {
@@ -51,7 +51,7 @@ internal class SyncScheduleLockCommandHandler(
     )
     {
         var workerJobs = await getJobsOfBuildingWorkers.Handle(
-            new GetJobsOfBuildingWorkersQuery { BuildingId = command.BuildingId },
+            new GetCreatureJobsOfBuildingWorkersQuery { BuildingId = command.BuildingId },
             cancellationToken
         );
 
@@ -60,7 +60,7 @@ internal class SyncScheduleLockCommandHandler(
             .Select(creatureJobs =>
                 creatureJobs
                     .Where(j =>
-                        JobScheduling.IsActiveAtHour(
+                        CreatureJobScheduling.IsActiveAtHour(
                             j,
                             command.CurrentDate.Weekday,
                             command.CurrentDate.Hour
@@ -70,7 +70,7 @@ internal class SyncScheduleLockCommandHandler(
                     .ThenBy(j => j.Id)
                     .FirstOrDefault()
             )
-            .Any(effectiveJob => effectiveJob is { Action: JobAction.Work });
+            .Any(effectiveJob => effectiveJob is { Action: CreatureJobAction.Work });
 
         return await setFrontDoorLocked.Handle(
             new SetFrontDoorLockedCommand
@@ -98,11 +98,11 @@ internal class SyncScheduleLockCommandHandler(
         }
 
         var jobs = await getAllJobsByCreatureId.Handle(
-            new GetAllJobsByCreatureIdQuery { CreatureId = ownerId.Value },
+            new GetAllCreatureJobsByCreatureIdQuery { CreatureId = ownerId.Value },
             cancellationToken
         );
         var activeJob = jobs.Where(j =>
-                JobScheduling.IsActiveAtHour(
+                CreatureJobScheduling.IsActiveAtHour(
                     j,
                     command.CurrentDate.Weekday,
                     command.CurrentDate.Hour
@@ -120,7 +120,7 @@ internal class SyncScheduleLockCommandHandler(
             new SetFrontDoorLockedCommand
             {
                 BuildingId = command.BuildingId,
-                IsLocked = activeJob.Action == JobAction.Sleep,
+                IsLocked = activeJob.Action == CreatureJobAction.Sleep,
             },
             cancellationToken
         );

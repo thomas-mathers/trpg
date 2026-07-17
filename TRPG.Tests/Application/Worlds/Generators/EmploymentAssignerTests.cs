@@ -36,7 +36,10 @@ public class EmploymentAssignerTests
         Assert.Equal(Profession.Baker, adult.Profession);
         Assert.Contains(
             context.Jobs,
-            j => j.Action == JobAction.Work && j.CreatureId == adult.Id && j.RoomId == shopRoomId
+            j =>
+                j.Action == CreatureJobAction.Work
+                && j.CreatureId == adult.Id
+                && j.RoomId == shopRoomId
         );
     }
 

@@ -322,10 +322,10 @@ internal static class Builders
         };
     }
 
-    public static Job MakeJob(
+    public static CreatureJob MakeCreatureJob(
         Guid creatureId,
         int priority = 1,
-        JobAction action = JobAction.Idle,
+        CreatureJobAction action = CreatureJobAction.Idle,
         int startHour = 8,
         int endHour = 17,
         Guid? roomId = null,
@@ -333,7 +333,7 @@ internal static class Builders
         DayOfWeek? specificDay = null
     )
     {
-        return new Job
+        return new CreatureJob
         {
             CreatureId = creatureId,
             Action = action,

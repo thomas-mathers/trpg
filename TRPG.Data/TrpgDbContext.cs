@@ -31,7 +31,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<Faction> Factions => Set<Faction>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<Item> Items => Set<Item>();
-    public DbSet<Job> Jobs => Set<Job>();
+    public DbSet<CreatureJob> CreatureJobs => Set<CreatureJob>();
     public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
@@ -71,7 +71,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         configurationBuilder.Properties<ReputationTargetType>().HaveConversion<string>();
         configurationBuilder.Properties<QuestStatus>().HaveConversion<string>();
         configurationBuilder.Properties<QuestObjectiveType>().HaveConversion<string>();
-        configurationBuilder.Properties<JobAction>().HaveConversion<string>();
+        configurationBuilder.Properties<CreatureJobAction>().HaveConversion<string>();
         configurationBuilder.Properties<Profession>().HaveConversion<string>();
         configurationBuilder.Properties<CreatureState>().HaveConversion<string>();
         configurationBuilder.Properties<CreatureType>().HaveConversion<string>();
@@ -269,7 +269,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(po => po.WorldId);
         });
 
-        modelBuilder.Entity<Job>(entity =>
+        modelBuilder.Entity<CreatureJob>(entity =>
         {
             entity.HasIndex(j => new { j.StateId, j.RoomId });
             entity.HasIndex(j => j.CreatureId);

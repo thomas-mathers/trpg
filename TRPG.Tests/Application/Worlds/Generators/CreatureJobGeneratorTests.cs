@@ -3,7 +3,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Tests.Application.Worlds.Generators;
 
-public class JobGeneratorTests
+public class CreatureJobGeneratorTests
 {
     private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _personId = Guid.NewGuid();
@@ -17,7 +17,7 @@ public class JobGeneratorTests
         var idleRoomId = Guid.NewGuid();
 
         // Act
-        var jobs = JobGenerator.Generate(
+        var jobs = CreatureJobGenerator.Generate(
             _stateId,
             _personId,
             sleepRoomId,
@@ -27,13 +27,13 @@ public class JobGeneratorTests
         );
 
         // Assert
-        var sleep = Assert.Single(jobs, j => j.Action == JobAction.Sleep);
+        var sleep = Assert.Single(jobs, j => j.Action == CreatureJobAction.Sleep);
         Assert.Equal(22, sleep.StartHour);
         Assert.Equal(6, sleep.EndHour);
         Assert.Equal(100, sleep.Priority);
         Assert.Equal(sleepRoomId, sleep.RoomId);
 
-        var idle = Assert.Single(jobs, j => j.Action == JobAction.Idle);
+        var idle = Assert.Single(jobs, j => j.Action == CreatureJobAction.Idle);
         Assert.Equal(6, idle.StartHour);
         Assert.Equal(22, idle.EndHour);
         Assert.Equal(0, idle.Priority);
@@ -47,10 +47,17 @@ public class JobGeneratorTests
         var sleepRoomId = Guid.NewGuid();
 
         // Act
-        var jobs = JobGenerator.Generate(_stateId, _personId, sleepRoomId, null, null, _worldId);
+        var jobs = CreatureJobGenerator.Generate(
+            _stateId,
+            _personId,
+            sleepRoomId,
+            null,
+            null,
+            _worldId
+        );
 
         // Assert
-        Assert.DoesNotContain(jobs, j => j.Action == JobAction.Work);
+        Assert.DoesNotContain(jobs, j => j.Action == CreatureJobAction.Work);
         Assert.Equal(2, jobs.Count);
     }
 
@@ -62,7 +69,7 @@ public class JobGeneratorTests
         var workRoomId = Guid.NewGuid();
 
         // Act
-        var jobs = JobGenerator.Generate(
+        var jobs = CreatureJobGenerator.Generate(
             _stateId,
             _personId,
             sleepRoomId,
@@ -72,7 +79,7 @@ public class JobGeneratorTests
         );
 
         // Assert
-        var work = Assert.Single(jobs, j => j.Action == JobAction.Work);
+        var work = Assert.Single(jobs, j => j.Action == CreatureJobAction.Work);
         Assert.Equal(8, work.StartHour);
         Assert.Equal(20, work.EndHour);
         Assert.Equal(50, work.Priority);
@@ -87,17 +94,17 @@ public class JobGeneratorTests
         var roomId = Guid.NewGuid();
 
         // Act
-        var job = JobGenerator.GenerateDayOff(
+        var job = CreatureJobGenerator.GenerateDayOff(
             _stateId,
             _personId,
-            JobAction.Sit,
+            CreatureJobAction.Sit,
             roomId,
             DayOfWeek.Saturday,
             _worldId
         );
 
         // Assert
-        Assert.Equal(JobAction.Sit, job.Action);
+        Assert.Equal(CreatureJobAction.Sit, job.Action);
         Assert.Equal(8, job.StartHour);
         Assert.Equal(20, job.EndHour);
         Assert.Equal(DayOfWeek.Saturday, job.SpecificDay);
@@ -115,17 +122,17 @@ public class JobGeneratorTests
         var roomId = Guid.NewGuid();
 
         // Act
-        var job = JobGenerator.GenerateUnemployedDayActivity(
+        var job = CreatureJobGenerator.GenerateUnemployedDayActivity(
             _stateId,
             _personId,
-            JobAction.Study,
+            CreatureJobAction.Study,
             roomId,
             DayOfWeek.Tuesday,
             _worldId
         );
 
         // Assert
-        Assert.Equal(JobAction.Study, job.Action);
+        Assert.Equal(CreatureJobAction.Study, job.Action);
         Assert.Equal(6, job.StartHour);
         Assert.Equal(22, job.EndHour);
         Assert.Equal(DayOfWeek.Tuesday, job.SpecificDay);

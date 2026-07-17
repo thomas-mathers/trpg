@@ -3,9 +3,9 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Jobs;
-using TRPG.Application.Jobs.Commands;
-using TRPG.Application.Jobs.Queries;
+using TRPG.Application.CreatureJobs;
+using TRPG.Application.CreatureJobs.Commands;
+using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Scenes.Commands;
@@ -19,11 +19,11 @@ internal class SyncCommand
 }
 
 internal class SyncCommandHandler(
-    GetCreatureIdsWithJobInRoomQueryHandler getCreatureIdsWithJobInRoom,
-    GetAllJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
+    GetCreatureIdsWithCreatureJobInRoomQueryHandler getCreatureIdsWithJobInRoom,
+    GetAllCreatureJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
     GetCreatureIdsByDistrictQueryHandler getCreatureIdsByDistrict,
     GetCreatureByIdQueryHandler getCreatureById,
-    ExecuteJobCommandHandler executeJob,
+    ExecuteCreatureJobCommandHandler executeJob,
     GetWorkstationsByRoomIdQueryHandler getWorkstationsByRoomId,
     SetWorkstationOccupantCommandHandler setWorkstationOccupant,
     GetRoomSummaryQueryHandler getRoomSummary,
@@ -56,7 +56,7 @@ internal class SyncCommandHandler(
     )
     {
         var creatureIds = await getCreatureIdsWithJobInRoom.Handle(
-            new GetCreatureIdsWithJobInRoomQuery { RoomId = roomId },
+            new GetCreatureIdsWithCreatureJobInRoomQuery { RoomId = roomId },
             cancellationToken
         );
         await CatchUp("Room", creatureIds, currentDate, cancellationToken);
@@ -89,12 +89,12 @@ internal class SyncCommandHandler(
         foreach (var creatureId in creatureIds)
         {
             var jobs = await getAllJobsByCreatureId.Handle(
-                new GetAllJobsByCreatureIdQuery { CreatureId = creatureId },
+                new GetAllCreatureJobsByCreatureIdQuery { CreatureId = creatureId },
                 cancellationToken
             );
 
             var dueJob = jobs.Where(j =>
-                    JobScheduling.IsActiveAtHour(j, currentDate.Weekday, currentDate.Hour)
+                    CreatureJobScheduling.IsActiveAtHour(j, currentDate.Weekday, currentDate.Hour)
                 )
                 .OrderByDescending(j => j.Priority)
                 .ThenBy(j => j.Id)
@@ -113,19 +113,19 @@ internal class SyncCommandHandler(
             if (creature != null)
             {
                 await executeJob.Handle(
-                    new ExecuteJobCommand
+                    new ExecuteCreatureJobCommand
                     {
                         CreatureId = creature.Id,
                         CurrentRoomId = creature.RoomId,
                         CurrentState = creature.State,
-                        JobAction = dueJob.Action,
+                        CreatureJobAction = dueJob.Action,
                         JobRoomId = dueJob.RoomId,
                     },
                     cancellationToken
                 );
             }
 
-            if (dueJob.Action == JobAction.Work && dueJob.RoomId != null)
+            if (dueJob.Action == CreatureJobAction.Work && dueJob.RoomId != null)
             {
                 workingCreaturesByRoomId.TryAdd(dueJob.RoomId.Value, []);
                 workingCreaturesByRoomId[dueJob.RoomId.Value].Add(creatureId);

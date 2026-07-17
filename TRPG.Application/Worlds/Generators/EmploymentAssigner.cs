@@ -23,18 +23,18 @@ internal class CityEmploymentContext
     public required List<IdleCandidate> CityIdleCandidates { get; init; }
     public required Guid StateId { get; init; }
     public required Guid WorldId { get; init; }
-    public required List<Job> Jobs { get; init; }
+    public required List<CreatureJob> Jobs { get; init; }
 }
 
 internal static class EmploymentAssigner
 {
-    internal static readonly JobAction[] DayOffActivities =
+    internal static readonly CreatureJobAction[] DayOffActivities =
     [
-        JobAction.Idle,
-        JobAction.Study,
-        JobAction.Pray,
-        JobAction.Train,
-        JobAction.Sit,
+        CreatureJobAction.Idle,
+        CreatureJobAction.Study,
+        CreatureJobAction.Pray,
+        CreatureJobAction.Train,
+        CreatureJobAction.Sit,
     ];
 
     private static readonly DayOfWeek[] AllWeekdays = Enum.GetValues<DayOfWeek>();
@@ -42,7 +42,7 @@ internal static class EmploymentAssigner
     private record DayOffNeed(
         IReadOnlyList<Guid> ParticipantIds,
         Guid HomeRoomId,
-        JobAction Action,
+        CreatureJobAction Action,
         HourWindow Hours,
         bool ExcludeTavern,
         bool IsUnemployedActivity
@@ -65,7 +65,7 @@ internal static class EmploymentAssigner
             var slot = context.OpenShopSlots[slotIndex++];
             adult.Profession = slot.EmployeeProfession;
             context.Jobs.Add(
-                JobGenerator.GenerateWork(
+                CreatureJobGenerator.GenerateWork(
                     context.StateId,
                     adult.Id,
                     slot.RoomId,
@@ -73,7 +73,7 @@ internal static class EmploymentAssigner
                     slot.WorkHours
                 )
             );
-            JobGenerator.ApplySleepOverride(
+            CreatureJobGenerator.ApplySleepOverride(
                 adult.Id,
                 slot.SleepHours,
                 context.StateId,
@@ -223,7 +223,7 @@ internal static class EmploymentAssigner
                 {
                     context.Jobs.Add(
                         need.IsUnemployedActivity
-                            ? JobGenerator.GenerateUnemployedDayActivity(
+                            ? CreatureJobGenerator.GenerateUnemployedDayActivity(
                                 context.StateId,
                                 participantId,
                                 need.Action,
@@ -232,7 +232,7 @@ internal static class EmploymentAssigner
                                 context.WorldId,
                                 destination.Hours
                             )
-                            : JobGenerator.GenerateDayOff(
+                            : CreatureJobGenerator.GenerateDayOff(
                                 context.StateId,
                                 participantId,
                                 need.Action,
