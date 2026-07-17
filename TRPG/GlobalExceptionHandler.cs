@@ -4,7 +4,7 @@ using TRPG.Application.Game;
 
 namespace TRPG;
 
-internal class GameSessionNotFoundExceptionHandler : IExceptionHandler
+internal class GlobalExceptionHandler : IExceptionHandler
 {
     public ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,

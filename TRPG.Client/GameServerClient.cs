@@ -13,14 +13,31 @@ internal sealed class GameServerClient(HttpClient httpClient)
 
     public event Action<string>? ConnectionStatusChanged;
 
-    public async Task<CreateWorldResponse> CreateWorld(
-        CreateWorldRequest request,
-        CancellationToken cancellationToken
-    )
+    public async Task<Guid> CreateWorld(CreateWorldRequest request, CancellationToken cancellationToken)
     {
-        var response = await httpClient.PostAsJsonAsync("/worlds", request, cancellationToken);
+        var response = await httpClient.PostAsJsonAsync(
+            "/worlds",
+            request,
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
         response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<CreateWorldResponse>(
+        var result = await response.Content.ReadFromJsonAsync<EnqueueJobResponse>(
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result!.JobId;
+    }
+
+    public async Task<JobStatusResponse> GetJobStatus(Guid jobId, CancellationToken cancellationToken)
+    {
+        var response = await httpClient.GetAsync(
+            new Uri($"/jobs/{jobId}", UriKind.Relative),
+            cancellationToken
+        );
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<JobStatusResponse>(
+            TrpgJsonOptions.Default,
             cancellationToken
         );
         return result!;
@@ -30,6 +47,7 @@ internal sealed class GameServerClient(HttpClient httpClient)
     {
         var result = await httpClient.GetFromJsonAsync<List<WorldSummary>>(
             "/worlds",
+            TrpgJsonOptions.Default,
             cancellationToken
         );
         return result ?? [];
@@ -53,6 +71,7 @@ internal sealed class GameServerClient(HttpClient httpClient)
         );
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(
+            TrpgJsonOptions.Default,
             cancellationToken
         );
 

@@ -1,7 +1,4 @@
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Anthropic;
-using Anthropic.Models.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -9,11 +6,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OllamaSharp;
+using TickerQ.DependencyInjection;
+using TickerQ.EntityFrameworkCore.DbContextFactory;
+using TickerQ.EntityFrameworkCore.DependencyInjection;
 using TRPG.Application.Common;
 using TRPG.Application.Game;
 using TRPG.Application.Tools.Common;
+using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
 using TRPG.Hubs;
+using TRPG.Jobs;
 using ZLogger;
 using ZLogger.Providers;
 
@@ -78,6 +80,39 @@ internal static class ServiceCollectionExtensions
                     .UseLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
             }
         );
+    }
+
+    public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
+    {
+        return serviceCollection
+            .AddScoped<GameTurnContext>()
+            .AddSingleton<WorldConnectionRegistry>();
+    }
+
+    public static IServiceCollection AddTrpgJobs(
+        this IServiceCollection serviceCollection,
+        IConfiguration configuration
+    )
+    {
+        var connectionString = configuration.GetConnectionString("Trpg");
+        serviceCollection.AddTickerQ<TrpgTimeTicker, TrpgCronTicker>(options =>
+        {
+            options.AddOperationalStore(ef =>
+            {
+                ef.UseTickerQDbContext<TrpgTickerQDbContext>(db =>
+                    db.UseNpgsql(
+                        connectionString,
+                        sql =>
+                        {
+                            sql.MigrationsAssembly("TRPG.Data");
+                            sql.MigrationsHistoryTable("__TickerQMigrationsHistory");
+                        }
+                    )
+                );
+            });
+        });
+        serviceCollection.MapTicker<CreateWorldJob, CreateWorldCommand>();
+        return serviceCollection;
     }
 
     public static IServiceCollection AddLlmChatClients(this IServiceCollection serviceCollection)
@@ -184,62 +219,4 @@ internal static class ServiceCollectionExtensions
             LlmProvider.Anthropic => new AnthropicClient().AsIChatClient(model),
             _ => throw new ArgumentOutOfRangeException(nameof(provider)),
         };
-
-    public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
-    {
-        return serviceCollection
-            .AddScoped<GameTurnContext>()
-            .AddSingleton<WorldConnectionRegistry>();
-    }
-}
-
-internal sealed class LoggingChatClient(IChatClient innerClient, ILogger<LoggingChatClient> logger)
-    : DelegatingChatClient(innerClient)
-{
-    public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default
-    )
-    {
-        var stopwatch = Stopwatch.StartNew();
-        var updateCount = 0;
-        await foreach (
-            var update in base.GetStreamingResponseAsync(messages, options, cancellationToken)
-        )
-        {
-            updateCount++;
-            yield return update;
-        }
-
-        logger.LogInformation(
-            "[perf] Underlying model call took {ElapsedMs}ms, {UpdateCount} update(s)",
-            stopwatch.ElapsedMilliseconds,
-            updateCount
-        );
-    }
-}
-
-// No-op on non-Anthropic clients (e.g. Ollama) — WithCacheControl only takes
-// effect when the innermost client comes from AnthropicClient.AsIChatClient.
-internal sealed class PromptCachingChatClient(IChatClient innerClient)
-    : DelegatingChatClient(innerClient)
-{
-    public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var messageList = messages as IReadOnlyList<ChatMessage> ?? messages.ToList();
-
-        // Fixed breakpoint: caches tools + system prompt as one shared, long-lived unit.
-        messageList[0].Contents[^1].WithCacheControl(Ttl.Ttl1h);
-
-        // Rolling breakpoint: advances to the newest message every turn, so each
-        // subsequent turn only pays full price for what's new since the last one.
-        messageList[^1].Contents[^1].WithCacheControl(Ttl.Ttl5m);
-
-        return base.GetStreamingResponseAsync(messageList, options, cancellationToken);
-    }
 }

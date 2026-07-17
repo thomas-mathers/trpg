@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TRPG.Contracts;
 
 namespace TRPG.Client;
@@ -59,13 +60,41 @@ internal sealed class Menu(GameServerClient client, Game game)
 
         Console.WriteLine("Generating world...");
 
-        var world = await client.CreateWorld(request, cancellationToken);
+        var jobId = await client.CreateWorld(request, cancellationToken);
+        var jobStatus = await WaitForJobWithProgress(jobId, cancellationToken);
+
+        if (jobStatus.Status != JobStatus.Done)
+        {
+            Console.WriteLine($"\nWorld generation failed: {jobStatus.ErrorMessage}");
+            return;
+        }
+
+        var world = JsonSerializer.Deserialize<CreateWorldResponse>(jobStatus.ResultJson!)!;
 
         Console.WriteLine($"\nWorld \"{world.WorldName}\" generated.");
         Console.WriteLine($"Entering \"{world.WorldName}\" as {name} the {profession}...");
 
         await client.StartSession(world.WorldId, cancellationToken);
         await game.Run(cancellationToken);
+    }
+
+    private async Task<JobStatusResponse> WaitForJobWithProgress(
+        Guid jobId,
+        CancellationToken cancellationToken
+    )
+    {
+        while (true)
+        {
+            var status = await client.GetJobStatus(jobId, cancellationToken);
+            if (status.Status is JobStatus.Done or JobStatus.Failed or JobStatus.Cancelled)
+            {
+                Console.WriteLine();
+                return status;
+            }
+
+            Console.Write(".");
+            await Task.Delay(2000, cancellationToken);
+        }
     }
 
     private static CreateWorldRequest PromptWorldGenerationParameters(

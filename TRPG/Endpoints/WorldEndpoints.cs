@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using TickerQ.Utilities.Interfaces.Managers;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts;
+using TRPG.Data;
+using TRPG.Jobs;
 
 namespace TRPG.Endpoints;
 
@@ -18,7 +21,7 @@ internal static class WorldEndpoints
 
     private static async Task<IResult> CreateWorld(
         CreateWorldRequest request,
-        CreateWorldCommandHandler createWorld,
+        ITimeTickerManager<TrpgTimeTicker> timeTicker,
         CancellationToken cancellationToken
     )
     {
@@ -47,11 +50,14 @@ internal static class WorldEndpoints
             Gender = request.Gender,
         };
 
-        var result = await createWorld.Handle(command, cancellationToken);
-
-        return Results.Ok(
-            new CreateWorldResponse(result.WorldId, result.PlayerId, result.WorldName)
+        var result = await timeTicker.AddAsync<CreateWorldJob, CreateWorldCommand>(
+            executionTime: DateTime.UtcNow,
+            request: command,
+            cancellationToken: cancellationToken
         );
+
+        var jobId = result.Result.Id;
+        return Results.Accepted($"/jobs/{jobId}", new EnqueueJobResponse(jobId));
     }
 
     private static async Task<IResult> ListWorlds(

@@ -1,11 +1,12 @@
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TickerQ.DependencyInjection;
 using TRPG;
 using TRPG.Application.Common.Extensions;
+using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.Endpoints;
 using TRPG.Extensions;
@@ -35,19 +36,28 @@ builder
     .AddTrpgOptions(builder.Configuration)
     .AddTrpgApplicationServices()
     .AddTrpgSessionState()
-    .AddExceptionHandler<GameSessionNotFoundExceptionHandler>()
+    .AddTrpgJobs(builder.Configuration)
+    .AddExceptionHandler<GlobalExceptionHandler>()
     .AddProblemDetails()
     .AddSignalR(options => options.AddFilter<GameSessionNotFoundHubFilter>());
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.SerializerOptions.PropertyNamingPolicy = TrpgJsonOptions.Default.PropertyNamingPolicy;
+    options.SerializerOptions.PropertyNameCaseInsensitive = TrpgJsonOptions
+        .Default
+        .PropertyNameCaseInsensitive;
+    options.SerializerOptions.DefaultIgnoreCondition = TrpgJsonOptions.Default.DefaultIgnoreCondition;
+    foreach (var converter in TrpgJsonOptions.Default.Converters)
+    {
+        options.SerializerOptions.Converters.Add(converter);
+    }
 });
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseTickerQ();
 
 _ = Task.Run(async () =>
 {
@@ -59,6 +69,7 @@ _ = Task.Run(async () =>
 app.MapWorldEndpoints();
 app.MapSessionEndpoints();
 app.MapCheatEndpoints();
+app.MapJobsEndpoints();
 app.MapHub<ChatHub>("/hubs/chat");
 
 await app.RunAsync();

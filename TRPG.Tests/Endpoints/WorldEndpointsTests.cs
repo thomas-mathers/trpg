@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts;
 using TRPG.Data;
@@ -53,18 +54,51 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         var response = await _client.PostAsJsonAsync(
             "/worlds",
             request,
+            TrpgJsonOptions.Default,
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<CreateWorldResponse>(
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        var enqueued = await response.Content.ReadFromJsonAsync<EnqueueJobResponse>(
+            TrpgJsonOptions.Default,
             TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(enqueued);
+        Assert.NotEqual(Guid.Empty, enqueued.JobId);
+
+        var jobStatus = await WaitForJobCompletion(enqueued.JobId);
+        Assert.Equal(JobStatus.Done, jobStatus.Status);
+
+        var result = JsonSerializer.Deserialize<CreateWorldResponse>(
+            jobStatus.ResultJson!,
+            TrpgJsonOptions.Default
         );
         Assert.NotNull(result);
         Assert.NotEqual(Guid.Empty, result.WorldId);
         Assert.NotEqual(Guid.Empty, result.PlayerId);
         Assert.False(string.IsNullOrWhiteSpace(result.WorldName));
+    }
+
+    private async Task<JobStatusResponse> WaitForJobCompletion(Guid jobId)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (DateTime.UtcNow < deadline)
+        {
+            var status = await _client.GetFromJsonAsync<JobStatusResponse>(
+                new Uri($"/jobs/{jobId}", UriKind.Relative),
+                TrpgJsonOptions.Default,
+                TestContext.Current.CancellationToken
+            );
+            if (status!.Status is JobStatus.Done or JobStatus.Failed or JobStatus.Cancelled)
+            {
+                return status;
+            }
+
+            await Task.Delay(100, TestContext.Current.CancellationToken);
+        }
+
+        throw new TimeoutException($"Job {jobId} did not complete within the test deadline.");
     }
 
     [Fact]
