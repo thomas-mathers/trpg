@@ -49,6 +49,8 @@ internal class FleeTool(
             cancellationToken
         );
 
+        turnContext.DidCombatOccurThisTurn = true;
+
         var result = state.ToCombatResult();
 
         logger.LogInformation(

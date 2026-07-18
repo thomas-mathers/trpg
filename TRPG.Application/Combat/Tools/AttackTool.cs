@@ -85,6 +85,8 @@ internal class AttackTool(
             );
         }
 
+        turnContext.DidCombatOccurThisTurn = true;
+
         var result = state.ToCombatResult();
 
         logger.LogInformation(

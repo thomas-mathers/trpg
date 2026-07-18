@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using TickerQ.Utilities;
 using TickerQ.Utilities.Interfaces.Managers;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
@@ -52,10 +53,16 @@ internal static class WorldEndpoints
             Gender = request.Gender,
         };
 
-        var result = await timeTicker.AddAsync<CreateWorldJob, CreateWorldCommand>(
-            executionTime: DateTime.UtcNow,
-            request: command,
-            cancellationToken: cancellationToken
+        var result = await timeTicker.AddAsync(
+            new TrpgTimeTicker
+            {
+                Request = TickerHelper.CreateTickerRequest(command),
+                ExecutionTime = DateTime.UtcNow,
+                Function = TickerFunctionProvider.GetFunctionName<CreateWorldJob>(),
+                Retries = 3,
+                RetryIntervals = [1, 2, 4],
+            },
+            cancellationToken
         );
 
         var jobId = result.Result.Id;

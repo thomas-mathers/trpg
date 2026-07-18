@@ -2,11 +2,15 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using TRPG.Application.Combat;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data.Models;
 
@@ -18,7 +22,9 @@ internal sealed class ChatHub(
     GetGameSessionQueryHandler getGameSession,
     WorldConnectionRegistry worldConnections,
     GetCreatureByIdQueryHandler getCreatureById,
-    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp
+    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
+    GetCombatantsQueryHandler getCombatants,
+    ILogger<ChatHub> logger
 ) : Hub
 {
     private const string SessionIdKey = "SessionId";
@@ -120,12 +126,35 @@ internal sealed class ChatHub(
 
         if (alwaysSendScene || result.DidSceneRefreshThisTurn)
         {
-            var scene = await GetCurrentScene(turnContext, result.CurrentDate, cancellationToken);
-            await Clients.Caller.SendAsync("Scene", ToSnapshot(scene), cancellationToken);
+            var sceneWithPlayer = await GetCurrentScene(
+                turnContext,
+                result.CurrentDate,
+                cancellationToken
+            );
+            var snapshot = ToSnapshot(sceneWithPlayer.Scene, sceneWithPlayer.Player);
+            await Clients.Caller.SendAsync("Scene", snapshot, cancellationToken);
+        }
+
+        if (result.DidCombatOccurThisTurn)
+        {
+            var combatants = await getCombatants.Handle(
+                new GetCombatantsQuery { SessionId = turnContext.SessionId },
+                cancellationToken
+            );
+            logger.LogInformation(
+                "[combat] pushing CombatTurnStatus for session {SessionId}: {Combatants}",
+                turnContext.SessionId,
+                string.Join(
+                    ", ",
+                    combatants.Select(c => $"{c.Name}={c.CurrentHp}/{c.MaximumHp}hp")
+                )
+            );
+            var combatSnapshot = ToCombatSnapshot(combatants);
+            await Clients.Caller.SendAsync("CombatTurnStatus", combatSnapshot, cancellationToken);
         }
     }
 
-    private async Task<SceneResult> GetCurrentScene(
+    private async Task<SceneWithPlayer> GetCurrentScene(
         GameTurnContext turnContext,
         InGameDate currentDate,
         CancellationToken cancellationToken
@@ -136,7 +165,7 @@ internal sealed class ChatHub(
             cancellationToken
         );
 
-        return await getSceneWithCatchUp.Handle(
+        var scene = await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {
                 WorldId = turnContext.WorldId,
@@ -148,6 +177,8 @@ internal sealed class ChatHub(
             },
             cancellationToken
         );
+
+        return new SceneWithPlayer(scene, player);
     }
 
     private GameTurnRunner ResolveTurnRunner() =>
@@ -171,50 +202,123 @@ internal sealed class ChatHub(
         return sessionId;
     }
 
-    private static SceneSnapshot ToSnapshot(SceneResult scene)
+    private static SceneSnapshot ToSnapshot(SceneResult scene, Creature player)
     {
         var currentDistrict = scene.City?.Districts.FirstOrDefault(d => d.IsCurrent);
         return new SceneSnapshot(
-            scene.State?.Name ?? "",
-            scene.City?.Name,
-            currentDistrict?.Name,
-            scene.Building?.Name,
-            scene.Room?.Name,
-            scene.CurrentDate.Year,
-            scene.CurrentDate.MonthName,
-            scene.CurrentDate.Day,
-            scene.CurrentDate.WeekdayName,
-            scene.CurrentDate.Hour,
-            scene
-                .NearbyPeople.Select(p => new NearbyPersonSnapshot(
-                    p.Name,
-                    p.CreatureType,
-                    p.Gender,
-                    p.Profession,
-                    p.Level,
-                    p.Age,
-                    p.FactionNames,
-                    p.State,
-                    p.Reputation,
-                    p.CurrentHp,
-                    p.MaximumHp
+            StateName: scene.State?.Name ?? "",
+            CityName: scene.City?.Name,
+            DistrictName: currentDistrict?.Name,
+            BuildingName: scene.Building?.Name,
+            RoomName: scene.Room?.Name,
+            Year: scene.CurrentDate.Year,
+            MonthName: scene.CurrentDate.MonthName,
+            Day: scene.CurrentDate.Day,
+            WeekdayName: scene.CurrentDate.WeekdayName,
+            Hour: scene.CurrentDate.Hour,
+            PlayerStatus: new CreatureStatusSnapshot(
+                Name: player.Name,
+                CreatureType: player.CreatureType.ToString(),
+                Gender: player.Gender.ToString(),
+                Profession: player.Profession?.ToString() ?? "",
+                Level: player.Level,
+                Age: scene.CurrentDate.Year - player.BirthYear,
+                State: player.State.ToString(),
+                Gold: player.Gold,
+                CurrentHp: player.CurrentHp,
+                MaximumHp: player.Attributes.MaximumHp,
+                CurrentAp: player.CurrentAp,
+                MaximumAp: player.Attributes.MaximumAp,
+                CurrentMp: player.CurrentMp,
+                MaximumMp: player.Attributes.MaximumMp,
+                FactionNames: null,
+                Reputation: null
+            ),
+            NearbyCreatures: scene
+                .NearbyPeople.Select(p => new CreatureStatusSnapshot(
+                    Name: p.Name,
+                    CreatureType: p.CreatureType,
+                    Gender: p.Gender,
+                    Profession: p.Profession,
+                    Level: p.Level,
+                    Age: p.Age,
+                    State: p.State,
+                    Gold: p.Gold,
+                    CurrentHp: p.CurrentHp,
+                    MaximumHp: p.MaximumHp,
+                    CurrentAp: p.CurrentAp,
+                    MaximumAp: p.MaximumAp,
+                    CurrentMp: p.CurrentMp,
+                    MaximumMp: p.MaximumMp,
+                    FactionNames: p.FactionNames,
+                    Reputation: p.Reputation
                 ))
                 .ToArray(),
-            scene.City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type)).ToArray()
-                ?? [],
-            scene.NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type)).ToArray(),
-            scene.NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type)).ToArray(),
-            scene.NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type)).ToArray(),
-            scene
+            NearbyDistricts: scene
+                .City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type))
+                .ToArray() ?? [],
+            NearbyBuildings: scene
+                .NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
+                .ToArray(),
+            NearbyDungeons: scene
+                .NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
+                .ToArray(),
+            NearbyProps: scene.NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type))
+                .ToArray(),
+            Exits: scene
                 .Room?.Exits.Select(e => new NearbyExitSnapshot(
                     e.Description,
                     e.DestinationRoomName
                 ))
-                .ToArray()
-                ?? []
+                .ToArray() ?? []
         );
     }
+
+    private static CombatSnapshot ToCombatSnapshot(IReadOnlyList<Combatant> combatants) =>
+        new(
+            combatants
+                .Select(c => new CombatantStatusSnapshot(
+                    Name: c.Name,
+                    IsPlayer: c.IsPlayer,
+                    IsAlive: c.IsAlive,
+                    CurrentHp: c.CurrentHp,
+                    MaximumHp: c.MaximumHp,
+                    CurrentAp: c.CurrentAp,
+                    MaximumAp: c.MaximumAp,
+                    CurrentMp: c.CurrentMp,
+                    MaximumMp: c.MaximumMp,
+                    ActiveConditions: c
+                        .ActiveConditions.Where(kv => kv.Value > 0)
+                        .ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                    ActiveDots: c
+                        .ActiveDots.Select(d => new ActiveDotStatus(
+                            d.AbilityName,
+                            d.Amount,
+                            d.DamageType.ToString(),
+                            d.RemainingTurns
+                        ))
+                        .ToArray(),
+                    ActiveHots: c
+                        .ActiveHots.Select(h => new ActiveHotStatus(
+                            h.AbilityName,
+                            h.Amount,
+                            h.RemainingTurns
+                        ))
+                        .ToArray(),
+                    ActiveBuffs: c
+                        .ActiveBuffs.Select(b => new ActiveBuffStatus(
+                            b.Attribute.ToString(),
+                            b.Amount,
+                            b.AmountType.ToString(),
+                            b.RemainingTurns
+                        ))
+                        .ToArray()
+                ))
+                .ToArray()
+        );
 }
+
+internal sealed record SceneWithPlayer(SceneResult Scene, Creature Player);
 
 internal sealed class WorldConnectionRegistry
 {

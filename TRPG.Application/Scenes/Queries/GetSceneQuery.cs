@@ -70,8 +70,13 @@ public record SceneCreatureInfo(
     IReadOnlyCollection<string> FactionNames,
     string State,
     int Reputation,
+    int Gold,
     int CurrentHp,
-    int MaximumHp
+    int MaximumHp,
+    int CurrentAp,
+    int MaximumAp,
+    int CurrentMp,
+    int MaximumMp
 );
 
 public record SceneNearbyBuildingInfo(string Name, string Type);
@@ -426,8 +431,13 @@ internal class GetSceneQueryHandler(
                 factionNamesByCreature.GetValueOrDefault(x.Id, []),
                 x.State,
                 reputationByCreature.GetValueOrDefault(x.Id, 0),
+                x.Gold,
                 x.CurrentHp,
-                x.MaximumHp
+                x.MaximumHp,
+                x.CurrentAp,
+                x.MaximumAp,
+                x.CurrentMp,
+                x.MaximumMp
             ))
             .ToArray();
     }

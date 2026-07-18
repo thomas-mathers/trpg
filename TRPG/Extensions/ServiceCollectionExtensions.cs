@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using OllamaSharp;
 using TickerQ.DependencyInjection;
 using TickerQ.EntityFrameworkCore.DependencyInjection;
+using TickerQ.Utilities.Enums;
 using TRPG.Application.Common;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
@@ -114,7 +115,9 @@ internal static class ServiceCollectionExtensions
                 );
             });
         });
-        serviceCollection.MapTicker<CreateWorldJob, CreateWorldCommand>();
+        serviceCollection
+            .MapTicker<CreateWorldJob, CreateWorldCommand>()
+            .WithPriority(TickerTaskPriority.LongRunning);
         return serviceCollection;
     }
 

@@ -74,7 +74,6 @@ _ = Task.Run(async () =>
 
 app.MapWorldEndpoints();
 app.MapGameSessionEndpoints();
-app.MapCheatEndpoints();
 app.MapJobsEndpoints();
 app.MapHub<ChatHub>("/hubs/chat");
 

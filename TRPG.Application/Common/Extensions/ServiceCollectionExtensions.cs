@@ -90,7 +90,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<UpdateCreaturesCommandHandler>()
             .AddTransient<ApplyCombatRewardsCommandHandler>()
             .AddTransient<ApplyPassiveRegenCommandHandler>()
-            .AddTransient<GrantAllAbilitiesCommandHandler>()
             .AddTransient<DeleteCreaturesCommandHandler>()
             .AddTransient<GetCreatureByIdQueryHandler>()
             .AddTransient<GetCreaturesByIdsQueryHandler>()

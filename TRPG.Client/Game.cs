@@ -1,28 +1,396 @@
+using System.CommandLine;
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Client;
+using Spectre.Console;
+using TRPG.Client.Extensions;
+using TRPG.Contracts.Combat.Responses;
+using TRPG.Contracts.Jobs.Responses;
+using TRPG.Contracts.Scenes.Responses;
+using TRPG.Contracts.Worlds.Requests;
+using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 
 internal sealed class Game(GameServerClient client)
 {
-    public async Task Run(CancellationToken cancellationToken)
+    private enum MenuOptions
     {
-        Console.Clear();
-        Console.WriteLine("Welcome to the TRPG Game Master!");
-        Console.WriteLine("Type 'exit' to quit.");
-        Console.WriteLine();
+        New,
+        Drop,
+        Continue,
+        Exit,
+    }
 
-        client.ConnectionStatusChanged += status => Console.WriteLine($"\n[{status}]");
+    internal SceneSnapshot? CurrentScene { get; private set; }
+    internal CombatSnapshot? CurrentCombat { get; private set; }
 
-        if (!await TryStreamTurn(client.ReceiveOpening(cancellationToken)))
+    private bool _exitRequested;
+
+    public async Task Start(bool shouldContinue, CancellationToken cancellationToken)
+    {
+        if (shouldContinue)
+        {
+            await HandleContinueOption(cancellationToken);
+            return;
+        }
+
+        AnsiConsole.Write(new FigletText("TRPG").Centered().Color(Color.Gold1));
+
+        while (true)
+        {
+            var option = await AnsiConsole.PromptAsync(
+                new SelectionPrompt<MenuOptions>()
+                    .Title("What would you like to do?")
+                    .AddChoices(Enum.GetValues<MenuOptions>()),
+                cancellationToken
+            );
+
+            if (option == MenuOptions.Exit)
+            {
+                break;
+            }
+
+            try
+            {
+                switch (option)
+                {
+                    case MenuOptions.New:
+                        await HandleNewGameOption(cancellationToken);
+                        break;
+                    case MenuOptions.Drop:
+                        await HandleDropWorldOption(cancellationToken);
+                        break;
+                    case MenuOptions.Continue:
+                        await HandleContinueOption(cancellationToken);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.WriteLine();
+                AnsiConsole.WriteException(ex);
+                AnsiConsole.WriteLine();
+            }
+        }
+    }
+
+    private async Task HandleNewGameOption(CancellationToken cancellationToken)
+    {
+        var request = PromptForGameOptions();
+        if (request == null)
         {
             return;
         }
 
-        PrintStatus();
+        var jobId = await client.CreateWorld(request, cancellationToken);
 
+        var jobStatus = await AnsiConsole
+            .Status()
+            .StartAsync(
+                "Generating world...",
+                _ => WaitForJobWithProgress(jobId, cancellationToken)
+            );
+
+        if (jobStatus.Status != JobStatus.Done)
+        {
+            AnsiConsole.AnnounceError(
+                $"World generation failed: {jobStatus.ErrorMessage?.EscapeMarkup()}"
+            );
+            return;
+        }
+
+        var world = JsonSerializer.Deserialize<CreateWorldResponse>(jobStatus.ResultJson!)!;
+
+        AnsiConsole.AnnounceSuccess($"World \"{world.WorldName.EscapeMarkup()}\" generated.");
+        AnsiConsole.WriteLine(
+            $"Entering \"{world.WorldName}\" as {request.PlayerName} the {request.PlayerClass}..."
+        );
+
+        await ResumeGame(world.WorldId, cancellationToken);
+    }
+
+    private static CreateWorldRequest? PromptForGameOptions()
+    {
+        AnsiConsole.Write(new Rule("Character").RuleStyle("grey").LeftJustified());
+
+        var name = AnsiConsole.Ask<string>("Name");
+
+        var gender = AnsiConsole.Prompt(
+            new SelectionPrompt<Gender>().Title("Gender").AddChoices(Enum.GetValues<Gender>())
+        );
+
+        AnsiConsole.MarkupLine($"[green]✓[/] Gender: {gender}");
+
+        var age = AnsiConsole.Prompt(
+            new SelectionPrompt<Age>().Title("Age").AddChoices(Enum.GetValues<Age>())
+        );
+
+        AnsiConsole.MarkupLine($"[green]✓[/] Age: {age}");
+
+        var race = AnsiConsole.Prompt(
+            new SelectionPrompt<Race>().Title("Race").AddChoices(Enum.GetValues<Race>())
+        );
+
+        AnsiConsole.MarkupLine($"[green]✓[/] Race: {race}");
+
+        var playerClass = AnsiConsole.Prompt(
+            new SelectionPrompt<PlayerClass>()
+                .Title("Class")
+                .AddChoices(Enum.GetValues<PlayerClass>())
+        );
+
+        AnsiConsole.MarkupLine($"[green]✓[/] Class: {playerClass}");
+
+        AnsiConsole.Write(new Rule("World").RuleStyle("grey").LeftJustified());
+
+        var description = AnsiConsole.Ask("Description", WorldGenerationDefaults.Description);
+
+        AnsiConsole.Write(new Rule("Geography").RuleStyle("grey").LeftJustified());
+
+        var minCityStates = AnsiConsole.Ask(
+            "Min city states",
+            WorldGenerationDefaults.MinCityStates
+        );
+
+        var maxCityStates = AnsiConsole.Ask(
+            "Max city states",
+            WorldGenerationDefaults.MaxCityStates
+        );
+
+        var minRuralStates = AnsiConsole.Ask(
+            "Min rural states",
+            WorldGenerationDefaults.MinRuralStates
+        );
+
+        var maxRuralStates = AnsiConsole.Ask(
+            "Max rural states",
+            WorldGenerationDefaults.MaxRuralStates
+        );
+
+        AnsiConsole.Write(new Rule("Dungeons").RuleStyle("grey").LeftJustified());
+
+        var minDungeonsPerState = AnsiConsole.Ask(
+            "Min dungeons per state",
+            WorldGenerationDefaults.MinBuildingsPerState
+        );
+
+        var maxDungeonsPerState = AnsiConsole.Ask(
+            "Max dungeons per state",
+            WorldGenerationDefaults.MaxBuildingsPerState
+        );
+
+        AnsiConsole.Write(new Rule("Factions").RuleStyle("grey").LeftJustified());
+
+        var minFactionMembers = AnsiConsole.Ask(
+            "Min faction members",
+            WorldGenerationDefaults.MinFactionMembers
+        );
+
+        var maxFactionMembers = AnsiConsole.Ask(
+            "Max faction members",
+            WorldGenerationDefaults.MaxFactionMembers
+        );
+
+        var numFactions = AnsiConsole.Ask("Num factions", WorldGenerationDefaults.FactionCount);
+
+        AnsiConsole.Write(new Rule("Households").RuleStyle("grey").LeftJustified());
+
+        var housesPerCity = AnsiConsole.Ask("Houses/city", WorldGenerationDefaults.HousesPerCity);
+
+        var minHouseholdSize = AnsiConsole.Ask(
+            "Min household size",
+            WorldGenerationDefaults.MinHouseholdSize
+        );
+
+        var maxHouseholdSize = AnsiConsole.Ask(
+            "Max household size",
+            WorldGenerationDefaults.MaxHouseholdSize
+        );
+
+        AnsiConsole.Write(new Rule("Review").RuleStyle("grey").LeftJustified());
+
+        AnsiConsole.RenderTable(
+            ["Setting", "Value"],
+            [
+                ["Name", name.EscapeMarkup()],
+                ["Gender", AnsiConsole.FormatNeutralChip(gender.ToString())],
+                ["Age", AnsiConsole.FormatNeutralChip(age.ToString())],
+                ["Race", AnsiConsole.FormatNeutralChip(race.ToString())],
+                ["Class", AnsiConsole.FormatNeutralChip(playerClass.ToString())],
+                ["Description", description.EscapeMarkup()],
+                ["City states", $"{minCityStates}–{maxCityStates}"],
+                ["Rural states", $"{minRuralStates}–{maxRuralStates}"],
+                ["Dungeons/state", $"{minDungeonsPerState}–{maxDungeonsPerState}"],
+                ["Faction members", $"{minFactionMembers}–{maxFactionMembers}"],
+                ["Factions", numFactions.ToString()],
+                ["Houses/city", housesPerCity.ToString()],
+                ["Household size", $"{minHouseholdSize}–{maxHouseholdSize}"],
+            ]
+        );
+
+        if (!AnsiConsole.Confirm("Create this world?"))
+        {
+            return null;
+        }
+
+        return new CreateWorldRequest
+        {
+            PlayerName = name,
+            Race = race,
+            Gender = gender,
+            Age = age,
+            PlayerClass = playerClass,
+            Description = description,
+            MinCityStates = minCityStates,
+            MaxCityStates = maxCityStates,
+            MinRuralStates = minRuralStates,
+            MaxRuralStates = maxRuralStates,
+            MinBuildingsPerState = minDungeonsPerState,
+            MaxBuildingsPerState = maxDungeonsPerState,
+            MinFactionMembers = minFactionMembers,
+            MaxFactionMembers = maxFactionMembers,
+            HousesPerCity = housesPerCity,
+            MinHouseholdSize = minHouseholdSize,
+            MaxHouseholdSize = maxHouseholdSize,
+            FactionCount = numFactions,
+        };
+    }
+
+    private async Task<JobStatusResponse> WaitForJobWithProgress(
+        Guid jobId,
+        CancellationToken cancellationToken
+    )
+    {
         while (true)
         {
-            Console.Write("\n> ");
+            var status = await client.GetJobStatus(jobId, cancellationToken);
+            if (status.Status is JobStatus.Done or JobStatus.Failed or JobStatus.Cancelled)
+            {
+                return status;
+            }
+
+            await Task.Delay(2000, cancellationToken);
+        }
+    }
+
+    private async Task HandleDropWorldOption(CancellationToken cancellationToken)
+    {
+        var worlds = await client.ListWorlds(cancellationToken);
+
+        if (worlds.Count == 0)
+        {
+            AnsiConsole.AnnounceWarning("No worlds found.");
+            return;
+        }
+
+        var world = await AnsiConsole.PromptAsync(
+            new SelectionPrompt<WorldSummary>()
+                .Title("Choose a world to drop:")
+                .UseConverter(world => world.Name)
+                .AddChoices(worlds),
+            cancellationToken
+        );
+
+        var confirmed = await AnsiConsole.ConfirmAsync(
+            $"Drop \"{world.Name}\"? This cannot be undone. (y/N): ",
+            cancellationToken: cancellationToken
+        );
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await client.DropWorld(world.WorldId, cancellationToken);
+
+        AnsiConsole.AnnounceSuccess($"World \"{world.Name.EscapeMarkup()}\" dropped.");
+    }
+
+    private async Task HandleContinueOption(CancellationToken cancellationToken)
+    {
+        var world = await AutoSelectWorld(cancellationToken);
+        if (world == null)
+        {
+            return;
+        }
+
+        await ResumeGame(world.WorldId, cancellationToken);
+    }
+
+    private async Task<WorldSummary?> AutoSelectWorld(CancellationToken cancellationToken)
+    {
+        var worlds = await client.ListWorlds(cancellationToken);
+
+        if (worlds.Count == 0)
+        {
+            AnsiConsole.AnnounceWarning("No saved games found.");
+            return null;
+        }
+
+        return worlds.Count == 1
+            ? worlds[0]
+            : await AnsiConsole.PromptAsync(
+                new SelectionPrompt<WorldSummary>()
+                    .Title("Choose a world to continue:")
+                    .UseConverter(world => world.Name)
+                    .AddChoices(worlds),
+                cancellationToken
+            );
+    }
+
+    private async Task ResumeGame(Guid worldId, CancellationToken cancellationToken)
+    {
+        _exitRequested = false;
+        await using var hubConnection = await client.StartSession(worldId, cancellationToken);
+
+        AnsiConsole.Clear();
+        AnsiConsole.Write(
+            new Panel(
+                "Welcome to the TRPG Game Master!\nType '/exit' to quit, or '/help' for commands."
+            )
+                .Header("TRPG")
+                .BorderColor(Color.Gold1)
+        );
+
+        hubConnection.On<SceneSnapshot>("Scene", scene => CurrentScene = scene);
+        hubConnection.On<CombatSnapshot>(
+            "CombatTurnStatus",
+            combat => CurrentCombat = combat.Combatants.Count > 0 ? combat : null
+        );
+        hubConnection.Reconnecting += _ =>
+        {
+            OnConnectionStatusChanged("Connection lost, reconnecting...");
+            return Task.CompletedTask;
+        };
+        hubConnection.Reconnected += _ =>
+        {
+            OnConnectionStatusChanged("Reconnected.");
+            return Task.CompletedTask;
+        };
+        hubConnection.Closed += _ =>
+        {
+            OnConnectionStatusChanged("Connection closed.");
+            return Task.CompletedTask;
+        };
+
+        if (
+            !await TryStreamTurn(
+                hubConnection.StreamAsync<string>("ReceiveOpening", cancellationToken)
+            )
+        )
+        {
+            return;
+        }
+
+        AnsiConsole.RenderCombatStatus(CurrentCombat);
+        PrintStatus();
+
+        var commands = BuildCommands(hubConnection);
+
+        while (!_exitRequested)
+        {
+            AnsiConsole.Write("> ");
 
             var input = Console.ReadLine();
 
@@ -31,64 +399,380 @@ internal sealed class Game(GameServerClient client)
                 continue;
             }
 
-            if (input.Equals("exit", StringComparison.OrdinalIgnoreCase))
+            if (input.StartsWith('/'))
             {
-                await client.EndSession(cancellationToken);
-                break;
-            }
-
-            if (input.StartsWith("/wait", StringComparison.OrdinalIgnoreCase))
-            {
-                await HandleWaitCommand(input, cancellationToken);
+                await HandleCommand(input, commands, cancellationToken);
                 continue;
             }
 
-            if (input.Equals("/nearby", StringComparison.OrdinalIgnoreCase))
+            if (
+                await TryStreamTurn(
+                    hubConnection.StreamAsync<string>("SendChat", input, cancellationToken)
+                )
+            )
             {
-                PrintNearby();
-                continue;
-            }
-
-            if (input.StartsWith("/inspect", StringComparison.OrdinalIgnoreCase))
-            {
-                HandleInspectCommand(input);
-                continue;
-            }
-
-            if (input.Equals("/cheat", StringComparison.OrdinalIgnoreCase))
-            {
-                await HandleCheatCommand(cancellationToken);
-                continue;
-            }
-
-            if (await TryStreamTurn(client.SendChat(input, cancellationToken)))
-            {
+                AnsiConsole.RenderCombatStatus(CurrentCombat);
                 PrintStatus();
             }
         }
     }
 
-    private async Task HandleWaitCommand(string input, CancellationToken cancellationToken)
+    private Dictionary<string, Command> BuildCommands(HubConnection hubConnection)
     {
-        var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length != 2 || !int.TryParse(parts[1], out var hours) || hours <= 0)
-        {
-            Console.WriteLine("Usage: /wait <hours>");
-            return;
-        }
+        var hoursArgument = new Argument<int>("hours") { Description = "Number of hours to wait" };
+        var waitCommand = new Command("wait", "Pass time without acting") { hoursArgument };
+        waitCommand.SetAction(
+            async (parseResult, cancellationToken) =>
+            {
+                var hours = parseResult.GetValue(hoursArgument);
+                if (hours <= 0)
+                {
+                    AnsiConsole.AnnounceWarning("Usage: /wait <hours>");
+                    return 0;
+                }
 
-        if (await TryStreamTurn(client.SendWait(hours, cancellationToken)))
+                await SendWait(hubConnection, hours, cancellationToken);
+                return 0;
+            }
+        );
+
+        var creatureNameArgument = new Argument<string[]>("name")
         {
+            Description = "Name of a specific person to inspect (omit to list everyone nearby)",
+            Arity = ArgumentArity.ZeroOrMore,
+        };
+        var creaturesCommand = new Command(
+            "creatures",
+            "List people nearby, or inspect one by name"
+        )
+        {
+            creatureNameArgument,
+        };
+        creaturesCommand.SetAction(parseResult =>
+        {
+            var name = string.Join(' ', parseResult.GetValue(creatureNameArgument) ?? []);
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                RenderCreatures();
+            }
+            else
+            {
+                RenderCreatureDetail(name);
+            }
+
+            return 0;
+        });
+
+        var districtsCommand = new Command("districts", "List districts nearby");
+        districtsCommand.SetAction(_ =>
+        {
+            RenderDistricts();
+            return 0;
+        });
+
+        var buildingsCommand = new Command("buildings", "List buildings nearby");
+        buildingsCommand.SetAction(_ =>
+        {
+            RenderBuildings();
+            return 0;
+        });
+
+        var dungeonsCommand = new Command("dungeons", "List dungeons nearby");
+        dungeonsCommand.SetAction(_ =>
+        {
+            RenderDungeons();
+            return 0;
+        });
+
+        var propsCommand = new Command("props", "List props nearby");
+        propsCommand.SetAction(_ =>
+        {
+            RenderProps();
+            return 0;
+        });
+
+        var exitsCommand = new Command("exits", "List exits nearby");
+        exitsCommand.SetAction(_ =>
+        {
+            RenderExits();
+            return 0;
+        });
+
+        var characterCommand = new Command("character", "Show your own character sheet");
+        characterCommand.SetAction(_ =>
+        {
+            RenderCharacter();
+            return 0;
+        });
+
+        var exitCommand = new Command("exit", "End the session and return to the menu");
+        exitCommand.SetAction(_ =>
+        {
+            _exitRequested = true;
+            return 0;
+        });
+
+        Command[] commands =
+        [
+            waitCommand,
+            creaturesCommand,
+            districtsCommand,
+            buildingsCommand,
+            dungeonsCommand,
+            propsCommand,
+            exitsCommand,
+            characterCommand,
+            exitCommand,
+        ];
+
+        return commands.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    internal async Task SendWait(
+        HubConnection hubConnection,
+        int hours,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            await TryStreamTurn(
+                hubConnection.StreamAsync<string>("SendWait", hours, cancellationToken)
+            )
+        )
+        {
+            AnsiConsole.RenderCombatStatus(CurrentCombat);
             PrintStatus();
         }
     }
 
-    private async Task HandleCheatCommand(CancellationToken cancellationToken)
+    private void RenderCreatures()
     {
-        await client.GrantAllAbilities(cancellationToken);
-        Console.WriteLine(
-            "[Cheat] All abilities granted. AP/MP and cooldowns reset if you're in combat."
+        var scene = CurrentScene;
+        if (scene == null)
+        {
+            AnsiConsole.AnnounceWarning("No scene information available yet.");
+            return;
+        }
+
+        if (scene.NearbyCreatures.Count == 0)
+        {
+            AnsiConsole.Announce("Nothing nearby.");
+            return;
+        }
+
+        AnsiConsole.RenderTable(
+            ["Name", "Race", "Level", "Reputation", "Status"],
+            scene.NearbyCreatures.Select(c =>
+                new[]
+                {
+                    c.Name,
+                    AnsiConsole.FormatNeutralChip(c.CreatureType),
+                    c.Level.ToString(),
+                    AnsiConsole.FormatReputation(c.Reputation ?? 0),
+                    AnsiConsole.FormatStatusBars(
+                        c.CurrentHp,
+                        c.MaximumHp,
+                        c.CurrentAp,
+                        c.MaximumAp,
+                        c.CurrentMp,
+                        c.MaximumMp
+                    ),
+                }
+            )
         );
+    }
+
+    private void RenderDistricts()
+    {
+        var scene = CurrentScene;
+        if (scene == null)
+        {
+            AnsiConsole.AnnounceWarning("No scene information available yet.");
+            return;
+        }
+
+        if (scene.NearbyDistricts.Count == 0)
+        {
+            AnsiConsole.Announce("No districts nearby.");
+            return;
+        }
+
+        AnsiConsole.RenderTable(
+            ["Name", "Type"],
+            scene.NearbyDistricts.Select(d =>
+                new[] { d.Name, AnsiConsole.FormatNeutralChip(d.Type) }
+            )
+        );
+    }
+
+    private void RenderBuildings()
+    {
+        var scene = CurrentScene;
+        if (scene == null)
+        {
+            AnsiConsole.AnnounceWarning("No scene information available yet.");
+            return;
+        }
+
+        if (scene.NearbyBuildings.Count == 0)
+        {
+            AnsiConsole.Announce("No buildings nearby.");
+            return;
+        }
+
+        AnsiConsole.RenderTable(
+            ["Name", "Type"],
+            scene.NearbyBuildings.Select(b =>
+                new[] { b.Name, AnsiConsole.FormatNeutralChip(b.Type) }
+            )
+        );
+    }
+
+    private void RenderDungeons()
+    {
+        var scene = CurrentScene;
+        if (scene == null)
+        {
+            AnsiConsole.AnnounceWarning("No scene information available yet.");
+            return;
+        }
+
+        if (scene.NearbyDungeons.Count == 0)
+        {
+            AnsiConsole.Announce("No dungeons nearby.");
+            return;
+        }
+
+        AnsiConsole.RenderTable(
+            ["Name", "Type"],
+            scene.NearbyDungeons.Select(d =>
+                new[] { d.Name, AnsiConsole.FormatNeutralChip(d.Type) }
+            )
+        );
+    }
+
+    private void RenderProps()
+    {
+        var scene = CurrentScene;
+        if (scene == null)
+        {
+            AnsiConsole.AnnounceWarning("No scene information available yet.");
+            return;
+        }
+
+        if (scene.NearbyProps.Count == 0)
+        {
+            AnsiConsole.Announce("No props nearby.");
+            return;
+        }
+
+        AnsiConsole.RenderTable(
+            ["Name", "Type"],
+            scene.NearbyProps.Select(p => new[] { p.Name, AnsiConsole.FormatNeutralChip(p.Type) })
+        );
+    }
+
+    private void RenderExits()
+    {
+        var scene = CurrentScene;
+        if (scene == null)
+        {
+            AnsiConsole.AnnounceWarning("No scene information available yet.");
+            return;
+        }
+
+        if (scene.Exits.Count == 0)
+        {
+            AnsiConsole.Announce("No exits nearby.");
+            return;
+        }
+
+        AnsiConsole.RenderTable(
+            ["Destination", "Description"],
+            scene.Exits.Select(e => new[] { e.DestinationRoomName, e.Description })
+        );
+    }
+
+    private void RenderCreatureDetail(string name)
+    {
+        var scene = CurrentScene;
+        if (scene == null)
+        {
+            AnsiConsole.AnnounceWarning("No scene information available yet.");
+            return;
+        }
+
+        var person = scene.NearbyCreatures.FirstOrDefault(p =>
+            p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+        );
+        if (person == null)
+        {
+            AnsiConsole.AnnounceWarning($"No one named '{name.EscapeMarkup()}' found nearby.");
+            return;
+        }
+
+        RenderCreatureStatus(person);
+    }
+
+    private void RenderCharacter()
+    {
+        var scene = CurrentScene;
+        if (scene == null)
+        {
+            AnsiConsole.AnnounceWarning("No scene information available yet.");
+            return;
+        }
+
+        RenderCreatureStatus(scene.PlayerStatus);
+    }
+
+    private static void RenderCreatureStatus(CreatureStatusSnapshot status)
+    {
+        var hpColor = AnsiConsole.HealthColor(status.CurrentHp, status.MaximumHp);
+        List<string[]> rows =
+        [
+            ["Name", status.Name.EscapeMarkup()],
+            ["Race", AnsiConsole.FormatNeutralChip(status.CreatureType)],
+            ["Gender", AnsiConsole.FormatNeutralChip(status.Gender)],
+            ["Profession", AnsiConsole.FormatNeutralChip(status.Profession)],
+            ["Level", status.Level.ToString()],
+            ["Age", status.Age.ToString()],
+            ["State", AnsiConsole.FormatStateChip(status.State)],
+            ["Gold", status.Gold.ToString()],
+        ];
+
+        if (status.Reputation is int reputation)
+        {
+            rows.Add(["Reputation", AnsiConsole.FormatReputation(reputation)]);
+        }
+
+        rows.Add([
+            "HP",
+            $"{AnsiConsole.FormatBar(status.CurrentHp, status.MaximumHp, hpColor, width: 14)} {status.CurrentHp}/{status.MaximumHp}",
+        ]);
+        rows.Add([
+            "AP",
+            $"{AnsiConsole.FormatBar(status.CurrentAp, status.MaximumAp, "blue", width: 14)} {status.CurrentAp}/{status.MaximumAp}",
+        ]);
+        rows.Add([
+            "MP",
+            $"{AnsiConsole.FormatBar(status.CurrentMp, status.MaximumMp, "purple", width: 14)} {status.CurrentMp}/{status.MaximumMp}",
+        ]);
+
+        if (status.FactionNames is { Count: > 0 } factionNames)
+        {
+            rows.Add([
+                "Factions",
+                string.Join(" ", factionNames.Select(AnsiConsole.FormatNeutralChip)),
+            ]);
+        }
+
+        AnsiConsole.RenderTable(["Field", "Value"], rows);
+    }
+
+    private static void OnConnectionStatusChanged(string status)
+    {
+        AnsiConsole.AnnounceWarning($"[[{status.EscapeMarkup()}]]");
     }
 
     private static async Task<bool> TryStreamTurn(IAsyncEnumerable<string> tokens)
@@ -97,181 +781,83 @@ internal sealed class Game(GameServerClient client)
         {
             await foreach (var token in tokens)
             {
-                Console.Write(token);
+                AnsiConsole.Write(token);
             }
 
             return true;
         }
         catch (Exception ex) when (ex is HubException or IOException)
         {
-            Console.WriteLine($"\n[Turn failed: {ex.Message}]");
+            AnsiConsole.AnnounceError($"[[Turn failed: {ex.Message.EscapeMarkup()}]]");
             return false;
         }
     }
 
     private void PrintStatus()
     {
-        var scene = client.CurrentScene;
+        var scene = CurrentScene;
         if (scene == null)
         {
             return;
         }
 
-        var breadcrumb = string.Join(
-            " > ",
-            new[]
-            {
-                scene.StateName,
-                scene.CityName,
-                scene.DistrictName,
-                scene.BuildingName,
-                scene.RoomName,
-            }.Where(name => !string.IsNullOrEmpty(name))
+        var title =
+            $"{AnsiConsole.BuildBreadcrumb(scene).EscapeMarkup()} | {scene.WeekdayName.EscapeMarkup()}, Hour {scene.Hour}";
+
+        AnsiConsole.Write(
+            new Padder(
+                new Rule($"[grey]{title}[/]").RuleStyle("grey").LeftJustified(),
+                new Padding(0, 1)
+            )
         );
-        Console.WriteLine($"\n[{breadcrumb} | {scene.WeekdayName}, Hour {scene.Hour}]");
     }
 
-    private void PrintNearby()
+    private static async Task HandleCommand(
+        string input,
+        IReadOnlyDictionary<string, Command> commands,
+        CancellationToken cancellationToken
+    )
     {
-        var scene = client.CurrentScene;
-        if (scene == null)
+        var body = input[1..];
+        var spaceIndex = body.IndexOf(' ', StringComparison.OrdinalIgnoreCase);
+        var name = spaceIndex < 0 ? body : body[..spaceIndex];
+        var argumentText = spaceIndex < 0 ? "" : body[(spaceIndex + 1)..].Trim();
+
+        if (name.Equals("help", StringComparison.OrdinalIgnoreCase))
         {
-            Console.WriteLine("No scene information available yet.");
+            HandleHelpCommand(commands);
             return;
         }
 
-        if (
-            scene.NearbyPeople.Count == 0
-            && scene.NearbyBuildings.Count == 0
-            && scene.NearbyDungeons.Count == 0
-            && scene.Exits.Count == 0
-            && scene.NearbyDistricts.Count == 0
-            && scene.NearbyProps.Count == 0
-        )
+        if (!commands.TryGetValue(name, out var command))
         {
-            Console.WriteLine("Nothing nearby.");
-            return;
-        }
-
-        if (scene.NearbyPeople.Count > 0)
-        {
-            Console.WriteLine("People:");
-            foreach (var person in scene.NearbyPeople)
-            {
-                Console.WriteLine(
-                    $"  {person.Name, -20} {person.CreatureType, -10} {person.Profession, -12} Lvl {person.Level, -3} Age {person.Age, -4} HP {person.CurrentHp}/{person.MaximumHp}"
-                );
-            }
-        }
-
-        if (scene.NearbyDistricts.Count > 0)
-        {
-            Console.WriteLine("Districts:");
-            foreach (var district in scene.NearbyDistricts)
-            {
-                Console.WriteLine($"  {district.Name, -25} {district.Type}");
-            }
-        }
-
-        if (scene.NearbyBuildings.Count > 0)
-        {
-            Console.WriteLine("Buildings:");
-            foreach (var building in scene.NearbyBuildings)
-            {
-                Console.WriteLine($"  {building.Name, -25} {building.Type}");
-            }
-        }
-
-        if (scene.NearbyDungeons.Count > 0)
-        {
-            Console.WriteLine("Dungeons:");
-            foreach (var dungeon in scene.NearbyDungeons)
-            {
-                Console.WriteLine($"  {dungeon.Name, -25} {dungeon.Type}");
-            }
-        }
-
-        if (scene.NearbyProps.Count > 0)
-        {
-            Console.WriteLine("Props:");
-            foreach (var prop in scene.NearbyProps)
-            {
-                Console.WriteLine($"  {prop.Name, -25} {prop.Type}");
-            }
-        }
-
-        if (scene.Exits.Count > 0)
-        {
-            Console.WriteLine("Exits:");
-            foreach (var exit in scene.Exits)
-            {
-                Console.WriteLine($"  {exit.DestinationRoomName, -25} {exit.Description}");
-            }
-        }
-    }
-
-    private void HandleInspectCommand(string input)
-    {
-        var name = input.Length > "/inspect".Length ? input["/inspect".Length..].Trim() : "";
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            Console.WriteLine("Usage: /inspect <name>");
-            return;
-        }
-
-        var scene = client.CurrentScene;
-        if (scene == null)
-        {
-            Console.WriteLine("No scene information available yet.");
-            return;
-        }
-
-        var person = scene.NearbyPeople.FirstOrDefault(p =>
-            p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
-        );
-        if (person != null)
-        {
-            Console.WriteLine(
-                $"{person.Name} — {person.CreatureType} {person.Profession}, Level {person.Level}, Age {person.Age}"
+            AnsiConsole.AnnounceWarning(
+                $"Unknown command '/{name.EscapeMarkup()}'. Type /help for a list."
             );
-            Console.WriteLine($"HP: {person.CurrentHp}/{person.MaximumHp}");
-            Console.WriteLine($"State: {person.State}");
-            if (person.FactionNames.Count > 0)
+            return;
+        }
+
+        var parseResult = command.Parse(argumentText);
+        if (parseResult.Errors.Count > 0)
+        {
+            foreach (var error in parseResult.Errors)
             {
-                Console.WriteLine($"Factions: {string.Join(", ", person.FactionNames)}");
+                AnsiConsole.AnnounceWarning(error.Message.EscapeMarkup());
             }
 
-            Console.WriteLine($"Reputation: {person.Reputation}");
             return;
         }
 
-        var building = scene.NearbyBuildings.FirstOrDefault(b =>
-            b.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
-        );
-        if (building != null)
-        {
-            Console.WriteLine($"{building.Name} — {building.Type}");
-            return;
-        }
+        await parseResult.InvokeAsync(cancellationToken: cancellationToken);
+    }
 
-        var dungeon = scene.NearbyDungeons.FirstOrDefault(d =>
-            d.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
-        );
-        if (dungeon != null)
-        {
-            Console.WriteLine($"{dungeon.Name} — {dungeon.Type}");
-            return;
-        }
+    private static void HandleHelpCommand(IReadOnlyDictionary<string, Command> commands)
+    {
+        var rows = commands
+            .Values.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(c => new[] { AnsiConsole.FormatSyntax(c), c.Description ?? "" })
+            .Append(["[bold #569CD6]/help[/]", "Show this list"]);
 
-        var exit = scene.Exits.FirstOrDefault(e =>
-            e.DestinationRoomName.Equals(name, StringComparison.OrdinalIgnoreCase)
-        );
-        if (exit != null)
-        {
-            Console.WriteLine($"{exit.DestinationRoomName} — {exit.Description}");
-            return;
-        }
-
-        Console.WriteLine($"No one or nothing named '{name}' found nearby.");
+        AnsiConsole.RenderTable(["[bold]Command[/]", "[bold]Description[/]"], rows);
     }
 }

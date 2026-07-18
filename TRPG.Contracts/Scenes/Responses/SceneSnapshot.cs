@@ -11,7 +11,8 @@ public record SceneSnapshot(
     int Day,
     string WeekdayName,
     int Hour,
-    IReadOnlyCollection<NearbyPersonSnapshot> NearbyPeople,
+    CreatureStatusSnapshot PlayerStatus,
+    IReadOnlyCollection<CreatureStatusSnapshot> NearbyCreatures,
     IReadOnlyCollection<NearbyDistrictSnapshot> NearbyDistricts,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyBuildings,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyDungeons,
@@ -19,18 +20,23 @@ public record SceneSnapshot(
     IReadOnlyCollection<NearbyExitSnapshot> Exits
 );
 
-public record NearbyPersonSnapshot(
+public record CreatureStatusSnapshot(
     string Name,
     string CreatureType,
     string Gender,
     string Profession,
     int Level,
     int Age,
-    IReadOnlyCollection<string> FactionNames,
     string State,
-    int Reputation,
+    int Gold,
     int CurrentHp,
-    int MaximumHp
+    int MaximumHp,
+    int CurrentAp,
+    int MaximumAp,
+    int CurrentMp,
+    int MaximumMp,
+    IReadOnlyCollection<string>? FactionNames,
+    int? Reputation
 );
 
 public record NearbyDistrictSnapshot(string Name, string Type);
