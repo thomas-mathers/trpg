@@ -1,3 +1,4 @@
+using TRPG.Application.Combat;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 using Profession = TRPG.Data.Models.Profession;
@@ -6,6 +7,28 @@ namespace TRPG.Tests.Helpers;
 
 internal static class Builders
 {
+    public static Combatant MakeCombatant(
+        Guid? creatureId = null,
+        string name = "Test Combatant",
+        bool isPlayer = true,
+        int currentHp = 100,
+        int currentAp = 20,
+        int currentMp = 10
+    ) =>
+        new()
+        {
+            CreatureId = creatureId ?? Guid.NewGuid(),
+            Name = name,
+            IsPlayer = isPlayer,
+            Level = 1,
+            Attributes = MakeAttributes(),
+            Abilities = [],
+            Gold = 0,
+            CurrentHp = currentHp,
+            CurrentAp = currentAp,
+            CurrentMp = currentMp,
+        };
+
     public static Creature MakeCreature(
         Guid? worldId = null,
         CreatureType creatureType = CreatureType.Human,

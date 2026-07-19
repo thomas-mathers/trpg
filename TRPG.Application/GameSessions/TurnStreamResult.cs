@@ -5,6 +5,5 @@ namespace TRPG.Application.GameSessions;
 public class TurnStreamResult
 {
     public bool DidSceneRefreshThisTurn { get; set; }
-    public bool DidCombatOccurThisTurn { get; set; }
     public InGameDate CurrentDate { get; set; }
 }

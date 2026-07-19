@@ -1,5 +1,5 @@
-using TRPG.Application.Combat;
 using TRPG.Data.Models;
+using ActiveBuff = TRPG.Application.Combat.ActiveBuff;
 
 namespace TRPG.Application.Creatures;
 

@@ -170,7 +170,6 @@ internal class GameTurnRunner(
     {
         turnContext.DidMoveThisTurn = false;
         turnContext.DidSceneRefreshThisTurn = false;
-        turnContext.DidCombatOccurThisTurn = false;
 
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = turnContext.SessionId },
@@ -197,7 +196,6 @@ internal class GameTurnRunner(
             cancellationToken
         );
         result.DidSceneRefreshThisTurn = turnContext.DidSceneRefreshThisTurn;
-        result.DidCombatOccurThisTurn = turnContext.DidCombatOccurThisTurn;
         result.CurrentDate = GameClock.GetCurrentInGameDate(playtime);
         logger.LogInformation(
             "[perf] FinishTurn took {ElapsedMs}ms",

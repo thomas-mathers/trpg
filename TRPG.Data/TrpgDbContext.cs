@@ -46,7 +46,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<World> Worlds => Set<World>();
     public DbSet<GameSession> GameSessions => Set<GameSession>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
-    public DbSet<CombatantSnapshot> Combatants => Set<CombatantSnapshot>();
+    public DbSet<Fight> Fights => Set<Fight>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -105,6 +105,57 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => new { p.StateId, p.RoomId });
             entity.OwnsOne(p => p.Attributes, s => s.ToJson());
+            entity
+                .Property(c => c.ActiveConditions)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
+                        ?? new Dictionary<string, int>()
+                )
+                .HasColumnType("jsonb");
+            entity
+                .Property(c => c.CooldownRemainingByAbility)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
+                        ?? new Dictionary<string, int>()
+                )
+                .HasColumnType("jsonb");
+            entity
+                .Property(c => c.ActiveDots)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<List<ActiveDot>>(v, JsonOptions)
+                        ?? new List<ActiveDot>()
+                )
+                .HasColumnType("jsonb");
+            entity
+                .Property(c => c.ActiveHots)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<List<ActiveHot>>(v, JsonOptions)
+                        ?? new List<ActiveHot>()
+                )
+                .HasColumnType("jsonb");
+            entity
+                .Property(c => c.ActiveBuffs)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonOptions),
+                    v =>
+                        JsonSerializer.Deserialize<List<ActiveBuff>>(v, JsonOptions)
+                        ?? new List<ActiveBuff>()
+                )
+                .HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<Fight>(entity =>
+        {
+            entity.HasIndex(f => f.WorldId);
+            entity.Property(f => f.CombatantIds).HasColumnType("uuid[]");
         });
 
         modelBuilder.Entity<Item>(entity =>
@@ -371,63 +422,5 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.Property(m => m.MessageJson).HasColumnType("json");
         });
 
-        modelBuilder.Entity<CombatantSnapshot>(entity =>
-        {
-            entity.HasIndex(c => c.SessionId);
-            entity
-                .Property(c => c.WeaponSwingCounts)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
-                        ?? new Dictionary<string, int>()
-                )
-                .HasColumnType("jsonb");
-            entity
-                .Property(c => c.ActiveConditions)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
-                        ?? new Dictionary<string, int>()
-                )
-                .HasColumnType("jsonb");
-            entity
-                .Property(c => c.CooldownRemainingByAbility)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
-                        ?? new Dictionary<string, int>()
-                )
-                .HasColumnType("jsonb");
-            entity
-                .Property(c => c.ActiveDots)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<List<ActiveDotSnapshot>>(v, JsonOptions)
-                        ?? new List<ActiveDotSnapshot>()
-                )
-                .HasColumnType("jsonb");
-            entity
-                .Property(c => c.ActiveHots)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<List<ActiveHotSnapshot>>(v, JsonOptions)
-                        ?? new List<ActiveHotSnapshot>()
-                )
-                .HasColumnType("jsonb");
-            entity
-                .Property(c => c.ActiveBuffs)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<List<ActiveBuffSnapshot>>(v, JsonOptions)
-                        ?? new List<ActiveBuffSnapshot>()
-                )
-                .HasColumnType("jsonb");
-        });
     }
 }

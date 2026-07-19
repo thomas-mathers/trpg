@@ -12,6 +12,7 @@ internal class UpdateCreaturesCommand
     public Optional<Guid?> DistrictId { get; init; }
     public Optional<Guid?> RoomId { get; init; }
     public CreatureState? State { get; init; }
+    public TimeSpan? LastRegenPlaytime { get; init; }
 }
 
 internal class UpdateCreaturesCommandHandler(TrpgDbContext context)
@@ -21,7 +22,14 @@ internal class UpdateCreaturesCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        if (command.CreatureIds.Count == 0)
+        var hasFieldToUpdate =
+            command.CityId.IsSet
+            || command.DistrictId.IsSet
+            || command.RoomId.IsSet
+            || command.State != null
+            || command.LastRegenPlaytime != null;
+
+        if (command.CreatureIds.Count == 0 || !hasFieldToUpdate)
         {
             return;
         }
@@ -30,19 +38,28 @@ internal class UpdateCreaturesCommandHandler(TrpgDbContext context)
             .Creatures.Where(c => command.CreatureIds.Contains(c.Id))
             .ExecuteUpdateAsync(
                 s =>
-                    s.SetProperty(
-                            c => c.CityId,
-                            c => command.CityId.IsSet ? command.CityId.Value : c.CityId
-                        )
-                        .SetProperty(
-                            c => c.DistrictId,
-                            c => command.DistrictId.IsSet ? command.DistrictId.Value : c.DistrictId
-                        )
-                        .SetProperty(
-                            c => c.RoomId,
-                            c => command.RoomId.IsSet ? command.RoomId.Value : c.RoomId
-                        )
-                        .SetProperty(c => c.State, c => command.State ?? c.State),
+                {
+                    if (command.CityId.IsSet)
+                    {
+                        s.SetProperty(c => c.CityId, command.CityId.Value);
+                    }
+                    if (command.DistrictId.IsSet)
+                    {
+                        s.SetProperty(c => c.DistrictId, command.DistrictId.Value);
+                    }
+                    if (command.RoomId.IsSet)
+                    {
+                        s.SetProperty(c => c.RoomId, command.RoomId.Value);
+                    }
+                    if (command.State != null)
+                    {
+                        s.SetProperty(c => c.State, command.State.Value);
+                    }
+                    if (command.LastRegenPlaytime != null)
+                    {
+                        s.SetProperty(c => c.LastRegenPlaytime, command.LastRegenPlaytime.Value);
+                    }
+                },
                 cancellationToken
             );
     }

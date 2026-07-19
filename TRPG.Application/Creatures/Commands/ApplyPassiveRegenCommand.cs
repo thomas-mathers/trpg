@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -9,24 +10,30 @@ namespace TRPG.Application.Creatures.Commands;
 
 internal class ApplyPassiveRegenCommand
 {
+    public required Guid SessionId { get; init; }
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
-    public required TimeSpan Playtime { get; init; }
 }
 
 internal class ApplyPassiveRegenCommandHandler(
     TrpgDbContext context,
-    IOptionsSnapshot<CreatureRegenOptions> optionsSnapshot
+    IOptionsSnapshot<CreatureRegenOptions> optionsSnapshot,
+    GetPlaytimeQueryHandler getPlaytime
 )
 {
-    public async Task Handle(
+    public async Task<IReadOnlyDictionary<Guid, Creature>> Handle(
         ApplyPassiveRegenCommand command,
         CancellationToken cancellationToken = default
     )
     {
         if (command.CreatureIds.Count == 0)
         {
-            return;
+            return new Dictionary<Guid, Creature>();
         }
+
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
 
         var creatures = await context
             .Creatures.Where(c => command.CreatureIds.Contains(c.Id))
@@ -37,11 +44,12 @@ internal class ApplyPassiveRegenCommandHandler(
             .Include(i => i.Item)
             .Where(i => command.CreatureIds.Contains(i.CreatureId) && i.EquippedSlot != null)
             .ToArrayAsync(cancellationToken);
+
         var equippedByCreatureId = equippedItems
             .GroupBy(i => i.CreatureId)
             .ToDictionary(
                 g => g.Key,
-                g => (IReadOnlyCollection<Item>)g.Select(i => i.Item).ToArray()
+                IReadOnlyCollection<Item> (g) => g.Select(i => i.Item).ToArray()
             );
 
         foreach (var creature in creatures)
@@ -52,15 +60,17 @@ internal class ApplyPassiveRegenCommandHandler(
                 [],
                 equipped
             );
-            ApplyPassiveRegen(
-                creature,
-                command.Playtime,
-                effectiveAttributes,
-                optionsSnapshot.Value
-            );
+            ApplyPassiveRegen(creature, playtime, effectiveAttributes, optionsSnapshot.Value);
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        foreach (var creature in creatures)
+        {
+            context.Entry(creature).State = EntityState.Detached;
+        }
+
+        return creatures.ToDictionary(c => c.Id);
     }
 
     private static void ApplyPassiveRegen(

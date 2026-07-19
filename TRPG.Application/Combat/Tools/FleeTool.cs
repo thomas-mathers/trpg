@@ -6,14 +6,18 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
+using TRPG.Application.WeaponProficiency.Commands;
 
 namespace TRPG.Application.Combat.Tools;
 
 internal class FleeTool(
     GameTurnContext turnContext,
     GetCombatantsQueryHandler getCombatants,
-    EndCombatCommandHandler endCombat,
+    PersistCombatantsCommandHandler persistCombatants,
+    EndFightCommandHandler endFight,
+    AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     CombatEngine combatEngine,
+    ICombatStatusPublisher combatStatusPublisher,
     ILogger<FleeTool> logger
 ) : IGameTool
 {
@@ -29,7 +33,11 @@ internal class FleeTool(
         var stopwatch = Stopwatch.StartNew();
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery { SessionId = turnContext.SessionId },
+            new GetCombatantsQuery
+            {
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+            },
             cancellationToken
         );
         if (combatants is not { Count: > 0 })
@@ -39,8 +47,26 @@ internal class FleeTool(
 
         var state = combatEngine.ResolveFlee(combatants);
 
-        await endCombat.Handle(
-            new EndCombatCommand
+        await persistCombatants.Handle(
+            new PersistCombatantsCommand { Combatants = combatants },
+            cancellationToken
+        );
+
+        if (state.WeaponSwingCounts.Count > 0)
+        {
+            await adjustWeaponProficiencies.Handle(
+                new AdjustWeaponProficienciesCommand
+                {
+                    WorldId = turnContext.WorldId,
+                    CreatureId = turnContext.PlayerId,
+                    ProficiencyDeltas = state.WeaponSwingCounts,
+                },
+                cancellationToken
+            );
+        }
+
+        await endFight.Handle(
+            new EndFightCommand
             {
                 SessionId = turnContext.SessionId,
                 WorldId = turnContext.WorldId,
@@ -49,7 +75,7 @@ internal class FleeTool(
             cancellationToken
         );
 
-        turnContext.DidCombatOccurThisTurn = true;
+        await combatStatusPublisher.PublishCombatStatus(turnContext.WorldId, [], cancellationToken);
 
         var result = state.ToCombatResult();
 

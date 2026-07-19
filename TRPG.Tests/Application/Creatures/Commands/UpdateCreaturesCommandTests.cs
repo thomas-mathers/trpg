@@ -102,6 +102,49 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
     }
 
     [Fact]
+    public async Task Handle_UpdatesLastRegenPlaytime_WhenSet()
+    {
+        // Act
+        await _handler.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                LastRegenPlaytime = TimeSpan.FromHours(3),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(TimeSpan.FromHours(3), updated!.LastRegenPlaytime);
+    }
+
+    [Fact]
+    public async Task Handle_LeavesLastRegenPlaytimeUnchanged_WhenNotSet()
+    {
+        // Arrange
+        var originalLastRegenPlaytime = _creature.LastRegenPlaytime;
+
+        // Act
+        await _handler.Handle(
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Busy },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(originalLastRegenPlaytime, updated!.LastRegenPlaytime);
+    }
+
+    [Fact]
     public async Task Handle_LeavesStateUnchanged_WhenNotSet()
     {
         // Arrange
@@ -124,6 +167,28 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             TestContext.Current.CancellationToken
         );
         Assert.Equal(originalState, updated!.State);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNothing_WhenNoFieldsAreSet()
+    {
+        // Act
+        await _handler.Handle(
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_creature.CityId, updated!.CityId);
+        Assert.Equal(_creature.DistrictId, updated.DistrictId);
+        Assert.Equal(_creature.RoomId, updated.RoomId);
+        Assert.Equal(_creature.State, updated.State);
+        Assert.Equal(_creature.LastRegenPlaytime, updated.LastRegenPlaytime);
     }
 
     [Fact]

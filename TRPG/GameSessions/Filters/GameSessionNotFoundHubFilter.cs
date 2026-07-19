@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.SignalR;
-using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Exceptions;
 
 namespace TRPG.GameSessions.Filters;

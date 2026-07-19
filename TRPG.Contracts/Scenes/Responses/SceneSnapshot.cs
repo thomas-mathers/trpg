@@ -27,7 +27,7 @@ public record CreatureStatusSnapshot(
     string Profession,
     int Level,
     int Age,
-    string State,
+    string? State,
     int Gold,
     int CurrentHp,
     int MaximumHp,

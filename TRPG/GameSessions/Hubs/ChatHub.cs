@@ -2,15 +2,11 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using TRPG.Application.Combat;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data.Models;
 
@@ -22,9 +18,7 @@ internal sealed class ChatHub(
     GetGameSessionQueryHandler getGameSession,
     WorldConnectionRegistry worldConnections,
     GetCreatureByIdQueryHandler getCreatureById,
-    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
-    GetCombatantsQueryHandler getCombatants,
-    ILogger<ChatHub> logger
+    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp
 ) : Hub
 {
     private const string SessionIdKey = "SessionId";
@@ -67,6 +61,22 @@ internal sealed class ChatHub(
             new GetGameSessionQuery { SessionId = sessionId }
         );
         return snapshot.WorldId;
+    }
+
+    private async Task<bool> IsPlayerDead(
+        GameTurnContext turnContext,
+        CancellationToken cancellationToken
+    )
+    {
+        var gameSession = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = gameSession.PlayerId },
+            cancellationToken
+        );
+        return player?.State == CreatureState.Dead;
     }
 
     public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken)
@@ -119,6 +129,12 @@ internal sealed class ChatHub(
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
+        if (await IsPlayerDead(turnContext, cancellationToken))
+        {
+            yield return "You have died. This adventure has come to an end.";
+            yield break;
+        }
+
         await foreach (var token in tokens.WithCancellation(cancellationToken))
         {
             yield return token;
@@ -133,24 +149,6 @@ internal sealed class ChatHub(
             );
             var snapshot = ToSnapshot(sceneWithPlayer.Scene, sceneWithPlayer.Player);
             await Clients.Caller.SendAsync("Scene", snapshot, cancellationToken);
-        }
-
-        if (result.DidCombatOccurThisTurn)
-        {
-            var combatants = await getCombatants.Handle(
-                new GetCombatantsQuery { SessionId = turnContext.SessionId },
-                cancellationToken
-            );
-            logger.LogInformation(
-                "[combat] pushing CombatTurnStatus for session {SessionId}: {Combatants}",
-                turnContext.SessionId,
-                string.Join(
-                    ", ",
-                    combatants.Select(c => $"{c.Name}={c.CurrentHp}/{c.MaximumHp}hp")
-                )
-            );
-            var combatSnapshot = ToCombatSnapshot(combatants);
-            await Clients.Caller.SendAsync("CombatTurnStatus", combatSnapshot, cancellationToken);
         }
     }
 
@@ -223,7 +221,7 @@ internal sealed class ChatHub(
                 Profession: player.Profession?.ToString() ?? "",
                 Level: player.Level,
                 Age: scene.CurrentDate.Year - player.BirthYear,
-                State: player.State.ToString(),
+                State: player.State == CreatureState.Dead ? player.State.ToString() : null,
                 Gold: player.Gold,
                 CurrentHp: player.CurrentHp,
                 MaximumHp: player.Attributes.MaximumHp,
@@ -256,66 +254,26 @@ internal sealed class ChatHub(
                 .ToArray(),
             NearbyDistricts: scene
                 .City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type))
-                .ToArray() ?? [],
+                .ToArray()
+                ?? [],
             NearbyBuildings: scene
                 .NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
                 .ToArray(),
             NearbyDungeons: scene
                 .NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
                 .ToArray(),
-            NearbyProps: scene.NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type))
+            NearbyProps: scene
+                .NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type))
                 .ToArray(),
             Exits: scene
                 .Room?.Exits.Select(e => new NearbyExitSnapshot(
                     e.Description,
                     e.DestinationRoomName
                 ))
-                .ToArray() ?? []
+                .ToArray()
+                ?? []
         );
     }
-
-    private static CombatSnapshot ToCombatSnapshot(IReadOnlyList<Combatant> combatants) =>
-        new(
-            combatants
-                .Select(c => new CombatantStatusSnapshot(
-                    Name: c.Name,
-                    IsPlayer: c.IsPlayer,
-                    IsAlive: c.IsAlive,
-                    CurrentHp: c.CurrentHp,
-                    MaximumHp: c.MaximumHp,
-                    CurrentAp: c.CurrentAp,
-                    MaximumAp: c.MaximumAp,
-                    CurrentMp: c.CurrentMp,
-                    MaximumMp: c.MaximumMp,
-                    ActiveConditions: c
-                        .ActiveConditions.Where(kv => kv.Value > 0)
-                        .ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-                    ActiveDots: c
-                        .ActiveDots.Select(d => new ActiveDotStatus(
-                            d.AbilityName,
-                            d.Amount,
-                            d.DamageType.ToString(),
-                            d.RemainingTurns
-                        ))
-                        .ToArray(),
-                    ActiveHots: c
-                        .ActiveHots.Select(h => new ActiveHotStatus(
-                            h.AbilityName,
-                            h.Amount,
-                            h.RemainingTurns
-                        ))
-                        .ToArray(),
-                    ActiveBuffs: c
-                        .ActiveBuffs.Select(b => new ActiveBuffStatus(
-                            b.Attribute.ToString(),
-                            b.Amount,
-                            b.AmountType.ToString(),
-                            b.RemainingTurns
-                        ))
-                        .ToArray()
-                ))
-                .ToArray()
-        );
 }
 
 internal sealed record SceneWithPlayer(SceneResult Scene, Creature Player);
@@ -329,4 +287,7 @@ internal sealed class WorldConnectionRegistry
 
     public void Remove(Guid worldId, string connectionId) =>
         _connectionIdsByWorldId.TryRemove(new KeyValuePair<Guid, string>(worldId, connectionId));
+
+    public bool TryGetConnectionId(Guid worldId, out string? connectionId) =>
+        _connectionIdsByWorldId.TryGetValue(worldId, out connectionId);
 }

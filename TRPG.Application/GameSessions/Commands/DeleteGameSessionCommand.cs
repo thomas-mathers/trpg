@@ -23,9 +23,6 @@ internal class DeleteGameSessionCommandHandler(TrpgDbContext context)
             .ChatMessages.Where(m => m.SessionId == command.SessionId)
             .ExecuteDeleteAsync(cancellationToken);
         await context
-            .Combatants.Where(c => c.SessionId == command.SessionId)
-            .ExecuteDeleteAsync(cancellationToken);
-        await context
             .GameSessions.Where(s => s.Id == command.SessionId)
             .ExecuteDeleteAsync(cancellationToken);
 

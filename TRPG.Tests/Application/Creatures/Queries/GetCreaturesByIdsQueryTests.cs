@@ -53,7 +53,7 @@ public sealed class GetCreaturesByIdsQueryTests(DatabaseFixture db) : IAsyncLife
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Contains(result, c => c.Id == _creatureA.Id);
-        Assert.Contains(result, c => c.Id == _creatureB.Id);
+        Assert.True(result.ContainsKey(_creatureA.Id));
+        Assert.True(result.ContainsKey(_creatureB.Id));
     }
 }

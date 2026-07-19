@@ -1,14 +1,14 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
+using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Commands;
 
-internal class StartCombatCommand
+internal class StartFightCommand
 {
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
@@ -16,16 +16,14 @@ internal class StartCombatCommand
     public required string TargetName { get; init; }
 }
 
-internal class StartCombatCommandHandler(
+internal class StartFightCommandHandler(
+    TrpgDbContext context,
     GetCreatureByIdQueryHandler getCreatureById,
-    GetCreaturesByIdsQueryHandler getCreaturesByIds,
     GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
     GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
     GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
     GetCreatureAbilitiesQueryHandler getCreatureAbilities,
-    GetPlaytimeQueryHandler getPlaytime,
     ApplyPassiveRegenCommandHandler applyPassiveRegen,
-    SetCombatantsCommandHandler setCombatants,
     AbilityDefinitions abilityDefinitions
 )
 {
@@ -33,7 +31,7 @@ internal class StartCombatCommandHandler(
         Enum.GetValues<CreatureType>().Except(CreatureTypes.Humanoid).ToArray();
 
     public async Task<IReadOnlyList<Combatant>> Handle(
-        StartCombatCommand command,
+        StartFightCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -72,53 +70,45 @@ internal class StartCombatCommandHandler(
 
         var enemyIds = nearby.Select(summary => summary.Id).ToArray();
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-        await applyPassiveRegen.Handle(
+        var regeneratedCreatures = await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand
             {
+                SessionId = command.SessionId,
                 CreatureIds = [player.Id, .. enemyIds],
-                Playtime = playtime,
             },
             cancellationToken
         );
 
-        player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = command.PlayerId },
-            cancellationToken
-        );
-
         var playerCombatant = await BuildPlayerCombatant(
-            player!,
+            regeneratedCreatures[player.Id],
             command.WorldId,
             cancellationToken
         );
 
-        var enemyCreatures = await getCreaturesByIds.Handle(
-            new GetCreaturesByIdsQuery { Ids = enemyIds },
-            cancellationToken
-        );
-        var enemyCombatants = enemyCreatures
-            .Select(enemyCreature =>
+        var enemyCombatants = enemyIds
+            .Select(enemyId =>
                 Combatant.FromCreature(
-                    enemyCreature,
+                    regeneratedCreatures[enemyId],
                     [],
                     abilityDefinitions.BasicAttack,
                     isPlayer: false,
                     [],
-                    []
+                    new Dictionary<WeaponType, int>()
                 )
             )
             .ToList();
 
         var combatants = new[] { playerCombatant }.Concat(enemyCombatants).ToArray();
 
-        await setCombatants.Handle(
-            new SetCombatantsCommand { SessionId = command.SessionId, Combatants = combatants },
-            cancellationToken
+        context.Fights.Add(
+            new Fight
+            {
+                WorldId = command.WorldId,
+                CombatantIds = combatants.Select(c => c.CreatureId).ToList(),
+                StartedAt = DateTime.UtcNow,
+            }
         );
+        await context.SaveChangesAsync(cancellationToken);
 
         return combatants;
     }
@@ -158,7 +148,7 @@ internal class StartCombatCommandHandler(
             abilityDefinitions.BasicAttack,
             isPlayer: true,
             equipped,
-            weaponProficiencies.ToDictionary()
+            weaponProficiencies
         );
     }
 }

@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts.Combat.Responses;
@@ -12,7 +13,7 @@ using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 
-internal sealed class Game(GameServerClient client)
+internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 {
     private enum MenuOptions
     {
@@ -23,7 +24,7 @@ internal sealed class Game(GameServerClient client)
     }
 
     internal SceneSnapshot? CurrentScene { get; private set; }
-    internal CombatSnapshot? CurrentCombat { get; private set; }
+    internal FightState? FightState { get; private set; }
 
     private bool _exitRequested;
 
@@ -68,6 +69,7 @@ internal sealed class Game(GameServerClient client)
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "[game] unhandled exception in menu option {Option}", option);
                 AnsiConsole.WriteLine();
                 AnsiConsole.WriteException(ex);
                 AnsiConsole.WriteLine();
@@ -354,9 +356,9 @@ internal sealed class Game(GameServerClient client)
         );
 
         hubConnection.On<SceneSnapshot>("Scene", scene => CurrentScene = scene);
-        hubConnection.On<CombatSnapshot>(
-            "CombatTurnStatus",
-            combat => CurrentCombat = combat.Combatants.Count > 0 ? combat : null
+        hubConnection.On<FightState>(
+            "FightState",
+            state => FightState = state.Combatants.Count > 0 ? state : null
         );
         hubConnection.Reconnecting += _ =>
         {
@@ -383,7 +385,7 @@ internal sealed class Game(GameServerClient client)
             return;
         }
 
-        AnsiConsole.RenderCombatStatus(CurrentCombat);
+        AnsiConsole.RenderCombatStatus(FightState);
         PrintStatus();
 
         var commands = BuildCommands(hubConnection);
@@ -411,7 +413,7 @@ internal sealed class Game(GameServerClient client)
                 )
             )
             {
-                AnsiConsole.RenderCombatStatus(CurrentCombat);
+                AnsiConsole.RenderCombatStatus(FightState);
                 PrintStatus();
             }
         }
@@ -540,7 +542,7 @@ internal sealed class Game(GameServerClient client)
             )
         )
         {
-            AnsiConsole.RenderCombatStatus(CurrentCombat);
+            AnsiConsole.RenderCombatStatus(FightState);
             PrintStatus();
         }
     }
@@ -737,9 +739,13 @@ internal sealed class Game(GameServerClient client)
             ["Profession", AnsiConsole.FormatNeutralChip(status.Profession)],
             ["Level", status.Level.ToString()],
             ["Age", status.Age.ToString()],
-            ["State", AnsiConsole.FormatStateChip(status.State)],
             ["Gold", status.Gold.ToString()],
         ];
+
+        if (status.State is { } state)
+        {
+            rows.Add(["State", AnsiConsole.FormatStateChip(state)]);
+        }
 
         if (status.Reputation is int reputation)
         {
@@ -775,7 +781,7 @@ internal sealed class Game(GameServerClient client)
         AnsiConsole.AnnounceWarning($"[[{status.EscapeMarkup()}]]");
     }
 
-    private static async Task<bool> TryStreamTurn(IAsyncEnumerable<string> tokens)
+    private async Task<bool> TryStreamTurn(IAsyncEnumerable<string> tokens)
     {
         try
         {
@@ -788,6 +794,7 @@ internal sealed class Game(GameServerClient client)
         }
         catch (Exception ex) when (ex is HubException or IOException)
         {
+            logger.LogError(ex, "[game] turn failed while streaming");
             AnsiConsole.AnnounceError($"[[Turn failed: {ex.Message.EscapeMarkup()}]]");
             return false;
         }

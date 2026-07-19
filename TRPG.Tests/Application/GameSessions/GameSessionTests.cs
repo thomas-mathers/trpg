@@ -1,6 +1,5 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
-using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Exceptions;
 using TRPG.Application.GameSessions.Queries;
@@ -134,6 +133,34 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(TimeSpan.FromHours(1), updated.Playtime);
+    }
+
+    [Fact]
+    public async Task UpdateGameSession_DoesNothing_WhenNoFieldsAreSet()
+    {
+        // Arrange
+        var sessionId = await _createGameSession.Handle(
+            new CreateGameSessionCommand
+            {
+                WorldId = _worldId,
+                PlayerId = _playerId,
+                Playtime = TimeSpan.FromHours(2),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _updateGameSession.Handle(
+            new UpdateGameSessionCommand { SessionId = sessionId },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = await _getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = sessionId },
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(TimeSpan.FromHours(2), updated.Playtime);
     }
 
     [Fact]

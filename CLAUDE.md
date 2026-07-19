@@ -2,7 +2,7 @@
 
 ## Language & Framework
 
-- C# .NET 9, EF Core 9.0.4, Npgsql 9.0.4
+- C# .NET 10, EF Core 10.0.9, Npgsql 10.0.2
 - PostgreSQL via Testcontainers in tests
 - xUnit for integration tests — no unit tests, no mocking, except HTTP endpoint tests (see Integration Tests § Endpoint Tests) which mock the Ollama client deliberately
 - `TRPG` is an ASP.NET Core minimal API host; `TRPG.Client` is a separate thin console client talking to it over HTTP; `TRPG.Contracts` holds the shared request/response DTOs both reference
@@ -110,7 +110,8 @@
 ### Command input shape
 - A command class takes scalar ids/values, not a full domain entity — the one exception is a pure creation command (`Add*Command`) that only ever calls `.Add()`, since there's no pre-existing tracked row for a brand-new entity to conflict with
 - Never accept a full entity as a command property and call `.Update()` on it — the entity's tracking state depends entirely on how the caller happened to fetch it, and a second tracked copy of the same row anywhere else in the same `DbContext` throws "another instance with the same key value is already being tracked"; use `ExecuteUpdateAsync` with named `SetProperty` calls instead
-- For a command that may only partially update a row, use `Optional<T>` (`TRPG.Application/Common/Optional.cs`) for any field that's already nullable in the domain — a plain `T?` can't distinguish "leave this alone" from "set it to null". A field that's never legitimately null (e.g. an enum status) can stay a plain `T?` on the command and null-coalesce against the row's current value in the same `SetProperty` call
+- For a command that may only partially update a row, use `Optional<T>` (`TRPG.Application/Common/Optional.cs`) for any field that's already nullable in the domain — a plain `T?` can't distinguish "leave this alone" from "set it to null". A field that's never legitimately null (e.g. an enum status) can stay a plain `T?` on the command
+- Build the `ExecuteUpdateAsync` call as a block-bodied lambda (EF Core 10+) and only call `s.SetProperty(...)` for fields the command actually set — `if (command.State != null) { s.SetProperty(c => c.State, command.State.Value); }`, `if (command.CityId.IsSet) { s.SetProperty(c => c.CityId, command.CityId.Value); }` — rather than the old pattern of unconditionally chaining every `SetProperty` and null-coalescing against the row's own current value (`c => command.State ?? c.State`); the old pattern always wrote every column, whether the caller set that field or not. `ExecuteUpdateAsync` throws if the lambda ends up calling `SetProperty` zero times, so guard the call (or return early) when every optional field on the command is unset
 - A command that can act on more than one row takes a pluralized `IReadOnlyCollection<Guid> XIds` and applies the same field values to all of them in one `ExecuteUpdateAsync` call — matches the `GetXsByIdsQuery` batch-read naming convention rather than looping a singular command
 
 ### World scoping

@@ -106,7 +106,7 @@ public class CombatEngineTests
             BasicAttack,
             isPlayer,
             inventory,
-            []
+            new Dictionary<WeaponType, int>()
         );
     }
 

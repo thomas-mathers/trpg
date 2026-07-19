@@ -1,5 +1,6 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
+using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Combat;
@@ -16,7 +17,14 @@ public class CombatantTests
         var creature = Builders.MakeCreature(_worldId);
 
         // Act
-        var combatant = Combatant.FromCreature(creature, [], BasicAttack, isPlayer: true, [], []);
+        var combatant = Combatant.FromCreature(
+            creature,
+            [],
+            BasicAttack,
+            isPlayer: true,
+            [],
+            new Dictionary<WeaponType, int>()
+        );
 
         // Assert
         Assert.Empty(combatant.ActiveBuffs);
@@ -29,7 +37,14 @@ public class CombatantTests
         var creature = Builders.MakeCreature(_worldId);
 
         // Act
-        var combatant = Combatant.FromCreature(creature, [], BasicAttack, isPlayer: false, [], []);
+        var combatant = Combatant.FromCreature(
+            creature,
+            [],
+            BasicAttack,
+            isPlayer: false,
+            [],
+            new Dictionary<WeaponType, int>()
+        );
 
         // Assert
         Assert.Equal(BasicAttack.Name, combatant.Abilities[0].Name);

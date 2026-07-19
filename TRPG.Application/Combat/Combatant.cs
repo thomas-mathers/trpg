@@ -1,6 +1,7 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
+using PersistedCombat = TRPG.Data.Models;
 
 namespace TRPG.Application.Combat;
 
@@ -62,7 +63,7 @@ public class Combatant
         AttackAbility basicAttack,
         bool isPlayer,
         IReadOnlyList<Item> inventory,
-        Dictionary<WeaponType, int> weaponProficiencies
+        IReadOnlyDictionary<WeaponType, int> weaponProficiencies
     )
     {
         var allAbilities = new[] { basicAttack }.Concat(abilities).ToArray();
@@ -81,23 +82,98 @@ public class Combatant
             Attributes = creature.Attributes,
             Abilities = allAbilities,
             Gold = creature.Gold,
-            CurrentHp = Math.Clamp(creature.CurrentHp, 1, startingAttributes.MaximumHp),
+            CurrentHp = Math.Clamp(creature.CurrentHp, 0, startingAttributes.MaximumHp),
             CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
             CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),
             Inventory = inventory,
             WeaponProficiencies = Enum.GetValues<WeaponType>()
                 .ToDictionary(type => type, type => weaponProficiencies.GetValueOrDefault(type)),
             ActiveConditions = Enum.GetValues<ConditionType>()
-                .ToDictionary(condition => condition, _ => 0),
-            CooldownRemainingByAbility = allAbilities.ToDictionary(ability => ability.Name, _ => 0),
+                .ToDictionary(
+                    condition => condition,
+                    condition =>
+                        creature.ActiveConditions.GetValueOrDefault(condition.ToString(), 0)
+                ),
+            CooldownRemainingByAbility = allAbilities.ToDictionary(
+                ability => ability.Name,
+                ability => creature.CooldownRemainingByAbility.GetValueOrDefault(ability.Name, 0)
+            ),
+            ActiveDots = creature
+                .ActiveDots.Select(d => new ActiveDot
+                {
+                    AbilityName = d.AbilityName,
+                    Amount = d.Amount,
+                    DamageType = Enum.Parse<DamageType>(d.DamageType),
+                    RemainingTurns = d.RemainingTurns,
+                })
+                .ToList(),
+            ActiveHots = creature
+                .ActiveHots.Select(h => new ActiveHot
+                {
+                    AbilityName = h.AbilityName,
+                    Amount = h.Amount,
+                    RemainingTurns = h.RemainingTurns,
+                })
+                .ToList(),
+            ActiveBuffs = creature
+                .ActiveBuffs.Select(b => new ActiveBuff
+                {
+                    Amount = b.Amount,
+                    Attribute = Enum.Parse<AttributeName>(b.Attribute),
+                    RemainingTurns = b.RemainingTurns,
+                    AmountType = Enum.Parse<AmountType>(b.AmountType),
+                })
+                .ToList(),
         };
 
         return combatant;
     }
 
+    public void ApplyTo(Creature creature)
+    {
+        creature.CurrentHp = CurrentHp;
+        creature.CurrentAp = CurrentAp;
+        creature.CurrentMp = CurrentMp;
+        creature.ActiveConditions = ActiveConditions.ToDictionary(
+            kv => kv.Key.ToString(),
+            kv => kv.Value
+        );
+        creature.CooldownRemainingByAbility = new Dictionary<string, int>(
+            CooldownRemainingByAbility
+        );
+        creature.ActiveDots = ActiveDots
+            .Select(d => new PersistedCombat.ActiveDot
+            {
+                AbilityName = d.AbilityName,
+                Amount = d.Amount,
+                DamageType = d.DamageType.ToString(),
+                RemainingTurns = d.RemainingTurns,
+            })
+            .ToList();
+        creature.ActiveHots = ActiveHots
+            .Select(h => new PersistedCombat.ActiveHot
+            {
+                AbilityName = h.AbilityName,
+                Amount = h.Amount,
+                RemainingTurns = h.RemainingTurns,
+            })
+            .ToList();
+        creature.ActiveBuffs = ActiveBuffs
+            .Select(b => new PersistedCombat.ActiveBuff
+            {
+                Amount = b.Amount,
+                Attribute = b.Attribute.ToString(),
+                RemainingTurns = b.RemainingTurns,
+                AmountType = b.AmountType.ToString(),
+            })
+            .ToList();
+
+        if (!IsAlive)
+        {
+            creature.State = CreatureState.Dead;
+        }
+    }
+
     public float CalculateEffectiveAttribute(AttributeName attribute) =>
         StatFormulas.CalculateEffectiveAttribute(Attributes, ActiveBuffs, Inventory, attribute);
-
-    public Attributes CalculateEffectiveAttributes() =>
-        StatFormulas.CalculateEffectiveAttributes(Attributes, ActiveBuffs, Inventory);
 }

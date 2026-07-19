@@ -1,45 +1,30 @@
+using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data;
 
 namespace TRPG.Application.Combat.Commands;
 
-internal class EndCombatCommand
+internal class EndFightCommand
 {
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required CombatState State { get; init; }
 }
 
-internal class EndCombatCommandHandler(
+internal class EndFightCommandHandler(
     TrpgDbContext context,
-    AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     ApplyCombatRewardsCommandHandler applyCombatRewards,
-    GetPlaytimeQueryHandler getPlaytime,
-    PersistCombatantResourcesCommandHandler persistCombatantResources,
-    ClearCombatantsCommandHandler clearCombatants
+    UpdateCreaturesCommandHandler updateCreatures,
+    GetPlaytimeQueryHandler getPlaytime
 )
 {
-    public async Task Handle(
-        EndCombatCommand command,
-        CancellationToken cancellationToken = default
-    )
+    public async Task Handle(EndFightCommand command, CancellationToken cancellationToken = default)
     {
         var state = command.State;
         var playerId = state.Combatants.Single(c => c.IsPlayer).Id;
 
         await using var transaction = await context.Database.BeginTransactionAsync(
-            cancellationToken
-        );
-
-        await adjustWeaponProficiencies.Handle(
-            new AdjustWeaponProficienciesCommand
-            {
-                WorldId = command.WorldId,
-                CreatureId = playerId,
-                ProficiencyDeltas = state.WeaponSwingCounts,
-            },
             cancellationToken
         );
 
@@ -60,19 +45,27 @@ internal class EndCombatCommandHandler(
             new GetPlaytimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
-        await persistCombatantResources.Handle(
-            new PersistCombatantResourcesCommand
+
+        var survivingCreatureIds = state
+            .Combatants.Where(c => c.IsAlive)
+            .Select(c => c.Id)
+            .ToArray();
+
+        await updateCreatures.Handle(
+            new UpdateCreaturesCommand
             {
-                Combatants = state.Combatants,
-                Playtime = playtime,
+                CreatureIds = survivingCreatureIds,
+                LastRegenPlaytime = playtime,
             },
             cancellationToken
         );
 
-        await clearCombatants.Handle(
-            new ClearCombatantsCommand { SessionId = command.SessionId },
-            cancellationToken
-        );
+        await context
+            .Fights.Where(f => f.WorldId == command.WorldId && f.CompletedAt == null)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(f => f.CompletedAt, DateTime.UtcNow),
+                cancellationToken
+            );
 
         await transaction.CommitAsync(cancellationToken);
     }

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
-using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Exceptions;
 
 namespace TRPG;

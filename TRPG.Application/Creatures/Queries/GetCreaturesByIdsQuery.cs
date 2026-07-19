@@ -11,7 +11,7 @@ internal class GetCreaturesByIdsQuery
 
 internal class GetCreaturesByIdsQueryHandler(TrpgDbContext context)
 {
-    public async Task<IReadOnlyList<Creature>> Handle(
+    public async Task<IReadOnlyDictionary<Guid, Creature>> Handle(
         GetCreaturesByIdsQuery query,
         CancellationToken cancellationToken = default
     )
@@ -19,6 +19,6 @@ internal class GetCreaturesByIdsQueryHandler(TrpgDbContext context)
         return await context
             .Creatures.AsNoTracking()
             .Where(c => query.Ids.Contains(c.Id))
-            .ToArrayAsync(cancellationToken);
+            .ToDictionaryAsync(c => c.Id, cancellationToken);
     }
 }

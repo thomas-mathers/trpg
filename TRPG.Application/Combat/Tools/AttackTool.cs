@@ -6,16 +6,19 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
+using TRPG.Application.WeaponProficiency.Commands;
 
 namespace TRPG.Application.Combat.Tools;
 
 internal class AttackTool(
     GameTurnContext turnContext,
     GetCombatantsQueryHandler getCombatants,
-    SetCombatantsCommandHandler setCombatants,
-    StartCombatCommandHandler startCombat,
-    EndCombatCommandHandler endCombat,
+    PersistCombatantsCommandHandler persistCombatants,
+    StartFightCommandHandler startFight,
+    EndFightCommandHandler endFight,
+    AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     CombatEngine combatEngine,
+    ICombatStatusPublisher combatStatusPublisher,
     ILogger<AttackTool> logger
 ) : IGameTool
 {
@@ -42,13 +45,17 @@ internal class AttackTool(
         var stopwatch = Stopwatch.StartNew();
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery { SessionId = turnContext.SessionId },
+            new GetCombatantsQuery
+            {
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+            },
             cancellationToken
         );
         if (combatants is not { Count: > 0 })
         {
-            combatants = await startCombat.Handle(
-                new StartCombatCommand
+            combatants = await startFight.Handle(
+                new StartFightCommand
                 {
                     SessionId = turnContext.SessionId,
                     WorldId = turnContext.WorldId,
@@ -61,10 +68,28 @@ internal class AttackTool(
 
         var state = combatEngine.ProcessRound(combatants!, abilityName, targetName);
 
+        await persistCombatants.Handle(
+            new PersistCombatantsCommand { Combatants = combatants! },
+            cancellationToken
+        );
+
+        if (state.WeaponSwingCounts.Count > 0)
+        {
+            await adjustWeaponProficiencies.Handle(
+                new AdjustWeaponProficienciesCommand
+                {
+                    WorldId = turnContext.WorldId,
+                    CreatureId = turnContext.PlayerId,
+                    ProficiencyDeltas = state.WeaponSwingCounts,
+                },
+                cancellationToken
+            );
+        }
+
         if (state.Outcome is CombatOutcome.Victory or CombatOutcome.Defeat or CombatOutcome.Fled)
         {
-            await endCombat.Handle(
-                new EndCombatCommand
+            await endFight.Handle(
+                new EndFightCommand
                 {
                     SessionId = turnContext.SessionId,
                     WorldId = turnContext.WorldId,
@@ -73,19 +98,12 @@ internal class AttackTool(
                 cancellationToken
             );
         }
-        else
-        {
-            await setCombatants.Handle(
-                new SetCombatantsCommand
-                {
-                    SessionId = turnContext.SessionId,
-                    Combatants = combatants!,
-                },
-                cancellationToken
-            );
-        }
 
-        turnContext.DidCombatOccurThisTurn = true;
+        await combatStatusPublisher.PublishCombatStatus(
+            turnContext.WorldId,
+            state.Outcome == CombatOutcome.Ongoing ? combatants! : [],
+            cancellationToken
+        );
 
         var result = state.ToCombatResult();
 

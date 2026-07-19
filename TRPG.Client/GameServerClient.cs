@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using TRPG.Contracts;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Jobs.Responses;
@@ -8,7 +10,7 @@ using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 
-internal sealed class GameServerClient(HttpClient httpClient)
+internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory loggerFactory)
 {
     public async Task<Guid> CreateWorld(
         CreateWorldRequest request,
@@ -87,7 +89,9 @@ internal sealed class GameServerClient(HttpClient httpClient)
             Query = $"sessionId={result!.SessionId}",
         }.Uri;
 
-        var connection = new HubConnectionBuilder().WithUrl(uri).WithAutomaticReconnect().Build();
+        var builder = new HubConnectionBuilder().WithUrl(uri).WithAutomaticReconnect();
+        builder.Services.AddSingleton(loggerFactory);
+        var connection = builder.Build();
         await connection.StartAsync(cancellationToken);
 
         return connection;

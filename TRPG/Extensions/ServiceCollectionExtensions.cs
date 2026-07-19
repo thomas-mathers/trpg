@@ -9,11 +9,13 @@ using OllamaSharp;
 using TickerQ.DependencyInjection;
 using TickerQ.EntityFrameworkCore.DependencyInjection;
 using TickerQ.Utilities.Enums;
+using TRPG.Application.Combat;
 using TRPG.Application.Common;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Combat;
 using TRPG.Configuration;
 using TRPG.Data;
 using TRPG.GameSessions.ChatClients;
@@ -90,7 +92,8 @@ internal static class ServiceCollectionExtensions
     {
         return serviceCollection
             .AddScoped<GameTurnContext>()
-            .AddSingleton<WorldConnectionRegistry>();
+            .AddSingleton<WorldConnectionRegistry>()
+            .AddSingleton<ICombatStatusPublisher, CombatStatusPublisher>();
     }
 
     public static IServiceCollection AddTrpgJobs(

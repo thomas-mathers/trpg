@@ -7,5 +7,4 @@ public class GameTurnContext
     public Guid PlayerId { get; set; }
     public bool DidMoveThisTurn { get; set; }
     public bool DidSceneRefreshThisTurn { get; set; }
-    public bool DidCombatOccurThisTurn { get; set; }
 }

@@ -4,7 +4,6 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -12,25 +11,24 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Combat.Commands;
 
 [Collection("Database")]
-public sealed class EndCombatCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private EndCombatCommandHandler _handler = null!;
-    private Guid _sessionId;
+    private EndFightCommandHandler _handler = null!;
     private Guid _worldId;
+    private Guid _sessionId;
     private Creature _player = null!;
     private Creature _enemy = null!;
+    private GameSession _session = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new EndCombatCommandHandler(
+        _handler = new EndFightCommandHandler(
             _context,
-            new AdjustWeaponProficienciesCommandHandler(_context),
             new ApplyCombatRewardsCommandHandler(_context),
-            new GetPlaytimeQueryHandler(_context, NullLogger<GetPlaytimeQueryHandler>.Instance),
-            new PersistCombatantResourcesCommandHandler(_context),
-            new ClearCombatantsCommandHandler(_context)
+            new UpdateCreaturesCommandHandler(_context),
+            new GetPlaytimeQueryHandler(_context, NullLogger<GetPlaytimeQueryHandler>.Instance)
         );
 
         _worldId = Guid.NewGuid();
@@ -39,16 +37,14 @@ public sealed class EndCombatCommandTests(DatabaseFixture db) : IAsyncLifetime
         _context.Creatures.Add(_player);
         _context.Creatures.Add(_enemy);
 
-        _sessionId = Guid.NewGuid();
-        _context.GameSessions.Add(
-            new GameSession
-            {
-                Id = _sessionId,
-                WorldId = _worldId,
-                PlayerId = _player.Id,
-                Playtime = TimeSpan.FromHours(2),
-            }
-        );
+        _session = new GameSession
+        {
+            WorldId = _worldId,
+            PlayerId = _player.Id,
+            Playtime = TimeSpan.FromHours(1),
+        };
+        _context.GameSessions.Add(_session);
+        _sessionId = _session.Id;
 
         await _context.SaveChangesAsync();
     }
@@ -58,12 +54,20 @@ public sealed class EndCombatCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _context.DisposeAsync();
     }
 
-    private CombatantState MakeCombatantState(
-        Guid id,
-        bool isPlayer,
-        int currentHp,
-        bool isAlive
-    ) =>
+    private async Task<Fight> SeedActiveFight()
+    {
+        var fight = new Fight
+        {
+            WorldId = _worldId,
+            CombatantIds = [_player.Id, _enemy.Id],
+            StartedAt = DateTime.UtcNow,
+        };
+        _context.Fights.Add(fight);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return fight;
+    }
+
+    private CombatantState MakeCombatantState(Guid id, bool isPlayer, int currentHp, bool isAlive) =>
         new(
             Id: id,
             Name: isPlayer ? _player.Name : _enemy.Name,
@@ -78,53 +82,10 @@ public sealed class EndCombatCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
 
     [Fact]
-    public async Task Handle_PersistsPlayerDeadAtZeroHp_OnDefeat()
+    public async Task Handle_GrantsRewards_OnVictory()
     {
         // Arrange
-        var state = new CombatState(
-            Outcome: CombatOutcome.Defeat,
-            Combatants:
-            [
-                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 0, isAlive: false),
-                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 20, isAlive: true),
-            ],
-            Events: [],
-            XpGained: null,
-            GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>()
-        );
-
-        // Act
-        await _handler.Handle(
-            new EndCombatCommand
-            {
-                SessionId = _sessionId,
-                WorldId = _worldId,
-                State = state,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var player = await verifyContext.Creatures.FindAsync(
-            [_player.Id],
-            TestContext.Current.CancellationToken
-        );
-        var enemy = await verifyContext.Creatures.FindAsync(
-            [_enemy.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(0, player!.CurrentHp);
-        Assert.Equal(CreatureState.Dead, player.State);
-        Assert.Equal(20, enemy!.CurrentHp);
-        Assert.NotEqual(CreatureState.Dead, enemy.State);
-    }
-
-    [Fact]
-    public async Task Handle_MarksEnemyDead_OnVictory()
-    {
-        // Arrange
+        await SeedActiveFight();
         var state = new CombatState(
             Outcome: CombatOutcome.Victory,
             Combatants:
@@ -140,7 +101,7 @@ public sealed class EndCombatCommandTests(DatabaseFixture db) : IAsyncLifetime
 
         // Act
         await _handler.Handle(
-            new EndCombatCommand
+            new EndFightCommand
             {
                 SessionId = _sessionId,
                 WorldId = _worldId,
@@ -155,21 +116,54 @@ public sealed class EndCombatCommandTests(DatabaseFixture db) : IAsyncLifetime
             [_player.Id],
             TestContext.Current.CancellationToken
         );
-        var enemy = await verifyContext.Creatures.FindAsync(
-            [_enemy.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(35, player!.CurrentHp);
-        Assert.Equal(100, player.Experience);
+        Assert.Equal(100, player!.Experience);
         Assert.Equal(50, player.Gold);
-        Assert.Equal(0, enemy!.CurrentHp);
-        Assert.Equal(CreatureState.Dead, enemy.State);
     }
 
     [Fact]
-    public async Task Handle_MarksPartiallyKilledEnemyDead_OnFlee()
+    public async Task Handle_DoesNotGrantRewards_OnDefeat()
     {
-        // Arrange — the player killed the enemy before fleeing
+        // Arrange
+        await SeedActiveFight();
+        var state = new CombatState(
+            Outcome: CombatOutcome.Defeat,
+            Combatants:
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 0, isAlive: false),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 20, isAlive: true),
+            ],
+            Events: [],
+            XpGained: null,
+            GoldLooted: null,
+            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+        );
+
+        // Act
+        await _handler.Handle(
+            new EndFightCommand
+            {
+                SessionId = _sessionId,
+                WorldId = _worldId,
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(0, player!.Experience);
+        Assert.Equal(0, player.Gold);
+    }
+
+    [Fact]
+    public async Task Handle_MarksActiveFightCompleted()
+    {
+        // Arrange
+        var fight = await SeedActiveFight();
         var state = new CombatState(
             Outcome: CombatOutcome.Fled,
             Combatants:
@@ -185,7 +179,47 @@ public sealed class EndCombatCommandTests(DatabaseFixture db) : IAsyncLifetime
 
         // Act
         await _handler.Handle(
-            new EndCombatCommand
+            new EndFightCommand
+            {
+                SessionId = _sessionId,
+                WorldId = _worldId,
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedFight = await verifyContext.Fights.FindAsync(
+            [fight.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(updatedFight!.CompletedAt);
+    }
+
+    [Fact]
+    public async Task Handle_AdvancesLastRegenPlaytime_ForSurvivingCombatants()
+    {
+        // Arrange — the player survives, the enemy doesn't
+        await SeedActiveFight();
+        _session.Playtime = TimeSpan.FromHours(3);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var state = new CombatState(
+            Outcome: CombatOutcome.Victory,
+            Combatants:
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
+            ],
+            Events: [],
+            XpGained: 100,
+            GoldLooted: 50,
+            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+        );
+
+        // Act
+        await _handler.Handle(
+            new EndFightCommand
             {
                 SessionId = _sessionId,
                 WorldId = _worldId,
@@ -204,7 +238,7 @@ public sealed class EndCombatCommandTests(DatabaseFixture db) : IAsyncLifetime
             [_enemy.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(12, player!.CurrentHp);
-        Assert.Equal(CreatureState.Dead, enemy!.State);
+        Assert.Equal(TimeSpan.FromHours(3), player!.LastRegenPlaytime);
+        Assert.Equal(TimeSpan.Zero, enemy!.LastRegenPlaytime);
     }
 }

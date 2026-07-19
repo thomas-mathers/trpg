@@ -37,7 +37,7 @@ public class DamageCalculatorTests
             BasicAttack,
             isPlayer: true,
             inventory ?? [],
-            []
+            new Dictionary<WeaponType, int>()
         );
     }
 

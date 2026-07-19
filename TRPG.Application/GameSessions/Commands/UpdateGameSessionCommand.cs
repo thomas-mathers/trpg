@@ -22,19 +22,29 @@ internal class UpdateGameSessionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        if (command.Playtime == null && command.OpenConversationCreatureIdsByName == null)
+        {
+            return;
+        }
+
         var stopwatch = Stopwatch.StartNew();
         await context
             .GameSessions.Where(s => s.Id == command.SessionId)
             .ExecuteUpdateAsync(
                 setters =>
-                    setters
-                        .SetProperty(s => s.Playtime, s => command.Playtime ?? s.Playtime)
-                        .SetProperty(
+                {
+                    if (command.Playtime != null)
+                    {
+                        setters.SetProperty(s => s.Playtime, command.Playtime.Value);
+                    }
+                    if (command.OpenConversationCreatureIdsByName != null)
+                    {
+                        setters.SetProperty(
                             s => s.OpenConversationCreatureIdsByName,
-                            s =>
-                                command.OpenConversationCreatureIdsByName
-                                ?? s.OpenConversationCreatureIdsByName
-                        ),
+                            command.OpenConversationCreatureIdsByName
+                        );
+                    }
+                },
                 cancellationToken
             );
 

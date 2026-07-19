@@ -243,7 +243,14 @@ public class HitCalculatorTests
             BlockChance = 1.0f,
         };
         var creature = Builders.MakeCreature(_worldId);
-        var defender = Combatant.FromCreature(creature, [], BasicAttack, true, [shield], []);
+        var defender = Combatant.FromCreature(
+            creature,
+            [],
+            BasicAttack,
+            true,
+            [shield],
+            new Dictionary<WeaponType, int>()
+        );
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -272,7 +279,7 @@ public class HitCalculatorTests
             BasicAttack,
             true,
             [blockingShield],
-            []
+            new Dictionary<WeaponType, int>()
         );
         var unshieldedDefender = MakeCombatant();
         var calculator = new HitCalculator(Settings);

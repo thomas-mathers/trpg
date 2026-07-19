@@ -113,7 +113,10 @@ public static class AnsiConsoleExtensions
 
         public static string FormatStateChip(string value) => FormatChip(value, StateChipColors);
 
-        private static string FormatChip(string value, IReadOnlyDictionary<string, string> colorsByValue)
+        private static string FormatChip(
+            string value,
+            IReadOnlyDictionary<string, string> colorsByValue
+        )
         {
             var color = colorsByValue.GetValueOrDefault(value, "grey70");
             return $"[{color} on grey19] {value.EscapeMarkup()} [/]";
@@ -131,7 +134,7 @@ public static class AnsiConsoleExtensions
         public static string FormatHotChip(string label, int remainingTurns) =>
             $"[green on grey19] {label.EscapeMarkup()} · {remainingTurns}t [/]";
 
-        public static void RenderCombatStatus(CombatSnapshot? combat)
+        public static void RenderCombatStatus(FightState? combat)
         {
             if (combat == null)
             {
@@ -149,7 +152,7 @@ public static class AnsiConsoleExtensions
             );
         }
 
-        private static Panel BuildCombatantPanel(CombatantStatusSnapshot combatant)
+        private static Panel BuildCombatantPanel(CombatantState combatant)
         {
             var hpColor = HealthColor(combatant.CurrentHp, combatant.MaximumHp);
             var nameColor = combatant.IsPlayer ? "dodgerblue1" : "red";
@@ -171,10 +174,14 @@ public static class AnsiConsoleExtensions
                 lines.Add(string.Join(" ", effectChips));
             }
 
-            return new Panel(string.Join("\n", lines)) { Border = BoxBorder.Rounded, Expand = false };
+            return new Panel(string.Join("\n", lines))
+            {
+                Border = BoxBorder.Rounded,
+                Expand = false,
+            };
         }
 
-        private static List<string> BuildEffectChips(CombatantStatusSnapshot combatant)
+        private static List<string> BuildEffectChips(CombatantState combatant)
         {
             var chips = new List<string>();
 
@@ -212,7 +219,7 @@ public static class AnsiConsoleExtensions
             return chips;
         }
 
-        private static string FormatBuffAmount(ActiveBuffStatus buff)
+        private static string FormatBuffAmount(ActiveBuff buff)
         {
             var magnitude = buff.AmountType.Equals("Percent", StringComparison.OrdinalIgnoreCase)
                 ? $"{buff.Amount:0.#}%"

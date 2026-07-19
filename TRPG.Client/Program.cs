@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Microsoft.Extensions.Logging;
 using TRPG.Client;
 
 var serverOption = new Option<string>("--server")
@@ -20,9 +21,10 @@ rootCommand.SetAction(
         var serverUrl = parseResult.GetValue(serverOption)!;
         var shouldContinue = parseResult.GetValue(continueOption);
 
+        using var loggerFactory = ClientLogging.CreateLoggerFactory();
         using var httpClient = new HttpClient { BaseAddress = new Uri(serverUrl) };
-        var client = new GameServerClient(httpClient);
-        var game = new Game(client);
+        var client = new GameServerClient(httpClient, loggerFactory);
+        var game = new Game(client, loggerFactory.CreateLogger<Game>());
 
         await game.Start(shouldContinue, cancellationToken);
         return 0;

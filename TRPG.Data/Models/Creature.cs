@@ -71,6 +71,29 @@ public enum Profession
     Unemployed,
 }
 
+public class ActiveDot
+{
+    public string AbilityName { get; init; } = "";
+    public int Amount { get; init; }
+    public string DamageType { get; init; } = "";
+    public int RemainingTurns { get; init; }
+}
+
+public class ActiveHot
+{
+    public string AbilityName { get; init; } = "";
+    public int Amount { get; init; }
+    public int RemainingTurns { get; init; }
+}
+
+public class ActiveBuff
+{
+    public float Amount { get; init; }
+    public string Attribute { get; init; } = "";
+    public int RemainingTurns { get; init; }
+    public string AmountType { get; init; } = "";
+}
+
 public class Creature
 {
     public Attributes Attributes { get; set; } = null!;
@@ -95,4 +118,9 @@ public class Creature
     public CreatureState State { get; set; }
     public Guid StateId { get; set; }
     public Guid WorldId { get; init; }
+    public Dictionary<string, int> ActiveConditions { get; set; } = [];
+    public Dictionary<string, int> CooldownRemainingByAbility { get; set; } = [];
+    public List<ActiveDot> ActiveDots { get; set; } = [];
+    public List<ActiveHot> ActiveHots { get; set; } = [];
+    public List<ActiveBuff> ActiveBuffs { get; set; } = [];
 }
