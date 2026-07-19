@@ -3,14 +3,6 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat;
 
-public enum CombatOutcome
-{
-    Ongoing,
-    Victory,
-    Defeat,
-    Fled,
-}
-
 public record CombatantState(
     Guid Id,
     string Name,

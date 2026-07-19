@@ -89,7 +89,7 @@ public record SceneResult(
     SceneRoomInfo? Room,
     ScenePlayerInfo Player,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
-    IReadOnlyCollection<SceneCreatureInfo> NearbyPeople,
+    IReadOnlyCollection<SceneCreatureInfo> NearbyCreatures,
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyDungeons
 );

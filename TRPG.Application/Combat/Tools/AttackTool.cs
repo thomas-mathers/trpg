@@ -7,6 +7,7 @@ using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
 using TRPG.Application.WeaponProficiency.Commands;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Tools;
 
@@ -18,7 +19,6 @@ internal class AttackTool(
     EndFightCommandHandler endFight,
     AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     CombatEngine combatEngine,
-    ICombatStatusPublisher combatStatusPublisher,
     ILogger<AttackTool> logger
 ) : IGameTool
 {
@@ -98,12 +98,6 @@ internal class AttackTool(
                 cancellationToken
             );
         }
-
-        await combatStatusPublisher.PublishCombatStatus(
-            turnContext.WorldId,
-            state.Outcome == CombatOutcome.Ongoing ? combatants! : [],
-            cancellationToken
-        );
 
         var result = state.ToCombatResult();
 

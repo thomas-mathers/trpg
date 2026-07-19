@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TickerQ.DependencyInjection;
 using TRPG;
+using TRPG.Admin.Endpoints;
 using TRPG.Application.Common.Extensions;
 using TRPG.Configuration;
 using TRPG.Contracts;
@@ -75,6 +76,7 @@ _ = Task.Run(async () =>
 app.MapWorldEndpoints();
 app.MapGameSessionEndpoints();
 app.MapJobsEndpoints();
+app.MapAdminEndpoints();
 app.MapHub<ChatHub>("/hubs/chat");
 
 await app.RunAsync();

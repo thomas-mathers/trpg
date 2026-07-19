@@ -1,14 +1,19 @@
+using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TRPG.Contracts;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Jobs.Responses;
+using TRPG.Contracts.Scenes.Responses;
 using TRPG.Contracts.Worlds.Requests;
 using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
+
+internal sealed record SessionConnection(HubConnection Connection, Guid SessionId);
 
 internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory loggerFactory)
 {
@@ -67,7 +72,7 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task<HubConnection> StartSession(
+    public async Task<SessionConnection> StartSession(
         Guid worldId,
         CancellationToken cancellationToken
     )
@@ -94,6 +99,34 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
         var connection = builder.Build();
         await connection.StartAsync(cancellationToken);
 
-        return connection;
+        return new SessionConnection(connection, result.SessionId);
+    }
+
+    public async Task<SceneSnapshot> GetScene(Guid sessionId, CancellationToken cancellationToken)
+    {
+        var result = await httpClient.GetFromJsonAsync<SceneSnapshot>(
+            new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result!;
+    }
+
+    public async Task<FightState?> GetFight(Guid worldId, CancellationToken cancellationToken)
+    {
+        var response = await httpClient.GetAsync(
+            new Uri($"/worlds/{worldId}/fight", UriKind.Relative),
+            cancellationToken
+        );
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<FightState>(
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
     }
 }

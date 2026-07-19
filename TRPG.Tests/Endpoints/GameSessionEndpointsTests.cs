@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts.GameSessions.Responses;
+using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.GameSessions.Requests;
@@ -16,6 +17,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 {
     private HttpClient _client = null!;
     private Guid _worldId;
+    private Creature _player = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -37,6 +39,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _worldId = world.Id;
+        _player = player;
     }
 
     public ValueTask DisposeAsync()
@@ -88,7 +91,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/sessions/{sessionId}/chat", UriKind.Relative),
+            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
             new ChatRequest("look around"),
             TestContext.Current.CancellationToken
         );
@@ -147,7 +150,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/sessions/{sessionId}/chat", UriKind.Relative),
+            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
             new ChatRequest($"I head to {destination.Name}"),
             TestContext.Current.CancellationToken
         );
@@ -169,6 +172,40 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     }
 
     [Fact]
+    public async Task GetScene_ReturnsSceneSnapshot_WhenSessionExists()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+
+        // Act
+        var response = await _client.GetAsync(
+            new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var scene = await response.Content.ReadFromJsonAsync<SceneSnapshot>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(scene);
+        Assert.Equal(_player.Name, scene.PlayerStatus.Name);
+    }
+
+    [Fact]
+    public async Task GetScene_ReturnsNotFound_WhenSessionDoesNotExist()
+    {
+        // Act
+        var response = await _client.GetAsync(
+            new Uri($"/sessions/{Guid.NewGuid()}/scene", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Wait_AdvancesTimeAndReturnsMessage_WhenSessionExists()
     {
         // Arrange
@@ -176,7 +213,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/sessions/{sessionId}/wait", UriKind.Relative),
+            new Uri($"/admin/sessions/{sessionId}/wait", UriKind.Relative),
             new WaitRequest(5),
             TestContext.Current.CancellationToken
         );
@@ -199,7 +236,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.DeleteAsync(
-            new Uri($"/sessions/{sessionId}", UriKind.Relative),
+            new Uri($"/admin/sessions/{sessionId}", UriKind.Relative),
             TestContext.Current.CancellationToken
         );
 
@@ -222,14 +259,14 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         // Arrange
         var sessionId = await StartSession();
         await _client.PostAsJsonAsync(
-            new Uri($"/sessions/{sessionId}/chat", UriKind.Relative),
+            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
             new ChatRequest("look around"),
             TestContext.Current.CancellationToken
         );
 
         // Act
         var response = await _client.DeleteAsync(
-            new Uri($"/sessions/{sessionId}", UriKind.Relative),
+            new Uri($"/admin/sessions/{sessionId}", UriKind.Relative),
             TestContext.Current.CancellationToken
         );
 
@@ -272,7 +309,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     {
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/sessions/{Guid.NewGuid()}/chat", UriKind.Relative),
+            new Uri($"/admin/sessions/{Guid.NewGuid()}/chat", UriKind.Relative),
             new ChatRequest("look around"),
             TestContext.Current.CancellationToken
         );
@@ -286,7 +323,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     {
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/sessions/{Guid.NewGuid()}/wait", UriKind.Relative),
+            new Uri($"/admin/sessions/{Guid.NewGuid()}/wait", UriKind.Relative),
             new WaitRequest(5),
             TestContext.Current.CancellationToken
         );
@@ -303,7 +340,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/sessions/{sessionId}/wait", UriKind.Relative),
+            new Uri($"/admin/sessions/{sessionId}/wait", UriKind.Relative),
             new WaitRequest(0),
             TestContext.Current.CancellationToken
         );
@@ -317,7 +354,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     {
         // Act
         var response = await _client.DeleteAsync(
-            new Uri($"/sessions/{Guid.NewGuid()}", UriKind.Relative),
+            new Uri($"/admin/sessions/{Guid.NewGuid()}", UriKind.Relative),
             TestContext.Current.CancellationToken
         );
 

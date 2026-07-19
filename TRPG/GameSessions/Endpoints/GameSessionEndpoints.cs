@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
+using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.GameSessions.Responses;
-using TRPG.GameSessions.Requests;
-using TRPG.GameSessions.Responses;
+using TRPG.Contracts.Scenes.Responses;
+using TRPG.Data.Models;
 
 namespace TRPG.GameSessions.Endpoints;
 
@@ -15,9 +17,7 @@ internal static class GameSessionEndpoints
     public static void MapGameSessionEndpoints(this WebApplication app)
     {
         app.MapPost("/sessions", StartSession);
-        app.MapPost("/sessions/{sessionId:guid}/chat", SendChat);
-        app.MapPost("/sessions/{sessionId:guid}/wait", Wait);
-        app.MapDelete("/sessions/{sessionId:guid}", EndSession);
+        app.MapGet("/sessions/{sessionId:guid}/scene", GetScene);
     }
 
     private static async Task<IResult> StartSession(
@@ -49,63 +49,117 @@ internal static class GameSessionEndpoints
         return Results.Ok(new CreateSessionResponse(sessionId));
     }
 
-    private static async Task<IResult> SendChat(
+    private static async Task<IResult> GetScene(
         Guid sessionId,
-        ChatRequest request,
-        bool? includeMetrics,
-        HttpContext httpContext,
+        GetGameSessionQueryHandler getGameSession,
+        GetCreatureByIdQueryHandler getCreatureById,
+        GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
         CancellationToken cancellationToken
     )
     {
-        httpContext.RequestServices.GetRequiredService<GameTurnContext>().SessionId = sessionId;
-        var turnRunner = httpContext.RequestServices.GetRequiredService<GameTurnRunner>();
-
-        var metrics = await turnRunner.GetResponseWithMetrics(request.Message, cancellationToken);
-        return Results.Ok(
-            new ChatResponse(metrics.Response, includeMetrics == true ? ToDto(metrics) : null)
+        var session = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = sessionId },
+            cancellationToken
         );
-    }
 
-    private static async Task<IResult> Wait(
-        Guid sessionId,
-        WaitRequest request,
-        AdvanceTimeCommandHandler advanceTime,
-        CancellationToken cancellationToken
-    )
-    {
-        if (request.Hours <= 0)
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = session.PlayerId },
+            cancellationToken
+        );
+        if (player == null)
         {
-            return Results.BadRequest();
+            return Results.NotFound();
         }
 
-        var bankedPlaytime = await advanceTime.Handle(
-            new AdvanceTimeCommand
+        var currentDate = GameClock.GetCurrentInGameDate(session.Playtime);
+        var scene = await getSceneWithCatchUp.Handle(
+            new GetSceneWithCatchUpQuery
             {
-                SessionId = sessionId,
-                Delta = request.Hours * GameClock.RealTimePerInGameHour,
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                RoomId = player.RoomId,
+                DistrictId = player.DistrictId,
+                StateId = player.StateId,
+                CurrentDate = currentDate,
             },
             cancellationToken
         );
 
-        var currentDate = GameClock.GetCurrentInGameDate(bankedPlaytime);
-        var message =
-            $"Time passes... it is now {currentDate.WeekdayName}, hour {currentDate.Hour}.";
-        return Results.Ok(new WaitResponse(message));
+        return Results.Ok(ToSnapshot(scene, player));
     }
 
-    private static async Task<IResult> EndSession(
-        Guid sessionId,
-        EndGameSessionCommandHandler endGameSession,
-        CancellationToken cancellationToken
-    )
+    private static SceneSnapshot ToSnapshot(SceneResult scene, Creature player)
     {
-        await endGameSession.Handle(
-            new EndGameSessionCommand { SessionId = sessionId },
-            cancellationToken
+        var currentDistrict = scene.City?.Districts.FirstOrDefault(d => d.IsCurrent);
+        return new SceneSnapshot(
+            StateName: scene.State?.Name ?? "",
+            CityName: scene.City?.Name,
+            DistrictName: currentDistrict?.Name,
+            BuildingName: scene.Building?.Name,
+            RoomName: scene.Room?.Name,
+            Year: scene.CurrentDate.Year,
+            MonthName: scene.CurrentDate.MonthName,
+            Day: scene.CurrentDate.Day,
+            WeekdayName: scene.CurrentDate.WeekdayName,
+            Hour: scene.CurrentDate.Hour,
+            PlayerStatus: new CreatureStatusSnapshot(
+                Name: player.Name,
+                CreatureType: player.CreatureType.ToString(),
+                Gender: player.Gender.ToString(),
+                Profession: player.Profession?.ToString() ?? "",
+                Level: player.Level,
+                Age: scene.CurrentDate.Year - player.BirthYear,
+                State: player.State == CreatureState.Dead ? player.State.ToString() : null,
+                Gold: player.Gold,
+                CurrentHp: player.CurrentHp,
+                MaximumHp: player.Attributes.MaximumHp,
+                CurrentAp: player.CurrentAp,
+                MaximumAp: player.Attributes.MaximumAp,
+                CurrentMp: player.CurrentMp,
+                MaximumMp: player.Attributes.MaximumMp,
+                FactionNames: null,
+                Reputation: null
+            ),
+            NearbyCreatures: scene
+                .NearbyCreatures.Select(p => new CreatureStatusSnapshot(
+                    Name: p.Name,
+                    CreatureType: p.CreatureType,
+                    Gender: p.Gender,
+                    Profession: p.Profession,
+                    Level: p.Level,
+                    Age: p.Age,
+                    State: p.State,
+                    Gold: p.Gold,
+                    CurrentHp: p.CurrentHp,
+                    MaximumHp: p.MaximumHp,
+                    CurrentAp: p.CurrentAp,
+                    MaximumAp: p.MaximumAp,
+                    CurrentMp: p.CurrentMp,
+                    MaximumMp: p.MaximumMp,
+                    FactionNames: p.FactionNames,
+                    Reputation: p.Reputation
+                ))
+                .ToArray(),
+            NearbyDistricts: scene
+                .City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type))
+                .ToArray()
+                ?? [],
+            NearbyBuildings: scene
+                .NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
+                .ToArray(),
+            NearbyDungeons: scene
+                .NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
+                .ToArray(),
+            NearbyProps: scene
+                .NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type))
+                .ToArray(),
+            Exits: scene
+                .Room?.Exits.Select(e => new NearbyExitSnapshot(
+                    e.Description,
+                    e.DestinationRoomName
+                ))
+                .ToArray()
+                ?? []
         );
-        return Results.NoContent();
     }
-
-    private static TurnMetricsDto ToDto(TurnMetrics metrics) =>
-        new(metrics.FirstTokenMs, metrics.TotalMs, metrics.TokenCount, metrics.TokensPerSecond);
 }

@@ -25,7 +25,6 @@ internal class GameTurnRunner(
     GameTurnContext turnContext,
     GetGameSessionQueryHandler getGameSession,
     GetOpenConversationsQueryHandler getOpenConversations,
-    GetPlaytimeQueryHandler getPlaytime,
     AdvanceTimeCommandHandler advanceTime,
     UpdateGameSessionCommandHandler updateGameSession,
     GetChatMessagesQueryHandler getChatMessages,
@@ -38,7 +37,6 @@ internal class GameTurnRunner(
 )
 {
     public async IAsyncEnumerable<string> StreamOpeningResponse(
-        TurnStreamResult result,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
@@ -61,12 +59,11 @@ internal class GameTurnRunner(
             yield return token;
         }
 
-        await FinishTurn(inputOrdinal, result, cancellationToken);
+        await FinishTurn(inputOrdinal, cancellationToken);
     }
 
     public async IAsyncEnumerable<string> StreamWaitResponse(
         int hours,
-        TurnStreamResult result,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
@@ -98,7 +95,7 @@ internal class GameTurnRunner(
             yield return token;
         }
 
-        await FinishTurn(inputOrdinal, result, cancellationToken);
+        await FinishTurn(inputOrdinal, cancellationToken);
     }
 
     public async Task<TurnMetrics> GetResponseWithMetrics(
@@ -131,7 +128,7 @@ internal class GameTurnRunner(
 
         var totalMs = stopwatch.ElapsedMilliseconds;
 
-        await FinishTurn(inputOrdinal, new TurnStreamResult(), cancellationToken);
+        await FinishTurn(inputOrdinal, cancellationToken);
 
         return new TurnMetrics(
             buffer.ToString(),
@@ -143,7 +140,6 @@ internal class GameTurnRunner(
 
     public async IAsyncEnumerable<string> StreamResponse(
         string input,
-        TurnStreamResult result,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
@@ -163,13 +159,12 @@ internal class GameTurnRunner(
             yield return token;
         }
 
-        await FinishTurn(inputOrdinal, result, cancellationToken);
+        await FinishTurn(inputOrdinal, cancellationToken);
     }
 
     private async Task BeginTurn(CancellationToken cancellationToken)
     {
         turnContext.DidMoveThisTurn = false;
-        turnContext.DidSceneRefreshThisTurn = false;
 
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = turnContext.SessionId },
@@ -179,11 +174,7 @@ internal class GameTurnRunner(
         turnContext.PlayerId = snapshot.PlayerId;
     }
 
-    private async Task FinishTurn(
-        int currentTurnStart,
-        TurnStreamResult result,
-        CancellationToken cancellationToken
-    )
+    private async Task FinishTurn(int currentTurnStart, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         if (turnContext.DidMoveThisTurn)
@@ -191,12 +182,6 @@ internal class GameTurnRunner(
             await CloseLingeringConversations(currentTurnStart, cancellationToken);
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
-            cancellationToken
-        );
-        result.DidSceneRefreshThisTurn = turnContext.DidSceneRefreshThisTurn;
-        result.CurrentDate = GameClock.GetCurrentInGameDate(playtime);
         logger.LogInformation(
             "[perf] FinishTurn took {ElapsedMs}ms",
             stopwatch.ElapsedMilliseconds

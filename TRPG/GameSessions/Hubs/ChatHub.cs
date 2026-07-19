@@ -6,8 +6,6 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Scenes.Queries;
-using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data.Models;
 
 namespace TRPG.GameSessions.Hubs;
@@ -17,8 +15,7 @@ internal sealed class ChatHub(
     EndGameSessionCommandHandler endGameSession,
     GetGameSessionQueryHandler getGameSession,
     WorldConnectionRegistry worldConnections,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp
+    GetCreatureByIdQueryHandler getCreatureById
 ) : Hub
 {
     private const string SessionIdKey = "SessionId";
@@ -83,12 +80,9 @@ internal sealed class ChatHub(
     {
         var turnContext = ResolveTurnContext();
         var turnRunner = ResolveTurnRunner();
-        var result = new TurnStreamResult();
         return StreamTurn(
-            turnRunner.StreamOpeningResponse(result, cancellationToken),
+            turnRunner.StreamOpeningResponse(cancellationToken),
             turnContext,
-            result,
-            alwaysSendScene: true,
             cancellationToken
         );
     }
@@ -97,12 +91,9 @@ internal sealed class ChatHub(
     {
         var turnContext = ResolveTurnContext();
         var turnRunner = ResolveTurnRunner();
-        var result = new TurnStreamResult();
         return StreamTurn(
-            turnRunner.StreamResponse(message, result, cancellationToken),
+            turnRunner.StreamResponse(message, cancellationToken),
             turnContext,
-            result,
-            alwaysSendScene: false,
             cancellationToken
         );
     }
@@ -111,12 +102,9 @@ internal sealed class ChatHub(
     {
         var turnContext = ResolveTurnContext();
         var turnRunner = ResolveTurnRunner();
-        var result = new TurnStreamResult();
         return StreamTurn(
-            turnRunner.StreamWaitResponse(hours, result, cancellationToken),
+            turnRunner.StreamWaitResponse(hours, cancellationToken),
             turnContext,
-            result,
-            alwaysSendScene: true,
             cancellationToken
         );
     }
@@ -124,8 +112,6 @@ internal sealed class ChatHub(
     private async IAsyncEnumerable<string> StreamTurn(
         IAsyncEnumerable<string> tokens,
         GameTurnContext turnContext,
-        TurnStreamResult result,
-        bool alwaysSendScene,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
@@ -139,44 +125,6 @@ internal sealed class ChatHub(
         {
             yield return token;
         }
-
-        if (alwaysSendScene || result.DidSceneRefreshThisTurn)
-        {
-            var sceneWithPlayer = await GetCurrentScene(
-                turnContext,
-                result.CurrentDate,
-                cancellationToken
-            );
-            var snapshot = ToSnapshot(sceneWithPlayer.Scene, sceneWithPlayer.Player);
-            await Clients.Caller.SendAsync("Scene", snapshot, cancellationToken);
-        }
-    }
-
-    private async Task<SceneWithPlayer> GetCurrentScene(
-        GameTurnContext turnContext,
-        InGameDate currentDate,
-        CancellationToken cancellationToken
-    )
-    {
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
-            cancellationToken
-        );
-
-        var scene = await getSceneWithCatchUp.Handle(
-            new GetSceneWithCatchUpQuery
-            {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-                RoomId = player!.RoomId,
-                DistrictId = player.DistrictId,
-                StateId = player.StateId,
-                CurrentDate = currentDate,
-            },
-            cancellationToken
-        );
-
-        return new SceneWithPlayer(scene, player);
     }
 
     private GameTurnRunner ResolveTurnRunner() =>
@@ -199,84 +147,7 @@ internal sealed class ChatHub(
 
         return sessionId;
     }
-
-    private static SceneSnapshot ToSnapshot(SceneResult scene, Creature player)
-    {
-        var currentDistrict = scene.City?.Districts.FirstOrDefault(d => d.IsCurrent);
-        return new SceneSnapshot(
-            StateName: scene.State?.Name ?? "",
-            CityName: scene.City?.Name,
-            DistrictName: currentDistrict?.Name,
-            BuildingName: scene.Building?.Name,
-            RoomName: scene.Room?.Name,
-            Year: scene.CurrentDate.Year,
-            MonthName: scene.CurrentDate.MonthName,
-            Day: scene.CurrentDate.Day,
-            WeekdayName: scene.CurrentDate.WeekdayName,
-            Hour: scene.CurrentDate.Hour,
-            PlayerStatus: new CreatureStatusSnapshot(
-                Name: player.Name,
-                CreatureType: player.CreatureType.ToString(),
-                Gender: player.Gender.ToString(),
-                Profession: player.Profession?.ToString() ?? "",
-                Level: player.Level,
-                Age: scene.CurrentDate.Year - player.BirthYear,
-                State: player.State == CreatureState.Dead ? player.State.ToString() : null,
-                Gold: player.Gold,
-                CurrentHp: player.CurrentHp,
-                MaximumHp: player.Attributes.MaximumHp,
-                CurrentAp: player.CurrentAp,
-                MaximumAp: player.Attributes.MaximumAp,
-                CurrentMp: player.CurrentMp,
-                MaximumMp: player.Attributes.MaximumMp,
-                FactionNames: null,
-                Reputation: null
-            ),
-            NearbyCreatures: scene
-                .NearbyPeople.Select(p => new CreatureStatusSnapshot(
-                    Name: p.Name,
-                    CreatureType: p.CreatureType,
-                    Gender: p.Gender,
-                    Profession: p.Profession,
-                    Level: p.Level,
-                    Age: p.Age,
-                    State: p.State,
-                    Gold: p.Gold,
-                    CurrentHp: p.CurrentHp,
-                    MaximumHp: p.MaximumHp,
-                    CurrentAp: p.CurrentAp,
-                    MaximumAp: p.MaximumAp,
-                    CurrentMp: p.CurrentMp,
-                    MaximumMp: p.MaximumMp,
-                    FactionNames: p.FactionNames,
-                    Reputation: p.Reputation
-                ))
-                .ToArray(),
-            NearbyDistricts: scene
-                .City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type))
-                .ToArray()
-                ?? [],
-            NearbyBuildings: scene
-                .NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
-                .ToArray(),
-            NearbyDungeons: scene
-                .NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
-                .ToArray(),
-            NearbyProps: scene
-                .NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type))
-                .ToArray(),
-            Exits: scene
-                .Room?.Exits.Select(e => new NearbyExitSnapshot(
-                    e.Description,
-                    e.DestinationRoomName
-                ))
-                .ToArray()
-                ?? []
-        );
-    }
 }
-
-internal sealed record SceneWithPlayer(SceneResult Scene, Creature Player);
 
 internal sealed class WorldConnectionRegistry
 {
@@ -287,7 +158,4 @@ internal sealed class WorldConnectionRegistry
 
     public void Remove(Guid worldId, string connectionId) =>
         _connectionIdsByWorldId.TryRemove(new KeyValuePair<Guid, string>(worldId, connectionId));
-
-    public bool TryGetConnectionId(Guid worldId, out string? connectionId) =>
-        _connectionIdsByWorldId.TryGetValue(worldId, out connectionId);
 }

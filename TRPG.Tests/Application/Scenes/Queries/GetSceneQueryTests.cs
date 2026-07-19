@@ -97,7 +97,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        var nearby = Assert.Single(result.NearbyPeople, p => p.Name == _nearbyCreature.Name);
+        var nearby = Assert.Single(result.NearbyCreatures, p => p.Name == _nearbyCreature.Name);
         Assert.Equal(75, nearby.Age);
     }
 
@@ -181,7 +181,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Assert
         Assert.Equal(12, result.Player.CurrentHp);
         Assert.Equal(_player.Attributes.MaximumHp, result.Player.MaximumHp);
-        var nearby = Assert.Single(result.NearbyPeople, p => p.Name == _nearbyCreature.Name);
+        var nearby = Assert.Single(result.NearbyCreatures, p => p.Name == _nearbyCreature.Name);
         Assert.Equal(7, nearby.CurrentHp);
         Assert.Equal(_nearbyCreature.Attributes.MaximumHp, nearby.MaximumHp);
     }

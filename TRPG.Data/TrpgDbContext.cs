@@ -82,6 +82,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         configurationBuilder.Properties<RelationshipType>().HaveConversion<string>();
         configurationBuilder.Properties<DayOfWeek>().HaveConversion<string>();
         configurationBuilder.Properties<KnowledgeSubjectType>().HaveConversion<string>();
+        configurationBuilder.Properties<CombatOutcome>().HaveConversion<string>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

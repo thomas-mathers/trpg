@@ -17,6 +17,6 @@ internal class GetActiveFightQueryHandler(TrpgDbContext context)
     ) =>
         await context
             .Fights.AsNoTracking()
-            .Where(f => f.WorldId == query.WorldId && f.CompletedAt == null)
+            .Where(f => f.WorldId == query.WorldId && f.Outcome == CombatOutcome.Ongoing)
             .FirstOrDefaultAsync(cancellationToken);
 }

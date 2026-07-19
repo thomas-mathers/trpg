@@ -195,6 +195,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(updatedFight!.CompletedAt);
+        Assert.Equal(CombatOutcome.Fled, updatedFight.Outcome);
     }
 
     [Fact]

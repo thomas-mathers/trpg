@@ -23,9 +23,6 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         Exit,
     }
 
-    internal SceneSnapshot? CurrentScene { get; private set; }
-    internal FightState? FightState { get; private set; }
-
     private bool _exitRequested;
 
     public async Task Start(bool shouldContinue, CancellationToken cancellationToken)
@@ -344,7 +341,9 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
     private async Task ResumeGame(Guid worldId, CancellationToken cancellationToken)
     {
         _exitRequested = false;
-        await using var hubConnection = await client.StartSession(worldId, cancellationToken);
+        var session = await client.StartSession(worldId, cancellationToken);
+        await using var hubConnection = session.Connection;
+        var sessionId = session.SessionId;
 
         AnsiConsole.Clear();
         AnsiConsole.Write(
@@ -355,11 +354,6 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 .BorderColor(Color.Gold1)
         );
 
-        hubConnection.On<SceneSnapshot>("Scene", scene => CurrentScene = scene);
-        hubConnection.On<FightState>(
-            "FightState",
-            state => FightState = state.Combatants.Count > 0 ? state : null
-        );
         hubConnection.Reconnecting += _ =>
         {
             OnConnectionStatusChanged("Connection lost, reconnecting...");
@@ -385,10 +379,9 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             return;
         }
 
-        AnsiConsole.RenderCombatStatus(FightState);
-        PrintStatus();
+        await RenderStatus(worldId, sessionId, cancellationToken);
 
-        var commands = BuildCommands(hubConnection);
+        var commands = BuildCommands(hubConnection, worldId, sessionId);
 
         while (!_exitRequested)
         {
@@ -413,13 +406,65 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 )
             )
             {
-                AnsiConsole.RenderCombatStatus(FightState);
-                PrintStatus();
+                await RenderStatus(worldId, sessionId, cancellationToken);
             }
         }
     }
 
-    private Dictionary<string, Command> BuildCommands(HubConnection hubConnection)
+    private async Task RenderStatus(
+        Guid worldId,
+        Guid sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        var fightState = await TryGetFight(worldId, cancellationToken);
+        AnsiConsole.RenderCombatStatus(fightState);
+
+        var scene = await TryGetScene(sessionId, cancellationToken);
+        if (scene != null)
+        {
+            PrintStatus(scene);
+        }
+    }
+
+    private async Task<SceneSnapshot?> TryGetScene(
+        Guid sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await client.GetScene(sessionId, cancellationToken);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(ex, "[game] failed to fetch scene");
+            AnsiConsole.AnnounceError($"[[Failed to fetch scene: {ex.Message.EscapeMarkup()}]]");
+            return null;
+        }
+    }
+
+    private async Task<FightState?> TryGetFight(Guid worldId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await client.GetFight(worldId, cancellationToken);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(ex, "[game] failed to fetch fight status");
+            AnsiConsole.AnnounceError(
+                $"[[Failed to fetch fight status: {ex.Message.EscapeMarkup()}]]"
+            );
+            return null;
+        }
+    }
+
+    private Dictionary<string, Command> BuildCommands(
+        HubConnection hubConnection,
+        Guid worldId,
+        Guid sessionId
+    )
     {
         var hoursArgument = new Argument<int>("hours") { Description = "Number of hours to wait" };
         var waitCommand = new Command("wait", "Pass time without acting") { hoursArgument };
@@ -433,7 +478,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                     return 0;
                 }
 
-                await SendWait(hubConnection, hours, cancellationToken);
+                await SendWait(hubConnection, worldId, sessionId, hours, cancellationToken);
                 return 0;
             }
         );
@@ -450,62 +495,112 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         {
             creatureNameArgument,
         };
-        creaturesCommand.SetAction(parseResult =>
-        {
-            var name = string.Join(' ', parseResult.GetValue(creatureNameArgument) ?? []);
-            if (string.IsNullOrWhiteSpace(name))
+        creaturesCommand.SetAction(
+            async (parseResult, cancellationToken) =>
             {
-                RenderCreatures();
-            }
-            else
-            {
-                RenderCreatureDetail(name);
-            }
+                var name = string.Join(' ', parseResult.GetValue(creatureNameArgument) ?? []);
+                var scene = await TryGetScene(sessionId, cancellationToken);
+                if (scene == null)
+                {
+                    return 0;
+                }
 
-            return 0;
-        });
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    RenderCreatures(scene);
+                }
+                else
+                {
+                    RenderCreatureDetail(scene, name);
+                }
+
+                return 0;
+            }
+        );
 
         var districtsCommand = new Command("districts", "List districts nearby");
-        districtsCommand.SetAction(_ =>
-        {
-            RenderDistricts();
-            return 0;
-        });
+        districtsCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var scene = await TryGetScene(sessionId, cancellationToken);
+                if (scene != null)
+                {
+                    RenderDistricts(scene);
+                }
+
+                return 0;
+            }
+        );
 
         var buildingsCommand = new Command("buildings", "List buildings nearby");
-        buildingsCommand.SetAction(_ =>
-        {
-            RenderBuildings();
-            return 0;
-        });
+        buildingsCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var scene = await TryGetScene(sessionId, cancellationToken);
+                if (scene != null)
+                {
+                    RenderBuildings(scene);
+                }
+
+                return 0;
+            }
+        );
 
         var dungeonsCommand = new Command("dungeons", "List dungeons nearby");
-        dungeonsCommand.SetAction(_ =>
-        {
-            RenderDungeons();
-            return 0;
-        });
+        dungeonsCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var scene = await TryGetScene(sessionId, cancellationToken);
+                if (scene != null)
+                {
+                    RenderDungeons(scene);
+                }
+
+                return 0;
+            }
+        );
 
         var propsCommand = new Command("props", "List props nearby");
-        propsCommand.SetAction(_ =>
-        {
-            RenderProps();
-            return 0;
-        });
+        propsCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var scene = await TryGetScene(sessionId, cancellationToken);
+                if (scene != null)
+                {
+                    RenderProps(scene);
+                }
+
+                return 0;
+            }
+        );
 
         var exitsCommand = new Command("exits", "List exits nearby");
-        exitsCommand.SetAction(_ =>
-        {
-            RenderExits();
-            return 0;
-        });
+        exitsCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var scene = await TryGetScene(sessionId, cancellationToken);
+                if (scene != null)
+                {
+                    RenderExits(scene);
+                }
+
+                return 0;
+            }
+        );
 
         var characterCommand = new Command("character", "Show your own character sheet");
-        characterCommand.SetAction(_ =>
-        {
-            RenderCharacter();
-            return 0;
-        });
+        characterCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var scene = await TryGetScene(sessionId, cancellationToken);
+                if (scene != null)
+                {
+                    RenderCreatureStatus(scene.PlayerStatus);
+                }
+
+                return 0;
+            }
+        );
 
         var exitCommand = new Command("exit", "End the session and return to the menu");
         exitCommand.SetAction(_ =>
@@ -532,6 +627,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
     internal async Task SendWait(
         HubConnection hubConnection,
+        Guid worldId,
+        Guid sessionId,
         int hours,
         CancellationToken cancellationToken
     )
@@ -542,20 +639,12 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             )
         )
         {
-            AnsiConsole.RenderCombatStatus(FightState);
-            PrintStatus();
+            await RenderStatus(worldId, sessionId, cancellationToken);
         }
     }
 
-    private void RenderCreatures()
+    private void RenderCreatures(SceneSnapshot scene)
     {
-        var scene = CurrentScene;
-        if (scene == null)
-        {
-            AnsiConsole.AnnounceWarning("No scene information available yet.");
-            return;
-        }
-
         if (scene.NearbyCreatures.Count == 0)
         {
             AnsiConsole.Announce("Nothing nearby.");
@@ -584,15 +673,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         );
     }
 
-    private void RenderDistricts()
+    private void RenderDistricts(SceneSnapshot scene)
     {
-        var scene = CurrentScene;
-        if (scene == null)
-        {
-            AnsiConsole.AnnounceWarning("No scene information available yet.");
-            return;
-        }
-
         if (scene.NearbyDistricts.Count == 0)
         {
             AnsiConsole.Announce("No districts nearby.");
@@ -607,15 +689,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         );
     }
 
-    private void RenderBuildings()
+    private void RenderBuildings(SceneSnapshot scene)
     {
-        var scene = CurrentScene;
-        if (scene == null)
-        {
-            AnsiConsole.AnnounceWarning("No scene information available yet.");
-            return;
-        }
-
         if (scene.NearbyBuildings.Count == 0)
         {
             AnsiConsole.Announce("No buildings nearby.");
@@ -630,15 +705,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         );
     }
 
-    private void RenderDungeons()
+    private void RenderDungeons(SceneSnapshot scene)
     {
-        var scene = CurrentScene;
-        if (scene == null)
-        {
-            AnsiConsole.AnnounceWarning("No scene information available yet.");
-            return;
-        }
-
         if (scene.NearbyDungeons.Count == 0)
         {
             AnsiConsole.Announce("No dungeons nearby.");
@@ -653,15 +721,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         );
     }
 
-    private void RenderProps()
+    private void RenderProps(SceneSnapshot scene)
     {
-        var scene = CurrentScene;
-        if (scene == null)
-        {
-            AnsiConsole.AnnounceWarning("No scene information available yet.");
-            return;
-        }
-
         if (scene.NearbyProps.Count == 0)
         {
             AnsiConsole.Announce("No props nearby.");
@@ -674,15 +735,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         );
     }
 
-    private void RenderExits()
+    private void RenderExits(SceneSnapshot scene)
     {
-        var scene = CurrentScene;
-        if (scene == null)
-        {
-            AnsiConsole.AnnounceWarning("No scene information available yet.");
-            return;
-        }
-
         if (scene.Exits.Count == 0)
         {
             AnsiConsole.Announce("No exits nearby.");
@@ -695,15 +749,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         );
     }
 
-    private void RenderCreatureDetail(string name)
+    private void RenderCreatureDetail(SceneSnapshot scene, string name)
     {
-        var scene = CurrentScene;
-        if (scene == null)
-        {
-            AnsiConsole.AnnounceWarning("No scene information available yet.");
-            return;
-        }
-
         var person = scene.NearbyCreatures.FirstOrDefault(p =>
             p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
         );
@@ -714,18 +761,6 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         }
 
         RenderCreatureStatus(person);
-    }
-
-    private void RenderCharacter()
-    {
-        var scene = CurrentScene;
-        if (scene == null)
-        {
-            AnsiConsole.AnnounceWarning("No scene information available yet.");
-            return;
-        }
-
-        RenderCreatureStatus(scene.PlayerStatus);
     }
 
     private static void RenderCreatureStatus(CreatureStatusSnapshot status)
@@ -747,7 +782,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             rows.Add(["State", AnsiConsole.FormatStateChip(state)]);
         }
 
-        if (status.Reputation is int reputation)
+        if (status.Reputation is { } reputation)
         {
             rows.Add(["Reputation", AnsiConsole.FormatReputation(reputation)]);
         }
@@ -800,14 +835,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         }
     }
 
-    private void PrintStatus()
+    private static void PrintStatus(SceneSnapshot scene)
     {
-        var scene = CurrentScene;
-        if (scene == null)
-        {
-            return;
-        }
-
         var title =
             $"{AnsiConsole.BuildBreadcrumb(scene).EscapeMarkup()} | {scene.WeekdayName.EscapeMarkup()}, Hour {scene.Hour}";
 

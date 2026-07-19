@@ -1,4 +1,5 @@
 using TRPG.Application.Abilities;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat;
 

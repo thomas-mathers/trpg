@@ -188,7 +188,7 @@ warmup() {
     start_server
     local session_id
     session_id=$(start_session) || { stop_server; return 1; }
-    curl -s -X POST "http://localhost:5000/sessions/$session_id/chat" -H "Content-Type: application/json" \
+    curl -s -X POST "http://localhost:5000/admin/sessions/$session_id/chat" -H "Content-Type: application/json" \
         -d "{\"message\":\"lets go to $TARGET_DISTRICT_NAME\"}" >> "$LOG_FILE" 2>&1 || true
     stop_server
 }
@@ -208,7 +208,7 @@ run_trial() {
 
     local start_ns end_ns elapsed_ms response district success
     start_ns=$(date +%s%N)
-    response=$(curl -s -X POST "http://localhost:5000/sessions/$session_id/chat?includeMetrics=true" \
+    response=$(curl -s -X POST "http://localhost:5000/admin/sessions/$session_id/chat?includeMetrics=true" \
         -H "Content-Type: application/json" -d "{\"message\":\"$message\"}" 2>&1) || response="CURL_FAILED"
     end_ns=$(date +%s%N)
     elapsed_ms=$(( (end_ns - start_ns) / 1000000 ))

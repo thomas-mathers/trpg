@@ -107,7 +107,6 @@ internal class MoveTool(
         );
 
         turnContext.DidMoveThisTurn = true;
-        turnContext.DidSceneRefreshThisTurn = true;
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,

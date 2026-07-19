@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Commands;
 
@@ -61,9 +62,12 @@ internal class EndFightCommandHandler(
         );
 
         await context
-            .Fights.Where(f => f.WorldId == command.WorldId && f.CompletedAt == null)
+            .Fights.Where(f => f.WorldId == command.WorldId && f.Outcome == CombatOutcome.Ongoing)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(f => f.CompletedAt, DateTime.UtcNow),
+                setters =>
+                    setters
+                        .SetProperty(f => f.CompletedAt, DateTime.UtcNow)
+                        .SetProperty(f => f.Outcome, state.Outcome),
                 cancellationToken
             );
 

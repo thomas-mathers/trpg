@@ -2,14 +2,21 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using TickerQ.Utilities;
 using TickerQ.Utilities.Interfaces.Managers;
+using TRPG.Application.Combat;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Jobs.Responses;
 using TRPG.Contracts.Worlds.Requests;
 using TRPG.Contracts.Worlds.Responses;
 using TRPG.Data;
 using TRPG.Worlds.Jobs;
+using ActiveBuff = TRPG.Contracts.Combat.Responses.ActiveBuff;
+using ActiveDot = TRPG.Contracts.Combat.Responses.ActiveDot;
+using ActiveHot = TRPG.Contracts.Combat.Responses.ActiveHot;
+using CombatantState = TRPG.Contracts.Combat.Responses.CombatantState;
 
 namespace TRPG.Worlds.Endpoints;
 
@@ -20,6 +27,7 @@ internal static class WorldEndpoints
         app.MapPost("/worlds", CreateWorld);
         app.MapGet("/worlds", ListWorlds);
         app.MapDelete("/worlds/{worldId:guid}", DropWorld);
+        app.MapGet("/worlds/{worldId:guid}/fight", GetFight);
     }
 
     private static async Task<IResult> CreateWorld(
@@ -89,4 +97,71 @@ internal static class WorldEndpoints
         await dropHandler.Handle(new DropWorldCommand { WorldId = worldId }, cancellationToken);
         return Results.NoContent();
     }
+
+    private static async Task<IResult> GetFight(
+        Guid worldId,
+        GetWorldQueryHandler getWorld,
+        GetCombatantsQueryHandler getCombatants,
+        CancellationToken cancellationToken
+    )
+    {
+        var world = await getWorld.Handle(
+            new GetWorldQuery { WorldId = worldId },
+            cancellationToken
+        );
+        if (world?.PlayerId == null)
+        {
+            return Results.NotFound();
+        }
+
+        var combatants = await getCombatants.Handle(
+            new GetCombatantsQuery { WorldId = worldId, PlayerId = world.PlayerId.Value },
+            cancellationToken
+        );
+        if (combatants.Count == 0)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(ToFightState(combatants));
+    }
+
+    private static FightState ToFightState(IReadOnlyList<Combatant> combatants) =>
+        new(
+            combatants
+                .Select(c => new CombatantState(
+                    Name: c.Name,
+                    IsPlayer: c.IsPlayer,
+                    IsAlive: c.IsAlive,
+                    CurrentHp: c.CurrentHp,
+                    MaximumHp: c.MaximumHp,
+                    CurrentAp: c.CurrentAp,
+                    MaximumAp: c.MaximumAp,
+                    CurrentMp: c.CurrentMp,
+                    MaximumMp: c.MaximumMp,
+                    ActiveConditions: c.ActiveConditions.Where(kv => kv.Value > 0)
+                        .ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                    ActiveDots: c.ActiveDots.Select(d => new ActiveDot(
+                            d.AbilityName,
+                            d.Amount,
+                            d.DamageType.ToString(),
+                            d.RemainingTurns
+                        ))
+                        .ToArray(),
+                    ActiveHots: c.ActiveHots.Select(h => new ActiveHot(
+                            h.AbilityName,
+                            h.Amount,
+                            h.RemainingTurns
+                        ))
+                        .ToArray(),
+                    ActiveBuffs: c.ActiveBuffs.Select(b => new ActiveBuff(
+                            b.Attribute.ToString(),
+                            b.Amount,
+                            b.AmountType.ToString(),
+                            b.RemainingTurns
+                        ))
+                        .ToArray()
+                ))
+                .ToArray()
+        );
 }

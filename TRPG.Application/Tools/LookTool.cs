@@ -51,7 +51,6 @@ internal class LookTool(
             cancellationToken
         );
 
-        turnContext.DidSceneRefreshThisTurn = true;
         logger.LogInformation(
             "[perf] [look] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,

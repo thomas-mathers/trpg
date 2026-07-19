@@ -17,7 +17,6 @@ internal class FleeTool(
     EndFightCommandHandler endFight,
     AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     CombatEngine combatEngine,
-    ICombatStatusPublisher combatStatusPublisher,
     ILogger<FleeTool> logger
 ) : IGameTool
 {
@@ -74,8 +73,6 @@ internal class FleeTool(
             },
             cancellationToken
         );
-
-        await combatStatusPublisher.PublishCombatStatus(turnContext.WorldId, [], cancellationToken);
 
         var result = state.ToCombatResult();
 

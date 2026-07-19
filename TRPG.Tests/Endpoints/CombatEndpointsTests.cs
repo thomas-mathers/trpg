@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -90,7 +91,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
     private Task<HttpResponseMessage> SendChat(Guid sessionId, string message) =>
         _client.PostAsJsonAsync(
-            new Uri($"/sessions/{sessionId}/chat", UriKind.Relative),
+            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
             new ChatRequest(message),
             TestContext.Current.CancellationToken
         );
@@ -192,6 +193,79 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
         // Assert — nothing to flee from; must be a graceful error, not a crash
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetFight_ReturnsNotFound_WhenNoActiveFight()
+    {
+        // Act
+        var response = await _client.GetAsync(
+            new Uri($"/worlds/{_worldId}/fight", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetFight_ReturnsCombatants_WhenCombatIsActive()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+
+        fixture.ChatClient.PendingToolCallName = "attack";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["abilityName"] = "Strike",
+            ["targetName"] = enemy.Name,
+        };
+        await SendChat(sessionId, $"I attack {enemy.Name}");
+
+        // Act
+        var response = await _client.GetAsync(
+            new Uri($"/worlds/{_worldId}/fight", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var fight = await response.Content.ReadFromJsonAsync<FightState>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(fight);
+        Assert.Contains(fight.Combatants, c => c.IsPlayer);
+        Assert.Contains(fight.Combatants, c => c.Name == enemy.Name);
+    }
+
+    [Fact]
+    public async Task GetFight_ReturnsNotFound_AfterCombatEnds()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+
+        fixture.ChatClient.PendingToolCallName = "attack";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["abilityName"] = "Strike",
+            ["targetName"] = enemy.Name,
+        };
+        await SendChat(sessionId, $"I attack {enemy.Name}");
+
+        fixture.ChatClient.PendingToolCallName = "flee";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>();
+        await SendChat(sessionId, "I flee");
+
+        // Act — the fight row still exists (Fled), it just isn't Ongoing anymore
+        var response = await _client.GetAsync(
+            new Uri($"/worlds/{_worldId}/fight", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

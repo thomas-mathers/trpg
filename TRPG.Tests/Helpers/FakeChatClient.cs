@@ -55,8 +55,13 @@ public sealed class FakeChatClient : IChatClient
     private FunctionCallContent ToolCall() =>
         new("fake-call-1", PendingToolCallName!, PendingToolCallArguments);
 
-    private static bool HasFunctionResult(IEnumerable<ChatMessage> messages) =>
-        messages.Any(m => m.Contents.OfType<FunctionResultContent>().Any());
+    private static bool HasFunctionResult(List<ChatMessage> messages)
+    {
+        var lastUserIndex = messages.FindLastIndex(m => m.Role == ChatRole.User);
+        var currentTurnMessages =
+            lastUserIndex >= 0 ? messages.Skip(lastUserIndex + 1) : messages;
+        return currentTurnMessages.Any(m => m.Contents.OfType<FunctionResultContent>().Any());
+    }
 
     public object? GetService(Type serviceType, object? serviceKey = null) => null;
 
