@@ -29,28 +29,41 @@ internal class GetSceneWithCatchUpQueryHandler(
     )
     {
         var locationId = query.RoomId ?? query.DistrictId ?? query.StateId;
-        var cacheKey = $"scene:{query.WorldId}:{locationId}:{query.CurrentDate.Hour}";
+        var cacheKey = $"catchup:{query.WorldId}:{locationId}:{query.CurrentDate.Hour}";
 
-        if (cache.TryGetValue(cacheKey, out SceneResult? cachedScene))
+        // Only the NPC-schedule catch-up simulation is cached (it's idempotent for a given
+        // location+hour and expensive to rerun) — the scene itself is always fetched live,
+        // since HP/combat state can change within the same in-game hour and must never be stale.
+        if (cache.TryGetValue(cacheKey, out bool _))
         {
-            logger.LogInformation("[perf] Scene cache hit for {CacheKey}", cacheKey);
-            return cachedScene!;
+            logger.LogInformation("[perf] Catch-up cache hit for {CacheKey}", cacheKey);
+        }
+        else
+        {
+            logger.LogInformation("[perf] Catch-up cache miss for {CacheKey}, running catch-up", cacheKey);
+
+            await sync.Handle(
+                new SyncCommand
+                {
+                    WorldId = query.WorldId,
+                    RoomId = query.RoomId,
+                    DistrictId = query.DistrictId,
+                    CurrentDate = query.CurrentDate,
+                },
+                cancellationToken
+            );
+
+            cache.Set(
+                cacheKey,
+                true,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = GameClock.RealTimePerInGameHour,
+                }
+            );
         }
 
-        logger.LogInformation("[perf] Scene cache miss for {CacheKey}, running catch-up", cacheKey);
-
-        await sync.Handle(
-            new SyncCommand
-            {
-                WorldId = query.WorldId,
-                RoomId = query.RoomId,
-                DistrictId = query.DistrictId,
-                CurrentDate = query.CurrentDate,
-            },
-            cancellationToken
-        );
-
-        var scene = await getScene.Handle(
+        return await getScene.Handle(
             new GetSceneQuery
             {
                 WorldId = query.WorldId,
@@ -59,16 +72,5 @@ internal class GetSceneWithCatchUpQueryHandler(
             },
             cancellationToken
         );
-
-        cache.Set(
-            cacheKey,
-            scene,
-            new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = GameClock.RealTimePerInGameHour,
-            }
-        );
-
-        return scene;
     }
 }

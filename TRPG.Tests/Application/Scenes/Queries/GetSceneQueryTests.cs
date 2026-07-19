@@ -166,6 +166,10 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         _player.CurrentHp = 12;
         _nearbyCreature.CurrentHp = 7;
+        // Simulate gear-boosted cached Maximum diverging from base Attributes.MaximumHp,
+        // to prove the query reads the cached column rather than the base value.
+        _player.MaximumHp += 50;
+        _nearbyCreature.MaximumHp += 25;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -180,10 +184,12 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         // Assert
         Assert.Equal(12, result.Player.CurrentHp);
-        Assert.Equal(_player.Attributes.MaximumHp, result.Player.MaximumHp);
+        Assert.Equal(_player.MaximumHp, result.Player.MaximumHp);
+        Assert.NotEqual(_player.BaseAttributes.MaximumHp, result.Player.MaximumHp);
         var nearby = Assert.Single(result.NearbyCreatures, p => p.Name == _nearbyCreature.Name);
         Assert.Equal(7, nearby.CurrentHp);
-        Assert.Equal(_nearbyCreature.Attributes.MaximumHp, nearby.MaximumHp);
+        Assert.Equal(_nearbyCreature.MaximumHp, nearby.MaximumHp);
+        Assert.NotEqual(_nearbyCreature.BaseAttributes.MaximumHp, nearby.MaximumHp);
     }
 
     [Fact]

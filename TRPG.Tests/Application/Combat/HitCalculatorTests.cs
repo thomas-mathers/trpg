@@ -62,7 +62,7 @@ public class HitCalculatorTests
     )
     {
         var creature = Builders.MakeCreature(_worldId);
-        creature.Attributes.Defense = defense;
+        creature.BaseAttributes.Defense = defense;
         var inventory = weapon != null ? new Item[] { weapon } : [];
         var proficiencies =
             weapon != null && proficiency != null

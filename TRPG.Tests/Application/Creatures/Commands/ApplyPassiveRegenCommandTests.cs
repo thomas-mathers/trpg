@@ -4,6 +4,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -121,9 +122,9 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_creature.Attributes.MaximumHp, updated!.CurrentHp);
-        Assert.Equal(_creature.Attributes.MaximumAp, updated.CurrentAp);
-        Assert.Equal(_creature.Attributes.MaximumMp, updated.CurrentMp);
+        Assert.Equal(_creature.MaximumHp, updated!.CurrentHp);
+        Assert.Equal(_creature.MaximumAp, updated.CurrentAp);
+        Assert.Equal(_creature.MaximumMp, updated.CurrentMp);
     }
 
     [Fact]
@@ -178,6 +179,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_RegeneratesTowardEffectiveMaximum_WhenGearIsEquipped()
     {
         // Arrange
+        var baseMaximumHp = _creature.MaximumHp;
         var gear = Builders.MakeArmorItem(worldId: _creature.WorldId);
         gear.Modifiers.Add(
             new AttributeModifier
@@ -195,11 +197,21 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
                 ItemId = gear.Id,
                 Quantity = 1,
                 Index = 0,
-                EquippedSlot = EquipmentSlot.Chest,
                 WorldId = _creature.WorldId,
             }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await new EquipInventoryItemCommandHandler(_context).Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = gear.Id,
+                Slot = EquipmentSlot.Chest,
+            },
+            TestContext.Current.CancellationToken
+        );
+
         await SetPlaytime(GameClock.RealTimePerInGameHour);
 
         var fullHpRegenOptions = new CreatureRegenOptions { HpRegenPercentPerHour = 1.0f };
@@ -221,6 +233,6 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_creature.Attributes.MaximumHp + 50, updated!.CurrentHp);
+        Assert.Equal(baseMaximumHp + 50, updated!.CurrentHp);
     }
 }

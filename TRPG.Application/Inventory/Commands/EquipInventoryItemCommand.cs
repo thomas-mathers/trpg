@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Creatures;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -18,11 +19,21 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var toEquip = await context.InventoryItems.FirstOrDefaultAsync(
-            i => i.CreatureId == command.CreatureId && i.ItemId == command.ItemId,
+        var creature = await context.Creatures.FirstOrDefaultAsync(
+            c => c.Id == command.CreatureId,
             cancellationToken
         );
+        if (creature == null)
+        {
+            throw new InvalidOperationException($"Creature {command.CreatureId} not found.");
+        }
 
+        var inventoryItems = await context
+            .InventoryItems.Include(i => i.Item)
+            .Where(i => i.CreatureId == command.CreatureId)
+            .ToArrayAsync(cancellationToken);
+
+        var toEquip = inventoryItems.FirstOrDefault(i => i.ItemId == command.ItemId);
         if (toEquip == null)
         {
             throw new InvalidOperationException(
@@ -30,17 +41,19 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
             );
         }
 
-        var currentlyEquipped = await context.InventoryItems.FirstOrDefaultAsync(
-            i => i.CreatureId == command.CreatureId && i.EquippedSlot == command.Slot,
-            cancellationToken
-        );
-
+        var currentlyEquipped = inventoryItems.FirstOrDefault(i => i.EquippedSlot == command.Slot);
         if (currentlyEquipped != null)
         {
             currentlyEquipped.EquippedSlot = null;
         }
 
         toEquip.EquippedSlot = command.Slot;
+
+        var equippedItems = inventoryItems
+            .Where(i => i.EquippedSlot != null)
+            .Select(i => i.Item)
+            .ToArray();
+        CreatureAttributesRecalculator.Recalculate(creature, equippedItems);
 
         await context.SaveChangesAsync(cancellationToken);
     }

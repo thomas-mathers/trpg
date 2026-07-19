@@ -39,28 +39,9 @@ internal class ApplyPassiveRegenCommandHandler(
             .Creatures.Where(c => command.CreatureIds.Contains(c.Id))
             .ToArrayAsync(cancellationToken);
 
-        var equippedItems = await context
-            .InventoryItems.AsNoTracking()
-            .Include(i => i.Item)
-            .Where(i => command.CreatureIds.Contains(i.CreatureId) && i.EquippedSlot != null)
-            .ToArrayAsync(cancellationToken);
-
-        var equippedByCreatureId = equippedItems
-            .GroupBy(i => i.CreatureId)
-            .ToDictionary(
-                g => g.Key,
-                IReadOnlyCollection<Item> (g) => g.Select(i => i.Item).ToArray()
-            );
-
         foreach (var creature in creatures)
         {
-            var equipped = equippedByCreatureId.GetValueOrDefault(creature.Id, []);
-            var effectiveAttributes = StatFormulas.CalculateEffectiveAttributes(
-                creature.Attributes,
-                [],
-                equipped
-            );
-            ApplyPassiveRegen(creature, playtime, effectiveAttributes, optionsSnapshot.Value);
+            ApplyPassiveRegen(creature, playtime, optionsSnapshot.Value);
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -76,7 +57,6 @@ internal class ApplyPassiveRegenCommandHandler(
     private static void ApplyPassiveRegen(
         Creature creature,
         TimeSpan currentPlaytime,
-        Attributes effectiveAttributes,
         CreatureRegenOptions options
     )
     {
@@ -95,19 +75,19 @@ internal class ApplyPassiveRegenCommandHandler(
 
         creature.CurrentHp = Regen(
             creature.CurrentHp,
-            effectiveAttributes.MaximumHp,
+            creature.MaximumHp,
             options.HpRegenPercentPerHour,
             elapsedInGameHours
         );
         creature.CurrentAp = Regen(
             creature.CurrentAp,
-            effectiveAttributes.MaximumAp,
+            creature.MaximumAp,
             options.ApRegenPercentPerHour,
             elapsedInGameHours
         );
         creature.CurrentMp = Regen(
             creature.CurrentMp,
-            effectiveAttributes.MaximumMp,
+            creature.MaximumMp,
             options.MpRegenPercentPerHour,
             elapsedInGameHours
         );

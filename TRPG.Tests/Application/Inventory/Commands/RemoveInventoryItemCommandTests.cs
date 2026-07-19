@@ -123,4 +123,62 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
             )
         );
     }
+
+    [Fact]
+    public async Task Handle_ClampsCurrentHpDown_WhenRemovingEquippedItemReducesMaximum()
+    {
+        // Arrange
+        var baseMaximumHp = _creature.MaximumHp;
+        var gear = Builders.MakeArmorItem(worldId: _creature.WorldId);
+        gear.Modifiers.Add(
+            new AttributeModifier
+            {
+                Attribute = AttributeName.MaximumHp,
+                Amount = 50,
+                AmountType = AmountType.Flat,
+            }
+        );
+        _context.Items.Add(gear);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _addHandler.Handle(
+            new AddInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = gear.Id,
+                Quantity = 1,
+            },
+            TestContext.Current.CancellationToken
+        );
+        await new EquipInventoryItemCommandHandler(_context).Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = gear.Id,
+                Slot = EquipmentSlot.Chest,
+            },
+            TestContext.Current.CancellationToken
+        );
+        _creature.CurrentHp = _creature.MaximumHp;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _removeHandler.Handle(
+            new RemoveInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = gear.Id,
+                Quantity = 1,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(baseMaximumHp, updated!.MaximumHp);
+        Assert.Equal(baseMaximumHp, updated.CurrentHp);
+    }
 }

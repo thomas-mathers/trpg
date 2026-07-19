@@ -128,6 +128,9 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         var roomId = Guid.NewGuid();
         var creature = Builders.MakeCreature(_worldId, stateId: stateId, currentHp: 5);
         creature.RoomId = roomId;
+        // Simulate gear-boosted cached Maximum diverging from base Attributes.MaximumHp,
+        // to prove the query reads the cached column rather than the base value.
+        creature.MaximumHp += 50;
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var location = new CreatureLocation(_worldId, roomId, stateId, null);
@@ -141,7 +144,8 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         // Assert
         var summary = Assert.Single(result, x => x.Id == creature.Id);
         Assert.Equal(5, summary.CurrentHp);
-        Assert.Equal(creature.Attributes.MaximumHp, summary.MaximumHp);
+        Assert.Equal(creature.MaximumHp, summary.MaximumHp);
+        Assert.NotEqual(creature.BaseAttributes.MaximumHp, summary.MaximumHp);
     }
 
     [Fact]

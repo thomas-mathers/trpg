@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -89,25 +90,7 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
             creatureQuery = creatureQuery.Where(p => p.State != CreatureState.Dead);
         }
 
-        return await creatureQuery
-            .Select(p => new CreatureSummary(
-                p.Id,
-                p.Name,
-                p.CreatureType.ToString(),
-                p.Gender.ToString(),
-                p.Profession.ToString()!,
-                p.Level,
-                p.BirthYear,
-                p.State.ToString(),
-                p.Gold,
-                p.CurrentHp,
-                p.Attributes.MaximumHp,
-                p.CurrentAp,
-                p.Attributes.MaximumAp,
-                p.CurrentMp,
-                p.Attributes.MaximumMp
-            ))
-            .ToArrayAsync(cancellationToken);
+        return await creatureQuery.Select(ToCreatureSummary).ToArrayAsync(cancellationToken);
     }
 
     private async Task<IReadOnlyCollection<CreatureSummary>> GetAllOutdoorsInLocation(
@@ -143,24 +126,25 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
             creatureQuery = creatureQuery.Where(p => p.State != CreatureState.Dead);
         }
 
-        return await creatureQuery
-            .Select(p => new CreatureSummary(
-                p.Id,
-                p.Name,
-                p.CreatureType.ToString(),
-                p.Gender.ToString(),
-                p.Profession.ToString()!,
-                p.Level,
-                p.BirthYear,
-                p.State.ToString(),
-                p.Gold,
-                p.CurrentHp,
-                p.Attributes.MaximumHp,
-                p.CurrentAp,
-                p.Attributes.MaximumAp,
-                p.CurrentMp,
-                p.Attributes.MaximumMp
-            ))
-            .ToArrayAsync(cancellationToken);
+        return await creatureQuery.Select(ToCreatureSummary).ToArrayAsync(cancellationToken);
     }
+
+    private static readonly Expression<Func<Creature, CreatureSummary>> ToCreatureSummary = p =>
+        new CreatureSummary(
+            p.Id,
+            p.Name,
+            p.CreatureType.ToString(),
+            p.Gender.ToString(),
+            p.Profession.ToString()!,
+            p.Level,
+            p.BirthYear,
+            p.State.ToString(),
+            p.Gold,
+            p.CurrentHp,
+            p.MaximumHp,
+            p.CurrentAp,
+            p.MaximumAp,
+            p.CurrentMp,
+            p.MaximumMp
+        );
 }

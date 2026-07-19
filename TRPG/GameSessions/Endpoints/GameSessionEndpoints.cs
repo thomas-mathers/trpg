@@ -8,7 +8,6 @@ using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
-using TRPG.Data.Models;
 
 namespace TRPG.GameSessions.Endpoints;
 
@@ -85,10 +84,10 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        return Results.Ok(ToSnapshot(scene, player));
+        return Results.Ok(ToSnapshot(scene));
     }
 
-    private static SceneSnapshot ToSnapshot(SceneResult scene, Creature player)
+    private static SceneSnapshot ToSnapshot(SceneResult scene)
     {
         var currentDistrict = scene.City?.Districts.FirstOrDefault(d => d.IsCurrent);
         return new SceneSnapshot(
@@ -102,44 +101,8 @@ internal static class GameSessionEndpoints
             Day: scene.CurrentDate.Day,
             WeekdayName: scene.CurrentDate.WeekdayName,
             Hour: scene.CurrentDate.Hour,
-            PlayerStatus: new CreatureStatusSnapshot(
-                Name: player.Name,
-                CreatureType: player.CreatureType.ToString(),
-                Gender: player.Gender.ToString(),
-                Profession: player.Profession?.ToString() ?? "",
-                Level: player.Level,
-                Age: scene.CurrentDate.Year - player.BirthYear,
-                State: player.State == CreatureState.Dead ? player.State.ToString() : null,
-                Gold: player.Gold,
-                CurrentHp: player.CurrentHp,
-                MaximumHp: player.Attributes.MaximumHp,
-                CurrentAp: player.CurrentAp,
-                MaximumAp: player.Attributes.MaximumAp,
-                CurrentMp: player.CurrentMp,
-                MaximumMp: player.Attributes.MaximumMp,
-                FactionNames: null,
-                Reputation: null
-            ),
-            NearbyCreatures: scene
-                .NearbyCreatures.Select(p => new CreatureStatusSnapshot(
-                    Name: p.Name,
-                    CreatureType: p.CreatureType,
-                    Gender: p.Gender,
-                    Profession: p.Profession,
-                    Level: p.Level,
-                    Age: p.Age,
-                    State: p.State,
-                    Gold: p.Gold,
-                    CurrentHp: p.CurrentHp,
-                    MaximumHp: p.MaximumHp,
-                    CurrentAp: p.CurrentAp,
-                    MaximumAp: p.MaximumAp,
-                    CurrentMp: p.CurrentMp,
-                    MaximumMp: p.MaximumMp,
-                    FactionNames: p.FactionNames,
-                    Reputation: p.Reputation
-                ))
-                .ToArray(),
+            PlayerStatus: ToCreatureStatusSnapshot(scene.Player),
+            NearbyCreatures: scene.NearbyCreatures.Select(ToCreatureStatusSnapshot).ToArray(),
             NearbyDistricts: scene
                 .City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type))
                 .ToArray()
@@ -162,4 +125,24 @@ internal static class GameSessionEndpoints
                 ?? []
         );
     }
+
+    private static CreatureStatusSnapshot ToCreatureStatusSnapshot(SceneCreatureInfo creature) =>
+        new(
+            Name: creature.Name,
+            CreatureType: creature.CreatureType,
+            Gender: creature.Gender,
+            Profession: creature.Profession,
+            Level: creature.Level,
+            Age: creature.Age,
+            State: creature.State,
+            Gold: creature.Gold,
+            CurrentHp: creature.CurrentHp,
+            MaximumHp: creature.MaximumHp,
+            CurrentAp: creature.CurrentAp,
+            MaximumAp: creature.MaximumAp,
+            CurrentMp: creature.CurrentMp,
+            MaximumMp: creature.MaximumMp,
+            FactionNames: creature.FactionNames,
+            Reputation: creature.Reputation
+        );
 }

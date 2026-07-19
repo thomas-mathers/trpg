@@ -3,7 +3,7 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using ActiveBuff = TRPG.Application.Combat.ActiveBuff;
+using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
 using ActiveDot = TRPG.Application.Combat.ActiveDot;
 using ActiveHot = TRPG.Application.Combat.ActiveHot;
 
@@ -37,7 +37,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
         // Arrange
         var combatant = Builders.MakeCombatant(
             _creature.Id,
-            currentHp: 42,
+            currentHp: 30,
             currentAp: 5,
             currentMp: 3
         );
@@ -54,7 +54,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(42, updated!.CurrentHp);
+        Assert.Equal(30, updated!.CurrentHp);
         Assert.Equal(5, updated.CurrentAp);
         Assert.Equal(3, updated.CurrentMp);
         Assert.Equal(_creature.State, updated.State);
@@ -97,7 +97,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
 
         var aliveCombatant = Builders.MakeCombatant(
             _creature.Id,
-            currentHp: 42,
+            currentHp: 30,
             currentAp: 5,
             currentMp: 3
         );
@@ -124,7 +124,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
             [otherCreature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(42, updatedCreature!.CurrentHp);
+        Assert.Equal(30, updatedCreature!.CurrentHp);
         Assert.Equal(CreatureState.Dead, updatedOther!.State);
     }
 
@@ -177,5 +177,36 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
         Assert.Single(updated.ActiveDots);
         Assert.Single(updated.ActiveHots);
         Assert.Single(updated.ActiveBuffs);
+    }
+
+    [Fact]
+    public async Task Handle_UpdatesCachedMaximumHp_WhenBuffAppliesToMaximumHp()
+    {
+        // Arrange
+        var baseMaximumHp = _creature.MaximumHp;
+        var combatant = Builders.MakeCombatant(_creature.Id);
+        combatant.ActiveBuffs.Add(
+            new ActiveBuff
+            {
+                Amount = 50,
+                Attribute = AttributeName.MaximumHp,
+                RemainingTurns = 4,
+                AmountType = AmountType.Flat,
+            }
+        );
+
+        // Act
+        await _handler.Handle(
+            new PersistCombatantsCommand { Combatants = [combatant] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(baseMaximumHp + 50, updated!.MaximumHp);
     }
 }

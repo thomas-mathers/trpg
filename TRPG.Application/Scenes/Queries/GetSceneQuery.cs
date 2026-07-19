@@ -46,18 +46,6 @@ public record SceneRoomInfo(
     IReadOnlyCollection<SceneExitInfo> Exits
 );
 
-public record ScenePlayerInfo(
-    string Name,
-    string CreatureType,
-    string Gender,
-    string Profession,
-    int Level,
-    int Gold,
-    int Age,
-    int CurrentHp,
-    int MaximumHp
-);
-
 public record ScenePropInfo(string Name, string Description, string Type);
 
 public record SceneCreatureInfo(
@@ -68,8 +56,8 @@ public record SceneCreatureInfo(
     int Level,
     int Age,
     IReadOnlyCollection<string> FactionNames,
-    string State,
-    int Reputation,
+    string? State,
+    int? Reputation,
     int Gold,
     int CurrentHp,
     int MaximumHp,
@@ -87,7 +75,7 @@ public record SceneResult(
     SceneCityInfo? City,
     SceneBuildingInfo? Building,
     SceneRoomInfo? Room,
-    ScenePlayerInfo Player,
+    SceneCreatureInfo Player,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<SceneCreatureInfo> NearbyCreatures,
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
@@ -107,7 +95,11 @@ internal record SceneBootstrap(
     string CreatureTypeName,
     string GenderName,
     int CurrentHp,
-    int MaximumHp
+    int MaximumHp,
+    int CurrentAp,
+    int MaximumAp,
+    int CurrentMp,
+    int MaximumMp
 );
 
 internal record SceneLocationDetails(
@@ -174,16 +166,23 @@ internal class GetSceneQueryHandler(
             cityInfo,
             details.Building,
             details.Room,
-            new ScenePlayerInfo(
+            new SceneCreatureInfo(
                 bootstrap.PlayerName,
                 bootstrap.CreatureTypeName,
                 bootstrap.GenderName,
                 bootstrap.Profession.ToString()!,
                 bootstrap.Level,
-                bootstrap.Gold,
                 query.CurrentDate.Year - bootstrap.BirthYear,
+                [],
+                State: null,
+                Reputation: null,
+                bootstrap.Gold,
                 bootstrap.CurrentHp,
-                bootstrap.MaximumHp
+                bootstrap.MaximumHp,
+                bootstrap.CurrentAp,
+                bootstrap.MaximumAp,
+                bootstrap.CurrentMp,
+                bootstrap.MaximumMp
             ),
             details.NearbyProps,
             details.NearbyPeople,
@@ -213,7 +212,11 @@ internal class GetSceneQueryHandler(
                 p.CreatureType.ToString(),
                 p.Gender.ToString(),
                 p.CurrentHp,
-                p.Attributes.MaximumHp
+                p.MaximumHp,
+                p.CurrentAp,
+                p.MaximumAp,
+                p.CurrentMp,
+                p.MaximumMp
             ))
             .FirstAsync(cancellationToken);
     }

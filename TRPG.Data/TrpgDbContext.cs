@@ -105,7 +105,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         {
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => new { p.StateId, p.RoomId });
-            entity.OwnsOne(p => p.Attributes, s => s.ToJson());
+            entity.OwnsOne(p => p.BaseAttributes, s => s.ToJson());
             entity
                 .Property(c => c.ActiveConditions)
                 .HasConversion(

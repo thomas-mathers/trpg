@@ -75,18 +75,9 @@ public class MonsterGeneratorTests
         var monsters = MonsterGenerator.Generate(MakeInput(BuildingType.Cave));
 
         // Assert
-        Assert.All(
-            monsters,
-            m => Assert.Equal(m.Creature.Attributes.MaximumHp, m.Creature.CurrentHp)
-        );
-        Assert.All(
-            monsters,
-            m => Assert.Equal(m.Creature.Attributes.MaximumAp, m.Creature.CurrentAp)
-        );
-        Assert.All(
-            monsters,
-            m => Assert.Equal(m.Creature.Attributes.MaximumMp, m.Creature.CurrentMp)
-        );
+        Assert.All(monsters, m => Assert.Equal(m.Creature.MaximumHp, m.Creature.CurrentHp));
+        Assert.All(monsters, m => Assert.Equal(m.Creature.MaximumAp, m.Creature.CurrentAp));
+        Assert.All(monsters, m => Assert.Equal(m.Creature.MaximumMp, m.Creature.CurrentMp));
         Assert.All(monsters, m => Assert.Equal(TimeSpan.Zero, m.Creature.LastRegenPlaytime));
     }
 

@@ -1,7 +1,14 @@
 using TRPG.Data.Models;
-using ActiveBuff = TRPG.Application.Combat.ActiveBuff;
 
 namespace TRPG.Application.Creatures;
+
+public class ActiveBuff
+{
+    public float Amount { get; init; }
+    public AttributeName Attribute { get; init; }
+    public int RemainingTurns { get; set; }
+    public AmountType AmountType { get; init; }
+}
 
 internal static class StatFormulas
 {

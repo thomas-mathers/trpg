@@ -88,17 +88,17 @@ public class CombatEngineTests
     )
     {
         var creature = Builders.MakeCreature(_worldId, name: name);
-        creature.Attributes.Endurance = endurance;
-        creature.Attributes.Dexterity = dexterity;
-        creature.Attributes.Strength = strength;
-        creature.Attributes.Stamina = stamina;
-        creature.Attributes.Defense = 0;
-        creature.Attributes.MaximumHp = StatFormulas.CalculateMaximumHp(creature.Attributes);
-        creature.Attributes.MaximumAp = StatFormulas.CalculateMaximumAp(creature.Attributes);
-        creature.Attributes.MaximumMp = StatFormulas.CalculateMaximumMp(creature.Attributes);
-        creature.CurrentHp = creature.Attributes.MaximumHp;
-        creature.CurrentAp = creature.Attributes.MaximumAp;
-        creature.CurrentMp = creature.Attributes.MaximumMp;
+        creature.BaseAttributes.Endurance = endurance;
+        creature.BaseAttributes.Dexterity = dexterity;
+        creature.BaseAttributes.Strength = strength;
+        creature.BaseAttributes.Stamina = stamina;
+        creature.BaseAttributes.Defense = 0;
+        creature.BaseAttributes.MaximumHp = StatFormulas.CalculateMaximumHp(creature.BaseAttributes);
+        creature.BaseAttributes.MaximumAp = StatFormulas.CalculateMaximumAp(creature.BaseAttributes);
+        creature.BaseAttributes.MaximumMp = StatFormulas.CalculateMaximumMp(creature.BaseAttributes);
+        creature.CurrentHp = creature.BaseAttributes.MaximumHp;
+        creature.CurrentAp = creature.BaseAttributes.MaximumAp;
+        creature.CurrentMp = creature.BaseAttributes.MaximumMp;
         var inventory = weapon != null ? new Item[] { weapon } : [];
         return Combatant.FromCreature(
             creature,

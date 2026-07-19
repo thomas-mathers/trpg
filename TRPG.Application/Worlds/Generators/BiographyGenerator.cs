@@ -251,7 +251,7 @@ internal static class BiographyGenerator
             sentences.Add($"They live at {homeName}.");
         }
 
-        var statSentence = BuildStatSentence(creature.Attributes);
+        var statSentence = BuildStatSentence(creature.BaseAttributes);
         if (statSentence != null)
         {
             sentences.Add(statSentence);

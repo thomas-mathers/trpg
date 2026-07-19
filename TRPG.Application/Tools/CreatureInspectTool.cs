@@ -29,7 +29,14 @@ internal record CreatureAttributesInfo(
     float MagicResistance
 );
 
-internal record CreatureInspectResult(string Name, int Level, CreatureAttributesInfo Attributes);
+internal record CreatureInspectResult(
+    string Name,
+    int Level,
+    int CurrentHp,
+    int CurrentAp,
+    int CurrentMp,
+    CreatureAttributesInfo Attributes
+);
 
 internal class CreatureInspectTool(
     GameTurnContext turnContext,
@@ -85,29 +92,30 @@ internal class CreatureInspectTool(
             }
         }
 
-        var attributes = target!.Attributes;
-
         var result = new CreatureInspectResult(
-            target.Name,
+            target!.Name,
             target.Level,
+            target.CurrentHp,
+            target.CurrentAp,
+            target.CurrentMp,
             new CreatureAttributesInfo(
-                attributes.Strength,
-                attributes.Dexterity,
-                attributes.Intelligence,
-                attributes.Endurance,
-                attributes.Stamina,
-                attributes.Defense,
-                attributes.Mana,
-                attributes.MovementSpeed,
-                attributes.MaximumHp,
-                attributes.MaximumMp,
-                attributes.MaximumAp,
-                attributes.PhysicalResistance,
-                attributes.FireResistance,
-                attributes.IceResistance,
-                attributes.LightningResistance,
-                attributes.PoisonResistance,
-                attributes.MagicResistance
+                target.Strength,
+                target.Dexterity,
+                target.Intelligence,
+                target.Endurance,
+                target.Stamina,
+                target.Defense,
+                target.Mana,
+                target.MovementSpeed,
+                target.MaximumHp,
+                target.MaximumMp,
+                target.MaximumAp,
+                target.PhysicalResistance,
+                target.FireResistance,
+                target.IceResistance,
+                target.LightningResistance,
+                target.PoisonResistance,
+                target.MagicResistance
             )
         );
 

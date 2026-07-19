@@ -29,8 +29,8 @@ public class DamageCalculatorTests
     )
     {
         var creature = Builders.MakeCreature(_worldId);
-        creature.Attributes.Strength = strength;
-        creature.Attributes.Intelligence = intelligence;
+        creature.BaseAttributes.Strength = strength;
+        creature.BaseAttributes.Intelligence = intelligence;
         return Combatant.FromCreature(
             creature,
             [],

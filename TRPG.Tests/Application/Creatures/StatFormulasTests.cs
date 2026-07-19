@@ -1,7 +1,7 @@
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using ActiveBuff = TRPG.Application.Combat.ActiveBuff;
+using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
 
 namespace TRPG.Tests.Application.Creatures;
 

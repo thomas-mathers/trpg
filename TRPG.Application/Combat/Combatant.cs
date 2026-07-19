@@ -1,17 +1,10 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
+using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
 using PersistedCombat = TRPG.Data.Models;
 
 namespace TRPG.Application.Combat;
-
-public class ActiveBuff
-{
-    public float Amount { get; init; }
-    public AttributeName Attribute { get; init; }
-    public int RemainingTurns { get; set; }
-    public AmountType AmountType { get; init; }
-}
 
 public class ActiveDot
 {
@@ -68,7 +61,7 @@ public class Combatant
     {
         var allAbilities = new[] { basicAttack }.Concat(abilities).ToArray();
         var startingAttributes = StatFormulas.CalculateEffectiveAttributes(
-            creature.Attributes,
+            creature.BaseAttributes,
             [],
             inventory
         );
@@ -79,7 +72,7 @@ public class Combatant
             Name = creature.Name,
             IsPlayer = isPlayer,
             Level = creature.Level,
-            Attributes = creature.Attributes,
+            Attributes = creature.BaseAttributes,
             Abilities = allAbilities,
             Gold = creature.Gold,
             CurrentHp = Math.Clamp(creature.CurrentHp, 0, startingAttributes.MaximumHp),
@@ -167,6 +160,8 @@ public class Combatant
                 AmountType = b.AmountType.ToString(),
             })
             .ToList();
+
+        CreatureAttributesRecalculator.Recalculate(creature, Inventory);
 
         if (!IsAlive)
         {

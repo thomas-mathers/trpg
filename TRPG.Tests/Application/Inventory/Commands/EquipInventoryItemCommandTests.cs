@@ -126,4 +126,42 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
         Assert.Single(equipped);
         Assert.Equal(_stackableItem.Id, equipped[0].ItemId);
     }
+
+    [Fact]
+    public async Task Handle_UpdatesCreatureCachedAttributes_WhenGearIsEquipped()
+    {
+        // Arrange
+        var baseDefense = _creature.Defense;
+        var armor = Builders.MakeArmorItem(worldId: _creature.WorldId);
+        _context.Items.Add(armor);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _addHandler.Handle(
+            new AddInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = armor.Id,
+                Quantity = 1,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _equipHandler.Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = armor.Id,
+                Slot = EquipmentSlot.Chest,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(baseDefense + armor.Defense, updated!.Defense);
+    }
 }

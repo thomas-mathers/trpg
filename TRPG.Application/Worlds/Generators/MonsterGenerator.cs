@@ -79,12 +79,14 @@ internal static class MonsterGenerator
             RoomId = input.RoomId,
             Level = level,
             Biography = Descriptions[creatureType],
-            Attributes = attributes,
-            CurrentHp = attributes.MaximumHp,
-            CurrentAp = attributes.MaximumAp,
-            CurrentMp = attributes.MaximumMp,
+            BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
         };
+
+        CreatureAttributesRecalculator.Recalculate(creature, []);
+        creature.CurrentHp = creature.MaximumHp;
+        creature.CurrentAp = creature.MaximumAp;
+        creature.CurrentMp = creature.MaximumMp;
 
         return new CreatureGeneratorResult(creature, [], [], [], []);
     }

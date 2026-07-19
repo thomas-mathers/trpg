@@ -3,6 +3,7 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Configuration;
 using TRPG.Data.Models;
+using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
 
 namespace TRPG.Application.Combat;
 

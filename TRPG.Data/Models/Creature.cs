@@ -96,7 +96,7 @@ public class ActiveBuff
 
 public class Creature
 {
-    public Attributes Attributes { get; set; } = null!;
+    public Attributes BaseAttributes { get; set; } = null!;
     public string Biography { get; set; } = "";
     public Guid BirthStateId { get; init; }
     public int BirthYear { get; init; }
@@ -118,6 +118,24 @@ public class Creature
     public CreatureState State { get; set; }
     public Guid StateId { get; set; }
     public Guid WorldId { get; init; }
+
+    public int Strength { get; set; }
+    public int Dexterity { get; set; }
+    public int Intelligence { get; set; }
+    public int Endurance { get; set; }
+    public int Stamina { get; set; }
+    public int Mana { get; set; }
+    public int Defense { get; set; }
+    public int MaximumHp { get; set; }
+    public int MaximumAp { get; set; }
+    public int MaximumMp { get; set; }
+    public float MovementSpeed { get; set; }
+    public float PhysicalResistance { get; set; }
+    public float FireResistance { get; set; }
+    public float IceResistance { get; set; }
+    public float LightningResistance { get; set; }
+    public float PoisonResistance { get; set; }
+    public float MagicResistance { get; set; }
     public Dictionary<string, int> ActiveConditions { get; set; } = [];
     public Dictionary<string, int> CooldownRemainingByAbility { get; set; } = [];
     public List<ActiveDot> ActiveDots { get; set; } = [];

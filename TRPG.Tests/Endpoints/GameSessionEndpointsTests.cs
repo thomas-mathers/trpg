@@ -193,6 +193,44 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     }
 
     [Fact]
+    public async Task GetScene_ReflectsUpdatedCurrentHp_WithinTheSameInGameHour()
+    {
+        // Arrange — first call populates the catch-up cache for this location+hour
+        var sessionId = await StartSession();
+        var firstResponse = await _client.GetAsync(
+            new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
+        var firstScene = await firstResponse.Content.ReadFromJsonAsync<SceneSnapshot>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_player.MaximumHp, firstScene!.PlayerStatus.CurrentHp);
+
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            await context
+                .Creatures.Where(c => c.Id == _player.Id)
+                .ExecuteUpdateAsync(
+                    c => c.SetProperty(x => x.CurrentHp, _player.MaximumHp - 10),
+                    TestContext.Current.CancellationToken
+                );
+        }
+
+        // Act — same in-game hour and location, so the catch-up cache is still warm
+        var secondResponse = await _client.GetAsync(
+            new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — the cache must never mask a live HP change
+        var secondScene = await secondResponse.Content.ReadFromJsonAsync<SceneSnapshot>(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_player.MaximumHp - 10, secondScene!.PlayerStatus.CurrentHp);
+    }
+
+    [Fact]
     public async Task GetScene_ReturnsNotFound_WhenSessionDoesNotExist()
     {
         // Act

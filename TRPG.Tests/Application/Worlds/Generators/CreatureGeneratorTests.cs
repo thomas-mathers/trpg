@@ -84,9 +84,9 @@ public class CreatureGeneratorTests
         var result = _creatureGenerator.Generate(MakeInput(Profession.Knight, level: 1));
 
         // Assert
-        Assert.Equal(result.Creature.Attributes.MaximumHp, result.Creature.CurrentHp);
-        Assert.Equal(result.Creature.Attributes.MaximumAp, result.Creature.CurrentAp);
-        Assert.Equal(result.Creature.Attributes.MaximumMp, result.Creature.CurrentMp);
+        Assert.Equal(result.Creature.MaximumHp, result.Creature.CurrentHp);
+        Assert.Equal(result.Creature.MaximumAp, result.Creature.CurrentAp);
+        Assert.Equal(result.Creature.MaximumMp, result.Creature.CurrentMp);
         Assert.Equal(TimeSpan.Zero, result.Creature.LastRegenPlaytime);
     }
 }

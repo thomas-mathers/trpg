@@ -951,15 +951,22 @@ public class CreatureGenerator(
             ),
             Gold = GetGold(level, generatorInput.Profession),
             StateId = generatorInput.StateId,
-            Attributes = attributes,
-            CurrentHp = attributes.MaximumHp,
-            CurrentAp = attributes.MaximumAp,
-            CurrentMp = attributes.MaximumMp,
+            BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
             Level = level,
         };
 
         var (items, inventoryItems) = GenerateStartingInventory(creature);
+        var equippedItems = items
+            .Zip(inventoryItems, (item, inventoryItem) => (item, inventoryItem))
+            .Where(pair => pair.inventoryItem.EquippedSlot != null)
+            .Select(pair => pair.item)
+            .ToArray();
+        CreatureAttributesRecalculator.Recalculate(creature, equippedItems);
+        creature.CurrentHp = creature.MaximumHp;
+        creature.CurrentAp = creature.MaximumAp;
+        creature.CurrentMp = creature.MaximumMp;
+
         var skills = GetSkills(creature);
         var abilities = GetAbilities(creature, skills);
 
