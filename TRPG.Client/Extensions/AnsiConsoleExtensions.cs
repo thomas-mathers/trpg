@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Spectre.Console;
+using TRPG.Contracts;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Scenes.Responses;
 
@@ -34,7 +35,7 @@ public static class AnsiConsoleExtensions
 
         public static void RenderTable(IReadOnlyList<string> columns, IEnumerable<string[]> rows)
         {
-            var table = new Table().Border(TableBorder.Rounded);
+            var table = new Table().Border(TableBorder.Rounded).ShowRowSeparators();
             foreach (var column in columns)
             {
                 table.AddColumn(column);
@@ -111,16 +112,19 @@ public static class AnsiConsoleExtensions
             };
         }
 
-        public static string FormatStateChip(string value) => FormatChip(value, StateChipColors);
+        public static string FormatStateChip(Enum value) => FormatChip(value, StateChipColors);
 
         private static string FormatChip(
-            string value,
+            Enum value,
             IReadOnlyDictionary<string, string> colorsByValue
         )
         {
-            var color = colorsByValue.GetValueOrDefault(value, "grey70");
-            return $"[{color} on grey19] {value.EscapeMarkup()} [/]";
+            var color = colorsByValue.GetValueOrDefault(value.ToString(), "grey70");
+            return $"[{color} on grey19] {value.ToDisplayName().EscapeMarkup()} [/]";
         }
+
+        public static string FormatNeutralChip(Enum value) =>
+            $"[grey70 on grey19] {value.ToDisplayName().EscapeMarkup()} [/]";
 
         public static string FormatNeutralChip(string value) =>
             $"[grey70 on grey19] {value.EscapeMarkup()} [/]";
@@ -187,14 +191,14 @@ public static class AnsiConsoleExtensions
 
             chips.AddRange(
                 combatant.ActiveConditions.Select(condition =>
-                    FormatDebuffChip(condition.Key, condition.Value)
+                    FormatDebuffChip(condition.Key.ToDisplayName(), condition.Value)
                 )
             );
 
             chips.AddRange(
                 combatant.ActiveDots.Select(dot =>
                     FormatDebuffChip(
-                        $"{dot.AbilityName} · {dot.Amount} {dot.DamageType}",
+                        $"{dot.AbilityName} · {dot.Amount} {dot.DamageType.ToDisplayName()}",
                         dot.RemainingTurns
                     )
                 )
@@ -209,7 +213,7 @@ public static class AnsiConsoleExtensions
             chips.AddRange(
                 combatant.ActiveBuffs.Select(buff =>
                 {
-                    var label = $"{buff.Attribute} {FormatBuffAmount(buff)}";
+                    var label = $"{buff.Attribute.ToDisplayName()} {FormatBuffAmount(buff)}";
                     return buff.Amount >= 0
                         ? FormatBuffChip(label, buff.RemainingTurns)
                         : FormatDebuffChip(label, buff.RemainingTurns);
@@ -221,9 +225,10 @@ public static class AnsiConsoleExtensions
 
         private static string FormatBuffAmount(ActiveBuff buff)
         {
-            var magnitude = buff.AmountType.Equals("Percent", StringComparison.OrdinalIgnoreCase)
-                ? $"{buff.Amount:0.#}%"
-                : $"{buff.Amount:0.#}";
+            var magnitude =
+                buff.AmountType == AmountType.Percent
+                    ? $"{buff.Amount:0.#}%"
+                    : $"{buff.Amount:0.#}";
             return buff.Amount >= 0 ? $"+{magnitude}" : magnitude;
         }
 

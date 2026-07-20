@@ -4,6 +4,7 @@ using TickerQ.Utilities;
 using TickerQ.Utilities.Interfaces.Managers;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Mappers;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
@@ -140,11 +141,11 @@ internal static class WorldEndpoints
                     CurrentMp: c.CurrentMp,
                     MaximumMp: c.MaximumMp,
                     ActiveConditions: c.ActiveConditions.Where(kv => kv.Value > 0)
-                        .ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                        .ToDictionary(kv => kv.Key.ToContract(), kv => kv.Value),
                     ActiveDots: c.ActiveDots.Select(d => new ActiveDot(
                             d.AbilityName,
                             d.Amount,
-                            d.DamageType.ToString(),
+                            d.DamageType.ToContract(),
                             d.RemainingTurns
                         ))
                         .ToArray(),
@@ -155,9 +156,9 @@ internal static class WorldEndpoints
                         ))
                         .ToArray(),
                     ActiveBuffs: c.ActiveBuffs.Select(b => new ActiveBuff(
-                            b.Attribute.ToString(),
+                            b.Attribute.ToContract(),
                             b.Amount,
-                            b.AmountType.ToString(),
+                            b.AmountType.ToContract(),
                             b.RemainingTurns
                         ))
                         .ToArray()

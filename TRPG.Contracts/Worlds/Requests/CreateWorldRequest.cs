@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace TRPG.Contracts.Worlds.Requests;
 
 public enum Gender
@@ -9,6 +11,7 @@ public enum Gender
 public enum Age
 {
     Teenager = 18,
+    [Description("Middle Aged")]
     MiddleAged = 40,
     Old = 75,
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using TRPG.Client.Extensions;
+using TRPG.Contracts;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Jobs.Responses;
 using TRPG.Contracts.Scenes.Responses;
@@ -103,7 +104,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
         AnsiConsole.AnnounceSuccess($"World \"{world.WorldName.EscapeMarkup()}\" generated.");
         AnsiConsole.WriteLine(
-            $"Entering \"{world.WorldName}\" as {request.PlayerName} the {request.PlayerClass}..."
+            $"Entering \"{world.WorldName}\" as {request.PlayerName} the {request.PlayerClass.ToDisplayName()}..."
         );
 
         await ResumeGame(world.WorldId, cancellationToken);
@@ -116,30 +117,40 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         var name = AnsiConsole.Ask<string>("Name");
 
         var gender = AnsiConsole.Prompt(
-            new SelectionPrompt<Gender>().Title("Gender").AddChoices(Enum.GetValues<Gender>())
+            new SelectionPrompt<Gender>()
+                .Title("Gender")
+                .AddChoices(Enum.GetValues<Gender>())
+                .UseConverter(value => value.ToDisplayName())
         );
 
-        AnsiConsole.MarkupLine($"[green]✓[/] Gender: {gender}");
+        AnsiConsole.MarkupLine($"[green]✓[/] Gender: {gender.ToDisplayName()}");
 
         var age = AnsiConsole.Prompt(
-            new SelectionPrompt<Age>().Title("Age").AddChoices(Enum.GetValues<Age>())
+            new SelectionPrompt<Age>()
+                .Title("Age")
+                .AddChoices(Enum.GetValues<Age>())
+                .UseConverter(value => value.ToDisplayName())
         );
 
-        AnsiConsole.MarkupLine($"[green]✓[/] Age: {age}");
+        AnsiConsole.MarkupLine($"[green]✓[/] Age: {age.ToDisplayName()}");
 
         var race = AnsiConsole.Prompt(
-            new SelectionPrompt<Race>().Title("Race").AddChoices(Enum.GetValues<Race>())
+            new SelectionPrompt<Race>()
+                .Title("Race")
+                .AddChoices(Enum.GetValues<Race>())
+                .UseConverter(value => value.ToDisplayName())
         );
 
-        AnsiConsole.MarkupLine($"[green]✓[/] Race: {race}");
+        AnsiConsole.MarkupLine($"[green]✓[/] Race: {race.ToDisplayName()}");
 
         var playerClass = AnsiConsole.Prompt(
             new SelectionPrompt<PlayerClass>()
                 .Title("Class")
                 .AddChoices(Enum.GetValues<PlayerClass>())
+                .UseConverter(value => value.ToDisplayName())
         );
 
-        AnsiConsole.MarkupLine($"[green]✓[/] Class: {playerClass}");
+        AnsiConsole.MarkupLine($"[green]✓[/] Class: {playerClass.ToDisplayName()}");
 
         AnsiConsole.Write(new Rule("World").RuleStyle("grey").LeftJustified());
 
@@ -213,10 +224,10 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             ["Setting", "Value"],
             [
                 ["Name", name.EscapeMarkup()],
-                ["Gender", AnsiConsole.FormatNeutralChip(gender.ToString())],
-                ["Age", AnsiConsole.FormatNeutralChip(age.ToString())],
-                ["Race", AnsiConsole.FormatNeutralChip(race.ToString())],
-                ["Class", AnsiConsole.FormatNeutralChip(playerClass.ToString())],
+                ["Gender", AnsiConsole.FormatNeutralChip(gender)],
+                ["Age", AnsiConsole.FormatNeutralChip(age)],
+                ["Race", AnsiConsole.FormatNeutralChip(race)],
+                ["Class", AnsiConsole.FormatNeutralChip(playerClass)],
                 ["Description", description.EscapeMarkup()],
                 ["City states", $"{minCityStates}–{maxCityStates}"],
                 ["Rural states", $"{minRuralStates}–{maxRuralStates}"],
@@ -771,11 +782,15 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             ["Name", status.Name.EscapeMarkup()],
             ["Race", AnsiConsole.FormatNeutralChip(status.CreatureType)],
             ["Gender", AnsiConsole.FormatNeutralChip(status.Gender)],
-            ["Profession", AnsiConsole.FormatNeutralChip(status.Profession)],
             ["Level", status.Level.ToString()],
             ["Age", status.Age.ToString()],
             ["Gold", status.Gold.ToString()],
         ];
+
+        if (status.Profession is { } profession)
+        {
+            rows.Add(["Profession", AnsiConsole.FormatNeutralChip(profession)]);
+        }
 
         if (status.State is { } state)
         {

@@ -1,4 +1,102 @@
+using System.ComponentModel;
+using TRPG.Contracts.Worlds.Requests;
+
 namespace TRPG.Contracts.Scenes.Responses;
+
+public enum CreatureType
+{
+    Human,
+    Elf,
+    Dwarf,
+    Orc,
+    Halfling,
+    Gnome,
+    Undead,
+    Demon,
+    Beast,
+    Construct,
+    Elemental,
+}
+
+public enum Profession
+{
+    Knight,
+    Rogue,
+    Ranger,
+    Mage,
+    Cleric,
+    Mercenary,
+    Alchemist,
+    Blacksmith,
+    Scholar,
+    Merchant,
+    Politician,
+    [Description("Stable Master")]
+    StableMaster,
+    Bartender,
+    Guard,
+    Baker,
+    Innkeeper,
+    Tailor,
+    Carpenter,
+    Jeweler,
+    Homemaker,
+    Unemployed,
+}
+
+public enum CreatureState
+{
+    Sleeping,
+    Idle,
+    Busy,
+    Studying,
+    Praying,
+    Training,
+    Sitting,
+    Dead,
+}
+
+public enum DistrictType
+{
+    Residential,
+    Scientific,
+    [Description("City Center")]
+    CityCenter,
+    Governmental,
+    [Description("Holy Site")]
+    HolySite,
+    Encampment,
+}
+
+public enum BuildingType
+{
+    [Description("Arcane Shop")]
+    ArcaneShop,
+    Apothecary,
+    Bakery,
+    Barracks,
+    Blacksmith,
+    Carpenter,
+    Castle,
+    Cave,
+    Crypt,
+    [Description("General Goods")]
+    GeneralGoods,
+    [Description("Guild Hall")]
+    GuildHall,
+    House,
+    Inn,
+    Jail,
+    Jeweler,
+    Library,
+    Mine,
+    Ruins,
+    Stable,
+    Tailor,
+    Tavern,
+    Temple,
+    Tower,
+}
 
 public record SceneSnapshot(
     string StateName,
@@ -22,12 +120,12 @@ public record SceneSnapshot(
 
 public record CreatureStatusSnapshot(
     string Name,
-    string CreatureType,
-    string Gender,
-    string Profession,
+    CreatureType CreatureType,
+    Gender Gender,
+    Profession? Profession,
     int Level,
     int Age,
-    string? State,
+    CreatureState? State,
     int Gold,
     int CurrentHp,
     int MaximumHp,
@@ -39,9 +137,9 @@ public record CreatureStatusSnapshot(
     int? Reputation
 );
 
-public record NearbyDistrictSnapshot(string Name, string Type);
+public record NearbyDistrictSnapshot(string Name, DistrictType Type);
 
-public record NearbyBuildingSnapshot(string Name, string Type);
+public record NearbyBuildingSnapshot(string Name, BuildingType Type);
 
 public record NearbyPropSnapshot(string Name, string Type);
 

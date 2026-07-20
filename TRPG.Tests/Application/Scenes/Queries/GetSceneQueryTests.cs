@@ -193,6 +193,30 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Handle_ReturnsNullProfession_ForPlayerAndNearbyCreatureWithNoProfession()
+    {
+        // Arrange
+        _player.Profession = null;
+        _nearbyCreature.Profession = null;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = _worldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Null(result.Player.Profession);
+        var nearby = Assert.Single(result.NearbyCreatures, p => p.Name == _nearbyCreature.Name);
+        Assert.Null(nearby.Profession);
+    }
+
+    [Fact]
     public async Task Handle_SeparatesDungeonsFromOrdinaryBuildings_WhenOutdoors()
     {
         // Arrange

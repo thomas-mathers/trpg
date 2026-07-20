@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Contracts;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data;
@@ -117,10 +118,14 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         var country = Builders.MakeCountry(world.Id);
         var state = Builders.MakeState(country.Id, world.Id);
         var city = Builders.MakeCity(state.Id, country.Id, worldId: world.Id);
-        var origin = Builders.MakeDistrict(city.Id, DistrictType.CityCenter, worldId: world.Id);
+        var origin = Builders.MakeDistrict(
+            city.Id,
+            TRPG.Data.Models.DistrictType.CityCenter,
+            worldId: world.Id
+        );
         var destination = Builders.MakeDistrict(
             city.Id,
-            DistrictType.Residential,
+            TRPG.Data.Models.DistrictType.Residential,
             worldId: world.Id
         );
         var player = Builders.MakeCreature(
@@ -186,6 +191,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var scene = await response.Content.ReadFromJsonAsync<SceneSnapshot>(
+            TrpgJsonOptions.Default,
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(scene);
@@ -202,6 +208,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
             TestContext.Current.CancellationToken
         );
         var firstScene = await firstResponse.Content.ReadFromJsonAsync<SceneSnapshot>(
+            TrpgJsonOptions.Default,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_player.MaximumHp, firstScene!.PlayerStatus.CurrentHp);
@@ -225,6 +232,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Assert — the cache must never mask a live HP change
         var secondScene = await secondResponse.Content.ReadFromJsonAsync<SceneSnapshot>(
+            TrpgJsonOptions.Default,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_player.MaximumHp - 10, secondScene!.PlayerStatus.CurrentHp);

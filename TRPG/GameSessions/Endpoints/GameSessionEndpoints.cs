@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
@@ -104,14 +105,14 @@ internal static class GameSessionEndpoints
             PlayerStatus: ToCreatureStatusSnapshot(scene.Player),
             NearbyCreatures: scene.NearbyCreatures.Select(ToCreatureStatusSnapshot).ToArray(),
             NearbyDistricts: scene
-                .City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type))
+                .City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type.ToContract()))
                 .ToArray()
                 ?? [],
             NearbyBuildings: scene
-                .NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
+                .NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type.ToContract()))
                 .ToArray(),
             NearbyDungeons: scene
-                .NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type))
+                .NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type.ToContract()))
                 .ToArray(),
             NearbyProps: scene
                 .NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type))
@@ -129,12 +130,12 @@ internal static class GameSessionEndpoints
     private static CreatureStatusSnapshot ToCreatureStatusSnapshot(SceneCreatureInfo creature) =>
         new(
             Name: creature.Name,
-            CreatureType: creature.CreatureType,
-            Gender: creature.Gender,
-            Profession: creature.Profession,
+            CreatureType: creature.CreatureType.ToContract(),
+            Gender: creature.Gender.ToContract(),
+            Profession: creature.Profession?.ToContract(),
             Level: creature.Level,
             Age: creature.Age,
-            State: creature.State,
+            State: creature.State?.ToContract(),
             Gold: creature.Gold,
             CurrentHp: creature.CurrentHp,
             MaximumHp: creature.MaximumHp,

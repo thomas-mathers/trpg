@@ -21,7 +21,7 @@ public record SceneDateInfo(int Year, string MonthName, int Day, string WeekdayN
 
 public record SceneStateInfo(string Name, string? Description);
 
-public record SceneDistrictInfo(string Name, string Type, bool IsCurrent);
+public record SceneDistrictInfo(string Name, DistrictType Type, bool IsCurrent);
 
 public record SceneCityInfo(
     string Name,
@@ -31,7 +31,7 @@ public record SceneCityInfo(
 
 public record SceneBuildingInfo(
     string Name,
-    string Type,
+    BuildingType Type,
     string? OwnerName,
     string? FactionName,
     string? FactionDescription
@@ -50,13 +50,13 @@ public record ScenePropInfo(string Name, string Description, string Type);
 
 public record SceneCreatureInfo(
     string Name,
-    string CreatureType,
-    string Gender,
-    string Profession,
+    CreatureType CreatureType,
+    Gender Gender,
+    Profession? Profession,
     int Level,
     int Age,
     IReadOnlyCollection<string> FactionNames,
-    string? State,
+    CreatureState? State,
     int? Reputation,
     int Gold,
     int CurrentHp,
@@ -67,7 +67,7 @@ public record SceneCreatureInfo(
     int MaximumMp
 );
 
-public record SceneNearbyBuildingInfo(string Name, string Type);
+public record SceneNearbyBuildingInfo(string Name, BuildingType Type);
 
 public record SceneResult(
     SceneDateInfo CurrentDate,
@@ -92,8 +92,8 @@ internal record SceneBootstrap(
     Guid? CityId,
     Guid? DistrictId,
     Guid? RoomId,
-    string CreatureTypeName,
-    string GenderName,
+    CreatureType CreatureType,
+    Gender Gender,
     int CurrentHp,
     int MaximumHp,
     int CurrentAp,
@@ -168,9 +168,9 @@ internal class GetSceneQueryHandler(
             details.Room,
             new SceneCreatureInfo(
                 bootstrap.PlayerName,
-                bootstrap.CreatureTypeName,
-                bootstrap.GenderName,
-                bootstrap.Profession.ToString()!,
+                bootstrap.CreatureType,
+                bootstrap.Gender,
+                bootstrap.Profession,
                 bootstrap.Level,
                 query.CurrentDate.Year - bootstrap.BirthYear,
                 [],
@@ -209,8 +209,8 @@ internal class GetSceneQueryHandler(
                 p.CityId,
                 p.DistrictId,
                 p.RoomId,
-                p.CreatureType.ToString(),
-                p.Gender.ToString(),
+                p.CreatureType,
+                p.Gender,
                 p.CurrentHp,
                 p.MaximumHp,
                 p.CurrentAp,
@@ -248,7 +248,7 @@ internal class GetSceneQueryHandler(
         var districtInfos = districts
             .Select(d => new SceneDistrictInfo(
                 d.Name,
-                d.DistrictType.ToString(),
+                d.DistrictType,
                 d.Id == bootstrap.DistrictId
             ))
             .ToArray();
@@ -280,7 +280,7 @@ internal class GetSceneQueryHandler(
 
         var buildingInfo = new SceneBuildingInfo(
             roomSummary!.BuildingName,
-            roomSummary.BuildingType.ToString(),
+            roomSummary.BuildingType,
             roomSummary.OwnerName,
             roomSummary.FactionName,
             roomSummary.FactionDescription
@@ -339,11 +339,11 @@ internal class GetSceneQueryHandler(
         var allBuildings = buildings.Concat(wildBuildings).ToArray();
         var nearbyBuildings = allBuildings
             .Where(b => !BuildingTypes.Dungeon.Contains(b.BuildingType))
-            .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType.ToString()))
+            .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType))
             .ToArray();
         var nearbyDungeons = allBuildings
             .Where(b => BuildingTypes.Dungeon.Contains(b.BuildingType))
-            .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType.ToString()))
+            .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType))
             .ToArray();
 
         var nearbyPeople = await BuildNearbyPeople(query, bootstrap, cancellationToken);
@@ -426,8 +426,8 @@ internal class GetSceneQueryHandler(
         return nearbyPeopleRaw
             .Select(x => new SceneCreatureInfo(
                 x.Name,
-                x.CreatureTypeName,
-                x.GenderName,
+                x.CreatureType,
+                x.Gender,
                 x.Profession,
                 x.Level,
                 query.CurrentDate.Year - x.BirthYear,

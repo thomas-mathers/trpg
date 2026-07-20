@@ -32,7 +32,7 @@ internal static class Builders
     public static Creature MakeCreature(
         Guid? worldId = null,
         CreatureType creatureType = CreatureType.Human,
-        Profession profession = Profession.Knight,
+        Profession? profession = Profession.Knight,
         Guid? birthStateId = null,
         Guid? stateId = null,
         Guid? cityId = null,

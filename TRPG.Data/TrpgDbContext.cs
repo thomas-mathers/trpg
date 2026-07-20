@@ -55,34 +55,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
-        configurationBuilder.Properties<AmountType>().HaveConversion<string>();
-        configurationBuilder.Properties<BuildingType>().HaveConversion<string>();
-        configurationBuilder.Properties<WorkstationType>().HaveConversion<string>();
-        configurationBuilder.Properties<AttributeName>().HaveConversion<string>();
-        configurationBuilder.Properties<DamageType>().HaveConversion<string>();
-        configurationBuilder.Properties<EquipmentSlot>().HaveConversion<string>();
-        configurationBuilder.Properties<WeaponType>().HaveConversion<string>();
-        configurationBuilder.Properties<ArmorClass>().HaveConversion<string>();
-        configurationBuilder.Properties<ArmorType>().HaveConversion<string>();
-        configurationBuilder.Properties<AccessoryType>().HaveConversion<string>();
-        configurationBuilder.Properties<AmmoType>().HaveConversion<string>();
-        configurationBuilder.Properties<ItemRarity>().HaveConversion<string>();
-        configurationBuilder.Properties<FactionRole>().HaveConversion<string>();
-        configurationBuilder.Properties<ReputationTargetType>().HaveConversion<string>();
-        configurationBuilder.Properties<QuestStatus>().HaveConversion<string>();
-        configurationBuilder.Properties<QuestObjectiveType>().HaveConversion<string>();
-        configurationBuilder.Properties<CreatureJobAction>().HaveConversion<string>();
-        configurationBuilder.Properties<Profession>().HaveConversion<string>();
-        configurationBuilder.Properties<CreatureState>().HaveConversion<string>();
-        configurationBuilder.Properties<CreatureType>().HaveConversion<string>();
-        configurationBuilder.Properties<Gender>().HaveConversion<string>();
-        configurationBuilder.Properties<DistrictType>().HaveConversion<string>();
-        configurationBuilder.Properties<Skill>().HaveConversion<string>();
-        configurationBuilder.Properties<QuestTargetType>().HaveConversion<string>();
-        configurationBuilder.Properties<RelationshipType>().HaveConversion<string>();
-        configurationBuilder.Properties<DayOfWeek>().HaveConversion<string>();
-        configurationBuilder.Properties<KnowledgeSubjectType>().HaveConversion<string>();
-        configurationBuilder.Properties<CombatOutcome>().HaveConversion<string>();
+        configurationBuilder.Properties<Enum>().HaveConversion<string>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

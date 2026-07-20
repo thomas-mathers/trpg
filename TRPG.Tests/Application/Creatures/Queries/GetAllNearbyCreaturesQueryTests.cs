@@ -149,6 +149,29 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
     }
 
     [Fact]
+    public async Task Handle_ReturnsNullProfession_WhenCreatureHasNoProfession()
+    {
+        // Arrange
+        var stateId = Guid.NewGuid();
+        var roomId = Guid.NewGuid();
+        var minor = Builders.MakeCreature(_worldId, stateId: stateId, profession: null);
+        minor.RoomId = roomId;
+        _context.Creatures.Add(minor);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var location = new CreatureLocation(_worldId, roomId, stateId, null);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetAllNearbyCreaturesQuery { Location = location },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var summary = Assert.Single(result, x => x.Id == minor.Id);
+        Assert.Null(summary.Profession);
+    }
+
+    [Fact]
     public async Task Handle_ExcludesDeadCreatures_WhenIncludeDeadIsFalse()
     {
         // Arrange

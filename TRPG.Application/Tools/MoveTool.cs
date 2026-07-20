@@ -132,7 +132,7 @@ internal class MoveTool(
         );
 
         var deadCreatureIds = nearby
-            .Where(creature => creature.State == nameof(CreatureState.Dead))
+            .Where(creature => creature.State == CreatureState.Dead)
             .Select(creature => creature.Id)
             .ToArray();
 
