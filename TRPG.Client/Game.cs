@@ -1,15 +1,7 @@
-using System.CommandLine;
-using System.Text.Json;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
-using TRPG.Contracts.Combat.Responses;
-using TRPG.Contracts.Jobs.Responses;
-using TRPG.Contracts.Scenes.Responses;
-using TRPG.Contracts.Worlds.Requests;
 using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
@@ -24,8 +16,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         Exit,
     }
 
-    private bool _exitRequested;
-    private IReadOnlyList<NamedEntity> _namedEntities = [];
+    private readonly NewGameFlow _newGameFlow = new(client);
 
     public async Task Start(bool shouldContinue, CancellationToken cancellationToken)
     {
@@ -35,7 +26,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             return;
         }
 
-        AnsiConsole.Write(new FigletText("TRPG").Centered().Color(Color.Gold1));
+        AnsiConsole.Write(new FigletText("TRPG").Centered().Color(Theme.AccentColor));
 
         while (true)
         {
@@ -78,210 +69,10 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
     private async Task HandleNewGameOption(CancellationToken cancellationToken)
     {
-        var request = PromptForGameOptions();
-        if (request == null)
+        var worldId = await _newGameFlow.Run(cancellationToken);
+        if (worldId is { } id)
         {
-            return;
-        }
-
-        var jobId = await client.CreateWorld(request, cancellationToken);
-
-        var jobStatus = await AnsiConsole
-            .Status()
-            .StartAsync(
-                "Generating world...",
-                _ => WaitForJobWithProgress(jobId, cancellationToken)
-            );
-
-        if (jobStatus.Status != JobStatus.Done)
-        {
-            AnsiConsole.AnnounceError(
-                $"World generation failed: {jobStatus.ErrorMessage?.EscapeMarkup()}"
-            );
-            return;
-        }
-
-        var world = JsonSerializer.Deserialize<CreateWorldResponse>(jobStatus.ResultJson!)!;
-
-        AnsiConsole.AnnounceSuccess($"World \"{world.WorldName.EscapeMarkup()}\" generated.");
-        AnsiConsole.WriteLine(
-            $"Entering \"{world.WorldName}\" as {request.PlayerName} the {request.PlayerClass.ToDisplayName()}..."
-        );
-
-        await ResumeGame(world.WorldId, cancellationToken);
-    }
-
-    private static CreateWorldRequest? PromptForGameOptions()
-    {
-        AnsiConsole.Write(new Rule("Character").RuleStyle("grey").LeftJustified());
-
-        var name = AnsiConsole.Ask<string>("Name");
-
-        var gender = AnsiConsole.Prompt(
-            new SelectionPrompt<Gender>()
-                .Title("Gender")
-                .AddChoices(Enum.GetValues<Gender>())
-                .UseConverter(value => value.ToDisplayName())
-        );
-
-        AnsiConsole.MarkupLine($"[green]✓[/] Gender: {gender.ToDisplayName()}");
-
-        var age = AnsiConsole.Prompt(
-            new SelectionPrompt<Age>()
-                .Title("Age")
-                .AddChoices(Enum.GetValues<Age>())
-                .UseConverter(value => value.ToDisplayName())
-        );
-
-        AnsiConsole.MarkupLine($"[green]✓[/] Age: {age.ToDisplayName()}");
-
-        var race = AnsiConsole.Prompt(
-            new SelectionPrompt<Race>()
-                .Title("Race")
-                .AddChoices(Enum.GetValues<Race>())
-                .UseConverter(value => value.ToDisplayName())
-        );
-
-        AnsiConsole.MarkupLine($"[green]✓[/] Race: {race.ToDisplayName()}");
-
-        var playerClass = AnsiConsole.Prompt(
-            new SelectionPrompt<PlayerClass>()
-                .Title("Class")
-                .AddChoices(Enum.GetValues<PlayerClass>())
-                .UseConverter(value => value.ToDisplayName())
-        );
-
-        AnsiConsole.MarkupLine($"[green]✓[/] Class: {playerClass.ToDisplayName()}");
-
-        AnsiConsole.Write(new Rule("World").RuleStyle("grey").LeftJustified());
-
-        var description = AnsiConsole.Ask("Description", WorldGenerationDefaults.Description);
-
-        AnsiConsole.Write(new Rule("Geography").RuleStyle("grey").LeftJustified());
-
-        var minCityStates = AnsiConsole.Ask(
-            "Min city states",
-            WorldGenerationDefaults.MinCityStates
-        );
-
-        var maxCityStates = AnsiConsole.Ask(
-            "Max city states",
-            WorldGenerationDefaults.MaxCityStates
-        );
-
-        var minRuralStates = AnsiConsole.Ask(
-            "Min rural states",
-            WorldGenerationDefaults.MinRuralStates
-        );
-
-        var maxRuralStates = AnsiConsole.Ask(
-            "Max rural states",
-            WorldGenerationDefaults.MaxRuralStates
-        );
-
-        AnsiConsole.Write(new Rule("Dungeons").RuleStyle("grey").LeftJustified());
-
-        var minDungeonsPerState = AnsiConsole.Ask(
-            "Min dungeons per state",
-            WorldGenerationDefaults.MinBuildingsPerState
-        );
-
-        var maxDungeonsPerState = AnsiConsole.Ask(
-            "Max dungeons per state",
-            WorldGenerationDefaults.MaxBuildingsPerState
-        );
-
-        AnsiConsole.Write(new Rule("Factions").RuleStyle("grey").LeftJustified());
-
-        var minFactionMembers = AnsiConsole.Ask(
-            "Min faction members",
-            WorldGenerationDefaults.MinFactionMembers
-        );
-
-        var maxFactionMembers = AnsiConsole.Ask(
-            "Max faction members",
-            WorldGenerationDefaults.MaxFactionMembers
-        );
-
-        var numFactions = AnsiConsole.Ask("Num factions", WorldGenerationDefaults.FactionCount);
-
-        AnsiConsole.Write(new Rule("Households").RuleStyle("grey").LeftJustified());
-
-        var housesPerCity = AnsiConsole.Ask("Houses/city", WorldGenerationDefaults.HousesPerCity);
-
-        var minHouseholdSize = AnsiConsole.Ask(
-            "Min household size",
-            WorldGenerationDefaults.MinHouseholdSize
-        );
-
-        var maxHouseholdSize = AnsiConsole.Ask(
-            "Max household size",
-            WorldGenerationDefaults.MaxHouseholdSize
-        );
-
-        AnsiConsole.Write(new Rule("Review").RuleStyle("grey").LeftJustified());
-
-        AnsiConsole.PrintTable(
-            ["Setting", "Value"],
-            [
-                ["Name", name.EscapeMarkup()],
-                ["Gender", AnsiConsole.FormatNeutralChip(gender)],
-                ["Age", AnsiConsole.FormatNeutralChip(age)],
-                ["Race", AnsiConsole.FormatNeutralChip(race)],
-                ["Class", AnsiConsole.FormatNeutralChip(playerClass)],
-                ["Description", description.EscapeMarkup()],
-                ["City states", $"{minCityStates}–{maxCityStates}"],
-                ["Rural states", $"{minRuralStates}–{maxRuralStates}"],
-                ["Dungeons/state", $"{minDungeonsPerState}–{maxDungeonsPerState}"],
-                ["Faction members", $"{minFactionMembers}–{maxFactionMembers}"],
-                ["Factions", numFactions.ToString()],
-                ["Houses/city", housesPerCity.ToString()],
-                ["Household size", $"{minHouseholdSize}–{maxHouseholdSize}"],
-            ]
-        );
-
-        if (!AnsiConsole.Confirm("Create this world?"))
-        {
-            return null;
-        }
-
-        return new CreateWorldRequest
-        {
-            PlayerName = name,
-            Race = race,
-            Gender = gender,
-            Age = age,
-            PlayerClass = playerClass,
-            Description = description,
-            MinCityStates = minCityStates,
-            MaxCityStates = maxCityStates,
-            MinRuralStates = minRuralStates,
-            MaxRuralStates = maxRuralStates,
-            MinBuildingsPerState = minDungeonsPerState,
-            MaxBuildingsPerState = maxDungeonsPerState,
-            MinFactionMembers = minFactionMembers,
-            MaxFactionMembers = maxFactionMembers,
-            HousesPerCity = housesPerCity,
-            MinHouseholdSize = minHouseholdSize,
-            MaxHouseholdSize = maxHouseholdSize,
-            FactionCount = numFactions,
-        };
-    }
-
-    private async Task<JobStatusResponse> WaitForJobWithProgress(
-        Guid jobId,
-        CancellationToken cancellationToken
-    )
-    {
-        while (true)
-        {
-            var status = await client.GetJobStatus(jobId, cancellationToken);
-            if (status.Status is JobStatus.Done or JobStatus.Failed or JobStatus.Cancelled)
-            {
-                return status;
-            }
-
-            await Task.Delay(2000, cancellationToken);
+            await ResumeGame(id, cancellationToken);
         }
     }
 
@@ -352,11 +143,13 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
     private async Task ResumeGame(Guid worldId, CancellationToken cancellationToken)
     {
-        _exitRequested = false;
         var session = await client.StartSession(worldId, cancellationToken);
-        await using var hubConnection = session.Connection;
+        await using var gameHub = session.Hub;
         var sessionId = session.SessionId;
-        _namedEntities = await TryGetNamedEntities(sessionId, cancellationToken);
+        var narrationRenderer = new NarrationRenderer(
+            logger,
+            await client.GetNamedEntities(sessionId, cancellationToken)
+        );
 
         AnsiConsole.Clear();
         AnsiConsole.Write(
@@ -364,40 +157,28 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 "Welcome to the TRPG Game Master!\nType '/exit' to quit, or '/help' for commands."
             )
                 .Header("TRPG")
-                .BorderColor(Color.Gold1)
+                .BorderColor(Theme.AccentColor)
         );
 
-        hubConnection.Reconnecting += _ =>
-        {
-            AnsiConsole.PrintConnectionStatus("Connection lost, reconnecting...");
-            return Task.CompletedTask;
-        };
-        hubConnection.Reconnected += _ =>
-        {
-            AnsiConsole.PrintConnectionStatus("Reconnected.");
-            return Task.CompletedTask;
-        };
-        hubConnection.Closed += _ =>
-        {
-            AnsiConsole.PrintConnectionStatus("Connection closed.");
-            return Task.CompletedTask;
-        };
+        gameHub.OnStatusChanged(PrintConnectionStatus);
 
-        if (
-            !await TryStreamTurn(
-                _namedEntities,
-                hubConnection.StreamAsync<string>("ReceiveOpening", cancellationToken)
-            )
-        )
+        if (!await narrationRenderer.TryRender(gameHub.StreamOpening(cancellationToken)))
         {
             return;
         }
 
         await PrintStatus(worldId, sessionId, cancellationToken);
 
-        var commands = BuildCommands(hubConnection, worldId, sessionId);
+        var commandRegistry = new SlashCommandRegistry(
+            client,
+            narrationRenderer,
+            gameHub,
+            worldId,
+            sessionId
+        );
 
-        while (!_exitRequested)
+        var exitRequested = false;
+        while (!exitRequested)
         {
             AnsiConsole.Write("> ");
 
@@ -410,16 +191,11 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
             if (input.StartsWith('/'))
             {
-                await HandleCommand(input, commands, cancellationToken);
+                exitRequested = await commandRegistry.Handle(input, cancellationToken);
                 continue;
             }
 
-            if (
-                await TryStreamTurn(
-                    _namedEntities,
-                    hubConnection.StreamAsync<string>("SendChat", input, cancellationToken)
-                )
-            )
+            if (await narrationRenderer.TryRender(gameHub.StreamChat(input, cancellationToken)))
             {
                 await PrintStatus(worldId, sessionId, cancellationToken);
             }
@@ -432,341 +208,16 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         CancellationToken cancellationToken
     )
     {
-        var fightState = await TryGetFight(worldId, cancellationToken);
+        var fightState = await client.GetFight(worldId, cancellationToken);
         AnsiConsole.PrintCombatStatus(fightState);
 
-        var scene = await TryGetScene(sessionId, cancellationToken);
+        var scene = await client.GetScene(sessionId, cancellationToken);
         if (scene != null)
         {
             AnsiConsole.PrintStatus(scene);
         }
     }
 
-    private async Task<SceneSnapshot?> TryGetScene(
-        Guid sessionId,
-        CancellationToken cancellationToken
-    )
-    {
-        try
-        {
-            return await client.GetScene(sessionId, cancellationToken);
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogError(ex, "[game] failed to fetch scene");
-            AnsiConsole.AnnounceError($"[[Failed to fetch scene: {ex.Message.EscapeMarkup()}]]");
-            return null;
-        }
-    }
-
-    private async Task<FightState?> TryGetFight(Guid worldId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await client.GetFight(worldId, cancellationToken);
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogError(ex, "[game] failed to fetch fight status");
-            AnsiConsole.AnnounceError(
-                $"[[Failed to fetch fight status: {ex.Message.EscapeMarkup()}]]"
-            );
-            return null;
-        }
-    }
-
-    private async Task<IReadOnlyList<NamedEntity>> TryGetNamedEntities(
-        Guid sessionId,
-        CancellationToken cancellationToken
-    )
-    {
-        try
-        {
-            return await client.GetNamedEntities(sessionId, cancellationToken);
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogError(ex, "[game] failed to fetch named entities");
-            AnsiConsole.AnnounceError(
-                $"[[Failed to fetch named entities: {ex.Message.EscapeMarkup()}]]"
-            );
-            return [];
-        }
-    }
-
-    private Dictionary<string, Command> BuildCommands(
-        HubConnection hubConnection,
-        Guid worldId,
-        Guid sessionId
-    )
-    {
-        var hoursArgument = new Argument<int>("hours") { Description = "Number of hours to wait" };
-        var waitCommand = new Command("wait", "Pass time without acting") { hoursArgument };
-        waitCommand.SetAction(
-            async (parseResult, cancellationToken) =>
-            {
-                var hours = parseResult.GetValue(hoursArgument);
-                if (hours <= 0)
-                {
-                    AnsiConsole.AnnounceWarning("Usage: /wait <hours>");
-                    return 0;
-                }
-
-                await SendWait(hubConnection, worldId, sessionId, hours, cancellationToken);
-                return 0;
-            }
-        );
-
-        var creatureNameArgument = new Argument<string[]>("name")
-        {
-            Description = "Name of a specific person to inspect (omit to list everyone nearby)",
-            Arity = ArgumentArity.ZeroOrMore,
-        };
-        var creaturesCommand = new Command(
-            "creatures",
-            "List people nearby, or inspect one by name"
-        )
-        {
-            creatureNameArgument,
-        };
-        creaturesCommand.SetAction(
-            async (parseResult, cancellationToken) =>
-            {
-                var name = string.Join(' ', parseResult.GetValue(creatureNameArgument) ?? []);
-                var scene = await TryGetScene(sessionId, cancellationToken);
-                if (scene == null)
-                {
-                    return 0;
-                }
-
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    AnsiConsole.PrintCreatures(scene.NearbyCreatures);
-                }
-                else
-                {
-                    AnsiConsole.PrintCreatureDetail(scene.NearbyCreatures, name);
-                }
-
-                return 0;
-            }
-        );
-
-        var districtsCommand = new Command("districts", "List districts nearby");
-        districtsCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await TryGetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    AnsiConsole.PrintDistricts(scene.NearbyDistricts);
-                }
-
-                return 0;
-            }
-        );
-
-        var buildingsCommand = new Command("buildings", "List buildings nearby");
-        buildingsCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await TryGetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    AnsiConsole.PrintBuildings(scene.NearbyBuildings);
-                }
-
-                return 0;
-            }
-        );
-
-        var dungeonsCommand = new Command("dungeons", "List dungeons nearby");
-        dungeonsCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await TryGetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    AnsiConsole.PrintDungeons(scene.NearbyDungeons);
-                }
-
-                return 0;
-            }
-        );
-
-        var propsCommand = new Command("props", "List props nearby");
-        propsCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await TryGetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    AnsiConsole.PrintProps(scene.NearbyProps);
-                }
-
-                return 0;
-            }
-        );
-
-        var exitsCommand = new Command("exits", "List exits nearby");
-        exitsCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await TryGetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    AnsiConsole.PrintExits(scene.Exits);
-                }
-
-                return 0;
-            }
-        );
-
-        var characterCommand = new Command("character", "Show your own character sheet");
-        characterCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await TryGetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    AnsiConsole.PrintCreatureStatus(scene.PlayerStatus);
-                }
-
-                return 0;
-            }
-        );
-
-        var exitCommand = new Command("exit", "End the session and return to the menu");
-        exitCommand.SetAction(_ =>
-        {
-            _exitRequested = true;
-            return 0;
-        });
-
-        Command[] commands =
-        [
-            waitCommand,
-            creaturesCommand,
-            districtsCommand,
-            buildingsCommand,
-            dungeonsCommand,
-            propsCommand,
-            exitsCommand,
-            characterCommand,
-            exitCommand,
-        ];
-
-        return commands.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
-    }
-
-    internal async Task SendWait(
-        HubConnection hubConnection,
-        Guid worldId,
-        Guid sessionId,
-        int hours,
-        CancellationToken cancellationToken
-    )
-    {
-        if (
-            await TryStreamTurn(
-                _namedEntities,
-                hubConnection.StreamAsync<string>("SendWait", hours, cancellationToken)
-            )
-        )
-        {
-            await PrintStatus(worldId, sessionId, cancellationToken);
-        }
-    }
-
-    private async Task<bool> TryStreamTurn(
-        IReadOnlyList<NamedEntity> namedEntities,
-        IAsyncEnumerable<string> tokens
-    )
-    {
-        try
-        {
-            var prefix = "";
-
-            await foreach (var token in tokens)
-            {
-                foreach (var c in token)
-                {
-                    var isPrefix = namedEntities.Any(entity =>
-                        entity.Name.StartsWith(prefix + c, StringComparison.OrdinalIgnoreCase)
-                    );
-                    if (!isPrefix)
-                    {
-                        PrintPrefix(namedEntities, prefix);
-                        prefix = "";
-                    }
-
-                    prefix += c;
-                }
-            }
-
-            PrintPrefix(namedEntities, prefix);
-
-            return true;
-        }
-        catch (Exception ex) when (ex is HubException or IOException)
-        {
-            logger.LogError(ex, "[game] turn failed while streaming");
-            AnsiConsole.AnnounceError($"[[Turn failed: {ex.Message.EscapeMarkup()}]]");
-            return false;
-        }
-    }
-
-    private static void PrintPrefix(IReadOnlyList<NamedEntity> namedEntities, string prefix)
-    {
-        var match = namedEntities.FirstOrDefault(entity =>
-            entity.Name.Equals(prefix, StringComparison.OrdinalIgnoreCase)
-        );
-        if (match != null)
-        {
-            AnsiConsole.PrintEntityChip(match.Name, match.Type);
-        }
-        else
-        {
-            AnsiConsole.PrintNarration(prefix);
-        }
-    }
-
-    private static async Task HandleCommand(
-        string input,
-        IReadOnlyDictionary<string, Command> commands,
-        CancellationToken cancellationToken
-    )
-    {
-        var body = input[1..];
-        var spaceIndex = body.IndexOf(' ', StringComparison.OrdinalIgnoreCase);
-        var name = spaceIndex < 0 ? body : body[..spaceIndex];
-        var argumentText = spaceIndex < 0 ? "" : body[(spaceIndex + 1)..].Trim();
-
-        if (name.Equals("help", StringComparison.OrdinalIgnoreCase))
-        {
-            AnsiConsole.PrintAvailableCommands(commands);
-            return;
-        }
-
-        if (!commands.TryGetValue(name, out var command))
-        {
-            AnsiConsole.AnnounceWarning(
-                $"Unknown command '/{name.EscapeMarkup()}'. Type /help for a list."
-            );
-            return;
-        }
-
-        var parseResult = command.Parse(argumentText);
-        if (parseResult.Errors.Count > 0)
-        {
-            foreach (var error in parseResult.Errors)
-            {
-                AnsiConsole.AnnounceWarning(error.Message.EscapeMarkup());
-            }
-
-            return;
-        }
-
-        await parseResult.InvokeAsync(cancellationToken: cancellationToken);
-    }
+    private static void PrintConnectionStatus(ConnectionStatus status) =>
+        AnsiConsole.AnnounceWarning($"[[{status.ToDisplayName().EscapeMarkup()}]]");
 }

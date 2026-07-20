@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
+using TRPG.Client.Extensions;
 using TRPG.Contracts;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
@@ -13,10 +15,12 @@ using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 
-internal sealed record SessionConnection(HubConnection Connection, Guid SessionId);
+internal sealed record SessionConnection(GameHub Hub, Guid SessionId);
 
 internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory loggerFactory)
 {
+    private readonly ILogger<GameServerClient> _logger = loggerFactory.CreateLogger<GameServerClient>();
+
     public async Task<Guid> CreateWorld(
         CreateWorldRequest request,
         CancellationToken cancellationToken
@@ -99,17 +103,25 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
         var connection = builder.Build();
         await connection.StartAsync(cancellationToken);
 
-        return new SessionConnection(connection, result.SessionId);
+        return new SessionConnection(new GameHub(connection), result.SessionId);
     }
 
-    public async Task<SceneSnapshot> GetScene(Guid sessionId, CancellationToken cancellationToken)
+    public async Task<SceneSnapshot?> GetScene(Guid sessionId, CancellationToken cancellationToken)
     {
-        var result = await httpClient.GetFromJsonAsync<SceneSnapshot>(
-            new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
-            TrpgJsonOptions.Default,
-            cancellationToken
-        );
-        return result!;
+        try
+        {
+            return await httpClient.GetFromJsonAsync<SceneSnapshot>(
+                new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
+                TrpgJsonOptions.Default,
+                cancellationToken
+            );
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "[game] failed to fetch scene");
+            AnsiConsole.AnnounceError($"[[Failed to fetch scene: {ex.Message.EscapeMarkup()}]]");
+            return null;
+        }
     }
 
     public async Task<IReadOnlyList<NamedEntity>> GetNamedEntities(
@@ -117,29 +129,51 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
         CancellationToken cancellationToken
     )
     {
-        var result = await httpClient.GetFromJsonAsync<List<NamedEntity>>(
-            new Uri($"/sessions/{sessionId}/named-entities", UriKind.Relative),
-            TrpgJsonOptions.Default,
-            cancellationToken
-        );
-        return result ?? [];
+        try
+        {
+            var result = await httpClient.GetFromJsonAsync<List<NamedEntity>>(
+                new Uri($"/sessions/{sessionId}/named-entities", UriKind.Relative),
+                TrpgJsonOptions.Default,
+                cancellationToken
+            );
+            return result ?? [];
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "[game] failed to fetch named entities");
+            AnsiConsole.AnnounceError(
+                $"[[Failed to fetch named entities: {ex.Message.EscapeMarkup()}]]"
+            );
+            return [];
+        }
     }
 
     public async Task<FightState?> GetFight(Guid worldId, CancellationToken cancellationToken)
     {
-        var response = await httpClient.GetAsync(
-            new Uri($"/worlds/{worldId}/fight", UriKind.Relative),
-            cancellationToken
-        );
-        if (response.StatusCode == HttpStatusCode.NotFound)
+        try
         {
+            var response = await httpClient.GetAsync(
+                new Uri($"/worlds/{worldId}/fight", UriKind.Relative),
+                cancellationToken
+            );
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<FightState>(
+                TrpgJsonOptions.Default,
+                cancellationToken
+            );
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "[game] failed to fetch fight status");
+            AnsiConsole.AnnounceError(
+                $"[[Failed to fetch fight status: {ex.Message.EscapeMarkup()}]]"
+            );
             return null;
         }
-
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<FightState>(
-            TrpgJsonOptions.Default,
-            cancellationToken
-        );
     }
 }
