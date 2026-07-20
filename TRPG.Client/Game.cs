@@ -25,7 +25,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
     }
 
     private bool _exitRequested;
-    private IReadOnlyList<string> _entityNames = [];
+    private IReadOnlyList<NamedEntity> _namedEntities = [];
 
     public async Task Start(bool shouldContinue, CancellationToken cancellationToken)
     {
@@ -356,7 +356,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         var session = await client.StartSession(worldId, cancellationToken);
         await using var hubConnection = session.Connection;
         var sessionId = session.SessionId;
-        _entityNames = await TryGetEntityNames(sessionId, cancellationToken);
+        _namedEntities = await TryGetNamedEntities(sessionId, cancellationToken);
 
         AnsiConsole.Clear();
         AnsiConsole.Write(
@@ -385,7 +385,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
         if (
             !await TryStreamTurn(
-                _entityNames,
+                _namedEntities,
                 hubConnection.StreamAsync<string>("ReceiveOpening", cancellationToken)
             )
         )
@@ -416,7 +416,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
             if (
                 await TryStreamTurn(
-                    _entityNames,
+                    _namedEntities,
                     hubConnection.StreamAsync<string>("SendChat", input, cancellationToken)
                 )
             )
@@ -475,20 +475,20 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         }
     }
 
-    private async Task<IReadOnlyList<string>> TryGetEntityNames(
+    private async Task<IReadOnlyList<NamedEntity>> TryGetNamedEntities(
         Guid sessionId,
         CancellationToken cancellationToken
     )
     {
         try
         {
-            return await client.GetEntityNames(sessionId, cancellationToken);
+            return await client.GetNamedEntities(sessionId, cancellationToken);
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "[game] failed to fetch entity names");
+            logger.LogError(ex, "[game] failed to fetch named entities");
             AnsiConsole.AnnounceError(
-                $"[[Failed to fetch entity names: {ex.Message.EscapeMarkup()}]]"
+                $"[[Failed to fetch named entities: {ex.Message.EscapeMarkup()}]]"
             );
             return [];
         }
@@ -669,7 +669,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
     {
         if (
             await TryStreamTurn(
-                _entityNames,
+                _namedEntities,
                 hubConnection.StreamAsync<string>("SendWait", hours, cancellationToken)
             )
         )
@@ -678,27 +678,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         }
     }
 
-    private async Task<IReadOnlyList<string>> GetEntityNames(
-        Guid sessionId,
-        CancellationToken cancellationToken
-    )
-    {
-        var scene = await TryGetScene(sessionId, cancellationToken);
-        if (scene == null)
-        {
-            return [];
-        }
-
-        return scene
-            .NearbyCreatures.Select(c => c.Name)
-            .Concat(scene.NearbyBuildings.Select(b => b.Name))
-            .Concat(scene.NearbyDungeons.Select(d => d.Name))
-            .Concat(scene.NearbyDistricts.Select(d => d.Name))
-            .ToArray();
-    }
-
     private async Task<bool> TryStreamTurn(
-        IReadOnlyList<string> entityNames,
+        IReadOnlyList<NamedEntity> namedEntities,
         IAsyncEnumerable<string> tokens
     )
     {
@@ -710,12 +691,12 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             {
                 foreach (var c in token)
                 {
-                    var isPrefix = entityNames.Any(name =>
-                        name.StartsWith(prefix + c, StringComparison.OrdinalIgnoreCase)
+                    var isPrefix = namedEntities.Any(entity =>
+                        entity.Name.StartsWith(prefix + c, StringComparison.OrdinalIgnoreCase)
                     );
                     if (!isPrefix)
                     {
-                        PrintPrefix(entityNames, prefix);
+                        PrintPrefix(namedEntities, prefix);
                         prefix = "";
                     }
 
@@ -723,7 +704,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 }
             }
 
-            PrintPrefix(entityNames, prefix);
+            PrintPrefix(namedEntities, prefix);
 
             return true;
         }
@@ -735,18 +716,18 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         }
     }
 
-    private static void PrintPrefix(IReadOnlyList<string> entityNames, string prefix)
+    private static void PrintPrefix(IReadOnlyList<NamedEntity> namedEntities, string prefix)
     {
-        var hasExactMatch = entityNames.Any(name =>
-            name.Equals(prefix, StringComparison.OrdinalIgnoreCase)
+        var match = namedEntities.FirstOrDefault(entity =>
+            entity.Name.Equals(prefix, StringComparison.OrdinalIgnoreCase)
         );
-        if (hasExactMatch)
+        if (match != null)
         {
-            AnsiConsole.PrintHighlightedEntity(prefix);
+            AnsiConsole.PrintEntityChip(match.Name, match.Type);
         }
         else
         {
-            AnsiConsole.Write(prefix);
+            AnsiConsole.PrintNarration(prefix);
         }
     }
 

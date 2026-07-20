@@ -23,6 +23,19 @@ public static class AnsiConsoleExtensions
         ["Dead"] = "grey50",
     };
 
+    private static readonly IReadOnlyDictionary<EntityType, string> EntityTypeChipStyles =
+        new Dictionary<EntityType, string>
+        {
+            [EntityType.Creature] = "black on indianred1",
+            [EntityType.Building] = "black on steelblue1",
+            [EntityType.District] = "black on mediumpurple1",
+            [EntityType.Item] = "black on gold1",
+            [EntityType.World] = "black on slateblue1",
+            [EntityType.Country] = "black on mediumorchid1",
+            [EntityType.State] = "black on orchid1",
+            [EntityType.City] = "black on plum1",
+        };
+
     extension(AnsiConsole)
     {
         public static void Announce(string message) => AnnounceWithColor("grey", message);
@@ -129,11 +142,14 @@ public static class AnsiConsoleExtensions
         private static string FormatNeutralChip(string value) =>
             $"[grey70 on grey19] {value.EscapeMarkup()} [/]";
 
-        public static void PrintNeutralChip(string value) =>
-            AnsiConsole.Markup(FormatNeutralChip(value));
+        public static void PrintNarration(string text) =>
+            AnsiConsole.Markup($"[italic]{text.EscapeMarkup()}[/]");
 
-        public static void PrintHighlightedEntity(string value) =>
-            AnsiConsole.Markup($"[bold underline cyan1]{value.EscapeMarkup()}[/]");
+        public static void PrintEntityChip(string name, EntityType type)
+        {
+            var style = EntityTypeChipStyles.GetValueOrDefault(type, "grey70 on grey19");
+            AnsiConsole.Markup($"[{style}] {name.EscapeMarkup()} [/]");
+        }
 
         private static string FormatDebuffChip(string label, int remainingTurns) =>
             $"[red on grey19] {label.EscapeMarkup()} · {remainingTurns}t [/]";

@@ -112,13 +112,13 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
         return result!;
     }
 
-    public async Task<IReadOnlyList<string>> GetEntityNames(
+    public async Task<IReadOnlyList<NamedEntity>> GetNamedEntities(
         Guid sessionId,
         CancellationToken cancellationToken
     )
     {
-        var result = await httpClient.GetFromJsonAsync<List<string>>(
-            new Uri($"/sessions/{sessionId}/entity-names", UriKind.Relative),
+        var result = await httpClient.GetFromJsonAsync<List<NamedEntity>>(
+            new Uri($"/sessions/{sessionId}/named-entities", UriKind.Relative),
             TrpgJsonOptions.Default,
             cancellationToken
         );

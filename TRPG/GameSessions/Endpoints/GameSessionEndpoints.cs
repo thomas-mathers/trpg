@@ -18,7 +18,7 @@ internal static class GameSessionEndpoints
     {
         app.MapPost("/sessions", StartSession);
         app.MapGet("/sessions/{sessionId:guid}/scene", GetScene);
-        app.MapGet("/sessions/{sessionId:guid}/entity-names", GetEntityNames);
+        app.MapGet("/sessions/{sessionId:guid}/named-entities", GetNamedEntities);
     }
 
     private static async Task<IResult> StartSession(
@@ -89,10 +89,10 @@ internal static class GameSessionEndpoints
         return Results.Ok(ToSnapshot(scene));
     }
 
-    private static async Task<IResult> GetEntityNames(
+    private static async Task<IResult> GetNamedEntities(
         Guid sessionId,
         GetGameSessionQueryHandler getGameSession,
-        GetEntityNamesByWorldQueryHandler getEntityNamesByWorld,
+        GetNamedEntitiesByWorldQueryHandler getNamedEntitiesByWorld,
         CancellationToken cancellationToken
     )
     {
@@ -101,13 +101,31 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        var names = await getEntityNamesByWorld.Handle(
-            new GetEntityNamesByWorldQuery { WorldId = session.WorldId },
+        var entities = await getNamedEntitiesByWorld.Handle(
+            new GetNamedEntitiesByWorldQuery { WorldId = session.WorldId },
             cancellationToken
         );
 
-        return Results.Ok(names);
+        return Results.Ok(entities.Select(ToNamedEntity).ToArray());
     }
+
+    private static NamedEntity ToNamedEntity(NamedEntitySummary entity) =>
+        new(
+            entity.Id,
+            entity.Name,
+            entity.Type switch
+            {
+                NamedEntityType.Creature => EntityType.Creature,
+                NamedEntityType.Building => EntityType.Building,
+                NamedEntityType.District => EntityType.District,
+                NamedEntityType.Item => EntityType.Item,
+                NamedEntityType.World => EntityType.World,
+                NamedEntityType.Country => EntityType.Country,
+                NamedEntityType.State => EntityType.State,
+                NamedEntityType.City => EntityType.City,
+                _ => throw new ArgumentOutOfRangeException(nameof(entity)),
+            }
+        );
 
     private static SceneSnapshot ToSnapshot(SceneResult scene)
     {
