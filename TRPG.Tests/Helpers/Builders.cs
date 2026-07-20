@@ -103,7 +103,7 @@ internal static class Builders
         };
     }
 
-    public static Item MakeItem(Guid? worldId = null)
+    public static Item MakeItem(Guid? worldId = null, ItemRarity rarity = ItemRarity.Normal)
     {
         return new Item
         {
@@ -112,6 +112,7 @@ internal static class Builders
             Description = "A test item",
             Weight = 1,
             GoldValue = 10,
+            Rarity = rarity,
         };
     }
 

@@ -46,6 +46,8 @@ builder
     .AddProblemDetails()
     .AddSignalR(options => options.AddFilter<GameSessionNotFoundHubFilter>());
 
+builder.Services.AddResponseCompression(options => options.EnableForHttps = true);
+
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.PropertyNamingPolicy = TrpgJsonOptions.Default.PropertyNamingPolicy;
@@ -64,6 +66,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseResponseCompression();
 app.UseTickerQ();
 
 _ = Task.Run(async () =>

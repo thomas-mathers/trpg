@@ -18,6 +18,7 @@ internal static class GameSessionEndpoints
     {
         app.MapPost("/sessions", StartSession);
         app.MapGet("/sessions/{sessionId:guid}/scene", GetScene);
+        app.MapGet("/sessions/{sessionId:guid}/entity-names", GetEntityNames);
     }
 
     private static async Task<IResult> StartSession(
@@ -86,6 +87,26 @@ internal static class GameSessionEndpoints
         );
 
         return Results.Ok(ToSnapshot(scene));
+    }
+
+    private static async Task<IResult> GetEntityNames(
+        Guid sessionId,
+        GetGameSessionQueryHandler getGameSession,
+        GetEntityNamesByWorldQueryHandler getEntityNamesByWorld,
+        CancellationToken cancellationToken
+    )
+    {
+        var session = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = sessionId },
+            cancellationToken
+        );
+
+        var names = await getEntityNamesByWorld.Handle(
+            new GetEntityNamesByWorldQuery { WorldId = session.WorldId },
+            cancellationToken
+        );
+
+        return Results.Ok(names);
     }
 
     private static SceneSnapshot ToSnapshot(SceneResult scene)

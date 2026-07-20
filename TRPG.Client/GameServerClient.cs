@@ -112,6 +112,19 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
         return result!;
     }
 
+    public async Task<IReadOnlyList<string>> GetEntityNames(
+        Guid sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await httpClient.GetFromJsonAsync<List<string>>(
+            new Uri($"/sessions/{sessionId}/entity-names", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result ?? [];
+    }
+
     public async Task<FightState?> GetFight(Guid worldId, CancellationToken cancellationToken)
     {
         var response = await httpClient.GetAsync(

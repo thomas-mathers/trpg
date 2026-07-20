@@ -25,6 +25,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
     }
 
     private bool _exitRequested;
+    private IReadOnlyList<string> _entityNames = [];
 
     public async Task Start(bool shouldContinue, CancellationToken cancellationToken)
     {
@@ -220,7 +221,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
         AnsiConsole.Write(new Rule("Review").RuleStyle("grey").LeftJustified());
 
-        AnsiConsole.RenderTable(
+        AnsiConsole.PrintTable(
             ["Setting", "Value"],
             [
                 ["Name", name.EscapeMarkup()],
@@ -355,6 +356,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         var session = await client.StartSession(worldId, cancellationToken);
         await using var hubConnection = session.Connection;
         var sessionId = session.SessionId;
+        _entityNames = await TryGetEntityNames(sessionId, cancellationToken);
 
         AnsiConsole.Clear();
         AnsiConsole.Write(
@@ -367,22 +369,23 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
         hubConnection.Reconnecting += _ =>
         {
-            OnConnectionStatusChanged("Connection lost, reconnecting...");
+            AnsiConsole.PrintConnectionStatus("Connection lost, reconnecting...");
             return Task.CompletedTask;
         };
         hubConnection.Reconnected += _ =>
         {
-            OnConnectionStatusChanged("Reconnected.");
+            AnsiConsole.PrintConnectionStatus("Reconnected.");
             return Task.CompletedTask;
         };
         hubConnection.Closed += _ =>
         {
-            OnConnectionStatusChanged("Connection closed.");
+            AnsiConsole.PrintConnectionStatus("Connection closed.");
             return Task.CompletedTask;
         };
 
         if (
             !await TryStreamTurn(
+                _entityNames,
                 hubConnection.StreamAsync<string>("ReceiveOpening", cancellationToken)
             )
         )
@@ -390,7 +393,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             return;
         }
 
-        await RenderStatus(worldId, sessionId, cancellationToken);
+        await PrintStatus(worldId, sessionId, cancellationToken);
 
         var commands = BuildCommands(hubConnection, worldId, sessionId);
 
@@ -413,28 +416,29 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
             if (
                 await TryStreamTurn(
+                    _entityNames,
                     hubConnection.StreamAsync<string>("SendChat", input, cancellationToken)
                 )
             )
             {
-                await RenderStatus(worldId, sessionId, cancellationToken);
+                await PrintStatus(worldId, sessionId, cancellationToken);
             }
         }
     }
 
-    private async Task RenderStatus(
+    private async Task PrintStatus(
         Guid worldId,
         Guid sessionId,
         CancellationToken cancellationToken
     )
     {
         var fightState = await TryGetFight(worldId, cancellationToken);
-        AnsiConsole.RenderCombatStatus(fightState);
+        AnsiConsole.PrintCombatStatus(fightState);
 
         var scene = await TryGetScene(sessionId, cancellationToken);
         if (scene != null)
         {
-            PrintStatus(scene);
+            AnsiConsole.PrintStatus(scene);
         }
     }
 
@@ -468,6 +472,25 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 $"[[Failed to fetch fight status: {ex.Message.EscapeMarkup()}]]"
             );
             return null;
+        }
+    }
+
+    private async Task<IReadOnlyList<string>> TryGetEntityNames(
+        Guid sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await client.GetEntityNames(sessionId, cancellationToken);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(ex, "[game] failed to fetch entity names");
+            AnsiConsole.AnnounceError(
+                $"[[Failed to fetch entity names: {ex.Message.EscapeMarkup()}]]"
+            );
+            return [];
         }
     }
 
@@ -518,11 +541,11 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    RenderCreatures(scene);
+                    AnsiConsole.PrintCreatures(scene.NearbyCreatures);
                 }
                 else
                 {
-                    RenderCreatureDetail(scene, name);
+                    AnsiConsole.PrintCreatureDetail(scene.NearbyCreatures, name);
                 }
 
                 return 0;
@@ -536,7 +559,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 var scene = await TryGetScene(sessionId, cancellationToken);
                 if (scene != null)
                 {
-                    RenderDistricts(scene);
+                    AnsiConsole.PrintDistricts(scene.NearbyDistricts);
                 }
 
                 return 0;
@@ -550,7 +573,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 var scene = await TryGetScene(sessionId, cancellationToken);
                 if (scene != null)
                 {
-                    RenderBuildings(scene);
+                    AnsiConsole.PrintBuildings(scene.NearbyBuildings);
                 }
 
                 return 0;
@@ -564,7 +587,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 var scene = await TryGetScene(sessionId, cancellationToken);
                 if (scene != null)
                 {
-                    RenderDungeons(scene);
+                    AnsiConsole.PrintDungeons(scene.NearbyDungeons);
                 }
 
                 return 0;
@@ -578,7 +601,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 var scene = await TryGetScene(sessionId, cancellationToken);
                 if (scene != null)
                 {
-                    RenderProps(scene);
+                    AnsiConsole.PrintProps(scene.NearbyProps);
                 }
 
                 return 0;
@@ -592,7 +615,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 var scene = await TryGetScene(sessionId, cancellationToken);
                 if (scene != null)
                 {
-                    RenderExits(scene);
+                    AnsiConsole.PrintExits(scene.Exits);
                 }
 
                 return 0;
@@ -606,7 +629,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 var scene = await TryGetScene(sessionId, cancellationToken);
                 if (scene != null)
                 {
-                    RenderCreatureStatus(scene.PlayerStatus);
+                    AnsiConsole.PrintCreatureStatus(scene.PlayerStatus);
                 }
 
                 return 0;
@@ -646,199 +669,61 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
     {
         if (
             await TryStreamTurn(
+                _entityNames,
                 hubConnection.StreamAsync<string>("SendWait", hours, cancellationToken)
             )
         )
         {
-            await RenderStatus(worldId, sessionId, cancellationToken);
+            await PrintStatus(worldId, sessionId, cancellationToken);
         }
     }
 
-    private void RenderCreatures(SceneSnapshot scene)
+    private async Task<IReadOnlyList<string>> GetEntityNames(
+        Guid sessionId,
+        CancellationToken cancellationToken
+    )
     {
-        if (scene.NearbyCreatures.Count == 0)
+        var scene = await TryGetScene(sessionId, cancellationToken);
+        if (scene == null)
         {
-            AnsiConsole.Announce("Nothing nearby.");
-            return;
+            return [];
         }
 
-        AnsiConsole.RenderTable(
-            ["Name", "Race", "Level", "Reputation", "Status"],
-            scene.NearbyCreatures.Select(c =>
-                new[]
-                {
-                    c.Name,
-                    AnsiConsole.FormatNeutralChip(c.CreatureType),
-                    c.Level.ToString(),
-                    AnsiConsole.FormatReputation(c.Reputation ?? 0),
-                    AnsiConsole.FormatStatusBars(
-                        c.CurrentHp,
-                        c.MaximumHp,
-                        c.CurrentAp,
-                        c.MaximumAp,
-                        c.CurrentMp,
-                        c.MaximumMp
-                    ),
-                }
-            )
-        );
+        return scene
+            .NearbyCreatures.Select(c => c.Name)
+            .Concat(scene.NearbyBuildings.Select(b => b.Name))
+            .Concat(scene.NearbyDungeons.Select(d => d.Name))
+            .Concat(scene.NearbyDistricts.Select(d => d.Name))
+            .ToArray();
     }
 
-    private void RenderDistricts(SceneSnapshot scene)
-    {
-        if (scene.NearbyDistricts.Count == 0)
-        {
-            AnsiConsole.Announce("No districts nearby.");
-            return;
-        }
-
-        AnsiConsole.RenderTable(
-            ["Name", "Type"],
-            scene.NearbyDistricts.Select(d =>
-                new[] { d.Name, AnsiConsole.FormatNeutralChip(d.Type) }
-            )
-        );
-    }
-
-    private void RenderBuildings(SceneSnapshot scene)
-    {
-        if (scene.NearbyBuildings.Count == 0)
-        {
-            AnsiConsole.Announce("No buildings nearby.");
-            return;
-        }
-
-        AnsiConsole.RenderTable(
-            ["Name", "Type"],
-            scene.NearbyBuildings.Select(b =>
-                new[] { b.Name, AnsiConsole.FormatNeutralChip(b.Type) }
-            )
-        );
-    }
-
-    private void RenderDungeons(SceneSnapshot scene)
-    {
-        if (scene.NearbyDungeons.Count == 0)
-        {
-            AnsiConsole.Announce("No dungeons nearby.");
-            return;
-        }
-
-        AnsiConsole.RenderTable(
-            ["Name", "Type"],
-            scene.NearbyDungeons.Select(d =>
-                new[] { d.Name, AnsiConsole.FormatNeutralChip(d.Type) }
-            )
-        );
-    }
-
-    private void RenderProps(SceneSnapshot scene)
-    {
-        if (scene.NearbyProps.Count == 0)
-        {
-            AnsiConsole.Announce("No props nearby.");
-            return;
-        }
-
-        AnsiConsole.RenderTable(
-            ["Name", "Type"],
-            scene.NearbyProps.Select(p => new[] { p.Name, AnsiConsole.FormatNeutralChip(p.Type) })
-        );
-    }
-
-    private void RenderExits(SceneSnapshot scene)
-    {
-        if (scene.Exits.Count == 0)
-        {
-            AnsiConsole.Announce("No exits nearby.");
-            return;
-        }
-
-        AnsiConsole.RenderTable(
-            ["Destination", "Description"],
-            scene.Exits.Select(e => new[] { e.DestinationRoomName, e.Description })
-        );
-    }
-
-    private void RenderCreatureDetail(SceneSnapshot scene, string name)
-    {
-        var person = scene.NearbyCreatures.FirstOrDefault(p =>
-            p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
-        );
-        if (person == null)
-        {
-            AnsiConsole.AnnounceWarning($"No one named '{name.EscapeMarkup()}' found nearby.");
-            return;
-        }
-
-        RenderCreatureStatus(person);
-    }
-
-    private static void RenderCreatureStatus(CreatureStatusSnapshot status)
-    {
-        var hpColor = AnsiConsole.HealthColor(status.CurrentHp, status.MaximumHp);
-        List<string[]> rows =
-        [
-            ["Name", status.Name.EscapeMarkup()],
-            ["Race", AnsiConsole.FormatNeutralChip(status.CreatureType)],
-            ["Gender", AnsiConsole.FormatNeutralChip(status.Gender)],
-            ["Level", status.Level.ToString()],
-            ["Age", status.Age.ToString()],
-            ["Gold", status.Gold.ToString()],
-        ];
-
-        if (status.Profession is { } profession)
-        {
-            rows.Add(["Profession", AnsiConsole.FormatNeutralChip(profession)]);
-        }
-
-        if (status.State is { } state)
-        {
-            rows.Add(["State", AnsiConsole.FormatStateChip(state)]);
-        }
-
-        if (status.Reputation is { } reputation)
-        {
-            rows.Add(["Reputation", AnsiConsole.FormatReputation(reputation)]);
-        }
-
-        rows.Add([
-            "HP",
-            $"{AnsiConsole.FormatBar(status.CurrentHp, status.MaximumHp, hpColor, width: 14)} {status.CurrentHp}/{status.MaximumHp}",
-        ]);
-        rows.Add([
-            "AP",
-            $"{AnsiConsole.FormatBar(status.CurrentAp, status.MaximumAp, "blue", width: 14)} {status.CurrentAp}/{status.MaximumAp}",
-        ]);
-        rows.Add([
-            "MP",
-            $"{AnsiConsole.FormatBar(status.CurrentMp, status.MaximumMp, "purple", width: 14)} {status.CurrentMp}/{status.MaximumMp}",
-        ]);
-
-        if (status.FactionNames is { Count: > 0 } factionNames)
-        {
-            rows.Add([
-                "Factions",
-                string.Join(" ", factionNames.Select(AnsiConsole.FormatNeutralChip)),
-            ]);
-        }
-
-        AnsiConsole.RenderTable(["Field", "Value"], rows);
-    }
-
-    private static void OnConnectionStatusChanged(string status)
-    {
-        AnsiConsole.AnnounceWarning($"[[{status.EscapeMarkup()}]]");
-    }
-
-    private async Task<bool> TryStreamTurn(IAsyncEnumerable<string> tokens)
+    private async Task<bool> TryStreamTurn(
+        IReadOnlyList<string> entityNames,
+        IAsyncEnumerable<string> tokens
+    )
     {
         try
         {
+            var prefix = "";
+
             await foreach (var token in tokens)
             {
-                AnsiConsole.Write(token);
+                foreach (var c in token)
+                {
+                    var isPrefix = entityNames.Any(name =>
+                        name.StartsWith(prefix + c, StringComparison.OrdinalIgnoreCase)
+                    );
+                    if (!isPrefix)
+                    {
+                        PrintPrefix(entityNames, prefix);
+                        prefix = "";
+                    }
+
+                    prefix += c;
+                }
             }
+
+            PrintPrefix(entityNames, prefix);
 
             return true;
         }
@@ -850,17 +735,19 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         }
     }
 
-    private static void PrintStatus(SceneSnapshot scene)
+    private static void PrintPrefix(IReadOnlyList<string> entityNames, string prefix)
     {
-        var title =
-            $"{AnsiConsole.BuildBreadcrumb(scene).EscapeMarkup()} | {scene.WeekdayName.EscapeMarkup()}, Hour {scene.Hour}";
-
-        AnsiConsole.Write(
-            new Padder(
-                new Rule($"[grey]{title}[/]").RuleStyle("grey").LeftJustified(),
-                new Padding(0, 1)
-            )
+        var hasExactMatch = entityNames.Any(name =>
+            name.Equals(prefix, StringComparison.OrdinalIgnoreCase)
         );
+        if (hasExactMatch)
+        {
+            AnsiConsole.PrintHighlightedEntity(prefix);
+        }
+        else
+        {
+            AnsiConsole.Write(prefix);
+        }
     }
 
     private static async Task HandleCommand(
@@ -876,7 +763,7 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
 
         if (name.Equals("help", StringComparison.OrdinalIgnoreCase))
         {
-            HandleHelpCommand(commands);
+            AnsiConsole.PrintAvailableCommands(commands);
             return;
         }
 
@@ -900,15 +787,5 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         }
 
         await parseResult.InvokeAsync(cancellationToken: cancellationToken);
-    }
-
-    private static void HandleHelpCommand(IReadOnlyDictionary<string, Command> commands)
-    {
-        var rows = commands
-            .Values.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(c => new[] { AnsiConsole.FormatSyntax(c), c.Description ?? "" })
-            .Append(["[bold #569CD6]/help[/]", "Show this list"]);
-
-        AnsiConsole.RenderTable(["[bold]Command[/]", "[bold]Description[/]"], rows);
     }
 }

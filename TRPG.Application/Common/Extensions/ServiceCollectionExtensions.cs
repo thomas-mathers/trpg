@@ -108,6 +108,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetEffectiveReputationsQueryHandler>()
             .AddTransient<GetSceneQueryHandler>()
             .AddTransient<GetSceneWithCatchUpQueryHandler>()
+            .AddTransient<GetEntityNamesByWorldQueryHandler>()
             .AddTransient<GetWorldQueryHandler>()
             .AddTransient<GetAllWorldsQueryHandler>()
             .AddTransient<SetWorldPlaytimeCommandHandler>()

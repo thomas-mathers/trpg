@@ -33,7 +33,7 @@ public static class AnsiConsoleExtensions
 
         public static void AnnounceError(string message) => AnnounceWithColor("red", message);
 
-        public static void RenderTable(IReadOnlyList<string> columns, IEnumerable<string[]> rows)
+        public static void PrintTable(IReadOnlyList<string> columns, IEnumerable<string[]> rows)
         {
             var table = new Table().Border(TableBorder.Rounded).ShowRowSeparators();
             foreach (var column in columns)
@@ -49,7 +49,7 @@ public static class AnsiConsoleExtensions
             AnsiConsole.Write(table);
         }
 
-        public static string FormatReputation(int reputation)
+        private static string FormatReputation(int reputation)
         {
             var color = reputation switch
             {
@@ -60,7 +60,7 @@ public static class AnsiConsoleExtensions
             return $"[{color}]{reputation}[/]";
         }
 
-        public static string FormatStatusBars(
+        private static string FormatStatusBars(
             int currentHp,
             int maximumHp,
             int currentAp,
@@ -78,7 +78,7 @@ public static class AnsiConsoleExtensions
             );
         }
 
-        public static string BuildBreadcrumb(SceneSnapshot scene) =>
+        private static string BuildBreadcrumb(SceneSnapshot scene) =>
             string.Join(
                 " > ",
                 new[]
@@ -91,7 +91,7 @@ public static class AnsiConsoleExtensions
                 }.Where(name => !string.IsNullOrEmpty(name))
             );
 
-        public static string FormatBar(int current, int maximum, string color, int width = 20)
+        private static string FormatBar(int current, int maximum, string color, int width = 20)
         {
             var filled =
                 maximum > 0
@@ -101,7 +101,7 @@ public static class AnsiConsoleExtensions
             return $"[{color}]{bar}[/]";
         }
 
-        public static string HealthColor(int currentHp, int maximumHp)
+        private static string HealthColor(int currentHp, int maximumHp)
         {
             var percentage = maximumHp > 0 ? currentHp / (float)maximumHp : 0f;
             return percentage switch
@@ -112,7 +112,7 @@ public static class AnsiConsoleExtensions
             };
         }
 
-        public static string FormatStateChip(Enum value) => FormatChip(value, StateChipColors);
+        private static string FormatStateChip(Enum value) => FormatChip(value, StateChipColors);
 
         private static string FormatChip(
             Enum value,
@@ -126,19 +126,25 @@ public static class AnsiConsoleExtensions
         public static string FormatNeutralChip(Enum value) =>
             $"[grey70 on grey19] {value.ToDisplayName().EscapeMarkup()} [/]";
 
-        public static string FormatNeutralChip(string value) =>
+        private static string FormatNeutralChip(string value) =>
             $"[grey70 on grey19] {value.EscapeMarkup()} [/]";
 
-        public static string FormatDebuffChip(string label, int remainingTurns) =>
+        public static void PrintNeutralChip(string value) =>
+            AnsiConsole.Markup(FormatNeutralChip(value));
+
+        public static void PrintHighlightedEntity(string value) =>
+            AnsiConsole.Markup($"[bold underline cyan1]{value.EscapeMarkup()}[/]");
+
+        private static string FormatDebuffChip(string label, int remainingTurns) =>
             $"[red on grey19] {label.EscapeMarkup()} · {remainingTurns}t [/]";
 
-        public static string FormatBuffChip(string label, int remainingTurns) =>
+        private static string FormatBuffChip(string label, int remainingTurns) =>
             $"[blue on grey19] {label.EscapeMarkup()} · {remainingTurns}t [/]";
 
-        public static string FormatHotChip(string label, int remainingTurns) =>
+        private static string FormatHotChip(string label, int remainingTurns) =>
             $"[green on grey19] {label.EscapeMarkup()} · {remainingTurns}t [/]";
 
-        public static void RenderCombatStatus(FightState? combat)
+        public static void PrintCombatStatus(FightState? combat)
         {
             if (combat == null)
             {
@@ -232,7 +238,7 @@ public static class AnsiConsoleExtensions
             return buff.Amount >= 0 ? $"+{magnitude}" : magnitude;
         }
 
-        public static string FormatSyntax(Command command)
+        private static string FormatSyntax(Command command)
         {
             var argumentsText = string.Concat(
                 command.Arguments.Select(a => $" [grey italic]<{a.Name}>[/]")
@@ -243,6 +249,207 @@ public static class AnsiConsoleExtensions
         private static void AnnounceWithColor(string color, string message)
         {
             AnsiConsole.Write(new Padder(new Markup($"[{color}]{message}[/]"), new Padding(0, 1)));
+        }
+
+        public static void PrintCreatures(IReadOnlyCollection<CreatureStatusSnapshot> creatures)
+        {
+            if (creatures.Count == 0)
+            {
+                AnsiConsole.Announce("Nothing nearby.");
+                return;
+            }
+
+            AnsiConsole.PrintTable(
+                ["Name", "Race", "Level", "Reputation", "Status"],
+                creatures.Select(c =>
+                    new[]
+                    {
+                        c.Name,
+                        AnsiConsole.FormatNeutralChip(c.CreatureType),
+                        c.Level.ToString(),
+                        AnsiConsole.FormatReputation(c.Reputation ?? 0),
+                        AnsiConsole.FormatStatusBars(
+                            c.CurrentHp,
+                            c.MaximumHp,
+                            c.CurrentAp,
+                            c.MaximumAp,
+                            c.CurrentMp,
+                            c.MaximumMp
+                        ),
+                    }
+                )
+            );
+        }
+
+        public static void PrintDistricts(
+            IReadOnlyCollection<NearbyDistrictSnapshot> districtSnapshots
+        )
+        {
+            if (districtSnapshots.Count == 0)
+            {
+                AnsiConsole.Announce("No districts nearby.");
+                return;
+            }
+
+            AnsiConsole.PrintTable(
+                ["Name", "Type"],
+                districtSnapshots.Select(d =>
+                    new[] { d.Name, AnsiConsole.FormatNeutralChip(d.Type) }
+                )
+            );
+        }
+
+        public static void PrintBuildings(IReadOnlyCollection<NearbyBuildingSnapshot> buidings)
+        {
+            if (buidings.Count == 0)
+            {
+                AnsiConsole.Announce("No buildings nearby.");
+                return;
+            }
+
+            AnsiConsole.PrintTable(
+                ["Name", "Type"],
+                buidings.Select(b => new[] { b.Name, AnsiConsole.FormatNeutralChip(b.Type) })
+            );
+        }
+
+        public static void PrintDungeons(IReadOnlyCollection<NearbyBuildingSnapshot> dungeons)
+        {
+            if (dungeons.Count == 0)
+            {
+                AnsiConsole.Announce("No dungeons nearby.");
+                return;
+            }
+
+            AnsiConsole.PrintTable(
+                ["Name", "Type"],
+                dungeons.Select(d => new[] { d.Name, AnsiConsole.FormatNeutralChip(d.Type) })
+            );
+        }
+
+        public static void PrintProps(IReadOnlyCollection<NearbyPropSnapshot> props)
+        {
+            if (props.Count == 0)
+            {
+                AnsiConsole.Announce("No props nearby.");
+                return;
+            }
+
+            AnsiConsole.PrintTable(
+                ["Name", "Type"],
+                props.Select(p => new[] { p.Name, AnsiConsole.FormatNeutralChip(p.Type) })
+            );
+        }
+
+        public static void PrintExits(IReadOnlyCollection<NearbyExitSnapshot> exits)
+        {
+            if (exits.Count == 0)
+            {
+                AnsiConsole.Announce("No exits nearby.");
+                return;
+            }
+
+            AnsiConsole.PrintTable(
+                ["Destination", "Description"],
+                exits.Select(e => new[] { e.DestinationRoomName, e.Description })
+            );
+        }
+
+        public static void PrintCreatureDetail(
+            IReadOnlyCollection<CreatureStatusSnapshot> creatures,
+            string name
+        )
+        {
+            var person = creatures.FirstOrDefault(p =>
+                p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+            );
+            if (person == null)
+            {
+                AnsiConsole.AnnounceWarning($"No one named '{name.EscapeMarkup()}' found nearby.");
+                return;
+            }
+
+            PrintCreatureStatus(person);
+        }
+
+        public static void PrintCreatureStatus(CreatureStatusSnapshot status)
+        {
+            var hpColor = AnsiConsole.HealthColor(status.CurrentHp, status.MaximumHp);
+            List<string[]> rows =
+            [
+                ["Name", status.Name.EscapeMarkup()],
+                ["Race", AnsiConsole.FormatNeutralChip(status.CreatureType)],
+                ["Gender", AnsiConsole.FormatNeutralChip(status.Gender)],
+                ["Level", status.Level.ToString()],
+                ["Age", status.Age.ToString()],
+                ["Gold", status.Gold.ToString()],
+            ];
+
+            if (status.Profession is { } profession)
+            {
+                rows.Add(["Profession", AnsiConsole.FormatNeutralChip(profession)]);
+            }
+
+            if (status.State is { } state)
+            {
+                rows.Add(["State", AnsiConsole.FormatStateChip(state)]);
+            }
+
+            if (status.Reputation is { } reputation)
+            {
+                rows.Add(["Reputation", AnsiConsole.FormatReputation(reputation)]);
+            }
+
+            rows.Add([
+                "HP",
+                $"{AnsiConsole.FormatBar(status.CurrentHp, status.MaximumHp, hpColor, width: 14)} {status.CurrentHp}/{status.MaximumHp}",
+            ]);
+            rows.Add([
+                "AP",
+                $"{AnsiConsole.FormatBar(status.CurrentAp, status.MaximumAp, "blue", width: 14)} {status.CurrentAp}/{status.MaximumAp}",
+            ]);
+            rows.Add([
+                "MP",
+                $"{AnsiConsole.FormatBar(status.CurrentMp, status.MaximumMp, "purple", width: 14)} {status.CurrentMp}/{status.MaximumMp}",
+            ]);
+
+            if (status.FactionNames is { Count: > 0 } factionNames)
+            {
+                rows.Add([
+                    "Factions",
+                    string.Join(" ", factionNames.Select(AnsiConsole.FormatNeutralChip)),
+                ]);
+            }
+
+            AnsiConsole.PrintTable(["Field", "Value"], rows);
+        }
+
+        public static void PrintConnectionStatus(string status)
+        {
+            AnsiConsole.AnnounceWarning($"[[{status.EscapeMarkup()}]]");
+        }
+
+        public static void PrintStatus(SceneSnapshot scene)
+        {
+            var title =
+                $"{AnsiConsole.BuildBreadcrumb(scene).EscapeMarkup()} | {scene.WeekdayName.EscapeMarkup()}, Hour {scene.Hour}";
+
+            AnsiConsole.Write(
+                new Padder(
+                    new Rule($"[grey]{title}[/]").RuleStyle("grey").LeftJustified(),
+                    new Padding(0, 1)
+                )
+            );
+        }
+
+        public static void PrintAvailableCommands(IReadOnlyDictionary<string, Command> commands)
+        {
+            var rows = commands
+                .Values.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(c => new[] { AnsiConsole.FormatSyntax(c), c.Description ?? "" })
+                .Append(["[bold #569CD6]/help[/]", "Show this list"]);
+
+            AnsiConsole.PrintTable(["[bold]Command[/]", "[bold]Description[/]"], rows);
         }
     }
 }
