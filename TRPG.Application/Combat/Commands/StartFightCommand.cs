@@ -91,6 +91,7 @@ internal class StartFightCommandHandler(
                     regeneratedCreatures[enemyId],
                     [],
                     abilityDefinitions.BasicAttack,
+                    abilityDefinitions.BlockStance,
                     isPlayer: false,
                     [],
                     new Dictionary<WeaponType, int>()
@@ -146,6 +147,7 @@ internal class StartFightCommandHandler(
             player,
             abilities,
             abilityDefinitions.BasicAttack,
+            abilityDefinitions.BlockStance,
             isPlayer: true,
             equipped,
             weaponProficiencies

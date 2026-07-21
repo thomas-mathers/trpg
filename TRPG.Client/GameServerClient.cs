@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
+using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Jobs.Responses;
@@ -144,6 +145,28 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
             AnsiConsole.AnnounceError(
                 $"[[Failed to fetch named entities: {ex.Message.EscapeMarkup()}]]"
             );
+            return [];
+        }
+    }
+
+    public async Task<IReadOnlyList<AbilitySummary>> GetAbilities(
+        Guid worldId,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var result = await httpClient.GetFromJsonAsync<List<AbilitySummary>>(
+                new Uri($"/worlds/{worldId}/abilities", UriKind.Relative),
+                TrpgJsonOptions.Default,
+                cancellationToken
+            );
+            return result ?? [];
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "[game] failed to fetch abilities");
+            AnsiConsole.AnnounceError($"[[Failed to fetch abilities: {ex.Message.EscapeMarkup()}]]");
             return [];
         }
     }

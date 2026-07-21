@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
@@ -176,10 +177,18 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             worldId,
             sessionId
         );
+        var combatMenu = new CombatMenu(client, narrationRenderer, gameHub, worldId);
 
         var exitRequested = false;
         while (!exitRequested)
         {
+            var fight = await PrintStatus(worldId, sessionId, cancellationToken);
+            if (fight != null)
+            {
+                await combatMenu.RunTurn(fight, cancellationToken);
+                continue;
+            }
+
             AnsiConsole.Write("> ");
 
             var input = Console.ReadLine();
@@ -195,14 +204,11 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
                 continue;
             }
 
-            if (await narrationRenderer.TryRender(gameHub.StreamChat(input, cancellationToken)))
-            {
-                await PrintStatus(worldId, sessionId, cancellationToken);
-            }
+            await narrationRenderer.TryRender(gameHub.StreamChat(input, cancellationToken));
         }
     }
 
-    private async Task PrintStatus(
+    private async Task<FightState?> PrintStatus(
         Guid worldId,
         Guid sessionId,
         CancellationToken cancellationToken
@@ -216,6 +222,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
         {
             AnsiConsole.PrintStatus(scene);
         }
+
+        return fightState;
     }
 
     private static void PrintConnectionStatus(ConnectionStatus status) =>

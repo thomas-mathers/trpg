@@ -1,0 +1,27 @@
+namespace TRPG.Contracts.Abilities.Responses;
+
+public enum Skill
+{
+    Swordsmanship,
+    Stealth,
+    Spellcasting,
+    Archery,
+    Devotion,
+    Warfare,
+}
+
+public enum AbilityCategory
+{
+    Offensive,
+    Support,
+}
+
+public record AbilitySummary(
+    string Name,
+    Skill Skill,
+    string Description,
+    int ApCost,
+    int MpCost,
+    int Cooldown,
+    AbilityCategory Category
+);

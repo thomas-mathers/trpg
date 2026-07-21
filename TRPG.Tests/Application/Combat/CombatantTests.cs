@@ -8,6 +8,7 @@ namespace TRPG.Tests.Application.Combat;
 public class CombatantTests
 {
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
+    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
     private readonly Guid _worldId = Guid.NewGuid();
 
     [Fact]
@@ -21,6 +22,7 @@ public class CombatantTests
             creature,
             [],
             BasicAttack,
+            BlockStance,
             isPlayer: true,
             [],
             new Dictionary<WeaponType, int>()
@@ -41,6 +43,7 @@ public class CombatantTests
             creature,
             [],
             BasicAttack,
+            BlockStance,
             isPlayer: false,
             [],
             new Dictionary<WeaponType, int>()

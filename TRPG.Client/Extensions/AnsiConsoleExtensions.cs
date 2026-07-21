@@ -162,7 +162,8 @@ public static class AnsiConsoleExtensions
             chips.AddRange(
                 combatant.ActiveBuffs.Select(buff =>
                 {
-                    var label = $"{buff.Attribute.ToDisplayName()} {FormatBuffAmount(buff)}";
+                    var label =
+                        $"{buff.AbilityName} · {buff.Attribute.ToDisplayName()} {FormatBuffAmount(buff)}";
                     return buff.Amount >= 0
                         ? FormatPositiveChip(label, buff.RemainingTurns)
                         : FormatDebuffChip(label, buff.RemainingTurns);

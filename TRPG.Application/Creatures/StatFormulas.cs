@@ -4,6 +4,7 @@ namespace TRPG.Application.Creatures;
 
 public class ActiveBuff
 {
+    public string AbilityName { get; init; } = "";
     public float Amount { get; init; }
     public AttributeName Attribute { get; init; }
     public int RemainingTurns { get; set; }

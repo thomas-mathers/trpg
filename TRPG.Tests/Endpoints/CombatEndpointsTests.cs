@@ -1,6 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Combat;
+using TRPG.Application.Combat.Commands;
+using TRPG.Application.Combat.Queries;
+using TRPG.Contracts;
+using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
@@ -15,6 +20,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 {
     private HttpClient _client = null!;
     private Guid _worldId;
+    private Guid _playerId;
     private Guid _stateId;
     private Guid _districtId;
 
@@ -47,6 +53,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _worldId = world.Id;
+        _playerId = player.Id;
         _stateId = state.Id;
         _districtId = district.Id;
     }
@@ -95,6 +102,33 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
             new ChatRequest(message),
             TestContext.Current.CancellationToken
         );
+
+    private async Task ResolveFleeDirectly(Guid sessionId)
+    {
+        await using var scope = fixture.CreateScope();
+        var getCombatants = scope.ServiceProvider.GetRequiredService<GetCombatantsQueryHandler>();
+        var combatEngine = scope.ServiceProvider.GetRequiredService<CombatEngine>();
+        var resolveCombatRound =
+            scope.ServiceProvider.GetRequiredService<ResolveCombatRoundCommandHandler>();
+
+        var combatants = await getCombatants.Handle(
+            new GetCombatantsQuery { WorldId = _worldId, PlayerId = _playerId },
+            TestContext.Current.CancellationToken
+        );
+        var state = combatEngine.ResolveFlee(combatants);
+
+        await resolveCombatRound.Handle(
+            new ResolveCombatRoundCommand
+            {
+                SessionId = sessionId,
+                WorldId = _worldId,
+                PlayerId = _playerId,
+                Combatants = combatants,
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+    }
 
     [Fact]
     public async Task Attack_ReturnsOk_WhenHostileCreatureNearby()
@@ -180,18 +214,24 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
     }
 
     [Fact]
-    public async Task Flee_ReturnsOk_WhenNotInCombat()
+    public async Task Attack_ReturnsOk_WhenAlreadyInCombat()
     {
-        // Arrange
+        // Arrange — start a fight, then call the tool again as if the LLM tried to continue it
+        var enemy = await SeedHostileCreature();
         var sessionId = await StartSession();
 
-        fixture.ChatClient.PendingToolCallName = "flee";
-        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>();
+        fixture.ChatClient.PendingToolCallName = "attack";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["abilityName"] = "Strike",
+            ["targetName"] = enemy.Name,
+        };
+        await SendChat(sessionId, $"I attack {enemy.Name}");
 
-        // Act
-        var response = await SendChat(sessionId, "I flee");
+        // Act — the tool must refuse rather than silently resolving another round outside the menu
+        var response = await SendChat(sessionId, $"I attack {enemy.Name} again");
 
-        // Assert — nothing to flee from; must be a graceful error, not a crash
+        // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -254,9 +294,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         };
         await SendChat(sessionId, $"I attack {enemy.Name}");
 
-        fixture.ChatClient.PendingToolCallName = "flee";
-        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>();
-        await SendChat(sessionId, "I flee");
+        await ResolveFleeDirectly(sessionId);
 
         // Act — the fight row still exists (Fled), it just isn't Ongoing anymore
         var response = await _client.GetAsync(
@@ -269,27 +307,61 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
     }
 
     [Fact]
-    public async Task Flee_ReturnsOk_WhenInCombat()
+    public async Task GetAbilities_ReturnsStrikePlusLearnedAbilities()
     {
         // Arrange
-        var enemy = await SeedHostileCreature();
-        var sessionId = await StartSession();
-
-        fixture.ChatClient.PendingToolCallName = "attack";
-        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        await using (var scope = fixture.CreateScope())
         {
-            ["abilityName"] = "Strike",
-            ["targetName"] = enemy.Name,
-        };
-        await SendChat(sessionId, $"I attack {enemy.Name}");
-
-        fixture.ChatClient.PendingToolCallName = "flee";
-        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>();
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            context.CreatureAbilities.Add(
+                new CreatureAbility
+                {
+                    WorldId = _worldId,
+                    CreatureId = _playerId,
+                    AbilityName = "Slash",
+                }
+            );
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
 
         // Act
-        var response = await SendChat(sessionId, "I flee");
+        var response = await _client.GetAsync(
+            new Uri($"/worlds/{_worldId}/abilities", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var abilities = await response.Content.ReadFromJsonAsync<List<AbilitySummary>>(
+            TrpgJsonOptions.Default,
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(abilities);
+        Assert.Contains(abilities, a => a.Name == "Strike");
+        Assert.Contains(abilities, a => a.Name == "Slash");
+    }
+
+    [Fact]
+    public async Task GetAbilities_ReturnsNotFound_WhenWorldHasNoPlayer()
+    {
+        // Arrange
+        Guid worldWithNoPlayerId;
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            var world = Builders.MakeWorld();
+            context.Worlds.Add(world);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            worldWithNoPlayerId = world.Id;
+        }
+
+        // Act
+        var response = await _client.GetAsync(
+            new Uri($"/worlds/{worldWithNoPlayerId}/abilities", UriKind.Relative),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }

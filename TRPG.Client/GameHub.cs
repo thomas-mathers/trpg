@@ -26,6 +26,15 @@ internal sealed class GameHub(HubConnection connection) : IAsyncDisposable
     public IAsyncEnumerable<string> StreamWait(int hours, CancellationToken cancellationToken) =>
         connection.StreamAsync<string>("SendWait", hours, cancellationToken);
 
+    public IAsyncEnumerable<string> StreamCombatAction(
+        string abilityName,
+        string targetName,
+        CancellationToken cancellationToken
+    ) => connection.StreamAsync<string>("SendCombatAction", abilityName, targetName, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamFlee(CancellationToken cancellationToken) =>
+        connection.StreamAsync<string>("SendFlee", cancellationToken);
+
     public void OnStatusChanged(Action<ConnectionStatus> onStatusChanged)
     {
         connection.Reconnecting += _ =>

@@ -11,6 +11,7 @@ public class DamageCalculatorTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
+    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
 
     private static readonly IOptionsSnapshot<CombatOptions> Settings =
         new TestOptionsSnapshot<CombatOptions>(
@@ -35,6 +36,7 @@ public class DamageCalculatorTests
             creature,
             [],
             BasicAttack,
+            BlockStance,
             isPlayer: true,
             inventory ?? [],
             new Dictionary<WeaponType, int>()

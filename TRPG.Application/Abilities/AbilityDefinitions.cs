@@ -22,6 +22,26 @@ public class AbilityDefinitions(
             DamageAmountType = AmountType.Flat,
         };
 
+    public BuffAbility BlockStance { get; } =
+        new()
+        {
+            Name = "Block",
+            Description = "Raise your guard, doubling your effective defense until your next turn.",
+            ApCost = 2,
+            Cooldown = 0,
+            TargetType = TargetType.Self,
+            Duration = 1,
+            Modifiers =
+            [
+                new AttributeModifier
+                {
+                    Attribute = AttributeName.Defense,
+                    AmountType = AmountType.Percent,
+                    Amount = 100,
+                },
+            ],
+        };
+
     public static AbilityDefinitions Create()
     {
         var builder = new AbilityBuilder();

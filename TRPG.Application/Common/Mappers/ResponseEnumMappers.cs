@@ -1,4 +1,6 @@
 using AbilitiesConditionType = TRPG.Application.Abilities.ConditionType;
+using ContractAbilitySkill = TRPG.Contracts.Abilities.Responses.Skill;
+using DataSkill = TRPG.Data.Models.Skill;
 using ContractAmountType = TRPG.Contracts.Combat.Responses.AmountType;
 using ContractAttributeName = TRPG.Contracts.Combat.Responses.AttributeName;
 using ContractBuildingType = TRPG.Contracts.Scenes.Responses.BuildingType;
@@ -171,6 +173,18 @@ internal static class ResponseEnumMappers
             DataAmountType.Flat => ContractAmountType.Flat,
             DataAmountType.Percent => ContractAmountType.Percent,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
+
+    public static ContractAbilitySkill ToContract(this DataSkill skill) =>
+        skill switch
+        {
+            DataSkill.Swordsmanship => ContractAbilitySkill.Swordsmanship,
+            DataSkill.Stealth => ContractAbilitySkill.Stealth,
+            DataSkill.Spellcasting => ContractAbilitySkill.Spellcasting,
+            DataSkill.Archery => ContractAbilitySkill.Archery,
+            DataSkill.Devotion => ContractAbilitySkill.Devotion,
+            DataSkill.Warfare => ContractAbilitySkill.Warfare,
+            _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, null),
         };
 
     public static ContractConditionType ToContract(this AbilitiesConditionType condition) =>

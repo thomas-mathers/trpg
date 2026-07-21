@@ -13,6 +13,8 @@ public class CombatEngine(
     DamageCalculator damageCalculator
 )
 {
+    private sealed record ResolvedAction(Ability Ability, IReadOnlyList<Combatant> Targets);
+
     public CombatState ProcessRound(
         IReadOnlyList<Combatant> combatants,
         string abilityName,
@@ -22,7 +24,7 @@ public class CombatEngine(
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
 
-        var (ability, targets) = ResolvePlayerAction(combatants, abilityName, targetName);
+        var action = ResolvePlayerAction(combatants, abilityName, targetName);
 
         var turnOrder = combatants
             .OrderByDescending(c => c.CalculateEffectiveAttribute(AttributeName.Dexterity))
@@ -31,8 +33,8 @@ public class CombatEngine(
         var combatEvents = turnOrder
             .SelectMany(combatant =>
                 combatant == player
-                    ? ProcessTurn(player, ability, targets)
-                    : ProcessTurn(combatant, ChooseEnemyAbility(combatant), [player])
+                    ? ProcessTurn(player, action)
+                    : ProcessTurn(combatant, ResolveEnemyAction(combatant, player))
             )
             .ToArray();
 
@@ -50,7 +52,7 @@ public class CombatEngine(
         );
     }
 
-    private static (Ability, IReadOnlyList<Combatant>) ResolvePlayerAction(
+    private static ResolvedAction ResolvePlayerAction(
         IReadOnlyList<Combatant> combatants,
         string abilityName,
         string targetName
@@ -119,31 +121,24 @@ public class CombatEngine(
             _ => [target],
         };
 
-        return (ability, targets);
+        return new ResolvedAction(ability, targets);
     }
 
-    private List<CombatEvent> ProcessTurn(
-        Combatant actor,
-        Ability ability,
-        IReadOnlyList<Combatant> targets
-    )
+    private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedAction action)
     {
         if (!actor.IsAlive)
         {
             return [];
         }
 
-        var hotEvents = ProcessHotTicks(actor);
-        var dotEvents = ProcessDotTicks(actor);
-        var tickEvents = hotEvents.Concat(dotEvents).ToList();
+        var tickEvents = ProcessTicks(actor);
 
         if (!actor.IsAlive)
         {
             return tickEvents;
         }
 
-        RegenerateResources(actor);
-        TickCooldowns(actor);
+        var (ability, targets) = action;
 
         var incapacitationEvent = GetIncapacitationEvent(actor, ability);
         if (incapacitationEvent is not null)
@@ -167,7 +162,7 @@ public class CombatEngine(
         return tickEvents.Concat(actionEvents).ToList();
     }
 
-    private void RegenerateResources(Combatant actor)
+    private void TickInCombatResourceRegeneration(Combatant actor)
     {
         var apRegenAmount = Math.Max(
             1,
@@ -229,6 +224,7 @@ public class CombatEngine(
 
         foreach (var target in targets)
         {
+            target.ActiveHots.RemoveAll(h => h.AbilityName == ability.Name);
             target.ActiveHots.Add(
                 new ActiveHot
                 {
@@ -266,9 +262,13 @@ public class CombatEngine(
 
             foreach (var modifier in ability.Modifiers)
             {
+                target.ActiveBuffs.RemoveAll(b =>
+                    b.AbilityName == ability.Name && b.Attribute == modifier.Attribute
+                );
                 target.ActiveBuffs.Add(
                     new ActiveBuff
                     {
+                        AbilityName = ability.Name,
                         Amount = modifier.Amount,
                         AmountType = modifier.AmountType,
                         Attribute = modifier.Attribute,
@@ -330,6 +330,7 @@ public class CombatEngine(
 
             foreach (var dot in ability.Dots)
             {
+                defender.ActiveDots.RemoveAll(d => d.AbilityName == ability.Name);
                 defender.ActiveDots.Add(
                     new ActiveDot
                     {
@@ -370,7 +371,25 @@ public class CombatEngine(
         return combatEvents;
     }
 
-    private static List<CombatEvent> ProcessHotTicks(Combatant actor)
+    private List<CombatEvent> ProcessTicks(Combatant actor)
+    {
+        var hotEvents = TickHots(actor);
+        var dotEvents = TickDots(actor);
+
+        TickBuffs(actor);
+
+        var tickEvents = hotEvents.Concat(dotEvents).ToList();
+
+        if (actor.IsAlive)
+        {
+            TickInCombatResourceRegeneration(actor);
+            TickCooldowns(actor);
+        }
+
+        return tickEvents;
+    }
+
+    private static List<CombatEvent> TickHots(Combatant actor)
     {
         var healEvents = new List<CombatEvent>();
 
@@ -397,7 +416,17 @@ public class CombatEngine(
         return healEvents;
     }
 
-    private List<CombatEvent> ProcessDotTicks(Combatant defender)
+    private static void TickBuffs(Combatant actor)
+    {
+        foreach (var buff in actor.ActiveBuffs.Where(buff => buff.RemainingTurns > 0))
+        {
+            buff.RemainingTurns--;
+        }
+
+        actor.ActiveBuffs.RemoveAll(buff => buff.RemainingTurns == 0);
+    }
+
+    private List<CombatEvent> TickDots(Combatant defender)
     {
         var damageTickedEvents = new List<CombatEvent>();
 
@@ -475,7 +504,7 @@ public class CombatEngine(
         return null;
     }
 
-    private static Ability ChooseEnemyAbility(Combatant enemy)
+    private static ResolvedAction ResolveEnemyAction(Combatant enemy, Combatant player)
     {
         var affordableAbilities = enemy.Abilities.Where(a =>
             enemy.CooldownRemainingByAbility[a.Name] == 0
@@ -489,7 +518,8 @@ public class CombatEngine(
                 a.DamageType == DamageType.Physical ? a.DamageAmount / 100f : a.DamageAmount
             );
 
-        return bestAttackAbility ?? enemy.Abilities[0];
+        var ability = bestAttackAbility ?? enemy.Abilities[0];
+        return new ResolvedAction(ability, [player]);
     }
 
     private static CombatOutcome GetCurrentOutcome(
@@ -523,8 +553,11 @@ public class CombatEngine(
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
 
-        var hotEvents = ProcessHotTicks(player);
-        var dotEvents = ProcessDotTicks(player);
+        var hotEvents = TickHots(player);
+        var dotEvents = TickDots(player);
+
+        TickBuffs(player);
+
         var combatEvents = hotEvents.Concat(dotEvents).ToList();
 
         if (player.IsAlive)
@@ -535,7 +568,7 @@ public class CombatEngine(
 
             foreach (var enemy in enemyTurnOrder)
             {
-                combatEvents.AddRange(ProcessTurn(enemy, ChooseEnemyAbility(enemy), [player]));
+                combatEvents.AddRange(ProcessTurn(enemy, ResolveEnemyAction(enemy, player)));
             }
         }
 

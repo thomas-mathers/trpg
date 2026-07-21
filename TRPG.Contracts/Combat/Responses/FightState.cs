@@ -83,4 +83,10 @@ public record ActiveDot(string AbilityName, int Amount, DamageType DamageType, i
 
 public record ActiveHot(string AbilityName, int Amount, int RemainingTurns);
 
-public record ActiveBuff(AttributeName Attribute, float Amount, AmountType AmountType, int RemainingTurns);
+public record ActiveBuff(
+    string AbilityName,
+    AttributeName Attribute,
+    float Amount,
+    AmountType AmountType,
+    int RemainingTurns
+);

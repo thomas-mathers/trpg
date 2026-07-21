@@ -92,6 +92,7 @@ internal class GetCombatantsQueryHandler(
                     creature,
                     abilities,
                     abilityDefinitions.BasicAttack,
+                    abilityDefinitions.BlockStance,
                     isPlayer,
                     inventory,
                     weaponProficiencies

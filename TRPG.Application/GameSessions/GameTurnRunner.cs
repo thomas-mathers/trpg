@@ -1,11 +1,16 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Combat;
+using TRPG.Application.Combat.Commands;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common;
+using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
@@ -30,6 +35,9 @@ internal class GameTurnRunner(
     GetChatMessagesQueryHandler getChatMessages,
     AppendChatMessagesCommandHandler appendChatMessages,
     ClearChatMessagesCommandHandler clearChatMessages,
+    GetCombatantsQueryHandler getCombatants,
+    CombatEngine combatEngine,
+    ResolveCombatRoundCommandHandler resolveCombatRound,
     IEnumerable<AIFunction> tools,
     IOptionsMonitor<LlmRoleOptions> optionsMonitor,
     IOptionsSnapshot<GameClockOptions> gameClockOptions,
@@ -54,7 +62,7 @@ internal class GameTurnRunner(
         await BeginTurn(cancellationToken);
 
         var inputOrdinal = await AppendUserMessage(openingPrompt, cancellationToken);
-        await foreach (var token in StreamReply(cancellationToken))
+        await foreach (var token in StreamReply(includeTools: true, cancellationToken))
         {
             yield return token;
         }
@@ -90,7 +98,7 @@ internal class GameTurnRunner(
             $"{hours} hour(s) have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns.";
 
         var inputOrdinal = await AppendUserMessage(waitPrompt, cancellationToken);
-        await foreach (var token in StreamReply(cancellationToken))
+        await foreach (var token in StreamReply(includeTools: true, cancellationToken))
         {
             yield return token;
         }
@@ -119,7 +127,7 @@ internal class GameTurnRunner(
         var buffer = new StringBuilder();
 
         var inputOrdinal = await AppendUserMessage(input, cancellationToken);
-        await foreach (var token in StreamReply(cancellationToken))
+        await foreach (var token in StreamReply(includeTools: true, cancellationToken))
         {
             firstTokenElapsedMs ??= stopwatch.ElapsedMilliseconds;
             tokenCount++;
@@ -154,7 +162,132 @@ internal class GameTurnRunner(
         await BeginTurn(cancellationToken);
 
         var inputOrdinal = await AppendUserMessage(input, cancellationToken);
-        await foreach (var token in StreamReply(cancellationToken))
+        await foreach (var token in StreamReply(includeTools: true, cancellationToken))
+        {
+            yield return token;
+        }
+
+        await FinishTurn(inputOrdinal, cancellationToken);
+    }
+
+    public async IAsyncEnumerable<string> StreamCombatActionResponse(
+        string abilityName,
+        string targetName,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        using var _ = logger.BeginScope(
+            new Dictionary<string, object>
+            {
+                ["SessionId"] = turnContext.SessionId,
+                ["TurnId"] = Guid.NewGuid().ToString("N")[..8],
+            }
+        );
+
+        await BeginTurn(cancellationToken);
+
+        var combatants = await getCombatants.Handle(
+            new GetCombatantsQuery
+            {
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+            },
+            cancellationToken
+        );
+        if (combatants.Count == 0)
+        {
+            yield return "There's no fight to act in right now.";
+            yield break;
+        }
+
+        CombatState? state = null;
+        string? errorMessage = null;
+        try
+        {
+            state = combatEngine.ProcessRound(combatants, abilityName, targetName);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            errorMessage = ex.Message;
+        }
+
+        if (errorMessage != null)
+        {
+            yield return errorMessage;
+            yield break;
+        }
+
+        var result = await resolveCombatRound.Handle(
+            new ResolveCombatRoundCommand
+            {
+                SessionId = turnContext.SessionId,
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+                Combatants = combatants,
+                State = state!,
+            },
+            cancellationToken
+        );
+
+        var prompt =
+            $"A combat action was resolved automatically (no tool call needed). Result: {JsonSerializer.Serialize(result, ToolJsonOptions.Options)}. Narrate what just happened vividly based on this result. Do not call any tools.";
+
+        var inputOrdinal = await AppendUserMessage(prompt, cancellationToken);
+        await foreach (var token in StreamReply(includeTools: false, cancellationToken))
+        {
+            yield return token;
+        }
+
+        await FinishTurn(inputOrdinal, cancellationToken);
+    }
+
+    public async IAsyncEnumerable<string> StreamFleeResponse(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        using var _ = logger.BeginScope(
+            new Dictionary<string, object>
+            {
+                ["SessionId"] = turnContext.SessionId,
+                ["TurnId"] = Guid.NewGuid().ToString("N")[..8],
+            }
+        );
+
+        await BeginTurn(cancellationToken);
+
+        var combatants = await getCombatants.Handle(
+            new GetCombatantsQuery
+            {
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+            },
+            cancellationToken
+        );
+        if (combatants.Count == 0)
+        {
+            yield return "There's no fight to flee from right now.";
+            yield break;
+        }
+
+        var state = combatEngine.ResolveFlee(combatants);
+
+        var result = await resolveCombatRound.Handle(
+            new ResolveCombatRoundCommand
+            {
+                SessionId = turnContext.SessionId,
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+                Combatants = combatants,
+                State = state,
+            },
+            cancellationToken
+        );
+
+        var prompt =
+            $"The player attempted to flee combat. Result: {JsonSerializer.Serialize(result, ToolJsonOptions.Options)}. Narrate the escape attempt vividly based on this result. Do not call any tools.";
+
+        var inputOrdinal = await AppendUserMessage(prompt, cancellationToken);
+        await foreach (var token in StreamReply(includeTools: false, cancellationToken))
         {
             yield return token;
         }
@@ -224,13 +357,14 @@ internal class GameTurnRunner(
     }
 
     private async IAsyncEnumerable<string> StreamReply(
+        bool includeTools,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
         var gameplayOptions = optionsMonitor.Get(LlmRoleKeys.Gameplay);
         var chatOptions = new ChatOptions
         {
-            Tools = tools.Cast<AITool>().ToList(),
+            Tools = includeTools ? tools.Cast<AITool>().ToList() : [],
             Temperature = gameplayOptions.Temperature,
             AdditionalProperties = new AdditionalPropertiesDictionary
             {
@@ -322,7 +456,7 @@ internal class GameTurnRunner(
         var prompt =
             $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
         await AppendUserMessage(prompt, cancellationToken);
-        await foreach (var _ in StreamReply(cancellationToken)) { }
+        await foreach (var _ in StreamReply(includeTools: true, cancellationToken)) { }
         logger.LogInformation(
             "[perf] ForceEndConversation for {NpcName} took {ElapsedMs}ms",
             npcName,

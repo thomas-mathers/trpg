@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
@@ -11,7 +10,8 @@ using TRPG.Data.Models;
 namespace TRPG.GameSessions.Hubs;
 
 internal sealed class ChatHub(
-    IServiceProvider serviceProvider,
+    GameTurnRunner turnRunner,
+    GameTurnContext turnContext,
     EndGameSessionCommandHandler endGameSession,
     GetGameSessionQueryHandler getGameSession,
     WorldConnectionRegistry worldConnections,
@@ -60,10 +60,7 @@ internal sealed class ChatHub(
         return snapshot.WorldId;
     }
 
-    private async Task<bool> IsPlayerDead(
-        GameTurnContext turnContext,
-        CancellationToken cancellationToken
-    )
+    private async Task<bool> IsPlayerDead(CancellationToken cancellationToken)
     {
         var gameSession = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = turnContext.SessionId },
@@ -76,46 +73,43 @@ internal sealed class ChatHub(
         return player?.State == CreatureState.Dead;
     }
 
-    public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken)
-    {
-        var turnContext = ResolveTurnContext();
-        var turnRunner = ResolveTurnRunner();
-        return StreamTurn(
-            turnRunner.StreamOpeningResponse(cancellationToken),
-            turnContext,
-            cancellationToken
-        );
-    }
+    public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken) =>
+        RunTurn(turnRunner.StreamOpeningResponse(cancellationToken), cancellationToken);
 
-    public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken)
-    {
-        var turnContext = ResolveTurnContext();
-        var turnRunner = ResolveTurnRunner();
-        return StreamTurn(
-            turnRunner.StreamResponse(message, cancellationToken),
-            turnContext,
-            cancellationToken
-        );
-    }
+    public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken) =>
+        RunTurn(turnRunner.StreamResponse(message, cancellationToken), cancellationToken);
 
-    public IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken)
-    {
-        var turnContext = ResolveTurnContext();
-        var turnRunner = ResolveTurnRunner();
-        return StreamTurn(
-            turnRunner.StreamWaitResponse(hours, cancellationToken),
-            turnContext,
+    public IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken) =>
+        RunTurn(turnRunner.StreamWaitResponse(hours, cancellationToken), cancellationToken);
+
+    public IAsyncEnumerable<string> SendCombatAction(
+        string abilityName,
+        string targetName,
+        CancellationToken cancellationToken
+    ) =>
+        RunTurn(
+            turnRunner.StreamCombatActionResponse(abilityName, targetName, cancellationToken),
             cancellationToken
         );
+
+    public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
+        RunTurn(turnRunner.StreamFleeResponse(cancellationToken), cancellationToken);
+
+    private IAsyncEnumerable<string> RunTurn(
+        IAsyncEnumerable<string> tokens,
+        CancellationToken cancellationToken
+    )
+    {
+        turnContext.SessionId = (Guid)Context.Items[SessionIdKey]!;
+        return StreamTurn(tokens, cancellationToken);
     }
 
     private async IAsyncEnumerable<string> StreamTurn(
         IAsyncEnumerable<string> tokens,
-        GameTurnContext turnContext,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
-        if (await IsPlayerDead(turnContext, cancellationToken))
+        if (await IsPlayerDead(cancellationToken))
         {
             yield return "You have died. This adventure has come to an end.";
             yield break;
@@ -125,16 +119,6 @@ internal sealed class ChatHub(
         {
             yield return token;
         }
-    }
-
-    private GameTurnRunner ResolveTurnRunner() =>
-        serviceProvider.GetRequiredService<GameTurnRunner>();
-
-    private GameTurnContext ResolveTurnContext()
-    {
-        var turnContext = serviceProvider.GetRequiredService<GameTurnContext>();
-        turnContext.SessionId = (Guid)Context.Items[SessionIdKey]!;
-        return turnContext;
     }
 
     private Guid GetSessionIdFromQuery()

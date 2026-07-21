@@ -11,6 +11,7 @@ namespace TRPG.Tests.Application.Combat;
 public class CombatEngineTests
 {
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
+    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
     private readonly Guid _worldId = Guid.NewGuid();
 
     private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit =
@@ -76,6 +77,26 @@ public class CombatEngineTests
         };
     }
 
+    private static HealOverTimeAbility MakeRegen(
+        string name = "Regen",
+        int amountPerTurn = 5,
+        int duration = 3,
+        int cost = 0,
+        int cooldown = 0
+    )
+    {
+        return new HealOverTimeAbility
+        {
+            Name = name,
+            Description = "A test heal-over-time ability.",
+            ApCost = cost,
+            Cooldown = cooldown,
+            TargetType = TargetType.Single,
+            AmountPerTurn = amountPerTurn,
+            Duration = duration,
+        };
+    }
+
     private Combatant MakeCombatant(
         string name,
         bool isPlayer = false,
@@ -83,6 +104,7 @@ public class CombatEngineTests
         int dexterity = 10,
         int strength = 0,
         int stamina = 10,
+        int defense = 0,
         IReadOnlyList<Ability>? abilities = null,
         WeaponItem? weapon = null
     )
@@ -92,7 +114,7 @@ public class CombatEngineTests
         creature.BaseAttributes.Dexterity = dexterity;
         creature.BaseAttributes.Strength = strength;
         creature.BaseAttributes.Stamina = stamina;
-        creature.BaseAttributes.Defense = 0;
+        creature.BaseAttributes.Defense = defense;
         creature.BaseAttributes.MaximumHp = StatFormulas.CalculateMaximumHp(creature.BaseAttributes);
         creature.BaseAttributes.MaximumAp = StatFormulas.CalculateMaximumAp(creature.BaseAttributes);
         creature.BaseAttributes.MaximumMp = StatFormulas.CalculateMaximumMp(creature.BaseAttributes);
@@ -104,6 +126,7 @@ public class CombatEngineTests
             creature,
             abilities ?? [],
             BasicAttack,
+            BlockStance,
             isPlayer,
             inventory,
             new Dictionary<WeaponType, int>()
@@ -585,5 +608,269 @@ public class CombatEngineTests
         Assert.Equal("Wraith", tick.CreatureName);
         Assert.Equal("Ignite", tick.AbilityName);
         Assert.Equal(DamageType.Fire, tick.DamageType);
+    }
+
+    [Fact]
+    public void ProcessRound_TicksDownAndExpiresBuffs_OverSubsequentRounds()
+    {
+        // Arrange
+        var buffAbility = MakeSupport(name: "Battle Stance");
+        buffAbility.Modifiers.Add(
+            new AttributeModifier
+            {
+                Attribute = AttributeName.Strength,
+                AmountType = AmountType.Flat,
+                Amount = 5,
+            }
+        );
+        var player = MakeCombatant(
+            "Hero",
+            isPlayer: true,
+            dexterity: 20,
+            abilities: [buffAbility]
+        );
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act — cast the buff (duration 3), then let it tick down over subsequent rounds
+        engine.ProcessRound(combatants, "Battle Stance", "Hero");
+        var afterCast = combatants.Single(c => c.IsPlayer);
+        Assert.Equal(3, Assert.Single(afterCast.ActiveBuffs).RemainingTurns);
+
+        engine.ProcessRound(combatants, "Strike", "Wraith");
+        Assert.Equal(2, Assert.Single(afterCast.ActiveBuffs).RemainingTurns);
+
+        engine.ProcessRound(combatants, "Strike", "Wraith");
+        Assert.Equal(1, Assert.Single(afterCast.ActiveBuffs).RemainingTurns);
+
+        engine.ProcessRound(combatants, "Strike", "Wraith");
+
+        // Assert — expired after its duration elapsed
+        Assert.Empty(afterCast.ActiveBuffs);
+    }
+
+    [Fact]
+    public void ProcessRound_RefreshesExistingBuff_InsteadOfStacking_WhenSameAbilityReapplied()
+    {
+        // Arrange
+        var buffAbility = MakeSupport(name: "Battle Stance");
+        buffAbility.Modifiers.Add(
+            new AttributeModifier
+            {
+                Attribute = AttributeName.Strength,
+                AmountType = AmountType.Flat,
+                Amount = 5,
+            }
+        );
+        var player = MakeCombatant(
+            "Hero",
+            isPlayer: true,
+            dexterity: 20,
+            strength: 0,
+            abilities: [buffAbility]
+        );
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act — cast the same buff twice in a row
+        engine.ProcessRound(combatants, "Battle Stance", "Hero");
+        engine.ProcessRound(combatants, "Battle Stance", "Hero");
+
+        // Assert — refreshed in place, not stacked into a second entry
+        var playerState = combatants.Single(c => c.IsPlayer);
+        var buff = Assert.Single(playerState.ActiveBuffs);
+        Assert.Equal(5, buff.Amount);
+        Assert.Equal(5, playerState.CalculateEffectiveAttribute(AttributeName.Strength));
+    }
+
+    [Fact]
+    public void ApplyBuff_AllowsDifferentNamedBuffs_ToCoexist()
+    {
+        // Arrange
+        var battleStance = MakeSupport("Battle Stance");
+        battleStance.Modifiers.Add(
+            new AttributeModifier
+            {
+                Attribute = AttributeName.Strength,
+                AmountType = AmountType.Flat,
+                Amount = 5,
+            }
+        );
+        var ironWill = MakeSupport("Iron Will");
+        ironWill.Modifiers.Add(
+            new AttributeModifier
+            {
+                Attribute = AttributeName.Defense,
+                AmountType = AmountType.Flat,
+                Amount = 10,
+            }
+        );
+        var player = MakeCombatant(
+            "Hero",
+            isPlayer: true,
+            dexterity: 20,
+            abilities: [battleStance, ironWill]
+        );
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act — cast two different-named buffs
+        engine.ProcessRound(combatants, "Battle Stance", "Hero");
+        engine.ProcessRound(combatants, "Iron Will", "Hero");
+
+        // Assert — both coexist, neither replaced the other
+        var playerState = combatants.Single(c => c.IsPlayer);
+        Assert.Equal(2, playerState.ActiveBuffs.Count);
+    }
+
+    [Fact]
+    public void ApplyAttack_DoesNotStackDot_WhenSameAbilityReapplied()
+    {
+        // Arrange
+        var burn = new DotEffect
+        {
+            Duration = 3,
+            Amount = 2f,
+            AmountType = AmountType.Flat,
+        };
+        var ignite = MakeAttack("Ignite", damage: 1, damageType: DamageType.Fire, dot: burn);
+        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20, abilities: [ignite]);
+        var monster = MakeCombatant("Wraith", endurance: 100, abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act — reapply the same DoT-inflicting ability twice
+        engine.ProcessRound(combatants, "Ignite", "Wraith");
+        engine.ProcessRound(combatants, "Ignite", "Wraith");
+
+        // Assert — refreshed, not stacked into a second entry
+        var monsterState = combatants.Single(c => c.Name == "Wraith");
+        Assert.Single(monsterState.ActiveDots);
+    }
+
+    [Fact]
+    public void ApplyAttack_AllowsDifferentNamedDots_ToCoexist()
+    {
+        // Arrange
+        var burn = new DotEffect
+        {
+            Duration = 3,
+            Amount = 2f,
+            AmountType = AmountType.Flat,
+        };
+        var poison = new DotEffect
+        {
+            Duration = 3,
+            Amount = 1f,
+            AmountType = AmountType.Flat,
+        };
+        var ignite = MakeAttack("Ignite", damage: 1, damageType: DamageType.Fire, dot: burn);
+        var venom = MakeAttack("Venom", damage: 1, damageType: DamageType.Poison, dot: poison);
+        var player = MakeCombatant(
+            "Hero",
+            isPlayer: true,
+            dexterity: 20,
+            abilities: [ignite, venom]
+        );
+        var monster = MakeCombatant("Wraith", endurance: 100, abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act — apply two different-named DoTs
+        engine.ProcessRound(combatants, "Ignite", "Wraith");
+        engine.ProcessRound(combatants, "Venom", "Wraith");
+
+        // Assert — both coexist, neither replaced the other
+        var monsterState = combatants.Single(c => c.Name == "Wraith");
+        Assert.Equal(2, monsterState.ActiveDots.Count);
+        Assert.Contains(monsterState.ActiveDots, d => d.AbilityName == "Ignite");
+        Assert.Contains(monsterState.ActiveDots, d => d.AbilityName == "Venom");
+    }
+
+    [Fact]
+    public void ApplyHealOverTime_DoesNotStackHot_WhenSameAbilityReapplied()
+    {
+        // Arrange
+        var regen = MakeRegen("Regen");
+        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20, abilities: [regen]);
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act — reapply the same HoT ability twice
+        engine.ProcessRound(combatants, "Regen", "Hero");
+        engine.ProcessRound(combatants, "Regen", "Hero");
+
+        // Assert — refreshed, not stacked into a second entry
+        var playerState = combatants.Single(c => c.IsPlayer);
+        Assert.Single(playerState.ActiveHots);
+    }
+
+    [Fact]
+    public void ApplyHealOverTime_AllowsDifferentNamedHots_ToCoexist()
+    {
+        // Arrange
+        var regen = MakeRegen("Regen");
+        var rejuvenate = MakeRegen("Rejuvenate", amountPerTurn: 3);
+        var player = MakeCombatant(
+            "Hero",
+            isPlayer: true,
+            dexterity: 20,
+            abilities: [regen, rejuvenate]
+        );
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act — apply two different-named HoTs
+        engine.ProcessRound(combatants, "Regen", "Hero");
+        engine.ProcessRound(combatants, "Rejuvenate", "Hero");
+
+        // Assert — both coexist, neither replaced the other
+        var playerState = combatants.Single(c => c.IsPlayer);
+        Assert.Equal(2, playerState.ActiveHots.Count);
+    }
+
+    [Fact]
+    public void ProcessRound_Block_AppliesDefenseBuff_AlwaysAvailableLikeStrike()
+    {
+        // Arrange — "Block" is never passed via `abilities`, only ever added by MakeCombatant
+        // itself (mirroring Strike), so resolving it here proves it's always available.
+        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20, defense: 10);
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        engine.ProcessRound(combatants, "Block", "Hero");
+
+        // Assert — Defense is doubled via the buff, not a bespoke damage-mitigation path
+        var playerState = combatants.Single(c => c.IsPlayer);
+        Assert.Equal(20, playerState.CalculateEffectiveAttribute(AttributeName.Defense));
+        Assert.Contains(
+            playerState.ActiveBuffs,
+            b => b.AbilityName == "Block" && b.Attribute == AttributeName.Defense
+        );
+    }
+
+    [Fact]
+    public void ProcessRound_Block_DeductsItsApCost()
+    {
+        // Arrange — player starts at full AP, so this round's regen is a no-op and only the
+        // ability's own cost should change CurrentAp
+        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20);
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        engine.ProcessRound(combatants, "Block", "Hero");
+
+        // Assert
+        var playerState = combatants.Single(c => c.IsPlayer);
+        Assert.Equal(player.MaximumAp - BlockStance.ApCost, playerState.CurrentAp);
     }
 }

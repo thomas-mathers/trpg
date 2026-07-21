@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
+using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Combat;
@@ -145,6 +146,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<PersistCombatantsCommandHandler>()
             .AddTransient<StartFightCommandHandler>()
             .AddTransient<EndFightCommandHandler>()
+            .AddTransient<ResolveCombatRoundCommandHandler>()
+            .AddTransient<GetPlayerAbilitiesQueryHandler>()
             .AddTransient<GetAllWeaponProficienciesQueryHandler>()
             .AddTransient<AdjustWeaponProficienciesCommandHandler>()
             .AddTransient<HitCalculator>()
@@ -158,8 +161,7 @@ public static class ServiceCollectionExtensions
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
             .AddGameTool<LookupTool>()
-            .AddGameTool<AttackTool>()
-            .AddGameTool<FleeTool>();
+            .AddGameTool<StartFightTool>();
     }
 
     private static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)

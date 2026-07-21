@@ -11,6 +11,7 @@ public class HitCalculatorTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
+    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
 
     private static readonly IOptionsSnapshot<CombatOptions> Settings =
         new TestOptionsSnapshot<CombatOptions>(
@@ -72,6 +73,7 @@ public class HitCalculatorTests
             creature,
             [],
             BasicAttack,
+            BlockStance,
             isPlayer: true,
             inventory,
             proficiencies
@@ -247,6 +249,7 @@ public class HitCalculatorTests
             creature,
             [],
             BasicAttack,
+            BlockStance,
             true,
             [shield],
             new Dictionary<WeaponType, int>()
@@ -277,6 +280,7 @@ public class HitCalculatorTests
             creatureWithShield,
             [],
             BasicAttack,
+            BlockStance,
             true,
             [blockingShield],
             new Dictionary<WeaponType, int>()

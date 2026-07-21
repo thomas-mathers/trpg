@@ -88,6 +88,7 @@ public class ActiveHot
 
 public class ActiveBuff
 {
+    public string AbilityName { get; init; } = "";
     public float Amount { get; init; }
     public string Attribute { get; init; } = "";
     public int RemainingTurns { get; init; }

@@ -54,12 +54,13 @@ public class Combatant
         Creature creature,
         IReadOnlyList<Ability> abilities,
         AttackAbility basicAttack,
+        BuffAbility blockStance,
         bool isPlayer,
         IReadOnlyList<Item> inventory,
         IReadOnlyDictionary<WeaponType, int> weaponProficiencies
     )
     {
-        var allAbilities = new[] { basicAttack }.Concat(abilities).ToArray();
+        var allAbilities = new Ability[] { basicAttack, blockStance }.Concat(abilities).ToArray();
         var startingAttributes = StatFormulas.CalculateEffectiveAttributes(
             creature.BaseAttributes,
             [],
@@ -111,6 +112,7 @@ public class Combatant
             ActiveBuffs = creature
                 .ActiveBuffs.Select(b => new ActiveBuff
                 {
+                    AbilityName = b.AbilityName,
                     Amount = b.Amount,
                     Attribute = Enum.Parse<AttributeName>(b.Attribute),
                     RemainingTurns = b.RemainingTurns,
@@ -154,6 +156,7 @@ public class Combatant
         creature.ActiveBuffs = ActiveBuffs
             .Select(b => new PersistedCombat.ActiveBuff
             {
+                AbilityName = b.AbilityName,
                 Amount = b.Amount,
                 Attribute = b.Attribute.ToString(),
                 RemainingTurns = b.RemainingTurns,
