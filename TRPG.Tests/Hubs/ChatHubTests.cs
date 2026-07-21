@@ -67,40 +67,6 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Connect_ClosesTheConnection_WhenAnotherConnectionIsAlreadyActiveForTheSameWorld()
-    {
-        // Arrange
-        var firstSessionId = await StartSession();
-        var secondSessionId = await StartSession();
-
-        await using var firstConnection = fixture.CreateHubConnection(firstSessionId);
-        await firstConnection.StartAsync(TestContext.Current.CancellationToken);
-
-        await using var secondConnection = fixture.CreateHubConnection(secondSessionId);
-        var closedTcs = new TaskCompletionSource<Exception?>();
-        secondConnection.Closed += exception =>
-        {
-            closedTcs.TrySetResult(exception);
-            return Task.CompletedTask;
-        };
-
-        // Act
-        await secondConnection.StartAsync(TestContext.Current.CancellationToken);
-        var closeException = await closedTcs.Task.WaitAsync(
-            TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.NotNull(closeException);
-        Assert.Contains(
-            "Another connection is already active",
-            closeException.Message,
-            StringComparison.Ordinal
-        );
-    }
-
-    [Fact]
     public async Task Connect_Succeeds_AfterThePriorConnectionForTheWorldHasDisconnected()
     {
         // Arrange

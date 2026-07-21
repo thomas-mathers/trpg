@@ -25,7 +25,8 @@ public class CombatantTests
             BlockStance,
             isPlayer: true,
             [],
-            new Dictionary<WeaponType, int>()
+            new Dictionary<WeaponType, int>(),
+            []
         );
 
         // Assert
@@ -46,7 +47,8 @@ public class CombatantTests
             BlockStance,
             isPlayer: false,
             [],
-            new Dictionary<WeaponType, int>()
+            new Dictionary<WeaponType, int>(),
+            []
         );
 
         // Assert

@@ -16,15 +16,17 @@ var continueOption = new Option<bool>("--continue")
 var rootCommand = new RootCommand("TRPG console client") { serverOption, continueOption };
 
 rootCommand.SetAction(
-    async (ParseResult parseResult, CancellationToken cancellationToken) =>
+    async (parseResult, cancellationToken) =>
     {
         var serverUrl = parseResult.GetValue(serverOption)!;
         var shouldContinue = parseResult.GetValue(continueOption);
 
         using var loggerFactory = ClientLogging.CreateLoggerFactory();
-        using var httpClient = new HttpClient { BaseAddress = new Uri(serverUrl) };
-        var client = new GameServerClient(httpClient, loggerFactory);
-        var game = new Game(client, loggerFactory.CreateLogger<Game>());
+        using var httpClient = new HttpClient();
+        httpClient.BaseAddress = new Uri(serverUrl);
+        var client = new TrpgHttpClient(httpClient, loggerFactory);
+        var hubConnector = new TrpgHubConnector(httpClient, loggerFactory);
+        var game = new Game(client, hubConnector, loggerFactory.CreateLogger<Game>());
 
         await game.Start(shouldContinue, cancellationToken);
         return 0;

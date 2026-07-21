@@ -2,15 +2,17 @@ using System.CommandLine;
 using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
+using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Scenes.Responses;
 
 namespace TRPG.Client;
 
 internal sealed class SlashCommandRegistry(
-    GameServerClient client,
+    TrpgHttpClient client,
     NarrationRenderer narrationRenderer,
     GameHub gameHub,
     Guid worldId,
+    Guid playerId,
     Guid sessionId
 )
 {
@@ -196,6 +198,16 @@ internal sealed class SlashCommandRegistry(
             }
         );
 
+        var abilityCommand = new Command("ability", "List your abilities");
+        abilityCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var abilities = await client.GetAbilities(playerId, cancellationToken);
+                PrintAbilities(abilities);
+                return 0;
+            }
+        );
+
         var exitCommand = new Command("exit", "End the session and return to the menu");
         exitCommand.SetAction(_ =>
         {
@@ -213,6 +225,7 @@ internal sealed class SlashCommandRegistry(
             propsCommand,
             exitsCommand,
             characterCommand,
+            abilityCommand,
             exitCommand,
         ];
 
@@ -398,6 +411,30 @@ internal sealed class SlashCommandRegistry(
         }
 
         AnsiConsole.PrintTable(["Field", "Value"], rows);
+    }
+
+    private static void PrintAbilities(IReadOnlyCollection<AbilitySummary> abilities)
+    {
+        if (abilities.Count == 0)
+        {
+            Announce("No abilities known.");
+            return;
+        }
+
+        AnsiConsole.PrintTable(
+            ["Name", "Tree", "Description", "AP", "MP", "Cooldown"],
+            abilities.Select(a =>
+                new[]
+                {
+                    a.Name,
+                    AnsiConsole.FormatNeutralChip(a.Skill),
+                    a.Description,
+                    a.ApCost.ToString(),
+                    a.MpCost.ToString(),
+                    a.Cooldown.ToString(),
+                }
+            )
+        );
     }
 
     private static void PrintAvailableCommands(IReadOnlyDictionary<string, Command> commands)

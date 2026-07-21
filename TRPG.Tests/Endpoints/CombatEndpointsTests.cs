@@ -4,8 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
-using TRPG.Contracts;
-using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
@@ -306,62 +304,4 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    [Fact]
-    public async Task GetAbilities_ReturnsStrikePlusLearnedAbilities()
-    {
-        // Arrange
-        await using (var scope = fixture.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            context.CreatureAbilities.Add(
-                new CreatureAbility
-                {
-                    WorldId = _worldId,
-                    CreatureId = _playerId,
-                    AbilityName = "Slash",
-                }
-            );
-            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
-
-        // Act
-        var response = await _client.GetAsync(
-            new Uri($"/worlds/{_worldId}/abilities", UriKind.Relative),
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var abilities = await response.Content.ReadFromJsonAsync<List<AbilitySummary>>(
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(abilities);
-        Assert.Contains(abilities, a => a.Name == "Strike");
-        Assert.Contains(abilities, a => a.Name == "Slash");
-    }
-
-    [Fact]
-    public async Task GetAbilities_ReturnsNotFound_WhenWorldHasNoPlayer()
-    {
-        // Arrange
-        Guid worldWithNoPlayerId;
-        await using (var scope = fixture.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            var world = Builders.MakeWorld();
-            context.Worlds.Add(world);
-            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-            worldWithNoPlayerId = world.Id;
-        }
-
-        // Act
-        var response = await _client.GetAsync(
-            new Uri($"/worlds/{worldWithNoPlayerId}/abilities", UriKind.Relative),
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
 }

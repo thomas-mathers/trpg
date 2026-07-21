@@ -35,6 +35,11 @@ public class ItemGenerator(
         return consumableGenerator.Generate(level, worldId);
     }
 
+    public ConsumableItem GenerateConsumable(ResourceType resource, int level, Guid worldId)
+    {
+        return consumableGenerator.Generate(resource, level, worldId);
+    }
+
     public AmmunitionItem GenerateAmmo(AmmoType type, Guid worldId)
     {
         return ammoGenerator.Generate(type, worldId);

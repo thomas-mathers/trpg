@@ -5,7 +5,6 @@ namespace TRPG.Application.Creatures.Queries;
 
 internal class GetCreatureAbilitiesQuery
 {
-    public required Guid WorldId { get; init; }
     public required Guid CreatureId { get; init; }
 }
 
@@ -18,7 +17,7 @@ internal class GetCreatureAbilitiesQueryHandler(TrpgDbContext context)
     {
         return await context
             .CreatureAbilities.AsNoTracking()
-            .Where(a => a.WorldId == query.WorldId && a.CreatureId == query.CreatureId)
+            .Where(a => a.CreatureId == query.CreatureId)
             .Select(a => a.AbilityName)
             .ToArrayAsync(cancellationToken);
     }

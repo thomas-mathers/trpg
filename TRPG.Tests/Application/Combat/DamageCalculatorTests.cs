@@ -39,7 +39,8 @@ public class DamageCalculatorTests
             BlockStance,
             isPlayer: true,
             inventory ?? [],
-            new Dictionary<WeaponType, int>()
+            new Dictionary<WeaponType, int>(),
+            []
         );
     }
 

@@ -8,4 +8,5 @@ public enum Skill
     Archery,
     Devotion,
     Warfare,
+    General,
 }

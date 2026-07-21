@@ -14,6 +14,7 @@ using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions;
@@ -38,6 +39,7 @@ internal class GameTurnRunner(
     GetCombatantsQueryHandler getCombatants,
     CombatEngine combatEngine,
     ResolveCombatRoundCommandHandler resolveCombatRound,
+    RemoveInventoryItemCommandHandler removeInventoryItem,
     IEnumerable<AIFunction> tools,
     IOptionsMonitor<LlmRoleOptions> optionsMonitor,
     IOptionsSnapshot<GameClockOptions> gameClockOptions,
@@ -171,7 +173,7 @@ internal class GameTurnRunner(
     }
 
     public async IAsyncEnumerable<string> StreamCombatActionResponse(
-        string abilityName,
+        string actionName,
         string targetName,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
@@ -200,21 +202,39 @@ internal class GameTurnRunner(
             yield break;
         }
 
-        CombatState? state = null;
-        string? errorMessage = null;
-        try
+        var resolution = PlayerActionResolver.Resolve(combatants, actionName, targetName);
+
+        ResolvedAction resolvedAction;
+
+        switch (resolution)
         {
-            state = combatEngine.ProcessRound(combatants, abilityName, targetName);
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
-        {
-            errorMessage = ex.Message;
+            case ActionRejected rejected:
+            {
+                yield return rejected.Reason;
+                yield break;
+            }
+            case ActionResolved resolved:
+                resolvedAction = resolved.Action;
+                break;
+            default:
+                throw new InvalidOperationException(
+                    $"Unhandled ActionResolution type: {resolution.GetType().Name}"
+                );
         }
 
-        if (errorMessage != null)
+        var state = combatEngine.ProcessRound(combatants, resolvedAction);
+
+        if (resolvedAction is ResolvedItem resolvedItem)
         {
-            yield return errorMessage;
-            yield break;
+            await removeInventoryItem.Handle(
+                new RemoveInventoryItemCommand
+                {
+                    CreatureId = turnContext.PlayerId,
+                    ItemId = resolvedItem.Item.ItemId,
+                    Quantity = 1,
+                },
+                cancellationToken
+            );
         }
 
         var result = await resolveCombatRound.Handle(
@@ -224,7 +244,7 @@ internal class GameTurnRunner(
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
                 Combatants = combatants,
-                State = state!,
+                State = state,
             },
             cancellationToken
         );

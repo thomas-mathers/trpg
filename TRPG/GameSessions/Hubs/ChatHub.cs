@@ -83,12 +83,12 @@ internal sealed class ChatHub(
         RunTurn(turnRunner.StreamWaitResponse(hours, cancellationToken), cancellationToken);
 
     public IAsyncEnumerable<string> SendCombatAction(
-        string abilityName,
+        string actionName,
         string targetName,
         CancellationToken cancellationToken
     ) =>
         RunTurn(
-            turnRunner.StreamCombatActionResponse(abilityName, targetName, cancellationToken),
+            turnRunner.StreamCombatActionResponse(actionName, targetName, cancellationToken),
             cancellationToken
         );
 

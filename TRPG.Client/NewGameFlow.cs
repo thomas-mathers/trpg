@@ -8,7 +8,7 @@ using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 
-internal sealed class NewGameFlow(GameServerClient client)
+internal sealed class NewGameFlow(TrpgHttpClient client)
 {
     public async Task<Guid?> Run(CancellationToken cancellationToken)
     {

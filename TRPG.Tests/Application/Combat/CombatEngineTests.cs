@@ -31,6 +31,17 @@ public class CombatEngineTests
         return new CombatEngine(optionsSnapshot, hitCalculator, damageCalculator);
     }
 
+    private static CombatState Resolve(
+        CombatEngine engine,
+        IReadOnlyList<Combatant> combatants,
+        PlayerRoundAction action
+    )
+    {
+        var resolution = PlayerActionResolver.Resolve(combatants, action);
+        var resolved = Assert.IsType<ActionResolved>(resolution);
+        return engine.ProcessRound(combatants, resolved.Action);
+    }
+
     private static AttackAbility MakeAttack(
         string name = "Claw",
         float damage = 5,
@@ -106,7 +117,8 @@ public class CombatEngineTests
         int stamina = 10,
         int defense = 0,
         IReadOnlyList<Ability>? abilities = null,
-        WeaponItem? weapon = null
+        WeaponItem? weapon = null,
+        IReadOnlyList<UsableItem>? usableItems = null
     )
     {
         var creature = Builders.MakeCreature(_worldId, name: name);
@@ -129,7 +141,8 @@ public class CombatEngineTests
             BlockStance,
             isPlayer,
             inventory,
-            new Dictionary<WeaponType, int>()
+            new Dictionary<WeaponType, int>(),
+            usableItems ?? []
         );
     }
 
@@ -143,7 +156,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert — player acted (faster) and the surviving enemy answered
         Assert.Equal(CombatOutcome.Ongoing, state.Outcome);
@@ -164,7 +177,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysMiss);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert
         Assert.All(state.Events, t => Assert.IsType<Miss>(t));
@@ -187,7 +200,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Smite", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Smite", "Wraith"));
 
         // Assert — the dead enemy never got its turn, and the spoils are reported
         Assert.Equal(CombatOutcome.Victory, state.Outcome);
@@ -213,7 +226,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert — the player never got to act
         Assert.Equal(CombatOutcome.Defeat, state.Outcome);
@@ -236,7 +249,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert — it fell back to the always-affordable basic attack rather than skipping
         Assert.Equal(2, state.Events.Count);
@@ -260,7 +273,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Bash", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Bash", "Wraith"));
 
         // Assert — the stunned enemy lost its turn and the condition is visible in its state
         var noAction = Assert.IsType<NoAction>(state.Events[1]);
@@ -282,7 +295,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert — the frozen enemy lost its turn
         var noAction = Assert.IsType<NoAction>(state.Events[1]);
@@ -304,7 +317,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert
         var noAction = Assert.IsType<NoAction>(state.Events[1]);
@@ -325,7 +338,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert
         Assert.IsType<Hit>(state.Events[1]);
@@ -345,7 +358,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert
         var noAction = Assert.IsType<NoAction>(state.Events[1]);
@@ -366,7 +379,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert
         Assert.IsType<Hit>(state.Events[1]);
@@ -388,7 +401,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Cleave", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Cleave", "Wraith"));
 
         // Assert — one Hit entry per target
         var cleaveHits = state.Events.OfType<Hit>().Where(h => h.AbilityName == "Cleave").ToArray();
@@ -418,7 +431,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Strike", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert — the player's swing is tracked; the monster's (unarmed) attack is not
         var swing = Assert.Single(state.WeaponSwingCounts);
@@ -427,7 +440,7 @@ public class CombatEngineTests
     }
 
     [Fact]
-    public void ResolvePlayerAction_Throws_WhenAbilityIsUnknownOrUnaffordable()
+    public void ResolvePlayerAction_IsRejected_WhenAbilityIsUnknownOrUnaffordable()
     {
         // Arrange
         var player = MakeCombatant(
@@ -438,49 +451,48 @@ public class CombatEngineTests
         );
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysHit);
 
         // Act & Assert — neither consumed the round
-        Assert.Throws<ArgumentException>(() =>
-            engine.ProcessRound(combatants, "Fireball", "Wraith")
+        Assert.IsType<ActionRejected>(
+            PlayerActionResolver.Resolve(combatants, new UseAbility("Fireball", "Wraith"))
         );
-        Assert.Throws<InvalidOperationException>(() =>
-            engine.ProcessRound(combatants, "Devour", "Wraith")
+        Assert.IsType<ActionRejected>(
+            PlayerActionResolver.Resolve(combatants, new UseAbility("Devour", "Wraith"))
         );
         Assert.Equal(player.MaximumHp, player.CurrentHp);
     }
 
     [Fact]
-    public void ResolvePlayerAction_Throws_WhenTargetIsUnknown()
+    public void ResolvePlayerAction_IsRejected_WhenTargetIsUnknown()
     {
         // Arrange
         var player = MakeCombatant("Hero", isPlayer: true);
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysHit);
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => engine.ProcessRound(combatants, "Strike", "Ghost"));
+        Assert.IsType<ActionRejected>(
+            PlayerActionResolver.Resolve(combatants, new UseAbility("Strike", "Ghost"))
+        );
     }
 
     [Fact]
-    public void ResolvePlayerAction_Throws_WhenTargetIsAlreadyDead()
+    public void ResolvePlayerAction_IsRejected_WhenTargetIsAlreadyDead()
     {
         // Arrange
         var player = MakeCombatant("Hero", isPlayer: true);
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         monster.CurrentHp = 0;
         IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysHit);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
-            engine.ProcessRound(combatants, "Strike", "Wraith")
+        Assert.IsType<ActionRejected>(
+            PlayerActionResolver.Resolve(combatants, new UseAbility("Strike", "Wraith"))
         );
     }
 
     [Fact]
-    public void ResolvePlayerAction_Throws_WhenSelfOnlyAbilityTargetsSomeoneElse()
+    public void ResolvePlayerAction_IsRejected_WhenSelfOnlyAbilityTargetsSomeoneElse()
     {
         // Arrange
         var player = MakeCombatant(
@@ -490,31 +502,29 @@ public class CombatEngineTests
         );
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysHit);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
-            engine.ProcessRound(combatants, "Battle Stance", "Wraith")
+        Assert.IsType<ActionRejected>(
+            PlayerActionResolver.Resolve(combatants, new UseAbility("Battle Stance", "Wraith"))
         );
     }
 
     [Fact]
-    public void ResolvePlayerAction_Throws_WhenAttackAbilityTargetsThePlayer()
+    public void ResolvePlayerAction_IsRejected_WhenAttackAbilityTargetsThePlayer()
     {
         // Arrange
         var player = MakeCombatant("Hero", isPlayer: true);
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysHit);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
-            engine.ProcessRound(combatants, "Strike", "Hero")
+        Assert.IsType<ActionRejected>(
+            PlayerActionResolver.Resolve(combatants, new UseAbility("Strike", "Hero"))
         );
     }
 
     [Fact]
-    public void ResolvePlayerAction_Throws_WhenPlayerCannotAffordMpCost()
+    public void ResolvePlayerAction_IsRejected_WhenPlayerCannotAffordMpCost()
     {
         // Arrange
         var player = MakeCombatant(
@@ -524,11 +534,10 @@ public class CombatEngineTests
         );
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysHit);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
-            engine.ProcessRound(combatants, "Arcane Blast", "Wraith")
+        Assert.IsType<ActionRejected>(
+            PlayerActionResolver.Resolve(combatants, new UseAbility("Arcane Blast", "Wraith"))
         );
     }
 
@@ -567,15 +576,15 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        engine.ProcessRound(combatants, "Smite", "Wraith");
+        Resolve(engine, combatants, new UseAbility("Smite", "Wraith"));
 
         // Assert — still cooling down next round, available again after two full rounds
-        Assert.Throws<InvalidOperationException>(() =>
-            engine.ProcessRound(combatants, "Smite", "Wraith")
+        Assert.IsType<ActionRejected>(
+            PlayerActionResolver.Resolve(combatants, new UseAbility("Smite", "Wraith"))
         );
-        engine.ProcessRound(combatants, "Strike", "Wraith");
-        engine.ProcessRound(combatants, "Strike", "Wraith");
-        var state = engine.ProcessRound(combatants, "Smite", "Wraith");
+        Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
+        Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
+        var state = Resolve(engine, combatants, new UseAbility("Smite", "Wraith"));
         var smiteHit = Assert.IsType<Hit>(state.Events[0]);
         Assert.Equal("Smite", smiteHit.AbilityName);
     }
@@ -601,7 +610,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act
-        var state = engine.ProcessRound(combatants, "Ignite", "Wraith");
+        var state = Resolve(engine, combatants, new UseAbility("Ignite", "Wraith"));
 
         // Assert — the burn ticked at round end as its own Turn entry, identified by ability and damage type
         var tick = Assert.Single(state.Events.OfType<DamageTicked>());
@@ -634,17 +643,17 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysMiss);
 
         // Act — cast the buff (duration 3), then let it tick down over subsequent rounds
-        engine.ProcessRound(combatants, "Battle Stance", "Hero");
+        Resolve(engine, combatants, new UseAbility("Battle Stance", "Hero"));
         var afterCast = combatants.Single(c => c.IsPlayer);
         Assert.Equal(3, Assert.Single(afterCast.ActiveBuffs).RemainingTurns);
 
-        engine.ProcessRound(combatants, "Strike", "Wraith");
+        Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
         Assert.Equal(2, Assert.Single(afterCast.ActiveBuffs).RemainingTurns);
 
-        engine.ProcessRound(combatants, "Strike", "Wraith");
+        Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
         Assert.Equal(1, Assert.Single(afterCast.ActiveBuffs).RemainingTurns);
 
-        engine.ProcessRound(combatants, "Strike", "Wraith");
+        Resolve(engine, combatants, new UseAbility("Strike", "Wraith"));
 
         // Assert — expired after its duration elapsed
         Assert.Empty(afterCast.ActiveBuffs);
@@ -675,8 +684,8 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysMiss);
 
         // Act — cast the same buff twice in a row
-        engine.ProcessRound(combatants, "Battle Stance", "Hero");
-        engine.ProcessRound(combatants, "Battle Stance", "Hero");
+        Resolve(engine, combatants, new UseAbility("Battle Stance", "Hero"));
+        Resolve(engine, combatants, new UseAbility("Battle Stance", "Hero"));
 
         // Assert — refreshed in place, not stacked into a second entry
         var playerState = combatants.Single(c => c.IsPlayer);
@@ -718,8 +727,8 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysMiss);
 
         // Act — cast two different-named buffs
-        engine.ProcessRound(combatants, "Battle Stance", "Hero");
-        engine.ProcessRound(combatants, "Iron Will", "Hero");
+        Resolve(engine, combatants, new UseAbility("Battle Stance", "Hero"));
+        Resolve(engine, combatants, new UseAbility("Iron Will", "Hero"));
 
         // Assert — both coexist, neither replaced the other
         var playerState = combatants.Single(c => c.IsPlayer);
@@ -743,8 +752,8 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act — reapply the same DoT-inflicting ability twice
-        engine.ProcessRound(combatants, "Ignite", "Wraith");
-        engine.ProcessRound(combatants, "Ignite", "Wraith");
+        Resolve(engine, combatants, new UseAbility("Ignite", "Wraith"));
+        Resolve(engine, combatants, new UseAbility("Ignite", "Wraith"));
 
         // Assert — refreshed, not stacked into a second entry
         var monsterState = combatants.Single(c => c.Name == "Wraith");
@@ -780,8 +789,8 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit);
 
         // Act — apply two different-named DoTs
-        engine.ProcessRound(combatants, "Ignite", "Wraith");
-        engine.ProcessRound(combatants, "Venom", "Wraith");
+        Resolve(engine, combatants, new UseAbility("Ignite", "Wraith"));
+        Resolve(engine, combatants, new UseAbility("Venom", "Wraith"));
 
         // Assert — both coexist, neither replaced the other
         var monsterState = combatants.Single(c => c.Name == "Wraith");
@@ -801,8 +810,8 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysMiss);
 
         // Act — reapply the same HoT ability twice
-        engine.ProcessRound(combatants, "Regen", "Hero");
-        engine.ProcessRound(combatants, "Regen", "Hero");
+        Resolve(engine, combatants, new UseAbility("Regen", "Hero"));
+        Resolve(engine, combatants, new UseAbility("Regen", "Hero"));
 
         // Assert — refreshed, not stacked into a second entry
         var playerState = combatants.Single(c => c.IsPlayer);
@@ -826,8 +835,8 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysMiss);
 
         // Act — apply two different-named HoTs
-        engine.ProcessRound(combatants, "Regen", "Hero");
-        engine.ProcessRound(combatants, "Rejuvenate", "Hero");
+        Resolve(engine, combatants, new UseAbility("Regen", "Hero"));
+        Resolve(engine, combatants, new UseAbility("Rejuvenate", "Hero"));
 
         // Assert — both coexist, neither replaced the other
         var playerState = combatants.Single(c => c.IsPlayer);
@@ -845,7 +854,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysMiss);
 
         // Act
-        engine.ProcessRound(combatants, "Block", "Hero");
+        Resolve(engine, combatants, new UseAbility("Block", "Hero"));
 
         // Assert — Defense is doubled via the buff, not a bespoke damage-mitigation path
         var playerState = combatants.Single(c => c.IsPlayer);
@@ -867,7 +876,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysMiss);
 
         // Act
-        engine.ProcessRound(combatants, "Block", "Hero");
+        Resolve(engine, combatants, new UseAbility("Block", "Hero"));
 
         // Assert
         var playerState = combatants.Single(c => c.IsPlayer);

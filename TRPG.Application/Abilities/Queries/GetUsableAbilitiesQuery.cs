@@ -2,24 +2,23 @@ using TRPG.Application.Creatures.Queries;
 
 namespace TRPG.Application.Abilities.Queries;
 
-internal class GetPlayerAbilitiesQuery
+internal class GetUsableAbilitiesQuery
 {
-    public required Guid WorldId { get; init; }
-    public required Guid PlayerId { get; init; }
+    public required Guid CreatureId { get; init; }
 }
 
-internal class GetPlayerAbilitiesQueryHandler(
+internal class GetUsableAbilitiesQueryHandler(
     GetCreatureAbilitiesQueryHandler getCreatureAbilities,
     AbilityDefinitions abilityDefinitions
 )
 {
     public async Task<IReadOnlyCollection<Ability>> Handle(
-        GetPlayerAbilitiesQuery query,
+        GetUsableAbilitiesQuery query,
         CancellationToken cancellationToken = default
     )
     {
         var learnedNames = await getCreatureAbilities.Handle(
-            new GetCreatureAbilitiesQuery { WorldId = query.WorldId, CreatureId = query.PlayerId },
+            new GetCreatureAbilitiesQuery { CreatureId = query.CreatureId },
             cancellationToken
         );
 

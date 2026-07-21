@@ -1,15 +1,17 @@
 using Spectre.Console;
 using TRPG.Client.Extensions;
+using TRPG.Contracts;
 using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
+using TRPG.Contracts.Inventory.Responses;
 
 namespace TRPG.Client;
 
 internal sealed class CombatMenu(
-    GameServerClient client,
+    TrpgHttpClient client,
     NarrationRenderer narrationRenderer,
     GameHub gameHub,
-    Guid worldId
+    Guid playerId
 )
 {
     private const string BackLabel = "Back";
@@ -18,8 +20,11 @@ internal sealed class CombatMenu(
     {
         Attack,
         Defend,
+        Item,
         Flee,
     }
+
+    private record MenuOption<T>(string Label, T? Value = default);
 
     public async Task RunTurn(FightState fight, CancellationToken cancellationToken)
     {
@@ -35,7 +40,9 @@ internal sealed class CombatMenu(
             switch (option)
             {
                 case TopLevelOption.Attack:
-                    if (await HandleAbilityMenu(AbilityCategory.Offensive, fight, cancellationToken))
+                    if (
+                        await HandleAbilityMenu(AbilityCategory.Offensive, fight, cancellationToken)
+                    )
                     {
                         return;
                     }
@@ -48,6 +55,13 @@ internal sealed class CombatMenu(
                     }
 
                     break;
+                case TopLevelOption.Item:
+                    if (await HandleItemMenu(fight, cancellationToken))
+                    {
+                        return;
+                    }
+
+                    break;
                 case TopLevelOption.Flee:
                     await narrationRenderer.TryRender(gameHub.StreamFlee(cancellationToken));
                     return;
@@ -55,13 +69,46 @@ internal sealed class CombatMenu(
         }
     }
 
+    private async Task<bool> HandleItemMenu(FightState fight, CancellationToken cancellationToken)
+    {
+        var items = await client.GetUsableItems(playerId, cancellationToken);
+        if (items.Count == 0)
+        {
+            AnsiConsole.AnnounceWarning("No usable items.");
+            return false;
+        }
+
+        var chosen = await PromptForItem(items, cancellationToken);
+        if (chosen == null)
+        {
+            return false;
+        }
+
+        var playerName = fight.Combatants.First(c => c.IsPlayer).Name;
+        await narrationRenderer.TryRender(
+            gameHub.StreamCombatAction(chosen.Name, playerName, cancellationToken)
+        );
+        return true;
+    }
+
+    private static Task<UsableItemSummary?> PromptForItem(
+        IReadOnlyList<UsableItemSummary> candidates,
+        CancellationToken cancellationToken
+    ) =>
+        PromptForOption(
+            "Choose an item:",
+            candidates,
+            i => $"{i.Name} (+{i.Amount} {i.Resource.ToDisplayName()})",
+            cancellationToken
+        );
+
     private async Task<bool> HandleAbilityMenu(
         AbilityCategory category,
         FightState fight,
         CancellationToken cancellationToken
     )
     {
-        var abilities = await client.GetAbilities(worldId, cancellationToken);
+        var abilities = await client.GetAbilities(playerId, cancellationToken);
         var candidates = abilities.Where(a => a.Category == category).ToArray();
 
         if (candidates.Length == 0)
@@ -114,52 +161,55 @@ internal sealed class CombatMenu(
         return true;
     }
 
-    private static async Task<AbilitySummary?> PromptForAbility(
+    private static Task<AbilitySummary?> PromptForAbility(
         IReadOnlyList<AbilitySummary> candidates,
         CancellationToken cancellationToken
-    )
-    {
-        var choices = candidates
-            .Select(a => (Ability: (AbilitySummary?)a, Label: $"{a.Name} (AP {a.ApCost}, MP {a.MpCost})"))
-            .Append((Ability: (AbilitySummary?)null, Label: BackLabel))
-            .ToArray();
-
-        var chosen = await AnsiConsole.PromptAsync(
-            new SelectionPrompt<(AbilitySummary? Ability, string Label)>()
-                .Title("Choose an ability:")
-                .UseConverter(c => c.Label)
-                .AddChoices(choices),
+    ) =>
+        PromptForOption(
+            "Choose an ability:",
+            candidates,
+            a => $"{a.Name} (AP {a.ApCost}, MP {a.MpCost})",
             cancellationToken
         );
 
-        return chosen.Ability;
-    }
-
-    private static async Task<string?> PromptForTarget(
+    private static Task<string?> PromptForTarget(
         FightState fight,
         CancellationToken cancellationToken
     )
     {
-        var targets = fight.Combatants.Where(c => !c.IsPlayer && c.IsAlive).ToArray();
+        var targets = fight
+            .Combatants.Where(c => c is { IsPlayer: false, IsAlive: true })
+            .Select(c => c.Name)
+            .ToArray();
         if (targets.Length == 0)
         {
             AnsiConsole.AnnounceWarning("No valid targets.");
-            return null;
+            return Task.FromResult<string?>(null);
         }
 
-        var choices = targets
-            .Select(c => (Name: (string?)c.Name, Label: c.Name))
-            .Append((Name: (string?)null, Label: BackLabel))
+        return PromptForOption("Target:", targets, name => name, cancellationToken);
+    }
+
+    private static async Task<T?> PromptForOption<T>(
+        string title,
+        IReadOnlyList<T> candidates,
+        Func<T, string> formatLabel,
+        CancellationToken cancellationToken
+    )
+    {
+        var choices = candidates
+            .Select(item => new MenuOption<T>(formatLabel(item), item))
+            .Append(new MenuOption<T>(BackLabel))
             .ToArray();
 
         var chosen = await AnsiConsole.PromptAsync(
-            new SelectionPrompt<(string? Name, string Label)>()
-                .Title("Target:")
+            new SelectionPrompt<MenuOption<T>>()
+                .Title(title)
                 .UseConverter(c => c.Label)
                 .AddChoices(choices),
             cancellationToken
         );
 
-        return chosen.Name;
+        return chosen.Value;
     }
 }

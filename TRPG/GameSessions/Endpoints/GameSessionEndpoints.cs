@@ -47,7 +47,7 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        return Results.Ok(new CreateSessionResponse(sessionId));
+        return Results.Ok(new CreateSessionResponse(sessionId, world.PlayerId.Value));
     }
 
     private static async Task<IResult> GetScene(

@@ -13,18 +13,10 @@ public class CombatEngine(
     DamageCalculator damageCalculator
 )
 {
-    private sealed record ResolvedAction(Ability Ability, IReadOnlyList<Combatant> Targets);
-
-    public CombatState ProcessRound(
-        IReadOnlyList<Combatant> combatants,
-        string abilityName,
-        string targetName
-    )
+    internal CombatState ProcessRound(IReadOnlyList<Combatant> combatants, ResolvedAction action)
     {
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
-
-        var action = ResolvePlayerAction(combatants, abilityName, targetName);
 
         var turnOrder = combatants
             .OrderByDescending(c => c.CalculateEffectiveAttribute(AttributeName.Dexterity))
@@ -52,78 +44,6 @@ public class CombatEngine(
         );
     }
 
-    private static ResolvedAction ResolvePlayerAction(
-        IReadOnlyList<Combatant> combatants,
-        string abilityName,
-        string targetName
-    )
-    {
-        var player = combatants.Single(c => c.IsPlayer);
-        var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
-
-        var ability = player.Abilities.FirstOrDefault(x => x.Name == abilityName);
-        if (ability is null)
-        {
-            throw new ArgumentException($"Ability {abilityName} not found", nameof(abilityName));
-        }
-
-        var target = combatants.FirstOrDefault(x => x.Name == targetName);
-        if (target is null)
-        {
-            throw new ArgumentException($"Target {targetName} not found", nameof(targetName));
-        }
-
-        var cooldownRemaining = player.CooldownRemainingByAbility[abilityName];
-        if (cooldownRemaining > 0)
-        {
-            throw new InvalidOperationException(
-                $"Ability {abilityName} is on cooldown for {cooldownRemaining} more rounds"
-            );
-        }
-
-        switch (ability)
-        {
-            case SupportAbility when target != player:
-                throw new InvalidOperationException(
-                    $"Ability {abilityName} can only be cast on {player.Name}"
-                );
-            case AttackAbility when target == player:
-                throw new InvalidOperationException(
-                    $"Ability {abilityName} cannot target {player.Name}"
-                );
-        }
-
-        if (!target.IsAlive)
-        {
-            throw new InvalidOperationException($"Target {targetName} is already dead");
-        }
-
-        if (player.CurrentAp < ability.ApCost)
-        {
-            throw new InvalidOperationException(
-                $"Ability {abilityName} costs {ability.ApCost} AP but {player.Name} only has {player.CurrentAp}"
-            );
-        }
-
-        if (player.CurrentMp < ability.MpCost)
-        {
-            throw new InvalidOperationException(
-                $"Ability {abilityName} costs {ability.MpCost} MP but {player.Name} only has {player.CurrentMp}"
-            );
-        }
-
-        var targets = ability switch
-        {
-            AttackAbility { TargetType: AttackTargetType.Aoe } => enemies
-                .Where(e => e.IsAlive)
-                .ToArray(),
-            SupportAbility { TargetType: TargetType.Aoe } => [player],
-            _ => [target],
-        };
-
-        return new ResolvedAction(ability, targets);
-    }
-
     private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedAction action)
     {
         if (!actor.IsAlive)
@@ -138,19 +58,31 @@ public class CombatEngine(
             return tickEvents;
         }
 
-        var (ability, targets) = action;
-
-        var incapacitationEvent = GetIncapacitationEvent(actor, ability);
+        var incapacitationEvent = GetIncapacitationEvent(actor, action);
         if (incapacitationEvent is not null)
         {
             return tickEvents.Concat([incapacitationEvent]).ToList();
         }
 
+        var actionEvents = action switch
+        {
+            ResolvedAbility resolved => ProcessAbility(actor, resolved),
+            ResolvedItem resolved => ProcessItem(actor, resolved.Item),
+            _ => [],
+        };
+
+        return tickEvents.Concat(actionEvents).ToList();
+    }
+
+    private List<CombatEvent> ProcessAbility(Combatant actor, ResolvedAbility resolvedAbility)
+    {
+        var (ability, targets) = resolvedAbility;
+
         actor.CooldownRemainingByAbility[ability.Name] = ability.Cooldown;
         actor.CurrentAp -= ability.ApCost;
         actor.CurrentMp -= ability.MpCost;
 
-        var actionEvents = ability switch
+        return ability switch
         {
             InstantHealAbility heal => ApplyInstantHeal(actor, heal, targets),
             HealOverTimeAbility hot => ApplyHealOverTime(actor, hot, targets),
@@ -158,8 +90,43 @@ public class CombatEngine(
             AttackAbility attack => ApplyAttack(actor, attack, targets),
             _ => [],
         };
+    }
 
-        return tickEvents.Concat(actionEvents).ToList();
+    private static List<CombatEvent> ProcessItem(Combatant actor, UsableItem item)
+    {
+        var (currentValue, maximumValue) = item.Resource switch
+        {
+            ResourceType.Hp => (actor.CurrentHp, actor.MaximumHp),
+            ResourceType.Ap => (actor.CurrentAp, actor.MaximumAp),
+            ResourceType.Mp => (actor.CurrentMp, actor.MaximumMp),
+        };
+
+        var remainingValue = Math.Min(currentValue + item.Amount, maximumValue);
+
+        switch (item.Resource)
+        {
+            case ResourceType.Hp:
+                actor.CurrentHp = remainingValue;
+                break;
+            case ResourceType.Ap:
+                actor.CurrentAp = remainingValue;
+                break;
+            case ResourceType.Mp:
+                actor.CurrentMp = remainingValue;
+                break;
+        }
+
+        return
+        [
+            new ConsumedPotion(
+                actor.Name,
+                item.Name,
+                item.Resource,
+                item.Amount,
+                remainingValue,
+                maximumValue
+            ),
+        ];
     }
 
     private void TickInCombatResourceRegeneration(Combatant actor)
@@ -461,7 +428,7 @@ public class CombatEngine(
         return damageTickedEvents;
     }
 
-    private static CombatEvent? GetIncapacitationEvent(Combatant attacker, Ability ability)
+    private static CombatEvent? GetIncapacitationEvent(Combatant attacker, ResolvedAction action)
     {
         var frozenTurnsRemaining = attacker.ActiveConditions[ConditionType.Frozen];
         if (frozenTurnsRemaining > 0)
@@ -473,6 +440,13 @@ public class CombatEngine(
         if (stunnedTurnsRemaining > 0)
         {
             return new NoAction(attacker.Name, ConditionType.Stunned);
+        }
+
+        var ability = action is ResolvedAbility resolvedAbility ? resolvedAbility.Ability : null;
+
+        if (ability is null)
+        {
+            return null;
         }
 
         var blindedTurnsRemaining = attacker.ActiveConditions[ConditionType.Blinded];
@@ -504,7 +478,7 @@ public class CombatEngine(
         return null;
     }
 
-    private static ResolvedAction ResolveEnemyAction(Combatant enemy, Combatant player)
+    private static ResolvedAbility ResolveEnemyAction(Combatant enemy, Combatant player)
     {
         var affordableAbilities = enemy.Abilities.Where(a =>
             enemy.CooldownRemainingByAbility[a.Name] == 0
@@ -519,7 +493,7 @@ public class CombatEngine(
             );
 
         var ability = bestAttackAbility ?? enemy.Abilities[0];
-        return new ResolvedAction(ability, [player]);
+        return new ResolvedAbility(ability, [player]);
     }
 
     private static CombatOutcome GetCurrentOutcome(

@@ -14,6 +14,7 @@ using TRPG.Endpoints;
 using TRPG.Extensions;
 using TRPG.GameSessions.Endpoints;
 using TRPG.GameSessions.Filters;
+using TRPG.Creatures.Endpoints;
 using TRPG.GameSessions.Hubs;
 using TRPG.Worlds.Endpoints;
 
@@ -77,6 +78,7 @@ _ = Task.Run(async () =>
 });
 
 app.MapWorldEndpoints();
+app.MapCreatureEndpoints();
 app.MapGameSessionEndpoints();
 app.MapJobsEndpoints();
 app.MapAdminEndpoints();

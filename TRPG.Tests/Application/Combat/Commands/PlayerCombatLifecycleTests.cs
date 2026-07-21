@@ -148,7 +148,9 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
             new HitCalculator(alwaysHit),
             new DamageCalculator(alwaysHit)
         );
-        engine.ProcessRound(combatants, "Strike", enemy.Name);
+        var resolution = PlayerActionResolver.Resolve(combatants, new UseAbility("Strike", enemy.Name));
+        var resolved = Assert.IsType<ActionResolved>(resolution);
+        engine.ProcessRound(combatants, resolved.Action);
 
         await new PersistCombatantsCommandHandler(_context).Handle(
             new PersistCombatantsCommand { Combatants = combatants },

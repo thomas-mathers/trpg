@@ -61,6 +61,7 @@ public class CreateWorldCommandHandler(
                 MaxBirthYear: birthYear
             )
         );
+        playerResult = creatureGenerator.AddStartingPotions(playerResult);
         playerResult.Creature.CityId = startingCity.Id;
         playerResult.Creature.DistrictId = startingDistrict.Id;
 

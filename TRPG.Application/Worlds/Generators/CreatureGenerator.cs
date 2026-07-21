@@ -973,6 +973,39 @@ public class CreatureGenerator(
         return new CreatureGeneratorResult(creature, items, inventoryItems, skills, abilities);
     }
 
+    public CreatureGeneratorResult AddStartingPotions(CreatureGeneratorResult result)
+    {
+        var creature = result.Creature;
+        var nextIndex = result.InventoryItems.Count;
+
+        var potions = ConsumableGenerator
+            .PotionNamesByResource.Keys.Select(resource =>
+                itemGenerator.GenerateConsumable(resource, creature.Level, creature.WorldId)
+            )
+            .ToArray();
+
+        var potionInventoryItems = potions
+            .Select(
+                (item, index) =>
+                    new InventoryItem
+                    {
+                        CreatureId = creature.Id,
+                        ItemId = item.Id,
+                        Quantity = 1,
+                        Index = nextIndex + index,
+                        EquippedSlot = null,
+                        WorldId = creature.WorldId,
+                    }
+            )
+            .ToArray();
+
+        return result with
+        {
+            Items = [.. result.Items, .. potions],
+            InventoryItems = [.. result.InventoryItems, .. potionInventoryItems],
+        };
+    }
+
     private IReadOnlyCollection<CreatureSkill> GetSkills(Creature creature)
     {
         var skillLevel = Math.Min(creature.Level, optionsSnapshot.Value.MaxSkillLevel);

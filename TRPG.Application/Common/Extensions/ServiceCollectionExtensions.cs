@@ -147,7 +147,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<StartFightCommandHandler>()
             .AddTransient<EndFightCommandHandler>()
             .AddTransient<ResolveCombatRoundCommandHandler>()
-            .AddTransient<GetPlayerAbilitiesQueryHandler>()
+            .AddTransient<GetUsableAbilitiesQueryHandler>()
             .AddTransient<GetAllWeaponProficienciesQueryHandler>()
             .AddTransient<AdjustWeaponProficienciesCommandHandler>()
             .AddTransient<HitCalculator>()

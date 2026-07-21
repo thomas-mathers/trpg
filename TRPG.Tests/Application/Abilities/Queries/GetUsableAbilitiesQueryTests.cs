@@ -8,17 +8,17 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Abilities.Queries;
 
 [Collection("Database")]
-public sealed class GetPlayerAbilitiesQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private GetPlayerAbilitiesQueryHandler _handler = null!;
+    private GetUsableAbilitiesQueryHandler _handler = null!;
     private Guid _worldId;
     private Creature _player = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetPlayerAbilitiesQueryHandler(
+        _handler = new GetUsableAbilitiesQueryHandler(
             new GetCreatureAbilitiesQueryHandler(_context),
             AbilityDefinitions.Create()
         );
@@ -34,12 +34,12 @@ public sealed class GetPlayerAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
         await _context.DisposeAsync();
     }
 
-    private async Task AddLearnedAbility(Guid creatureId, string abilityName, Guid? worldId = null)
+    private async Task AddLearnedAbility(Guid creatureId, string abilityName)
     {
         _context.CreatureAbilities.Add(
             new CreatureAbility
             {
-                WorldId = worldId ?? _worldId,
+                WorldId = _worldId,
                 CreatureId = creatureId,
                 AbilityName = abilityName,
             }
@@ -52,7 +52,7 @@ public sealed class GetPlayerAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
     {
         // Act
         var abilities = await _handler.Handle(
-            new GetPlayerAbilitiesQuery { WorldId = _worldId, PlayerId = _player.Id },
+            new GetUsableAbilitiesQuery { CreatureId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -65,7 +65,7 @@ public sealed class GetPlayerAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
     {
         // Act
         var abilities = await _handler.Handle(
-            new GetPlayerAbilitiesQuery { WorldId = _worldId, PlayerId = _player.Id },
+            new GetUsableAbilitiesQuery { CreatureId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -81,7 +81,7 @@ public sealed class GetPlayerAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
 
         // Act
         var abilities = await _handler.Handle(
-            new GetPlayerAbilitiesQuery { WorldId = _worldId, PlayerId = _player.Id },
+            new GetUsableAbilitiesQuery { CreatureId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -101,24 +101,7 @@ public sealed class GetPlayerAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
 
         // Act
         var abilities = await _handler.Handle(
-            new GetPlayerAbilitiesQuery { WorldId = _worldId, PlayerId = _player.Id },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.DoesNotContain(abilities, a => a.Name == "Slash");
-    }
-
-    [Fact]
-    public async Task Handle_ExcludesAbilities_LearnedInOtherWorlds()
-    {
-        // Arrange
-        var otherWorldId = Guid.NewGuid();
-        await AddLearnedAbility(_player.Id, "Slash", worldId: otherWorldId);
-
-        // Act
-        var abilities = await _handler.Handle(
-            new GetPlayerAbilitiesQuery { WorldId = _worldId, PlayerId = _player.Id },
+            new GetUsableAbilitiesQuery { CreatureId = _player.Id },
             TestContext.Current.CancellationToken
         );
 

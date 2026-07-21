@@ -2,15 +2,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using TickerQ.Utilities;
 using TickerQ.Utilities.Interfaces.Managers;
-using TRPG.Application.Abilities;
-using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Jobs.Responses;
 using TRPG.Contracts.Worlds.Requests;
@@ -32,7 +29,6 @@ internal static class WorldEndpoints
         app.MapGet("/worlds", ListWorlds);
         app.MapDelete("/worlds/{worldId:guid}", DropWorld);
         app.MapGet("/worlds/{worldId:guid}/fight", GetFight);
-        app.MapGet("/worlds/{worldId:guid}/abilities", GetAbilities);
     }
 
     private static async Task<IResult> CreateWorld(
@@ -130,41 +126,6 @@ internal static class WorldEndpoints
 
         return Results.Ok(ToFightState(combatants));
     }
-
-    private static async Task<IResult> GetAbilities(
-        Guid worldId,
-        GetWorldQueryHandler getWorld,
-        GetPlayerAbilitiesQueryHandler getPlayerAbilities,
-        CancellationToken cancellationToken
-    )
-    {
-        var world = await getWorld.Handle(
-            new GetWorldQuery { WorldId = worldId },
-            cancellationToken
-        );
-        if (world?.PlayerId == null)
-        {
-            return Results.NotFound();
-        }
-
-        var abilities = await getPlayerAbilities.Handle(
-            new GetPlayerAbilitiesQuery { WorldId = worldId, PlayerId = world.PlayerId.Value },
-            cancellationToken
-        );
-
-        return Results.Ok(abilities.Select(ToAbilitySummary).ToArray());
-    }
-
-    private static AbilitySummary ToAbilitySummary(Ability ability) =>
-        new(
-            ability.Name,
-            ability.Skill.ToContract(),
-            ability.Description,
-            ability.ApCost,
-            ability.MpCost,
-            ability.Cooldown,
-            ability is AttackAbility ? AbilityCategory.Offensive : AbilityCategory.Support
-        );
 
     private static FightState ToFightState(IReadOnlyList<Combatant> combatants) =>
         new(

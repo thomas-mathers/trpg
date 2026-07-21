@@ -1,7 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using TRPG.Client.Extensions;
@@ -9,6 +7,7 @@ using TRPG.Contracts;
 using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
+using TRPG.Contracts.Inventory.Responses;
 using TRPG.Contracts.Jobs.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.Contracts.Worlds.Requests;
@@ -16,11 +15,9 @@ using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 
-internal sealed record SessionConnection(GameHub Hub, Guid SessionId);
-
-internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory loggerFactory)
+internal sealed class TrpgHttpClient(HttpClient httpClient, ILoggerFactory loggerFactory)
 {
-    private readonly ILogger<GameServerClient> _logger = loggerFactory.CreateLogger<GameServerClient>();
+    private readonly ILogger<TrpgHttpClient> _logger = loggerFactory.CreateLogger<TrpgHttpClient>();
 
     public async Task<Guid> CreateWorld(
         CreateWorldRequest request,
@@ -77,7 +74,7 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task<SessionConnection> StartSession(
+    public async Task<CreateSessionResponse> StartSession(
         Guid worldId,
         CancellationToken cancellationToken
     )
@@ -92,19 +89,7 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
             TrpgJsonOptions.Default,
             cancellationToken
         );
-
-        var uri = new UriBuilder(httpClient.BaseAddress!)
-        {
-            Path = "/hubs/chat",
-            Query = $"sessionId={result!.SessionId}",
-        }.Uri;
-
-        var builder = new HubConnectionBuilder().WithUrl(uri).WithAutomaticReconnect();
-        builder.Services.AddSingleton(loggerFactory);
-        var connection = builder.Build();
-        await connection.StartAsync(cancellationToken);
-
-        return new SessionConnection(new GameHub(connection), result.SessionId);
+        return result!;
     }
 
     public async Task<SceneSnapshot?> GetScene(Guid sessionId, CancellationToken cancellationToken)
@@ -150,14 +135,14 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
     }
 
     public async Task<IReadOnlyList<AbilitySummary>> GetAbilities(
-        Guid worldId,
+        Guid creatureId,
         CancellationToken cancellationToken
     )
     {
         try
         {
             var result = await httpClient.GetFromJsonAsync<List<AbilitySummary>>(
-                new Uri($"/worlds/{worldId}/abilities", UriKind.Relative),
+                new Uri($"/creatures/{creatureId}/abilities", UriKind.Relative),
                 TrpgJsonOptions.Default,
                 cancellationToken
             );
@@ -167,6 +152,30 @@ internal sealed class GameServerClient(HttpClient httpClient, ILoggerFactory log
         {
             _logger.LogError(ex, "[game] failed to fetch abilities");
             AnsiConsole.AnnounceError($"[[Failed to fetch abilities: {ex.Message.EscapeMarkup()}]]");
+            return [];
+        }
+    }
+
+    public async Task<IReadOnlyList<UsableItemSummary>> GetUsableItems(
+        Guid creatureId,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var result = await httpClient.GetFromJsonAsync<List<UsableItemSummary>>(
+                new Uri($"/creatures/{creatureId}/items", UriKind.Relative),
+                TrpgJsonOptions.Default,
+                cancellationToken
+            );
+            return result ?? [];
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "[game] failed to fetch usable items");
+            AnsiConsole.AnnounceError(
+                $"[[Failed to fetch usable items: {ex.Message.EscapeMarkup()}]]"
+            );
             return [];
         }
     }

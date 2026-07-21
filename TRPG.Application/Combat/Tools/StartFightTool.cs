@@ -62,7 +62,19 @@ internal class StartFightTool(
             cancellationToken
         );
 
-        var state = combatEngine.ProcessRound(combatants, abilityName, targetName);
+        var resolution = PlayerActionResolver.Resolve(
+            combatants,
+            new UseAbility(abilityName, targetName)
+        );
+        if (resolution is ActionRejected rejected)
+        {
+            return new ToolError(rejected.Reason);
+        }
+
+        var state = combatEngine.ProcessRound(
+            combatants,
+            ((ActionResolved)resolution).Action
+        );
 
         var result = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand

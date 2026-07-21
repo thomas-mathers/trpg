@@ -10,6 +10,7 @@ using ContractCreatureType = TRPG.Contracts.Scenes.Responses.CreatureType;
 using ContractDamageType = TRPG.Contracts.Combat.Responses.DamageType;
 using ContractDistrictType = TRPG.Contracts.Scenes.Responses.DistrictType;
 using ContractProfession = TRPG.Contracts.Scenes.Responses.Profession;
+using ContractResourceType = TRPG.Contracts.Inventory.Responses.ResourceType;
 using DataAmountType = TRPG.Data.Models.AmountType;
 using DataAttributeName = TRPG.Data.Models.AttributeName;
 using DataBuildingType = TRPG.Data.Models.BuildingType;
@@ -19,6 +20,7 @@ using DataDamageType = TRPG.Data.Models.DamageType;
 using DataDistrictType = TRPG.Data.Models.DistrictType;
 using DataGender = TRPG.Data.Models.Gender;
 using DataProfession = TRPG.Data.Models.Profession;
+using DataResourceType = TRPG.Data.Models.ResourceType;
 using ContractGender = TRPG.Contracts.Worlds.Requests.Gender;
 
 namespace TRPG.Application.Common.Mappers;
@@ -167,6 +169,15 @@ internal static class ResponseEnumMappers
             _ => throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null),
         };
 
+    public static ContractResourceType ToContract(this DataResourceType resource) =>
+        resource switch
+        {
+            DataResourceType.Hp => ContractResourceType.Hp,
+            DataResourceType.Ap => ContractResourceType.Ap,
+            DataResourceType.Mp => ContractResourceType.Mp,
+            _ => throw new ArgumentOutOfRangeException(nameof(resource), resource, null),
+        };
+
     public static ContractAmountType ToContract(this DataAmountType type) =>
         type switch
         {
@@ -184,6 +195,7 @@ internal static class ResponseEnumMappers
             DataSkill.Archery => ContractAbilitySkill.Archery,
             DataSkill.Devotion => ContractAbilitySkill.Devotion,
             DataSkill.Warfare => ContractAbilitySkill.Warfare,
+            DataSkill.General => ContractAbilitySkill.General,
             _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, null),
         };
 

@@ -13,6 +13,7 @@ namespace TRPG.Application.Combat;
 [JsonDerivedType(typeof(BuffApplied), "BuffApplied")]
 [JsonDerivedType(typeof(Healed), "Healed")]
 [JsonDerivedType(typeof(HealOverTimeApplied), "HealOverTimeApplied")]
+[JsonDerivedType(typeof(ConsumedPotion), "ConsumedPotion")]
 public abstract record CombatEvent;
 
 public sealed record Hit(
@@ -73,4 +74,13 @@ public sealed record HealOverTimeApplied(
     string TargetName,
     int AmountPerTurn,
     int Duration
+) : CombatEvent;
+
+public sealed record ConsumedPotion(
+    string CreatureName,
+    string ItemName,
+    ResourceType Resource,
+    int Amount,
+    int RemainingValue,
+    int MaximumValue
 ) : CombatEvent;

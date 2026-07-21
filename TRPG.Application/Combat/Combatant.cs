@@ -21,6 +21,22 @@ public class ActiveHot
     public int RemainingTurns { get; set; }
 }
 
+public record UsableItem(Guid ItemId, string Name, ResourceType Resource, int Amount)
+{
+    public static IReadOnlyList<UsableItem> FromInventory(
+        IReadOnlyCollection<InventoryItem> inventoryItems
+    ) =>
+        inventoryItems
+            .Where(i => i.Item is ConsumableItem)
+            .Select(i => new UsableItem(
+                i.ItemId,
+                i.Item.Name,
+                ((ConsumableItem)i.Item).Resource,
+                ((ConsumableItem)i.Item).Amount
+            ))
+            .ToArray();
+}
+
 public class Combatant
 {
     public required Guid CreatureId { get; init; }
@@ -34,6 +50,7 @@ public class Combatant
     public int CurrentAp { get; set; }
     public int CurrentMp { get; set; }
     public IReadOnlyList<Item> Inventory { get; init; } = [];
+    public IReadOnlyList<UsableItem> UsableItems { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponProficiencies { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponSwingCounts { get; init; } = [];
     public Dictionary<ConditionType, int> ActiveConditions { get; init; } = [];
@@ -57,7 +74,8 @@ public class Combatant
         BuffAbility blockStance,
         bool isPlayer,
         IReadOnlyList<Item> inventory,
-        IReadOnlyDictionary<WeaponType, int> weaponProficiencies
+        IReadOnlyDictionary<WeaponType, int> weaponProficiencies,
+        IReadOnlyList<UsableItem> usableItems
     )
     {
         var allAbilities = new Ability[] { basicAttack, blockStance }.Concat(abilities).ToArray();
@@ -80,6 +98,7 @@ public class Combatant
             CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
             CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),
             Inventory = inventory,
+            UsableItems = usableItems,
             WeaponProficiencies = Enum.GetValues<WeaponType>()
                 .ToDictionary(type => type, type => weaponProficiencies.GetValueOrDefault(type)),
             ActiveConditions = Enum.GetValues<ConditionType>()

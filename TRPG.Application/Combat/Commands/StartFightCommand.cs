@@ -94,7 +94,8 @@ internal class StartFightCommandHandler(
                     abilityDefinitions.BlockStance,
                     isPlayer: false,
                     [],
-                    new Dictionary<WeaponType, int>()
+                    new Dictionary<WeaponType, int>(),
+                    []
                 )
             )
             .ToList();
@@ -128,6 +129,7 @@ internal class StartFightCommandHandler(
             .Where(i => i.EquippedSlot != null)
             .Select(i => i.Item)
             .ToArray();
+        var usableItems = UsableItem.FromInventory(inventoryItems);
 
         var weaponProficiencies = await getAllWeaponProficiencies.Handle(
             new GetAllWeaponProficienciesQuery { WorldId = worldId, CreatureId = player.Id },
@@ -135,7 +137,7 @@ internal class StartFightCommandHandler(
         );
 
         var abilityNames = await getCreatureAbilities.Handle(
-            new GetCreatureAbilitiesQuery { WorldId = worldId, CreatureId = player.Id },
+            new GetCreatureAbilitiesQuery { CreatureId = player.Id },
             cancellationToken
         );
         var abilities = abilityNames
@@ -150,7 +152,8 @@ internal class StartFightCommandHandler(
             abilityDefinitions.BlockStance,
             isPlayer: true,
             equipped,
-            weaponProficiencies
+            weaponProficiencies,
+            usableItems
         );
     }
 }

@@ -7,7 +7,11 @@ using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 
-internal sealed class Game(GameServerClient client, ILogger<Game> logger)
+internal sealed class Game(
+    TrpgHttpClient client,
+    TrpgHubConnector hubConnector,
+    ILogger<Game> logger
+)
 {
     private enum MenuOptions
     {
@@ -145,8 +149,8 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
     private async Task ResumeGame(Guid worldId, CancellationToken cancellationToken)
     {
         var session = await client.StartSession(worldId, cancellationToken);
-        await using var gameHub = session.Hub;
         var sessionId = session.SessionId;
+        await using var gameHub = await hubConnector.Connect(sessionId, cancellationToken);
         var narrationRenderer = new NarrationRenderer(
             logger,
             await client.GetNamedEntities(sessionId, cancellationToken)
@@ -175,9 +179,10 @@ internal sealed class Game(GameServerClient client, ILogger<Game> logger)
             narrationRenderer,
             gameHub,
             worldId,
+            session.PlayerId,
             sessionId
         );
-        var combatMenu = new CombatMenu(client, narrationRenderer, gameHub, worldId);
+        var combatMenu = new CombatMenu(client, narrationRenderer, gameHub, session.PlayerId);
 
         var exitRequested = false;
         while (!exitRequested)

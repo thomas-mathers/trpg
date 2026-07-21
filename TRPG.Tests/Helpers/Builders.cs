@@ -179,7 +179,7 @@ internal static class Builders
             Description = "A test consumable",
             Weight = 1,
             GoldValue = 10,
-            Attribute = AttributeName.MaximumHp,
+            Resource = ResourceType.Hp,
             Amount = 50,
             Duration = 0,
         };

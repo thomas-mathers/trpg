@@ -76,7 +76,8 @@ public class HitCalculatorTests
             BlockStance,
             isPlayer: true,
             inventory,
-            proficiencies
+            proficiencies,
+            []
         );
     }
 
@@ -252,7 +253,8 @@ public class HitCalculatorTests
             BlockStance,
             true,
             [shield],
-            new Dictionary<WeaponType, int>()
+            new Dictionary<WeaponType, int>(),
+            []
         );
         var calculator = new HitCalculator(Settings);
 
@@ -283,7 +285,8 @@ public class HitCalculatorTests
             BlockStance,
             true,
             [blockingShield],
-            new Dictionary<WeaponType, int>()
+            new Dictionary<WeaponType, int>(),
+            []
         );
         var unshieldedDefender = MakeCombatant();
         var calculator = new HitCalculator(Settings);

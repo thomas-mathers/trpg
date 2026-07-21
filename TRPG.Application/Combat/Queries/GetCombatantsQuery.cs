@@ -57,6 +57,7 @@ internal class GetCombatantsQueryHandler(
 
             IReadOnlyList<Item> inventory;
             IReadOnlyList<Ability> abilities;
+            IReadOnlyList<UsableItem> usableItems;
             if (isPlayer)
             {
                 var inventoryItems = await getInventoryByCreatureId.Handle(
@@ -67,13 +68,10 @@ internal class GetCombatantsQueryHandler(
                     .Where(i => i.EquippedSlot != null)
                     .Select(i => i.Item)
                     .ToArray();
+                usableItems = UsableItem.FromInventory(inventoryItems);
 
                 var abilityNames = await getCreatureAbilities.Handle(
-                    new GetCreatureAbilitiesQuery
-                    {
-                        WorldId = query.WorldId,
-                        CreatureId = creature.Id,
-                    },
+                    new GetCreatureAbilitiesQuery { CreatureId = creature.Id },
                     cancellationToken
                 );
                 abilities = abilityNames
@@ -85,6 +83,7 @@ internal class GetCombatantsQueryHandler(
             {
                 inventory = [];
                 abilities = [];
+                usableItems = [];
             }
 
             combatants.Add(
@@ -95,7 +94,8 @@ internal class GetCombatantsQueryHandler(
                     abilityDefinitions.BlockStance,
                     isPlayer,
                     inventory,
-                    weaponProficiencies
+                    weaponProficiencies,
+                    usableItems
                 )
             );
         }

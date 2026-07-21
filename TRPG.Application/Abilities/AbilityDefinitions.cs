@@ -14,6 +14,7 @@ public class AbilityDefinitions(
         {
             Name = "Strike",
             Description = "A plain attack with whatever is at hand.",
+            Skill = Skill.General,
             ApCost = 0,
             Cooldown = 0,
             TargetType = AttackTargetType.Single,
@@ -27,6 +28,7 @@ public class AbilityDefinitions(
         {
             Name = "Block",
             Description = "Raise your guard, doubling your effective defense until your next turn.",
+            Skill = Skill.General,
             ApCost = 2,
             Cooldown = 0,
             TargetType = TargetType.Self,
