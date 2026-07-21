@@ -1,11 +1,42 @@
-# TRPG Codebase Conventions
+# TRPG Codebase Guide
+
+## Project Overview
+
+TRPG is a single-player text RPG where an LLM acts as game master — narrating scenes, roleplaying every NPC in conversation, and describing the consequences of the player's actions. The world is procedurally generated (countries, states, cities, districts, buildings, and NPCs with their own professions, schedules, relationships, and daily routines) and persists across sessions.
+
+The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't decide game outcomes. Combat, movement, and time all run through deterministic code (`CombatEngine`, the game clock, scheduling/generator classes); the LLM is only brought in afterward to describe what already happened. This keeps core mechanics reliable and repeatable regardless of which model is behind `IChatClient`.
+
+---
+
+## Project Structure
+
+### Projects
+- `TRPG` — ASP.NET Core minimal API host. Endpoints, SignalR hubs, DI wiring (`Program.cs`), background jobs (TickerQ)
+- `TRPG.Application` — all business logic: command/query handlers, the combat engine, world/creature generators, LLM tool definitions. No web-framework references
+- `TRPG.Contracts` — DTOs shared between `TRPG` and `TRPG.Client` (requests/responses only, no logic)
+- `TRPG.Data` — EF Core: `TrpgDbContext`, entity models, migrations
+- `TRPG.Client` — thin console client; talks to `TRPG` over HTTP (REST) and SignalR
+- `TRPG.Tests` — all tests for the above (xUnit, Testcontainers-backed Postgres)
+
+### Folder convention: feature-then-type
+- Inside `TRPG`, `TRPG.Application`, and `TRPG.Contracts`, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
+- Within a feature folder, subfolders group by type: `Commands/`, `Queries/`, `Tools/`, `Generators/` (Application); `Endpoints/`, `Hubs/`, `Jobs/` (host); `Requests/`, `Responses/` (Contracts)
+- `TRPG.Data` is flat: `Models/` + `Migrations/` — entities aren't split by feature
+
+### Key request flows
+- **Plain HTTP**: `TRPG/<Feature>/Endpoints/<Feature>Endpoints.cs` → one or more `*QueryHandler`/`*CommandHandler` in `TRPG.Application` → `TrpgDbContext`
+- **Player turn (chat/wait)**: `TRPG/GameSessions/Hubs/ChatHub.cs` (SignalR) → `GameTurnRunner` (`TRPG.Application/GameSessions/GameTurnRunner.cs`) → LLM (`IChatClient`) with tool-calling (`TRPG.Application/*/Tools/`) → narration streamed back token-by-token
+- **Combat action (Attack/Defend/Item menu)**: client sends an action name + target over the same `SendCombatAction` hub method → `GameTurnRunner.StreamCombatActionResponse` → `PlayerActionResolver` (validates the action, never throws — returns `ActionResolved`/`ActionRejected`) → `CombatEngine.ProcessRound` (pure simulation over an already-validated action) → `ResolveCombatRoundCommand` persists the result → the LLM narrates the already-resolved outcome (tool-calling disabled for that one completion)
+
+Keep this section in sync: when a change adds, removes, or moves a top-level project, a feature folder, or alters one of the flows above, update this section in the same commit. This section is structural only (project/folder map, request-flow shapes) — it should rarely need touching for ordinary feature work, which is exactly why it's worth keeping accurate.
+
+---
 
 ## Language & Framework
 
 - C# .NET 10, EF Core 10.0.9, Npgsql 10.0.2
-- PostgreSQL via Testcontainers in tests
-- xUnit for integration tests — no unit tests, no mocking, except HTTP endpoint tests (see Integration Tests § Endpoint Tests) which mock the Ollama client deliberately
-- `TRPG` is an ASP.NET Core minimal API host; `TRPG.Client` is a separate thin console client talking to it over HTTP; `TRPG.Contracts` holds the shared request/response DTOs both reference
+- PostgreSQL via Testcontainers backs the integration tests, which are the default — pure/in-memory logic gets a direct unit test instead (see Integration Tests § When to skip the database entirely)
+- xUnit throughout, no mocking except HTTP endpoint tests (see Integration Tests § Endpoint Tests), which mock the LLM client deliberately
 
 ---
 
@@ -18,28 +49,35 @@
 - Place related types (classes, records, enums) in the same file as the class they primarily support — no standalone `Enums.cs` or similar
 - Use named parameters when constructing records or objects with multiple positional arguments of the same or similar types (e.g. `new StatAffinities(Strength: 3, Defense: 2, ...)` not `new StatAffinities(3, 2, ...)`)
 - No alignment padding — do not add extra spaces to align `=`, `:`, or other tokens across lines
+- Investigate the root cause of a bug before patching around it — treat the underlying issue, not just the symptom
+- Prefer affirmative conditionals over negated ones (`if (combatant.IsAlive)` not `if (!combatant.IsDead)`) — double negatives are harder to read at a glance
 
 ### Comments
 - Explain *why*, never *how* — well-named identifiers make the what and how obvious
 - Use a comment only when a future reader would be genuinely confused without it; if removing it wouldn't confuse anyone, don't write it
 - No XML doc comments
+- Never comment out code — delete it; git history has it if it's needed again
+- No closing-brace comments (`} // end if`) — if a block is long enough to seem to need one, extract a named helper instead
 
 ### Naming
 - `_camelCase` for private fields
 - `PascalCase` for everything public
 - No abbreviations — write `minimum`, `maximum`, `quantity`, `defense`, `index`, not `min`, `max`, `qty`, `def`, `idx`
 - No tuple return types or tuple parameters — use a named `record` instead; tuples as local variables inside method bodies are fine
-- Functions with more than 3 parameters must capture those parameters in a class instead (constructors excluded — DI constructors may have as many parameters as needed)
+- Functions with more than 5 parameters must capture those parameters in a class instead (constructors excluded — DI constructors may have as many parameters as needed)
 - Test classes: `{Subject}Tests`
 - Test methods: `Method_ExpectedResult_WhenCondition`
 
 ### Classes
 - Each class has a single responsibility — if describing it requires "and", split it into two classes
+- No hard line-count ceiling — length by itself isn't the problem, mixed responsibilities are. A class creeping past a few hundred lines of actual logic is a prompt to re-check whether it's still doing one thing, not an automatic violation (e.g. `PlayerActionResolver` was split out of `CombatEngine` because validating player input is a different responsibility than simulating a round, not because of line count)
+- Classes that are mostly static literal data (e.g. `CreatureGenerator`'s name-pool arrays) can run long without needing a split — the length reflects data volume, not complexity
 
 ### Functions
 - Each function does one thing — if you need "and" to describe what it does, split it
 - Prefer pure functions (static methods that depend only on their parameters and return a value with no side effects) where possible
 - Keep functions under 40 lines; if a function exceeds this, extract helpers
+- Avoid flag parameters that switch behavior (e.g. `bool verbose`) on new code — prefer two separate, differently-named methods over one method with a branching bool
 
 ### Null handling
 - `null!` for fields initialized in `InitializeAsync` (not inline)
@@ -126,6 +164,7 @@
 - Primary constructor injection: `public class ReputationService(TrpgDbContext context)`
 - No interfaces — direct concrete classes
 - Throw `InvalidOperationException` for business rule violations
+- Exception: a pure resolver/validator whose caller needs to turn failure into user-facing output without exception-driven control flow (e.g. a SignalR-streamed response) can return a small Result-style union instead of throwing — see `PlayerActionResolver`'s `ActionResolved`/`ActionRejected`. Reserve this for that specific shape of caller, not general command/query handlers
 - No pre-checks for uniqueness — rely on DB constraints
 
 ### Patterns
@@ -148,7 +187,7 @@
 ## Integration Tests
 
 ### When to skip the database entirely
-- Before writing an HTTP+Postgres test, check whether the logic under test is actually pure/in-memory (a generator method, a scheduling calculation, etc.) — if so, unit-test it directly instead: construct the real class with its real (non-LLM, non-DB) dependencies and assert on its return value, matching `WorldGeneratorEmploymentTests`/`WorldGeneratorHouseholdTests`. Reserve the full HTTP+Postgres harness for things that genuinely need it — persistence behavior, cross-service wiring, LLM-backed generation steps
+- Before writing an HTTP+Postgres test, check whether the logic under test is actually pure/in-memory (a generator method, a scheduling calculation, a pure in-memory registry, etc.) — if so, unit-test it directly instead: construct the real class with its real (non-LLM, non-DB) dependencies and assert on its return value, matching `WorldGeneratorEmploymentTests`/`WorldGeneratorHouseholdTests`/`WorldConnectionRegistryTests`. Reserve the full HTTP+Postgres harness for things that genuinely need it — persistence behavior, cross-service wiring, LLM-backed generation steps
 - Never write a temporary/throwaway test just to verify something works and then delete it — if the check is worth writing, it's worth keeping as a permanent test
 
 ### Infrastructure
