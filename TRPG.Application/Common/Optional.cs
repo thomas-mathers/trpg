@@ -1,6 +1,6 @@
 namespace TRPG.Application.Common;
 
-public readonly record struct Optional<T>
+internal readonly record struct Optional<T>
 {
     public bool IsSet { get; init; }
     public T Value { get; init; }

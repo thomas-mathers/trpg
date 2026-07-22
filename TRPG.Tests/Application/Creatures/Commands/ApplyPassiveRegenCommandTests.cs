@@ -101,7 +101,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         Assert.Equal(7, result[_creature.Id].CurrentHp);
-        Assert.Equal(_context.Entry(result[_creature.Id]).State, EntityState.Detached);
+        Assert.Equal(EntityState.Detached, _context.Entry(result[_creature.Id]).State);
     }
 
     [Fact]

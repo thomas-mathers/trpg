@@ -21,6 +21,24 @@ dotnet_diagnostic.CA1859.severity = none
 # doesn't apply to lowercasing enum names for narrative prose (e.g. BiographyGenerator)
 dotnet_diagnostic.CA1308.severity = none
 
+# CA1720: enum members like AttackTargetType.Single mean "one target", not System.Single — real collisions are rare
+dotnet_diagnostic.CA1720.severity = suggestion
+
+# CA1031: broad catches are sometimes deliberate (retry loops around an external LLM call, top-level menu loop)
+dotnet_diagnostic.CA1031.severity = suggestion
+
+# CA1032: exceptions that always carry required context (e.g. an id) don't need the standard parameterless/message ctors
+dotnet_diagnostic.CA1032.severity = suggestion
+
+# CA2227: some collection properties are genuinely reassigned wholesale as runtime state, not just .Add()-mutated
+dotnet_diagnostic.CA2227.severity = suggestion
+
+# CA1812: recurring shape is reflection-instantiated internal types (EF design-time factories, JSON test schemas)
+dotnet_diagnostic.CA1812.severity = suggestion
+
+# CA1034: fires on compiler-generated extension(...) block containers, not user-authored nested types
+dotnet_diagnostic.CA1034.severity = suggestion
+
 # EF Core materializes init properties via reflection — Rider cannot see these assignments
 resharper_auto_property_can_be_made_get_only_global_highlighting = none
 resharper_auto_property_can_be_made_get_only_local_highlighting = none

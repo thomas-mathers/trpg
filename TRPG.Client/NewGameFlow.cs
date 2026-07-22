@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Spectre.Console;
 using TRPG.Client.Extensions;
@@ -52,40 +53,44 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
     {
         AnsiConsole.Write(new Rule("Character").RuleStyle(Theme.Neutral).LeftJustified());
 
-        var name = AnsiConsole.Ask<string>("Name");
+        var name = await AnsiConsole.AskAsync<string>("Name", cancellationToken);
 
-        var gender = AnsiConsole.Prompt(
+        var gender = await AnsiConsole.PromptAsync(
             new SelectionPrompt<Gender>()
                 .Title("Gender")
                 .AddChoices(Enum.GetValues<Gender>())
-                .UseConverter(value => value.ToDisplayName())
+                .UseConverter(value => value.ToDisplayName()),
+            cancellationToken
         );
 
         AnsiConsole.MarkupLine($"[{Theme.Positive}]✓[/] Gender: {gender.ToDisplayName()}");
 
-        var age = AnsiConsole.Prompt(
+        var age = await AnsiConsole.PromptAsync(
             new SelectionPrompt<Age>()
                 .Title("Age")
                 .AddChoices(Enum.GetValues<Age>())
-                .UseConverter(value => value.ToDisplayName())
+                .UseConverter(value => value.ToDisplayName()),
+            cancellationToken
         );
 
         AnsiConsole.MarkupLine($"[{Theme.Positive}]✓[/] Age: {age.ToDisplayName()}");
 
-        var race = AnsiConsole.Prompt(
+        var race = await AnsiConsole.PromptAsync(
             new SelectionPrompt<Race>()
                 .Title("Race")
                 .AddChoices(Enum.GetValues<Race>())
-                .UseConverter(value => value.ToDisplayName())
+                .UseConverter(value => value.ToDisplayName()),
+            cancellationToken
         );
 
         AnsiConsole.MarkupLine($"[{Theme.Positive}]✓[/] Race: {race.ToDisplayName()}");
 
-        var playerClass = AnsiConsole.Prompt(
+        var playerClass = await AnsiConsole.PromptAsync(
             new SelectionPrompt<PlayerClass>()
                 .Title("Class")
                 .AddChoices(Enum.GetValues<PlayerClass>())
-                .UseConverter(value => value.ToDisplayName())
+                .UseConverter(value => value.ToDisplayName()),
+            cancellationToken
         );
 
         AnsiConsole.MarkupLine($"[{Theme.Positive}]✓[/] Class: {playerClass.ToDisplayName()}");
@@ -102,68 +107,90 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
 
         AnsiConsole.Write(new Rule("World").RuleStyle(Theme.Neutral).LeftJustified());
 
-        var description = AnsiConsole.Ask("Description", WorldGenerationDefaults.Description);
+        var description = await AnsiConsole.AskAsync(
+            "Description",
+            WorldGenerationDefaults.Description,
+            cancellationToken
+        );
 
         AnsiConsole.Write(new Rule("Geography").RuleStyle(Theme.Neutral).LeftJustified());
 
-        var minCityStates = AnsiConsole.Ask(
+        var minCityStates = await AnsiConsole.AskAsync(
             "Min city states",
-            WorldGenerationDefaults.MinCityStates
+            WorldGenerationDefaults.MinCityStates,
+            cancellationToken
         );
 
-        var maxCityStates = AnsiConsole.Ask(
+        var maxCityStates = await AnsiConsole.AskAsync(
             "Max city states",
-            WorldGenerationDefaults.MaxCityStates
+            WorldGenerationDefaults.MaxCityStates,
+            cancellationToken
         );
 
-        var minRuralStates = AnsiConsole.Ask(
+        var minRuralStates = await AnsiConsole.AskAsync(
             "Min rural states",
-            WorldGenerationDefaults.MinRuralStates
+            WorldGenerationDefaults.MinRuralStates,
+            cancellationToken
         );
 
-        var maxRuralStates = AnsiConsole.Ask(
+        var maxRuralStates = await AnsiConsole.AskAsync(
             "Max rural states",
-            WorldGenerationDefaults.MaxRuralStates
+            WorldGenerationDefaults.MaxRuralStates,
+            cancellationToken
         );
 
         AnsiConsole.Write(new Rule("Dungeons").RuleStyle(Theme.Neutral).LeftJustified());
 
-        var minDungeonsPerState = AnsiConsole.Ask(
+        var minDungeonsPerState = await AnsiConsole.AskAsync(
             "Min dungeons per state",
-            WorldGenerationDefaults.MinBuildingsPerState
+            WorldGenerationDefaults.MinBuildingsPerState,
+            cancellationToken
         );
 
-        var maxDungeonsPerState = AnsiConsole.Ask(
+        var maxDungeonsPerState = await AnsiConsole.AskAsync(
             "Max dungeons per state",
-            WorldGenerationDefaults.MaxBuildingsPerState
+            WorldGenerationDefaults.MaxBuildingsPerState,
+            cancellationToken
         );
 
         AnsiConsole.Write(new Rule("Factions").RuleStyle(Theme.Neutral).LeftJustified());
 
-        var minFactionMembers = AnsiConsole.Ask(
+        var minFactionMembers = await AnsiConsole.AskAsync(
             "Min faction members",
-            WorldGenerationDefaults.MinFactionMembers
+            WorldGenerationDefaults.MinFactionMembers,
+            cancellationToken
         );
 
-        var maxFactionMembers = AnsiConsole.Ask(
+        var maxFactionMembers = await AnsiConsole.AskAsync(
             "Max faction members",
-            WorldGenerationDefaults.MaxFactionMembers
+            WorldGenerationDefaults.MaxFactionMembers,
+            cancellationToken
         );
 
-        var numFactions = AnsiConsole.Ask("Num factions", WorldGenerationDefaults.FactionCount);
+        var numFactions = await AnsiConsole.AskAsync(
+            "Num factions",
+            WorldGenerationDefaults.FactionCount,
+            cancellationToken
+        );
 
         AnsiConsole.Write(new Rule("Households").RuleStyle(Theme.Neutral).LeftJustified());
 
-        var housesPerCity = AnsiConsole.Ask("Houses/city", WorldGenerationDefaults.HousesPerCity);
-
-        var minHouseholdSize = AnsiConsole.Ask(
-            "Min household size",
-            WorldGenerationDefaults.MinHouseholdSize
+        var housesPerCity = await AnsiConsole.AskAsync(
+            "Houses/city",
+            WorldGenerationDefaults.HousesPerCity,
+            cancellationToken
         );
 
-        var maxHouseholdSize = AnsiConsole.Ask(
+        var minHouseholdSize = await AnsiConsole.AskAsync(
+            "Min household size",
+            WorldGenerationDefaults.MinHouseholdSize,
+            cancellationToken
+        );
+
+        var maxHouseholdSize = await AnsiConsole.AskAsync(
             "Max household size",
-            WorldGenerationDefaults.MaxHouseholdSize
+            WorldGenerationDefaults.MaxHouseholdSize,
+            cancellationToken
         );
 
         AnsiConsole.Write(new Rule("Review").RuleStyle(Theme.Neutral).LeftJustified());
@@ -182,13 +209,17 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
                 ["Rural states", $"{minRuralStates}–{maxRuralStates}"],
                 ["Dungeons/state", $"{minDungeonsPerState}–{maxDungeonsPerState}"],
                 ["Faction members", $"{minFactionMembers}–{maxFactionMembers}"],
-                ["Factions", numFactions.ToString()],
-                ["Houses/city", housesPerCity.ToString()],
+                ["Factions", numFactions.ToString(CultureInfo.InvariantCulture)],
+                ["Houses/city", housesPerCity.ToString(CultureInfo.InvariantCulture)],
                 ["Household size", $"{minHouseholdSize}–{maxHouseholdSize}"],
             ]
         );
 
-        if (!AnsiConsole.Confirm("Create this world?"))
+        var createWorld = await AnsiConsole.ConfirmAsync(
+            "Create this world?",
+            cancellationToken: cancellationToken
+        );
+        if (!createWorld)
         {
             return null;
         }

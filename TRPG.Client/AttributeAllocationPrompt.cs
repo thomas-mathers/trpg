@@ -1,3 +1,4 @@
+using System.Globalization;
 using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
@@ -92,9 +93,9 @@ internal static class AttributeAllocationPrompt
                 return new[]
                 {
                     a.ToDisplayName(),
-                    current.ToString(),
+                    current.ToString(CultureInfo.InvariantCulture),
                     delta == 0 ? "" : $"+{delta}",
-                    (current + delta).ToString(),
+                    (current + delta).ToString(CultureInfo.InvariantCulture),
                 };
             })
         );

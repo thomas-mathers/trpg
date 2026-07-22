@@ -76,7 +76,10 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
         );
 
         // Assert
-        var skill = await _context.CreatureSkills.SingleAsync(s => s.CreatureId == _creature.Id);
+        var skill = await _context.CreatureSkills.SingleAsync(
+            s => s.CreatureId == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(110, skill.Experience);
         Assert.Equal(1, skill.Level);
     }
@@ -99,7 +102,10 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
         );
 
         // Assert
-        var skill = await _context.CreatureSkills.SingleAsync(s => s.CreatureId == _creature.Id);
+        var skill = await _context.CreatureSkills.SingleAsync(
+            s => s.CreatureId == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(260, skill.Experience);
         Assert.Equal(2, skill.Level);
     }
@@ -193,7 +199,9 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
         );
 
         // Assert — no row created, no exception
-        var skills = await _context.CreatureSkills.Where(s => s.CreatureId == _creature.Id).ToArrayAsync();
+        var skills = await _context
+            .CreatureSkills.Where(s => s.CreatureId == _creature.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
         Assert.Empty(skills);
     }
 
@@ -215,7 +223,10 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
         );
 
         // Assert
-        var skill = await _context.CreatureSkills.SingleAsync(s => s.CreatureId == _creature.Id);
+        var skill = await _context.CreatureSkills.SingleAsync(
+            s => s.CreatureId == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(100, skill.Experience);
     }
 }

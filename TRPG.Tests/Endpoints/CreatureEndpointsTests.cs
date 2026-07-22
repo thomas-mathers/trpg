@@ -174,7 +174,10 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            var creature = await context.Creatures.FirstAsync(c => c.Id == _creature.Id);
+            var creature = await context.Creatures.FirstAsync(
+                c => c.Id == _creature.Id,
+                TestContext.Current.CancellationToken
+            );
             creature.Level = 1;
             creature.BaseAttributes = new Attributes
             {
@@ -217,7 +220,10 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            var creature = await context.Creatures.FirstAsync(c => c.Id == _creature.Id);
+            var creature = await context.Creatures.FirstAsync(
+                c => c.Id == _creature.Id,
+                TestContext.Current.CancellationToken
+            );
             creature.Level = 1;
             creature.BaseAttributes = new Attributes
             {
@@ -249,7 +255,10 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         await using var verifyScope = fixture.CreateScope();
         var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var updated = await verifyContext.Creatures.FirstAsync(c => c.Id == _creature.Id);
+        var updated = await verifyContext.Creatures.FirstAsync(
+            c => c.Id == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(4, updated.BaseAttributes.Strength);
     }
 
@@ -260,7 +269,10 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            var creature = await context.Creatures.FirstAsync(c => c.Id == _creature.Id);
+            var creature = await context.Creatures.FirstAsync(
+                c => c.Id == _creature.Id,
+                TestContext.Current.CancellationToken
+            );
             creature.BaseAttributes = new Attributes
             {
                 Strength = 3,
@@ -343,7 +355,10 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            var creature = await context.Creatures.FirstAsync(c => c.Id == _creature.Id);
+            var creature = await context.Creatures.FirstAsync(
+                c => c.Id == _creature.Id,
+                TestContext.Current.CancellationToken
+            );
             creature.Level = 7;
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }

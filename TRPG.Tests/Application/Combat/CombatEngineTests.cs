@@ -25,6 +25,8 @@ public class CombatEngineTests
             new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
         );
 
+    private static readonly string[] CleaveTargets = ["Husk", "Wraith"];
+
     private static CombatEngine MakeEngine(IOptionsSnapshot<CombatOptions> optionsSnapshot)
     {
         var hitCalculator = new HitCalculator(optionsSnapshot);
@@ -406,10 +408,7 @@ public class CombatEngineTests
         // Assert — one Hit entry per target
         var cleaveHits = state.Events.OfType<Hit>().Where(h => h.AbilityName == "Cleave").ToArray();
         Assert.Equal(2, cleaveHits.Length);
-        Assert.Equal(
-            new[] { "Husk", "Wraith" },
-            cleaveHits.Select(h => h.TargetName).OrderBy(n => n).ToArray()
-        );
+        Assert.Equal(CleaveTargets, cleaveHits.Select(h => h.TargetName).OrderBy(n => n).ToArray());
     }
 
     [Fact]
