@@ -194,7 +194,8 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             var options = scope
                 .ServiceProvider.GetRequiredService<IOptionsSnapshot<CreatureGeneratorOptions>>()
                 .Value;
-            expectedUnallocated = options.BaseAttributes.Total() + creature.Level * options.PointsPerLevel - 7;
+            expectedUnallocated =
+                options.BaseAttributes.Total() + creature.Level * options.PointsPerLevel - 7;
         }
 
         // Act

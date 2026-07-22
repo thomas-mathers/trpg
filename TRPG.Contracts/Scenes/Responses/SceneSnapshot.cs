@@ -31,6 +31,7 @@ public enum Profession
     Scholar,
     Merchant,
     Politician,
+
     [Description("Stable Master")]
     StableMaster,
     Bartender,
@@ -60,9 +61,11 @@ public enum DistrictType
 {
     Residential,
     Scientific,
+
     [Description("City Center")]
     CityCenter,
     Governmental,
+
     [Description("Holy Site")]
     HolySite,
     Encampment,
@@ -80,8 +83,10 @@ public enum BuildingType
     Castle,
     Cave,
     Crypt,
+
     [Description("General Goods")]
     GeneralGoods,
+
     [Description("Guild Hall")]
     GuildHall,
     House,

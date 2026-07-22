@@ -40,7 +40,10 @@ internal class GetSceneWithCatchUpQueryHandler(
         }
         else
         {
-            logger.LogInformation("[perf] Catch-up cache miss for {CacheKey}, running catch-up", cacheKey);
+            logger.LogInformation(
+                "[perf] Catch-up cache miss for {CacheKey}, running catch-up",
+                cacheKey
+            );
 
             await sync.Handle(
                 new SyncCommand

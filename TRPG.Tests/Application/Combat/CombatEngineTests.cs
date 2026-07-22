@@ -631,12 +631,7 @@ public class CombatEngineTests
                 Amount = 5,
             }
         );
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            dexterity: 20,
-            abilities: [buffAbility]
-        );
+        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20, abilities: [buffAbility]);
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);

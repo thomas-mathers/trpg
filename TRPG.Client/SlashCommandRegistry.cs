@@ -234,7 +234,9 @@ internal sealed class SlashCommandRegistry(
     }
 
     private static void Announce(string message) =>
-        AnsiConsole.Write(new Padder(new Markup($"[{Theme.Neutral}]{message}[/]"), new Padding(0, 1)));
+        AnsiConsole.Write(
+            new Padder(new Markup($"[{Theme.Neutral}]{message}[/]"), new Padding(0, 1))
+        );
 
     private static void PrintCreatures(IReadOnlyCollection<CreatureStatusSnapshot> creatures)
     {
@@ -266,7 +268,9 @@ internal sealed class SlashCommandRegistry(
         );
     }
 
-    private static void PrintDistricts(IReadOnlyCollection<NearbyDistrictSnapshot> districtSnapshots)
+    private static void PrintDistricts(
+        IReadOnlyCollection<NearbyDistrictSnapshot> districtSnapshots
+    )
     {
         if (districtSnapshots.Count == 0)
         {

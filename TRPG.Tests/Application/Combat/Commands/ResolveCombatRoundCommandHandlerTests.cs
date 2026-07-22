@@ -38,7 +38,12 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
                 new UpdateCreaturesCommandHandler(_context),
                 new GetPlaytimeQueryHandler(
                     _context,
-                    Microsoft.Extensions.Logging.Abstractions.NullLogger<GetPlaytimeQueryHandler>.Instance
+                    Microsoft
+                        .Extensions
+                        .Logging
+                        .Abstractions
+                        .NullLogger<GetPlaytimeQueryHandler>
+                        .Instance
                 )
             )
         );
@@ -80,7 +85,12 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         return fight;
     }
 
-    private CombatantState MakeCombatantState(Guid id, bool isPlayer, int currentHp, bool isAlive) =>
+    private CombatantState MakeCombatantState(
+        Guid id,
+        bool isPlayer,
+        int currentHp,
+        bool isAlive
+    ) =>
         new(
             Id: id,
             Name: isPlayer ? _player.Name : _enemy.Name,
@@ -175,7 +185,10 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         // Assert
         await using var verifyContext = db.CreateContext();
         var proficiency = await verifyContext.CreatureWeaponProficiencies.SingleOrDefaultAsync(
-            p => p.WorldId == _worldId && p.CreatureId == _player.Id && p.WeaponType == WeaponType.Sword,
+            p =>
+                p.WorldId == _worldId
+                && p.CreatureId == _player.Id
+                && p.WeaponType == WeaponType.Sword,
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(proficiency);
@@ -289,7 +302,11 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
-                Combatants = [MakePlayerCombatant(currentHp: 33), MakeEnemyCombatant(currentHp: 12)],
+                Combatants =
+                [
+                    MakePlayerCombatant(currentHp: 33),
+                    MakeEnemyCombatant(currentHp: 12),
+                ],
                 State = state,
             },
             TestContext.Current.CancellationToken

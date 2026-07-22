@@ -79,7 +79,8 @@ public class CombatEngine(
         actor.CooldownRemainingByAbility[ability.Name] = ability.Cooldown;
         actor.CurrentAp -= ability.ApCost;
         actor.CurrentMp -= ability.MpCost;
-        actor.SkillUsageCounts[ability.Skill] = actor.SkillUsageCounts.GetValueOrDefault(ability.Skill) + 1;
+        actor.SkillUsageCounts[ability.Skill] =
+            actor.SkillUsageCounts.GetValueOrDefault(ability.Skill) + 1;
 
         return ability switch
         {

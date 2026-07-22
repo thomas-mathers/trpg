@@ -54,7 +54,10 @@ public sealed class EndpointTestFixture : IAsyncLifetime
         // The environment variable is picked up by WebApplicationBuilder's own
         // AddEnvironmentVariables() call, which runs synchronously as CreateBuilder(args)'s
         // first configuration source, so it's visible even to that eager read.
-        Environment.SetEnvironmentVariable("ConnectionStrings__Trpg", _databaseFixture.ConnectionString);
+        Environment.SetEnvironmentVariable(
+            "ConnectionStrings__Trpg",
+            _databaseFixture.ConnectionString
+        );
 
         await using (
             var tickerContext = new TrpgTickerQDbContext(

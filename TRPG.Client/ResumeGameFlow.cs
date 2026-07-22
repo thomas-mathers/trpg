@@ -5,7 +5,11 @@ using TRPG.Contracts;
 
 namespace TRPG.Client;
 
-internal sealed class ResumeGameFlow(TrpgHttpClient client, TrpgHubConnector hubConnector, ILogger logger)
+internal sealed class ResumeGameFlow(
+    TrpgHttpClient client,
+    TrpgHubConnector hubConnector,
+    ILogger logger
+)
 {
     public async Task Run(Guid worldId, CancellationToken cancellationToken)
     {

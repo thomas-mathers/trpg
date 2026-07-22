@@ -948,10 +948,9 @@ public class CreatureGenerator(
         var gender =
             generatorInput.Gender ?? (Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female);
 
-        var attributes =
-            generatorInput.StartingAttributeAllocation is { } allocation
-                ? GetPlayerAttributes(level, allocation)
-                : GetAttributes(level, generatorInput.Profession);
+        var attributes = generatorInput.StartingAttributeAllocation is { } allocation
+            ? GetPlayerAttributes(level, allocation)
+            : GetAttributes(level, generatorInput.Profession);
 
         var creature = new Creature
         {
@@ -1146,8 +1145,8 @@ public class CreatureGenerator(
             Endurance = baseline.Endurance + allocation.GetValueOrDefault(AttributeName.Endurance),
             Stamina = baseline.Stamina + allocation.GetValueOrDefault(AttributeName.Stamina),
             Mana = baseline.Mana + allocation.GetValueOrDefault(AttributeName.Mana),
-            Intelligence = baseline.Intelligence
-                + allocation.GetValueOrDefault(AttributeName.Intelligence),
+            Intelligence =
+                baseline.Intelligence + allocation.GetValueOrDefault(AttributeName.Intelligence),
         };
 
         return baseAttributes with

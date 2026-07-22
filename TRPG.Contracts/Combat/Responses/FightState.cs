@@ -16,8 +16,10 @@ public enum AttributeName
 {
     [Description("Maximum HP")]
     MaximumHp,
+
     [Description("Maximum AP")]
     MaximumAp,
+
     [Description("Maximum MP")]
     MaximumMp,
     Strength,
@@ -27,18 +29,25 @@ public enum AttributeName
     Stamina,
     Mana,
     Intelligence,
+
     [Description("Physical Resistance")]
     PhysicalResistance,
+
     [Description("Fire Resistance")]
     FireResistance,
+
     [Description("Ice Resistance")]
     IceResistance,
+
     [Description("Lightning Resistance")]
     LightningResistance,
+
     [Description("Poison Resistance")]
     PoisonResistance,
+
     [Description("Magic Resistance")]
     MagicResistance,
+
     [Description("Movement Speed")]
     MovementSpeed,
 }

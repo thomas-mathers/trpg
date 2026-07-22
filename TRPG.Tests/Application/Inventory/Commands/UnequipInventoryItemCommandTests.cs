@@ -135,7 +135,11 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
 
         // Act
         await _unequipHandler.Handle(
-            new UnequipInventoryItemCommand { CreatureId = _creature.Id, Slot = EquipmentSlot.Chest },
+            new UnequipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                Slot = EquipmentSlot.Chest,
+            },
             TestContext.Current.CancellationToken
         );
 

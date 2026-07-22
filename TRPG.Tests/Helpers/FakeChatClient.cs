@@ -58,8 +58,7 @@ public sealed class FakeChatClient : IChatClient
     private static bool HasFunctionResult(List<ChatMessage> messages)
     {
         var lastUserIndex = messages.FindLastIndex(m => m.Role == ChatRole.User);
-        var currentTurnMessages =
-            lastUserIndex >= 0 ? messages.Skip(lastUserIndex + 1) : messages;
+        var currentTurnMessages = lastUserIndex >= 0 ? messages.Skip(lastUserIndex + 1) : messages;
         return currentTurnMessages.Any(m => m.Contents.OfType<FunctionResultContent>().Any());
     }
 

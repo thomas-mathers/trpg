@@ -22,10 +22,13 @@ internal class GetUsableAbilitiesQueryHandler(
             cancellationToken
         );
 
-        var learnedAbilities = learnedNames
-            .Select(abilityDefinitions.GetByName)
-            .OfType<Ability>();
+        var learnedAbilities = learnedNames.Select(abilityDefinitions.GetByName).OfType<Ability>();
 
-        return [abilityDefinitions.BasicAttack, abilityDefinitions.BlockStance, .. learnedAbilities];
+        return
+        [
+            abilityDefinitions.BasicAttack,
+            abilityDefinitions.BlockStance,
+            .. learnedAbilities,
+        ];
     }
 }

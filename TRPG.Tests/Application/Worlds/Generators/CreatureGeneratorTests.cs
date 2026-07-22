@@ -104,7 +104,10 @@ public class CreatureGeneratorTests
         var input = MakeInput(
             Profession.Knight,
             level: 1,
-            startingAttributeAllocation: new Dictionary<AttributeName, int> { [AttributeName.Strength] = 5 }
+            startingAttributeAllocation: new Dictionary<AttributeName, int>
+            {
+                [AttributeName.Strength] = 5,
+            }
         );
 
         // Act
@@ -127,7 +130,10 @@ public class CreatureGeneratorTests
         var input = MakeInput(
             Profession.Knight,
             level: 1,
-            startingAttributeAllocation: new Dictionary<AttributeName, int> { [AttributeName.Mana] = 2 }
+            startingAttributeAllocation: new Dictionary<AttributeName, int>
+            {
+                [AttributeName.Mana] = 2,
+            }
         );
 
         // Act
@@ -145,7 +151,10 @@ public class CreatureGeneratorTests
         var input = MakeInput(
             Profession.Knight,
             level: 1,
-            startingAttributeAllocation: new Dictionary<AttributeName, int> { [AttributeName.Strength] = 6 }
+            startingAttributeAllocation: new Dictionary<AttributeName, int>
+            {
+                [AttributeName.Strength] = 6,
+            }
         );
 
         // Act & Assert
@@ -159,7 +168,10 @@ public class CreatureGeneratorTests
         var input = MakeInput(
             Profession.Knight,
             level: 1,
-            startingAttributeAllocation: new Dictionary<AttributeName, int> { [AttributeName.Strength] = -1 }
+            startingAttributeAllocation: new Dictionary<AttributeName, int>
+            {
+                [AttributeName.Strength] = -1,
+            }
         );
 
         // Act & Assert
@@ -173,7 +185,10 @@ public class CreatureGeneratorTests
         var input = MakeInput(
             Profession.Knight,
             level: 1,
-            startingAttributeAllocation: new Dictionary<AttributeName, int> { [AttributeName.Defense] = 1 }
+            startingAttributeAllocation: new Dictionary<AttributeName, int>
+            {
+                [AttributeName.Defense] = 1,
+            }
         );
 
         // Act & Assert

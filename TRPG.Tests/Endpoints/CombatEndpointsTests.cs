@@ -303,5 +303,4 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
-
 }

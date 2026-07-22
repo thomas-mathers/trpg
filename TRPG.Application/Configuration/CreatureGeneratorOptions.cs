@@ -23,5 +23,6 @@ public class StartingAttributes
     public int Mana { get; init; } = 1;
     public int Intelligence { get; init; } = 1;
 
-    public int Total() => Strength + Defense + Dexterity + Endurance + Stamina + Mana + Intelligence;
+    public int Total() =>
+        Strength + Defense + Dexterity + Endurance + Stamina + Mana + Intelligence;
 }

@@ -1,6 +1,5 @@
 using AbilitiesConditionType = TRPG.Application.Abilities.ConditionType;
 using ContractAbilitySkill = TRPG.Contracts.Abilities.Responses.Skill;
-using DataSkill = TRPG.Data.Models.Skill;
 using ContractAmountType = TRPG.Contracts.Combat.Responses.AmountType;
 using ContractAttributeName = TRPG.Contracts.Combat.Responses.AttributeName;
 using ContractBuildingType = TRPG.Contracts.Scenes.Responses.BuildingType;
@@ -9,6 +8,7 @@ using ContractCreatureState = TRPG.Contracts.Scenes.Responses.CreatureState;
 using ContractCreatureType = TRPG.Contracts.Scenes.Responses.CreatureType;
 using ContractDamageType = TRPG.Contracts.Combat.Responses.DamageType;
 using ContractDistrictType = TRPG.Contracts.Scenes.Responses.DistrictType;
+using ContractGender = TRPG.Contracts.Worlds.Requests.Gender;
 using ContractProfession = TRPG.Contracts.Scenes.Responses.Profession;
 using ContractResourceType = TRPG.Contracts.Inventory.Responses.ResourceType;
 using DataAmountType = TRPG.Data.Models.AmountType;
@@ -21,7 +21,7 @@ using DataDistrictType = TRPG.Data.Models.DistrictType;
 using DataGender = TRPG.Data.Models.Gender;
 using DataProfession = TRPG.Data.Models.Profession;
 using DataResourceType = TRPG.Data.Models.ResourceType;
-using ContractGender = TRPG.Contracts.Worlds.Requests.Gender;
+using DataSkill = TRPG.Data.Models.Skill;
 
 namespace TRPG.Application.Common.Mappers;
 

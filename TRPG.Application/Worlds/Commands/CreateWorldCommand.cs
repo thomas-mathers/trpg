@@ -15,7 +15,10 @@ public class CreateWorldCommand
     public required Age Age { get; init; }
     public required Race Race { get; init; }
     public required PlayerClass PlayerClass { get; init; }
-    public required IReadOnlyDictionary<AttributeName, int> StartingAttributeAllocation { get; init; }
+    public required IReadOnlyDictionary<
+        AttributeName,
+        int
+    > StartingAttributeAllocation { get; init; }
 }
 
 public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);

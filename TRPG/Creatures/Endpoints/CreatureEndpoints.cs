@@ -80,10 +80,7 @@ internal static class CreatureEndpoints
         CancellationToken cancellationToken
     )
     {
-        var deltas = request.Deltas.ToDictionary(
-            kv => kv.Key.ToDomain(),
-            kv => kv.Value
-        );
+        var deltas = request.Deltas.ToDictionary(kv => kv.Key.ToDomain(), kv => kv.Value);
 
         await allocateAttributePoints.Handle(
             new AllocateAttributePointsCommand { CreatureId = creatureId, Deltas = deltas },

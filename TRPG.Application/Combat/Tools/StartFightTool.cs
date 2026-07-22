@@ -71,10 +71,7 @@ internal class StartFightTool(
             return new ToolError(rejected.Reason);
         }
 
-        var state = combatEngine.ProcessRound(
-            combatants,
-            ((ActionResolved)resolution).Action
-        );
+        var state = combatEngine.ProcessRound(combatants, ((ActionResolved)resolution).Action);
 
         var result = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
