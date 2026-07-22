@@ -1,5 +1,6 @@
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
+using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Generators;
 
@@ -8,6 +9,7 @@ public class MonsterGeneratorTests
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _roomId = Guid.NewGuid();
+    private readonly MonsterGenerator _monsterGenerator = new(Builders.MakeStatFormulas());
 
     private MonsterGeneratorInput MakeInput(BuildingType dungeonType)
     {
@@ -26,7 +28,7 @@ public class MonsterGeneratorTests
         for (var i = 0; i < 20; i++)
         {
             // Act
-            var monsters = MonsterGenerator.Generate(MakeInput(BuildingType.Cave));
+            var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Cave));
 
             // Assert
             Assert.InRange(monsters.Count, 1, 3);
@@ -41,8 +43,8 @@ public class MonsterGeneratorTests
         for (var i = 0; i < 20; i++)
         {
             // Act
-            var caveMonsters = MonsterGenerator.Generate(MakeInput(BuildingType.Cave));
-            var cryptMonsters = MonsterGenerator.Generate(MakeInput(BuildingType.Crypt));
+            var caveMonsters = _monsterGenerator.Generate(MakeInput(BuildingType.Cave));
+            var cryptMonsters = _monsterGenerator.Generate(MakeInput(BuildingType.Crypt));
 
             // Assert
             Assert.All(
@@ -60,7 +62,7 @@ public class MonsterGeneratorTests
     public void Generate_LeavesMonstersInertToTheLivingWorld()
     {
         // Act
-        var monsters = MonsterGenerator.Generate(MakeInput(BuildingType.Tower));
+        var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Tower));
 
         // Assert — no profession, no city, and a fixed description instead of a generated life story
         Assert.All(monsters, m => Assert.Null(m.Creature.Profession));
@@ -72,7 +74,7 @@ public class MonsterGeneratorTests
     public void Generate_StartsMonstersAtFullResources()
     {
         // Act
-        var monsters = MonsterGenerator.Generate(MakeInput(BuildingType.Cave));
+        var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Cave));
 
         // Assert
         Assert.All(monsters, m => Assert.Equal(m.Creature.MaximumHp, m.Creature.CurrentHp));

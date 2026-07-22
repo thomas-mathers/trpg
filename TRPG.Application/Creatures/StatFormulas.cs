@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+using TRPG.Application.Configuration;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Creatures;
@@ -11,12 +13,8 @@ public class ActiveBuff
     public AmountType AmountType { get; init; }
 }
 
-internal static class StatFormulas
+public class StatFormulas(IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot)
 {
-    private const int HpPerEndurance = 5;
-    private const int ApPerStamina = 2;
-    private const int MpPerMana = 2;
-
     public static float CalculateEffectiveAttribute(
         Attributes attributes,
         IReadOnlyCollection<ActiveBuff> buffs,
@@ -105,12 +103,28 @@ internal static class StatFormulas
         };
     }
 
-    public static int CalculateMaximumHp(Attributes attributes) =>
-        Math.Max(1, attributes.Endurance * HpPerEndurance);
+    public int CalculateMaximumHp(Attributes attributes) =>
+        Math.Max(1, attributes.Endurance * optionsSnapshot.Value.HpPerEndurance);
 
-    public static int CalculateMaximumAp(Attributes attributes) =>
-        Math.Max(1, attributes.Stamina * ApPerStamina);
+    public int CalculateMaximumAp(Attributes attributes) =>
+        Math.Max(1, attributes.Stamina * optionsSnapshot.Value.ApPerStamina);
 
-    public static int CalculateMaximumMp(Attributes attributes) =>
-        Math.Max(0, attributes.Mana * MpPerMana);
+    public int CalculateMaximumMp(Attributes attributes) =>
+        Math.Max(0, attributes.Mana * optionsSnapshot.Value.MpPerMana);
+
+    public int CalculateUnallocatedAttributePoints(Attributes attributes, int level)
+    {
+        var expectedTotal =
+            optionsSnapshot.Value.BaseAttributes.Total() + level * optionsSnapshot.Value.PointsPerLevel;
+        var currentTotal =
+            attributes.Strength
+            + attributes.Defense
+            + attributes.Dexterity
+            + attributes.Endurance
+            + attributes.Stamina
+            + attributes.Mana
+            + attributes.Intelligence;
+
+        return expectedTotal - currentTotal;
+    }
 }

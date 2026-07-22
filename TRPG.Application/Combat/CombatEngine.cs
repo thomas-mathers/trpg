@@ -36,11 +36,9 @@ public class CombatEngine(
             Outcome: outcome,
             Combatants: combatants.Select(c => c.ToCombatantState()).ToArray(),
             Events: combatEvents,
-            XpGained: outcome == CombatOutcome.Victory
-                ? GetTotalExperienceFromEnemies(enemies)
-                : null,
             GoldLooted: outcome == CombatOutcome.Victory ? GetTotalGoldFromEnemies(enemies) : null,
-            WeaponSwingCounts: player.WeaponSwingCounts
+            WeaponSwingCounts: player.WeaponSwingCounts,
+            SkillUsageCounts: player.SkillUsageCounts
         );
     }
 
@@ -81,6 +79,7 @@ public class CombatEngine(
         actor.CooldownRemainingByAbility[ability.Name] = ability.Cooldown;
         actor.CurrentAp -= ability.ApCost;
         actor.CurrentMp -= ability.MpCost;
+        actor.SkillUsageCounts[ability.Skill] = actor.SkillUsageCounts.GetValueOrDefault(ability.Skill) + 1;
 
         return ability switch
         {
@@ -516,9 +515,6 @@ public class CombatEngine(
         return CombatOutcome.Ongoing;
     }
 
-    private int GetTotalExperienceFromEnemies(IReadOnlyList<Combatant> enemies) =>
-        enemies.Sum(e => e.Level * optionsSnapshot.Value.XpPerEnemyLevel);
-
     private static int GetTotalGoldFromEnemies(IReadOnlyList<Combatant> enemies) =>
         enemies.Sum(e => e.Gold);
 
@@ -552,9 +548,9 @@ public class CombatEngine(
             Outcome: outcome,
             Combatants: combatants.Select(c => c.ToCombatantState()).ToArray(),
             Events: combatEvents,
-            XpGained: null,
             GoldLooted: null,
-            WeaponSwingCounts: player.WeaponSwingCounts
+            WeaponSwingCounts: player.WeaponSwingCounts,
+            SkillUsageCounts: player.SkillUsageCounts
         );
     }
 }

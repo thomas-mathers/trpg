@@ -6,7 +6,6 @@ namespace TRPG.Application.Creatures.Commands;
 internal class ApplyCombatRewardsCommand
 {
     public required Guid CreatureId { get; init; }
-    public required int ExperienceGained { get; init; }
     public required int GoldGained { get; init; }
 }
 
@@ -17,9 +16,7 @@ internal class ApplyCombatRewardsCommandHandler(TrpgDbContext context)
         await context
             .Creatures.Where(c => c.Id == command.CreatureId)
             .ExecuteUpdateAsync(
-                c =>
-                    c.SetProperty(x => x.Experience, x => x.Experience + command.ExperienceGained)
-                        .SetProperty(x => x.Gold, x => x.Gold + command.GoldGained),
+                c => c.SetProperty(x => x.Gold, x => x.Gold + command.GoldGained),
                 cancellationToken: cancellationToken
             );
     }

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using TRPG.Contracts.Combat.Responses;
 
 namespace TRPG.Contracts.Worlds.Requests;
 
@@ -42,6 +43,8 @@ public record CreateWorldRequest
     public required Age Age { get; init; }
     public required Race Race { get; init; }
     public required PlayerClass PlayerClass { get; init; }
+    public IReadOnlyDictionary<AttributeName, int> StartingAttributeAllocation { get; init; } =
+        new Dictionary<AttributeName, int>();
     public string Description { get; init; } = "";
     public int MinCityStates { get; init; }
     public int MaxCityStates { get; init; }

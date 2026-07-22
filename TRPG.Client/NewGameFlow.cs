@@ -2,6 +2,7 @@ using System.Text.Json;
 using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Jobs.Responses;
 using TRPG.Contracts.Worlds.Requests;
 using TRPG.Contracts.Worlds.Responses;
@@ -12,7 +13,7 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
 {
     public async Task<Guid?> Run(CancellationToken cancellationToken)
     {
-        var request = PromptForGameOptions();
+        var request = await PromptForGameOptions(cancellationToken);
         if (request == null)
         {
             return null;
@@ -45,7 +46,9 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
         return world.WorldId;
     }
 
-    private static CreateWorldRequest? PromptForGameOptions()
+    private async Task<CreateWorldRequest?> PromptForGameOptions(
+        CancellationToken cancellationToken
+    )
     {
         AnsiConsole.Write(new Rule("Character").RuleStyle(Theme.Neutral).LeftJustified());
 
@@ -86,6 +89,16 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
         );
 
         AnsiConsole.MarkupLine($"[{Theme.Positive}]✓[/] Class: {playerClass.ToDisplayName()}");
+
+        AnsiConsole.Write(new Rule("Starting Attributes").RuleStyle(Theme.Neutral).LeftJustified());
+
+        var generationOptions = await client.GetCreatureGenerationOptions(cancellationToken);
+        var startingAttributeAllocation =
+            await AttributeAllocationPrompt.Run(
+                generationOptions.PointsPerLevel,
+                generationOptions.BaseAttributes,
+                cancellationToken
+            ) ?? new Dictionary<AttributeName, int>();
 
         AnsiConsole.Write(new Rule("World").RuleStyle(Theme.Neutral).LeftJustified());
 
@@ -163,6 +176,7 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
                 ["Age", AnsiConsole.FormatNeutralChip(age)],
                 ["Race", AnsiConsole.FormatNeutralChip(race)],
                 ["Class", AnsiConsole.FormatNeutralChip(playerClass)],
+                ["Attributes", FormatStartingAttributeAllocation(startingAttributeAllocation)],
                 ["Description", description.EscapeMarkup()],
                 ["City states", $"{minCityStates}–{maxCityStates}"],
                 ["Rural states", $"{minRuralStates}–{maxRuralStates}"],
@@ -186,6 +200,7 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
             Gender = gender,
             Age = age,
             PlayerClass = playerClass,
+            StartingAttributeAllocation = startingAttributeAllocation,
             Description = description,
             MinCityStates = minCityStates,
             MaxCityStates = maxCityStates,
@@ -201,6 +216,16 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
             FactionCount = numFactions,
         };
     }
+
+    private static string FormatStartingAttributeAllocation(
+        IReadOnlyDictionary<AttributeName, int> allocation
+    ) =>
+        allocation.Count == 0
+            ? "None allocated"
+            : string.Join(
+                ", ",
+                allocation.Select(kv => $"{kv.Key.ToDisplayName()} +{kv.Value}")
+            );
 
     private async Task<JobStatusResponse> WaitForJobWithProgress(
         Guid jobId,

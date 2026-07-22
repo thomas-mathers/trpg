@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
@@ -64,7 +65,9 @@ public record SceneCreatureInfo(
     int CurrentAp,
     int MaximumAp,
     int CurrentMp,
-    int MaximumMp
+    int MaximumMp,
+    int ExperienceCurrent,
+    int ExperienceToNextLevel
 );
 
 public record SceneNearbyBuildingInfo(string Name, BuildingType Type);
@@ -86,6 +89,7 @@ internal record SceneBootstrap(
     string PlayerName,
     Profession? Profession,
     int Level,
+    int Experience,
     int Gold,
     int BirthYear,
     Guid StateId,
@@ -166,28 +170,43 @@ internal class GetSceneQueryHandler(
             cityInfo,
             details.Building,
             details.Room,
-            new SceneCreatureInfo(
-                bootstrap.PlayerName,
-                bootstrap.CreatureType,
-                bootstrap.Gender,
-                bootstrap.Profession,
-                bootstrap.Level,
-                query.CurrentDate.Year - bootstrap.BirthYear,
-                [],
-                State: null,
-                Reputation: null,
-                bootstrap.Gold,
-                bootstrap.CurrentHp,
-                bootstrap.MaximumHp,
-                bootstrap.CurrentAp,
-                bootstrap.MaximumAp,
-                bootstrap.CurrentMp,
-                bootstrap.MaximumMp
-            ),
+            BuildPlayerCreatureInfo(query, bootstrap),
             details.NearbyProps,
             details.NearbyPeople,
             details.NearbyBuildings,
             details.NearbyDungeons
+        );
+    }
+
+    private static SceneCreatureInfo BuildPlayerCreatureInfo(
+        GetSceneQuery query,
+        SceneBootstrap bootstrap
+    )
+    {
+        var experienceProgress = SkillFormulas.GetCharacterExperienceProgress(
+            bootstrap.Level,
+            bootstrap.Experience
+        );
+
+        return new SceneCreatureInfo(
+            bootstrap.PlayerName,
+            bootstrap.CreatureType,
+            bootstrap.Gender,
+            bootstrap.Profession,
+            bootstrap.Level,
+            query.CurrentDate.Year - bootstrap.BirthYear,
+            [],
+            State: null,
+            Reputation: null,
+            bootstrap.Gold,
+            bootstrap.CurrentHp,
+            bootstrap.MaximumHp,
+            bootstrap.CurrentAp,
+            bootstrap.MaximumAp,
+            bootstrap.CurrentMp,
+            bootstrap.MaximumMp,
+            experienceProgress.Current,
+            experienceProgress.ToNextLevel
         );
     }
 
@@ -203,6 +222,7 @@ internal class GetSceneQueryHandler(
                 p.Name,
                 p.Profession,
                 p.Level,
+                p.Experience,
                 p.Gold,
                 p.BirthYear,
                 p.StateId,
@@ -424,24 +444,33 @@ internal class GetSceneQueryHandler(
         );
 
         return nearbyPeopleRaw
-            .Select(x => new SceneCreatureInfo(
-                x.Name,
-                x.CreatureType,
-                x.Gender,
-                x.Profession,
-                x.Level,
-                query.CurrentDate.Year - x.BirthYear,
-                factionNamesByCreature.GetValueOrDefault(x.Id, []),
-                x.State,
-                reputationByCreature.GetValueOrDefault(x.Id, 0),
-                x.Gold,
-                x.CurrentHp,
-                x.MaximumHp,
-                x.CurrentAp,
-                x.MaximumAp,
-                x.CurrentMp,
-                x.MaximumMp
-            ))
+            .Select(x =>
+            {
+                var experienceProgress = SkillFormulas.GetCharacterExperienceProgress(
+                    x.Level,
+                    x.Experience
+                );
+                return new SceneCreatureInfo(
+                    x.Name,
+                    x.CreatureType,
+                    x.Gender,
+                    x.Profession,
+                    x.Level,
+                    query.CurrentDate.Year - x.BirthYear,
+                    factionNamesByCreature.GetValueOrDefault(x.Id, []),
+                    x.State,
+                    reputationByCreature.GetValueOrDefault(x.Id, 0),
+                    x.Gold,
+                    x.CurrentHp,
+                    x.MaximumHp,
+                    x.CurrentAp,
+                    x.MaximumAp,
+                    x.CurrentMp,
+                    x.MaximumMp,
+                    experienceProgress.Current,
+                    experienceProgress.ToNextLevel
+                );
+            })
             .ToArray();
     }
 

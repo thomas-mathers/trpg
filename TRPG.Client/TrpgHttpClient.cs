@@ -1,11 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.Extensions.Logging;
-using Spectre.Console;
-using TRPG.Client.Extensions;
 using TRPG.Contracts;
 using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
+using TRPG.Contracts.Creatures.Requests;
+using TRPG.Contracts.Creatures.Responses;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Inventory.Responses;
 using TRPG.Contracts.Jobs.Responses;
@@ -15,10 +14,8 @@ using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
 
-internal sealed class TrpgHttpClient(HttpClient httpClient, ILoggerFactory loggerFactory)
+internal sealed class TrpgHttpClient(HttpClient httpClient)
 {
-    private readonly ILogger<TrpgHttpClient> _logger = loggerFactory.CreateLogger<TrpgHttpClient>();
-
     public async Task<Guid> CreateWorld(
         CreateWorldRequest request,
         CancellationToken cancellationToken
@@ -92,22 +89,14 @@ internal sealed class TrpgHttpClient(HttpClient httpClient, ILoggerFactory logge
         return result!;
     }
 
-    public async Task<SceneSnapshot?> GetScene(Guid sessionId, CancellationToken cancellationToken)
+    public async Task<SceneSnapshot> GetScene(Guid sessionId, CancellationToken cancellationToken)
     {
-        try
-        {
-            return await httpClient.GetFromJsonAsync<SceneSnapshot>(
-                new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
-                TrpgJsonOptions.Default,
-                cancellationToken
-            );
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "[game] failed to fetch scene");
-            AnsiConsole.AnnounceError($"[[Failed to fetch scene: {ex.Message.EscapeMarkup()}]]");
-            return null;
-        }
+        var result = await httpClient.GetFromJsonAsync<SceneSnapshot>(
+            new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result!;
     }
 
     public async Task<IReadOnlyList<NamedEntity>> GetNamedEntities(
@@ -115,23 +104,12 @@ internal sealed class TrpgHttpClient(HttpClient httpClient, ILoggerFactory logge
         CancellationToken cancellationToken
     )
     {
-        try
-        {
-            var result = await httpClient.GetFromJsonAsync<List<NamedEntity>>(
-                new Uri($"/sessions/{sessionId}/named-entities", UriKind.Relative),
-                TrpgJsonOptions.Default,
-                cancellationToken
-            );
-            return result ?? [];
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "[game] failed to fetch named entities");
-            AnsiConsole.AnnounceError(
-                $"[[Failed to fetch named entities: {ex.Message.EscapeMarkup()}]]"
-            );
-            return [];
-        }
+        var result = await httpClient.GetFromJsonAsync<List<NamedEntity>>(
+            new Uri($"/sessions/{sessionId}/named-entities", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result ?? [];
     }
 
     public async Task<IReadOnlyList<AbilitySummary>> GetAbilities(
@@ -139,21 +117,12 @@ internal sealed class TrpgHttpClient(HttpClient httpClient, ILoggerFactory logge
         CancellationToken cancellationToken
     )
     {
-        try
-        {
-            var result = await httpClient.GetFromJsonAsync<List<AbilitySummary>>(
-                new Uri($"/creatures/{creatureId}/abilities", UriKind.Relative),
-                TrpgJsonOptions.Default,
-                cancellationToken
-            );
-            return result ?? [];
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "[game] failed to fetch abilities");
-            AnsiConsole.AnnounceError($"[[Failed to fetch abilities: {ex.Message.EscapeMarkup()}]]");
-            return [];
-        }
+        var result = await httpClient.GetFromJsonAsync<List<AbilitySummary>>(
+            new Uri($"/creatures/{creatureId}/abilities", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result ?? [];
     }
 
     public async Task<IReadOnlyList<UsableItemSummary>> GetUsableItems(
@@ -161,51 +130,105 @@ internal sealed class TrpgHttpClient(HttpClient httpClient, ILoggerFactory logge
         CancellationToken cancellationToken
     )
     {
-        try
-        {
-            var result = await httpClient.GetFromJsonAsync<List<UsableItemSummary>>(
-                new Uri($"/creatures/{creatureId}/items", UriKind.Relative),
-                TrpgJsonOptions.Default,
-                cancellationToken
-            );
-            return result ?? [];
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "[game] failed to fetch usable items");
-            AnsiConsole.AnnounceError(
-                $"[[Failed to fetch usable items: {ex.Message.EscapeMarkup()}]]"
-            );
-            return [];
-        }
+        var result = await httpClient.GetFromJsonAsync<List<UsableItemSummary>>(
+            new Uri($"/creatures/{creatureId}/items", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result ?? [];
     }
 
-    public async Task<FightState?> GetFight(Guid worldId, CancellationToken cancellationToken)
+    public async Task<int> GetUnallocatedAttributePoints(
+        Guid creatureId,
+        CancellationToken cancellationToken
+    )
     {
-        try
-        {
-            var response = await httpClient.GetAsync(
-                new Uri($"/worlds/{worldId}/fight", UriKind.Relative),
-                cancellationToken
-            );
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                return null;
-            }
+        var result = await httpClient.GetFromJsonAsync<AttributePointsResponse>(
+            new Uri($"/creatures/{creatureId}/attribute-points", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result!.UnallocatedPoints;
+    }
 
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<FightState>(
-                TrpgJsonOptions.Default,
-                cancellationToken
-            );
-        }
-        catch (HttpRequestException ex)
+    public async Task<int> GetLevel(Guid creatureId, CancellationToken cancellationToken)
+    {
+        var result = await httpClient.GetFromJsonAsync<CreatureLevelResponse>(
+            new Uri($"/creatures/{creatureId}/level", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result!.Level;
+    }
+
+    public async Task<CreatureGenerationOptionsResponse> GetCreatureGenerationOptions(
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await httpClient.GetFromJsonAsync<CreatureGenerationOptionsResponse>(
+            new Uri("/creature-generation/options", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result!;
+    }
+
+    public async Task AllocateAttributePoints(
+        Guid creatureId,
+        IReadOnlyDictionary<AttributeName, int> deltas,
+        CancellationToken cancellationToken
+    )
+    {
+        var response = await httpClient.PostAsJsonAsync(
+            new Uri($"/creatures/{creatureId}/attribute-points/allocate", UriKind.Relative),
+            new AllocateAttributePointsRequest(deltas),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<IReadOnlyList<SkillProgressSummary>> GetSkills(
+        Guid creatureId,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await httpClient.GetFromJsonAsync<List<SkillProgressSummary>>(
+            new Uri($"/creatures/{creatureId}/skills", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result ?? [];
+    }
+
+    public async Task<BaseAttributesResponse> GetBaseAttributes(
+        Guid creatureId,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await httpClient.GetFromJsonAsync<BaseAttributesResponse>(
+            new Uri($"/creatures/{creatureId}/attributes", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result!;
+    }
+
+    public async Task<FightState?> GetFight(Guid playerId, CancellationToken cancellationToken)
+    {
+        var response = await httpClient.GetAsync(
+            new Uri($"/players/{playerId}/fight", UriKind.Relative),
+            cancellationToken
+        );
+        if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogError(ex, "[game] failed to fetch fight status");
-            AnsiConsole.AnnounceError(
-                $"[[Failed to fetch fight status: {ex.Message.EscapeMarkup()}]]"
-            );
             return null;
         }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<FightState>(
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
     }
 }

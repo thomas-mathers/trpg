@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using TRPG.Client.Extensions;
-using TRPG.Contracts;
-using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Worlds.Responses;
 
 namespace TRPG.Client;
@@ -22,6 +20,7 @@ internal sealed class Game(
     }
 
     private readonly NewGameFlow _newGameFlow = new(client);
+    private readonly ResumeGameFlow _resumeGameFlow = new(client, hubConnector, logger);
 
     public async Task Start(bool shouldContinue, CancellationToken cancellationToken)
     {
@@ -77,7 +76,7 @@ internal sealed class Game(
         var worldId = await _newGameFlow.Run(cancellationToken);
         if (worldId is { } id)
         {
-            await ResumeGame(id, cancellationToken);
+            await _resumeGameFlow.Run(id, cancellationToken);
         }
     }
 
@@ -122,7 +121,7 @@ internal sealed class Game(
             return;
         }
 
-        await ResumeGame(world.WorldId, cancellationToken);
+        await _resumeGameFlow.Run(world.WorldId, cancellationToken);
     }
 
     private async Task<WorldSummary?> AutoSelectWorld(CancellationToken cancellationToken)
@@ -145,92 +144,4 @@ internal sealed class Game(
                 cancellationToken
             );
     }
-
-    private async Task ResumeGame(Guid worldId, CancellationToken cancellationToken)
-    {
-        var session = await client.StartSession(worldId, cancellationToken);
-        var sessionId = session.SessionId;
-        await using var gameHub = await hubConnector.Connect(sessionId, cancellationToken);
-        var narrationRenderer = new NarrationRenderer(
-            logger,
-            await client.GetNamedEntities(sessionId, cancellationToken)
-        );
-
-        AnsiConsole.Clear();
-        AnsiConsole.Write(
-            new Panel(
-                "Welcome to the TRPG Game Master!\nType '/exit' to quit, or '/help' for commands."
-            )
-                .Header("TRPG")
-                .BorderColor(Theme.AccentColor)
-        );
-
-        gameHub.OnStatusChanged(PrintConnectionStatus);
-
-        if (!await narrationRenderer.TryRender(gameHub.StreamOpening(cancellationToken)))
-        {
-            return;
-        }
-
-        await PrintStatus(worldId, sessionId, cancellationToken);
-
-        var commandRegistry = new SlashCommandRegistry(
-            client,
-            narrationRenderer,
-            gameHub,
-            worldId,
-            session.PlayerId,
-            sessionId
-        );
-        var combatMenu = new CombatMenu(client, narrationRenderer, gameHub, session.PlayerId);
-
-        var exitRequested = false;
-        while (!exitRequested)
-        {
-            var fight = await PrintStatus(worldId, sessionId, cancellationToken);
-            if (fight != null)
-            {
-                await combatMenu.RunTurn(fight, cancellationToken);
-                continue;
-            }
-
-            AnsiConsole.Write("> ");
-
-            var input = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                continue;
-            }
-
-            if (input.StartsWith('/'))
-            {
-                exitRequested = await commandRegistry.Handle(input, cancellationToken);
-                continue;
-            }
-
-            await narrationRenderer.TryRender(gameHub.StreamChat(input, cancellationToken));
-        }
-    }
-
-    private async Task<FightState?> PrintStatus(
-        Guid worldId,
-        Guid sessionId,
-        CancellationToken cancellationToken
-    )
-    {
-        var fightState = await client.GetFight(worldId, cancellationToken);
-        AnsiConsole.PrintCombatStatus(fightState);
-
-        var scene = await client.GetScene(sessionId, cancellationToken);
-        if (scene != null)
-        {
-            AnsiConsole.PrintStatus(scene);
-        }
-
-        return fightState;
-    }
-
-    private static void PrintConnectionStatus(ConnectionStatus status) =>
-        AnsiConsole.AnnounceWarning($"[[{status.ToDisplayName().EscapeMarkup()}]]");
 }

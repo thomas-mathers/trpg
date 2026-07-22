@@ -6,7 +6,7 @@ namespace TRPG.Application.Combat.Queries;
 
 internal class GetActiveFightQuery
 {
-    public required Guid WorldId { get; init; }
+    public required Guid PlayerId { get; init; }
 }
 
 internal class GetActiveFightQueryHandler(TrpgDbContext context)
@@ -17,6 +17,6 @@ internal class GetActiveFightQueryHandler(TrpgDbContext context)
     ) =>
         await context
             .Fights.AsNoTracking()
-            .Where(f => f.WorldId == query.WorldId && f.Outcome == CombatOutcome.Ongoing)
+            .Where(f => f.PlayerId == query.PlayerId && f.Outcome == CombatOutcome.Ongoing)
             .FirstOrDefaultAsync(cancellationToken);
 }

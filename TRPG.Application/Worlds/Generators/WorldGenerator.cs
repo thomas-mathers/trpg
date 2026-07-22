@@ -50,6 +50,7 @@ public class WorldGenerator(
     FactionsGenerator factionsGenerator,
     GeographyGenerator geographyGenerator,
     CityGenerator cityGenerator,
+    MonsterGenerator monsterGenerator,
     ILogger<WorldGenerator> logger
 )
 {
@@ -180,7 +181,7 @@ public class WorldGenerator(
                 rooms.Add(result.Room);
                 props.AddRange(result.Props);
 
-                var dungeonMonsters = MonsterGenerator.Generate(
+                var dungeonMonsters = monsterGenerator.Generate(
                     new MonsterGeneratorInput
                     {
                         StateId = state.Id,

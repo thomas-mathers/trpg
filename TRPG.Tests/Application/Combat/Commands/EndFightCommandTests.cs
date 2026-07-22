@@ -59,6 +59,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
         var fight = new Fight
         {
             WorldId = _worldId,
+            PlayerId = _player.Id,
             CombatantIds = [_player.Id, _enemy.Id],
             StartedAt = DateTime.UtcNow,
         };
@@ -94,9 +95,9 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
             ],
             Events: [],
-            XpGained: 100,
             GoldLooted: 50,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
         );
 
         // Act
@@ -116,8 +117,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             [_player.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(100, player!.Experience);
-        Assert.Equal(50, player.Gold);
+        Assert.Equal(50, player!.Gold);
     }
 
     [Fact]
@@ -133,9 +133,9 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 20, isAlive: true),
             ],
             Events: [],
-            XpGained: null,
             GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
         );
 
         // Act
@@ -155,8 +155,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             [_player.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(0, player!.Experience);
-        Assert.Equal(0, player.Gold);
+        Assert.Equal(0, player!.Gold);
     }
 
     [Fact]
@@ -172,9 +171,9 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
             ],
             Events: [],
-            XpGained: null,
             GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
         );
 
         // Act
@@ -213,9 +212,9 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
             ],
             Events: [],
-            XpGained: 100,
             GoldLooted: 50,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
         );
 
         // Act

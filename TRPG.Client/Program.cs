@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TRPG.Client;
 
@@ -22,9 +23,20 @@ rootCommand.SetAction(
         var shouldContinue = parseResult.GetValue(continueOption);
 
         using var loggerFactory = ClientLogging.CreateLoggerFactory();
-        using var httpClient = new HttpClient();
-        httpClient.BaseAddress = new Uri(serverUrl);
-        var client = new TrpgHttpClient(httpClient, loggerFactory);
+
+        var services = new ServiceCollection();
+        services
+            .AddHttpClient(
+                "TrpgServer",
+                httpClient => httpClient.BaseAddress = new Uri(serverUrl)
+            )
+            .AddStandardResilienceHandler();
+        await using var serviceProvider = services.BuildServiceProvider();
+        var httpClient = serviceProvider
+            .GetRequiredService<IHttpClientFactory>()
+            .CreateClient("TrpgServer");
+
+        var client = new TrpgHttpClient(httpClient);
         var hubConnector = new TrpgHubConnector(httpClient, loggerFactory);
         var game = new Game(client, hubConnector, loggerFactory.CreateLogger<Game>());
 

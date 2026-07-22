@@ -17,7 +17,8 @@ public static class AnsiConsoleExtensions
         public static void AnnounceWarning(string message) =>
             AnnounceWithColor(Theme.Caution, message);
 
-        public static void AnnounceError(string message) => AnnounceWithColor(Theme.Negative, message);
+        public static void AnnounceError(string message) =>
+            AnnounceWithColor(Theme.Negative, message);
 
         public static void PrintTable(IReadOnlyList<string> columns, IEnumerable<string[]> rows)
         {
@@ -87,13 +88,8 @@ public static class AnsiConsoleExtensions
         private static string FormatPositiveChip(string label, int remainingTurns) =>
             $"[{Theme.ChipForeground} on {Theme.Positive}] {label.EscapeMarkup()} · {remainingTurns}t [/]";
 
-        public static void PrintCombatStatus(FightState? combat)
+        public static void PrintCombatStatus(FightState combat)
         {
-            if (combat == null)
-            {
-                return;
-            }
-
             AnsiConsole.Write(
                 new Padder(
                     new Rule($"[{Theme.Accent}]Combat[/]").RuleStyle(Theme.Neutral).LeftJustified(),
@@ -194,7 +190,9 @@ public static class AnsiConsoleExtensions
 
             AnsiConsole.Write(
                 new Padder(
-                    new Rule($"[{Theme.Neutral}]{title}[/]").RuleStyle(Theme.Neutral).LeftJustified(),
+                    new Rule($"[{Theme.Neutral}]{title}[/]")
+                        .RuleStyle(Theme.Neutral)
+                        .LeftJustified(),
                     new Padding(0, 1)
                 )
             );

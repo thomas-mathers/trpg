@@ -129,6 +129,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<Fight>(entity =>
         {
             entity.HasIndex(f => f.WorldId);
+            entity.HasIndex(f => f.PlayerId);
             entity.Property(f => f.CombatantIds).HasColumnType("uuid[]");
         });
 

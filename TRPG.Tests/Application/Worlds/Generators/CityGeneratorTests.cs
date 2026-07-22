@@ -48,7 +48,8 @@ public class CityGeneratorTests
         var creatureGenerator = new CreatureGenerator(
             itemGenerator,
             abilityDefinitions,
-            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
+            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions()),
+            Builders.MakeStatFormulas()
         );
         var householdGenerator = new HouseholdGenerator(new BuildingGenerator(), creatureGenerator);
         return new CityGenerator(new BuildingGenerator(), creatureGenerator, householdGenerator);

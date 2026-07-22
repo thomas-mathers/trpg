@@ -900,6 +900,10 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("outcome");
 
+                    b.Property<Guid>("PlayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("player_id");
+
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("started_at");
@@ -910,6 +914,9 @@ namespace TRPG.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_fights");
+
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_fights_player_id");
 
                     b.HasIndex("WorldId")
                         .HasDatabaseName("ix_fights_world_id");

@@ -3,6 +3,7 @@ using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
 using TRPG.Contracts.Abilities.Responses;
+using TRPG.Contracts.Creatures.Responses;
 using TRPG.Contracts.Scenes.Responses;
 
 namespace TRPG.Client;
@@ -11,7 +12,6 @@ internal sealed class SlashCommandRegistry(
     TrpgHttpClient client,
     NarrationRenderer narrationRenderer,
     GameHub gameHub,
-    Guid worldId,
     Guid playerId,
     Guid sessionId
 )
@@ -70,10 +70,7 @@ internal sealed class SlashCommandRegistry(
                     return 0;
                 }
 
-                if (await narrationRenderer.TryRender(gameHub.StreamWait(hours, cancellationToken)))
-                {
-                    await PrintStatus(cancellationToken);
-                }
+                await narrationRenderer.TryRender(gameHub.StreamWait(hours, cancellationToken));
 
                 return 0;
             }
@@ -96,10 +93,6 @@ internal sealed class SlashCommandRegistry(
             {
                 var name = string.Join(' ', parseResult.GetValue(creatureNameArgument) ?? []);
                 var scene = await client.GetScene(sessionId, cancellationToken);
-                if (scene == null)
-                {
-                    return 0;
-                }
 
                 if (string.IsNullOrWhiteSpace(name))
                 {
@@ -119,10 +112,7 @@ internal sealed class SlashCommandRegistry(
             async (_, cancellationToken) =>
             {
                 var scene = await client.GetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    PrintDistricts(scene.NearbyDistricts);
-                }
+                PrintDistricts(scene.NearbyDistricts);
 
                 return 0;
             }
@@ -133,10 +123,7 @@ internal sealed class SlashCommandRegistry(
             async (_, cancellationToken) =>
             {
                 var scene = await client.GetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    PrintBuildings(scene.NearbyBuildings);
-                }
+                PrintBuildings(scene.NearbyBuildings);
 
                 return 0;
             }
@@ -147,10 +134,7 @@ internal sealed class SlashCommandRegistry(
             async (_, cancellationToken) =>
             {
                 var scene = await client.GetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    PrintDungeons(scene.NearbyDungeons);
-                }
+                PrintDungeons(scene.NearbyDungeons);
 
                 return 0;
             }
@@ -161,10 +145,7 @@ internal sealed class SlashCommandRegistry(
             async (_, cancellationToken) =>
             {
                 var scene = await client.GetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    PrintProps(scene.NearbyProps);
-                }
+                PrintProps(scene.NearbyProps);
 
                 return 0;
             }
@@ -175,10 +156,7 @@ internal sealed class SlashCommandRegistry(
             async (_, cancellationToken) =>
             {
                 var scene = await client.GetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    PrintExits(scene.Exits);
-                }
+                PrintExits(scene.Exits);
 
                 return 0;
             }
@@ -189,10 +167,7 @@ internal sealed class SlashCommandRegistry(
             async (_, cancellationToken) =>
             {
                 var scene = await client.GetScene(sessionId, cancellationToken);
-                if (scene != null)
-                {
-                    PrintCreatureStatus(scene.PlayerStatus);
-                }
+                PrintCreatureStatus(scene.PlayerStatus);
 
                 return 0;
             }
@@ -204,6 +179,29 @@ internal sealed class SlashCommandRegistry(
             {
                 var abilities = await client.GetAbilities(playerId, cancellationToken);
                 PrintAbilities(abilities);
+                return 0;
+            }
+        );
+
+        var skillsCommand = new Command("skills", "Show your skill levels and progress");
+        skillsCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var skills = await client.GetSkills(playerId, cancellationToken);
+                PrintSkills(skills);
+                return 0;
+            }
+        );
+
+        var allocateCommand = new Command(
+            "allocate",
+            "Spend any attribute points you've earned from leveling up"
+        );
+        allocateCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var menu = new AttributeAllocationMenu(client, playerId);
+                await menu.Run(cancellationToken);
                 return 0;
             }
         );
@@ -226,22 +224,12 @@ internal sealed class SlashCommandRegistry(
             exitsCommand,
             characterCommand,
             abilityCommand,
+            skillsCommand,
+            allocateCommand,
             exitCommand,
         ];
 
         return commands.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
-    }
-
-    private async Task PrintStatus(CancellationToken cancellationToken)
-    {
-        var fightState = await client.GetFight(worldId, cancellationToken);
-        AnsiConsole.PrintCombatStatus(fightState);
-
-        var scene = await client.GetScene(sessionId, cancellationToken);
-        if (scene != null)
-        {
-            AnsiConsole.PrintStatus(scene);
-        }
     }
 
     private static void Announce(string message) =>
@@ -404,6 +392,10 @@ internal sealed class SlashCommandRegistry(
             "MP",
             $"{AnsiConsole.FormatBar(status.CurrentMp, status.MaximumMp, Theme.MpBar, width: 14)} {status.CurrentMp}/{status.MaximumMp}",
         ]);
+        rows.Add([
+            "XP",
+            $"{AnsiConsole.FormatBar(status.ExperienceCurrent, status.ExperienceToNextLevel, Theme.XpBar, width: 14)} {status.ExperienceCurrent}/{status.ExperienceToNextLevel}",
+        ]);
 
         if (status.FactionNames is { Count: > 0 } factionNames)
         {
@@ -411,6 +403,27 @@ internal sealed class SlashCommandRegistry(
         }
 
         AnsiConsole.PrintTable(["Field", "Value"], rows);
+    }
+
+    private static void PrintSkills(IReadOnlyCollection<SkillProgressSummary> skills)
+    {
+        if (skills.Count == 0)
+        {
+            Announce("No skills learned.");
+            return;
+        }
+
+        AnsiConsole.PrintTable(
+            ["Skill", "Level", "Experience"],
+            skills.Select(s =>
+                new[]
+                {
+                    AnsiConsole.FormatNeutralChip(s.Skill),
+                    s.Level.ToString(),
+                    $"{AnsiConsole.FormatBar(s.ExperienceCurrent, s.ExperienceToNextLevel, Theme.XpBar, width: 14)} {s.ExperienceCurrent}/{s.ExperienceToNextLevel}",
+                }
+            )
+        );
     }
 
     private static void PrintAbilities(IReadOnlyCollection<AbilitySummary> abilities)

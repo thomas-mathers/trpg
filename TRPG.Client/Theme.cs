@@ -12,6 +12,7 @@ internal static class Theme
     public const string ApBar = "#5299E0";
     public const string CommandSyntax = "#5275E0";
     public const string MpBar = "#9952E0";
+    public const string XpBar = "#E0D552";
 
     public const string Neutral = "#808080";
     public const string NeutralAccent = "#B3B3B3";

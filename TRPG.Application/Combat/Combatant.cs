@@ -53,6 +53,7 @@ public class Combatant
     public IReadOnlyList<UsableItem> UsableItems { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponProficiencies { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponSwingCounts { get; init; } = [];
+    public Dictionary<Skill, int> SkillUsageCounts { get; init; } = [];
     public Dictionary<ConditionType, int> ActiveConditions { get; init; } = [];
     public List<ActiveDot> ActiveDots { get; init; } = [];
     public List<ActiveHot> ActiveHots { get; init; } = [];

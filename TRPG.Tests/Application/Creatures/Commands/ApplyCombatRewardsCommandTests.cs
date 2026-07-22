@@ -28,16 +28,11 @@ public sealed class ApplyCombatRewardsCommandTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
-    public async Task Handle_AddsExperienceAndGold_ToTheCreature()
+    public async Task Handle_AddsGold_ToTheCreature()
     {
         // Act
         await _handler.Handle(
-            new ApplyCombatRewardsCommand
-            {
-                CreatureId = _creature.Id,
-                ExperienceGained = 100,
-                GoldGained = 25,
-            },
+            new ApplyCombatRewardsCommand { CreatureId = _creature.Id, GoldGained = 25 },
             TestContext.Current.CancellationToken
         );
 
@@ -47,26 +42,19 @@ public sealed class ApplyCombatRewardsCommandTests(DatabaseFixture db) : IAsyncL
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(100, updated!.Experience);
-        Assert.Equal(25, updated.Gold);
+        Assert.Equal(25, updated!.Gold);
     }
 
     [Fact]
-    public async Task Handle_AccumulatesOnTopOfExistingExperienceAndGold()
+    public async Task Handle_AccumulatesOnTopOfExistingGold()
     {
         // Arrange
-        _creature.Experience = 50;
         _creature.Gold = 10;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         await _handler.Handle(
-            new ApplyCombatRewardsCommand
-            {
-                CreatureId = _creature.Id,
-                ExperienceGained = 100,
-                GoldGained = 25,
-            },
+            new ApplyCombatRewardsCommand { CreatureId = _creature.Id, GoldGained = 25 },
             TestContext.Current.CancellationToken
         );
 
@@ -76,7 +64,6 @@ public sealed class ApplyCombatRewardsCommandTests(DatabaseFixture db) : IAsyncL
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(150, updated!.Experience);
-        Assert.Equal(35, updated.Gold);
+        Assert.Equal(35, updated!.Gold);
     }
 }

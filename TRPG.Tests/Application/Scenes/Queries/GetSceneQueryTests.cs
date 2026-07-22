@@ -217,6 +217,36 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Handle_ComputesExperienceProgress_ForPlayerAndNearbyPeople()
+    {
+        // Arrange — level 1 floor is XpForCharacterLevel(1) = 600, next level floor is
+        // XpForCharacterLevel(2) = 1400, so 50 points of progress into level 1 sits at
+        // experience 650, giving Current = 50 and ToNextLevel = 800.
+        _player.Level = 1;
+        _player.Experience = 650;
+        _nearbyCreature.Level = 1;
+        _nearbyCreature.Experience = 650;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = _worldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(50, result.Player.ExperienceCurrent);
+        Assert.Equal(800, result.Player.ExperienceToNextLevel);
+        var nearby = Assert.Single(result.NearbyCreatures, p => p.Name == _nearbyCreature.Name);
+        Assert.Equal(50, nearby.ExperienceCurrent);
+        Assert.Equal(800, nearby.ExperienceToNextLevel);
+    }
+
+    [Fact]
     public async Task Handle_SeparatesDungeonsFromOrdinaryBuildings_WhenOutdoors()
     {
         // Arrange

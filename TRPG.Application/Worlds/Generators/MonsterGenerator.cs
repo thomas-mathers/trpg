@@ -4,7 +4,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
 
-internal class MonsterGeneratorInput
+public class MonsterGeneratorInput
 {
     public required Guid StateId { get; init; }
     public required Guid RoomId { get; init; }
@@ -12,7 +12,7 @@ internal class MonsterGeneratorInput
     public required BuildingType DungeonType { get; init; }
 }
 
-internal static class MonsterGenerator
+public class MonsterGenerator(StatFormulas statFormulas)
 {
     private const int MinimumMonsters = 1;
     private const int MaximumMonsters = 3;
@@ -41,7 +41,7 @@ internal static class MonsterGenerator
     public static bool SupportsDungeonType(BuildingType buildingType) =>
         MonsterTypesByDungeonType.ContainsKey(buildingType);
 
-    public static IReadOnlyList<CreatureGeneratorResult> Generate(MonsterGeneratorInput input)
+    public IReadOnlyList<CreatureGeneratorResult> Generate(MonsterGeneratorInput input)
     {
         var monsterTypes = MonsterTypesByDungeonType[input.DungeonType];
         var count = Random.Shared.Next(MinimumMonsters, MaximumMonsters + 1);
@@ -56,7 +56,7 @@ internal static class MonsterGenerator
         return monsters;
     }
 
-    private static CreatureGeneratorResult GenerateMonster(
+    private CreatureGeneratorResult GenerateMonster(
         MonsterGeneratorInput input,
         CreatureType creatureType
     )
@@ -78,6 +78,7 @@ internal static class MonsterGenerator
             StateId = input.StateId,
             RoomId = input.RoomId,
             Level = level,
+            Experience = SkillFormulas.XpForCharacterLevel(level),
             Biography = Descriptions[creatureType],
             BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
@@ -91,7 +92,7 @@ internal static class MonsterGenerator
         return new CreatureGeneratorResult(creature, [], [], [], []);
     }
 
-    private static Attributes GetAttributes(int level)
+    private Attributes GetAttributes(int level)
     {
         var baseAttributes = new Attributes
         {
@@ -107,9 +108,9 @@ internal static class MonsterGenerator
 
         return baseAttributes with
         {
-            MaximumHp = StatFormulas.CalculateMaximumHp(baseAttributes),
-            MaximumAp = StatFormulas.CalculateMaximumAp(baseAttributes),
-            MaximumMp = StatFormulas.CalculateMaximumMp(baseAttributes),
+            MaximumHp = statFormulas.CalculateMaximumHp(baseAttributes),
+            MaximumAp = statFormulas.CalculateMaximumAp(baseAttributes),
+            MaximumMp = statFormulas.CalculateMaximumMp(baseAttributes),
         };
     }
 }

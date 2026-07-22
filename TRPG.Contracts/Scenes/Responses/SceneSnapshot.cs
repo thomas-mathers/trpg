@@ -133,6 +133,8 @@ public record CreatureStatusSnapshot(
     int MaximumAp,
     int CurrentMp,
     int MaximumMp,
+    int ExperienceCurrent,
+    int ExperienceToNextLevel,
     IReadOnlyCollection<string>? FactionNames,
     int? Reputation
 );

@@ -1,4 +1,5 @@
 using TRPG.Application.Combat;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 using Profession = TRPG.Data.Models.Profession;
@@ -7,6 +8,9 @@ namespace TRPG.Tests.Helpers;
 
 internal static class Builders
 {
+    public static StatFormulas MakeStatFormulas(CreatureGeneratorOptions? options = null) =>
+        new(new TestOptionsSnapshot<CreatureGeneratorOptions>(options ?? new CreatureGeneratorOptions()));
+
     public static Combatant MakeCombatant(
         Guid? creatureId = null,
         string name = "Test Combatant",
@@ -95,11 +99,12 @@ internal static class Builders
             Intelligence = 9,
         };
 
+        var statFormulas = MakeStatFormulas();
         return baseAttributes with
         {
-            MaximumHp = StatFormulas.CalculateMaximumHp(baseAttributes),
-            MaximumAp = StatFormulas.CalculateMaximumAp(baseAttributes),
-            MaximumMp = StatFormulas.CalculateMaximumMp(baseAttributes),
+            MaximumHp = statFormulas.CalculateMaximumHp(baseAttributes),
+            MaximumAp = statFormulas.CalculateMaximumAp(baseAttributes),
+            MaximumMp = statFormulas.CalculateMaximumMp(baseAttributes),
         };
     }
 

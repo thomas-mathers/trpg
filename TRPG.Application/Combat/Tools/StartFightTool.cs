@@ -41,7 +41,7 @@ internal class StartFightTool(
         var stopwatch = Stopwatch.StartNew();
 
         var activeFight = await getActiveFight.Handle(
-            new GetActiveFightQuery { WorldId = turnContext.WorldId },
+            new GetActiveFightQuery { PlayerId = turnContext.PlayerId },
             cancellationToken
         );
         if (activeFight != null)

@@ -12,6 +12,7 @@ public class CombatEngineTests
 {
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
     private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
+    private static readonly StatFormulas Formulas = Builders.MakeStatFormulas();
     private readonly Guid _worldId = Guid.NewGuid();
 
     private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit =
@@ -127,9 +128,9 @@ public class CombatEngineTests
         creature.BaseAttributes.Strength = strength;
         creature.BaseAttributes.Stamina = stamina;
         creature.BaseAttributes.Defense = defense;
-        creature.BaseAttributes.MaximumHp = StatFormulas.CalculateMaximumHp(creature.BaseAttributes);
-        creature.BaseAttributes.MaximumAp = StatFormulas.CalculateMaximumAp(creature.BaseAttributes);
-        creature.BaseAttributes.MaximumMp = StatFormulas.CalculateMaximumMp(creature.BaseAttributes);
+        creature.BaseAttributes.MaximumHp = Formulas.CalculateMaximumHp(creature.BaseAttributes);
+        creature.BaseAttributes.MaximumAp = Formulas.CalculateMaximumAp(creature.BaseAttributes);
+        creature.BaseAttributes.MaximumMp = Formulas.CalculateMaximumMp(creature.BaseAttributes);
         creature.CurrentHp = creature.BaseAttributes.MaximumHp;
         creature.CurrentAp = creature.BaseAttributes.MaximumAp;
         creature.CurrentMp = creature.BaseAttributes.MaximumMp;
@@ -207,7 +208,6 @@ public class CombatEngineTests
         var hit = Assert.IsType<Hit>(Assert.Single(state.Events));
         Assert.True(hit.Killed);
         Assert.False(state.Combatants.Single(c => !c.IsPlayer).IsAlive);
-        Assert.NotNull(state.XpGained);
         Assert.NotNull(state.GoldLooted);
     }
 

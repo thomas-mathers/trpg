@@ -14,6 +14,7 @@ using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Conversations.Tools;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
+using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
@@ -89,7 +90,14 @@ public static class ServiceCollectionExtensions
             .AddSingleton(AbilityDefinitions.Create())
             .AddTransient<AddCreatureCommandHandler>()
             .AddTransient<UpdateCreaturesCommandHandler>()
+            .AddTransient<StatFormulas>()
             .AddTransient<ApplyCombatRewardsCommandHandler>()
+            .AddTransient<AdjustCreatureSkillsCommandHandler>()
+            .AddTransient<GetUnallocatedAttributePointsQueryHandler>()
+            .AddTransient<AllocateAttributePointsCommandHandler>()
+            .AddTransient<GetCreatureBaseAttributesQueryHandler>()
+            .AddTransient<GetCreatureSkillsQueryHandler>()
+            .AddTransient<GetCreatureLevelQueryHandler>()
             .AddTransient<ApplyPassiveRegenCommandHandler>()
             .AddTransient<DeleteCreaturesCommandHandler>()
             .AddTransient<GetCreatureByIdQueryHandler>()
@@ -120,6 +128,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<AmmoGenerator>()
             .AddTransient<ItemGenerator>()
             .AddTransient<CreatureGenerator>()
+            .AddTransient<MonsterGenerator>()
             .AddTransient<HouseholdGenerator>()
             .AddTransient<CityGenerator>()
             .AddTransient<GeographyGenerator>()

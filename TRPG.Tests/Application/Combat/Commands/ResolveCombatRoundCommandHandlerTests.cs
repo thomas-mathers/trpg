@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.WeaponProficiency.Commands;
@@ -27,6 +28,10 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         _handler = new ResolveCombatRoundCommandHandler(
             new PersistCombatantsCommandHandler(_context),
             new AdjustWeaponProficienciesCommandHandler(_context),
+            new AdjustCreatureSkillsCommandHandler(
+                _context,
+                new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
+            ),
             new EndFightCommandHandler(
                 _context,
                 new ApplyCombatRewardsCommandHandler(_context),
@@ -66,6 +71,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         var fight = new Fight
         {
             WorldId = _worldId,
+            PlayerId = _player.Id,
             CombatantIds = [_player.Id, _enemy.Id],
             StartedAt = DateTime.UtcNow,
         };
@@ -108,9 +114,9 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
             ],
             Events: [],
-            XpGained: null,
             GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
         );
 
         // Act
@@ -148,9 +154,9 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
             ],
             Events: [],
-            XpGained: null,
             GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int> { [WeaponType.Sword] = 1 }
+            WeaponSwingCounts: new Dictionary<WeaponType, int> { [WeaponType.Sword] = 1 },
+            SkillUsageCounts: new Dictionary<Skill, int>()
         );
 
         // Act
@@ -189,9 +195,9 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
             ],
             Events: [],
-            XpGained: 100,
             GoldLooted: 50,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
         );
 
         // Act
@@ -230,9 +236,9 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
             ],
             Events: [],
-            XpGained: null,
             GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
         );
 
         // Act
@@ -271,9 +277,9 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
             ],
             Events: [],
-            XpGained: null,
             GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>()
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
         );
 
         // Act

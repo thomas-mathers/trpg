@@ -182,6 +182,8 @@ internal static class GameSessionEndpoints
             MaximumAp: creature.MaximumAp,
             CurrentMp: creature.CurrentMp,
             MaximumMp: creature.MaximumMp,
+            ExperienceCurrent: creature.ExperienceCurrent,
+            ExperienceToNextLevel: creature.ExperienceToNextLevel,
             FactionNames: creature.FactionNames,
             Reputation: creature.Reputation
         );

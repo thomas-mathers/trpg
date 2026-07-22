@@ -106,6 +106,7 @@ internal class StartFightCommandHandler(
             new Fight
             {
                 WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
                 CombatantIds = combatants.Select(c => c.CreatureId).ToList(),
                 StartedAt = DateTime.UtcNow,
             }

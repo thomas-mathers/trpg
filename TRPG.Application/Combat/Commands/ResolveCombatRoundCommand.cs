@@ -1,3 +1,4 @@
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data.Models;
 
@@ -15,6 +16,7 @@ internal class ResolveCombatRoundCommand
 internal class ResolveCombatRoundCommandHandler(
     PersistCombatantsCommandHandler persistCombatants,
     AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
+    AdjustCreatureSkillsCommandHandler adjustCreatureSkills,
     EndFightCommandHandler endFight
 )
 {
@@ -38,6 +40,19 @@ internal class ResolveCombatRoundCommandHandler(
                     WorldId = command.WorldId,
                     CreatureId = command.PlayerId,
                     ProficiencyDeltas = state.WeaponSwingCounts,
+                },
+                cancellationToken
+            );
+        }
+
+        if (state.SkillUsageCounts.Count > 0)
+        {
+            await adjustCreatureSkills.Handle(
+                new AdjustCreatureSkillsCommand
+                {
+                    WorldId = command.WorldId,
+                    CreatureId = command.PlayerId,
+                    UsageCounts = state.SkillUsageCounts,
                 },
                 cancellationToken
             );

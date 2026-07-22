@@ -8,7 +8,6 @@ namespace TRPG.Application.Combat.Queries;
 
 internal class GetCombatantsQuery
 {
-    public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
 }
 
@@ -27,7 +26,7 @@ internal class GetCombatantsQueryHandler(
     )
     {
         var fight = await getActiveFight.Handle(
-            new GetActiveFightQuery { WorldId = query.WorldId },
+            new GetActiveFightQuery { PlayerId = query.PlayerId },
             cancellationToken
         );
 
@@ -49,7 +48,7 @@ internal class GetCombatantsQueryHandler(
             var weaponProficiencies = await getAllWeaponProficiencies.Handle(
                 new GetAllWeaponProficienciesQuery
                 {
-                    WorldId = query.WorldId,
+                    WorldId = fight.WorldId,
                     CreatureId = creature.Id,
                 },
                 cancellationToken

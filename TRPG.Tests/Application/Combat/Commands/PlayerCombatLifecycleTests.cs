@@ -1,6 +1,4 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
@@ -50,7 +48,8 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         return new CreatureGenerator(
             itemGenerator,
             abilityDefinitions,
-            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
+            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions()),
+            Builders.MakeStatFormulas()
         );
     }
 
@@ -148,7 +147,10 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
             new HitCalculator(alwaysHit),
             new DamageCalculator(alwaysHit)
         );
-        var resolution = PlayerActionResolver.Resolve(combatants, new UseAbility("Strike", enemy.Name));
+        var resolution = PlayerActionResolver.Resolve(
+            combatants,
+            new UseAbility("Strike", enemy.Name)
+        );
         var resolved = Assert.IsType<ActionResolved>(resolution);
         engine.ProcessRound(combatants, resolved.Action);
 

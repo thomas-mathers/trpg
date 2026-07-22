@@ -122,6 +122,12 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - `UseSnakeCaseNamingConvention()` applied globally — all tables and columns are snake_case
 - DbSet accessor: expression body using `Set<T>()`, not auto-property
 
+### Migrations
+- `Microsoft.EntityFrameworkCore.Design` is referenced by `TRPG.Data`, not `TRPG` (the host) — `--startup-project` must point at `TRPG.Data`, not `TRPG`, or the CLI fails with "doesn't reference Microsoft.EntityFrameworkCore.Design"
+- Two `DbContext`s exist (`TrpgDbContext`, `TrpgTickerQDbContext`) — always pass `--context TrpgDbContext` explicitly or the CLI fails with "More than one DbContext was found"
+- Full command to add a migration: `dotnet ef migrations add <Name> --project TRPG.Data --startup-project TRPG.Data --context TrpgDbContext`
+- To apply migrations against a running Postgres instance: `dotnet ef database update --project TRPG.Data --startup-project TRPG.Data --context TrpgDbContext` (tests never need this — `DatabaseFixture` calls `MigrateAsync` itself against its Testcontainers instance)
+
 ### Owned entities
 - `ToJson()` for owned types not queried/indexed (e.g. `Attributes`, `Progression`, `WorldEvent.Region`)
 - No `ToJson()` for owned types that need indexed columns (e.g. `Person.Location`) — these flatten to regular columns

@@ -110,7 +110,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
             scope.ServiceProvider.GetRequiredService<ResolveCombatRoundCommandHandler>();
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery { WorldId = _worldId, PlayerId = _playerId },
+            new GetCombatantsQuery { PlayerId = _playerId },
             TestContext.Current.CancellationToken
         );
         var state = combatEngine.ResolveFlee(combatants);
@@ -238,7 +238,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
     {
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/worlds/{_worldId}/fight", UriKind.Relative),
+            new Uri($"/players/{_playerId}/fight", UriKind.Relative),
             TestContext.Current.CancellationToken
         );
 
@@ -263,7 +263,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/worlds/{_worldId}/fight", UriKind.Relative),
+            new Uri($"/players/{_playerId}/fight", UriKind.Relative),
             TestContext.Current.CancellationToken
         );
 
@@ -296,7 +296,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
         // Act — the fight row still exists (Fled), it just isn't Ongoing anymore
         var response = await _client.GetAsync(
-            new Uri($"/worlds/{_worldId}/fight", UriKind.Relative),
+            new Uri($"/players/{_playerId}/fight", UriKind.Relative),
             TestContext.Current.CancellationToken
         );
 

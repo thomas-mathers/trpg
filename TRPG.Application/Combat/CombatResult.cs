@@ -23,7 +23,6 @@ internal record CombatResult(
     CombatResultPlayerState Player,
     IReadOnlyList<CombatResultEnemyState> Enemies,
     IReadOnlyList<CombatEvent> Events,
-    int? XpGained,
     int? GoldLooted
 );
 
@@ -52,7 +51,6 @@ internal static class CombatStateExtensions
                 ))
                 .ToArray(),
             state.Events,
-            state.XpGained,
             state.GoldLooted
         );
     }

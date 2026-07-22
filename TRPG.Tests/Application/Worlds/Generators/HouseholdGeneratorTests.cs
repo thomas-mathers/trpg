@@ -46,7 +46,8 @@ public class HouseholdGeneratorTests
         var creatureGenerator = new CreatureGenerator(
             itemGenerator,
             abilityDefinitions,
-            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
+            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions()),
+            Builders.MakeStatFormulas()
         );
         return new HouseholdGenerator(new BuildingGenerator(), creatureGenerator);
     }

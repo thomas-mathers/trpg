@@ -189,11 +189,7 @@ internal class GameTurnRunner(
         await BeginTurn(cancellationToken);
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery
-            {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-            },
+            new GetCombatantsQuery { PlayerId = turnContext.PlayerId },
             cancellationToken
         );
         if (combatants.Count == 0)
@@ -276,11 +272,7 @@ internal class GameTurnRunner(
         await BeginTurn(cancellationToken);
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery
-            {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-            },
+            new GetCombatantsQuery { PlayerId = turnContext.PlayerId },
             cancellationToken
         );
         if (combatants.Count == 0)

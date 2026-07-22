@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
+using TRPG.Application.Common.Algorithms;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
@@ -16,7 +17,8 @@ public record CreatureGeneratorInput(
     string? Name = null,
     Gender? Gender = null,
     int? MinBirthYear = null,
-    int? MaxBirthYear = null
+    int? MaxBirthYear = null,
+    IReadOnlyDictionary<AttributeName, int>? StartingAttributeAllocation = null
 );
 
 public record CreatureGeneratorResult(
@@ -30,9 +32,20 @@ public record CreatureGeneratorResult(
 public class CreatureGenerator(
     ItemGenerator itemGenerator,
     AbilityDefinitions abilityDefinitions,
-    IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
+    IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot,
+    StatFormulas statFormulas
 )
 {
+    private static readonly AttributeName[] AllocatableAttributes =
+    [
+        AttributeName.Strength,
+        AttributeName.Dexterity,
+        AttributeName.Endurance,
+        AttributeName.Stamina,
+        AttributeName.Mana,
+        AttributeName.Intelligence,
+    ];
+
     private static readonly NamePool HumanPool = new(
         [
             "Alden",
@@ -935,7 +948,10 @@ public class CreatureGenerator(
         var gender =
             generatorInput.Gender ?? (Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female);
 
-        var attributes = GetAttributes(level, generatorInput.Profession);
+        var attributes =
+            generatorInput.StartingAttributeAllocation is { } allocation
+                ? GetPlayerAttributes(level, allocation)
+                : GetAttributes(level, generatorInput.Profession);
 
         var creature = new Creature
         {
@@ -954,6 +970,7 @@ public class CreatureGenerator(
             BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
             Level = level,
+            Experience = SkillFormulas.XpForCharacterLevel(level),
         };
 
         var (items, inventoryItems) = GenerateStartingInventory(creature);
@@ -1015,13 +1032,11 @@ public class CreatureGenerator(
                 CreatureId = creature.Id,
                 Skill = skill,
                 Level = skillLevel,
-                Experience = XpForSkillLevel(skillLevel),
+                Experience = SkillFormulas.XpForSkillLevel(skillLevel),
                 WorldId = creature.WorldId,
             })
             .ToArray();
     }
-
-    private static int XpForSkillLevel(int level) => 25 * level * (level + 3);
 
     private IReadOnlyCollection<CreatureAbility> GetAbilities(
         Creature creature,
@@ -1062,23 +1077,21 @@ public class CreatureGenerator(
             a.Mana,
             a.Intelligence,
         ];
-        var total = pool.Sum();
-        var stats = new int[7];
-        Array.Fill(stats, 1);
+        var baseline = optionsSnapshot.Value.BaseAttributes;
+        int[] stats =
+        [
+            baseline.Strength,
+            baseline.Defense,
+            baseline.Dexterity,
+            baseline.Endurance,
+            baseline.Stamina,
+            baseline.Mana,
+            baseline.Intelligence,
+        ];
 
         for (var i = 0; i < level * optionsSnapshot.Value.PointsPerLevel; i++)
         {
-            var roll = Random.Shared.Next(total);
-            var cumulative = 0;
-            for (var j = 0; j < pool.Length; j++)
-            {
-                cumulative += pool[j];
-                if (roll < cumulative)
-                {
-                    stats[j]++;
-                    break;
-                }
-            }
+            stats[WeightedSampler.SampleIndex(pool)]++;
         }
 
         var baseAttributes = new Attributes
@@ -1094,9 +1107,54 @@ public class CreatureGenerator(
 
         return baseAttributes with
         {
-            MaximumHp = StatFormulas.CalculateMaximumHp(baseAttributes),
-            MaximumAp = StatFormulas.CalculateMaximumAp(baseAttributes),
-            MaximumMp = StatFormulas.CalculateMaximumMp(baseAttributes),
+            MaximumHp = statFormulas.CalculateMaximumHp(baseAttributes),
+            MaximumAp = statFormulas.CalculateMaximumAp(baseAttributes),
+            MaximumMp = statFormulas.CalculateMaximumMp(baseAttributes),
+        };
+    }
+
+    private Attributes GetPlayerAttributes(
+        int level,
+        IReadOnlyDictionary<AttributeName, int> allocation
+    )
+    {
+        if (allocation.Keys.Any(attribute => !AllocatableAttributes.Contains(attribute)))
+        {
+            throw new InvalidOperationException("Attribute is not allocatable.");
+        }
+
+        if (allocation.Values.Any(delta => delta < 0))
+        {
+            throw new InvalidOperationException("Attribute point deltas cannot be negative.");
+        }
+
+        var requestedTotal = allocation.Values.Sum();
+        var availablePoints = level * optionsSnapshot.Value.PointsPerLevel;
+        if (requestedTotal > availablePoints)
+        {
+            throw new InvalidOperationException(
+                $"Requested {requestedTotal} attribute points but only {availablePoints} are available."
+            );
+        }
+
+        var baseline = optionsSnapshot.Value.BaseAttributes;
+        var baseAttributes = new Attributes
+        {
+            Strength = baseline.Strength + allocation.GetValueOrDefault(AttributeName.Strength),
+            Defense = baseline.Defense,
+            Dexterity = baseline.Dexterity + allocation.GetValueOrDefault(AttributeName.Dexterity),
+            Endurance = baseline.Endurance + allocation.GetValueOrDefault(AttributeName.Endurance),
+            Stamina = baseline.Stamina + allocation.GetValueOrDefault(AttributeName.Stamina),
+            Mana = baseline.Mana + allocation.GetValueOrDefault(AttributeName.Mana),
+            Intelligence = baseline.Intelligence
+                + allocation.GetValueOrDefault(AttributeName.Intelligence),
+        };
+
+        return baseAttributes with
+        {
+            MaximumHp = statFormulas.CalculateMaximumHp(baseAttributes),
+            MaximumAp = statFormulas.CalculateMaximumAp(baseAttributes),
+            MaximumMp = statFormulas.CalculateMaximumMp(baseAttributes),
         };
     }
 

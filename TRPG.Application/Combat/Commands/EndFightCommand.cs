@@ -35,7 +35,6 @@ internal class EndFightCommandHandler(
                 new ApplyCombatRewardsCommand
                 {
                     CreatureId = playerId,
-                    ExperienceGained = state.XpGained ?? 0,
                     GoldGained = state.GoldLooted ?? 0,
                 },
                 cancellationToken

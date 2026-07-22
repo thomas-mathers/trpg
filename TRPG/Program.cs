@@ -9,6 +9,7 @@ using TRPG.Admin.Endpoints;
 using TRPG.Application.Common.Extensions;
 using TRPG.Configuration;
 using TRPG.Contracts;
+using TRPG.CreatureGeneration.Endpoints;
 using TRPG.Data;
 using TRPG.Endpoints;
 using TRPG.Extensions;
@@ -16,6 +17,7 @@ using TRPG.GameSessions.Endpoints;
 using TRPG.GameSessions.Filters;
 using TRPG.Creatures.Endpoints;
 using TRPG.GameSessions.Hubs;
+using TRPG.Players.Endpoints;
 using TRPG.Worlds.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -79,6 +81,8 @@ _ = Task.Run(async () =>
 
 app.MapWorldEndpoints();
 app.MapCreatureEndpoints();
+app.MapPlayerEndpoints();
+app.MapCreatureGenerationEndpoints();
 app.MapGameSessionEndpoints();
 app.MapJobsEndpoints();
 app.MapAdminEndpoints();
