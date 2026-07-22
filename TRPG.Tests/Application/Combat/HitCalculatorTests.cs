@@ -10,8 +10,6 @@ namespace TRPG.Tests.Application.Combat;
 public class HitCalculatorTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
-    private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
-    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
 
     private static readonly IOptionsSnapshot<CombatOptions> Settings =
         new TestOptionsSnapshot<CombatOptions>(
@@ -56,36 +54,11 @@ public class HitCalculatorTests
         };
     }
 
-    private Combatant MakeCombatant(
-        int defense = 0,
-        WeaponItem? weapon = null,
-        int? proficiency = null
-    )
-    {
-        var creature = Builders.MakeCreature(_worldId);
-        creature.BaseAttributes.Defense = defense;
-        var inventory = weapon != null ? new Item[] { weapon } : [];
-        var proficiencies =
-            weapon != null && proficiency != null
-                ? new Dictionary<WeaponType, int> { [weapon.Type] = proficiency.Value }
-                : new Dictionary<WeaponType, int>();
-        return Combatant.FromCreature(
-            creature,
-            [],
-            BasicAttack,
-            BlockStance,
-            isPlayer: true,
-            inventory,
-            proficiencies,
-            []
-        );
-    }
-
-    private static WeaponItem MakeWeapon(Guid worldId, WeaponType type = WeaponType.Sword)
+    private WeaponItem MakeWeapon(WeaponType type = WeaponType.Sword)
     {
         return new WeaponItem
         {
-            WorldId = worldId,
+            WorldId = _worldId,
             Name = $"Item-{Guid.NewGuid():N}",
             Description = "A test weapon.",
             Type = type,
@@ -98,9 +71,14 @@ public class HitCalculatorTests
     public void CalculateHitChance_IsTheProficiencyShareOfTheCombinedTotal()
     {
         // Arrange — proficiency 30 vs defense 70 = 30%
-        var weapon = MakeWeapon(_worldId);
-        var attacker = MakeCombatant(weapon: weapon, proficiency: 30);
-        var defender = MakeCombatant(defense: 70);
+        var weapon = MakeWeapon();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithWeaponProficiency(weapon.Type, 30)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(70).Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -114,9 +92,14 @@ public class HitCalculatorTests
     public void CalculateHitChance_ClampsToMinHitChance_WhenTheRatioIsTooLow()
     {
         // Arrange — proficiency 1 vs defense 999 would ratio to well under the floor
-        var weapon = MakeWeapon(_worldId);
-        var attacker = MakeCombatant(weapon: weapon, proficiency: 1);
-        var defender = MakeCombatant(defense: 999);
+        var weapon = MakeWeapon();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithWeaponProficiency(weapon.Type, 1)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(999).Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -130,9 +113,14 @@ public class HitCalculatorTests
     public void CalculateHitChance_ClampsToMaxHitChance_WhenTheRatioIsTooHigh()
     {
         // Arrange — proficiency 999 vs defense 1 would ratio to well over the ceiling
-        var weapon = MakeWeapon(_worldId);
-        var attacker = MakeCombatant(weapon: weapon, proficiency: 999);
-        var defender = MakeCombatant(defense: 1);
+        var weapon = MakeWeapon();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithWeaponProficiency(weapon.Type, 999)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(1).Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -146,9 +134,14 @@ public class HitCalculatorTests
     public void CalculateHitChance_FallsBackToMinHitChance_WhenProficiencyAndDefenseAreBothZero()
     {
         // Arrange — a fresh weapon type against an unarmored target: 0 / 0 would otherwise be NaN
-        var weapon = MakeWeapon(_worldId);
-        var attacker = MakeCombatant(weapon: weapon, proficiency: 0);
-        var defender = MakeCombatant(defense: 0);
+        var weapon = MakeWeapon();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithWeaponProficiency(weapon.Type, 0)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(0).Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -162,8 +155,8 @@ public class HitCalculatorTests
     public void CalculateHitChance_UsesBaseProficiency_WhenUnarmed()
     {
         // Arrange — unarmed relies on the base proficiency alone: 50 vs defense 50 = 50%
-        var attacker = MakeCombatant();
-        var defender = MakeCombatant(defense: 50);
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(50).Build();
         var calculator = new HitCalculator(BaseProficiencySettings);
 
         // Act
@@ -177,9 +170,14 @@ public class HitCalculatorTests
     public void CalculateHitChance_AddsBaseProficiency_EvenForAnUntrainedWeapon()
     {
         // Arrange — a freshly-equipped, never-swung weapon (0 trained) must be no worse than unarmed
-        var weapon = MakeWeapon(_worldId);
-        var attacker = MakeCombatant(weapon: weapon, proficiency: 0);
-        var defender = MakeCombatant(defense: 50);
+        var weapon = MakeWeapon();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithWeaponProficiency(weapon.Type, 0)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(50).Build();
         var calculator = new HitCalculator(BaseProficiencySettings);
 
         // Act
@@ -193,9 +191,14 @@ public class HitCalculatorTests
     public void CalculateHitChance_AddsTrainedProficiency_OnTopOfTheBase()
     {
         // Arrange — base 50 + trained 30 = 80 vs defense 20 = 80%
-        var weapon = MakeWeapon(_worldId);
-        var attacker = MakeCombatant(weapon: weapon, proficiency: 30);
-        var defender = MakeCombatant(defense: 20);
+        var weapon = MakeWeapon();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithWeaponProficiency(weapon.Type, 30)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(20).Build();
         var calculator = new HitCalculator(BaseProficiencySettings);
 
         // Act
@@ -209,8 +212,8 @@ public class HitCalculatorTests
     public void DidHit_AlwaysHits_ForNonPhysicalAbilities()
     {
         // Arrange — settings that would always miss a physical roll
-        var attacker = MakeCombatant();
-        var defender = MakeCombatant(defense: 999);
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(999).Build();
         var calculator = new HitCalculator(AlwaysMiss);
 
         // Act
@@ -224,8 +227,8 @@ public class HitCalculatorTests
     public void DidHit_RespectsTheClampedChance_ForPhysicalAbilities()
     {
         // Arrange
-        var attacker = MakeCombatant();
-        var defender = MakeCombatant();
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var alwaysHitCalculator = new HitCalculator(AlwaysHit);
         var alwaysMissCalculator = new HitCalculator(AlwaysMiss);
 
@@ -245,17 +248,7 @@ public class HitCalculatorTests
             Description = "A test shield.",
             BlockChance = 1.0f,
         };
-        var creature = Builders.MakeCreature(_worldId);
-        var defender = Combatant.FromCreature(
-            creature,
-            [],
-            BasicAttack,
-            BlockStance,
-            true,
-            [shield],
-            new Dictionary<WeaponType, int>(),
-            []
-        );
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithItem(shield).Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -269,26 +262,19 @@ public class HitCalculatorTests
     public void DidBlock_RollsAgainstBlockChance_ForPhysicalAbilities()
     {
         // Arrange
-        var shieldWorldId = _worldId;
         var blockingShield = new ShieldItem
         {
-            WorldId = shieldWorldId,
+            WorldId = _worldId,
             Name = $"Item-{Guid.NewGuid():N}",
             Description = "A test shield.",
             BlockChance = 1.0f,
         };
-        var creatureWithShield = Builders.MakeCreature(_worldId);
-        var blockingDefender = Combatant.FromCreature(
-            creatureWithShield,
-            [],
-            BasicAttack,
-            BlockStance,
-            true,
-            [blockingShield],
-            new Dictionary<WeaponType, int>(),
-            []
-        );
-        var unshieldedDefender = MakeCombatant();
+        var blockingDefender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(blockingShield)
+            .Build();
+        var unshieldedDefender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new HitCalculator(Settings);
 
         // Act & Assert

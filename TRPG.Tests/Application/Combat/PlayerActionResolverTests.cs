@@ -7,29 +7,7 @@ namespace TRPG.Tests.Application.Combat;
 
 public class PlayerActionResolverTests
 {
-    private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
-    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
     private readonly Guid _worldId = Guid.NewGuid();
-
-    private Combatant MakeCombatant(
-        string name,
-        bool isPlayer = false,
-        IReadOnlyList<Ability>? abilities = null,
-        IReadOnlyList<UsableItem>? usableItems = null
-    )
-    {
-        var creature = Builders.MakeCreature(_worldId, name: name);
-        return Combatant.FromCreature(
-            creature,
-            abilities ?? [],
-            BasicAttack,
-            BlockStance,
-            isPlayer,
-            [],
-            new Dictionary<WeaponType, int>(),
-            usableItems ?? []
-        );
-    }
 
     [Fact]
     public void Resolve_ResolvesAsAbility_WhenActionNameMatchesAKnownAbility()
@@ -44,8 +22,14 @@ public class PlayerActionResolverTests
             DamageAmount = 5,
             DamageAmountType = AmountType.Flat,
         };
-        var player = MakeCombatant("Hero", isPlayer: true, abilities: [smite]);
-        var monster = MakeCombatant("Wraith");
+        var player = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithName("Hero")
+            .AsPlayer()
+            .WithAbilities(smite)
+            .Build();
+        var monster = Builders.NewCombatant().WithWorldId(_worldId).WithName("Wraith").Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act
@@ -62,7 +46,13 @@ public class PlayerActionResolverTests
     {
         // Arrange
         var potion = new UsableItem(Guid.NewGuid(), "Health Potion", ResourceType.Hp, 20);
-        var player = MakeCombatant("Hero", isPlayer: true, usableItems: [potion]);
+        var player = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithName("Hero")
+            .AsPlayer()
+            .WithUsableItems(potion)
+            .Build();
         IReadOnlyList<Combatant> combatants = [player];
 
         // Act
@@ -79,7 +69,13 @@ public class PlayerActionResolverTests
     {
         // Arrange
         var potion = new UsableItem(Guid.NewGuid(), "Health Potion", ResourceType.Hp, 20);
-        var player = MakeCombatant("Hero", isPlayer: true, usableItems: [potion]);
+        var player = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithName("Hero")
+            .AsPlayer()
+            .WithUsableItems(potion)
+            .Build();
         IReadOnlyList<Combatant> combatants = [player];
 
         // Act
@@ -95,7 +91,12 @@ public class PlayerActionResolverTests
     public void Resolve_ReturnsActionRejected_WhenTheNamedItemDoesNotExist()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true);
+        var player = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithName("Hero")
+            .AsPlayer()
+            .Build();
         IReadOnlyList<Combatant> combatants = [player];
 
         // Act
