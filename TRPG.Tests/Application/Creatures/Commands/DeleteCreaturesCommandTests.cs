@@ -180,13 +180,15 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
 
-        var updatedBed = await verifyContext.Set<Bed>().SingleAsync(cancellationToken);
+        var updatedBed = await verifyContext
+            .Set<Bed>()
+            .SingleAsync(x => x.Id == bed.Id, cancellationToken);
         Assert.Null(updatedBed.AssignedCreatureId);
         Assert.Null(updatedBed.OccupantId);
 
         var updatedWorkstation = await verifyContext
             .Set<Workstation>()
-            .SingleAsync(cancellationToken);
+            .SingleAsync(x => x.Id == workstation.Id, cancellationToken);
         Assert.Null(updatedWorkstation.AssignedCreatureId);
         Assert.Null(updatedWorkstation.OccupantId);
 
