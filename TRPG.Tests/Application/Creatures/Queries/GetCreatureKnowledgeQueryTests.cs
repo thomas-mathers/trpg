@@ -2,6 +2,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -9,20 +10,17 @@ namespace TRPG.Tests.Application.Creatures.Queries;
 public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly string[] EllyMatches = ["Elly Brown", "Elly Tealeaf"];
+    private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private GetCreatureKnowledgeQueryHandler _handler = null!;
-    private Guid _worldId;
-    private Creature _asker = null!;
+    private readonly Creature _asker = Builders.MakeCreature(WorldId);
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new GetCreatureKnowledgeQueryHandler(_context);
-        _worldId = Guid.NewGuid();
-        _asker = Builders.MakeCreature(_worldId);
-        _context.Creatures.Add(_asker);
-        await _context.SaveChangesAsync();
+        await _context.AddCreature(_asker, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync() => await _context.DisposeAsync();
@@ -31,7 +29,7 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
     {
         return new GetCreatureKnowledgeQuery
         {
-            WorldId = _worldId,
+            WorldId = WorldId,
             SubjectName = subjectName,
             CurrentYear = 975,
             AskingPerson = _asker,
@@ -40,7 +38,7 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
 
     private async Task<Creature> SeedKnownPerson(string name)
     {
-        var person = Builders.MakeCreature(_worldId, name: name);
+        var person = Builders.MakeCreature(WorldId, name: name);
         _context.Creatures.Add(person);
         _context.CreatureKnowledge.Add(
             new CreatureKnowledge
@@ -48,7 +46,7 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
                 KnowerId = _asker.Id,
                 SubjectId = person.Id,
                 SubjectType = KnowledgeSubjectType.Creature,
-                WorldId = _worldId,
+                WorldId = WorldId,
             }
         );
         await _context.SaveChangesAsync();
@@ -118,7 +116,7 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
     public async Task Handle_ExcludesTheAskingPerson_WhenTheirOwnNameMatches()
     {
         // Arrange — the asker shares a surname with the subject, so their own name also matches
-        var asker = Builders.MakeCreature(_worldId, name: "Thokk Warscar");
+        var asker = Builders.MakeCreature(WorldId, name: "Thokk Warscar");
         _context.Creatures.Add(asker);
         _context.CreatureKnowledge.Add(
             new CreatureKnowledge
@@ -126,10 +124,10 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
                 KnowerId = asker.Id,
                 SubjectId = asker.Id,
                 SubjectType = KnowledgeSubjectType.Creature,
-                WorldId = _worldId,
+                WorldId = WorldId,
             }
         );
-        var wife = Builders.MakeCreature(_worldId, name: "Ruzka Warscar");
+        var wife = Builders.MakeCreature(WorldId, name: "Ruzka Warscar");
         _context.Creatures.Add(wife);
         _context.CreatureKnowledge.Add(
             new CreatureKnowledge
@@ -137,7 +135,7 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
                 KnowerId = asker.Id,
                 SubjectId = wife.Id,
                 SubjectType = KnowledgeSubjectType.Creature,
-                WorldId = _worldId,
+                WorldId = WorldId,
             }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -146,7 +144,7 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
         var matches = await _handler.Handle(
             new GetCreatureKnowledgeQuery
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 SubjectName = "Ruzka Warscar",
                 CurrentYear = 975,
                 AskingPerson = asker,
@@ -179,9 +177,10 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
     public async Task Handle_ExcludesMatchingEntity_WhenAskerHasNoKnowledgeOfIt()
     {
         // Arrange — the person exists but no knowledge row links the asker to them
-        var stranger = Builders.MakeCreature(_worldId, name: "Elly Tealeaf");
-        _context.Creatures.Add(stranger);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var stranger = await _context.AddCreature(
+            Builders.MakeCreature(WorldId, name: "Elly Tealeaf"),
+            TestContext.Current.CancellationToken
+        );
 
         // Act
         var matches = await _handler.Handle(
@@ -197,9 +196,9 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
     public async Task Handle_ReturnsCityResult_WhenAKnownCityMatches()
     {
         // Arrange
-        var country = Builders.MakeCountry(_worldId);
-        var state = Builders.MakeState(country.Id, _worldId);
-        var city = Builders.MakeCity(state.Id, country.Id, worldId: _worldId, name: "Darkwick");
+        var country = Builders.MakeCountry(WorldId);
+        var state = Builders.MakeState(country.Id, WorldId);
+        var city = Builders.MakeCity(state.Id, country.Id, worldId: WorldId, name: "Darkwick");
         _context.Countries.Add(country);
         _context.States.Add(state);
         _context.Cities.Add(city);
@@ -209,7 +208,7 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
                 KnowerId = _asker.Id,
                 SubjectId = city.Id,
                 SubjectType = KnowledgeSubjectType.City,
-                WorldId = _worldId,
+                WorldId = WorldId,
             }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

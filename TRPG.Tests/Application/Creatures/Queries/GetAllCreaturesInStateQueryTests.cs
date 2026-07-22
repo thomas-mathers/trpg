@@ -1,6 +1,7 @@
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -9,7 +10,6 @@ public sealed class GetAllCreaturesInStateQueryTests(DatabaseFixture db) : IAsyn
 {
     private TrpgDbContext _context = null!;
     private GetAllCreaturesInStateQueryHandler _handler = null!;
-    private readonly Guid _worldId = Guid.NewGuid();
 
     public ValueTask InitializeAsync()
     {
@@ -27,18 +27,21 @@ public sealed class GetAllCreaturesInStateQueryTests(DatabaseFixture db) : IAsyn
     public async Task Handle_ReturnsOnlyCreaturesInState()
     {
         // Arrange
+        var worldId = Guid.NewGuid();
         var stateId = Guid.NewGuid();
 
-        var inState = Builders.MakeCreature(_worldId, stateId: stateId);
-        var differentState = Builders.MakeCreature(_worldId);
+        var inState = Builders.MakeCreature(worldId, stateId: stateId);
+        var differentState = Builders.MakeCreature(worldId);
         var otherWorld = Builders.MakeCreature(stateId: stateId);
 
-        _context.Creatures.AddRange(inState, differentState, otherWorld);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _context.AddCreature(
+            [inState, differentState, otherWorld],
+            TestContext.Current.CancellationToken
+        );
 
         // Act
         var results = await _handler.Handle(
-            new GetAllCreaturesInStateQuery { WorldId = _worldId, StateId = stateId },
+            new GetAllCreaturesInStateQuery { WorldId = worldId, StateId = stateId },
             TestContext.Current.CancellationToken
         );
 

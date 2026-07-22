@@ -2,6 +2,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -9,17 +10,15 @@ namespace TRPG.Tests.Application.Creatures.Queries;
 public sealed class GetCreatureByIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
     private GetCreatureByIdQueryHandler _handler = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new GetCreatureByIdQueryHandler(_context);
 
-        _creature = Builders.MakeCreature();
-        _context.Creatures.Add(_creature);
-        await _context.SaveChangesAsync();
+        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

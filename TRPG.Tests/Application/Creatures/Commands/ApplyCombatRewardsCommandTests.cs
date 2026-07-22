@@ -2,6 +2,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
@@ -9,17 +10,15 @@ namespace TRPG.Tests.Application.Creatures.Commands;
 public sealed class ApplyCombatRewardsCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
     private ApplyCombatRewardsCommandHandler _handler = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new ApplyCombatRewardsCommandHandler(_context);
 
-        _creature = Builders.MakeCreature();
-        _context.Creatures.Add(_creature);
-        await _context.SaveChangesAsync();
+        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

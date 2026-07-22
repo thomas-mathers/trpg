@@ -3,6 +3,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -11,19 +12,13 @@ public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) 
 {
     private TrpgDbContext _context = null!;
     private GetUnallocatedAttributePointsQueryHandler _handler = null!;
-    private Creature _creature = null!;
+    private readonly Creature _creature = MakeSeedCreature();
 
-    public async ValueTask InitializeAsync()
+    private static Creature MakeSeedCreature()
     {
-        _context = db.CreateContext();
-        _handler = new GetUnallocatedAttributePointsQueryHandler(
-            _context,
-            Builders.MakeStatFormulas(new CreatureGeneratorOptions { PointsPerLevel = 5 })
-        );
-
-        _creature = Builders.MakeCreature();
-        _creature.Level = 1;
-        _creature.BaseAttributes = new Attributes
+        var creature = Builders.MakeCreature();
+        creature.Level = 1;
+        creature.BaseAttributes = new Attributes
         {
             Strength = 1,
             Defense = 1,
@@ -33,8 +28,18 @@ public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) 
             Mana = 1,
             Intelligence = 1,
         };
-        _context.Creatures.Add(_creature);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return creature;
+    }
+
+    public async ValueTask InitializeAsync()
+    {
+        _context = db.CreateContext();
+        _handler = new GetUnallocatedAttributePointsQueryHandler(
+            _context,
+            Builders.MakeStatFormulas(new CreatureGeneratorOptions { PointsPerLevel = 5 })
+        );
+
+        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

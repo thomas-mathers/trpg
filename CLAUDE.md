@@ -48,6 +48,14 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 
 ---
 
+## Code Coverage
+
+- Local only, not wired into CI. `coverlet.collector` is already a `TRPG.Tests` package reference; `reportgenerator` is pinned in `.config/dotnet-tools.json` alongside CSharpier
+- Generate: `dotnet test TRPG.sln --collect:"XPlat Code Coverage" --results-directory ./TestResults`, then `dotnet reportgenerator "-reports:TestResults/**/coverage.cobertura.xml" "-targetdir:CoverageReport" "-reporttypes:Html"` and open `CoverageReport/index.html`
+- `TestResults/` and `CoverageReport/` are gitignored — regenerate locally rather than committing either
+
+---
+
 ## C# Style
 
 ### General
@@ -209,37 +217,44 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - All test classes share the container via `[Collection("Database")]`
 - xUnit creates a new class instance per test — `IAsyncLifetime` handles per-test setup/teardown
 - `InitializeAsync` creates a fresh `TrpgDbContext` and seeds shared state
-- `DisposeAsync` disposes the context: `public async Task DisposeAsync() => await _context.DisposeAsync();`
+- `DisposeAsync` disposes the context: `public async ValueTask DisposeAsync() => await _context.DisposeAsync();`
 
 ### Test class structure
 ```csharp
 [Collection("Database")]
-public class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private FooService _service = null!;
-    private SomeEntity _entity = null!;
+    private readonly SomeEntity _entity = Builders.MakeSomeEntity(WorldId);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new FooService(_context);
-        _entity = ...;
-        _context.Foos.Add(_entity);
-        await _context.SaveChangesAsync();
+
+        await _context.AddSomeEntity(_entity, TestContext.Current.CancellationToken);
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 }
 ```
 
 ### Seeding strategy
-- Promote entities to class fields in `InitializeAsync` when every (or nearly every) test needs them
-- Add `private async Task<T> Seed*(...)` helper methods for entities needed by only a subset of tests
+- Promote entities to class fields when every (or nearly every) test needs them
+- A scalar seed value (a `Guid.NewGuid()` id shared across the class) is `private static readonly`, PascalCase, initialized inline — it isn't per-instance mutable state, so it doesn't get the `_camelCase` treatment
+- An entity built via `Builders.MakeX(...)` that needs no DB access to construct is a `private readonly` instance field with an inline initializer, not `null!` assigned later in `InitializeAsync`
+- `InitializeAsync` is reserved for genuinely async, DB-touching work only: constructing handlers that depend on `_context`, and persisting the already-constructed seed entities. If a field's value can be computed synchronously, it doesn't belong in `InitializeAsync`
+- Add `private async Task<T> Seed*(...)` helper methods for entities needed by only a subset of tests, or for entities with test-class-specific shape (e.g. seeding a join-row with this class's own `WorldId`) — these stay local, they're not identical across test classes
 - Seed helpers add to context, save, and return the entity
 - Seed helpers return a single entity — never a tuple; use separate helpers if a test needs multiple seeded entities
-- `Builders` static class (`TRPG.Tests.Helpers`) constructs valid model objects
-- The same promotion applies to plain scalar values, not just DB entities: if most tests in a class Arrange the same `Guid.NewGuid()`/id variables from scratch, that's noise — promote them to `private` instance fields (set in `InitializeAsync`, or a constructor for a plain non-DB test class) instead of re-declaring them in every test
+
+### Shared TrpgDbContext helpers
+- `TrpgDbContextExtensions` (`TRPG.Tests/Helpers/Extensions/TrpgDbContextExtensions.cs`, `internal static class`) holds extension methods on `TrpgDbContext` for persistence operations that are identical across every test class — add the entity, save, return it (e.g. `context.AddCreature(creature, cancellationToken)`)
+- Only promote a method here once it's the same generic shape everywhere it's used — no test-specific defaults or business logic. A helper that embeds this-class-specific shape (e.g. seeding a join-row using this test class's own `WorldId`) stays a private method in that test file instead
+- `Builders` stays responsible for constructing valid entities; `TrpgDbContextExtensions` stays responsible for persisting them — don't fold construction logic into an extension method
 
 ### Builders
 - Named `Make{Entity}`: `Builders.MakePerson()`, `Builders.MakeItem()`, `Builders.MakeSkill()`, `Builders.MakeQuest(giverId)`

@@ -2,6 +2,7 @@ using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Worlds.Queries;
 
@@ -10,16 +11,14 @@ public sealed class GetWorldQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private GetWorldQueryHandler _handler = null!;
-    private World _world = null!;
+    private readonly World _world = Builders.MakeWorld();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new GetWorldQueryHandler(_context);
 
-        _world = Builders.MakeWorld();
-        _context.Worlds.Add(_world);
-        await _context.SaveChangesAsync();
+        await _context.AddWorld(_world, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

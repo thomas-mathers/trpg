@@ -13,7 +13,8 @@ namespace TRPG.Tests.Application.Scenes.Commands;
 [Collection("Database")]
 public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private readonly Guid _worldId = Guid.NewGuid();
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private AddCreatureCommandHandler _addCreature = null!;
     private AddCreatureJobCommandHandler _addJob = null!;
@@ -347,7 +348,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
 
     private async Task<Creature> SeedOwner()
     {
-        var owner = Builders.MakeCreature(_worldId);
+        var owner = Builders.MakeCreature(WorldId);
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = owner },
             TestContext.Current.CancellationToken
@@ -362,7 +363,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
     {
         var building = Builders.MakeBuilding(
             Guid.NewGuid(),
-            worldId: _worldId,
+            worldId: WorldId,
             buildingType: buildingType
         );
         _context.Buildings.Add(building);
@@ -376,11 +377,11 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
 
     private async Task<RoomConnector> SeedFrontDoor(Guid buildingId)
     {
-        var entranceRoom = Builders.MakeRoom(buildingId, worldId: _worldId);
+        var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
         var frontDoor = new RoomConnector
         {
             RoomId = entranceRoom.Id,
-            WorldId = _worldId,
+            WorldId = WorldId,
             Name = "Front Door",
             Description = "The door leading outside.",
             DestinationRoomId = null,

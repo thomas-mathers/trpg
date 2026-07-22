@@ -11,10 +11,10 @@ public sealed class AddInventoryItemCommandTests(DatabaseFixture db) : IAsyncLif
 {
     private AddInventoryItemCommandHandler _addHandler = null!;
     private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
     private GetInventoryByCreatureIdQueryHandler _getHandler = null!;
-    private Item _item = null!;
-    private Item _stackableItem = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
+    private readonly Item _item = Builders.MakeItem();
+    private readonly Item _stackableItem = Builders.MakeConsumableItem();
 
     public async ValueTask InitializeAsync()
     {
@@ -22,15 +22,10 @@ public sealed class AddInventoryItemCommandTests(DatabaseFixture db) : IAsyncLif
         _addHandler = new AddInventoryItemCommandHandler(_context);
         _getHandler = new GetInventoryByCreatureIdQueryHandler(_context);
 
-        _creature = Builders.MakeCreature();
-        _item = Builders.MakeItem();
-        _stackableItem = Builders.MakeConsumableItem();
-
         _context.Creatures.Add(_creature);
-        _context.Items.Add(_item);
-        _context.Items.Add(_stackableItem);
+        _context.Items.AddRange(_item, _stackableItem);
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

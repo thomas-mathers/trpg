@@ -20,10 +20,11 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     private GetChatMessagesQueryHandler _getChatMessages = null!;
     private AppendChatMessagesCommandHandler _appendChatMessages = null!;
     private ClearChatMessagesCommandHandler _clearChatMessages = null!;
-    private Guid _worldId;
-    private Guid _playerId;
 
-    public async ValueTask InitializeAsync()
+    private static readonly Guid WorldId = Guid.NewGuid();
+    private static readonly Guid PlayerId = Guid.NewGuid();
+
+    public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _createGameSession = new CreateGameSessionCommandHandler(_context);
@@ -53,8 +54,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
             _context,
             NullLogger<ClearChatMessagesCommandHandler>.Instance
         );
-        _worldId = Guid.NewGuid();
-        _playerId = Guid.NewGuid();
+        return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync() => await _context.DisposeAsync();
@@ -78,8 +78,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         var sessionId = await _createGameSession.Handle(
             new CreateGameSessionCommand
             {
-                WorldId = _worldId,
-                PlayerId = _playerId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 Playtime = TimeSpan.FromHours(3),
             },
             TestContext.Current.CancellationToken
@@ -91,8 +91,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         );
 
         // Assert
-        Assert.Equal(_worldId, snapshot.WorldId);
-        Assert.Equal(_playerId, snapshot.PlayerId);
+        Assert.Equal(WorldId, snapshot.WorldId);
+        Assert.Equal(PlayerId, snapshot.PlayerId);
         Assert.Equal(TimeSpan.FromHours(3), snapshot.Playtime);
 
         var messages = await _getChatMessages.Handle(
@@ -110,8 +110,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         var sessionId = await _createGameSession.Handle(
             new CreateGameSessionCommand
             {
-                WorldId = _worldId,
-                PlayerId = _playerId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
@@ -142,8 +142,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         var sessionId = await _createGameSession.Handle(
             new CreateGameSessionCommand
             {
-                WorldId = _worldId,
-                PlayerId = _playerId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 Playtime = TimeSpan.FromHours(2),
             },
             TestContext.Current.CancellationToken
@@ -170,8 +170,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         var sessionId = await _createGameSession.Handle(
             new CreateGameSessionCommand
             {
-                WorldId = _worldId,
-                PlayerId = _playerId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
@@ -227,8 +227,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         var sessionId = await _createGameSession.Handle(
             new CreateGameSessionCommand
             {
-                WorldId = _worldId,
-                PlayerId = _playerId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
@@ -275,8 +275,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         var sessionId = await _createGameSession.Handle(
             new CreateGameSessionCommand
             {
-                WorldId = _worldId,
-                PlayerId = _playerId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 Playtime = TimeSpan.FromHours(5),
             },
             TestContext.Current.CancellationToken
@@ -299,8 +299,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         var sessionId = await _createGameSession.Handle(
             new CreateGameSessionCommand
             {
-                WorldId = _worldId,
-                PlayerId = _playerId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 Playtime = TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
@@ -329,8 +329,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         var sessionId = await _createGameSession.Handle(
             new CreateGameSessionCommand
             {
-                WorldId = _worldId,
-                PlayerId = _playerId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken

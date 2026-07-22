@@ -21,7 +21,7 @@ public sealed class GetCountryByIdQueryTests(DatabaseFixture db) : IAsyncLifetim
         _country = Builders.MakeCountry(world.Id);
         _context.Worlds.Add(world);
         _context.Countries.Add(_country);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

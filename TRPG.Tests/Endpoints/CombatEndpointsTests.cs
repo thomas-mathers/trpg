@@ -10,6 +10,7 @@ using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.GameSessions.Requests;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Endpoints;
 
@@ -83,15 +84,15 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
 
-        var enemy = Builders.MakeCreature(
-            _worldId,
-            creatureType: CreatureType.Beast,
-            stateId: _stateId,
-            districtId: _districtId
+        return await context.AddCreature(
+            Builders.MakeCreature(
+                _worldId,
+                creatureType: CreatureType.Beast,
+                stateId: _stateId,
+                districtId: _districtId
+            ),
+            TestContext.Current.CancellationToken
         );
-        context.Creatures.Add(enemy);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return enemy;
     }
 
     private Task<HttpResponseMessage> SendChat(Guid sessionId, string message) =>

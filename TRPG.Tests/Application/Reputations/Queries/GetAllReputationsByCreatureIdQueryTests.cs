@@ -3,6 +3,7 @@ using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Reputations.Queries;
 
@@ -11,8 +12,8 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
 {
     private AdjustReputationCommandHandler _adjustReputation = null!;
     private TrpgDbContext _context = null!;
-    private Faction _faction = null!;
     private GetAllReputationsByCreatureIdQueryHandler _handler = null!;
+    private readonly Faction _faction = Builders.MakeFaction();
 
     public async ValueTask InitializeAsync()
     {
@@ -20,9 +21,7 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
         _handler = new GetAllReputationsByCreatureIdQueryHandler(_context);
         _adjustReputation = new AdjustReputationCommandHandler(_context);
 
-        _faction = Builders.MakeFaction();
-        _context.Factions.Add(_faction);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _context.AddFaction(_faction, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -30,22 +29,24 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
         await _context.DisposeAsync();
     }
 
-    private async Task<Creature> SeedCreature()
+    private async Task<Guid> SeedCreatureId()
     {
-        var creature = Builders.MakeCreature();
-        _context.Creatures.Add(creature);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return creature;
+        var creature = await _context.AddCreature(
+            Builders.MakeCreature(),
+            TestContext.Current.CancellationToken
+        );
+        return creature.Id;
     }
 
     [Fact]
     public async Task Handle_ReturnsReputationsForCreature()
     {
         // Arrange
-        var creatureId = (await SeedCreature()).Id;
-        var faction2 = Builders.MakeFaction();
-        _context.Factions.Add(faction2);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var creatureId = await SeedCreatureId();
+        var faction2 = await _context.AddFaction(
+            Builders.MakeFaction(),
+            TestContext.Current.CancellationToken
+        );
         await _adjustReputation.Handle(
             new AdjustReputationCommand
             {

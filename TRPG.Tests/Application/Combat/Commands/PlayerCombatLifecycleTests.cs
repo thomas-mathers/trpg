@@ -12,6 +12,7 @@ using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Combat.Commands;
 
@@ -19,15 +20,11 @@ namespace TRPG.Tests.Application.Combat.Commands;
 public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private Guid _worldId;
-    private Guid _stateId;
 
-    public async ValueTask InitializeAsync()
+    public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _worldId = Guid.NewGuid();
-        _stateId = Guid.NewGuid();
-        await _context.SaveChangesAsync();
+        return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
@@ -57,15 +54,17 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
     public async Task PlayerLifecycle_KeepsMaximumHpStable_FromCreationThroughCombat()
     {
         // Arrange — generate and persist a player exactly like real character creation does
+        var worldId = Guid.NewGuid();
+        var stateId = Guid.NewGuid();
         var abilityDefinitions = AbilityDefinitions.Create();
         var generator = MakeCreatureGenerator();
         var playerResult = generator.Generate(
             new CreatureGeneratorInput(
                 CreatureType.Human,
                 Profession.Knight,
-                _worldId,
-                _stateId,
-                _stateId,
+                worldId,
+                stateId,
+                stateId,
                 Level: 1
             )
         );
@@ -77,20 +76,16 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         _context.CreatureAbilities.AddRange(playerResult.Abilities);
 
         var enemy = Builders.MakeCreature(
-            _worldId,
+            worldId,
             creatureType: CreatureType.Beast,
-            stateId: _stateId
+            stateId: stateId
         );
         _context.Creatures.Add(enemy);
 
-        var session = new GameSession
-        {
-            WorldId = _worldId,
-            PlayerId = playerResult.Creature.Id,
-            Playtime = TimeSpan.Zero,
-        };
-        _context.GameSessions.Add(session);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var session = await _context.AddGameSession(
+            Builders.MakeGameSession(worldId, playerResult.Creature.Id),
+            TestContext.Current.CancellationToken
+        );
 
         // Assert — freshly created character starts at full, cache-consistent resources
         await using (var freshContext = db.CreateContext())
@@ -126,7 +121,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
             new StartFightCommand
             {
                 SessionId = session.Id,
-                WorldId = _worldId,
+                WorldId = worldId,
                 PlayerId = playerResult.Creature.Id,
                 TargetName = enemy.Name,
             },

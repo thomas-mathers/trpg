@@ -2,6 +2,7 @@ using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
@@ -10,16 +11,14 @@ public sealed class SetWorldPlaytimeCommandTests(DatabaseFixture db) : IAsyncLif
 {
     private TrpgDbContext _context = null!;
     private SetWorldPlaytimeCommandHandler _handler = null!;
-    private World _world = null!;
+    private readonly World _world = Builders.MakeWorld();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new SetWorldPlaytimeCommandHandler(_context);
 
-        _world = Builders.MakeWorld();
-        _context.Worlds.Add(_world);
-        await _context.SaveChangesAsync();
+        await _context.AddWorld(_world, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

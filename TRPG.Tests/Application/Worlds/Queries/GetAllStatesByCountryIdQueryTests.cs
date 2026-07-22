@@ -24,7 +24,7 @@ public sealed class GetAllStatesByCountryIdQueryTests(DatabaseFixture db) : IAsy
         _context.Worlds.Add(world);
         _context.Countries.Add(_country);
         _context.States.Add(_state);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

@@ -2,25 +2,25 @@ using TRPG.Application.Buildings.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Buildings.Queries;
 
 [Collection("Database")]
 public sealed class GetAllBuildingsByStateIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private Building _building = null!;
+    private static readonly Guid StateId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private GetAllBuildingsByStateIdQueryHandler _handler = null!;
-    private readonly Guid _stateId = Guid.NewGuid();
+    private readonly Building _building = Builders.MakeBuilding(StateId);
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new GetAllBuildingsByStateIdQueryHandler(_context);
 
-        _building = Builders.MakeBuilding(_stateId);
-        _context.Buildings.Add(_building);
-        await _context.SaveChangesAsync();
+        await _context.AddBuilding(_building, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -33,12 +33,12 @@ public sealed class GetAllBuildingsByStateIdQueryTests(DatabaseFixture db) : IAs
     {
         // Act
         var result = await _handler.Handle(
-            new GetAllBuildingsByStateIdQuery { StateId = _stateId },
+            new GetAllBuildingsByStateIdQuery { StateId = StateId },
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Contains(result, b => b.Id == _building.Id);
-        Assert.All(result, b => Assert.Equal(_stateId, b.StateId));
+        Assert.All(result, b => Assert.Equal(StateId, b.StateId));
     }
 }

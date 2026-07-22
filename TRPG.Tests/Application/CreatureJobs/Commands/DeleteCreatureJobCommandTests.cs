@@ -3,6 +3,7 @@ using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.CreatureJobs.Commands;
 
@@ -10,9 +11,9 @@ namespace TRPG.Tests.Application.CreatureJobs.Commands;
 public sealed class DeleteCreatureJobCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private AddCreatureJobCommandHandler _addJob = null!;
-    private Creature _creature = null!;
     private TrpgDbContext _context = null!;
     private DeleteCreatureJobCommandHandler _handler = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
@@ -20,9 +21,7 @@ public sealed class DeleteCreatureJobCommandTests(DatabaseFixture db) : IAsyncLi
         _addJob = new AddCreatureJobCommandHandler(_context);
         _handler = new DeleteCreatureJobCommandHandler(_context);
 
-        _creature = Builders.MakeCreature();
-        _context.Creatures.Add(_creature);
-        await _context.SaveChangesAsync();
+        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

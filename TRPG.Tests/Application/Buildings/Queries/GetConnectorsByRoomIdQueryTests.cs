@@ -2,25 +2,25 @@ using TRPG.Application.Buildings.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Buildings.Queries;
 
 [Collection("Database")]
 public sealed class GetConnectorsByRoomIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private Building _building = null!;
+    private static readonly Guid StateId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private GetConnectorsByRoomIdQueryHandler _handler = null!;
-    private readonly Guid _stateId = Guid.NewGuid();
+    private readonly Building _building = Builders.MakeBuilding(StateId);
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new GetConnectorsByRoomIdQueryHandler(_context);
 
-        _building = Builders.MakeBuilding(_stateId);
-        _context.Buildings.Add(_building);
-        await _context.SaveChangesAsync();
+        await _context.AddBuilding(_building, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -32,9 +32,10 @@ public sealed class GetConnectorsByRoomIdQueryTests(DatabaseFixture db) : IAsync
     public async Task Handle_ReturnsOnlyConnectors()
     {
         // Arrange
-        var room = Builders.MakeRoom(_building.Id);
-        _context.Rooms.Add(room);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var room = await _context.AddRoom(
+            Builders.MakeRoom(_building.Id),
+            TestContext.Current.CancellationToken
+        );
 
         var prop = new Seat
         {

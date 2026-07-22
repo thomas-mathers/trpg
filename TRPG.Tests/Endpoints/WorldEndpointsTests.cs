@@ -8,6 +8,7 @@ using TRPG.Contracts.Worlds.Requests;
 using TRPG.Contracts.Worlds.Responses;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Endpoints;
 
@@ -112,8 +113,7 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var world = Builders.MakeWorld();
         world.PlayerId = Guid.NewGuid();
-        context.Worlds.Add(world);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await context.AddWorld(world, TestContext.Current.CancellationToken);
 
         // Act
         var response = await _client.GetAsync(
@@ -136,9 +136,10 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         // Arrange
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var world = Builders.MakeWorld();
-        context.Worlds.Add(world);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var world = await context.AddWorld(
+            Builders.MakeWorld(),
+            TestContext.Current.CancellationToken
+        );
 
         // Act
         var response = await _client.DeleteAsync(

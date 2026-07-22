@@ -11,18 +11,17 @@ public sealed class GetAllCountriesByWorldIdQueryTests(DatabaseFixture db) : IAs
     private Country _country = null!;
     private TrpgDbContext _context = null!;
     private GetAllCountriesByWorldIdQueryHandler _handler = null!;
-    private World _world = null!;
+    private readonly World _world = Builders.MakeWorld();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new GetAllCountriesByWorldIdQueryHandler(_context);
 
-        _world = Builders.MakeWorld();
         _country = Builders.MakeCountry(_world.Id);
         _context.Worlds.Add(_world);
         _context.Countries.Add(_country);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

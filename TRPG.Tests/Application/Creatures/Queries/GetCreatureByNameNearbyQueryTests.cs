@@ -1,15 +1,17 @@
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
 [Collection("Database")]
 public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private GetCreatureByNameNearbyQueryHandler _handler = null!;
-    private readonly Guid _worldId = Guid.NewGuid();
 
     public ValueTask InitializeAsync()
     {
@@ -32,18 +34,15 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
     {
         // Arrange
         var roomId = Guid.NewGuid();
-        var target = Builders.MakeCreature(_worldId);
-        target.RoomId = roomId;
-        _context.Creatures.Add(target);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var player = Builders.MakeCreature(_worldId);
-        player.RoomId = roomId;
+        var target = Builders.MakeCreature(WorldId, roomId: roomId);
+        await _context.AddCreature(target, TestContext.Current.CancellationToken);
+        var player = Builders.MakeCreature(WorldId, roomId: roomId);
 
         // Act
         var result = await _handler.Handle(
             new GetCreatureByNameNearbyQuery
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 Player = player,
                 Name = target.Name,
             },
@@ -60,16 +59,15 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
     {
         // Arrange
         var districtId = Guid.NewGuid();
-        var target = Builders.MakeCreature(_worldId, districtId: districtId);
-        _context.Creatures.Add(target);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var player = Builders.MakeCreature(_worldId, districtId: districtId);
+        var target = Builders.MakeCreature(WorldId, districtId: districtId);
+        await _context.AddCreature(target, TestContext.Current.CancellationToken);
+        var player = Builders.MakeCreature(WorldId, districtId: districtId);
 
         // Act
         var result = await _handler.Handle(
             new GetCreatureByNameNearbyQuery
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 Player = player,
                 Name = target.Name,
             },
@@ -86,16 +84,15 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
     {
         // Arrange
         var stateId = Guid.NewGuid();
-        var target = Builders.MakeCreature(_worldId, stateId: stateId);
-        _context.Creatures.Add(target);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var player = Builders.MakeCreature(_worldId, stateId: stateId);
+        var target = Builders.MakeCreature(WorldId, stateId: stateId);
+        await _context.AddCreature(target, TestContext.Current.CancellationToken);
+        var player = Builders.MakeCreature(WorldId, stateId: stateId);
 
         // Act
         var result = await _handler.Handle(
             new GetCreatureByNameNearbyQuery
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 Player = player,
                 Name = target.Name,
             },

@@ -7,9 +7,10 @@ namespace TRPG.Tests.Application.Conversations.Commands;
 [Collection("Database")]
 public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private readonly Guid _creatureId = Guid.NewGuid();
-    private readonly Guid _npcId = Guid.NewGuid();
-    private readonly Guid _worldId = Guid.NewGuid();
+    private static readonly Guid CreatureId = Guid.NewGuid();
+    private static readonly Guid NpcId = Guid.NewGuid();
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private GetConversationSummaryQueryHandler _getSummary = null!;
     private SetConversationSummaryCommandHandler _handler = null!;
@@ -34,9 +35,9 @@ public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAs
         await _handler.Handle(
             new SetConversationSummaryCommand
             {
-                WorldId = _worldId,
-                CreatureId = _creatureId,
-                NpcId = _npcId,
+                WorldId = WorldId,
+                CreatureId = CreatureId,
+                NpcId = NpcId,
                 Summary = "They greeted each other.",
             },
             TestContext.Current.CancellationToken
@@ -44,7 +45,7 @@ public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAs
 
         // Assert
         var summary = await _getSummary.Handle(
-            new GetConversationSummaryQuery { CreatureId = _creatureId, NpcId = _npcId },
+            new GetConversationSummaryQuery { CreatureId = CreatureId, NpcId = NpcId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal("They greeted each other.", summary);
@@ -57,9 +58,9 @@ public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAs
         await _handler.Handle(
             new SetConversationSummaryCommand
             {
-                WorldId = _worldId,
-                CreatureId = _creatureId,
-                NpcId = _npcId,
+                WorldId = WorldId,
+                CreatureId = CreatureId,
+                NpcId = NpcId,
                 Summary = "First summary.",
             },
             TestContext.Current.CancellationToken
@@ -69,9 +70,9 @@ public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAs
         await _handler.Handle(
             new SetConversationSummaryCommand
             {
-                WorldId = _worldId,
-                CreatureId = _creatureId,
-                NpcId = _npcId,
+                WorldId = WorldId,
+                CreatureId = CreatureId,
+                NpcId = NpcId,
                 Summary = "Second summary.",
             },
             TestContext.Current.CancellationToken
@@ -79,7 +80,7 @@ public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAs
 
         // Assert
         var summary = await _getSummary.Handle(
-            new GetConversationSummaryQuery { CreatureId = _creatureId, NpcId = _npcId },
+            new GetConversationSummaryQuery { CreatureId = CreatureId, NpcId = NpcId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal("Second summary.", summary);
@@ -92,9 +93,9 @@ public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAs
         await _handler.Handle(
             new SetConversationSummaryCommand
             {
-                WorldId = _worldId,
-                CreatureId = _creatureId,
-                NpcId = _npcId,
+                WorldId = WorldId,
+                CreatureId = CreatureId,
+                NpcId = NpcId,
                 Summary = "First summary.",
             },
             TestContext.Current.CancellationToken
@@ -104,9 +105,9 @@ public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAs
         await _handler.Handle(
             new SetConversationSummaryCommand
             {
-                WorldId = _worldId,
-                CreatureId = _creatureId,
-                NpcId = _npcId,
+                WorldId = WorldId,
+                CreatureId = CreatureId,
+                NpcId = NpcId,
                 Summary = "Second summary.",
             },
             TestContext.Current.CancellationToken
@@ -114,7 +115,7 @@ public sealed class SetConversationSummaryCommandTests(DatabaseFixture db) : IAs
 
         // Assert
         var conversations = _context
-            .NpcConversations.Where(c => c.CreatureId == _creatureId && c.NpcId == _npcId)
+            .NpcConversations.Where(c => c.CreatureId == CreatureId && c.NpcId == NpcId)
             .ToList();
         Assert.Single(conversations);
     }

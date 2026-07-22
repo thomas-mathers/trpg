@@ -6,8 +6,6 @@ namespace TRPG.Tests.Application.Conversations.Queries;
 [Collection("Database")]
 public sealed class GetConversationSummaryQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private readonly Guid _creatureId = Guid.NewGuid();
-    private readonly Guid _npcId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private GetConversationSummaryQueryHandler _handler = null!;
 
@@ -26,9 +24,13 @@ public sealed class GetConversationSummaryQueryTests(DatabaseFixture db) : IAsyn
     [Fact]
     public async Task Handle_ReturnsEmpty_WhenNoConversation()
     {
+        // Arrange
+        var creatureId = Guid.NewGuid();
+        var npcId = Guid.NewGuid();
+
         // Act
         var summary = await _handler.Handle(
-            new GetConversationSummaryQuery { CreatureId = _creatureId, NpcId = _npcId },
+            new GetConversationSummaryQuery { CreatureId = creatureId, NpcId = npcId },
             TestContext.Current.CancellationToken
         );
 

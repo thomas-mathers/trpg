@@ -3,19 +3,20 @@ using TRPG.Application.Buildings.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Buildings.Commands;
 
 [Collection("Database")]
 public sealed class RemoveBuildingOwnerCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly Guid StateId = Guid.NewGuid();
+
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
-    private Building _building = null!;
     private TrpgDbContext _context = null!;
     private GetAllOwnersByBuildingIdQueryHandler _getAllOwnersByBuildingId = null!;
     private RemoveBuildingOwnerCommandHandler _handler = null!;
-    private readonly Guid _ownerId = Guid.NewGuid();
-    private readonly Guid _stateId = Guid.NewGuid();
+    private readonly Building _building = Builders.MakeBuilding(StateId);
 
     public async ValueTask InitializeAsync()
     {
@@ -24,9 +25,7 @@ public sealed class RemoveBuildingOwnerCommandTests(DatabaseFixture db) : IAsync
         _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
         _getAllOwnersByBuildingId = new GetAllOwnersByBuildingIdQueryHandler(_context);
 
-        _building = Builders.MakeBuilding(_stateId);
-        _context.Buildings.Add(_building);
-        await _context.SaveChangesAsync();
+        await _context.AddBuilding(_building, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -38,14 +37,15 @@ public sealed class RemoveBuildingOwnerCommandTests(DatabaseFixture db) : IAsync
     public async Task Handle_RemovesOwnership()
     {
         // Arrange
+        var ownerId = Guid.NewGuid();
         await _addBuildingOwner.Handle(
-            new AddBuildingOwnerCommand { BuildingId = _building.Id, OwnerId = _ownerId },
+            new AddBuildingOwnerCommand { BuildingId = _building.Id, OwnerId = ownerId },
             TestContext.Current.CancellationToken
         );
 
         // Act
         await _handler.Handle(
-            new RemoveBuildingOwnerCommand { BuildingId = _building.Id, OwnerId = _ownerId },
+            new RemoveBuildingOwnerCommand { BuildingId = _building.Id, OwnerId = ownerId },
             TestContext.Current.CancellationToken
         );
 

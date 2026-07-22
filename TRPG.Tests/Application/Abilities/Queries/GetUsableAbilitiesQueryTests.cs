@@ -4,6 +4,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Abilities.Queries;
 
@@ -12,8 +13,8 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
 {
     private TrpgDbContext _context = null!;
     private GetUsableAbilitiesQueryHandler _handler = null!;
-    private Guid _worldId;
-    private Creature _player = null!;
+    private static readonly Guid WorldId = Guid.NewGuid();
+    private readonly Creature _player = Builders.MakeCreature(WorldId);
 
     public async ValueTask InitializeAsync()
     {
@@ -23,10 +24,7 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
             AbilityDefinitions.Create()
         );
 
-        _worldId = Guid.NewGuid();
-        _player = Builders.MakeCreature(_worldId);
-        _context.Creatures.Add(_player);
-        await _context.SaveChangesAsync();
+        await _context.AddCreature(_player, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -39,7 +37,7 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
         _context.CreatureAbilities.Add(
             new CreatureAbility
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 CreatureId = creatureId,
                 AbilityName = abilityName,
             }
@@ -94,9 +92,10 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_ExcludesAbilities_LearnedByOtherCreatures()
     {
         // Arrange
-        var otherCreature = Builders.MakeCreature(_worldId);
-        _context.Creatures.Add(otherCreature);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var otherCreature = await _context.AddCreature(
+            Builders.MakeCreature(WorldId),
+            TestContext.Current.CancellationToken
+        );
         await AddLearnedAbility(otherCreature.Id, "Slash");
 
         // Act

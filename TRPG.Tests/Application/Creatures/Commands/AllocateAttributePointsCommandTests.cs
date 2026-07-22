@@ -4,6 +4,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
@@ -12,7 +13,24 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
 {
     private TrpgDbContext _context = null!;
     private AllocateAttributePointsCommandHandler _handler = null!;
-    private Creature _creature = null!;
+    private readonly Creature _creature = MakeSeedCreature();
+
+    private static Creature MakeSeedCreature()
+    {
+        var creature = Builders.MakeCreature();
+        creature.Level = 1;
+        creature.BaseAttributes = new Attributes
+        {
+            Strength = 1,
+            Defense = 1,
+            Dexterity = 1,
+            Endurance = 1,
+            Stamina = 1,
+            Mana = 1,
+            Intelligence = 1,
+        };
+        return creature;
+    }
 
     public async ValueTask InitializeAsync()
     {
@@ -23,20 +41,7 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
             Builders.MakeStatFormulas(new CreatureGeneratorOptions { PointsPerLevel = 5 })
         );
 
-        _creature = Builders.MakeCreature();
-        _creature.Level = 1;
-        _creature.BaseAttributes = new Attributes
-        {
-            Strength = 1,
-            Defense = 1,
-            Dexterity = 1,
-            Endurance = 1,
-            Stamina = 1,
-            Mana = 1,
-            Intelligence = 1,
-        };
-        _context.Creatures.Add(_creature);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
