@@ -111,6 +111,24 @@ public class CombatEngineTests
         };
     }
 
+    private static InstantHealAbility MakeInstantHeal(
+        string name = "Cure",
+        int amount = 20,
+        int cost = 0,
+        int cooldown = 0
+    )
+    {
+        return new InstantHealAbility
+        {
+            Name = name,
+            Description = "A test instant-heal ability.",
+            ApCost = cost,
+            Cooldown = cooldown,
+            TargetType = TargetType.Single,
+            Amount = amount,
+        };
+    }
+
     private Combatant MakeCombatant(
         string name,
         bool isPlayer = false,
@@ -121,7 +139,10 @@ public class CombatEngineTests
         int defense = 0,
         IReadOnlyList<Ability>? abilities = null,
         WeaponItem? weapon = null,
-        IReadOnlyList<UsableItem>? usableItems = null
+        IReadOnlyList<UsableItem>? usableItems = null,
+        int? currentHp = null,
+        int? currentAp = null,
+        int? currentMp = null
     )
     {
         var creature = Builders.MakeCreature(_worldId, name: name);
@@ -133,9 +154,9 @@ public class CombatEngineTests
         creature.BaseAttributes.MaximumHp = Formulas.CalculateMaximumHp(creature.BaseAttributes);
         creature.BaseAttributes.MaximumAp = Formulas.CalculateMaximumAp(creature.BaseAttributes);
         creature.BaseAttributes.MaximumMp = Formulas.CalculateMaximumMp(creature.BaseAttributes);
-        creature.CurrentHp = creature.BaseAttributes.MaximumHp;
-        creature.CurrentAp = creature.BaseAttributes.MaximumAp;
-        creature.CurrentMp = creature.BaseAttributes.MaximumMp;
+        creature.CurrentHp = currentHp ?? creature.BaseAttributes.MaximumHp;
+        creature.CurrentAp = currentAp ?? creature.BaseAttributes.MaximumAp;
+        creature.CurrentMp = currentMp ?? creature.BaseAttributes.MaximumMp;
         var inventory = weapon != null ? new Item[] { weapon } : [];
         return Combatant.FromCreature(
             creature,
@@ -480,8 +501,7 @@ public class CombatEngineTests
     {
         // Arrange
         var player = MakeCombatant("Hero", isPlayer: true);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
-        monster.CurrentHp = 0;
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()], currentHp: 0);
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act & Assert
@@ -875,5 +895,96 @@ public class CombatEngineTests
         // Assert
         var playerState = combatants.Single(c => c.IsPlayer);
         Assert.Equal(player.MaximumAp - BlockStance.ApCost, playerState.CurrentAp);
+    }
+
+    [Fact]
+    public void ProcessItem_RestoresHp_ClampedToMaximum()
+    {
+        // Arrange
+        var potion = new UsableItem(Guid.NewGuid(), "Health Potion", ResourceType.Hp, 999);
+        var player = MakeCombatant("Hero", isPlayer: true, usableItems: [potion], currentHp: 1);
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseItem("Health Potion"));
+
+        // Assert
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.Equal(playerState.MaximumHp, playerState.CurrentHp);
+        var consumed = Assert.IsType<ConsumedPotion>(
+            Assert.Single(state.Events, e => e is ConsumedPotion)
+        );
+        Assert.Equal(ResourceType.Hp, consumed.Resource);
+    }
+
+    [Fact]
+    public void ProcessItem_RestoresAp_ClampedToMaximum()
+    {
+        // Arrange
+        var potion = new UsableItem(Guid.NewGuid(), "Ap Tonic", ResourceType.Ap, 999);
+        var player = MakeCombatant("Hero", isPlayer: true, usableItems: [potion], currentAp: 1);
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseItem("Ap Tonic"));
+
+        // Assert
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.Equal(player.MaximumAp, playerState.CurrentAp);
+        var consumed = Assert.IsType<ConsumedPotion>(
+            Assert.Single(state.Events, e => e is ConsumedPotion)
+        );
+        Assert.Equal(ResourceType.Ap, consumed.Resource);
+    }
+
+    [Fact]
+    public void ProcessItem_RestoresMp_ClampedToMaximum()
+    {
+        // Arrange
+        var potion = new UsableItem(Guid.NewGuid(), "Mp Tonic", ResourceType.Mp, 999);
+        var player = MakeCombatant("Hero", isPlayer: true, usableItems: [potion], currentMp: 1);
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseItem("Mp Tonic"));
+
+        // Assert
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.Equal(player.MaximumMp, playerState.CurrentMp);
+        var consumed = Assert.IsType<ConsumedPotion>(
+            Assert.Single(state.Events, e => e is ConsumedPotion)
+        );
+        Assert.Equal(ResourceType.Mp, consumed.Resource);
+    }
+
+    [Fact]
+    public void ApplyInstantHeal_RestoresTargetHp_ClampedToMaximum()
+    {
+        // Arrange
+        var player = MakeCombatant(
+            "Hero",
+            isPlayer: true,
+            dexterity: 20,
+            abilities: [MakeInstantHeal(amount: 999)],
+            currentHp: 1
+        );
+        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseAbility("Cure", "Hero"));
+
+        // Assert
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.Equal(playerState.MaximumHp, playerState.CurrentHp);
+        var healed = Assert.IsType<Healed>(Assert.Single(state.Events, e => e is Healed));
+        Assert.Equal("Hero", healed.TargetName);
     }
 }

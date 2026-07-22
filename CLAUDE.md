@@ -51,8 +51,10 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 ## Code Coverage
 
 - Local only, not wired into CI. `coverlet.collector` is already a `TRPG.Tests` package reference; `reportgenerator` is pinned in `.config/dotnet-tools.json` alongside CSharpier
-- Generate: `dotnet test TRPG.sln --collect:"XPlat Code Coverage" --results-directory ./TestResults`, then `dotnet reportgenerator "-reports:TestResults/**/coverage.cobertura.xml" "-targetdir:CoverageReport" "-reporttypes:Html"` and open `CoverageReport/index.html`
+- Generate: `dotnet test TRPG.sln --collect:"XPlat Code Coverage" --settings coverlet.runsettings --results-directory ./TestResults`, then `dotnet reportgenerator "-reports:TestResults/**/coverage.cobertura.xml" "-targetdir:CoverageReport" "-reporttypes:Html"` and open `CoverageReport/index.html`
 - `TestResults/` and `CoverageReport/` are gitignored — regenerate locally rather than committing either
+- `coverlet.runsettings` (repo root) excludes `TRPG.Data` from collection entirely — entity models, EF schema config, and migrations, none of which have branching logic worth chasing; its correctness is already proven by every other test failing if the schema/mappings were wrong. Always pass `--settings coverlet.runsettings`, or `TRPG.Data` noise (mostly generated migration `Up`/`Down` bodies) drowns out real gaps
+- `scripts/coverage-gaps.py` parses a cobertura report and prints uncovered methods ranked by uncovered-line count, with compiler-generated async state machines folded back onto their real method and known-noise buckets (Program.cs, `*ServiceCollectionExtensions`, record/compiler-generated members) filtered out by default — read the script's own header comment for usage and exact filtering rules before assuming what it excludes
 
 ---
 
@@ -263,6 +265,7 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 - Optional parameters for FK overrides: `MakePerson(worldId: ...)`
 - `Person.Name` has no unique constraint so a static string is fine
 - If a test needs a builder-made entity with field values the builder doesn't expose yet, add an optional parameter to the builder (e.g. `MakeCreature(level: 7, baseAttributes: ...)`) rather than writing a local `MakeSeedX()` wrapper that constructs-then-mutates in the test file — the builder is the one place entity construction lives
+- This applies to any builder-style factory method, not just `Builders` itself — a test file's own local `MakeX(...)` helper (e.g. a `MakeCombatant` in a single test class) follows the same rule: never call it and then mutate the result (`var c = MakeCombatant(...); c.CurrentHp = 1;`) — add the field as an optional parameter (`MakeCombatant(currentHp: 1)`) instead. If a builder accumulates so many optional parameters that it becomes hard to read at call sites, that's a signal to switch it to a fluent builder pattern (`Builders.NewCreature().WithLevel(7).WithCurrentHp(1).Build()`) rather than keep bolting on parameters
 
 ### AAA sections
 - Every test has `// Arrange`, `// Act`, `// Assert` comments
