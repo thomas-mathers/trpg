@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using TRPG.Application.Configuration;
 using TRPG.Contracts;
 using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Creatures.Requests;
@@ -166,8 +168,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
     [Fact]
     public async Task GetAttributePoints_ReturnsUnallocatedPoints()
     {
-        // Arrange — configured BaseAttributes total is 35 (5 per stat), level 1, pointsPerLevel 5
-        // => expected 40; creature's 7 base stats at 1 each = 7 => 40 - 7 = 33
+        // Arrange — 7 base stats at 1 each; compare against whatever BaseAttributes/PointsPerLevel
+        // the app has configured, not a hardcoded literal, so tuning those doesn't break this test
+        int expectedUnallocated;
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -184,6 +187,11 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
                 Intelligence = 1,
             };
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            var options = scope
+                .ServiceProvider.GetRequiredService<IOptionsSnapshot<CreatureGeneratorOptions>>()
+                .Value;
+            expectedUnallocated = options.BaseAttributes.Total() + creature.Level * options.PointsPerLevel - 7;
         }
 
         // Act
@@ -199,7 +207,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(result);
-        Assert.Equal(33, result.UnallocatedPoints);
+        Assert.Equal(expectedUnallocated, result.UnallocatedPoints);
     }
 
     [Fact]
