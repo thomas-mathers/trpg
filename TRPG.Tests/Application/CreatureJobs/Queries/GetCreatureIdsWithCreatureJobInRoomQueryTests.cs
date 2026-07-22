@@ -11,9 +11,9 @@ public sealed class GetCreatureIdsWithCreatureJobInRoomQueryTests(DatabaseFixtur
     : IAsyncLifetime
 {
     private AddCreatureJobCommandHandler _addJob = null!;
-    private Creature _creature = null!;
     private TrpgDbContext _context = null!;
     private GetCreatureIdsWithCreatureJobInRoomQueryHandler _handler = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
@@ -21,9 +21,8 @@ public sealed class GetCreatureIdsWithCreatureJobInRoomQueryTests(DatabaseFixtur
         _addJob = new AddCreatureJobCommandHandler(_context);
         _handler = new GetCreatureIdsWithCreatureJobInRoomQueryHandler(_context);
 
-        _creature = Builders.MakeCreature();
         _context.Creatures.Add(_creature);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

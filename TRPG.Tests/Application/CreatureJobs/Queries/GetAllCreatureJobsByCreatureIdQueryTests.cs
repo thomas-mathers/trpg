@@ -10,10 +10,10 @@ namespace TRPG.Tests.Application.CreatureJobs.Queries;
 public sealed class GetAllCreatureJobsByCreatureIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private AddCreatureJobCommandHandler _addJob = null!;
-    private Creature _creature = null!;
     private TrpgDbContext _context = null!;
     private GetAllCreatureJobsByCreatureIdQueryHandler _handler = null!;
     private CreatureJob _creatureJob = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
@@ -21,9 +21,8 @@ public sealed class GetAllCreatureJobsByCreatureIdQueryTests(DatabaseFixture db)
         _addJob = new AddCreatureJobCommandHandler(_context);
         _handler = new GetAllCreatureJobsByCreatureIdQueryHandler(_context);
 
-        _creature = Builders.MakeCreature();
         _context.Creatures.Add(_creature);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _creatureJob = Builders.MakeCreatureJob(_creature.Id);
         await _addJob.Handle(

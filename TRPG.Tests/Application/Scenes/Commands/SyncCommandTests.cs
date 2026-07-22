@@ -17,7 +17,8 @@ namespace TRPG.Tests.Application.Scenes.Commands;
 [Collection("Database")]
 public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private readonly Guid _worldId = Guid.NewGuid();
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private AddCreatureCommandHandler _addCreature = null!;
     private AddCreatureJobCommandHandler _addJob = null!;
@@ -69,7 +70,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var sleepRoomId = Guid.NewGuid();
-        var creature = Builders.MakeCreature(_worldId);
+        var creature = Builders.MakeCreature(WorldId);
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = creature },
             TestContext.Current.CancellationToken
@@ -93,7 +94,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _handler.Handle(
             new SyncCommand
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 RoomId = sleepRoomId,
                 DistrictId = null,
                 CurrentDate = MakeDate(23),
@@ -116,8 +117,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var sleepRoomId = Guid.NewGuid();
         var workRoomId = Guid.NewGuid();
-        var creature = Builders.MakeCreature(_worldId);
-        creature.RoomId = sleepRoomId;
+        var creature = Builders.MakeCreature(WorldId, roomId: sleepRoomId);
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = creature },
             TestContext.Current.CancellationToken
@@ -155,7 +155,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _handler.Handle(
             new SyncCommand
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 RoomId = sleepRoomId,
                 DistrictId = null,
                 CurrentDate = MakeDate(10),
@@ -176,7 +176,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_DoesNothing_WhenNoJobsTargetRoom()
     {
         // Arrange
-        var creature = Builders.MakeCreature(_worldId);
+        var creature = Builders.MakeCreature(WorldId);
         var originalRoomId = creature.RoomId;
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = creature },
@@ -187,7 +187,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _handler.Handle(
             new SyncCommand
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 RoomId = Guid.NewGuid(),
                 DistrictId = null,
                 CurrentDate = MakeDate(12),
@@ -210,8 +210,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var districtId = Guid.NewGuid();
         var sleepRoomId = Guid.NewGuid();
-        var creature = Builders.MakeCreature(_worldId, districtId: districtId);
-        creature.RoomId = sleepRoomId;
+        var creature = Builders.MakeCreature(WorldId, districtId: districtId, roomId: sleepRoomId);
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = creature },
             TestContext.Current.CancellationToken
@@ -249,7 +248,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _handler.Handle(
             new SyncCommand
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 RoomId = null,
                 DistrictId = districtId,
                 CurrentDate = MakeDate(12),
@@ -274,7 +273,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         var counter = new Workstation
         {
             RoomId = shopRoomId,
-            WorldId = _worldId,
+            WorldId = WorldId,
             Name = "Counter",
             Description = "A counter.",
             WorkstationType = WorkstationType.Trade,
@@ -282,17 +281,16 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         var oven = new Workstation
         {
             RoomId = shopRoomId,
-            WorldId = _worldId,
+            WorldId = WorldId,
             Name = "Oven",
             Description = "An oven.",
             WorkstationType = WorkstationType.Cooking,
         };
-        _context.Props.Add(counter);
-        _context.Props.Add(oven);
+        _context.Props.AddRange(counter, oven);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var owner = Builders.MakeCreature(_worldId);
-        var employee = Builders.MakeCreature(_worldId);
+        var owner = Builders.MakeCreature(WorldId);
+        var employee = Builders.MakeCreature(WorldId);
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = owner },
             TestContext.Current.CancellationToken
@@ -334,7 +332,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _handler.Handle(
             new SyncCommand
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 RoomId = shopRoomId,
                 DistrictId = null,
                 CurrentDate = MakeDate(12),
@@ -364,7 +362,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         var counter = new Workstation
         {
             RoomId = shopRoomId,
-            WorldId = _worldId,
+            WorldId = WorldId,
             Name = "Counter",
             Description = "A counter.",
             WorkstationType = WorkstationType.Trade,
@@ -372,17 +370,16 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         var oven = new Workstation
         {
             RoomId = shopRoomId,
-            WorldId = _worldId,
+            WorldId = WorldId,
             Name = "Oven",
             Description = "An oven.",
             WorkstationType = WorkstationType.Cooking,
             OccupantId = Guid.NewGuid(), // stale, from a prior day
         };
-        _context.Props.Add(counter);
-        _context.Props.Add(oven);
+        _context.Props.AddRange(counter, oven);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var owner = Builders.MakeCreature(_worldId);
+        var owner = Builders.MakeCreature(WorldId);
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = owner },
             TestContext.Current.CancellationToken
@@ -406,7 +403,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _handler.Handle(
             new SyncCommand
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 RoomId = shopRoomId,
                 DistrictId = null,
                 CurrentDate = MakeDate(12),
@@ -450,7 +447,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _handler.Handle(
             new SyncCommand
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 RoomId = frontDoor.RoomId,
                 DistrictId = null,
                 CurrentDate = MakeDate(23),
@@ -468,7 +465,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
 
     private async Task<Creature> SeedOwner()
     {
-        var owner = Builders.MakeCreature(_worldId);
+        var owner = Builders.MakeCreature(WorldId);
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = owner },
             TestContext.Current.CancellationToken
@@ -478,7 +475,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
 
     private async Task<Building> SeedBuilding(Guid ownerId)
     {
-        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: _worldId);
+        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: WorldId);
         _context.Buildings.Add(building);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await _addBuildingOwner.Handle(
@@ -490,11 +487,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
 
     private async Task<RoomConnector> SeedFrontDoor(Guid buildingId)
     {
-        var entranceRoom = Builders.MakeRoom(buildingId, worldId: _worldId);
+        var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
         var frontDoor = new RoomConnector
         {
             RoomId = entranceRoom.Id,
-            WorldId = _worldId,
+            WorldId = WorldId,
             Name = "Front Door",
             Description = "The door leading outside.",
             DestinationRoomId = null,

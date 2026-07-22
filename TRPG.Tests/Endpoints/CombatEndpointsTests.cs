@@ -83,15 +83,15 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
 
-        var enemy = Builders.MakeCreature(
+        var creature = Builders.MakeCreature(
             _worldId,
             creatureType: CreatureType.Beast,
             stateId: _stateId,
             districtId: _districtId
         );
-        context.Creatures.Add(enemy);
+        context.Creatures.Add(creature);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return enemy;
+        return creature;
     }
 
     private Task<HttpResponseMessage> SendChat(Guid sessionId, string message) =>

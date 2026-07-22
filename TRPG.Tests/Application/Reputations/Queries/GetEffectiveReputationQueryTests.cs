@@ -13,8 +13,8 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
     private AdjustReputationCommandHandler _adjustReputation = null!;
     private TrpgDbContext _context = null!;
     private Guid _creatureId;
-    private Faction _faction = null!;
     private GetEffectiveReputationQueryHandler _handler = null!;
+    private readonly Faction _faction = Builders.MakeFaction();
 
     public async ValueTask InitializeAsync()
     {
@@ -28,12 +28,11 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
             )
         );
 
-        _faction = Builders.MakeFaction();
         var creature = Builders.MakeCreature();
-        _creatureId = creature.Id;
         _context.Factions.Add(_faction);
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _creatureId = creature.Id;
     }
 
     public async ValueTask DisposeAsync()

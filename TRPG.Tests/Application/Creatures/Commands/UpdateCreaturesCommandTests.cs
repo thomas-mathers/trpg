@@ -10,17 +10,19 @@ namespace TRPG.Tests.Application.Creatures.Commands;
 public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
     private UpdateCreaturesCommandHandler _handler = null!;
+    private readonly Creature _creature = Builders.MakeCreature(
+        cityId: Guid.NewGuid(),
+        districtId: Guid.NewGuid()
+    );
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new UpdateCreaturesCommandHandler(_context);
 
-        _creature = Builders.MakeCreature(cityId: Guid.NewGuid(), districtId: Guid.NewGuid());
-        await _context.Creatures.AddAsync(_creature);
-        await _context.SaveChangesAsync();
+        _context.Creatures.Add(_creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -196,7 +198,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
     {
         // Arrange
         var otherCreature = Builders.MakeCreature();
-        await _context.Creatures.AddAsync(otherCreature, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(otherCreature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

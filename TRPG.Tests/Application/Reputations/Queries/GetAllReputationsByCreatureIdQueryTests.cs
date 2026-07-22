@@ -11,8 +11,8 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
 {
     private AdjustReputationCommandHandler _adjustReputation = null!;
     private TrpgDbContext _context = null!;
-    private Faction _faction = null!;
     private GetAllReputationsByCreatureIdQueryHandler _handler = null!;
+    private readonly Faction _faction = Builders.MakeFaction();
 
     public async ValueTask InitializeAsync()
     {
@@ -20,7 +20,6 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
         _handler = new GetAllReputationsByCreatureIdQueryHandler(_context);
         _adjustReputation = new AdjustReputationCommandHandler(_context);
 
-        _faction = Builders.MakeFaction();
         _context.Factions.Add(_faction);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -30,22 +29,17 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
         await _context.DisposeAsync();
     }
 
-    private async Task<Creature> SeedCreature()
-    {
-        var creature = Builders.MakeCreature();
-        _context.Creatures.Add(creature);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return creature;
-    }
-
     [Fact]
     public async Task Handle_ReturnsReputationsForCreature()
     {
         // Arrange
-        var creatureId = (await SeedCreature()).Id;
+        var creature = Builders.MakeCreature();
         var faction2 = Builders.MakeFaction();
+        _context.Creatures.Add(creature);
         _context.Factions.Add(faction2);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var creatureId = creature.Id;
+
         await _adjustReputation.Handle(
             new AdjustReputationCommand
             {

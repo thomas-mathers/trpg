@@ -46,7 +46,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         _context.Buildings.Add(_building);
         _context.Rooms.Add(_entranceRoom);
         _context.Props.Add(_frontDoor);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -141,18 +141,17 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     }
 
     [Fact]
-    public async Task Handle_ReturnsTrue_ForEachDistinctKeyToTheSameDoor()
+    public async Task Handle_ReturnsTrue_WhenCarryingTheFirstOfTwoKeysRegisteredToTheDoor()
     {
-        // Arrange — two residents, each with their own distinct key item, both unlocking the same door
+        // Arrange — two distinct key items are registered to the same door; the first must work too
         await _setFrontDoorLocked.Handle(
             new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
             TestContext.Current.CancellationToken
         );
-        var residentA = Builders.MakeCreature(stateId: _stateId);
-        var residentB = Builders.MakeCreature(stateId: _stateId);
+        var resident = Builders.MakeCreature(stateId: _stateId);
         var keyA = new Item { Name = "Key A", Description = "Resident A's key." };
         var keyB = new Item { Name = "Key B", Description = "Resident B's key." };
-        _context.Creatures.AddRange(residentA, residentB);
+        _context.Creatures.Add(resident);
         _context.Items.AddRange(keyA, keyB);
         _context.RoomConnectorKeys.AddRange(
             new RoomConnectorKey { ItemId = keyA.Id, RoomConnectorId = _frontDoor.Id },
@@ -162,16 +161,49 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         await _addInventoryItem.Handle(
             new AddInventoryItemCommand
             {
-                CreatureId = residentA.Id,
+                CreatureId = resident.Id,
                 ItemId = keyA.Id,
                 Quantity = 1,
             },
             TestContext.Current.CancellationToken
         );
+
+        // Act
+        var canEnter = await _handler.Handle(
+            new CanEnterBuildingQuery
+            {
+                EntranceRoomId = _entranceRoom.Id,
+                EnteringCreatureId = resident.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(canEnter);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTrue_WhenCarryingTheSecondOfTwoKeysRegisteredToTheDoor()
+    {
+        // Arrange — two distinct key items are registered to the same door; the second must work too
+        await _setFrontDoorLocked.Handle(
+            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
+            TestContext.Current.CancellationToken
+        );
+        var resident = Builders.MakeCreature(stateId: _stateId);
+        var keyA = new Item { Name = "Key A", Description = "Resident A's key." };
+        var keyB = new Item { Name = "Key B", Description = "Resident B's key." };
+        _context.Creatures.Add(resident);
+        _context.Items.AddRange(keyA, keyB);
+        _context.RoomConnectorKeys.AddRange(
+            new RoomConnectorKey { ItemId = keyA.Id, RoomConnectorId = _frontDoor.Id },
+            new RoomConnectorKey { ItemId = keyB.Id, RoomConnectorId = _frontDoor.Id }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await _addInventoryItem.Handle(
             new AddInventoryItemCommand
             {
-                CreatureId = residentB.Id,
+                CreatureId = resident.Id,
                 ItemId = keyB.Id,
                 Quantity = 1,
             },
@@ -179,26 +211,17 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         );
 
         // Act
-        var canEnterA = await _handler.Handle(
+        var canEnter = await _handler.Handle(
             new CanEnterBuildingQuery
             {
                 EntranceRoomId = _entranceRoom.Id,
-                EnteringCreatureId = residentA.Id,
-            },
-            TestContext.Current.CancellationToken
-        );
-        var canEnterB = await _handler.Handle(
-            new CanEnterBuildingQuery
-            {
-                EntranceRoomId = _entranceRoom.Id,
-                EnteringCreatureId = residentB.Id,
+                EnteringCreatureId = resident.Id,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.True(canEnterA);
-        Assert.True(canEnterB);
+        Assert.True(canEnter);
     }
 
     [Fact]

@@ -10,15 +10,13 @@ public sealed class GetCreatureLevelQueryTests(DatabaseFixture db) : IAsyncLifet
 {
     private TrpgDbContext _context = null!;
     private GetCreatureLevelQueryHandler _handler = null!;
-    private Creature _creature = null!;
+    private readonly Creature _creature = Builders.MakeCreature(level: 7);
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new GetCreatureLevelQueryHandler(_context);
 
-        _creature = Builders.MakeCreature();
-        _creature.Level = 7;
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }

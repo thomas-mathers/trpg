@@ -22,28 +22,24 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     };
 
     private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
     private GameSession _session = null!;
     private Guid _sessionId;
     private ApplyPassiveRegenCommandHandler _handler = null!;
+    private readonly Creature _creature = Builders.MakeCreature(
+        currentHp: 0,
+        currentAp: 0,
+        currentMp: 0
+    );
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
 
-        _creature = Builders.MakeCreature(currentHp: 0, currentAp: 0, currentMp: 0);
+        _session = Builders.MakeGameSession(_creature.WorldId, _creature.Id);
         _context.Creatures.Add(_creature);
-
-        _session = new GameSession
-        {
-            WorldId = _creature.WorldId,
-            PlayerId = _creature.Id,
-            Playtime = TimeSpan.Zero,
-        };
         _context.GameSessions.Add(_session);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _sessionId = _session.Id;
-
-        await _context.SaveChangesAsync();
 
         _handler = new ApplyPassiveRegenCommandHandler(
             _context,

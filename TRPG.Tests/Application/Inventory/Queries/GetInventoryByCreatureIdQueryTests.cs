@@ -11,10 +11,10 @@ public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAs
 {
     private AddInventoryItemCommandHandler _addHandler = null!;
     private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
     private GetInventoryByCreatureIdQueryHandler _handler = null!;
-    private Item _item = null!;
-    private Item _otherItem = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
+    private readonly Item _item = Builders.MakeItem();
+    private readonly Item _otherItem = Builders.MakeItem();
 
     public async ValueTask InitializeAsync()
     {
@@ -22,15 +22,10 @@ public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAs
         _addHandler = new AddInventoryItemCommandHandler(_context);
         _handler = new GetInventoryByCreatureIdQueryHandler(_context);
 
-        _creature = Builders.MakeCreature();
-        _item = Builders.MakeItem();
-        _otherItem = Builders.MakeItem();
-
         _context.Creatures.Add(_creature);
-        _context.Items.Add(_item);
-        _context.Items.Add(_otherItem);
+        _context.Items.AddRange(_item, _otherItem);
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

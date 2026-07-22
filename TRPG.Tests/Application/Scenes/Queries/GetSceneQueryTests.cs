@@ -14,12 +14,13 @@ namespace TRPG.Tests.Application.Scenes.Queries;
 [Collection("Database")]
 public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private GetSceneQueryHandler _handler = null!;
     private Creature _nearbyCreature = null!;
     private Creature _player = null!;
     private State _state = null!;
-    private Guid _worldId;
 
     public async ValueTask InitializeAsync()
     {
@@ -46,17 +47,16 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
             NullLogger<GetSceneQueryHandler>.Instance
         );
 
-        _worldId = Guid.NewGuid();
-        var country = Builders.MakeCountry(_worldId);
+        var country = Builders.MakeCountry(WorldId);
         _state = Builders.MakeState(country.Id);
 
-        _player = Builders.MakeCreature(_worldId, stateId: _state.Id, birthYear: 950);
-        _nearbyCreature = Builders.MakeCreature(_worldId, stateId: _state.Id, birthYear: 900);
+        _player = Builders.MakeCreature(WorldId, stateId: _state.Id, birthYear: 950);
+        _nearbyCreature = Builders.MakeCreature(WorldId, stateId: _state.Id, birthYear: 900);
 
         _context.Countries.Add(country);
         _context.States.Add(_state);
         _context.Creatures.AddRange(_player, _nearbyCreature);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -70,7 +70,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var query = new GetSceneQuery
         {
-            WorldId = _worldId,
+            WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
         };
@@ -88,7 +88,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var query = new GetSceneQuery
         {
-            WorldId = _worldId,
+            WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
         };
@@ -108,7 +108,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var currentDate = new InGameDate(975, "Thawmoon", 14, "Stormday", DayOfWeek.Thursday, 21);
         var query = new GetSceneQuery
         {
-            WorldId = _worldId,
+            WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = currentDate,
         };
@@ -125,12 +125,12 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var building = Builders.MakeBuilding(_state.Id);
-        var room = Builders.MakeRoom(building.Id, worldId: _worldId);
-        var destinationRoom = Builders.MakeRoom(building.Id, worldId: _worldId);
+        var room = Builders.MakeRoom(building.Id, worldId: WorldId);
+        var destinationRoom = Builders.MakeRoom(building.Id, worldId: WorldId);
         var connector = new RoomConnector
         {
             RoomId = room.Id,
-            WorldId = _worldId,
+            WorldId = WorldId,
             Name = "Wooden Door",
             Description = "A creaking wooden door.",
             DestinationRoomId = destinationRoom.Id,
@@ -144,7 +144,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         var query = new GetSceneQuery
         {
-            WorldId = _worldId,
+            WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
         };
@@ -174,7 +174,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         var query = new GetSceneQuery
         {
-            WorldId = _worldId,
+            WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
         };
@@ -202,7 +202,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         var query = new GetSceneQuery
         {
-            WorldId = _worldId,
+            WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
         };
@@ -230,7 +230,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         var query = new GetSceneQuery
         {
-            WorldId = _worldId,
+            WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
         };
@@ -252,12 +252,12 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var shop = Builders.MakeBuilding(
             _state.Id,
-            worldId: _worldId,
+            worldId: WorldId,
             buildingType: BuildingType.Blacksmith
         );
         var cave = Builders.MakeBuilding(
             _state.Id,
-            worldId: _worldId,
+            worldId: WorldId,
             buildingType: BuildingType.Cave
         );
         _context.Buildings.AddRange(shop, cave);
@@ -265,7 +265,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         var query = new GetSceneQuery
         {
-            WorldId = _worldId,
+            WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
         };

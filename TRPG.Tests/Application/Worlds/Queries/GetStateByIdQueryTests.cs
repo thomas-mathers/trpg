@@ -27,7 +27,7 @@ public sealed class GetStateByIdQueryTests(DatabaseFixture db) : IAsyncLifetime
         _context.Worlds.Add(world);
         _context.Countries.Add(country);
         _context.States.Add(_state);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

@@ -11,7 +11,19 @@ public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) 
 {
     private TrpgDbContext _context = null!;
     private GetUnallocatedAttributePointsQueryHandler _handler = null!;
-    private Creature _creature = null!;
+    private readonly Creature _creature = Builders.MakeCreature(
+        level: 1,
+        baseAttributes: new Attributes
+        {
+            Strength = 1,
+            Defense = 1,
+            Dexterity = 1,
+            Endurance = 1,
+            Stamina = 1,
+            Mana = 1,
+            Intelligence = 1,
+        }
+    );
 
     public async ValueTask InitializeAsync()
     {
@@ -21,18 +33,6 @@ public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) 
             Builders.MakeStatFormulas(new CreatureGeneratorOptions { PointsPerLevel = 5 })
         );
 
-        _creature = Builders.MakeCreature();
-        _creature.Level = 1;
-        _creature.BaseAttributes = new Attributes
-        {
-            Strength = 1,
-            Defense = 1,
-            Dexterity = 1,
-            Endurance = 1,
-            Stamina = 1,
-            Mana = 1,
-            Intelligence = 1,
-        };
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }

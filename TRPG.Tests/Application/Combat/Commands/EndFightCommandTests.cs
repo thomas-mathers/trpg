@@ -13,13 +13,25 @@ namespace TRPG.Tests.Application.Combat.Commands;
 [Collection("Database")]
 public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private EndFightCommandHandler _handler = null!;
-    private Guid _worldId;
-    private Guid _sessionId;
-    private Creature _player = null!;
-    private Creature _enemy = null!;
+    private readonly Creature _player = Builders.MakeCreature(
+        WorldId,
+        currentHp: 50,
+        currentAp: 10,
+        currentMp: 5
+    );
+    private readonly Creature _enemy = Builders.MakeCreature(
+        WorldId,
+        currentHp: 30,
+        currentAp: 8,
+        currentMp: 4
+    );
+
     private GameSession _session = null!;
+    private Guid _sessionId;
 
     public async ValueTask InitializeAsync()
     {
@@ -31,41 +43,16 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             new GetPlaytimeQueryHandler(_context, NullLogger<GetPlaytimeQueryHandler>.Instance)
         );
 
-        _worldId = Guid.NewGuid();
-        _player = Builders.MakeCreature(_worldId, currentHp: 50, currentAp: 10, currentMp: 5);
-        _enemy = Builders.MakeCreature(_worldId, currentHp: 30, currentAp: 8, currentMp: 4);
-        _context.Creatures.Add(_player);
-        _context.Creatures.Add(_enemy);
-
-        _session = new GameSession
-        {
-            WorldId = _worldId,
-            PlayerId = _player.Id,
-            Playtime = TimeSpan.FromHours(1),
-        };
+        _session = Builders.MakeGameSession(WorldId, _player.Id, TimeSpan.FromHours(1));
+        _context.Creatures.AddRange(_player, _enemy);
         _context.GameSessions.Add(_session);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _sessionId = _session.Id;
-
-        await _context.SaveChangesAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
         await _context.DisposeAsync();
-    }
-
-    private async Task<Fight> SeedActiveFight()
-    {
-        var fight = new Fight
-        {
-            WorldId = _worldId,
-            PlayerId = _player.Id,
-            CombatantIds = [_player.Id, _enemy.Id],
-            StartedAt = DateTime.UtcNow,
-        };
-        _context.Fights.Add(fight);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return fight;
     }
 
     private CombatantState MakeCombatantState(
@@ -91,7 +78,8 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_GrantsRewards_OnVictory()
     {
         // Arrange
-        await SeedActiveFight();
+        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var state = new CombatState(
             Outcome: CombatOutcome.Victory,
             Combatants:
@@ -110,7 +98,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             new EndFightCommand
             {
                 SessionId = _sessionId,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 State = state,
             },
             TestContext.Current.CancellationToken
@@ -129,7 +117,8 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_DoesNotGrantRewards_OnDefeat()
     {
         // Arrange
-        await SeedActiveFight();
+        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var state = new CombatState(
             Outcome: CombatOutcome.Defeat,
             Combatants:
@@ -148,7 +137,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             new EndFightCommand
             {
                 SessionId = _sessionId,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 State = state,
             },
             TestContext.Current.CancellationToken
@@ -167,7 +156,9 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_MarksActiveFightCompleted()
     {
         // Arrange
-        var fight = await SeedActiveFight();
+        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
+        _context.Fights.Add(fight);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var state = new CombatState(
             Outcome: CombatOutcome.Fled,
             Combatants:
@@ -186,7 +177,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             new EndFightCommand
             {
                 SessionId = _sessionId,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 State = state,
             },
             TestContext.Current.CancellationToken
@@ -206,7 +197,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_AdvancesLastRegenPlaytime_ForSurvivingCombatants()
     {
         // Arrange — the player survives, the enemy doesn't
-        await SeedActiveFight();
+        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
         _session.Playtime = TimeSpan.FromHours(3);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var state = new CombatState(
@@ -227,7 +218,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             new EndFightCommand
             {
                 SessionId = _sessionId,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 State = state,
             },
             TestContext.Current.CancellationToken

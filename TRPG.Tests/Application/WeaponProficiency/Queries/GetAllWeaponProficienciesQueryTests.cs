@@ -12,16 +12,16 @@ public sealed class GetAllWeaponProficienciesQueryTests(DatabaseFixture db) : IA
     private GetAllWeaponProficienciesQueryHandler _handler = null!;
     private Guid _worldId;
     private Guid _creatureId;
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new GetAllWeaponProficienciesQueryHandler(_context);
 
-        var creature = Builders.MakeCreature();
-        _worldId = creature.WorldId;
-        _creatureId = creature.Id;
-        _context.Creatures.Add(creature);
+        _worldId = _creature.WorldId;
+        _creatureId = _creature.Id;
+        _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

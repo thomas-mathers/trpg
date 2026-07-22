@@ -45,14 +45,17 @@ internal static class Builders
         Guid? stateId = null,
         Guid? cityId = null,
         Guid? districtId = null,
+        Guid? roomId = null,
         int birthYear = 1000,
         string name = "Test Creature",
+        int level = 1,
+        Attributes? baseAttributes = null,
         int? currentHp = null,
         int? currentAp = null,
         int? currentMp = null
     )
     {
-        var attributes = MakeAttributes();
+        var attributes = baseAttributes ?? MakeAttributes();
 
         return new Creature
         {
@@ -65,7 +68,8 @@ internal static class Builders
             StateId = stateId ?? Guid.NewGuid(),
             CityId = cityId,
             DistrictId = districtId,
-            Level = 1,
+            RoomId = roomId,
+            Level = level,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,
@@ -406,6 +410,36 @@ internal static class Builders
             Date = DateTime.UtcNow,
             Tags = [],
             StateId = stateId,
+        };
+    }
+
+    public static GameSession MakeGameSession(
+        Guid worldId,
+        Guid playerId,
+        TimeSpan playtime = default
+    )
+    {
+        return new GameSession
+        {
+            WorldId = worldId,
+            PlayerId = playerId,
+            Playtime = playtime,
+        };
+    }
+
+    public static Fight MakeFight(
+        Guid worldId,
+        Guid playerId,
+        IReadOnlyList<Guid> combatantIds,
+        DateTime? startedAt = null
+    )
+    {
+        return new Fight
+        {
+            WorldId = worldId,
+            PlayerId = playerId,
+            CombatantIds = combatantIds,
+            StartedAt = startedAt ?? DateTime.UtcNow,
         };
     }
 }

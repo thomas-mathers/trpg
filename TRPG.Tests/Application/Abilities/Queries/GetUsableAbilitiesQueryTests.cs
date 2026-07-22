@@ -12,8 +12,8 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
 {
     private TrpgDbContext _context = null!;
     private GetUsableAbilitiesQueryHandler _handler = null!;
-    private Guid _worldId;
-    private Creature _player = null!;
+    private static readonly Guid WorldId = Guid.NewGuid();
+    private readonly Creature _player = Builders.MakeCreature(WorldId);
 
     public async ValueTask InitializeAsync()
     {
@@ -23,28 +23,13 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
             AbilityDefinitions.Create()
         );
 
-        _worldId = Guid.NewGuid();
-        _player = Builders.MakeCreature(_worldId);
         _context.Creatures.Add(_player);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
     {
         await _context.DisposeAsync();
-    }
-
-    private async Task AddLearnedAbility(Guid creatureId, string abilityName)
-    {
-        _context.CreatureAbilities.Add(
-            new CreatureAbility
-            {
-                WorldId = _worldId,
-                CreatureId = creatureId,
-                AbilityName = abilityName,
-            }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -77,7 +62,14 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_IncludesLearnedAbilities()
     {
         // Arrange
-        await AddLearnedAbility(_player.Id, "Slash");
+        var ability = new CreatureAbility
+        {
+            WorldId = WorldId,
+            CreatureId = _player.Id,
+            AbilityName = "Slash",
+        };
+        _context.CreatureAbilities.Add(ability);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var abilities = await _handler.Handle(
@@ -94,10 +86,16 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_ExcludesAbilities_LearnedByOtherCreatures()
     {
         // Arrange
-        var otherCreature = Builders.MakeCreature(_worldId);
+        var otherCreature = Builders.MakeCreature(WorldId);
+        var ability = new CreatureAbility
+        {
+            WorldId = WorldId,
+            CreatureId = otherCreature.Id,
+            AbilityName = "Slash",
+        };
         _context.Creatures.Add(otherCreature);
+        _context.CreatureAbilities.Add(ability);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await AddLearnedAbility(otherCreature.Id, "Slash");
 
         // Act
         var abilities = await _handler.Handle(

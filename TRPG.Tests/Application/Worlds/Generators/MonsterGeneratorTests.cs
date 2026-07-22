@@ -38,23 +38,28 @@ public class MonsterGeneratorTests
     }
 
     [Fact]
-    public void Generate_ThemesMonsterTypes_ByDungeonType()
+    public void Generate_ThemesCaveMonstersAsBeasts()
     {
         for (var i = 0; i < 20; i++)
         {
             // Act
-            var caveMonsters = _monsterGenerator.Generate(MakeInput(BuildingType.Cave));
-            var cryptMonsters = _monsterGenerator.Generate(MakeInput(BuildingType.Crypt));
+            var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Cave));
 
             // Assert
-            Assert.All(
-                caveMonsters,
-                m => Assert.Equal(CreatureType.Beast, m.Creature.CreatureType)
-            );
-            Assert.All(
-                cryptMonsters,
-                m => Assert.Equal(CreatureType.Undead, m.Creature.CreatureType)
-            );
+            Assert.All(monsters, m => Assert.Equal(CreatureType.Beast, m.Creature.CreatureType));
+        }
+    }
+
+    [Fact]
+    public void Generate_ThemesCryptMonstersAsUndead()
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            // Act
+            var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Crypt));
+
+            // Assert
+            Assert.All(monsters, m => Assert.Equal(CreatureType.Undead, m.Creature.CreatureType));
         }
     }
 

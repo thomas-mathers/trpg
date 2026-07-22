@@ -9,16 +9,16 @@ namespace TRPG.Tests.Application.Scenes.Queries;
 [Collection("Database")]
 public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private GetNamedEntitiesByWorldQueryHandler _handler = null!;
-    private Guid _worldId;
 
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         var cache = new MemoryCache(new MemoryCacheOptions());
         _handler = new GetNamedEntitiesByWorldQueryHandler(_context, cache);
-        _worldId = Guid.NewGuid();
         return ValueTask.CompletedTask;
     }
 
@@ -28,9 +28,9 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
     public async Task Handle_ReturnsCreaturesBuildingsAndDistricts_InTheWorld()
     {
         // Arrange
-        var creature = Builders.MakeCreature(_worldId);
-        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: _worldId);
-        var district = Builders.MakeDistrict(Guid.NewGuid(), worldId: _worldId);
+        var creature = Builders.MakeCreature(WorldId);
+        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: WorldId);
+        var district = Builders.MakeDistrict(Guid.NewGuid(), worldId: WorldId);
         _context.Creatures.Add(creature);
         _context.Buildings.Add(building);
         _context.Districts.Add(district);
@@ -38,7 +38,7 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
 
         // Act
         var result = await _handler.Handle(
-            new GetNamedEntitiesByWorldQuery { WorldId = _worldId },
+            new GetNamedEntitiesByWorldQuery { WorldId = WorldId },
             TestContext.Current.CancellationToken
         );
 
@@ -53,7 +53,7 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
     {
         // Arrange
         var otherWorldId = Guid.NewGuid();
-        var creatureHere = Builders.MakeCreature(_worldId, name: $"Here-{Guid.NewGuid():N}");
+        var creatureHere = Builders.MakeCreature(WorldId, name: $"Here-{Guid.NewGuid():N}");
         var creatureElsewhere = Builders.MakeCreature(
             otherWorldId,
             name: $"Elsewhere-{Guid.NewGuid():N}"
@@ -63,7 +63,7 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
 
         // Act
         var result = await _handler.Handle(
-            new GetNamedEntitiesByWorldQuery { WorldId = _worldId },
+            new GetNamedEntitiesByWorldQuery { WorldId = WorldId },
             TestContext.Current.CancellationToken
         );
 
@@ -103,14 +103,14 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
     public async Task Handle_IncludesUniqueItems_ButExcludesOtherRarities()
     {
         // Arrange
-        var uniqueItem = Builders.MakeItem(_worldId, ItemRarity.Unique);
-        var normalItem = Builders.MakeItem(_worldId, ItemRarity.Normal);
+        var uniqueItem = Builders.MakeItem(WorldId, ItemRarity.Unique);
+        var normalItem = Builders.MakeItem(WorldId, ItemRarity.Normal);
         _context.Items.AddRange(uniqueItem, normalItem);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new GetNamedEntitiesByWorldQuery { WorldId = _worldId },
+            new GetNamedEntitiesByWorldQuery { WorldId = WorldId },
             TestContext.Current.CancellationToken
         );
 

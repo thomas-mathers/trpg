@@ -11,9 +11,9 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
 {
     private TrpgDbContext _context = null!;
     private Guid _creatureId;
-    private Faction _faction = null!;
     private GetAllReputationsByCreatureIdQueryHandler _getAllByCreatureId = null!;
     private AdjustReputationCommandHandler _handler = null!;
+    private readonly Faction _faction = Builders.MakeFaction();
 
     public async ValueTask InitializeAsync()
     {
@@ -21,12 +21,9 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         _handler = new AdjustReputationCommandHandler(_context);
         _getAllByCreatureId = new GetAllReputationsByCreatureIdQueryHandler(_context);
 
-        _faction = Builders.MakeFaction();
-        var creature = Builders.MakeCreature();
-        _creatureId = creature.Id;
         _context.Factions.Add(_faction);
-        _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _creatureId = await SeedCreatureId();
     }
 
     public async ValueTask DisposeAsync()
@@ -34,12 +31,12 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         await _context.DisposeAsync();
     }
 
-    private async Task<Creature> SeedCreature()
+    private async Task<Guid> SeedCreatureId()
     {
         var creature = Builders.MakeCreature();
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return creature;
+        return creature.Id;
     }
 
     [Fact]
@@ -70,7 +67,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_IncrementsScore_WhenSubsequentCall()
     {
         // Arrange
-        var creatureId = (await SeedCreature()).Id;
+        var creatureId = await SeedCreatureId();
         await _handler.Handle(
             new AdjustReputationCommand
             {
@@ -107,7 +104,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_SupportsNegativeDelta()
     {
         // Arrange
-        var creatureId = (await SeedCreature()).Id;
+        var creatureId = await SeedCreatureId();
         await _handler.Handle(
             new AdjustReputationCommand
             {

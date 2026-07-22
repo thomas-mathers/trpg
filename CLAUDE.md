@@ -48,6 +48,14 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 
 ---
 
+## Code Coverage
+
+- Local only, not wired into CI. `coverlet.collector` is already a `TRPG.Tests` package reference; `reportgenerator` is pinned in `.config/dotnet-tools.json` alongside CSharpier
+- Generate: `dotnet test TRPG.sln --collect:"XPlat Code Coverage" --results-directory ./TestResults`, then `dotnet reportgenerator "-reports:TestResults/**/coverage.cobertura.xml" "-targetdir:CoverageReport" "-reporttypes:Html"` and open `CoverageReport/index.html`
+- `TestResults/` and `CoverageReport/` are gitignored — regenerate locally rather than committing either
+
+---
+
 ## C# Style
 
 ### General
@@ -209,47 +217,63 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - All test classes share the container via `[Collection("Database")]`
 - xUnit creates a new class instance per test — `IAsyncLifetime` handles per-test setup/teardown
 - `InitializeAsync` creates a fresh `TrpgDbContext` and seeds shared state
-- `DisposeAsync` disposes the context: `public async Task DisposeAsync() => await _context.DisposeAsync();`
+- `DisposeAsync` disposes the context: `public async ValueTask DisposeAsync() => await _context.DisposeAsync();`
 
 ### Test class structure
 ```csharp
 [Collection("Database")]
-public class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private FooService _service = null!;
-    private SomeEntity _entity = null!;
+    private readonly SomeEntity _entity = Builders.MakeSomeEntity(WorldId);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _service = new FooService(_context);
-        _entity = ...;
-        _context.Foos.Add(_entity);
-        await _context.SaveChangesAsync();
+
+        _context.SomeEntities.Add(_entity);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    public async Task DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
 }
 ```
 
 ### Seeding strategy
-- Promote entities to class fields in `InitializeAsync` when every (or nearly every) test needs them
-- Add `private async Task<T> Seed*(...)` helper methods for entities needed by only a subset of tests
+- Promote entities to class fields when every (or nearly every) test needs them
+- A scalar seed value (a `Guid.NewGuid()` id shared across the class) is `private static readonly`, PascalCase, initialized inline — it isn't per-instance mutable state, so it doesn't get the `_camelCase` treatment
+- An entity built via `Builders.MakeX(...)` that needs no DB access to construct is a `private readonly` instance field with an inline initializer, not `null!` assigned later in `InitializeAsync`
+- `InitializeAsync` is reserved for genuinely async, DB-touching work only: constructing handlers that depend on `_context`, and persisting the already-constructed seed entities. If a field's value can be computed synchronously, it doesn't belong in `InitializeAsync`
+- Add `private async Task<T> Seed*(...)` helper methods for entities needed by only a subset of tests, or for entities with test-class-specific shape (e.g. seeding a join-row with this class's own `WorldId`) — these stay local, they're not identical across test classes. Never add a `Seed*`-style wrapper for something only one call site needs — inline it there instead
 - Seed helpers add to context, save, and return the entity
 - Seed helpers return a single entity — never a tuple; use separate helpers if a test needs multiple seeded entities
-- `Builders` static class (`TRPG.Tests.Helpers`) constructs valid model objects
-- The same promotion applies to plain scalar values, not just DB entities: if most tests in a class Arrange the same `Guid.NewGuid()`/id variables from scratch, that's noise — promote them to `private` instance fields (set in `InitializeAsync`, or a constructor for a plain non-DB test class) instead of re-declaring them in every test
+
+### Persisting seeded entities
+- `Builders` is the only place that builds entities; persistence is always a plain `context.Xs.Add(entity)` / `.AddRange(...)` followed by exactly one `await context.SaveChangesAsync(cancellationToken)` for that whole `InitializeAsync` method or that whole test's Arrange section — regardless of how many entity types are involved
+- There is no shared "add-and-save" extension helper (a `TrpgDbContextExtensions` along those lines was tried and removed) — one auto-saving call per entity type means one Postgres round-trip per call, and mixing an auto-saving helper with plain `.Add()` calls for other types in the same setup step leaves some rows committed before others, which is exactly the partial-commit risk a single shared save avoids
+- This applies uniformly whether the entities being added are all the same type or a mix (e.g. a `Country` + `State` + `City` seeded together for one test) — build every entity first with `Builders`, `.Add()`/`.AddRange()` each into its DbSet, then one `SaveChangesAsync`
 
 ### Builders
 - Named `Make{Entity}`: `Builders.MakePerson()`, `Builders.MakeItem()`, `Builders.MakeSkill()`, `Builders.MakeQuest(giverId)`
 - Fields with unique DB constraints use Guid suffix: `$"Item-{Guid.NewGuid():N}"`
 - Optional parameters for FK overrides: `MakePerson(worldId: ...)`
 - `Person.Name` has no unique constraint so a static string is fine
+- If a test needs a builder-made entity with field values the builder doesn't expose yet, add an optional parameter to the builder (e.g. `MakeCreature(level: 7, baseAttributes: ...)`) rather than writing a local `MakeSeedX()` wrapper that constructs-then-mutates in the test file — the builder is the one place entity construction lives
 
 ### AAA sections
 - Every test has `// Arrange`, `// Act`, `// Assert` comments
 - Exception-throwing tests use `// Act & Assert`
+- The Act section is exactly one statement — the single call under test. If getting there needs more than one line (e.g. awaiting the call, or a multi-line argument list), that's still one statement; never sequence two separate calls in Act
+- Arrange and Act are as small as possible — a reader should see at a glance what's being exercised without wading through setup. Push anything not essential to that one test into `Builders`, shared fields, or `InitializeAsync`
+- If a test seems to need two calls in Act, figure out which shape it actually is before fixing it:
+  - If the first call is only there to establish pre-existing state (e.g. casting a buff so a second cast can be checked for stacking vs. refreshing), move that first call into Arrange and leave the second as the sole Act statement
+  - If the two calls are independent, comparable scenarios bundled into one test (e.g. generating monsters for two different dungeon themes, or checking entry with two different valid keys), split into two separate `[Fact]`s instead — each gets its own one-statement Act and its own name
+  - Exception: a test whose entire point is verifying behavior across a multi-step process (buff decay over several combat rounds, a full creation-through-combat lifecycle) legitimately needs multiple actions with interleaved assertions — don't force these into a single Act statement, they're testing a sequence by design
+- A duplicate multi-assertion block (2+ `Assert` calls, byte-for-byte identical) repeated across different `[Fact]`s in the same file is a signal to consider collapsing them into a `[Theory]` — but a single-field assert repeated across Facts is fine (each Fact is proving a different code path reaches the same success shape, not duplicating logic)
 - Omit empty sections rather than writing a comment with nothing under it
 
 ### Verifying deletes

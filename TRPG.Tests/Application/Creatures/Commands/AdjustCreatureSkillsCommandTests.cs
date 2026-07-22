@@ -13,7 +13,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
     private TrpgDbContext _context = null!;
     private AdjustCreatureSkillsCommandHandler _handler = null!;
     private Guid _worldId;
-    private Creature _creature = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
@@ -23,7 +23,6 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
             new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
         );
 
-        _creature = Builders.MakeCreature();
         _worldId = _creature.WorldId;
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

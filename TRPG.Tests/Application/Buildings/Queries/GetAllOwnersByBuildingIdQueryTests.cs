@@ -9,12 +9,12 @@ namespace TRPG.Tests.Application.Buildings.Queries;
 [Collection("Database")]
 public sealed class GetAllOwnersByBuildingIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly Guid StateId = Guid.NewGuid();
+
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
-    private Building _building = null!;
     private TrpgDbContext _context = null!;
     private GetAllOwnersByBuildingIdQueryHandler _handler = null!;
-    private readonly Guid _ownerId = Guid.NewGuid();
-    private readonly Guid _stateId = Guid.NewGuid();
+    private readonly Building _building = Builders.MakeBuilding(StateId);
 
     public async ValueTask InitializeAsync()
     {
@@ -22,9 +22,8 @@ public sealed class GetAllOwnersByBuildingIdQueryTests(DatabaseFixture db) : IAs
         _handler = new GetAllOwnersByBuildingIdQueryHandler(_context);
         _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
 
-        _building = Builders.MakeBuilding(_stateId);
         _context.Buildings.Add(_building);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -36,9 +35,10 @@ public sealed class GetAllOwnersByBuildingIdQueryTests(DatabaseFixture db) : IAs
     public async Task Handle_ReturnsOwners()
     {
         // Arrange
+        var ownerId1 = Guid.NewGuid();
         var ownerId2 = Guid.NewGuid();
         await _addBuildingOwner.Handle(
-            new AddBuildingOwnerCommand { BuildingId = _building.Id, OwnerId = _ownerId },
+            new AddBuildingOwnerCommand { BuildingId = _building.Id, OwnerId = ownerId1 },
             TestContext.Current.CancellationToken
         );
         await _addBuildingOwner.Handle(
@@ -54,7 +54,7 @@ public sealed class GetAllOwnersByBuildingIdQueryTests(DatabaseFixture db) : IAs
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Contains(result, o => o.OwnerId == _ownerId);
+        Assert.Contains(result, o => o.OwnerId == ownerId1);
         Assert.Contains(result, o => o.OwnerId == ownerId2);
     }
 }

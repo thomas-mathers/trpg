@@ -11,11 +11,11 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
 {
     private AddInventoryItemCommandHandler _addHandler = null!;
     private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
     private GetInventoryByCreatureIdQueryHandler _getHandler = null!;
-    private Item _item = null!;
     private UnequipInventoryItemCommandHandler _unequipHandler = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
+    private readonly Item _item = Builders.MakeItem();
 
     public async ValueTask InitializeAsync()
     {
@@ -25,13 +25,10 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
         _unequipHandler = new UnequipInventoryItemCommandHandler(_context);
         _getHandler = new GetInventoryByCreatureIdQueryHandler(_context);
 
-        _creature = Builders.MakeCreature();
-        _item = Builders.MakeItem();
-
         _context.Creatures.Add(_creature);
         _context.Items.Add(_item);
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

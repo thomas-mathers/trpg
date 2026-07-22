@@ -11,13 +11,12 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
 {
     private TrpgDbContext _context = null!;
     private DeleteCreaturesCommandHandler _handler = null!;
-    private Guid _worldId;
 
-    public async ValueTask InitializeAsync()
+    public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new DeleteCreaturesCommandHandler(_context);
-        _worldId = Guid.NewGuid();
+        return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
@@ -29,12 +28,11 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
     public async Task Handle_DeletesEveryReferencingRow_AndLeavesOtherCreaturesUntouched()
     {
         // Arrange
-        var target = Builders.MakeCreature(_worldId);
-        var other = Builders.MakeCreature(_worldId);
+        var worldId = Guid.NewGuid();
+        var target = Builders.MakeCreature(worldId);
+        var other = Builders.MakeCreature(worldId);
+        var quest = Builders.MakeQuest(other.Id, worldId);
         _context.Creatures.AddRange(target, other);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var quest = Builders.MakeQuest(other.Id, _worldId);
         _context.Quests.Add(quest);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -46,13 +44,13 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             Target = target.Id,
             TargetType = QuestTargetType.Creature,
             Type = QuestObjectiveType.Kill,
-            WorldId = _worldId,
+            WorldId = worldId,
         };
         _context.QuestObjectives.Add(questObjective);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: _worldId);
-        var room = Builders.MakeRoom(building.Id, worldId: _worldId);
+        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: worldId);
+        var room = Builders.MakeRoom(building.Id, worldId: worldId);
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -62,7 +60,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             RoomId = room.Id,
             Name = "Bed",
             Description = "A test bed",
-            WorldId = _worldId,
+            WorldId = worldId,
             AssignedCreatureId = target.Id,
             OccupantId = target.Id,
         };
@@ -71,7 +69,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             RoomId = room.Id,
             Name = "Workstation",
             Description = "A test workstation",
-            WorldId = _worldId,
+            WorldId = worldId,
             WorkstationType = WorkstationType.Cooking,
             AssignedCreatureId = target.Id,
             OccupantId = target.Id,
@@ -79,8 +77,22 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         _context.Props.AddRange(bed, workstation);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await SeedCreatureData(target.Id, quest.Id, questObjective.Id, building.Id, room.Id);
-        await SeedCreatureData(other.Id, quest.Id, questObjective.Id, building.Id, room.Id);
+        await SeedCreatureData(
+            worldId,
+            target.Id,
+            quest.Id,
+            questObjective.Id,
+            building.Id,
+            room.Id
+        );
+        await SeedCreatureData(
+            worldId,
+            other.Id,
+            quest.Id,
+            questObjective.Id,
+            building.Id,
+            room.Id
+        );
 
         // Act
         await _handler.Handle(
@@ -293,6 +305,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
     }
 
     private async Task SeedCreatureData(
+        Guid worldId,
         Guid creatureId,
         Guid questId,
         Guid questObjectiveId,
@@ -300,8 +313,8 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         Guid roomId
     )
     {
-        var faction = Builders.MakeFaction(_worldId);
-        var item = Builders.MakeItem(_worldId);
+        var faction = Builders.MakeFaction(worldId);
+        var item = Builders.MakeItem(worldId);
         _context.Factions.Add(faction);
         _context.Items.Add(item);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -311,7 +324,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             {
                 CreatureId = creatureId,
                 AbilityName = "Strike",
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.CreatureSkills.Add(
@@ -320,7 +333,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = creatureId,
                 Skill = Skill.Swordsmanship,
                 Level = 1,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.CreatureWeaponProficiencies.Add(
@@ -329,7 +342,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = creatureId,
                 WeaponType = WeaponType.Sword,
                 Proficiency = 10,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.CreatureQuestObjectives.Add(
@@ -338,7 +351,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = creatureId,
                 ObjectiveId = questObjectiveId,
                 Amount = 1,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.CreatureQuests.Add(
@@ -347,7 +360,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = creatureId,
                 QuestId = questId,
                 Status = QuestStatus.Accepted,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.InventoryItems.Add(
@@ -356,17 +369,17 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = creatureId,
                 ItemId = item.Id,
                 Quantity = 1,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
-        _context.CreatureJobs.Add(Builders.MakeCreatureJob(creatureId, worldId: _worldId));
+        _context.CreatureJobs.Add(Builders.MakeCreatureJob(creatureId, worldId: worldId));
         _context.FactionMembers.Add(
             new FactionMember
             {
                 CreatureId = creatureId,
                 FactionId = faction.Id,
                 Role = FactionRole.Member,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.NpcConversations.Add(
@@ -375,7 +388,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = creatureId,
                 NpcId = Guid.NewGuid(),
                 Summary = "A test conversation",
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.NpcConversations.Add(
@@ -384,7 +397,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = Guid.NewGuid(),
                 NpcId = creatureId,
                 Summary = "A test conversation about them",
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.BuildingOwners.Add(
@@ -392,7 +405,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             {
                 BuildingId = buildingId,
                 OwnerId = creatureId,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.Props.Add(
@@ -401,7 +414,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 RoomId = roomId,
                 Name = "Seat",
                 Description = "A test seat",
-                WorldId = _worldId,
+                WorldId = worldId,
                 OccupantId = creatureId,
             }
         );
@@ -412,7 +425,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 TargetId = faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 Score = 10,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.Relationships.Add(
@@ -421,7 +434,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 SubjectId = creatureId,
                 RelativeId = Guid.NewGuid(),
                 RelationshipType = RelationshipType.Sister,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
         _context.CreatureKnowledge.Add(
@@ -430,7 +443,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 KnowerId = creatureId,
                 SubjectId = Guid.NewGuid(),
                 SubjectType = KnowledgeSubjectType.Country,
-                WorldId = _worldId,
+                WorldId = worldId,
             }
         );
 

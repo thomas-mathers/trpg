@@ -8,9 +8,10 @@ namespace TRPG.Tests.Application.Creatures.Queries;
 public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixture db)
     : IAsyncLifetime
 {
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private GetCreatureByNameOutdoorsInDistrictQueryHandler _handler = null!;
-    private readonly Guid _worldId = Guid.NewGuid();
 
     public ValueTask InitializeAsync()
     {
@@ -29,7 +30,7 @@ public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixtur
     {
         // Arrange
         var districtId = Guid.NewGuid();
-        var creature = Builders.MakeCreature(_worldId, districtId: districtId);
+        var creature = Builders.MakeCreature(WorldId, districtId: districtId);
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -37,7 +38,7 @@ public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixtur
         var result = await _handler.Handle(
             new GetCreatureByNameOutdoorsInDistrictQuery
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 DistrictId = districtId,
                 Name = creature.Name,
             },
@@ -53,7 +54,7 @@ public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixtur
     public async Task Handle_ReturnsNull_WhenInDifferentDistrict()
     {
         // Arrange
-        var creature = Builders.MakeCreature(_worldId, districtId: Guid.NewGuid());
+        var creature = Builders.MakeCreature(WorldId, districtId: Guid.NewGuid());
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -61,7 +62,7 @@ public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixtur
         var result = await _handler.Handle(
             new GetCreatureByNameOutdoorsInDistrictQuery
             {
-                WorldId = _worldId,
+                WorldId = WorldId,
                 DistrictId = Guid.NewGuid(),
                 Name = creature.Name,
             },

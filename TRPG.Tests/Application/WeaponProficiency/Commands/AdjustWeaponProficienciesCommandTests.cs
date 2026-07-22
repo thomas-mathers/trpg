@@ -14,6 +14,7 @@ public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : 
     private GetAllWeaponProficienciesQueryHandler _getAllWeaponProficiencies = null!;
     private Guid _worldId;
     private Guid _creatureId;
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
@@ -21,10 +22,9 @@ public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : 
         _getAllWeaponProficiencies = new GetAllWeaponProficienciesQueryHandler(_context);
         _handler = new AdjustWeaponProficienciesCommandHandler(_context);
 
-        var creature = Builders.MakeCreature();
-        _worldId = creature.WorldId;
-        _creatureId = creature.Id;
-        _context.Creatures.Add(creature);
+        _worldId = _creature.WorldId;
+        _creatureId = _creature.Id;
+        _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

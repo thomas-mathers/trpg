@@ -10,8 +10,8 @@ namespace TRPG.Tests.Application.CreatureJobs.Commands;
 public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
     private ExecuteCreatureJobCommandHandler _handler = null!;
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
@@ -20,9 +20,8 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
             new UpdateCreaturesCommandHandler(_context)
         );
 
-        _creature = Builders.MakeCreature();
         _context.Creatures.Add(_creature);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

@@ -13,17 +13,20 @@ namespace TRPG.Tests.Application.Combat.Commands;
 public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
     private PersistCombatantsCommandHandler _handler = null!;
+    private readonly Creature _creature = Builders.MakeCreature(
+        currentHp: 100,
+        currentAp: 20,
+        currentMp: 10
+    );
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new PersistCombatantsCommandHandler(_context);
 
-        _creature = Builders.MakeCreature(currentHp: 100, currentAp: 20, currentMp: 10);
         _context.Creatures.Add(_creature);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

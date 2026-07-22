@@ -10,15 +10,8 @@ public sealed class GetCreatureBaseAttributesQueryTests(DatabaseFixture db) : IA
 {
     private TrpgDbContext _context = null!;
     private GetCreatureBaseAttributesQueryHandler _handler = null!;
-    private Creature _creature = null!;
-
-    public async ValueTask InitializeAsync()
-    {
-        _context = db.CreateContext();
-        _handler = new GetCreatureBaseAttributesQueryHandler(_context);
-
-        _creature = Builders.MakeCreature();
-        _creature.BaseAttributes = new Attributes
+    private readonly Creature _creature = Builders.MakeCreature(
+        baseAttributes: new Attributes
         {
             Strength = 3,
             Defense = 4,
@@ -27,7 +20,14 @@ public sealed class GetCreatureBaseAttributesQueryTests(DatabaseFixture db) : IA
             Stamina = 7,
             Mana = 8,
             Intelligence = 9,
-        };
+        }
+    );
+
+    public async ValueTask InitializeAsync()
+    {
+        _context = db.CreateContext();
+        _handler = new GetCreatureBaseAttributesQueryHandler(_context);
+
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }

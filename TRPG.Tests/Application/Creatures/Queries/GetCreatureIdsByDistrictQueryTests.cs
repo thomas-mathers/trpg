@@ -9,7 +9,6 @@ public sealed class GetCreatureIdsByDistrictQueryTests(DatabaseFixture db) : IAs
 {
     private TrpgDbContext _context = null!;
     private GetCreatureIdsByDistrictQueryHandler _handler = null!;
-    private readonly Guid _worldId = Guid.NewGuid();
 
     public ValueTask InitializeAsync()
     {
@@ -27,10 +26,11 @@ public sealed class GetCreatureIdsByDistrictQueryTests(DatabaseFixture db) : IAs
     public async Task Handle_ReturnsOnlyCreaturesInDistrict()
     {
         // Arrange
+        var worldId = Guid.NewGuid();
         var districtId = Guid.NewGuid();
 
-        var inDistrict = Builders.MakeCreature(_worldId, districtId: districtId);
-        var differentDistrict = Builders.MakeCreature(_worldId, districtId: Guid.NewGuid());
+        var inDistrict = Builders.MakeCreature(worldId, districtId: districtId);
+        var differentDistrict = Builders.MakeCreature(worldId, districtId: Guid.NewGuid());
         var otherWorld = Builders.MakeCreature(districtId: districtId);
 
         _context.Creatures.AddRange(inDistrict, differentDistrict, otherWorld);
@@ -38,7 +38,7 @@ public sealed class GetCreatureIdsByDistrictQueryTests(DatabaseFixture db) : IAs
 
         // Act
         var results = await _handler.Handle(
-            new GetCreatureIdsByDistrictQuery { WorldId = _worldId, DistrictId = districtId },
+            new GetCreatureIdsByDistrictQuery { WorldId = worldId, DistrictId = districtId },
             TestContext.Current.CancellationToken
         );
 
