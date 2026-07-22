@@ -10,9 +10,9 @@ public class GameClockTests
         // Arrange
         var bankedPlaytime = TimeSpan.Zero;
         var before = GameClock.GetCurrentInGameDateTime(bankedPlaytime);
+        Thread.Sleep(500);
 
         // Act — real time passing on its own must not move the in-game clock
-        Thread.Sleep(500);
         var after = GameClock.GetCurrentInGameDateTime(bankedPlaytime);
 
         // Assert

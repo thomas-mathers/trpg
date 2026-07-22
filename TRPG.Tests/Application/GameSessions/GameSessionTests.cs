@@ -74,7 +74,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task CreateGameSession_Then_GetGameSession_ReturnsTheCreatedSnapshot()
     {
-        // Act
+        // Arrange
         var sessionId = await _createGameSession.Handle(
             new CreateGameSessionCommand
             {
@@ -85,6 +85,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
 
+        // Act
         var snapshot = await _getGameSession.Handle(
             new GetGameSessionQuery { SessionId = sessionId },
             TestContext.Current.CancellationToken

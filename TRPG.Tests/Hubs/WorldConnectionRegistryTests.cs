@@ -66,9 +66,8 @@ public class WorldConnectionRegistryTests
 
         // Act — removing with the wrong connection id must not evict the real one
         _registry.Remove(_worldId, "connection-2");
-        var added = _registry.TryAdd(_worldId, "connection-3");
 
         // Assert
-        Assert.False(added);
+        Assert.False(_registry.TryAdd(_worldId, "connection-3"));
     }
 }

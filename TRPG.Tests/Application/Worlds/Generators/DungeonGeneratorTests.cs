@@ -36,8 +36,10 @@ public class DungeonGeneratorTests
     [Fact]
     public void Generate_NeverPicksAnExcludedName()
     {
-        // Act
+        // Arrange
         var result = DungeonGenerator.Generate(new DungeonGeneratorInput(_stateId, [], _worldId));
+
+        // Act
         var next = DungeonGenerator.Generate(
             new DungeonGeneratorInput(_stateId, [result.Building.Name], _worldId)
         );

@@ -262,10 +262,18 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 - Fields with unique DB constraints use Guid suffix: `$"Item-{Guid.NewGuid():N}"`
 - Optional parameters for FK overrides: `MakePerson(worldId: ...)`
 - `Person.Name` has no unique constraint so a static string is fine
+- If a test needs a builder-made entity with field values the builder doesn't expose yet, add an optional parameter to the builder (e.g. `MakeCreature(level: 7, baseAttributes: ...)`) rather than writing a local `MakeSeedX()` wrapper that constructs-then-mutates in the test file — the builder is the one place entity construction lives
 
 ### AAA sections
 - Every test has `// Arrange`, `// Act`, `// Assert` comments
 - Exception-throwing tests use `// Act & Assert`
+- The Act section is exactly one statement — the single call under test. If getting there needs more than one line (e.g. awaiting the call, or a multi-line argument list), that's still one statement; never sequence two separate calls in Act
+- Arrange and Act are as small as possible — a reader should see at a glance what's being exercised without wading through setup. Push anything not essential to that one test into `Builders`, shared fields, or `InitializeAsync`
+- If a test seems to need two calls in Act, figure out which shape it actually is before fixing it:
+  - If the first call is only there to establish pre-existing state (e.g. casting a buff so a second cast can be checked for stacking vs. refreshing), move that first call into Arrange and leave the second as the sole Act statement
+  - If the two calls are independent, comparable scenarios bundled into one test (e.g. generating monsters for two different dungeon themes, or checking entry with two different valid keys), split into two separate `[Fact]`s instead — each gets its own one-statement Act and its own name
+  - Exception: a test whose entire point is verifying behavior across a multi-step process (buff decay over several combat rounds, a full creation-through-combat lifecycle) legitimately needs multiple actions with interleaved assertions — don't force these into a single Act statement, they're testing a sequence by design
+- A duplicate multi-assertion block (2+ `Assert` calls, byte-for-byte identical) repeated across different `[Fact]`s in the same file is a signal to consider collapsing them into a `[Theory]` — but a single-field assert repeated across Facts is fine (each Fact is proving a different code path reaches the same success shape, not duplicating logic)
 - Omit empty sections rather than writing a comment with nothing under it
 
 ### Verifying deletes

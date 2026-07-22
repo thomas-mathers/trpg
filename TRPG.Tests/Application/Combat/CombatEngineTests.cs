@@ -676,9 +676,9 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
-
-        // Act — cast the same buff twice in a row
         Resolve(engine, combatants, new UseAbility("Battle Stance", "Hero"));
+
+        // Act — cast the same buff again
         Resolve(engine, combatants, new UseAbility("Battle Stance", "Hero"));
 
         // Assert — refreshed in place, not stacked into a second entry
@@ -719,9 +719,9 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
-
-        // Act — cast two different-named buffs
         Resolve(engine, combatants, new UseAbility("Battle Stance", "Hero"));
+
+        // Act — cast a second, different-named buff
         Resolve(engine, combatants, new UseAbility("Iron Will", "Hero"));
 
         // Assert — both coexist, neither replaced the other
@@ -744,9 +744,9 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith", endurance: 100, abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
-
-        // Act — reapply the same DoT-inflicting ability twice
         Resolve(engine, combatants, new UseAbility("Ignite", "Wraith"));
+
+        // Act — reapply the same DoT-inflicting ability
         Resolve(engine, combatants, new UseAbility("Ignite", "Wraith"));
 
         // Assert — refreshed, not stacked into a second entry
@@ -781,9 +781,9 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith", endurance: 100, abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
-
-        // Act — apply two different-named DoTs
         Resolve(engine, combatants, new UseAbility("Ignite", "Wraith"));
+
+        // Act — apply a second, different-named DoT
         Resolve(engine, combatants, new UseAbility("Venom", "Wraith"));
 
         // Assert — both coexist, neither replaced the other
@@ -802,9 +802,9 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
-
-        // Act — reapply the same HoT ability twice
         Resolve(engine, combatants, new UseAbility("Regen", "Hero"));
+
+        // Act — reapply the same HoT ability
         Resolve(engine, combatants, new UseAbility("Regen", "Hero"));
 
         // Assert — refreshed, not stacked into a second entry
@@ -827,9 +827,9 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
-
-        // Act — apply two different-named HoTs
         Resolve(engine, combatants, new UseAbility("Regen", "Hero"));
+
+        // Act — apply a second, different-named HoT
         Resolve(engine, combatants, new UseAbility("Rejuvenate", "Hero"));
 
         // Assert — both coexist, neither replaced the other
