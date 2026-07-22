@@ -27,7 +27,11 @@ internal static class AttributeAllocationPrompt
         Cancel,
     }
 
-    private sealed record MenuOption(string Label, MenuAction Action, AttributeName? Attribute = null);
+    private sealed record MenuOption(
+        string Label,
+        MenuAction Action,
+        AttributeName? Attribute = null
+    );
 
     public static async Task<IReadOnlyDictionary<AttributeName, int>?> Run(
         int totalPoints,

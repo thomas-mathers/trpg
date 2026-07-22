@@ -68,7 +68,12 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
         return fight;
     }
 
-    private CombatantState MakeCombatantState(Guid id, bool isPlayer, int currentHp, bool isAlive) =>
+    private CombatantState MakeCombatantState(
+        Guid id,
+        bool isPlayer,
+        int currentHp,
+        bool isAlive
+    ) =>
         new(
             Id: id,
             Name: isPlayer ? _player.Name : _enemy.Name,

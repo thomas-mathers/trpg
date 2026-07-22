@@ -210,7 +210,11 @@ internal static class ServiceCollectionExtensions
             .Configure<GameClockOptions>(configuration.GetSection("GameClock"));
     }
 
-    [SuppressMessage("Reliability", "CA2000", Justification = "Wrapped client is registered as a DI singleton and lives for the app's lifetime")]
+    [SuppressMessage(
+        "Reliability",
+        "CA2000",
+        Justification = "Wrapped client is registered as a DI singleton and lives for the app's lifetime"
+    )]
     private static IChatClient CreateChatClient(
         LlmProvider provider,
         string model,

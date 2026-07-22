@@ -16,24 +16,22 @@ namespace TRPG.Data.Migrations
                 table: "fights",
                 type: "uuid",
                 nullable: false,
-                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+                defaultValue: new Guid("00000000-0000-0000-0000-000000000000")
+            );
 
             migrationBuilder.CreateIndex(
                 name: "ix_fights_player_id",
                 table: "fights",
-                column: "player_id");
+                column: "player_id"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "ix_fights_player_id",
-                table: "fights");
+            migrationBuilder.DropIndex(name: "ix_fights_player_id", table: "fights");
 
-            migrationBuilder.DropColumn(
-                name: "player_id",
-                table: "fights");
+            migrationBuilder.DropColumn(name: "player_id", table: "fights");
         }
     }
 }

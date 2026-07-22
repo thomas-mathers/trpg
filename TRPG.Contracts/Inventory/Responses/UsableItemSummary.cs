@@ -6,8 +6,10 @@ public enum ResourceType
 {
     [Description("HP")]
     Hp,
+
     [Description("AP")]
     Ap,
+
     [Description("MP")]
     Mp,
 }

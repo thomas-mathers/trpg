@@ -26,10 +26,7 @@ rootCommand.SetAction(
 
         var services = new ServiceCollection();
         services
-            .AddHttpClient(
-                "TrpgServer",
-                httpClient => httpClient.BaseAddress = new Uri(serverUrl)
-            )
+            .AddHttpClient("TrpgServer", httpClient => httpClient.BaseAddress = new Uri(serverUrl))
             .AddStandardResilienceHandler();
         await using var serviceProvider = services.BuildServiceProvider();
         var httpClient = serviceProvider

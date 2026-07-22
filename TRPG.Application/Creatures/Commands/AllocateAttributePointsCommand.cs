@@ -55,9 +55,15 @@ internal class AllocateAttributePointsCommandHandler(
             ApplyDelta(creature.BaseAttributes, attribute, delta);
         }
 
-        creature.BaseAttributes.MaximumHp = statFormulas.CalculateMaximumHp(creature.BaseAttributes);
-        creature.BaseAttributes.MaximumAp = statFormulas.CalculateMaximumAp(creature.BaseAttributes);
-        creature.BaseAttributes.MaximumMp = statFormulas.CalculateMaximumMp(creature.BaseAttributes);
+        creature.BaseAttributes.MaximumHp = statFormulas.CalculateMaximumHp(
+            creature.BaseAttributes
+        );
+        creature.BaseAttributes.MaximumAp = statFormulas.CalculateMaximumAp(
+            creature.BaseAttributes
+        );
+        creature.BaseAttributes.MaximumMp = statFormulas.CalculateMaximumMp(
+            creature.BaseAttributes
+        );
 
         var inventoryItems = await getInventoryByCreatureId.Handle(
             new GetInventoryByCreatureIdQuery { CreatureId = command.CreatureId },

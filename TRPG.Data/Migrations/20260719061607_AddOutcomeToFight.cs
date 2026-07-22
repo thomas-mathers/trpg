@@ -15,15 +15,14 @@ namespace TRPG.Data.Migrations
                 table: "fights",
                 type: "text",
                 nullable: false,
-                defaultValue: "Ongoing");
+                defaultValue: "Ongoing"
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "outcome",
-                table: "fights");
+            migrationBuilder.DropColumn(name: "outcome", table: "fights");
         }
     }
 }

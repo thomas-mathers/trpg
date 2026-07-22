@@ -116,7 +116,8 @@ public class StatFormulas(IOptionsSnapshot<CreatureGeneratorOptions> optionsSnap
     public int CalculateUnallocatedAttributePoints(Attributes attributes, int level)
     {
         var expectedTotal =
-            optionsSnapshot.Value.BaseAttributes.Total() + level * optionsSnapshot.Value.PointsPerLevel;
+            optionsSnapshot.Value.BaseAttributes.Total()
+            + level * optionsSnapshot.Value.PointsPerLevel;
         var currentTotal =
             attributes.Strength
             + attributes.Defense

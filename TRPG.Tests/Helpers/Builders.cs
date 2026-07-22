@@ -9,7 +9,11 @@ namespace TRPG.Tests.Helpers;
 internal static class Builders
 {
     public static StatFormulas MakeStatFormulas(CreatureGeneratorOptions? options = null) =>
-        new(new TestOptionsSnapshot<CreatureGeneratorOptions>(options ?? new CreatureGeneratorOptions()));
+        new(
+            new TestOptionsSnapshot<CreatureGeneratorOptions>(
+                options ?? new CreatureGeneratorOptions()
+            )
+        );
 
     public static Combatant MakeCombatant(
         Guid? creatureId = null,

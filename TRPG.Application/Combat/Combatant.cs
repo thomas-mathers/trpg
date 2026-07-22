@@ -79,7 +79,9 @@ public class Combatant
         IReadOnlyList<UsableItem> usableItems
     )
     {
-        var allAbilities = new Ability[] { basicAttack, blockStance }.Concat(abilities).ToArray();
+        var allAbilities = new Ability[] { basicAttack, blockStance }
+            .Concat(abilities)
+            .ToArray();
         var startingAttributes = StatFormulas.CalculateEffectiveAttributes(
             creature.BaseAttributes,
             [],

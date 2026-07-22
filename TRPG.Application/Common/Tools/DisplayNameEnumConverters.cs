@@ -16,8 +16,11 @@ internal sealed class GenderJsonConverter : JsonConverter<Gender>
         JsonSerializerOptions options
     ) => ParseDisplayName<Gender>(reader.GetString());
 
-    public override void Write(Utf8JsonWriter writer, Gender value, JsonSerializerOptions options) =>
-        writer.WriteStringValue(value.ToContract().ToDisplayName());
+    public override void Write(
+        Utf8JsonWriter writer,
+        Gender value,
+        JsonSerializerOptions options
+    ) => writer.WriteStringValue(value.ToContract().ToDisplayName());
 }
 
 internal sealed class CreatureTypeJsonConverter : JsonConverter<CreatureType>

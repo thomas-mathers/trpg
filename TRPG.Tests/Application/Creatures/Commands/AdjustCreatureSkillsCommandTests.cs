@@ -52,10 +52,12 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
     private async Task<Creature> ReloadCreature()
     {
         await using var freshContext = db.CreateContext();
-        return (await freshContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        ))!;
+        return (
+            await freshContext.Creatures.FindAsync(
+                [_creature.Id],
+                TestContext.Current.CancellationToken
+            )
+        )!;
     }
 
     [Fact]

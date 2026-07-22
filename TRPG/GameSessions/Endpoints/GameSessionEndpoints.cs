@@ -144,11 +144,17 @@ internal static class GameSessionEndpoints
             PlayerStatus: ToCreatureStatusSnapshot(scene.Player),
             NearbyCreatures: scene.NearbyCreatures.Select(ToCreatureStatusSnapshot).ToArray(),
             NearbyDistricts: scene
-                .City?.Districts.Select(d => new NearbyDistrictSnapshot(d.Name, d.Type.ToContract()))
+                .City?.Districts.Select(d => new NearbyDistrictSnapshot(
+                    d.Name,
+                    d.Type.ToContract()
+                ))
                 .ToArray()
                 ?? [],
             NearbyBuildings: scene
-                .NearbyBuildings.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type.ToContract()))
+                .NearbyBuildings.Select(b => new NearbyBuildingSnapshot(
+                    b.Name,
+                    b.Type.ToContract()
+                ))
                 .ToArray(),
             NearbyDungeons: scene
                 .NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type.ToContract()))

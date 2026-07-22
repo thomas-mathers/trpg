@@ -253,10 +253,7 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
     ) =>
         allocation.Count == 0
             ? "None allocated"
-            : string.Join(
-                ", ",
-                allocation.Select(kv => $"{kv.Key.ToDisplayName()} +{kv.Value}")
-            );
+            : string.Join(", ", allocation.Select(kv => $"{kv.Key.ToDisplayName()} +{kv.Value}"));
 
     private async Task<JobStatusResponse> WaitForJobWithProgress(
         Guid jobId,

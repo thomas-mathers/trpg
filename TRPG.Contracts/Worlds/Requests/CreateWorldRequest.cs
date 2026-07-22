@@ -10,10 +10,15 @@ public enum Gender
     Female,
 }
 
-[SuppressMessage("Design", "CA1008", Justification = "Every value is a valid age band; a zero-value 'None' would be an invalid domain state")]
+[SuppressMessage(
+    "Design",
+    "CA1008",
+    Justification = "Every value is a valid age band; a zero-value 'None' would be an invalid domain state"
+)]
 public enum Age
 {
     Teenager = 18,
+
     [Description("Middle Aged")]
     MiddleAged = 40,
     Old = 75,

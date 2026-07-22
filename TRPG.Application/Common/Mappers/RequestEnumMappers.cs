@@ -15,11 +15,10 @@ internal static class RequestEnumMappers
             ContractAttributeName.Stamina => DataAttributeName.Stamina,
             ContractAttributeName.Mana => DataAttributeName.Mana,
             ContractAttributeName.Intelligence => DataAttributeName.Intelligence,
-            _
-                => throw new ArgumentOutOfRangeException(
-                    nameof(attribute),
-                    attribute,
-                    "Attribute is not allocatable."
-                ),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(attribute),
+                attribute,
+                "Attribute is not allocatable."
+            ),
         };
 }

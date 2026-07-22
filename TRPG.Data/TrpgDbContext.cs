@@ -396,6 +396,5 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(m => new { m.SessionId, m.Role });
             entity.Property(m => m.MessageJson).HasColumnType("json");
         });
-
     }
 }

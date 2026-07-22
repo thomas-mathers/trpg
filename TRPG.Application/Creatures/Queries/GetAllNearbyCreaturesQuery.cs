@@ -130,8 +130,8 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
         return await creatureQuery.Select(ToCreatureSummary).ToArrayAsync(cancellationToken);
     }
 
-    private static readonly Expression<Func<Creature, CreatureSummary>> ToCreatureSummary = p =>
-        new CreatureSummary(
+    private static readonly Expression<Func<Creature, CreatureSummary>> ToCreatureSummary =
+        p => new CreatureSummary(
             p.Id,
             p.Name,
             p.CreatureType,
