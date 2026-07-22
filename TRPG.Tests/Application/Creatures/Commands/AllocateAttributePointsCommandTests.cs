@@ -4,7 +4,6 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
@@ -13,13 +12,9 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
 {
     private TrpgDbContext _context = null!;
     private AllocateAttributePointsCommandHandler _handler = null!;
-    private readonly Creature _creature = MakeSeedCreature();
-
-    private static Creature MakeSeedCreature()
-    {
-        var creature = Builders.MakeCreature();
-        creature.Level = 1;
-        creature.BaseAttributes = new Attributes
+    private readonly Creature _creature = Builders.MakeCreature(
+        level: 1,
+        baseAttributes: new Attributes
         {
             Strength = 1,
             Defense = 1,
@@ -28,9 +23,8 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
             Stamina = 1,
             Mana = 1,
             Intelligence = 1,
-        };
-        return creature;
-    }
+        }
+    );
 
     public async ValueTask InitializeAsync()
     {
@@ -41,7 +35,8 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
             Builders.MakeStatFormulas(new CreatureGeneratorOptions { PointsPerLevel = 5 })
         );
 
-        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(_creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

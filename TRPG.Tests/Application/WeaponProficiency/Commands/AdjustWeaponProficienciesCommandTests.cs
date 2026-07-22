@@ -3,7 +3,6 @@ using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.WeaponProficiency.Commands;
 
@@ -25,7 +24,8 @@ public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : 
 
         _worldId = _creature.WorldId;
         _creatureId = _creature.Id;
-        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(_creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

@@ -1,7 +1,6 @@
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -34,10 +33,8 @@ public sealed class GetCreatureIdsByDistrictQueryTests(DatabaseFixture db) : IAs
         var differentDistrict = Builders.MakeCreature(worldId, districtId: Guid.NewGuid());
         var otherWorld = Builders.MakeCreature(districtId: districtId);
 
-        await _context.AddCreature(
-            [inDistrict, differentDistrict, otherWorld],
-            TestContext.Current.CancellationToken
-        );
+        _context.Creatures.AddRange(inDistrict, differentDistrict, otherWorld);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var results = await _handler.Handle(

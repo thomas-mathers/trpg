@@ -3,7 +3,6 @@ using TRPG.Application.Buildings.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Buildings.Commands;
 
@@ -25,7 +24,8 @@ public sealed class RemoveBuildingOwnerCommandTests(DatabaseFixture db) : IAsync
         _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
         _getAllOwnersByBuildingId = new GetAllOwnersByBuildingIdQueryHandler(_context);
 
-        await _context.AddBuilding(_building, TestContext.Current.CancellationToken);
+        _context.Buildings.Add(_building);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

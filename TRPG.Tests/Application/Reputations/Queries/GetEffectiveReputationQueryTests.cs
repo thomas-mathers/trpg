@@ -4,7 +4,6 @@ using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Reputations.Queries;
 
@@ -29,8 +28,11 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
             )
         );
 
-        await _context.AddFaction(_faction, TestContext.Current.CancellationToken);
-        _creatureId = await SeedCreatureId();
+        var creature = Builders.MakeCreature();
+        _context.Factions.Add(_faction);
+        _context.Creatures.Add(creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _creatureId = creature.Id;
     }
 
     public async ValueTask DisposeAsync()
@@ -38,23 +40,13 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
         await _context.DisposeAsync();
     }
 
-    private async Task<Guid> SeedCreatureId()
-    {
-        var creature = await _context.AddCreature(
-            Builders.MakeCreature(),
-            TestContext.Current.CancellationToken
-        );
-        return creature.Id;
-    }
-
     [Fact]
     public async Task Handle_ReturnsZero_WhenNoReputationHistory()
     {
         // Arrange
-        var npc = await _context.AddCreature(
-            Builders.MakeCreature(),
-            TestContext.Current.CancellationToken
-        );
+        var npc = Builders.MakeCreature();
+        _context.Creatures.Add(npc);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(

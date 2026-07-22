@@ -2,7 +2,6 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -20,7 +19,8 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
     {
         _context = db.CreateContext();
         _handler = new GetCreatureKnowledgeQueryHandler(_context);
-        await _context.AddCreature(_asker, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(_asker);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync() => await _context.DisposeAsync();
@@ -177,10 +177,9 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
     public async Task Handle_ExcludesMatchingEntity_WhenAskerHasNoKnowledgeOfIt()
     {
         // Arrange — the person exists but no knowledge row links the asker to them
-        var stranger = await _context.AddCreature(
-            Builders.MakeCreature(WorldId, name: "Elly Tealeaf"),
-            TestContext.Current.CancellationToken
-        );
+        var stranger = Builders.MakeCreature(WorldId, name: "Elly Tealeaf");
+        _context.Creatures.Add(stranger);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var matches = await _handler.Handle(

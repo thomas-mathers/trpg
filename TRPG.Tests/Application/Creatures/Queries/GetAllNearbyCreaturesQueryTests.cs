@@ -2,7 +2,6 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -34,7 +33,8 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         var roomId = Guid.NewGuid();
         var inRoom = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
         var outdoors = Builders.MakeCreature(WorldId, stateId: stateId);
-        await _context.AddCreature([inRoom, outdoors], TestContext.Current.CancellationToken);
+        _context.Creatures.AddRange(inRoom, outdoors);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var location = new CreatureLocation(WorldId, roomId, stateId, null);
 
         // Act
@@ -61,7 +61,8 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
             districtId: districtId,
             roomId: Guid.NewGuid()
         );
-        await _context.AddCreature([outdoors, indoors], TestContext.Current.CancellationToken);
+        _context.Creatures.AddRange(outdoors, indoors);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var location = new CreatureLocation(WorldId, null, stateId, districtId);
 
         // Act
@@ -83,7 +84,8 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         var roomId = Guid.NewGuid();
         var player = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
         var other = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
-        await _context.AddCreature([player, other], TestContext.Current.CancellationToken);
+        _context.Creatures.AddRange(player, other);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var location = new CreatureLocation(WorldId, roomId, stateId, null);
 
         // Act
@@ -105,7 +107,8 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         var roomId = Guid.NewGuid();
         var corpse = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
         corpse.State = CreatureState.Dead;
-        await _context.AddCreature(corpse, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(corpse);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var location = new CreatureLocation(WorldId, roomId, stateId, null);
 
         // Act
@@ -133,7 +136,8 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         // Simulate gear-boosted cached Maximum diverging from base Attributes.MaximumHp,
         // to prove the query reads the cached column rather than the base value.
         creature.MaximumHp += 50;
-        await _context.AddCreature(creature, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var location = new CreatureLocation(WorldId, roomId, stateId, null);
 
         // Act
@@ -161,7 +165,8 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
             profession: null,
             roomId: roomId
         );
-        await _context.AddCreature(minor, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(minor);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var location = new CreatureLocation(WorldId, roomId, stateId, null);
 
         // Act
@@ -184,7 +189,8 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         var corpse = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
         corpse.State = CreatureState.Dead;
         var alive = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
-        await _context.AddCreature([corpse, alive], TestContext.Current.CancellationToken);
+        _context.Creatures.AddRange(corpse, alive);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var location = new CreatureLocation(WorldId, roomId, stateId, null);
 
         // Act

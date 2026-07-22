@@ -3,7 +3,6 @@ using TRPG.Application.Buildings.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Buildings.Queries;
 
@@ -24,7 +23,8 @@ public sealed class GetStaticPropsByRoomIdQueryTests(DatabaseFixture db) : IAsyn
             new MemoryCache(new MemoryCacheOptions())
         );
 
-        await _context.AddBuilding(_building, TestContext.Current.CancellationToken);
+        _context.Buildings.Add(_building);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -36,10 +36,8 @@ public sealed class GetStaticPropsByRoomIdQueryTests(DatabaseFixture db) : IAsyn
     public async Task Handle_ReturnsNonConnectorProps()
     {
         // Arrange
-        var room = await _context.AddRoom(
-            Builders.MakeRoom(_building.Id),
-            TestContext.Current.CancellationToken
-        );
+        var room = Builders.MakeRoom(_building.Id);
+        _context.Rooms.Add(room);
 
         var prop = new Seat
         {

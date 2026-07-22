@@ -2,7 +2,6 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -11,21 +10,15 @@ public sealed class GetCreatureLevelQueryTests(DatabaseFixture db) : IAsyncLifet
 {
     private TrpgDbContext _context = null!;
     private GetCreatureLevelQueryHandler _handler = null!;
-    private readonly Creature _creature = MakeSeedCreature();
-
-    private static Creature MakeSeedCreature()
-    {
-        var creature = Builders.MakeCreature();
-        creature.Level = 7;
-        return creature;
-    }
+    private readonly Creature _creature = Builders.MakeCreature(level: 7);
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _handler = new GetCreatureLevelQueryHandler(_context);
 
-        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(_creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

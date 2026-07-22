@@ -1,7 +1,6 @@
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -35,7 +34,8 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
         // Arrange
         var roomId = Guid.NewGuid();
         var target = Builders.MakeCreature(WorldId, roomId: roomId);
-        await _context.AddCreature(target, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(target);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var player = Builders.MakeCreature(WorldId, roomId: roomId);
 
         // Act
@@ -60,7 +60,8 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
         // Arrange
         var districtId = Guid.NewGuid();
         var target = Builders.MakeCreature(WorldId, districtId: districtId);
-        await _context.AddCreature(target, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(target);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var player = Builders.MakeCreature(WorldId, districtId: districtId);
 
         // Act
@@ -85,7 +86,8 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
         // Arrange
         var stateId = Guid.NewGuid();
         var target = Builders.MakeCreature(WorldId, stateId: stateId);
-        await _context.AddCreature(target, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(target);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var player = Builders.MakeCreature(WorldId, stateId: stateId);
 
         // Act

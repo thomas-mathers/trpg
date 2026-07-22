@@ -8,7 +8,6 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
@@ -36,11 +35,10 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     {
         _context = db.CreateContext();
 
+        _session = Builders.MakeGameSession(_creature.WorldId, _creature.Id);
         _context.Creatures.Add(_creature);
-        _session = await _context.AddGameSession(
-            Builders.MakeGameSession(_creature.WorldId, _creature.Id),
-            TestContext.Current.CancellationToken
-        );
+        _context.GameSessions.Add(_session);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _sessionId = _session.Id;
 
         _handler = new ApplyPassiveRegenCommandHandler(

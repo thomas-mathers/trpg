@@ -3,7 +3,6 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
 using ActiveDot = TRPG.Application.Combat.ActiveDot;
 using ActiveHot = TRPG.Application.Combat.ActiveHot;
@@ -26,7 +25,8 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
         _context = db.CreateContext();
         _handler = new PersistCombatantsCommandHandler(_context);
 
-        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(_creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -94,10 +94,9 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_PersistsEveryCombatant_WhenGivenMultiple()
     {
         // Arrange
-        var otherCreature = await _context.AddCreature(
-            Builders.MakeCreature(),
-            TestContext.Current.CancellationToken
-        );
+        var otherCreature = Builders.MakeCreature();
+        _context.Creatures.Add(otherCreature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var aliveCombatant = Builders.MakeCombatant(
             _creature.Id,

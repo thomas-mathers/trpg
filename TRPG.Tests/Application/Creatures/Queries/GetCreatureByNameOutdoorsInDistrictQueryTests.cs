@@ -1,7 +1,6 @@
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -32,7 +31,8 @@ public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixtur
         // Arrange
         var districtId = Guid.NewGuid();
         var creature = Builders.MakeCreature(WorldId, districtId: districtId);
-        await _context.AddCreature(creature, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
@@ -55,7 +55,8 @@ public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixtur
     {
         // Arrange
         var creature = Builders.MakeCreature(WorldId, districtId: Guid.NewGuid());
-        await _context.AddCreature(creature, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(

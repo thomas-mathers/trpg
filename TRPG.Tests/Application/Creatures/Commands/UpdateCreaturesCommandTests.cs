@@ -3,7 +3,6 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
@@ -22,7 +21,8 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         _context = db.CreateContext();
         _handler = new UpdateCreaturesCommandHandler(_context);
 
-        await _context.AddCreature(_creature, TestContext.Current.CancellationToken);
+        _context.Creatures.Add(_creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -197,10 +197,9 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
     public async Task Handle_UpdatesState_ForEveryCreatureId_WhenGivenMultiple()
     {
         // Arrange
-        var otherCreature = await _context.AddCreature(
-            Builders.MakeCreature(),
-            TestContext.Current.CancellationToken
-        );
+        var otherCreature = Builders.MakeCreature();
+        _context.Creatures.Add(otherCreature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         await _handler.Handle(

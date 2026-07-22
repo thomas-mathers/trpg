@@ -48,12 +48,14 @@ internal static class Builders
         Guid? roomId = null,
         int birthYear = 1000,
         string name = "Test Creature",
+        int level = 1,
+        Attributes? baseAttributes = null,
         int? currentHp = null,
         int? currentAp = null,
         int? currentMp = null
     )
     {
-        var attributes = MakeAttributes();
+        var attributes = baseAttributes ?? MakeAttributes();
 
         return new Creature
         {
@@ -67,7 +69,7 @@ internal static class Builders
             CityId = cityId,
             DistrictId = districtId,
             RoomId = roomId,
-            Level = 1,
+            Level = level,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,

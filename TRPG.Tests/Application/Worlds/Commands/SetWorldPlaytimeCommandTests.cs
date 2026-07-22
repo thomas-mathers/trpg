@@ -2,7 +2,6 @@ using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
@@ -18,7 +17,8 @@ public sealed class SetWorldPlaytimeCommandTests(DatabaseFixture db) : IAsyncLif
         _context = db.CreateContext();
         _handler = new SetWorldPlaytimeCommandHandler(_context);
 
-        await _context.AddWorld(_world, TestContext.Current.CancellationToken);
+        _context.Worlds.Add(_world);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

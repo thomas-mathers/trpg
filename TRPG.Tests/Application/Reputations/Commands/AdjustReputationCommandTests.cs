@@ -3,7 +3,6 @@ using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Reputations.Commands;
 
@@ -22,7 +21,8 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         _handler = new AdjustReputationCommandHandler(_context);
         _getAllByCreatureId = new GetAllReputationsByCreatureIdQueryHandler(_context);
 
-        await _context.AddFaction(_faction, TestContext.Current.CancellationToken);
+        _context.Factions.Add(_faction);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _creatureId = await SeedCreatureId();
     }
 
@@ -33,10 +33,9 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
 
     private async Task<Guid> SeedCreatureId()
     {
-        var creature = await _context.AddCreature(
-            Builders.MakeCreature(),
-            TestContext.Current.CancellationToken
-        );
+        var creature = Builders.MakeCreature();
+        _context.Creatures.Add(creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return creature.Id;
     }
 

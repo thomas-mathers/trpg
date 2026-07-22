@@ -3,7 +3,6 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
@@ -32,9 +31,8 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         var worldId = Guid.NewGuid();
         var target = Builders.MakeCreature(worldId);
         var other = Builders.MakeCreature(worldId);
-        await _context.AddCreature([target, other], TestContext.Current.CancellationToken);
-
         var quest = Builders.MakeQuest(other.Id, worldId);
+        _context.Creatures.AddRange(target, other);
         _context.Quests.Add(quest);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

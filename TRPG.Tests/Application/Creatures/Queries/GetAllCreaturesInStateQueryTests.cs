@@ -1,7 +1,6 @@
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -34,10 +33,8 @@ public sealed class GetAllCreaturesInStateQueryTests(DatabaseFixture db) : IAsyn
         var differentState = Builders.MakeCreature(worldId);
         var otherWorld = Builders.MakeCreature(stateId: stateId);
 
-        await _context.AddCreature(
-            [inState, differentState, otherWorld],
-            TestContext.Current.CancellationToken
-        );
+        _context.Creatures.AddRange(inState, differentState, otherWorld);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var results = await _handler.Handle(

@@ -3,7 +3,6 @@ using TRPG.Application.Scenes.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Scenes.Queries;
 
@@ -59,10 +58,8 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
             otherWorldId,
             name: $"Elsewhere-{Guid.NewGuid():N}"
         );
-        await _context.AddCreature(
-            [creatureHere, creatureElsewhere],
-            TestContext.Current.CancellationToken
-        );
+        _context.Creatures.AddRange(creatureHere, creatureElsewhere);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(

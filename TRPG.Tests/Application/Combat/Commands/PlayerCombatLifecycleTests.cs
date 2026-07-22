@@ -12,7 +12,6 @@ using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Combat.Commands;
 
@@ -80,12 +79,10 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
             creatureType: CreatureType.Beast,
             stateId: stateId
         );
+        var session = Builders.MakeGameSession(worldId, playerResult.Creature.Id);
         _context.Creatures.Add(enemy);
-
-        var session = await _context.AddGameSession(
-            Builders.MakeGameSession(worldId, playerResult.Creature.Id),
-            TestContext.Current.CancellationToken
-        );
+        _context.GameSessions.Add(session);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert — freshly created character starts at full, cache-consistent resources
         await using (var freshContext = db.CreateContext())

@@ -235,7 +235,8 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
         _context = db.CreateContext();
         _service = new FooService(_context);
 
-        await _context.AddSomeEntity(_entity, TestContext.Current.CancellationToken);
+        _context.SomeEntities.Add(_entity);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync() => await _context.DisposeAsync();
@@ -247,14 +248,14 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 - A scalar seed value (a `Guid.NewGuid()` id shared across the class) is `private static readonly`, PascalCase, initialized inline — it isn't per-instance mutable state, so it doesn't get the `_camelCase` treatment
 - An entity built via `Builders.MakeX(...)` that needs no DB access to construct is a `private readonly` instance field with an inline initializer, not `null!` assigned later in `InitializeAsync`
 - `InitializeAsync` is reserved for genuinely async, DB-touching work only: constructing handlers that depend on `_context`, and persisting the already-constructed seed entities. If a field's value can be computed synchronously, it doesn't belong in `InitializeAsync`
-- Add `private async Task<T> Seed*(...)` helper methods for entities needed by only a subset of tests, or for entities with test-class-specific shape (e.g. seeding a join-row with this class's own `WorldId`) — these stay local, they're not identical across test classes
+- Add `private async Task<T> Seed*(...)` helper methods for entities needed by only a subset of tests, or for entities with test-class-specific shape (e.g. seeding a join-row with this class's own `WorldId`) — these stay local, they're not identical across test classes. Never add a `Seed*`-style wrapper for something only one call site needs — inline it there instead
 - Seed helpers add to context, save, and return the entity
 - Seed helpers return a single entity — never a tuple; use separate helpers if a test needs multiple seeded entities
 
-### Shared TrpgDbContext helpers
-- `TrpgDbContextExtensions` (`TRPG.Tests/Helpers/Extensions/TrpgDbContextExtensions.cs`, `internal static class`) holds extension methods on `TrpgDbContext` for persistence operations that are identical across every test class — add the entity, save, return it (e.g. `context.AddCreature(creature, cancellationToken)`)
-- Only promote a method here once it's the same generic shape everywhere it's used — no test-specific defaults or business logic. A helper that embeds this-class-specific shape (e.g. seeding a join-row using this test class's own `WorldId`) stays a private method in that test file instead
-- `Builders` stays responsible for constructing valid entities; `TrpgDbContextExtensions` stays responsible for persisting them — don't fold construction logic into an extension method
+### Persisting seeded entities
+- `Builders` is the only place that builds entities; persistence is always a plain `context.Xs.Add(entity)` / `.AddRange(...)` followed by exactly one `await context.SaveChangesAsync(cancellationToken)` for that whole `InitializeAsync` method or that whole test's Arrange section — regardless of how many entity types are involved
+- There is no shared "add-and-save" extension helper (a `TrpgDbContextExtensions` along those lines was tried and removed) — one auto-saving call per entity type means one Postgres round-trip per call, and mixing an auto-saving helper with plain `.Add()` calls for other types in the same setup step leaves some rows committed before others, which is exactly the partial-commit risk a single shared save avoids
+- This applies uniformly whether the entities being added are all the same type or a mix (e.g. a `Country` + `State` + `City` seeded together for one test) — build every entity first with `Builders`, `.Add()`/`.AddRange()` each into its DbSet, then one `SaveChangesAsync`
 
 ### Builders
 - Named `Make{Entity}`: `Builders.MakePerson()`, `Builders.MakeItem()`, `Builders.MakeSkill()`, `Builders.MakeQuest(giverId)`

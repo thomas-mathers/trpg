@@ -9,7 +9,6 @@ using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Combat.Commands;
 
@@ -60,11 +59,10 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             )
         );
 
+        var session = Builders.MakeGameSession(WorldId, _player.Id, TimeSpan.FromHours(1));
         _context.Creatures.AddRange(_player, _enemy);
-        var session = await _context.AddGameSession(
-            Builders.MakeGameSession(WorldId, _player.Id, TimeSpan.FromHours(1)),
-            TestContext.Current.CancellationToken
-        );
+        _context.GameSessions.Add(session);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _sessionId = session.Id;
     }
 
@@ -72,12 +70,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     {
         await _context.DisposeAsync();
     }
-
-    private async Task<Fight> SeedActiveFight() =>
-        await _context.AddFight(
-            Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]),
-            TestContext.Current.CancellationToken
-        );
 
     private CombatantState MakeCombatantState(
         Guid id,
@@ -108,7 +100,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_PersistsCombatantState_Always()
     {
         // Arrange
-        await SeedActiveFight();
+        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var playerCombatant = MakePlayerCombatant(currentHp: 33);
         var state = new CombatState(
             Outcome: CombatOutcome.Ongoing,
@@ -149,7 +142,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_AdjustsWeaponProficiencies_WhenSwingsOccurred()
     {
         // Arrange
-        await SeedActiveFight();
+        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var state = new CombatState(
             Outcome: CombatOutcome.Ongoing,
             Combatants:
@@ -193,7 +187,9 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_EndsFight_OnVictory()
     {
         // Arrange
-        var fight = await SeedActiveFight();
+        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
+        _context.Fights.Add(fight);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var state = new CombatState(
             Outcome: CombatOutcome.Victory,
             Combatants:
@@ -234,7 +230,9 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_LeavesFightOngoing_WhenOutcomeIsOngoing()
     {
         // Arrange
-        var fight = await SeedActiveFight();
+        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
+        _context.Fights.Add(fight);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var state = new CombatState(
             Outcome: CombatOutcome.Ongoing,
             Combatants:
@@ -275,7 +273,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_ReturnsCombatResult_MatchingState()
     {
         // Arrange
-        await SeedActiveFight();
+        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var state = new CombatState(
             Outcome: CombatOutcome.Ongoing,
             Combatants:

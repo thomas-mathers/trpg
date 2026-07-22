@@ -2,7 +2,6 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Tests.Helpers.Extensions;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
@@ -19,7 +18,8 @@ public sealed class GetCreaturesByIdsQueryTests(DatabaseFixture db) : IAsyncLife
         _context = db.CreateContext();
         _handler = new GetCreaturesByIdsQueryHandler(_context);
 
-        await _context.AddCreature([_creatureA, _creatureB], TestContext.Current.CancellationToken);
+        _context.Creatures.AddRange(_creatureA, _creatureB);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
