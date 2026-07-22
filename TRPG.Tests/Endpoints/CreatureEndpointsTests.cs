@@ -166,7 +166,8 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
     [Fact]
     public async Task GetAttributePoints_ReturnsUnallocatedPoints()
     {
-        // Arrange — 7 base stats at 1 each, level 1, default pointsPerLevel 5 => 12 - 7 = 5
+        // Arrange — configured BaseAttributes total is 35 (5 per stat), level 1, pointsPerLevel 5
+        // => expected 40; creature's 7 base stats at 1 each = 7 => 40 - 7 = 33
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -198,7 +199,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(result);
-        Assert.Equal(5, result.UnallocatedPoints);
+        Assert.Equal(33, result.UnallocatedPoints);
     }
 
     [Fact]

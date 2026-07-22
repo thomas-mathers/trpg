@@ -31,7 +31,7 @@ public sealed class CreatureGenerationEndpointsTests(EndpointTestFixture fixture
             TestContext.Current.CancellationToken
         );
 
-        // Assert — matches CreatureGeneratorOptions' code defaults (no test-specific override)
+        // Assert — matches appsettings.json's CreatureGenerator section (no test-specific override)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<CreatureGenerationOptionsResponse>(
             TrpgJsonOptions.Default,
@@ -39,12 +39,12 @@ public sealed class CreatureGenerationEndpointsTests(EndpointTestFixture fixture
         );
         Assert.NotNull(result);
         Assert.Equal(5, result.PointsPerLevel);
-        Assert.Equal(1, result.BaseAttributes.Strength);
-        Assert.Equal(1, result.BaseAttributes.Defense);
-        Assert.Equal(1, result.BaseAttributes.Dexterity);
-        Assert.Equal(1, result.BaseAttributes.Endurance);
-        Assert.Equal(1, result.BaseAttributes.Stamina);
-        Assert.Equal(1, result.BaseAttributes.Mana);
-        Assert.Equal(1, result.BaseAttributes.Intelligence);
+        Assert.Equal(5, result.BaseAttributes.Strength);
+        Assert.Equal(5, result.BaseAttributes.Defense);
+        Assert.Equal(5, result.BaseAttributes.Dexterity);
+        Assert.Equal(5, result.BaseAttributes.Endurance);
+        Assert.Equal(5, result.BaseAttributes.Stamina);
+        Assert.Equal(5, result.BaseAttributes.Mana);
+        Assert.Equal(5, result.BaseAttributes.Intelligence);
     }
 }
