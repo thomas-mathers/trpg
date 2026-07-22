@@ -13,7 +13,7 @@ public class Fight
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid WorldId { get; init; }
     public Guid PlayerId { get; init; }
-    public List<Guid> CombatantIds { get; set; } = [];
+    public IReadOnlyList<Guid> CombatantIds { get; init; } = [];
     public DateTime StartedAt { get; init; }
     public DateTime? CompletedAt { get; set; }
     public CombatOutcome Outcome { get; set; } = CombatOutcome.Ongoing;

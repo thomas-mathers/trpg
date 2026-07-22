@@ -24,7 +24,7 @@ internal sealed class CombatMenu(
         Flee,
     }
 
-    private record MenuOption<T>(string Label, T? Value = default);
+    private sealed record MenuOption<T>(string Label, T? Value = default);
 
     public async Task RunTurn(FightState fight, CancellationToken cancellationToken)
     {

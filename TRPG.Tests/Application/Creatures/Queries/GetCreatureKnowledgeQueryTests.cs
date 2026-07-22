@@ -8,6 +8,8 @@ namespace TRPG.Tests.Application.Creatures.Queries;
 [Collection("Database")]
 public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly string[] EllyMatches = ["Elly Brown", "Elly Tealeaf"];
+
     private TrpgDbContext _context = null!;
     private GetCreatureKnowledgeQueryHandler _handler = null!;
     private Guid _worldId;
@@ -109,10 +111,7 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
         Assert.NotNull(matches[0].Result);
         Assert.Null(matches[1].Result);
         Assert.All(matches, m => Assert.Equal(1.0, m.Similarity, 3));
-        Assert.Equal(
-            new[] { "Elly Brown", "Elly Tealeaf" },
-            matches.Select(m => m.Name).OrderBy(n => n).ToArray()
-        );
+        Assert.Equal(EllyMatches, matches.Select(m => m.Name).OrderBy(n => n).ToArray());
     }
 
     [Fact]

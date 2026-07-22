@@ -98,6 +98,7 @@ public class CombatEngine(
             ResourceType.Hp => (actor.CurrentHp, actor.MaximumHp),
             ResourceType.Ap => (actor.CurrentAp, actor.MaximumAp),
             ResourceType.Mp => (actor.CurrentMp, actor.MaximumMp),
+            _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
         var remainingValue = Math.Min(currentValue + item.Amount, maximumValue);

@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Globalization;
 using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
@@ -250,7 +251,7 @@ internal sealed class SlashCommandRegistry(
                 {
                     c.Name,
                     AnsiConsole.FormatCreatureChip(c.CreatureType),
-                    c.Level.ToString(),
+                    c.Level.ToString(CultureInfo.InvariantCulture),
                     FormatReputation(c.Reputation ?? 0),
                     FormatStatusBars(
                         c.CurrentHp,
@@ -360,9 +361,9 @@ internal sealed class SlashCommandRegistry(
             ["Name", status.Name.EscapeMarkup()],
             ["Race", AnsiConsole.FormatCreatureChip(status.CreatureType)],
             ["Gender", AnsiConsole.FormatNeutralChip(status.Gender)],
-            ["Level", status.Level.ToString()],
-            ["Age", status.Age.ToString()],
-            ["Gold", status.Gold.ToString()],
+            ["Level", status.Level.ToString(CultureInfo.InvariantCulture)],
+            ["Age", status.Age.ToString(CultureInfo.InvariantCulture)],
+            ["Gold", status.Gold.ToString(CultureInfo.InvariantCulture)],
         ];
 
         if (status.Profession is { } profession)
@@ -419,7 +420,7 @@ internal sealed class SlashCommandRegistry(
                 new[]
                 {
                     AnsiConsole.FormatNeutralChip(s.Skill),
-                    s.Level.ToString(),
+                    s.Level.ToString(CultureInfo.InvariantCulture),
                     $"{AnsiConsole.FormatBar(s.ExperienceCurrent, s.ExperienceToNextLevel, Theme.XpBar, width: 14)} {s.ExperienceCurrent}/{s.ExperienceToNextLevel}",
                 }
             )
@@ -442,9 +443,9 @@ internal sealed class SlashCommandRegistry(
                     a.Name,
                     AnsiConsole.FormatNeutralChip(a.Skill),
                     a.Description,
-                    a.ApCost.ToString(),
-                    a.MpCost.ToString(),
-                    a.Cooldown.ToString(),
+                    a.ApCost.ToString(CultureInfo.InvariantCulture),
+                    a.MpCost.ToString(CultureInfo.InvariantCulture),
+                    a.Cooldown.ToString(CultureInfo.InvariantCulture),
                 }
             )
         );

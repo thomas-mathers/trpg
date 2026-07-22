@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using TRPG.Contracts.Combat.Responses;
 
 namespace TRPG.Contracts.Worlds.Requests;
@@ -9,6 +10,7 @@ public enum Gender
     Female,
 }
 
+[SuppressMessage("Design", "CA1008", Justification = "Every value is a valid age band; a zero-value 'None' would be an invalid domain state")]
 public enum Age
 {
     Teenager = 18,
