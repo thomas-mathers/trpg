@@ -40,6 +40,14 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 
 ---
 
+## Formatting
+
+- CSharpier formats the whole solution; version is pinned in `.config/dotnet-tools.json` (a local dotnet tool manifest) so CI and every machine use the exact same version — `dotnet tool restore` fetches it, then `dotnet csharpier format .` / `dotnet csharpier check .` run it
+- CI runs `dotnet csharpier check .` and fails the build on any unformatted file
+- One-time local setup: `git config core.hooksPath .githooks` — this points git at the checked-in `.githooks/pre-commit` hook, which runs `dotnet csharpier check .` before every commit and blocks it if anything is unformatted (run `dotnet csharpier format .` yourself and re-stage; the hook never auto-formats or rewrites files for you)
+
+---
+
 ## C# Style
 
 ### General
