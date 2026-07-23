@@ -54,7 +54,8 @@ internal static class Builders
         Attributes? baseAttributes = null,
         int? currentHp = null,
         int? currentAp = null,
-        int? currentMp = null
+        int? currentMp = null,
+        CreatureState state = default
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -72,6 +73,7 @@ internal static class Builders
             DistrictId = districtId,
             RoomId = roomId,
             Level = level,
+            State = state,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,
@@ -331,14 +333,15 @@ internal static class Builders
     public static District MakeDistrict(
         Guid cityId,
         DistrictType districtType = DistrictType.CityCenter,
-        Guid? worldId = null
+        Guid? worldId = null,
+        string? name = null
     )
     {
         return new District
         {
             CityId = cityId,
             DistrictType = districtType,
-            Name = $"District-{Guid.NewGuid():N}",
+            Name = name ?? $"District-{Guid.NewGuid():N}",
             Description = "A test district",
             WorldId = worldId ?? Guid.NewGuid(),
         };

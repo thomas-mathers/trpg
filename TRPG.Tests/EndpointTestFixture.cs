@@ -101,7 +101,7 @@ public sealed class EndpointTestFixture : IAsyncLifetime
                 services.AddKeyedSingleton<IChatClient>(LlmRoleKeys.WorldGeneration, ChatClient);
                 services.AddKeyedSingleton<IChatClient>(
                     LlmRoleKeys.Gameplay,
-                    (_, _) => ((IChatClient)ChatClient).AsBuilder().UseFunctionInvocation().Build()
+                    (_, _) => ChatClient.AsBuilder().UseFunctionInvocation().Build()
                 );
             });
         });

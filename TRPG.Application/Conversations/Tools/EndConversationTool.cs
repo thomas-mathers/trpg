@@ -5,16 +5,12 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.GameSessions;
-using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Queries;
 
 namespace TRPG.Application.Conversations.Tools;
 
 internal class EndConversationTool(
     GameTurnContext turnContext,
-    SetConversationSummaryCommandHandler setConversationSummary,
-    GetGameSessionQueryHandler getGameSession,
-    UpdateGameSessionCommandHandler updateGameSession,
+    CloseConversationCommandHandler closeConversation,
     ILogger<EndConversationTool> logger
 ) : IGameTool
 {
@@ -39,36 +35,23 @@ internal class EndConversationTool(
         logger.LogInformation("[end_conversation] npcName={NpcName}", npcName);
         var stopwatch = Stopwatch.StartNew();
 
-        var snapshot = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = turnContext.SessionId },
+        var outcome = await closeConversation.Handle(
+            new CloseConversationCommand
+            {
+                SessionId = turnContext.SessionId,
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+                NpcName = npcName,
+                Summary = summary,
+            },
             cancellationToken
         );
-        if (!snapshot.OpenConversationCreatureIdsByName.TryGetValue(npcName, out var npcId))
+        if (outcome == CloseConversationOutcome.NotOpen)
         {
             return new ToolError(
                 $"No open conversation with '{npcName}'. Call start_conversation first."
             );
         }
-
-        await setConversationSummary.Handle(
-            new SetConversationSummaryCommand
-            {
-                WorldId = turnContext.WorldId,
-                CreatureId = turnContext.PlayerId,
-                NpcId = npcId,
-                Summary = summary,
-            },
-            cancellationToken
-        );
-        snapshot.OpenConversationCreatureIdsByName.Remove(npcName);
-        await updateGameSession.Handle(
-            new UpdateGameSessionCommand
-            {
-                SessionId = turnContext.SessionId,
-                OpenConversationCreatureIdsByName = snapshot.OpenConversationCreatureIdsByName,
-            },
-            cancellationToken
-        );
 
         var result = new { Saved = true };
         logger.LogInformation(
