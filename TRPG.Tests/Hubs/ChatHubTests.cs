@@ -1,8 +1,12 @@
 using System.Net.Http.Json;
+using System.Text;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
+using TRPG.Data.Models;
+using TRPG.GameSessions.Requests;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Hubs;
@@ -12,6 +16,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 {
     private HttpClient _client = null!;
     private Guid _worldId;
+    private Guid _playerId;
+    private Guid _stateId;
+    private Guid _districtId;
 
     public async ValueTask InitializeAsync()
     {
@@ -23,21 +30,36 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var world = Builders.MakeWorld();
         var country = Builders.MakeCountry(world.Id);
         var state = Builders.MakeState(country.Id, world.Id);
-        var player = Builders.MakeCreature(world.Id, stateId: state.Id);
+        var city = Builders.MakeCity(state.Id, country.Id, worldId: world.Id);
+        var district = Builders.MakeDistrict(city.Id, worldId: world.Id);
+        var player = Builders.MakeCreature(
+            world.Id,
+            stateId: state.Id,
+            cityId: city.Id,
+            districtId: district.Id
+        );
         world.PlayerId = player.Id;
 
         context.Worlds.Add(world);
         context.Countries.Add(country);
         context.States.Add(state);
+        context.Cities.Add(city);
+        context.Districts.Add(district);
         context.Creatures.Add(player);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _worldId = world.Id;
+        _playerId = player.Id;
+        _stateId = state.Id;
+        _districtId = district.Id;
     }
 
     public ValueTask DisposeAsync()
     {
         _client.Dispose();
+        fixture.ChatClient.PendingToolCallName = null;
+        fixture.ChatClient.PendingToolCallArguments = null;
+        fixture.ChatClient.ChatResponseText = "You look around. What do you want to do next?";
         return ValueTask.CompletedTask;
     }
 
@@ -52,6 +74,53 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         return result!.SessionId;
+    }
+
+    private async Task<Creature> SeedHostileCreature()
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+
+        var creature = Builders.MakeCreature(
+            _worldId,
+            name: "Wraith",
+            creatureType: CreatureType.Beast,
+            stateId: _stateId,
+            districtId: _districtId
+        );
+        context.Creatures.Add(creature);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return creature;
+    }
+
+    private Task<HttpResponseMessage> SendAdminChat(Guid sessionId, string message) =>
+        _client.PostAsJsonAsync(
+            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
+            new ChatRequest(message),
+            TestContext.Current.CancellationToken
+        );
+
+    private async Task StartFight(Guid sessionId, Creature enemy)
+    {
+        fixture.ChatClient.PendingToolCallName = "attack";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["abilityName"] = "Strike",
+            ["targetName"] = enemy.Name,
+        };
+        await SendAdminChat(sessionId, $"I attack {enemy.Name}");
+        fixture.ChatClient.PendingToolCallName = null;
+        fixture.ChatClient.PendingToolCallArguments = null;
+    }
+
+    private static async Task<string> Drain(IAsyncEnumerable<string> tokens)
+    {
+        var builder = new StringBuilder();
+        await foreach (var token in tokens)
+        {
+            builder.Append(token);
+        }
+        return builder.ToString();
     }
 
     [Fact]
@@ -81,5 +150,207 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Act & Assert
         await secondConnection.StartAsync(TestContext.Current.CancellationToken);
         Assert.Equal(HubConnectionState.Connected, secondConnection.State);
+    }
+
+    [Fact]
+    public async Task ReceiveOpening_NarratesTheOpeningScene_AndPersistsTheReply()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>("ReceiveOpening", TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var persisted = await context.ChatMessages.SingleAsync(
+            m => m.SessionId == sessionId && m.Role == "assistant",
+            TestContext.Current.CancellationToken
+        );
+        Assert.Contains(
+            fixture.ChatClient.ChatResponseText,
+            persisted.MessageJson,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task SendWait_AdvancesTimeAndNarrates()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>("SendWait", 3, TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var session = await context.GameSessions.SingleAsync(
+            s => s.Id == sessionId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.True(session.Playtime > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task SendChat_PersistsTheUserMessage_AndNarratesTheReply()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>(
+                "SendChat",
+                "I look around.",
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var userMessage = await context.ChatMessages.SingleAsync(
+            m => m.SessionId == sessionId && m.Role == "user",
+            TestContext.Current.CancellationToken
+        );
+        Assert.Contains("I look around.", userMessage.MessageJson, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SendCombatAction_ResolvesTheAttack_AndNarratesTheOutcome()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>(
+                "SendCombatAction",
+                "Strike",
+                enemy.Name,
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert — outcome deliberately isn't asserted (a hit/miss roll would make this flaky);
+        // proving the round was resolved and the fight is still tracked is enough
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var fight = await context.Fights.SingleAsync(
+            f => f.PlayerId == _playerId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CombatOutcome.Ongoing, fight.Outcome);
+    }
+
+    [Fact]
+    public async Task SendCombatAction_ReturnsAMessage_WhenNoFightIsActive()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>(
+                "SendCombatAction",
+                "Strike",
+                "Wraith",
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Equal("There's no fight to act in right now.", narration);
+    }
+
+    [Fact]
+    public async Task SendCombatAction_ReturnsTheRejectionReason_WhenActionIsInvalid()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>(
+                "SendCombatAction",
+                "Nonexistent Move",
+                enemy.Name,
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Equal("Item Nonexistent Move not found", narration);
+    }
+
+    [Fact]
+    public async Task SendFlee_EndsTheFight_AndNarratesTheEscape()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var fight = await context.Fights.SingleAsync(
+            f => f.PlayerId == _playerId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CombatOutcome.Fled, fight.Outcome);
+        Assert.NotNull(fight.CompletedAt);
+    }
+
+    [Fact]
+    public async Task SendFlee_ReturnsAMessage_WhenNoFightIsActive()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal("There's no fight to flee from right now.", narration);
     }
 }
