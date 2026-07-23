@@ -267,8 +267,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             )
         );
 
-        // Assert — outcome deliberately isn't asserted (a hit/miss roll would make this flaky);
-        // proving the round was resolved and the fight is still tracked is enough
+        // Assert — the exact HP change isn't asserted (a hit/miss roll would make that flaky);
+        // Outcome staying Ongoing is safe to assert since one round from full health can't
+        // plausibly end the fight either way
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
         var fight = await GetFight();
         Assert.Equal(CombatOutcome.Ongoing, fight.Outcome);
