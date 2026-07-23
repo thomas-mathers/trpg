@@ -33,9 +33,36 @@ internal static class AttributeAllocationPrompt
         AttributeName? Attribute = null
     );
 
-    public static async Task<IReadOnlyDictionary<AttributeName, int>?> Run(
+    // Spending leftover points from a level-up — additive only, never below the current value.
+    public static Task<IReadOnlyDictionary<AttributeName, int>?> Run(
         int totalPoints,
         BaseAttributesResponse baseAttributes,
+        CancellationToken cancellationToken
+    ) =>
+        RunLoop(
+            totalPoints,
+            baseAttributes,
+            canDecrease: (_, delta) => delta > 0,
+            cancellationToken
+        );
+
+    // Character creation — an attribute can be lowered below its base to fund another, down to a floor of 1.
+    public static Task<IReadOnlyDictionary<AttributeName, int>?> RunAtCreation(
+        int totalPoints,
+        BaseAttributesResponse baseAttributes,
+        CancellationToken cancellationToken
+    ) =>
+        RunLoop(
+            totalPoints,
+            baseAttributes,
+            canDecrease: (current, delta) => current + delta - 1 >= 1,
+            cancellationToken
+        );
+
+    private static async Task<IReadOnlyDictionary<AttributeName, int>?> RunLoop(
+        int totalPoints,
+        BaseAttributesResponse baseAttributes,
+        Func<int, int, bool> canDecrease,
         CancellationToken cancellationToken
     )
     {
@@ -50,7 +77,7 @@ internal static class AttributeAllocationPrompt
                 new SelectionPrompt<MenuOption>()
                     .Title("Choose an action:")
                     .UseConverter(o => o.Label)
-                    .AddChoices(BuildChoices(deltas, remaining)),
+                    .AddChoices(BuildChoices(baseAttributes, deltas, remaining, canDecrease)),
                 cancellationToken
             );
 
@@ -66,7 +93,7 @@ internal static class AttributeAllocationPrompt
                     remaining--;
                     break;
                 case MenuAction.Decrease:
-                    var updated = deltas[chosen.Attribute!.Value] - 1;
+                    var updated = deltas.GetValueOrDefault(chosen.Attribute!.Value) - 1;
                     if (updated == 0)
                     {
                         deltas.Remove(chosen.Attribute.Value);
@@ -98,7 +125,12 @@ internal static class AttributeAllocationPrompt
                 {
                     a.ToDisplayName(),
                     current.ToString(CultureInfo.InvariantCulture),
-                    delta == 0 ? "" : $"+{delta}",
+                    delta switch
+                    {
+                        0 => "",
+                        > 0 => $"+{delta}",
+                        _ => delta.ToString(CultureInfo.InvariantCulture),
+                    },
                     (current + delta).ToString(CultureInfo.InvariantCulture),
                 };
             })
@@ -119,8 +151,10 @@ internal static class AttributeAllocationPrompt
         };
 
     private static IReadOnlyList<MenuOption> BuildChoices(
+        BaseAttributesResponse baseAttributes,
         IReadOnlyDictionary<AttributeName, int> deltas,
-        int remaining
+        int remaining,
+        Func<int, int, bool> canDecrease
     )
     {
         var choices = new List<MenuOption>();
@@ -138,7 +172,7 @@ internal static class AttributeAllocationPrompt
 
         choices.AddRange(
             AllocatableAttributes
-                .Where(deltas.ContainsKey)
+                .Where(a => canDecrease(GetValue(baseAttributes, a), deltas.GetValueOrDefault(a)))
                 .Select(a => new MenuOption($"-1 {a.ToDisplayName()}", MenuAction.Decrease, a))
         );
 
