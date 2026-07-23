@@ -123,6 +123,36 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         return builder.ToString();
     }
 
+    private async Task<ChatMessage> GetChatMessage(Guid sessionId, string role)
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        return await context.ChatMessages.SingleAsync(
+            m => m.SessionId == sessionId && m.Role == role,
+            TestContext.Current.CancellationToken
+        );
+    }
+
+    private async Task<GameSession> GetGameSession(Guid sessionId)
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        return await context.GameSessions.SingleAsync(
+            s => s.Id == sessionId,
+            TestContext.Current.CancellationToken
+        );
+    }
+
+    private async Task<Fight> GetFight()
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        return await context.Fights.SingleAsync(
+            f => f.PlayerId == _playerId,
+            TestContext.Current.CancellationToken
+        );
+    }
+
     [Fact]
     public async Task Connect_Succeeds_WhenNoOtherConnectionIsActiveForTheWorld()
     {
@@ -167,12 +197,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var persisted = await context.ChatMessages.SingleAsync(
-            m => m.SessionId == sessionId && m.Role == "assistant",
-            TestContext.Current.CancellationToken
-        );
+        var persisted = await GetChatMessage(sessionId, "assistant");
         Assert.Contains(
             fixture.ChatClient.ChatResponseText,
             persisted.MessageJson,
@@ -195,12 +220,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var session = await context.GameSessions.SingleAsync(
-            s => s.Id == sessionId,
-            TestContext.Current.CancellationToken
-        );
+        var session = await GetGameSession(sessionId);
         Assert.True(session.Playtime > TimeSpan.Zero);
     }
 
@@ -223,12 +243,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var userMessage = await context.ChatMessages.SingleAsync(
-            m => m.SessionId == sessionId && m.Role == "user",
-            TestContext.Current.CancellationToken
-        );
+        var userMessage = await GetChatMessage(sessionId, "user");
         Assert.Contains("I look around.", userMessage.MessageJson, StringComparison.Ordinal);
     }
 
@@ -255,12 +270,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Assert — outcome deliberately isn't asserted (a hit/miss roll would make this flaky);
         // proving the round was resolved and the fight is still tracked is enough
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var fight = await context.Fights.SingleAsync(
-            f => f.PlayerId == _playerId,
-            TestContext.Current.CancellationToken
-        );
+        var fight = await GetFight();
         Assert.Equal(CombatOutcome.Ongoing, fight.Outcome);
     }
 
@@ -327,12 +337,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var fight = await context.Fights.SingleAsync(
-            f => f.PlayerId == _playerId,
-            TestContext.Current.CancellationToken
-        );
+        var fight = await GetFight();
         Assert.Equal(CombatOutcome.Fled, fight.Outcome);
         Assert.NotNull(fight.CompletedAt);
     }
