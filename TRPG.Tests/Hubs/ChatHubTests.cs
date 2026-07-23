@@ -267,9 +267,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             )
         );
 
-        // Assert — the exact HP change isn't asserted (a hit/miss roll would make that flaky);
-        // Outcome staying Ongoing is safe to assert since one round from full health can't
-        // plausibly end the fight either way
+        // Assert — hit/miss is the only random part here (unarmed damage is a deterministic
+        // 3, both combatants default to 35 max HP), so Outcome staying Ongoing is guaranteed
+        // regardless of which side's roll lands; only the exact HP change is left unasserted
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
         var fight = await GetFight();
         Assert.Equal(CombatOutcome.Ongoing, fight.Outcome);
