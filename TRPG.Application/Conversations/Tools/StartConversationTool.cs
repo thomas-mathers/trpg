@@ -3,11 +3,10 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Tools;
+using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
-using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Queries;
 
 namespace TRPG.Application.Conversations.Tools;
 
@@ -18,8 +17,7 @@ internal class StartConversationTool(
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
     GetConversationSummaryQueryHandler getConversationSummary,
-    GetGameSessionQueryHandler getGameSession,
-    UpdateGameSessionCommandHandler updateGameSession,
+    OpenConversationCommandHandler openConversation,
     ILogger<StartConversationTool> logger
 ) : IGameTool
 {
@@ -61,11 +59,16 @@ internal class StartConversationTool(
             );
         }
 
-        var snapshot = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = turnContext.SessionId },
+        var outcome = await openConversation.Handle(
+            new OpenConversationCommand
+            {
+                SessionId = turnContext.SessionId,
+                NpcId = npc.Id,
+                NpcName = npc.Name,
+            },
             cancellationToken
         );
-        if (snapshot.OpenConversationCreatureIdsByName.ContainsKey(npc.Name))
+        if (outcome == OpenConversationOutcome.AlreadyOpen)
         {
             return new ToolError(
                 $"You are already in conversation with {npcName}; no need to call this again for them. If the dialogue has turned to someone else, call lookup instead."
@@ -74,16 +77,6 @@ internal class StartConversationTool(
 
         var summary = await getConversationSummary.Handle(
             new GetConversationSummaryQuery { CreatureId = player!.Id, NpcId = npc.Id },
-            cancellationToken
-        );
-
-        snapshot.OpenConversationCreatureIdsByName[npc.Name] = npc.Id;
-        await updateGameSession.Handle(
-            new UpdateGameSessionCommand
-            {
-                SessionId = turnContext.SessionId,
-                OpenConversationCreatureIdsByName = snapshot.OpenConversationCreatureIdsByName,
-            },
             cancellationToken
         );
 

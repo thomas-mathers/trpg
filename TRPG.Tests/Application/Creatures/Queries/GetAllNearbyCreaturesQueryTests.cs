@@ -105,8 +105,12 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         // Arrange
         var stateId = Guid.NewGuid();
         var roomId = Guid.NewGuid();
-        var corpse = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
-        corpse.State = CreatureState.Dead;
+        var corpse = Builders.MakeCreature(
+            WorldId,
+            stateId: stateId,
+            roomId: roomId,
+            state: CreatureState.Dead
+        );
         _context.Creatures.Add(corpse);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var location = new CreatureLocation(WorldId, roomId, stateId, null);
@@ -186,8 +190,12 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
         // Arrange
         var stateId = Guid.NewGuid();
         var roomId = Guid.NewGuid();
-        var corpse = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
-        corpse.State = CreatureState.Dead;
+        var corpse = Builders.MakeCreature(
+            WorldId,
+            stateId: stateId,
+            roomId: roomId,
+            state: CreatureState.Dead
+        );
         var alive = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
         _context.Creatures.AddRange(corpse, alive);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
