@@ -869,6 +869,8 @@ public class CreatureGenerator(
         [Profession.Unemployed] = ArmorClass.Cloth,
     };
 
+    private static readonly Skill[] AllSkills = Enum.GetValues<Skill>();
+
     private static readonly Dictionary<Profession, Skill[]> ProfessionSkills = new()
     {
         [Profession.Knight] = [Skill.Swordsmanship, Skill.Warfare],
@@ -1024,15 +1026,21 @@ public class CreatureGenerator(
 
     private IReadOnlyCollection<CreatureSkill> GetSkills(Creature creature)
     {
+        var professionSkills = ProfessionSkills[creature.Profession!.Value];
         var skillLevel = Math.Min(creature.Level, optionsSnapshot.Value.MaxSkillLevel);
-        return ProfessionSkills[creature.Profession!.Value]
-            .Select(skill => new CreatureSkill
+
+        return AllSkills
+            .Select(skill =>
             {
-                CreatureId = creature.Id,
-                Skill = skill,
-                Level = skillLevel,
-                Experience = SkillFormulas.XpForSkillLevel(skillLevel),
-                WorldId = creature.WorldId,
+                var level = professionSkills.Contains(skill) ? skillLevel : 1;
+                return new CreatureSkill
+                {
+                    CreatureId = creature.Id,
+                    Skill = skill,
+                    Level = level,
+                    Experience = SkillFormulas.XpForSkillLevel(level),
+                    WorldId = creature.WorldId,
+                };
             })
             .ToArray();
     }
@@ -1077,18 +1085,10 @@ public class CreatureGenerator(
             a.Intelligence,
         ];
         var baseline = optionsSnapshot.Value.BaseAttributes;
-        int[] stats =
-        [
-            baseline.Strength,
-            baseline.Defense,
-            baseline.Dexterity,
-            baseline.Endurance,
-            baseline.Stamina,
-            baseline.Mana,
-            baseline.Intelligence,
-        ];
+        int[] stats = [1, 1, 1, 1, 1, 1, 1];
 
-        for (var i = 0; i < level * optionsSnapshot.Value.PointsPerLevel; i++)
+        var draws = baseline.Total() - stats.Length + level * optionsSnapshot.Value.PointsPerLevel;
+        for (var i = 0; i < draws; i++)
         {
             stats[WeightedSampler.SampleIndex(pool)]++;
         }
@@ -1112,6 +1112,22 @@ public class CreatureGenerator(
         };
     }
 
+    private static int GetBaselineValue(StartingAttributes baseline, AttributeName attribute) =>
+        attribute switch
+        {
+            AttributeName.Strength => baseline.Strength,
+            AttributeName.Dexterity => baseline.Dexterity,
+            AttributeName.Endurance => baseline.Endurance,
+            AttributeName.Stamina => baseline.Stamina,
+            AttributeName.Mana => baseline.Mana,
+            AttributeName.Intelligence => baseline.Intelligence,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(attribute),
+                attribute,
+                "Attribute is not allocatable."
+            ),
+        };
+
     private Attributes GetPlayerAttributes(
         int level,
         IReadOnlyDictionary<AttributeName, int> allocation
@@ -1120,11 +1136,6 @@ public class CreatureGenerator(
         if (allocation.Keys.Any(attribute => !AllocatableAttributes.Contains(attribute)))
         {
             throw new InvalidOperationException("Attribute is not allocatable.");
-        }
-
-        if (allocation.Values.Any(delta => delta < 0))
-        {
-            throw new InvalidOperationException("Attribute point deltas cannot be negative.");
         }
 
         var requestedTotal = allocation.Values.Sum();
@@ -1137,6 +1148,16 @@ public class CreatureGenerator(
         }
 
         var baseline = optionsSnapshot.Value.BaseAttributes;
+
+        if (
+            AllocatableAttributes.Any(attribute =>
+                GetBaselineValue(baseline, attribute) + allocation.GetValueOrDefault(attribute) < 1
+            )
+        )
+        {
+            throw new InvalidOperationException("Attributes cannot go below 1.");
+        }
+
         var baseAttributes = new Attributes
         {
             Strength = baseline.Strength + allocation.GetValueOrDefault(AttributeName.Strength),

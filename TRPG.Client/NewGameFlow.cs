@@ -99,7 +99,7 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
 
         var generationOptions = await client.GetCreatureGenerationOptions(cancellationToken);
         var startingAttributeAllocation =
-            await AttributeAllocationPrompt.Run(
+            await AttributeAllocationPrompt.RunAtCreation(
                 generationOptions.PointsPerLevel,
                 generationOptions.BaseAttributes,
                 cancellationToken
