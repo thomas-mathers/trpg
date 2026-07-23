@@ -10,8 +10,6 @@ namespace TRPG.Tests.Application.Combat;
 public class DamageCalculatorTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
-    private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
-    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
 
     private static readonly IOptionsSnapshot<CombatOptions> Settings =
         new TestOptionsSnapshot<CombatOptions>(
@@ -22,27 +20,6 @@ public class DamageCalculatorTests
                 UnarmedBaseDamage = 3,
             }
         );
-
-    private Combatant MakeCombatant(
-        int strength = 0,
-        int intelligence = 0,
-        IReadOnlyList<Item>? inventory = null
-    )
-    {
-        var creature = Builders.MakeCreature(_worldId);
-        creature.BaseAttributes.Strength = strength;
-        creature.BaseAttributes.Intelligence = intelligence;
-        return Combatant.FromCreature(
-            creature,
-            [],
-            BasicAttack,
-            BlockStance,
-            isPlayer: true,
-            inventory ?? [],
-            new Dictionary<WeaponType, int>(),
-            []
-        );
-    }
 
     private static AttackAbility MakeAttack(
         DamageType damageType = DamageType.Physical,
@@ -78,8 +55,8 @@ public class DamageCalculatorTests
     {
         // Arrange — fixed-range weapon removes the roll, ability at 100% = a plain swing
         var weapon = MakeFixedRangeWeapon(10);
-        var attacker = MakeCombatant(inventory: [weapon]);
-        var defender = MakeCombatant();
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
@@ -94,8 +71,8 @@ public class DamageCalculatorTests
     {
         // Arrange — 10 base × 150% = 15
         var weapon = MakeFixedRangeWeapon(10);
-        var attacker = MakeCombatant(inventory: [weapon]);
-        var defender = MakeCombatant();
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
@@ -109,8 +86,8 @@ public class DamageCalculatorTests
     public void CalculateDamage_UsesTheUnarmedBaseline_WhenNoWeaponIsEquipped()
     {
         // Arrange — no weapon, so UnarmedBaseDamage (3) stands in for the roll: 3 × 100% = 3
-        var attacker = MakeCombatant();
-        var defender = MakeCombatant();
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
@@ -125,8 +102,13 @@ public class DamageCalculatorTests
     {
         // Arrange — 10 base × 100% × (1 + 50 × 0.01) = 15
         var weapon = MakeFixedRangeWeapon(10);
-        var attacker = MakeCombatant(strength: 50, inventory: [weapon]);
-        var defender = MakeCombatant();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithStrength(50)
+            .WithItem(weapon)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
@@ -141,8 +123,8 @@ public class DamageCalculatorTests
     {
         // Arrange — magic ignores the weapon entirely
         var weapon = MakeFixedRangeWeapon(999);
-        var attacker = MakeCombatant(inventory: [weapon]);
-        var defender = MakeCombatant();
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
@@ -160,8 +142,8 @@ public class DamageCalculatorTests
     public void CalculateDamage_AppliesIntelligenceAsAPercentBonus_ForMagicAbilities()
     {
         // Arrange — 20 base × (1 + 50 × 0.01) = 30
-        var attacker = MakeCombatant(intelligence: 50);
-        var defender = MakeCombatant();
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithIntelligence(50).Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
@@ -179,9 +161,12 @@ public class DamageCalculatorTests
     public void CalculateDamage_MitigatesByTheMatchingResistance()
     {
         // Arrange — 20 fire damage, 25% fire resistance = 15
-        var attacker = MakeCombatant();
-        var defender = MakeCombatant();
-        defender.Attributes.FireResistance = 0.25f;
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var defender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithFireResistance(0.25f)
+            .Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
@@ -199,9 +184,12 @@ public class DamageCalculatorTests
     public void CalculateDamage_NeverGoesBelowZero_WhenResistanceExceedsTheRawAmount()
     {
         // Arrange
-        var attacker = MakeCombatant();
-        var defender = MakeCombatant();
-        defender.Attributes.FireResistance = 1.5f;
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var defender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithFireResistance(1.5f)
+            .Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
@@ -219,8 +207,11 @@ public class DamageCalculatorTests
     public void CalculateDamage_MitigatesARawAmount_ForDotTicks()
     {
         // Arrange — the DoT-tick overload skips weapon/attribute resolution entirely
-        var defender = MakeCombatant();
-        defender.Attributes.PoisonResistance = 0.5f;
+        var defender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithPoisonResistance(0.5f)
+            .Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act

@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
-using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
@@ -10,9 +9,7 @@ namespace TRPG.Tests.Application.Combat;
 
 public class CombatEngineTests
 {
-    private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
     private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
-    private static readonly StatFormulas Formulas = Builders.MakeStatFormulas();
     private readonly Guid _worldId = Guid.NewGuid();
 
     private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit =
@@ -111,50 +108,33 @@ public class CombatEngineTests
         };
     }
 
-    private Combatant MakeCombatant(
-        string name,
-        bool isPlayer = false,
-        int endurance = 10,
-        int dexterity = 10,
-        int strength = 0,
-        int stamina = 10,
-        int defense = 0,
-        IReadOnlyList<Ability>? abilities = null,
-        WeaponItem? weapon = null,
-        IReadOnlyList<UsableItem>? usableItems = null
+    private static InstantHealAbility MakeInstantHeal(
+        string name = "Cure",
+        int amount = 20,
+        int cost = 0,
+        int cooldown = 0
     )
     {
-        var creature = Builders.MakeCreature(_worldId, name: name);
-        creature.BaseAttributes.Endurance = endurance;
-        creature.BaseAttributes.Dexterity = dexterity;
-        creature.BaseAttributes.Strength = strength;
-        creature.BaseAttributes.Stamina = stamina;
-        creature.BaseAttributes.Defense = defense;
-        creature.BaseAttributes.MaximumHp = Formulas.CalculateMaximumHp(creature.BaseAttributes);
-        creature.BaseAttributes.MaximumAp = Formulas.CalculateMaximumAp(creature.BaseAttributes);
-        creature.BaseAttributes.MaximumMp = Formulas.CalculateMaximumMp(creature.BaseAttributes);
-        creature.CurrentHp = creature.BaseAttributes.MaximumHp;
-        creature.CurrentAp = creature.BaseAttributes.MaximumAp;
-        creature.CurrentMp = creature.BaseAttributes.MaximumMp;
-        var inventory = weapon != null ? new Item[] { weapon } : [];
-        return Combatant.FromCreature(
-            creature,
-            abilities ?? [],
-            BasicAttack,
-            BlockStance,
-            isPlayer,
-            inventory,
-            new Dictionary<WeaponType, int>(),
-            usableItems ?? []
-        );
+        return new InstantHealAbility
+        {
+            Name = name,
+            Description = "A test instant-heal ability.",
+            ApCost = cost,
+            Cooldown = cooldown,
+            TargetType = TargetType.Single,
+            Amount = amount,
+        };
     }
+
+    private CombatantBuilder MakeCombatant(string name) =>
+        Builders.NewCombatant().WithWorldId(_worldId).WithName(name);
 
     [Fact]
     public void ResolvePlayerAction_ResolvesFullRound_PlayerAndEnemies()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -174,8 +154,8 @@ public class CombatEngineTests
     public void ResolvePlayerAction_ReportsMisses_WhenTheHitRollFails()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero").AsPlayer().Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
 
@@ -192,13 +172,12 @@ public class CombatEngineTests
     public void ResolvePlayerAction_EndsInVictory_WhenLastEnemyDies()
     {
         // Arrange — one fragile monster, one overwhelming attack
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            strength: 100,
-            abilities: [MakeAttack("Smite", damage: 100)]
-        );
-        var monster = MakeCombatant("Wraith", endurance: 1, abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithStrength(100)
+            .WithAbilities(MakeAttack("Smite", damage: 100))
+            .Build();
+        var monster = MakeCombatant("Wraith").WithEndurance(1).WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -217,13 +196,12 @@ public class CombatEngineTests
     public void ResolvePlayerAction_EndsInDefeat_WhenPlayerDies()
     {
         // Arrange — monster outspeeds the player and hits like a landslide
-        var player = MakeCombatant("Hero", isPlayer: true, endurance: 1, dexterity: 1);
-        var monster = MakeCombatant(
-            "Wraith",
-            dexterity: 50,
-            strength: 100,
-            abilities: [MakeAttack("Crush", damage: 100)]
-        );
+        var player = MakeCombatant("Hero").AsPlayer().WithEndurance(1).WithDexterity(1).Build();
+        var monster = MakeCombatant("Wraith")
+            .WithDexterity(50)
+            .WithStrength(100)
+            .WithAbilities(MakeAttack("Crush", damage: 100))
+            .Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -241,12 +219,11 @@ public class CombatEngineTests
     public void ResolvePlayerAction_FallsBackToBasicAttack_WhenEnemyCannotAffordItsAbilities()
     {
         // Arrange — the enemy's only real attack costs more AP than it can ever have
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20);
-        var monster = MakeCombatant(
-            "Wraith",
-            stamina: 1,
-            abilities: [MakeAttack("Devour", cost: 99)]
-        );
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
+        var monster = MakeCombatant("Wraith")
+            .WithStamina(1)
+            .WithAbilities(MakeAttack("Devour", cost: 99))
+            .Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -264,13 +241,12 @@ public class CombatEngineTests
     {
         // Arrange
         var stun = new StatusEffect { Condition = ConditionType.Stunned, Duration = 2 };
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            dexterity: 20,
-            abilities: [MakeAttack("Bash", status: stun)]
-        );
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(MakeAttack("Bash", status: stun))
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -290,8 +266,8 @@ public class CombatEngineTests
     public void ResolvePlayerAction_SkipsFrozenCombatant_AndReportsNoAction()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         monster.ActiveConditions[ConditionType.Frozen] = 2;
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
@@ -309,11 +285,10 @@ public class CombatEngineTests
     public void ResolvePlayerAction_BlocksPhysicalAttack_WhenAttackerIsBlinded()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20);
-        var monster = MakeCombatant(
-            "Wraith",
-            abilities: [MakeAttack(damageType: DamageType.Physical)]
-        );
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
+        var monster = MakeCombatant("Wraith")
+            .WithAbilities(MakeAttack(damageType: DamageType.Physical))
+            .Build();
         monster.ActiveConditions[ConditionType.Blinded] = 1;
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
@@ -330,11 +305,10 @@ public class CombatEngineTests
     public void ResolvePlayerAction_AllowsMagicalAttack_WhenAttackerIsBlinded()
     {
         // Arrange — blindness only blocks physical attacks
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20);
-        var monster = MakeCombatant(
-            "Wraith",
-            abilities: [MakeAttack("Fireball", damageType: DamageType.Fire)]
-        );
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
+        var monster = MakeCombatant("Wraith")
+            .WithAbilities(MakeAttack("Fireball", damageType: DamageType.Fire))
+            .Build();
         monster.ActiveConditions[ConditionType.Blinded] = 1;
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
@@ -350,11 +324,10 @@ public class CombatEngineTests
     public void ResolvePlayerAction_BlocksMagicalAttack_WhenAttackerIsSilenced()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20);
-        var monster = MakeCombatant(
-            "Wraith",
-            abilities: [MakeAttack("Fireball", damageType: DamageType.Fire)]
-        );
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
+        var monster = MakeCombatant("Wraith")
+            .WithAbilities(MakeAttack("Fireball", damageType: DamageType.Fire))
+            .Build();
         monster.ActiveConditions[ConditionType.Silenced] = 1;
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
@@ -371,11 +344,10 @@ public class CombatEngineTests
     public void ResolvePlayerAction_AllowsPhysicalAttack_WhenAttackerIsSilenced()
     {
         // Arrange — silence only blocks magical attacks
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20);
-        var monster = MakeCombatant(
-            "Wraith",
-            abilities: [MakeAttack(damageType: DamageType.Physical)]
-        );
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
+        var monster = MakeCombatant("Wraith")
+            .WithAbilities(MakeAttack(damageType: DamageType.Physical))
+            .Build();
         monster.ActiveConditions[ConditionType.Silenced] = 1;
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
@@ -391,14 +363,13 @@ public class CombatEngineTests
     public void ResolvePlayerAction_HitsEveryEnemy_WhenAbilityIsAoe()
     {
         // Arrange
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            dexterity: 20,
-            abilities: [MakeAttack("Cleave", targetType: AttackTargetType.Aoe)]
-        );
-        var first = MakeCombatant("Wraith", abilities: [MakeAttack()]);
-        var second = MakeCombatant("Husk", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(MakeAttack("Cleave", targetType: AttackTargetType.Aoe))
+            .Build();
+        var first = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        var second = MakeCombatant("Husk").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, first, second];
         var engine = MakeEngine(AlwaysHit);
 
@@ -424,8 +395,8 @@ public class CombatEngineTests
             MinDamage = 5,
             MaxDamage = 10,
         };
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20, weapon: weapon);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(weapon).Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -442,13 +413,12 @@ public class CombatEngineTests
     public void ResolvePlayerAction_IsRejected_WhenAbilityIsUnknownOrUnaffordable()
     {
         // Arrange
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            stamina: 1,
-            abilities: [MakeAttack("Devour", cost: 99)]
-        );
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithStamina(1)
+            .WithAbilities(MakeAttack("Devour", cost: 99))
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act & Assert — neither consumed the round
@@ -465,8 +435,8 @@ public class CombatEngineTests
     public void ResolvePlayerAction_IsRejected_WhenTargetIsUnknown()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero").AsPlayer().Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act & Assert
@@ -479,9 +449,8 @@ public class CombatEngineTests
     public void ResolvePlayerAction_IsRejected_WhenTargetIsAlreadyDead()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
-        monster.CurrentHp = 0;
+        var player = MakeCombatant("Hero").AsPlayer().Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).WithCurrentHp(0).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act & Assert
@@ -494,12 +463,11 @@ public class CombatEngineTests
     public void ResolvePlayerAction_IsRejected_WhenSelfOnlyAbilityTargetsSomeoneElse()
     {
         // Arrange
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            abilities: [MakeSupport("Battle Stance", targetType: TargetType.Self)]
-        );
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithAbilities(MakeSupport("Battle Stance", targetType: TargetType.Self))
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act & Assert
@@ -512,8 +480,8 @@ public class CombatEngineTests
     public void ResolvePlayerAction_IsRejected_WhenAttackAbilityTargetsThePlayer()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero").AsPlayer().Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act & Assert
@@ -526,12 +494,11 @@ public class CombatEngineTests
     public void ResolvePlayerAction_IsRejected_WhenPlayerCannotAffordMpCost()
     {
         // Arrange
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            abilities: [MakeAttack("Arcane Blast", mpCost: 99)]
-        );
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithAbilities(MakeAttack("Arcane Blast", mpCost: 99))
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act & Assert
@@ -544,8 +511,8 @@ public class CombatEngineTests
     public void ResolveFlee_GivesEnemiesAPartingRound_ThenEndsTheFight()
     {
         // Arrange
-        var player = MakeCombatant("Hero", isPlayer: true);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero").AsPlayer().Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -564,13 +531,15 @@ public class CombatEngineTests
     public void ResolvePlayerAction_RespectsCooldowns_AcrossRounds()
     {
         // Arrange
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            dexterity: 20,
-            abilities: [MakeAttack("Smite", cooldown: 2)]
-        );
-        var monster = MakeCombatant("Wraith", endurance: 100, abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(MakeAttack("Smite", cooldown: 2))
+            .Build();
+        var monster = MakeCombatant("Wraith")
+            .WithEndurance(100)
+            .WithAbilities(MakeAttack())
+            .Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -598,13 +567,15 @@ public class CombatEngineTests
             Amount = 2f,
             AmountType = AmountType.Flat,
         };
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            dexterity: 20,
-            abilities: [MakeAttack("Ignite", damage: 1, damageType: DamageType.Fire, dot: burn)]
-        );
-        var monster = MakeCombatant("Wraith", endurance: 100, abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(MakeAttack("Ignite", damage: 1, damageType: DamageType.Fire, dot: burn))
+            .Build();
+        var monster = MakeCombatant("Wraith")
+            .WithEndurance(100)
+            .WithAbilities(MakeAttack())
+            .Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -631,8 +602,12 @@ public class CombatEngineTests
                 Amount = 5,
             }
         );
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20, abilities: [buffAbility]);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(buffAbility)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
 
@@ -666,14 +641,13 @@ public class CombatEngineTests
                 Amount = 5,
             }
         );
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            dexterity: 20,
-            strength: 0,
-            abilities: [buffAbility]
-        );
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithStrength(0)
+            .WithAbilities(buffAbility)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
         Resolve(engine, combatants, new UseAbility("Battle Stance", "Hero"));
@@ -710,13 +684,12 @@ public class CombatEngineTests
                 Amount = 10,
             }
         );
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            dexterity: 20,
-            abilities: [battleStance, ironWill]
-        );
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(battleStance, ironWill)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
         Resolve(engine, combatants, new UseAbility("Battle Stance", "Hero"));
@@ -740,8 +713,15 @@ public class CombatEngineTests
             AmountType = AmountType.Flat,
         };
         var ignite = MakeAttack("Ignite", damage: 1, damageType: DamageType.Fire, dot: burn);
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20, abilities: [ignite]);
-        var monster = MakeCombatant("Wraith", endurance: 100, abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(ignite)
+            .Build();
+        var monster = MakeCombatant("Wraith")
+            .WithEndurance(100)
+            .WithAbilities(MakeAttack())
+            .Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
         Resolve(engine, combatants, new UseAbility("Ignite", "Wraith"));
@@ -772,13 +752,15 @@ public class CombatEngineTests
         };
         var ignite = MakeAttack("Ignite", damage: 1, damageType: DamageType.Fire, dot: burn);
         var venom = MakeAttack("Venom", damage: 1, damageType: DamageType.Poison, dot: poison);
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            dexterity: 20,
-            abilities: [ignite, venom]
-        );
-        var monster = MakeCombatant("Wraith", endurance: 100, abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(ignite, venom)
+            .Build();
+        var monster = MakeCombatant("Wraith")
+            .WithEndurance(100)
+            .WithAbilities(MakeAttack())
+            .Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
         Resolve(engine, combatants, new UseAbility("Ignite", "Wraith"));
@@ -798,8 +780,12 @@ public class CombatEngineTests
     {
         // Arrange
         var regen = MakeRegen("Regen");
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20, abilities: [regen]);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(regen)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
         Resolve(engine, combatants, new UseAbility("Regen", "Hero"));
@@ -818,13 +804,12 @@ public class CombatEngineTests
         // Arrange
         var regen = MakeRegen("Regen");
         var rejuvenate = MakeRegen("Rejuvenate", amountPerTurn: 3);
-        var player = MakeCombatant(
-            "Hero",
-            isPlayer: true,
-            dexterity: 20,
-            abilities: [regen, rejuvenate]
-        );
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(regen, rejuvenate)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
         Resolve(engine, combatants, new UseAbility("Regen", "Hero"));
@@ -842,8 +827,8 @@ public class CombatEngineTests
     {
         // Arrange — "Block" is never passed via `abilities`, only ever added by MakeCombatant
         // itself (mirroring Strike), so resolving it here proves it's always available.
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20, defense: 10);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithDefense(10).Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
 
@@ -864,8 +849,8 @@ public class CombatEngineTests
     {
         // Arrange — player starts at full AP, so this round's regen is a no-op and only the
         // ability's own cost should change CurrentAp
-        var player = MakeCombatant("Hero", isPlayer: true, dexterity: 20);
-        var monster = MakeCombatant("Wraith", abilities: [MakeAttack()]);
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
 
@@ -875,5 +860,107 @@ public class CombatEngineTests
         // Assert
         var playerState = combatants.Single(c => c.IsPlayer);
         Assert.Equal(player.MaximumAp - BlockStance.ApCost, playerState.CurrentAp);
+    }
+
+    [Fact]
+    public void ProcessItem_RestoresHp_ClampedToMaximum()
+    {
+        // Arrange
+        var potion = new UsableItem(Guid.NewGuid(), "Health Potion", ResourceType.Hp, 999);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithUsableItems(potion)
+            .WithCurrentHp(1)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseItem("Health Potion"));
+
+        // Assert
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.Equal(playerState.MaximumHp, playerState.CurrentHp);
+        var consumed = Assert.IsType<ConsumedPotion>(
+            Assert.Single(state.Events, e => e is ConsumedPotion)
+        );
+        Assert.Equal(ResourceType.Hp, consumed.Resource);
+    }
+
+    [Fact]
+    public void ProcessItem_RestoresAp_ClampedToMaximum()
+    {
+        // Arrange
+        var potion = new UsableItem(Guid.NewGuid(), "Ap Tonic", ResourceType.Ap, 999);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithUsableItems(potion)
+            .WithCurrentAp(1)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseItem("Ap Tonic"));
+
+        // Assert
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.Equal(player.MaximumAp, playerState.CurrentAp);
+        var consumed = Assert.IsType<ConsumedPotion>(
+            Assert.Single(state.Events, e => e is ConsumedPotion)
+        );
+        Assert.Equal(ResourceType.Ap, consumed.Resource);
+    }
+
+    [Fact]
+    public void ProcessItem_RestoresMp_ClampedToMaximum()
+    {
+        // Arrange
+        var potion = new UsableItem(Guid.NewGuid(), "Mp Tonic", ResourceType.Mp, 999);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithUsableItems(potion)
+            .WithCurrentMp(1)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseItem("Mp Tonic"));
+
+        // Assert
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.Equal(player.MaximumMp, playerState.CurrentMp);
+        var consumed = Assert.IsType<ConsumedPotion>(
+            Assert.Single(state.Events, e => e is ConsumedPotion)
+        );
+        Assert.Equal(ResourceType.Mp, consumed.Resource);
+    }
+
+    [Fact]
+    public void ApplyInstantHeal_RestoresTargetHp_ClampedToMaximum()
+    {
+        // Arrange
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(MakeInstantHeal(amount: 999))
+            .WithCurrentHp(1)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseAbility("Cure", "Hero"));
+
+        // Assert
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.Equal(playerState.MaximumHp, playerState.CurrentHp);
+        var healed = Assert.IsType<Healed>(Assert.Single(state.Events, e => e is Healed));
+        Assert.Equal("Hero", healed.TargetName);
     }
 }

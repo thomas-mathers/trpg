@@ -37,6 +37,8 @@ internal static class Builders
             CurrentMp = currentMp,
         };
 
+    public static CombatantBuilder NewCombatant() => new();
+
     public static Creature MakeCreature(
         Guid? worldId = null,
         CreatureType creatureType = CreatureType.Human,
