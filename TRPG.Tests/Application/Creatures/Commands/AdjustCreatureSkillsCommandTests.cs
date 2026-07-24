@@ -166,6 +166,32 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
     }
 
     [Fact]
+    public async Task Handle_DerivesLevelFromAllSkills_NotJustTheSkillsUsedThisRound()
+    {
+        // Arrange — an untouched Swordsmanship 10 contributes
+        // CalculateExperienceFromSkillLevel(10) = 54 xp toward character level; General crossing
+        // to level 2 adds 2 more. The 56 total clears the level-7 floor (48) but not level 8
+        // (63), which only holds if the derivation counts skills absent from UsageCounts
+        await SeedSkill(Skill.Swordsmanship, level: 10, experience: 0);
+        await SeedSkill(Skill.General, level: 1, experience: 140);
+
+        // Act
+        await _handler.Handle(
+            new AdjustCreatureSkillsCommand
+            {
+                WorldId = _worldId,
+                CreatureId = _creature.Id,
+                UsageCounts = new Dictionary<Skill, int> { [Skill.General] = 1 },
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var creature = await ReloadCreature();
+        Assert.Equal(7, creature.Level);
+    }
+
+    [Fact]
     public async Task Handle_DoesNotChangeCharacterLevel_WhenNoSkillLevelsUp()
     {
         // Arrange — partial skill progress alone must never move character level

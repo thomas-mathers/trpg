@@ -78,6 +78,20 @@ public class DungeonPopulatorTests
     }
 
     [Fact]
+    public void Generate_ProducesMonsters_ForEveryDungeonType()
+    {
+        // Assert — repeated generation across every themed dungeon type exercises each themed
+        // archetype, so a registry row missing its CreatureType fails here instead of mid-worldgen
+        for (var i = 0; i < 20; i++)
+        {
+            Assert.All(
+                BuildingTypes.Dungeon,
+                dungeonType => Assert.NotEmpty(_dungeonPopulator.Generate(MakeInput(dungeonType)))
+            );
+        }
+    }
+
+    [Fact]
     public void Generate_LeavesMonstersInertToTheLivingWorld()
     {
         // Act
