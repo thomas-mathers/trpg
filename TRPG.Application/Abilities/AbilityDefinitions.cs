@@ -14,7 +14,7 @@ public class AbilityDefinitions(
         {
             Name = "Strike",
             Description = "A plain attack with whatever is at hand.",
-            Skill = Skill.General,
+            Skill = Skill.Melee,
             ApCost = 0,
             Cooldown = 0,
             TargetType = AttackTargetType.Single,
