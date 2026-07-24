@@ -27,16 +27,11 @@ internal sealed class GameHub(HubConnection connection) : IAsyncDisposable
         connection.StreamAsync<string>("SendWait", hours, cancellationToken);
 
     public IAsyncEnumerable<string> StreamCombatAction(
+        Guid targetId,
         string actionName,
-        string targetName,
         CancellationToken cancellationToken
     ) =>
-        connection.StreamAsync<string>(
-            "SendCombatAction",
-            actionName,
-            targetName,
-            cancellationToken
-        );
+        connection.StreamAsync<string>("SendCombatAction", targetId, actionName, cancellationToken);
 
     public IAsyncEnumerable<string> StreamFlee(CancellationToken cancellationToken) =>
         connection.StreamAsync<string>("SendFlee", cancellationToken);

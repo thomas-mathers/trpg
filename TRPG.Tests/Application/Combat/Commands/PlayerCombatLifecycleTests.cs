@@ -124,7 +124,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         );
         var resolution = PlayerActionResolver.Resolve(
             combatants,
-            new UseAbility("Strike", enemy.Name)
+            new UseAbility(enemy.Id, "Strike")
         );
         var resolved = Assert.IsType<ActionResolved>(resolution);
         engine.ProcessRound(combatants, resolved.Action);

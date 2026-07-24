@@ -104,7 +104,7 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
     {
         // Arrange
         var uniqueItem = Builders.MakeItem(WorldId, ItemRarity.Unique);
-        var normalItem = Builders.MakeItem(WorldId, ItemRarity.Normal);
+        var normalItem = Builders.MakeItem(WorldId);
         _context.Items.AddRange(uniqueItem, normalItem);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

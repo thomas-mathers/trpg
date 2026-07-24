@@ -36,7 +36,7 @@ public sealed class GetCreatureSkillsQueryTests(DatabaseFixture db) : IAsyncLife
             {
                 WorldId = _creature.WorldId,
                 CreatureId = _creature.Id,
-                Skill = Skill.Swordsmanship,
+                Skill = Skill.Melee,
                 Level = 2,
                 Experience = 300,
             }
@@ -51,7 +51,7 @@ public sealed class GetCreatureSkillsQueryTests(DatabaseFixture db) : IAsyncLife
 
         // Assert
         var skill = Assert.Single(skills);
-        Assert.Equal(Skill.Swordsmanship, skill.Skill);
+        Assert.Equal(Skill.Melee, skill.Skill);
         Assert.Equal(2, skill.Level);
         Assert.Equal(150, skill.ExperienceCurrent);
         Assert.Equal(157, skill.ExperienceToNextLevel);

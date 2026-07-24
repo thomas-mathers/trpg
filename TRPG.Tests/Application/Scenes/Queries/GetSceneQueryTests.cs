@@ -222,7 +222,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange — a single skill at level 2 contributes CalculateExperienceFromSkillLevel(2) = 2
         // toward character level. Level 1 floor is CalculateExperienceFromLevel(1) = 0, next level
-        // floor is CalculateExperienceFromLevel(2) = 3, so this sits at Current = 2, ToNextLevel = 3.
+        // floor is CalculateExperienceFromLevel(2) = 2, so this sits at Current = 2, ToNextLevel = 2.
         _player.Level = 1;
         _nearbyCreature.Level = 1;
         _context.CreatureSkills.AddRange(
@@ -257,10 +257,10 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         // Assert
         Assert.Equal(2, result.Player.ExperienceCurrent);
-        Assert.Equal(3, result.Player.ExperienceToNextLevel);
+        Assert.Equal(2, result.Player.ExperienceToNextLevel);
         var nearby = Assert.Single(result.NearbyCreatures, p => p.Name == _nearbyCreature.Name);
         Assert.Equal(2, nearby.ExperienceCurrent);
-        Assert.Equal(3, nearby.ExperienceToNextLevel);
+        Assert.Equal(2, nearby.ExperienceToNextLevel);
     }
 
     [Fact]

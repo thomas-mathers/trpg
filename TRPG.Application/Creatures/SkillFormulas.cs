@@ -16,7 +16,7 @@ internal static class SkillFormulas
     public static int CalculateExperienceFromSkillLevel(int skillLevel) =>
         skillLevel * (skillLevel + 1) / 2 - 1;
 
-    public static int CalculateExperienceFromLevel(int level) => level * level - 1;
+    public static int CalculateExperienceFromLevel(int level) => level * (level - 1);
 
     public static int CalculateLevelFromSkillLevels(IReadOnlyList<int> skillLevels)
     {

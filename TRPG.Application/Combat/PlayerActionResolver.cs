@@ -4,7 +4,7 @@ namespace TRPG.Application.Combat;
 
 public abstract record PlayerRoundAction;
 
-public sealed record UseAbility(string AbilityName, string TargetName) : PlayerRoundAction;
+public sealed record UseAbility(Guid TargetId, string AbilityName) : PlayerRoundAction;
 
 public sealed record UseItem(string ItemName) : PlayerRoundAction;
 
@@ -25,13 +25,13 @@ internal static class PlayerActionResolver
 {
     public static ActionResolution Resolve(
         IReadOnlyList<Combatant> combatants,
-        string actionName,
-        string targetName
+        Guid targetId,
+        string actionName
     )
     {
         var player = combatants.Single(c => c.IsPlayer);
         PlayerRoundAction playerAction = player.Abilities.Any(a => a.Name == actionName)
-            ? new UseAbility(actionName, targetName)
+            ? new UseAbility(targetId, actionName)
             : new UseItem(actionName);
 
         return Resolve(combatants, playerAction);
@@ -48,8 +48,8 @@ internal static class PlayerActionResolver
         {
             UseAbility useAbility => ResolveAbility(
                 combatants,
-                useAbility.AbilityName,
-                useAbility.TargetName
+                useAbility.TargetId,
+                useAbility.AbilityName
             ),
             UseItem useItem => ResolveItem(player, useItem.ItemName),
             _ => new ActionRejected("Unrecognized action."),
@@ -58,8 +58,8 @@ internal static class PlayerActionResolver
 
     private static ActionResolution ResolveAbility(
         IReadOnlyList<Combatant> combatants,
-        string abilityName,
-        string targetName
+        Guid targetId,
+        string abilityName
     )
     {
         var player = combatants.Single(c => c.IsPlayer);
@@ -71,10 +71,10 @@ internal static class PlayerActionResolver
             return new ActionRejected($"Ability {abilityName} not found");
         }
 
-        var target = combatants.FirstOrDefault(x => x.Name == targetName);
+        var target = combatants.FirstOrDefault(x => x.CreatureId == targetId);
         if (target is null)
         {
-            return new ActionRejected($"Target {targetName} not found");
+            return new ActionRejected($"Target {targetId} not found");
         }
 
         var cooldownRemaining = player.CooldownRemainingByAbility[abilityName];
@@ -97,7 +97,7 @@ internal static class PlayerActionResolver
 
         if (!target.IsAlive)
         {
-            return new ActionRejected($"Target {targetName} is already dead");
+            return new ActionRejected($"Target {targetId} is already dead");
         }
 
         if (player.CurrentAp < ability.ApCost)

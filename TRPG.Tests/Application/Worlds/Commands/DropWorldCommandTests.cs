@@ -50,6 +50,13 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
             Role = FactionRole.Member,
             WorldId = worldId,
         };
+        var weaponProficiency = new CreatureWeaponProficiency
+        {
+            WorldId = worldId,
+            CreatureId = creature.Id,
+            WeaponType = WeaponType.Sword,
+            Proficiency = 3,
+        };
 
         _context.Creatures.Add(creature);
         _context.Factions.Add(faction);
@@ -58,6 +65,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         _context.Props.Add(bed);
         _context.Items.Add(item);
         _context.FactionMembers.Add(factionMember);
+        _context.CreatureWeaponProficiencies.Add(weaponProficiency);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -115,6 +123,12 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
                 TestContext.Current.CancellationToken
             )
         );
+        Assert.False(
+            await verifyContext.CreatureWeaponProficiencies.AnyAsync(
+                x => x.WorldId == WorldId,
+                TestContext.Current.CancellationToken
+            )
+        );
 
         Assert.True(
             await verifyContext.Creatures.AnyAsync(
@@ -154,6 +168,12 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
         Assert.True(
             await verifyContext.FactionMembers.AnyAsync(
+                x => x.WorldId == OtherWorldId,
+                TestContext.Current.CancellationToken
+            )
+        );
+        Assert.True(
+            await verifyContext.CreatureWeaponProficiencies.AnyAsync(
                 x => x.WorldId == OtherWorldId,
                 TestContext.Current.CancellationToken
             )

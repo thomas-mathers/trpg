@@ -252,13 +252,13 @@ public class CreatureGeneratorTests
     [Fact]
     public void Generate_ScalesOnlyProfessionSkills_AboveFloor()
     {
-        // Act — Knight's profession skills are Swordsmanship and Warfare
+        // Act — Knight's profession skills are Melee and Warfare
         var result = _creatureGenerator.Generate(MakeInput(Profession.Knight, level: 10));
 
         // Assert — the random weighted split between the two profession skills means neither
         // one reliably lands on an exact level, only that both scale above the floor
         var skillLevels = result.Skills.ToDictionary(s => s.Skill, s => s.Level);
-        Assert.True(skillLevels[Skill.Swordsmanship] > 1);
+        Assert.True(skillLevels[Skill.Melee] > 1);
         Assert.True(skillLevels[Skill.Warfare] > 1);
         Assert.Equal(1, skillLevels[Skill.Archery]);
     }
@@ -266,7 +266,7 @@ public class CreatureGeneratorTests
     [Fact]
     public void Generate_GrantsLevelOneAbilities_AcrossEverySkillTree_RegardlessOfProfession()
     {
-        // Act — Baker has no Swordsmanship profession skill, but "Slash" unlocks at skill level 1
+        // Act — Baker has no Melee profession skill, but "Slash" unlocks at skill level 1
         var result = _creatureGenerator.Generate(MakeInput(Profession.Baker, level: 1));
 
         // Assert

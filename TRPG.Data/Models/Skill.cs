@@ -2,7 +2,8 @@ namespace TRPG.Data.Models;
 
 public enum Skill
 {
-    Swordsmanship,
+    Melee,
+    Unarmed,
     Stealth,
     Spellcasting,
     Archery,

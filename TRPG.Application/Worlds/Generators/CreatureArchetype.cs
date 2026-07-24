@@ -63,7 +63,7 @@ public sealed class CreatureArchetype
 
     private static readonly Dictionary<Skill, int> SoldierSkillAffinities = new()
     {
-        [Skill.Swordsmanship] = 3,
+        [Skill.Melee] = 3,
         [Skill.Warfare] = 2,
         [Skill.General] = 1,
     };
@@ -102,7 +102,7 @@ public sealed class CreatureArchetype
         ),
         skillAffinities: new Dictionary<Skill, int>
         {
-            [Skill.Swordsmanship] = 2,
+            [Skill.Melee] = 2,
             [Skill.Warfare] = 1,
             [Skill.General] = 1,
         },
@@ -288,7 +288,7 @@ public sealed class CreatureArchetype
             skillAffinities: new Dictionary<Skill, int>
             {
                 [Skill.Stealth] = 3,
-                [Skill.Archery] = 2,
+                [Skill.Melee] = 2,
                 [Skill.General] = 1,
             },
             profession: Data.Models.Profession.Rogue,

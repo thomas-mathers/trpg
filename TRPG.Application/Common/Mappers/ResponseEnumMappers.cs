@@ -193,7 +193,8 @@ internal static class ResponseEnumMappers
     public static ContractAbilitySkill ToContract(this DataSkill skill) =>
         skill switch
         {
-            DataSkill.Swordsmanship => ContractAbilitySkill.Swordsmanship,
+            DataSkill.Melee => ContractAbilitySkill.Melee,
+            DataSkill.Unarmed => ContractAbilitySkill.Unarmed,
             DataSkill.Stealth => ContractAbilitySkill.Stealth,
             DataSkill.Spellcasting => ContractAbilitySkill.Spellcasting,
             DataSkill.Archery => ContractAbilitySkill.Archery,

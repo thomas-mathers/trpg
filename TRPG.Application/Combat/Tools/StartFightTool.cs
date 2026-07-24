@@ -62,9 +62,11 @@ internal class StartFightTool(
             cancellationToken
         );
 
+        var targetId = combatants.First(c => c.Name == targetName).CreatureId;
+
         var resolution = PlayerActionResolver.Resolve(
             combatants,
-            new UseAbility(abilityName, targetName)
+            new UseAbility(targetId, abilityName)
         );
         if (resolution is ActionRejected rejected)
         {

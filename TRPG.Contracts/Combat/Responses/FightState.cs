@@ -73,6 +73,7 @@ public enum ConditionType
 public record FightState(IReadOnlyCollection<CombatantState> Combatants);
 
 public record CombatantState(
+    Guid Id,
     string Name,
     bool IsPlayer,
     bool IsAlive,

@@ -113,7 +113,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
                 WorldId = _worldId,
                 Name = "Health Potion",
                 Description = "",
-                Resource = TRPG.Data.Models.ResourceType.Hp,
+                Resource = Data.Models.ResourceType.Hp,
                 Amount = 50,
             };
             context.Items.Add(potion);
@@ -322,7 +322,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
                 {
                     WorldId = _worldId,
                     CreatureId = _creature.Id,
-                    Skill = TRPG.Data.Models.Skill.Swordsmanship,
+                    Skill = Data.Models.Skill.Melee,
                     Level = 2,
                     Experience = 300,
                 }

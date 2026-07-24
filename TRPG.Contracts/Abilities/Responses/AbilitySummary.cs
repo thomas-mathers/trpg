@@ -2,7 +2,8 @@ namespace TRPG.Contracts.Abilities.Responses;
 
 public enum Skill
 {
-    Swordsmanship,
+    Melee,
+    Unarmed,
     Stealth,
     Spellcasting,
     Archery,

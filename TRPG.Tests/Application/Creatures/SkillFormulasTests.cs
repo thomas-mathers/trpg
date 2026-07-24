@@ -23,10 +23,13 @@ public class SkillFormulasTests
 
     [Theory]
     [InlineData(1, 0)]
-    [InlineData(2, 3)]
-    [InlineData(10, 99)]
-    [InlineData(100, 9999)]
-    public void CalculateExperienceFromLevel_ReturnsSquareMinusOne_ForLevel(int level, int expected)
+    [InlineData(2, 2)]
+    [InlineData(10, 90)]
+    [InlineData(100, 9900)]
+    public void CalculateExperienceFromLevel_ReturnsLevelTimesLevelMinusOne_ForLevel(
+        int level,
+        int expected
+    )
     {
         // Act
         var xp = SkillFormulas.CalculateExperienceFromLevel(level);
@@ -65,12 +68,12 @@ public class SkillFormulasTests
     [Fact]
     public void CalculateLevelFromSkillLevels_SumsContributions_AcrossSkills()
     {
-        // Act — two skills at level 2 contribute 2 + 2 = 4, meeting the level-2 threshold of 3,
-        // which a single level-2 skill (contributing 2) would not
-        var level = SkillFormulas.CalculateLevelFromSkillLevels([2, 2, 1, 1, 1, 1, 1]);
+        // Act — three skills at level 2 contribute 2 + 2 + 2 = 6, meeting the level-3 threshold
+        // of 6, which no single level-2 skill (contributing 2) could reach on its own
+        var level = SkillFormulas.CalculateLevelFromSkillLevels([2, 2, 2, 1, 1, 1, 1]);
 
         // Assert
-        Assert.Equal(2, level);
+        Assert.Equal(3, level);
     }
 
     [Fact]
@@ -81,6 +84,6 @@ public class SkillFormulasTests
 
         // Assert
         Assert.Equal(0, progress.Current);
-        Assert.Equal(3, progress.ToNextLevel);
+        Assert.Equal(2, progress.ToNextLevel);
     }
 }
