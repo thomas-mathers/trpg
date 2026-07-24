@@ -4,16 +4,16 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Generators;
 
-public class MonsterGeneratorTests
+public class DungeonPopulatorTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _roomId = Guid.NewGuid();
-    private readonly MonsterGenerator _monsterGenerator = new(Builders.MakeStatFormulas());
+    private readonly DungeonPopulator _dungeonPopulator = new(Builders.MakeCreatureGenerator());
 
-    private MonsterGeneratorInput MakeInput(BuildingType dungeonType)
+    private DungeonPopulatorInput MakeInput(BuildingType dungeonType)
     {
-        return new MonsterGeneratorInput
+        return new DungeonPopulatorInput
         {
             StateId = _stateId,
             RoomId = _roomId,
@@ -28,7 +28,7 @@ public class MonsterGeneratorTests
         for (var i = 0; i < 20; i++)
         {
             // Act
-            var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Cave));
+            var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Cave));
 
             // Assert
             Assert.InRange(monsters.Count, 1, 3);
@@ -38,28 +38,42 @@ public class MonsterGeneratorTests
     }
 
     [Fact]
-    public void Generate_ThemesCaveMonstersAsBeasts()
+    public void Generate_ThemesCaveMonsters_AsBeastsOrGoblins()
     {
         for (var i = 0; i < 20; i++)
         {
             // Act
-            var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Cave));
+            var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Cave));
 
             // Assert
-            Assert.All(monsters, m => Assert.Equal(CreatureType.Beast, m.Creature.CreatureType));
+            Assert.All(
+                monsters,
+                m =>
+                    Assert.Contains(
+                        m.Creature.CreatureType,
+                        new[] { CreatureType.Beast, CreatureType.Goblin }
+                    )
+            );
         }
     }
 
     [Fact]
-    public void Generate_ThemesCryptMonstersAsUndead()
+    public void Generate_ThemesCryptMonsters_AsUndeadOrWraiths()
     {
         for (var i = 0; i < 20; i++)
         {
             // Act
-            var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Crypt));
+            var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Crypt));
 
             // Assert
-            Assert.All(monsters, m => Assert.Equal(CreatureType.Undead, m.Creature.CreatureType));
+            Assert.All(
+                monsters,
+                m =>
+                    Assert.Contains(
+                        m.Creature.CreatureType,
+                        new[] { CreatureType.Undead, CreatureType.Wraith }
+                    )
+            );
         }
     }
 
@@ -67,7 +81,7 @@ public class MonsterGeneratorTests
     public void Generate_LeavesMonstersInertToTheLivingWorld()
     {
         // Act
-        var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Tower));
+        var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Tower));
 
         // Assert — no profession, no city, and a fixed description instead of a generated life story
         Assert.All(monsters, m => Assert.Null(m.Creature.Profession));
@@ -76,30 +90,17 @@ public class MonsterGeneratorTests
     }
 
     [Fact]
-    public void Generate_StartsMonstersAtFullResources()
-    {
-        // Act
-        var monsters = _monsterGenerator.Generate(MakeInput(BuildingType.Cave));
-
-        // Assert
-        Assert.All(monsters, m => Assert.Equal(m.Creature.MaximumHp, m.Creature.CurrentHp));
-        Assert.All(monsters, m => Assert.Equal(m.Creature.MaximumAp, m.Creature.CurrentAp));
-        Assert.All(monsters, m => Assert.Equal(m.Creature.MaximumMp, m.Creature.CurrentMp));
-        Assert.All(monsters, m => Assert.Equal(TimeSpan.Zero, m.Creature.LastRegenPlaytime));
-    }
-
-    [Fact]
     public void SupportsDungeonType_MatchesBuildingTypesDungeon_Exactly()
     {
         // Assert — keeps the scene's dungeon/building split from drifting out of sync
-        // with the building types this generator actually knows how to populate
+        // with the building types this populator actually knows how to populate
         Assert.All(
             BuildingTypes.Dungeon,
-            t => Assert.True(MonsterGenerator.SupportsDungeonType(t))
+            t => Assert.True(DungeonPopulator.SupportsDungeonType(t))
         );
         Assert.All(
             Enum.GetValues<BuildingType>().Except(BuildingTypes.Dungeon),
-            t => Assert.False(MonsterGenerator.SupportsDungeonType(t))
+            t => Assert.False(DungeonPopulator.SupportsDungeonType(t))
         );
     }
 }

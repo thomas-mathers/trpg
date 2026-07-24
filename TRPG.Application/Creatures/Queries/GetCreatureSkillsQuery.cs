@@ -31,8 +31,8 @@ internal class GetCreatureSkillsQueryHandler(TrpgDbContext context)
         return skills
             .Select(s =>
             {
-                var levelFloor = SkillFormulas.XpForSkillLevel(s.Level);
-                var nextLevelXp = SkillFormulas.XpForSkillLevel(s.Level + 1);
+                var levelFloor = SkillFormulas.CalculateSkillExperienceFromSkillLevel(s.Level);
+                var nextLevelXp = SkillFormulas.CalculateSkillExperienceFromSkillLevel(s.Level + 1);
                 return new CreatureSkillProgress(
                     s.Skill,
                     s.Level,

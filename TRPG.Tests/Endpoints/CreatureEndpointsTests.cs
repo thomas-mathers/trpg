@@ -243,9 +243,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         var response = await _client.PostAsJsonAsync(
             new Uri($"/creatures/{_creature.Id}/attribute-points/allocate", UriKind.Relative),
             new AllocateAttributePointsRequest(
-                new Dictionary<TRPG.Contracts.Combat.Responses.AttributeName, int>
+                new Dictionary<AllocatableAttributeName, int>
                 {
-                    [TRPG.Contracts.Combat.Responses.AttributeName.Strength] = 3,
+                    [AllocatableAttributeName.Strength] = 3,
                 }
             ),
             TrpgJsonOptions.Default,
@@ -312,8 +312,8 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
     [Fact]
     public async Task GetSkills_ReturnsExperienceProgress_ForEachLearnedSkill()
     {
-        // Arrange — XpForSkillLevel(2) = 250, XpForSkillLevel(3) = 450, so experience 300
-        // sits at Current = 50, ToNextLevel = 200.
+        // Arrange — XpForSkillLevel(2) = 150, XpForSkillLevel(3) = 307, so experience 300
+        // sits at Current = 150, ToNextLevel = 157.
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -345,8 +345,8 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         Assert.NotNull(skills);
         var skill = Assert.Single(skills);
         Assert.Equal(2, skill.Level);
-        Assert.Equal(50, skill.ExperienceCurrent);
-        Assert.Equal(200, skill.ExperienceToNextLevel);
+        Assert.Equal(150, skill.ExperienceCurrent);
+        Assert.Equal(157, skill.ExperienceToNextLevel);
     }
 
     [Fact]

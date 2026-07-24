@@ -1,6 +1,7 @@
 using TRPG.Application.GameSessions;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Mappers;
+using TRPG.Contracts.Creatures.Requests;
 using TRPG.Contracts.Worlds.Requests;
 using TRPG.Data.Models;
 using Gender = TRPG.Contracts.Worlds.Requests.Gender;
@@ -16,7 +17,7 @@ public class CreateWorldCommand
     public required Race Race { get; init; }
     public required PlayerClass PlayerClass { get; init; }
     public required IReadOnlyDictionary<
-        AttributeName,
+        AllocatableAttributeName,
         int
     > StartingAttributeAllocation { get; init; }
 }
@@ -35,7 +36,7 @@ public class CreateWorldCommandHandler(
     )
     {
         var creatureType = command.Race.ToCreatureType();
-        var profession = command.PlayerClass.ToProfession();
+        var archetype = CreatureArchetype.For(command.PlayerClass.ToProfession());
 
         var worldResult = await worldGenerator.Generate(command.WorldInput, cancellationToken);
 
@@ -54,11 +55,12 @@ public class CreateWorldCommandHandler(
         var playerResult = creatureGenerator.Generate(
             new CreatureGeneratorInput(
                 CreatureType: creatureType,
-                Profession: profession,
+                Archetype: archetype,
                 WorldId: worldResult.World.Id,
                 BirthStateId: startingState.Id,
                 StateId: startingState.Id,
-                Level: 1,
+                MinLevel: 1,
+                MaxLevel: 1,
                 Name: command.Name,
                 Gender: command.Gender.ToGender(),
                 MinBirthYear: birthYear,

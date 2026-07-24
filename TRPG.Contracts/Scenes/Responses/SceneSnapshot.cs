@@ -16,6 +16,10 @@ public enum CreatureType
     Beast,
     Construct,
     Elemental,
+    Goblin,
+    Wraith,
+    Giant,
+    Dragon,
 }
 
 public enum Profession

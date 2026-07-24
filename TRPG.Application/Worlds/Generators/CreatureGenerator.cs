@@ -3,22 +3,24 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Common.Algorithms;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
+using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
 
 public record CreatureGeneratorInput(
     CreatureType CreatureType,
-    Profession Profession,
+    CreatureArchetype Archetype,
     Guid WorldId,
     Guid BirthStateId,
     Guid StateId,
-    int Level = 0,
+    int MinLevel,
+    int MaxLevel,
     string? Name = null,
     Gender? Gender = null,
     int? MinBirthYear = null,
     int? MaxBirthYear = null,
-    IReadOnlyDictionary<AttributeName, int>? StartingAttributeAllocation = null
+    IReadOnlyDictionary<AllocatableAttributeName, int>? StartingAttributeAllocation = null
 );
 
 public record CreatureGeneratorResult(
@@ -36,16 +38,6 @@ public class CreatureGenerator(
     StatFormulas statFormulas
 )
 {
-    private static readonly AttributeName[] AllocatableAttributes =
-    [
-        AttributeName.Strength,
-        AttributeName.Dexterity,
-        AttributeName.Endurance,
-        AttributeName.Stamina,
-        AttributeName.Mana,
-        AttributeName.Intelligence,
-    ];
-
     private static readonly NamePool HumanPool = new(
         [
             "Alden",
@@ -844,148 +836,55 @@ public class CreatureGenerator(
         [CreatureType.Elemental] = [MonsterPool],
     };
 
-    private static readonly Dictionary<Profession, ArmorClass> ProfessionArmorClasses = new()
-    {
-        [Profession.Knight] = ArmorClass.Plate,
-        [Profession.Rogue] = ArmorClass.Leather,
-        [Profession.Ranger] = ArmorClass.Leather,
-        [Profession.Mage] = ArmorClass.Cloth,
-        [Profession.Cleric] = ArmorClass.Plate,
-        [Profession.Mercenary] = ArmorClass.Mail,
-        [Profession.Alchemist] = ArmorClass.Cloth,
-        [Profession.Blacksmith] = ArmorClass.Plate,
-        [Profession.Scholar] = ArmorClass.Cloth,
-        [Profession.Merchant] = ArmorClass.Leather,
-        [Profession.Politician] = ArmorClass.Cloth,
-        [Profession.StableMaster] = ArmorClass.Leather,
-        [Profession.Bartender] = ArmorClass.Cloth,
-        [Profession.Guard] = ArmorClass.Mail,
-        [Profession.Baker] = ArmorClass.Cloth,
-        [Profession.Innkeeper] = ArmorClass.Cloth,
-        [Profession.Tailor] = ArmorClass.Cloth,
-        [Profession.Carpenter] = ArmorClass.Leather,
-        [Profession.Jeweler] = ArmorClass.Cloth,
-        [Profession.Homemaker] = ArmorClass.Cloth,
-        [Profession.Unemployed] = ArmorClass.Cloth,
-    };
-
-    private static readonly Skill[] AllSkills = Enum.GetValues<Skill>();
-
-    private static readonly Dictionary<Profession, Skill[]> ProfessionSkills = new()
-    {
-        [Profession.Knight] = [Skill.Swordsmanship, Skill.Warfare],
-        [Profession.Rogue] = [Skill.Stealth],
-        [Profession.Ranger] = [Skill.Archery],
-        [Profession.Mage] = [Skill.Spellcasting],
-        [Profession.Cleric] = [Skill.Devotion, Skill.Warfare],
-        [Profession.Mercenary] = [Skill.Swordsmanship, Skill.Warfare],
-        [Profession.Alchemist] = [Skill.Spellcasting],
-        [Profession.Blacksmith] = [Skill.Warfare],
-        [Profession.Scholar] = [Skill.Spellcasting],
-        [Profession.Merchant] = [],
-        [Profession.Politician] = [],
-        [Profession.StableMaster] = [],
-        [Profession.Bartender] = [],
-        [Profession.Guard] = [Skill.Swordsmanship, Skill.Warfare],
-        [Profession.Baker] = [],
-        [Profession.Innkeeper] = [],
-        [Profession.Tailor] = [],
-        [Profession.Carpenter] = [],
-        [Profession.Jeweler] = [],
-        [Profession.Homemaker] = [],
-        [Profession.Unemployed] = [],
-    };
-
-    private static readonly Dictionary<Profession, StatAffinities> Affinities = new()
-    {
-        [Profession.Knight] = new StatAffinities(3, 3, 0, 2, 2, 0, 0, 0.8f),
-        [Profession.Rogue] = new StatAffinities(1, 0, 4, 1, 2, 0, 2, 1.2f),
-        [Profession.Ranger] = new StatAffinities(1, 0, 3, 2, 2, 0, 2, 0.9f),
-        [Profession.Mage] = new StatAffinities(0, 0, 0, 1, 0, 4, 5, 1.5f),
-        [Profession.Cleric] = new StatAffinities(0, 2, 0, 1, 1, 3, 3, 1.0f),
-        [Profession.Mercenary] = new StatAffinities(3, 2, 1, 1, 3, 0, 0, 1.1f),
-        [Profession.Alchemist] = new StatAffinities(0, 0, 2, 1, 0, 3, 4, 2.0f),
-        [Profession.Blacksmith] = new StatAffinities(4, 1, 1, 3, 1, 0, 0, 1.5f),
-        [Profession.Scholar] = new StatAffinities(0, 0, 1, 1, 0, 1, 7, 2.0f),
-        [Profession.Merchant] = new StatAffinities(0, 0, 3, 1, 1, 0, 5, 3.0f),
-        [Profession.Politician] = new StatAffinities(0, 0, 1, 0, 0, 1, 8, 4.0f),
-        [Profession.StableMaster] = new StatAffinities(1, 0, 3, 3, 2, 0, 1, 1.0f),
-        [Profession.Bartender] = new StatAffinities(0, 0, 3, 1, 2, 0, 4, 1.2f),
-        [Profession.Guard] = new StatAffinities(2, 3, 1, 3, 1, 0, 0, 0.7f),
-        [Profession.Baker] = new StatAffinities(1, 0, 2, 2, 2, 0, 2, 1.3f),
-        [Profession.Innkeeper] = new StatAffinities(0, 0, 2, 1, 2, 0, 3, 1.4f),
-        [Profession.Tailor] = new StatAffinities(0, 0, 3, 1, 1, 0, 3, 1.5f),
-        [Profession.Carpenter] = new StatAffinities(2, 0, 2, 2, 2, 0, 1, 1.2f),
-        [Profession.Jeweler] = new StatAffinities(0, 0, 3, 0, 1, 0, 3, 2.5f),
-        [Profession.Homemaker] = new StatAffinities(0, 0, 1, 2, 2, 0, 1, 0.5f),
-        [Profession.Unemployed] = new StatAffinities(0, 0, 1, 1, 1, 0, 1, 0.3f),
-    };
-
-    private static readonly HashSet<Profession> CombatProfessions =
-    [
-        Profession.Knight,
-        Profession.Rogue,
-        Profession.Ranger,
-        Profession.Mage,
-        Profession.Cleric,
-        Profession.Mercenary,
-        Profession.Guard,
-    ];
-
-    private sealed record LevelRange(int Minimum, int Maximum);
-
-    private static readonly LevelRange CombatLevelRange = new(5, 100);
-    private static readonly LevelRange CivilianLevelRange = new(1, 20);
-
     public CreatureGeneratorResult Generate(CreatureGeneratorInput generatorInput)
     {
-        var levelRange = CombatProfessions.Contains(generatorInput.Profession)
-            ? CombatLevelRange
-            : CivilianLevelRange;
-        var maximumLevel = Math.Min(levelRange.Maximum, optionsSnapshot.Value.MaxLevel);
-        var level =
-            generatorInput.Level > 0
-                ? generatorInput.Level
-                : Random.Shared.Next(levelRange.Minimum, maximumLevel + 1);
+        var archetype = generatorInput.Archetype;
+        var level = Random.Shared.Next(generatorInput.MinLevel, generatorInput.MaxLevel + 1);
+
         var gender =
-            generatorInput.Gender ?? (Random.Shared.Next(2) == 0 ? Gender.Male : Gender.Female);
+            generatorInput.Gender ?? Random.Shared.GetItems(Enum.GetValues<Gender>(), 1).First();
 
         var attributes = generatorInput.StartingAttributeAllocation is { } allocation
             ? GetPlayerAttributes(level, allocation)
-            : GetAttributes(level, generatorInput.Profession);
+            : GetAttributes(level, archetype);
+
+        var creatureType = archetype.CreatureType ?? generatorInput.CreatureType;
 
         var creature = new Creature
         {
             WorldId = generatorInput.WorldId,
-            Name = generatorInput.Name ?? GetName(generatorInput.CreatureType, gender),
-            CreatureType = generatorInput.CreatureType,
+            Name = generatorInput.Name ?? GetName(creatureType, gender),
+            CreatureType = creatureType,
             Gender = gender,
-            Profession = generatorInput.Profession,
+            Profession = archetype.Profession,
+            Biography = archetype.Biography ?? "",
             BirthStateId = generatorInput.BirthStateId,
             BirthYear = Random.Shared.Next(
                 generatorInput.MinBirthYear ?? 900,
                 generatorInput.MaxBirthYear ?? 975
             ),
-            Gold = GetGold(level, generatorInput.Profession),
+            Gold = GetGold(level, archetype),
             StateId = generatorInput.StateId,
             BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
             Level = level,
-            Experience = SkillFormulas.XpForCharacterLevel(level),
         };
 
-        var (items, inventoryItems) = GenerateStartingInventory(creature);
+        var (items, inventoryItems) = GenerateStartingInventory(creature, archetype);
         var equippedItems = items
             .Zip(inventoryItems, (item, inventoryItem) => (item, inventoryItem))
             .Where(pair => pair.inventoryItem.EquippedSlot != null)
             .Select(pair => pair.item)
             .ToArray();
+
         CreatureAttributesRecalculator.Recalculate(creature, equippedItems);
+
         creature.CurrentHp = creature.MaximumHp;
         creature.CurrentAp = creature.MaximumAp;
         creature.CurrentMp = creature.MaximumMp;
 
-        var skills = GetSkills(creature);
+        var skills = CreatureSkillsGenerator.Generate(creature, archetype.SkillAffinities);
+
         var abilities = GetAbilities(creature, skills);
 
         return new CreatureGeneratorResult(creature, items, inventoryItems, skills, abilities);
@@ -1024,27 +923,6 @@ public class CreatureGenerator(
         };
     }
 
-    private IReadOnlyCollection<CreatureSkill> GetSkills(Creature creature)
-    {
-        var professionSkills = ProfessionSkills[creature.Profession!.Value];
-        var skillLevel = Math.Min(creature.Level, optionsSnapshot.Value.MaxSkillLevel);
-
-        return AllSkills
-            .Select(skill =>
-            {
-                var level = professionSkills.Contains(skill) ? skillLevel : 1;
-                return new CreatureSkill
-                {
-                    CreatureId = creature.Id,
-                    Skill = skill,
-                    Level = level,
-                    Experience = SkillFormulas.XpForSkillLevel(level),
-                    WorldId = creature.WorldId,
-                };
-            })
-            .ToArray();
-    }
-
     private IReadOnlyCollection<CreatureAbility> GetAbilities(
         Creature creature,
         IReadOnlyCollection<CreatureSkill> skills
@@ -1064,16 +942,16 @@ public class CreatureGenerator(
             .ToArray();
     }
 
-    private static int GetGold(int level, Profession profession)
+    private static int GetGold(int level, CreatureArchetype archetype)
     {
         var baseGold = level * 50;
         var spread = Random.Shared.Next((int)(baseGold * 0.8f), (int)(baseGold * 1.2f));
-        return (int)(spread * Affinities[profession].GoldMultiplier);
+        return (int)(spread * archetype.StatAffinities.GoldMultiplier);
     }
 
-    private Attributes GetAttributes(int level, Profession profession)
+    private Attributes GetAttributes(int level, CreatureArchetype archetype)
     {
-        var a = Affinities[profession];
+        var a = archetype.StatAffinities;
         int[] pool =
         [
             a.Strength,
@@ -1112,32 +990,26 @@ public class CreatureGenerator(
         };
     }
 
-    private static int GetBaselineValue(StartingAttributes baseline, AttributeName attribute) =>
+    private static int GetBaselineValue(
+        StartingAttributes baseline,
+        AllocatableAttributeName attribute
+    ) =>
         attribute switch
         {
-            AttributeName.Strength => baseline.Strength,
-            AttributeName.Dexterity => baseline.Dexterity,
-            AttributeName.Endurance => baseline.Endurance,
-            AttributeName.Stamina => baseline.Stamina,
-            AttributeName.Mana => baseline.Mana,
-            AttributeName.Intelligence => baseline.Intelligence,
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(attribute),
-                attribute,
-                "Attribute is not allocatable."
-            ),
+            AllocatableAttributeName.Strength => baseline.Strength,
+            AllocatableAttributeName.Dexterity => baseline.Dexterity,
+            AllocatableAttributeName.Endurance => baseline.Endurance,
+            AllocatableAttributeName.Stamina => baseline.Stamina,
+            AllocatableAttributeName.Mana => baseline.Mana,
+            AllocatableAttributeName.Intelligence => baseline.Intelligence,
+            _ => throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null),
         };
 
     private Attributes GetPlayerAttributes(
         int level,
-        IReadOnlyDictionary<AttributeName, int> allocation
+        IReadOnlyDictionary<AllocatableAttributeName, int> allocation
     )
     {
-        if (allocation.Keys.Any(attribute => !AllocatableAttributes.Contains(attribute)))
-        {
-            throw new InvalidOperationException("Attribute is not allocatable.");
-        }
-
         var requestedTotal = allocation.Values.Sum();
         var availablePoints = level * optionsSnapshot.Value.PointsPerLevel;
         if (requestedTotal > availablePoints)
@@ -1150,9 +1022,11 @@ public class CreatureGenerator(
         var baseline = optionsSnapshot.Value.BaseAttributes;
 
         if (
-            AllocatableAttributes.Any(attribute =>
-                GetBaselineValue(baseline, attribute) + allocation.GetValueOrDefault(attribute) < 1
-            )
+            Enum.GetValues<AllocatableAttributeName>()
+                .Any(attribute =>
+                    GetBaselineValue(baseline, attribute) + allocation.GetValueOrDefault(attribute)
+                    < 1
+                )
         )
         {
             throw new InvalidOperationException("Attributes cannot go below 1.");
@@ -1160,14 +1034,21 @@ public class CreatureGenerator(
 
         var baseAttributes = new Attributes
         {
-            Strength = baseline.Strength + allocation.GetValueOrDefault(AttributeName.Strength),
+            Strength =
+                baseline.Strength + allocation.GetValueOrDefault(AllocatableAttributeName.Strength),
             Defense = baseline.Defense,
-            Dexterity = baseline.Dexterity + allocation.GetValueOrDefault(AttributeName.Dexterity),
-            Endurance = baseline.Endurance + allocation.GetValueOrDefault(AttributeName.Endurance),
-            Stamina = baseline.Stamina + allocation.GetValueOrDefault(AttributeName.Stamina),
-            Mana = baseline.Mana + allocation.GetValueOrDefault(AttributeName.Mana),
+            Dexterity =
+                baseline.Dexterity
+                + allocation.GetValueOrDefault(AllocatableAttributeName.Dexterity),
+            Endurance =
+                baseline.Endurance
+                + allocation.GetValueOrDefault(AllocatableAttributeName.Endurance),
+            Stamina =
+                baseline.Stamina + allocation.GetValueOrDefault(AllocatableAttributeName.Stamina),
+            Mana = baseline.Mana + allocation.GetValueOrDefault(AllocatableAttributeName.Mana),
             Intelligence =
-                baseline.Intelligence + allocation.GetValueOrDefault(AttributeName.Intelligence),
+                baseline.Intelligence
+                + allocation.GetValueOrDefault(AllocatableAttributeName.Intelligence),
         };
 
         return baseAttributes with
@@ -1178,9 +1059,12 @@ public class CreatureGenerator(
         };
     }
 
-    private StartingInventoryResult GenerateStartingInventory(Creature creature)
+    private StartingInventoryResult GenerateStartingInventory(
+        Creature creature,
+        CreatureArchetype archetype
+    )
     {
-        var startingItems = GetStartingItems(creature);
+        var startingItems = GetStartingItems(creature, archetype);
         var items = new List<Item>();
         var inventoryItems = new List<InventoryItem>();
         var index = 0;
@@ -1204,98 +1088,45 @@ public class CreatureGenerator(
         return new StartingInventoryResult(items.ToArray(), inventoryItems.ToArray());
     }
 
-    private StartingItem[] GetStartingItems(Creature creature)
+    private StartingItem[] GetStartingItems(Creature creature, CreatureArchetype archetype)
     {
         var level = creature.Level;
         var worldId = creature.WorldId;
-        var armorClass = ProfessionArmorClasses.GetValueOrDefault(
-            creature.Profession!.Value,
-            ArmorClass.Leather
-        );
-        var armor = GetArmorItems(armorClass, level, worldId);
-        var accessories = GetAccessoryItems(level, worldId);
 
-        return creature.Profession switch
+        var items = archetype.StartingGear.Select(spec => GetGearItem(spec, level, worldId));
+
+        if (archetype.ArmorClass is { } armorClass)
         {
-            Profession.Knight =>
-            [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Sword, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
-                .. armor,
-                .. accessories,
-            ],
-            Profession.Rogue =>
-            [
-                new StartingItem(
-                    itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId),
-                    1
-                ),
-                new StartingItem(
-                    itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId),
-                    1,
-                    EquipmentSlot.LeftHand
-                ),
-                .. armor,
-                .. accessories,
-            ],
-            Profession.Ranger =>
-            [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Bow, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateAmmo(AmmoType.Arrow, worldId), 20),
-                .. armor,
-                .. accessories,
-            ],
-            Profession.Mage =>
-            [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 3),
-                .. armor,
-                .. accessories,
-            ],
-            Profession.Cleric =>
-            [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Mace, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
-                .. armor,
-                .. accessories,
-            ],
-            Profession.Mercenary =>
-            [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Sword, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
-                .. armor,
-                .. accessories,
-            ],
-            Profession.Alchemist =>
-            [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Wand, level, worldId), 1),
-                new StartingItem(itemGenerator.GenerateConsumable(level, worldId), 5),
-                .. armor,
-                .. accessories,
-            ],
-            Profession.Blacksmith =>
-            [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Axe, level, worldId), 1),
-                .. armor,
-                .. accessories,
-            ],
-            Profession.Scholar =>
-            [
-                new StartingItem(itemGenerator.GenerateWeapon(WeaponType.Staff, level, worldId), 1),
-                .. armor,
-                .. accessories,
-            ],
-            _ =>
-            [
-                new StartingItem(
-                    itemGenerator.GenerateWeapon(WeaponType.Dagger, level, worldId),
-                    1
-                ),
-                .. armor,
-                .. accessories,
-            ],
-        };
+            items = items.Concat(GetArmorItems(armorClass, level, worldId));
+        }
+
+        if (archetype.HasAccessories)
+        {
+            items = items.Concat(GetAccessoryItems(level, worldId));
+        }
+
+        return items.ToArray();
     }
+
+    private StartingItem GetGearItem(StartingGearSpec spec, int level, Guid worldId) =>
+        spec switch
+        {
+            WeaponSpec weapon => new StartingItem(
+                itemGenerator.GenerateWeapon(weapon.WeaponType, level, worldId),
+                1,
+                weapon.SlotOverride
+            ),
+            ShieldSpec => new StartingItem(itemGenerator.GenerateShield(level, worldId), 1),
+            AmmoSpec ammo => new StartingItem(
+                itemGenerator.GenerateAmmo(ammo.AmmoType, worldId),
+                ammo.Quantity
+            ),
+            ConsumableSpec consumable => new StartingItem(
+                itemGenerator.GenerateConsumable(level, worldId),
+                consumable.Quantity
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(spec), spec, null),
+        };
 
     private StartingItem[] GetArmorItems(ArmorClass armorClass, int level, Guid worldId)
     {
@@ -1447,17 +1278,6 @@ public class CreatureGenerator(
     }
 
     private record NamePool(string[] MaleFirstNames, string[] FemaleFirstNames, string[] LastNames);
-
-    private record StatAffinities(
-        int Strength,
-        int Defense,
-        int Dexterity,
-        int Endurance,
-        int Stamina,
-        int Mana,
-        int Intelligence,
-        float GoldMultiplier
-    );
 
     private record StartingInventoryResult(
         IReadOnlyList<Item> Items,

@@ -112,10 +112,11 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
     }
 
     [Fact]
-    public async Task Handle_GrantsCharacterExperienceAndLevel_WhenASkillLevelsUp()
+    public async Task Handle_DerivesCharacterLevel_FromSkillContribution_WhenASkillLevelsUp()
     {
-        // Arrange — one skill-level gained should grant 50 character xp (default rate);
-        // character level 2 needs 1400 xp, so this alone shouldn't cross it
+        // Arrange — one skill-level gained (contributing CalculateExperienceFromSkillLevel(2) = 2
+        // xp toward character level) falls short of CalculateExperienceFromLevel(2) = 3, so the
+        // creature's derived level stays at 1
         await SeedSkill(Skill.Swordsmanship, level: 1, experience: 240);
 
         // Act
@@ -131,16 +132,18 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
 
         // Assert
         var creature = await ReloadCreature();
-        Assert.Equal(50, creature.Experience);
         Assert.Equal(1, creature.Level);
     }
 
     [Fact]
-    public async Task Handle_SumsCharacterExperience_WhenMultipleSkillsLevelUpInOneCall()
+    public async Task Handle_SumsContributionsAcrossAllSkills_WhenMultipleSkillsLevelUpInOneCall()
     {
-        // Arrange — both skills cross their level-2 threshold this round
-        await SeedSkill(Skill.Swordsmanship, level: 1, experience: 240);
-        await SeedSkill(Skill.Warfare, level: 1, experience: 240);
+        // Arrange — both skills cross from level 1 to 2 this round, contributing
+        // CalculateExperienceFromSkillLevel(2) = 2 each, and 2 + 2 = 4 clears
+        // CalculateExperienceFromLevel(2) = 3, proving the two skills' contributions are summed
+        // together rather than checked independently (either alone, at 2, would fall short)
+        await SeedSkill(Skill.Swordsmanship, level: 1, experience: 140);
+        await SeedSkill(Skill.Warfare, level: 1, experience: 140);
 
         // Act
         await _handler.Handle(
@@ -150,22 +153,22 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
                 CreatureId = _creature.Id,
                 UsageCounts = new Dictionary<Skill, int>
                 {
-                    [Skill.Swordsmanship] = 2,
-                    [Skill.Warfare] = 2,
+                    [Skill.Swordsmanship] = 1,
+                    [Skill.Warfare] = 1,
                 },
             },
             TestContext.Current.CancellationToken
         );
 
-        // Assert — two skill-levels gained, summed, not counted per-skill separately
+        // Assert
         var creature = await ReloadCreature();
-        Assert.Equal(100, creature.Experience);
+        Assert.Equal(2, creature.Level);
     }
 
     [Fact]
-    public async Task Handle_DoesNotChangeCharacterExperience_WhenNoSkillLevelsUp()
+    public async Task Handle_DoesNotChangeCharacterLevel_WhenNoSkillLevelsUp()
     {
-        // Arrange
+        // Arrange — partial skill progress alone must never move character level
         await SeedSkill(Skill.Swordsmanship, level: 1, experience: 100);
 
         // Act
@@ -181,7 +184,6 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
 
         // Assert
         var creature = await ReloadCreature();
-        Assert.Equal(0, creature.Experience);
         Assert.Equal(1, creature.Level);
     }
 

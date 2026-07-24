@@ -44,6 +44,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
             new GetRoomsByIdsQueryHandler(_context, cache),
             getAllNearbyCreatures,
             getEffectiveReputations,
+            new GetTotalCharacterXpFromSkillsQueryHandler(_context),
             NullLogger<GetSceneQueryHandler>.Instance
         );
 
@@ -219,13 +220,29 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_ComputesExperienceProgress_ForPlayerAndNearbyPeople()
     {
-        // Arrange — level 1 floor is XpForCharacterLevel(1) = 600, next level floor is
-        // XpForCharacterLevel(2) = 1400, so 50 points of progress into level 1 sits at
-        // experience 650, giving Current = 50 and ToNextLevel = 800.
+        // Arrange — a single skill at level 2 contributes CalculateExperienceFromSkillLevel(2) = 2
+        // toward character level. Level 1 floor is CalculateExperienceFromLevel(1) = 0, next level
+        // floor is CalculateExperienceFromLevel(2) = 3, so this sits at Current = 2, ToNextLevel = 3.
         _player.Level = 1;
-        _player.Experience = 650;
         _nearbyCreature.Level = 1;
-        _nearbyCreature.Experience = 650;
+        _context.CreatureSkills.AddRange(
+            new CreatureSkill
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                Skill = Skill.General,
+                Level = 2,
+                Experience = 0,
+            },
+            new CreatureSkill
+            {
+                WorldId = WorldId,
+                CreatureId = _nearbyCreature.Id,
+                Skill = Skill.General,
+                Level = 2,
+                Experience = 0,
+            }
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -239,11 +256,11 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(50, result.Player.ExperienceCurrent);
-        Assert.Equal(800, result.Player.ExperienceToNextLevel);
+        Assert.Equal(2, result.Player.ExperienceCurrent);
+        Assert.Equal(3, result.Player.ExperienceToNextLevel);
         var nearby = Assert.Single(result.NearbyCreatures, p => p.Name == _nearbyCreature.Name);
-        Assert.Equal(50, nearby.ExperienceCurrent);
-        Assert.Equal(800, nearby.ExperienceToNextLevel);
+        Assert.Equal(2, nearby.ExperienceCurrent);
+        Assert.Equal(3, nearby.ExperienceToNextLevel);
     }
 
     [Fact]

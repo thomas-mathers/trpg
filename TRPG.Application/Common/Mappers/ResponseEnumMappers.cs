@@ -49,6 +49,10 @@ internal static class ResponseEnumMappers
             DataCreatureType.Beast => ContractCreatureType.Beast,
             DataCreatureType.Construct => ContractCreatureType.Construct,
             DataCreatureType.Elemental => ContractCreatureType.Elemental,
+            DataCreatureType.Goblin => ContractCreatureType.Goblin,
+            DataCreatureType.Wraith => ContractCreatureType.Wraith,
+            DataCreatureType.Giant => ContractCreatureType.Giant,
+            DataCreatureType.Dragon => ContractCreatureType.Dragon,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 

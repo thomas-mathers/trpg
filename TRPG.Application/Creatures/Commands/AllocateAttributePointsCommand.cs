@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -8,7 +9,7 @@ namespace TRPG.Application.Creatures.Commands;
 internal class AllocateAttributePointsCommand
 {
     public required Guid CreatureId { get; init; }
-    public required IReadOnlyDictionary<AttributeName, int> Deltas { get; init; }
+    public required IReadOnlyDictionary<AllocatableAttributeName, int> Deltas { get; init; }
 }
 
 internal class AllocateAttributePointsCommandHandler(
@@ -78,34 +79,34 @@ internal class AllocateAttributePointsCommandHandler(
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    private static void ApplyDelta(Attributes attributes, AttributeName attribute, int delta)
+    private static void ApplyDelta(
+        Attributes attributes,
+        AllocatableAttributeName attribute,
+        int delta
+    )
     {
         switch (attribute)
         {
-            case AttributeName.Strength:
+            case AllocatableAttributeName.Strength:
                 attributes.Strength += delta;
                 break;
-            case AttributeName.Dexterity:
+            case AllocatableAttributeName.Dexterity:
                 attributes.Dexterity += delta;
                 break;
-            case AttributeName.Endurance:
+            case AllocatableAttributeName.Endurance:
                 attributes.Endurance += delta;
                 break;
-            case AttributeName.Stamina:
+            case AllocatableAttributeName.Stamina:
                 attributes.Stamina += delta;
                 break;
-            case AttributeName.Mana:
+            case AllocatableAttributeName.Mana:
                 attributes.Mana += delta;
                 break;
-            case AttributeName.Intelligence:
+            case AllocatableAttributeName.Intelligence:
                 attributes.Intelligence += delta;
                 break;
             default:
-                throw new ArgumentOutOfRangeException(
-                    nameof(attribute),
-                    attribute,
-                    "Attribute is not allocatable."
-                );
+                throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null);
         }
     }
 }

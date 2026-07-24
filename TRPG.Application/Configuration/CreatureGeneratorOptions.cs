@@ -2,11 +2,8 @@ namespace TRPG.Application.Configuration;
 
 public class CreatureGeneratorOptions
 {
-    public int MaxLevel { get; init; } = 100;
-    public int MaxSkillLevel { get; init; } = 100;
     public int PointsPerLevel { get; init; } = 5;
     public int SkillExperiencePerAbilityUse { get; init; } = 10;
-    public int CharacterExperiencePerSkillLevel { get; init; } = 50;
     public int HpPerEndurance { get; init; } = 5;
     public int ApPerStamina { get; init; } = 2;
     public int MpPerMana { get; init; } = 2;

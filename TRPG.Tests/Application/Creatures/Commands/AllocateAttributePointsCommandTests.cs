@@ -1,6 +1,7 @@
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -64,10 +65,10 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
             new AllocateAttributePointsCommand
             {
                 CreatureId = _creature.Id,
-                Deltas = new Dictionary<AttributeName, int>
+                Deltas = new Dictionary<AllocatableAttributeName, int>
                 {
-                    [AttributeName.Strength] = 3,
-                    [AttributeName.Endurance] = 2,
+                    [AllocatableAttributeName.Strength] = 3,
+                    [AllocatableAttributeName.Endurance] = 2,
                 },
             },
             TestContext.Current.CancellationToken
@@ -87,7 +88,10 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
             new AllocateAttributePointsCommand
             {
                 CreatureId = _creature.Id,
-                Deltas = new Dictionary<AttributeName, int> { [AttributeName.Endurance] = 2 },
+                Deltas = new Dictionary<AllocatableAttributeName, int>
+                {
+                    [AllocatableAttributeName.Endurance] = 2,
+                },
             },
             TestContext.Current.CancellationToken
         );
@@ -107,7 +111,10 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
                 new AllocateAttributePointsCommand
                 {
                     CreatureId = _creature.Id,
-                    Deltas = new Dictionary<AttributeName, int> { [AttributeName.Strength] = 6 },
+                    Deltas = new Dictionary<AllocatableAttributeName, int>
+                    {
+                        [AllocatableAttributeName.Strength] = 6,
+                    },
                 },
                 TestContext.Current.CancellationToken
             )
@@ -123,23 +130,10 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
                 new AllocateAttributePointsCommand
                 {
                     CreatureId = _creature.Id,
-                    Deltas = new Dictionary<AttributeName, int> { [AttributeName.Strength] = -1 },
-                },
-                TestContext.Current.CancellationToken
-            )
-        );
-    }
-
-    [Fact]
-    public async Task Handle_Throws_WhenTargetingDefense()
-    {
-        // Act & Assert — Defense is not player-allocatable
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            _handler.Handle(
-                new AllocateAttributePointsCommand
-                {
-                    CreatureId = _creature.Id,
-                    Deltas = new Dictionary<AttributeName, int> { [AttributeName.Defense] = 1 },
+                    Deltas = new Dictionary<AllocatableAttributeName, int>
+                    {
+                        [AllocatableAttributeName.Strength] = -1,
+                    },
                 },
                 TestContext.Current.CancellationToken
             )
@@ -154,7 +148,7 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
             new AllocateAttributePointsCommand
             {
                 CreatureId = _creature.Id,
-                Deltas = new Dictionary<AttributeName, int>(),
+                Deltas = new Dictionary<AllocatableAttributeName, int>(),
             },
             TestContext.Current.CancellationToken
         );

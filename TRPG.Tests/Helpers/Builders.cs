@@ -1,6 +1,8 @@
+using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
+using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
 using Profession = TRPG.Data.Models.Profession;
 
@@ -14,6 +16,26 @@ internal static class Builders
                 options ?? new CreatureGeneratorOptions()
             )
         );
+
+    public static CreatureGenerator MakeCreatureGenerator(CreatureGeneratorOptions? options = null)
+    {
+        var abilityDefinitions = AbilityDefinitions.Create();
+        var itemGenerator = new ItemGenerator(
+            new WeaponGenerator(abilityDefinitions),
+            new ArmorGenerator(abilityDefinitions),
+            new AccessoryGenerator(),
+            new ConsumableGenerator(),
+            new AmmoGenerator()
+        );
+        return new CreatureGenerator(
+            itemGenerator,
+            abilityDefinitions,
+            new TestOptionsSnapshot<CreatureGeneratorOptions>(
+                options ?? new CreatureGeneratorOptions()
+            ),
+            MakeStatFormulas(options)
+        );
+    }
 
     public static Combatant MakeCombatant(
         Guid? creatureId = null,

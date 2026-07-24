@@ -89,7 +89,6 @@ internal record SceneBootstrap(
     string PlayerName,
     Profession? Profession,
     int Level,
-    int Experience,
     int Gold,
     int BirthYear,
     Guid StateId,
@@ -129,6 +128,7 @@ internal class GetSceneQueryHandler(
     GetRoomsByIdsQueryHandler getRoomsByIds,
     GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
     GetEffectiveReputationsQueryHandler getEffectiveReputations,
+    GetTotalCharacterXpFromSkillsQueryHandler getTotalCharacterXpFromSkills,
     ILogger<GetSceneQueryHandler> logger
 )
 {
@@ -140,6 +140,11 @@ internal class GetSceneQueryHandler(
         var stopwatch = Stopwatch.StartNew();
 
         var bootstrap = await GetBootstrap(query.PlayerId, cancellationToken);
+        var playerXpTotals = await getTotalCharacterXpFromSkills.Handle(
+            new GetTotalCharacterXpFromSkillsQuery { CreatureIds = [query.PlayerId] },
+            cancellationToken
+        );
+        var playerTotalCharacterXp = playerXpTotals.GetValueOrDefault(query.PlayerId, 0);
         var state = await getStateById.Handle(
             new GetStateByIdQuery { Id = bootstrap.StateId },
             cancellationToken
@@ -170,7 +175,7 @@ internal class GetSceneQueryHandler(
             cityInfo,
             details.Building,
             details.Room,
-            BuildPlayerCreatureInfo(query, bootstrap),
+            BuildPlayerCreatureInfo(query, bootstrap, playerTotalCharacterXp),
             details.NearbyProps,
             details.NearbyPeople,
             details.NearbyBuildings,
@@ -180,12 +185,13 @@ internal class GetSceneQueryHandler(
 
     private static SceneCreatureInfo BuildPlayerCreatureInfo(
         GetSceneQuery query,
-        SceneBootstrap bootstrap
+        SceneBootstrap bootstrap,
+        int totalCharacterXp
     )
     {
-        var experienceProgress = SkillFormulas.GetCharacterExperienceProgress(
+        var experienceProgress = SkillFormulas.GetExperienceProgress(
             bootstrap.Level,
-            bootstrap.Experience
+            totalCharacterXp
         );
 
         return new SceneCreatureInfo(
@@ -222,7 +228,6 @@ internal class GetSceneQueryHandler(
                 p.Name,
                 p.Profession,
                 p.Level,
-                p.Experience,
                 p.Gold,
                 p.BirthYear,
                 p.StateId,
@@ -442,13 +447,17 @@ internal class GetSceneQueryHandler(
             },
             cancellationToken
         );
+        var characterXpByCreature = await getTotalCharacterXpFromSkills.Handle(
+            new GetTotalCharacterXpFromSkillsQuery { CreatureIds = nearbyCreatureIds },
+            cancellationToken
+        );
 
         return nearbyPeopleRaw
             .Select(x =>
             {
-                var experienceProgress = SkillFormulas.GetCharacterExperienceProgress(
+                var experienceProgress = SkillFormulas.GetExperienceProgress(
                     x.Level,
-                    x.Experience
+                    characterXpByCreature.GetValueOrDefault(x.Id, 0)
                 );
                 return new SceneCreatureInfo(
                     x.Name,

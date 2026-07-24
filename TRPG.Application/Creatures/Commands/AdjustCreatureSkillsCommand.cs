@@ -28,46 +28,40 @@ internal class AdjustCreatureSkillsCommandHandler(
             return;
         }
 
-        var skillRows = await context
+        var skills = await context
             .CreatureSkills.Where(s =>
-                s.WorldId == command.WorldId
-                && s.CreatureId == command.CreatureId
-                && command.UsageCounts.Keys.Contains(s.Skill)
+                s.WorldId == command.WorldId && s.CreatureId == command.CreatureId
             )
-            .ToDictionaryAsync(s => s.Skill, cancellationToken);
+            .ToListAsync(cancellationToken);
 
-        var totalLevelsGained = 0;
+        var totalSkillLevelsGained = 0;
 
-        foreach (var (skill, useCount) in command.UsageCounts)
+        foreach (var skill in skills)
         {
-            if (!skillRows.TryGetValue(skill, out var row))
-            {
-                continue;
-            }
+            var usageCount = command.UsageCounts.GetValueOrDefault(skill.Skill, 0);
 
-            row.Experience += useCount * optionsSnapshot.Value.SkillExperiencePerAbilityUse;
+            skill.Experience += usageCount * optionsSnapshot.Value.SkillExperiencePerAbilityUse;
 
-            while (row.Experience >= SkillFormulas.XpForSkillLevel(row.Level + 1))
+            while (
+                skill.Experience
+                >= SkillFormulas.CalculateSkillExperienceFromSkillLevel(skill.Level + 1)
+            )
             {
-                row.Level++;
-                totalLevelsGained++;
+                skill.Level++;
+                totalSkillLevelsGained++;
             }
         }
 
-        if (totalLevelsGained > 0)
+        if (totalSkillLevelsGained > 0)
         {
             var creature = await context.Creatures.FirstAsync(
                 c => c.Id == command.CreatureId,
                 cancellationToken
             );
 
-            creature.Experience +=
-                totalLevelsGained * optionsSnapshot.Value.CharacterExperiencePerSkillLevel;
+            var skillLevels = skills.Select(s => s.Level).ToArray();
 
-            while (creature.Experience >= SkillFormulas.XpForCharacterLevel(creature.Level + 1))
-            {
-                creature.Level++;
-            }
+            creature.Level = SkillFormulas.CalculateLevelFromSkillLevels(skillLevels);
         }
 
         await context.SaveChangesAsync(cancellationToken);
