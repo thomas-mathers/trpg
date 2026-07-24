@@ -291,10 +291,12 @@ public class CityGenerator(
             var memberCreature = creatureGenerator.Generate(
                 new CreatureGeneratorInput(
                     memberRace,
-                    Profession.Mercenary,
+                    CreatureArchetype.For(Profession.Mercenary),
                     input.WorldId,
                     input.State.Id,
-                    input.State.Id
+                    input.State.Id,
+                    MinLevel: 5,
+                    MaxLevel: 100
                 )
                 {
                     MaxBirthYear = MaxAdultBirthYear,

@@ -33,7 +33,7 @@ public class PlayerActionResolverTests
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act
-        var resolution = PlayerActionResolver.Resolve(combatants, "Smite", "Wraith");
+        var resolution = PlayerActionResolver.Resolve(combatants, monster.CreatureId, "Smite");
 
         // Assert
         var resolved = Assert.IsType<ActionResolved>(resolution);
@@ -56,7 +56,11 @@ public class PlayerActionResolverTests
         IReadOnlyList<Combatant> combatants = [player];
 
         // Act
-        var resolution = PlayerActionResolver.Resolve(combatants, "Health Potion", "Hero");
+        var resolution = PlayerActionResolver.Resolve(
+            combatants,
+            player.CreatureId,
+            "Health Potion"
+        );
 
         // Assert
         var resolved = Assert.IsType<ActionResolved>(resolution);

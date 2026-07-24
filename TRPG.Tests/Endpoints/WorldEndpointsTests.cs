@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts;
 using TRPG.Contracts.Jobs.Responses;
@@ -8,6 +9,8 @@ using TRPG.Contracts.Worlds.Requests;
 using TRPG.Contracts.Worlds.Responses;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
+using DataCreatureType = TRPG.Data.Models.CreatureType;
+using DataSkill = TRPG.Data.Models.Skill;
 
 namespace TRPG.Tests.Endpoints;
 
@@ -81,6 +84,94 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         Assert.NotEqual(Guid.Empty, result.WorldId);
         Assert.NotEqual(Guid.Empty, result.PlayerId);
         Assert.False(string.IsNullOrWhiteSpace(result.WorldName));
+    }
+
+    [Fact]
+    public async Task CreateWorld_PersistsMonsterSkillsAbilitiesAndGear_WhenDungeonsAreGenerated()
+    {
+        // Arrange — one dungeon per state guarantees monsters exist in the generated world
+        var request = new CreateWorldRequest
+        {
+            PlayerName = "Test Player",
+            Gender = Gender.Male,
+            Age = Age.Teenager,
+            Race = Race.Human,
+            PlayerClass = PlayerClass.Knight,
+            MinCityStates = 1,
+            MaxCityStates = 1,
+            MinRuralStates = 5,
+            MaxRuralStates = 5,
+            MinBuildingsPerState = 1,
+            MaxBuildingsPerState = 1,
+            MinFactionMembers = 1,
+            MaxFactionMembers = 1,
+            FactionCount = 1,
+            HousesPerCity = 1,
+            MinHouseholdSize = 1,
+            MaxHouseholdSize = 1,
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            "/worlds",
+            request,
+            TrpgJsonOptions.Default,
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        var enqueued = await response.Content.ReadFromJsonAsync<EnqueueJobResponse>(
+            TrpgJsonOptions.Default,
+            TestContext.Current.CancellationToken
+        );
+        var jobStatus = await WaitForJobCompletion(enqueued!.JobId);
+        Assert.Equal(JobStatus.Done, jobStatus.Status);
+        var result = JsonSerializer.Deserialize<CreateWorldResponse>(
+            jobStatus.ResultJson!,
+            TrpgJsonOptions.Default
+        )!;
+
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var monsters = await context
+            .Creatures.Where(c => c.WorldId == result.WorldId && c.Profession == null)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        Assert.NotEmpty(monsters);
+
+        var monsterIds = monsters.Select(m => m.Id).ToArray();
+        var skillsByCreature = (
+            await context
+                .CreatureSkills.Where(s => monsterIds.Contains(s.CreatureId))
+                .ToListAsync(TestContext.Current.CancellationToken)
+        ).ToLookup(s => s.CreatureId);
+        var abilitiesByCreature = (
+            await context
+                .CreatureAbilities.Where(a => monsterIds.Contains(a.CreatureId))
+                .ToListAsync(TestContext.Current.CancellationToken)
+        ).ToLookup(a => a.CreatureId);
+        var inventoryByCreature = (
+            await context
+                .InventoryItems.Where(i => monsterIds.Contains(i.CreatureId))
+                .ToListAsync(TestContext.Current.CancellationToken)
+        ).ToLookup(i => i.CreatureId);
+
+        Assert.All(
+            monsters,
+            m => Assert.Equal(Enum.GetValues<DataSkill>().Length, skillsByCreature[m.Id].Count())
+        );
+        Assert.All(monsters, m => Assert.NotEmpty(abilitiesByCreature[m.Id]));
+
+        var armedCreatureTypes = new[]
+        {
+            DataCreatureType.Undead,
+            DataCreatureType.Demon,
+            DataCreatureType.Goblin,
+        };
+        Assert.All(
+            monsters.Where(m => armedCreatureTypes.Contains(m.CreatureType)),
+            m => Assert.NotEmpty(inventoryByCreature[m.Id])
+        );
     }
 
     private async Task<JobStatusResponse> WaitForJobCompletion(Guid jobId)

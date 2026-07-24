@@ -13,6 +13,10 @@ public enum CreatureType
     Beast,
     Construct,
     Elemental,
+    Goblin,
+    Wraith,
+    Giant,
+    Dragon,
 }
 
 public static class CreatureTypes
@@ -107,7 +111,6 @@ public class Creature
     public int CurrentHp { get; set; }
     public int CurrentMp { get; set; }
     public Guid? DistrictId { get; set; }
-    public int Experience { get; set; }
     public Gender Gender { get; init; }
     public int Gold { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();

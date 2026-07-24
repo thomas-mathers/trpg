@@ -173,8 +173,8 @@ internal class GameTurnRunner(
     }
 
     public async IAsyncEnumerable<string> StreamCombatActionResponse(
+        Guid targetId,
         string actionName,
-        string targetName,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
@@ -198,7 +198,7 @@ internal class GameTurnRunner(
             yield break;
         }
 
-        var resolution = PlayerActionResolver.Resolve(combatants, actionName, targetName);
+        var resolution = PlayerActionResolver.Resolve(combatants, targetId, actionName);
 
         ResolvedAction resolvedAction;
 

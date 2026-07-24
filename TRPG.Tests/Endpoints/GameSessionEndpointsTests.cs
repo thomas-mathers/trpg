@@ -118,14 +118,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         var country = Builders.MakeCountry(world.Id);
         var state = Builders.MakeState(country.Id, world.Id);
         var city = Builders.MakeCity(state.Id, country.Id, worldId: world.Id);
-        var origin = Builders.MakeDistrict(
-            city.Id,
-            TRPG.Data.Models.DistrictType.CityCenter,
-            worldId: world.Id
-        );
+        var origin = Builders.MakeDistrict(city.Id, worldId: world.Id);
         var destination = Builders.MakeDistrict(
             city.Id,
-            TRPG.Data.Models.DistrictType.Residential,
+            Data.Models.DistrictType.Residential,
             worldId: world.Id
         );
         var player = Builders.MakeCreature(

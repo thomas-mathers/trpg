@@ -50,7 +50,7 @@ public class WorldGenerator(
     FactionsGenerator factionsGenerator,
     GeographyGenerator geographyGenerator,
     CityGenerator cityGenerator,
-    MonsterGenerator monsterGenerator,
+    DungeonPopulator dungeonPopulator,
     ILogger<WorldGenerator> logger
 )
 {
@@ -181,8 +181,8 @@ public class WorldGenerator(
                 rooms.Add(result.Room);
                 props.AddRange(result.Props);
 
-                var dungeonMonsters = monsterGenerator.Generate(
-                    new MonsterGeneratorInput
+                var dungeonMonsters = dungeonPopulator.Generate(
+                    new DungeonPopulatorInput
                     {
                         StateId = state.Id,
                         RoomId = result.Room.Id,
@@ -191,6 +191,10 @@ public class WorldGenerator(
                     }
                 );
                 monsters.AddRange(dungeonMonsters.Select(m => m.Creature));
+                items.AddRange(dungeonMonsters.SelectMany(m => m.Items));
+                inventoryItems.AddRange(dungeonMonsters.SelectMany(m => m.InventoryItems));
+                skills.AddRange(dungeonMonsters.SelectMany(m => m.Skills));
+                abilities.AddRange(dungeonMonsters.SelectMany(m => m.Abilities));
             }
         }
 

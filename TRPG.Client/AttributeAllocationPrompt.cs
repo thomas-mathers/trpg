@@ -2,22 +2,15 @@ using System.Globalization;
 using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
-using TRPG.Contracts.Combat.Responses;
+using TRPG.Contracts.Creatures.Requests;
 using TRPG.Contracts.Creatures.Responses;
 
 namespace TRPG.Client;
 
 internal static class AttributeAllocationPrompt
 {
-    private static readonly AttributeName[] AllocatableAttributes =
-    [
-        AttributeName.Strength,
-        AttributeName.Dexterity,
-        AttributeName.Endurance,
-        AttributeName.Stamina,
-        AttributeName.Mana,
-        AttributeName.Intelligence,
-    ];
+    private static readonly AllocatableAttributeName[] AllocatableAttributes =
+        Enum.GetValues<AllocatableAttributeName>();
 
     private enum MenuAction
     {
@@ -30,11 +23,11 @@ internal static class AttributeAllocationPrompt
     private sealed record MenuOption(
         string Label,
         MenuAction Action,
-        AttributeName? Attribute = null
+        AllocatableAttributeName? Attribute = null
     );
 
     // Spending leftover points from a level-up — additive only, never below the current value.
-    public static Task<IReadOnlyDictionary<AttributeName, int>?> Run(
+    public static Task<IReadOnlyDictionary<AllocatableAttributeName, int>?> Run(
         int totalPoints,
         BaseAttributesResponse baseAttributes,
         CancellationToken cancellationToken
@@ -47,7 +40,7 @@ internal static class AttributeAllocationPrompt
         );
 
     // Character creation — an attribute can be lowered below its base to fund another, down to a floor of 1.
-    public static Task<IReadOnlyDictionary<AttributeName, int>?> RunAtCreation(
+    public static Task<IReadOnlyDictionary<AllocatableAttributeName, int>?> RunAtCreation(
         int totalPoints,
         BaseAttributesResponse baseAttributes,
         CancellationToken cancellationToken
@@ -59,14 +52,14 @@ internal static class AttributeAllocationPrompt
             cancellationToken
         );
 
-    private static async Task<IReadOnlyDictionary<AttributeName, int>?> RunLoop(
+    private static async Task<IReadOnlyDictionary<AllocatableAttributeName, int>?> RunLoop(
         int totalPoints,
         BaseAttributesResponse baseAttributes,
         Func<int, int, bool> canDecrease,
         CancellationToken cancellationToken
     )
     {
-        var deltas = new Dictionary<AttributeName, int>();
+        var deltas = new Dictionary<AllocatableAttributeName, int>();
         var remaining = totalPoints;
 
         while (true)
@@ -111,7 +104,7 @@ internal static class AttributeAllocationPrompt
 
     private static void PrintAllocation(
         BaseAttributesResponse baseAttributes,
-        IReadOnlyDictionary<AttributeName, int> deltas,
+        IReadOnlyDictionary<AllocatableAttributeName, int> deltas,
         int remaining
     )
     {
@@ -138,21 +131,24 @@ internal static class AttributeAllocationPrompt
         AnsiConsole.AnnounceSuccess($"Points remaining: {remaining}");
     }
 
-    private static int GetValue(BaseAttributesResponse baseAttributes, AttributeName attribute) =>
+    private static int GetValue(
+        BaseAttributesResponse baseAttributes,
+        AllocatableAttributeName attribute
+    ) =>
         attribute switch
         {
-            AttributeName.Strength => baseAttributes.Strength,
-            AttributeName.Dexterity => baseAttributes.Dexterity,
-            AttributeName.Endurance => baseAttributes.Endurance,
-            AttributeName.Stamina => baseAttributes.Stamina,
-            AttributeName.Mana => baseAttributes.Mana,
-            AttributeName.Intelligence => baseAttributes.Intelligence,
+            AllocatableAttributeName.Strength => baseAttributes.Strength,
+            AllocatableAttributeName.Dexterity => baseAttributes.Dexterity,
+            AllocatableAttributeName.Endurance => baseAttributes.Endurance,
+            AllocatableAttributeName.Stamina => baseAttributes.Stamina,
+            AllocatableAttributeName.Mana => baseAttributes.Mana,
+            AllocatableAttributeName.Intelligence => baseAttributes.Intelligence,
             _ => throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null),
         };
 
     private static IReadOnlyList<MenuOption> BuildChoices(
         BaseAttributesResponse baseAttributes,
-        IReadOnlyDictionary<AttributeName, int> deltas,
+        IReadOnlyDictionary<AllocatableAttributeName, int> deltas,
         int remaining,
         Func<int, int, bool> canDecrease
     )

@@ -49,6 +49,10 @@ internal static class ResponseEnumMappers
             DataCreatureType.Beast => ContractCreatureType.Beast,
             DataCreatureType.Construct => ContractCreatureType.Construct,
             DataCreatureType.Elemental => ContractCreatureType.Elemental,
+            DataCreatureType.Goblin => ContractCreatureType.Goblin,
+            DataCreatureType.Wraith => ContractCreatureType.Wraith,
+            DataCreatureType.Giant => ContractCreatureType.Giant,
+            DataCreatureType.Dragon => ContractCreatureType.Dragon,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 
@@ -189,7 +193,8 @@ internal static class ResponseEnumMappers
     public static ContractAbilitySkill ToContract(this DataSkill skill) =>
         skill switch
         {
-            DataSkill.Swordsmanship => ContractAbilitySkill.Swordsmanship,
+            DataSkill.Melee => ContractAbilitySkill.Melee,
+            DataSkill.Unarmed => ContractAbilitySkill.Unarmed,
             DataSkill.Stealth => ContractAbilitySkill.Stealth,
             DataSkill.Spellcasting => ContractAbilitySkill.Spellcasting,
             DataSkill.Archery => ContractAbilitySkill.Archery,

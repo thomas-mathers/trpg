@@ -4,14 +4,35 @@ internal record ExperienceProgress(int Current, int ToNextLevel);
 
 internal static class SkillFormulas
 {
-    public static int XpForSkillLevel(int level) => 25 * level * (level + 3);
+    private const int SkillXpBase = 150;
+    private const double SkillXpGrowthRate = 1.05;
 
-    public static int XpForCharacterLevel(int level) => 100 * level * (level + 5);
+    public static int CalculateSkillExperienceFromSkillLevel(int level) =>
+        (int)
+            Math.Round(
+                SkillXpBase * (Math.Pow(SkillXpGrowthRate, level - 1) - 1) / (SkillXpGrowthRate - 1)
+            );
 
-    public static ExperienceProgress GetCharacterExperienceProgress(int level, int experience)
+    public static int CalculateExperienceFromSkillLevel(int skillLevel) =>
+        skillLevel * (skillLevel + 1) / 2 - 1;
+
+    public static int CalculateExperienceFromLevel(int level) => level * (level - 1);
+
+    public static int CalculateLevelFromSkillLevels(IReadOnlyList<int> skillLevels)
     {
-        var levelFloor = XpForCharacterLevel(level);
-        var nextLevelXp = XpForCharacterLevel(level + 1);
+        var totalExperienceFromSkills = skillLevels.Sum(CalculateExperienceFromSkillLevel);
+        var level = 1;
+        while (CalculateExperienceFromLevel(level + 1) <= totalExperienceFromSkills)
+        {
+            level++;
+        }
+        return level;
+    }
+
+    public static ExperienceProgress GetExperienceProgress(int level, int experience)
+    {
+        var levelFloor = CalculateExperienceFromLevel(level);
+        var nextLevelXp = CalculateExperienceFromLevel(level + 1);
         return new ExperienceProgress(experience - levelFloor, nextLevelXp - levelFloor);
     }
 }

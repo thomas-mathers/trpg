@@ -203,10 +203,12 @@ public class HouseholdGenerator(
         var mother = creatureGenerator.Generate(
             new CreatureGeneratorInput(
                 creatureType,
-                Profession.Unemployed,
+                CreatureArchetype.For(Profession.Unemployed),
                 worldId,
                 stateId,
-                stateId
+                stateId,
+                MinLevel: 1,
+                MaxLevel: 20
             )
             {
                 Gender = Gender.Female,
@@ -224,10 +226,12 @@ public class HouseholdGenerator(
         var father = creatureGenerator.Generate(
             new CreatureGeneratorInput(
                 creatureType,
-                Profession.Unemployed,
+                CreatureArchetype.For(Profession.Unemployed),
                 worldId,
                 stateId,
-                stateId
+                stateId,
+                MinLevel: 1,
+                MaxLevel: 20
             )
             {
                 Gender = Gender.Male,
@@ -258,10 +262,12 @@ public class HouseholdGenerator(
             var kid = creatureGenerator.Generate(
                 new CreatureGeneratorInput(
                     creatureType,
-                    Profession.Unemployed,
+                    CreatureArchetype.For(Profession.Unemployed),
                     worldId,
                     stateId,
-                    stateId
+                    stateId,
+                    MinLevel: 1,
+                    MaxLevel: 20
                 )
                 {
                     Gender = kidGender,
@@ -311,10 +317,12 @@ public class HouseholdGenerator(
         var member = creatureGenerator.Generate(
             new CreatureGeneratorInput(
                 creatureType,
-                Profession.Unemployed,
+                CreatureArchetype.For(Profession.Unemployed),
                 worldId,
                 stateId,
-                stateId
+                stateId,
+                MinLevel: 1,
+                MaxLevel: 20
             )
             {
                 MaxBirthYear = MaxAdultBirthYear,

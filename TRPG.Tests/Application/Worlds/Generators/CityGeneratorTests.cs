@@ -31,7 +31,7 @@ public class CityGeneratorTests
         _districts =
         [
             Builders.MakeDistrict(_city.Id, DistrictType.Residential, worldId: _worldId),
-            Builders.MakeDistrict(_city.Id, DistrictType.CityCenter, worldId: _worldId),
+            Builders.MakeDistrict(_city.Id, worldId: _worldId),
         ];
     }
 

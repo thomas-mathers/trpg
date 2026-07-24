@@ -331,7 +331,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             new CreatureSkill
             {
                 CreatureId = creatureId,
-                Skill = Skill.Swordsmanship,
+                Skill = Skill.Melee,
                 Level = 1,
                 WorldId = worldId,
             }

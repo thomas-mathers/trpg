@@ -56,7 +56,7 @@ internal sealed class CombatMenu(
 
                     break;
                 case TopLevelOption.Item:
-                    if (await HandleItemMenu(fight, cancellationToken))
+                    if (await HandleItemMenu(cancellationToken))
                     {
                         return;
                     }
@@ -69,7 +69,7 @@ internal sealed class CombatMenu(
         }
     }
 
-    private async Task<bool> HandleItemMenu(FightState fight, CancellationToken cancellationToken)
+    private async Task<bool> HandleItemMenu(CancellationToken cancellationToken)
     {
         var items = await client.GetUsableItems(playerId, cancellationToken);
         if (items.Count == 0)
@@ -84,9 +84,8 @@ internal sealed class CombatMenu(
             return false;
         }
 
-        var playerName = fight.Combatants.First(c => c.IsPlayer).Name;
         await narrationRenderer.TryRender(
-            gameHub.StreamCombatAction(chosen.Name, playerName, cancellationToken)
+            gameHub.StreamCombatAction(playerId, chosen.Name, cancellationToken)
         );
         return true;
     }
@@ -139,10 +138,11 @@ internal sealed class CombatMenu(
         CancellationToken cancellationToken
     )
     {
-        string targetName;
+        Guid targetId;
+
         if (category == AbilityCategory.Support)
         {
-            targetName = fight.Combatants.First(c => c.IsPlayer).Name;
+            targetId = fight.Combatants.First(c => c.IsPlayer).Id;
         }
         else
         {
@@ -152,11 +152,11 @@ internal sealed class CombatMenu(
                 return false;
             }
 
-            targetName = target;
+            targetId = target.Value;
         }
 
         await narrationRenderer.TryRender(
-            gameHub.StreamCombatAction(abilityName, targetName, cancellationToken)
+            gameHub.StreamCombatAction(targetId, abilityName, cancellationToken)
         );
         return true;
     }
@@ -172,22 +172,28 @@ internal sealed class CombatMenu(
             cancellationToken
         );
 
-    private static Task<string?> PromptForTarget(
+    private static async Task<Guid?> PromptForTarget(
         FightState fight,
         CancellationToken cancellationToken
     )
     {
         var targets = fight
             .Combatants.Where(c => c is { IsPlayer: false, IsAlive: true })
-            .Select(c => c.Name)
             .ToArray();
         if (targets.Length == 0)
         {
             AnsiConsole.AnnounceWarning("No valid targets.");
-            return Task.FromResult<string?>(null);
+            return null;
         }
 
-        return PromptForOption("Target:", targets, name => name, cancellationToken);
+        var target = await PromptForOption(
+            "Target:",
+            targets,
+            target => target.Name,
+            cancellationToken
+        );
+
+        return target?.Id;
     }
 
     private static async Task<T?> PromptForOption<T>(

@@ -261,8 +261,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var narration = await Drain(
             connection.StreamAsync<string>(
                 "SendCombatAction",
+                enemy.Id,
                 "Strike",
-                enemy.Name,
                 TestContext.Current.CancellationToken
             )
         );
@@ -287,8 +287,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var narration = await Drain(
             connection.StreamAsync<string>(
                 "SendCombatAction",
+                Guid.NewGuid(),
                 "Strike",
-                "Wraith",
                 TestContext.Current.CancellationToken
             )
         );
@@ -311,8 +311,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var narration = await Drain(
             connection.StreamAsync<string>(
                 "SendCombatAction",
+                enemy.Id,
                 "Nonexistent Move",
-                enemy.Name,
                 TestContext.Current.CancellationToken
             )
         );

@@ -40,6 +40,7 @@ internal static class PlayerEndpoints
         new(
             combatants
                 .Select(c => new CombatantState(
+                    Id: c.CreatureId,
                     Name: c.Name,
                     IsPlayer: c.IsPlayer,
                     IsAlive: c.IsAlive,

@@ -4,6 +4,7 @@ using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
 using TRPG.Contracts.Combat.Responses;
+using TRPG.Contracts.Creatures.Requests;
 using TRPG.Contracts.Jobs.Responses;
 using TRPG.Contracts.Worlds.Requests;
 using TRPG.Contracts.Worlds.Responses;
@@ -103,7 +104,7 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
                 generationOptions.PointsPerLevel,
                 generationOptions.BaseAttributes,
                 cancellationToken
-            ) ?? new Dictionary<AttributeName, int>();
+            ) ?? new Dictionary<AllocatableAttributeName, int>();
 
         AnsiConsole.Write(new Rule("World").RuleStyle(Theme.Neutral).LeftJustified());
 
@@ -249,7 +250,7 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
     }
 
     private static string FormatStartingAttributeAllocation(
-        IReadOnlyDictionary<AttributeName, int> allocation
+        IReadOnlyDictionary<AllocatableAttributeName, int> allocation
     ) =>
         allocation.Count == 0
             ? "None allocated"

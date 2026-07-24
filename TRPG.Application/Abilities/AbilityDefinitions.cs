@@ -14,7 +14,7 @@ public class AbilityDefinitions(
         {
             Name = "Strike",
             Description = "A plain attack with whatever is at hand.",
-            Skill = Skill.General,
+            Skill = Skill.Melee,
             ApCost = 0,
             Cooldown = 0,
             TargetType = AttackTargetType.Single,
@@ -47,8 +47,8 @@ public class AbilityDefinitions(
     public static AbilityDefinitions Create()
     {
         var builder = new AbilityBuilder();
-        AddSwordsmanshipAbilities(builder);
-        AddSwordsmanshipAdvancedAbilities(builder);
+        AddMeleeAbilities(builder);
+        AddMeleeAdvancedAbilities(builder);
         AddStealthAbilities(builder);
         AddStealthAdvancedAbilities(builder);
         AddSpellcastingAbilities(builder);
@@ -70,12 +70,12 @@ public class AbilityDefinitions(
 
     public Ability? GetByName(string name) => byName.GetValueOrDefault(name);
 
-    private static void AddSwordsmanshipAbilities(AbilityBuilder builder)
+    private static void AddMeleeAbilities(AbilityBuilder builder)
     {
         var slash = builder.AddAttack(
             "Slash",
             "A basic melee strike.",
-            Skill.Swordsmanship,
+            Skill.Melee,
             1,
             2,
             0,
@@ -87,7 +87,7 @@ public class AbilityDefinitions(
             .AddAttack(
                 "Cleave",
                 "A wide swing that hits nearby enemies.",
-                Skill.Swordsmanship,
+                Skill.Melee,
                 2,
                 3,
                 0,
@@ -100,7 +100,7 @@ public class AbilityDefinitions(
             .AddAttack(
                 "Shield Bash",
                 "A stunning blow with the shield.",
-                Skill.Swordsmanship,
+                Skill.Melee,
                 2,
                 2,
                 2,
@@ -114,7 +114,7 @@ public class AbilityDefinitions(
             .AddAttack(
                 "Devastate",
                 "A crippling strike that leaves the target bleeding.",
-                Skill.Swordsmanship,
+                Skill.Melee,
                 4,
                 4,
                 3,
@@ -129,7 +129,7 @@ public class AbilityDefinitions(
             .AddAttack(
                 "Whirlwind",
                 "A spinning strike that damages all surrounding enemies.",
-                Skill.Swordsmanship,
+                Skill.Melee,
                 5,
                 5,
                 3,
@@ -140,12 +140,12 @@ public class AbilityDefinitions(
             .Requires(cleave);
     }
 
-    private static void AddSwordsmanshipAdvancedAbilities(AbilityBuilder builder)
+    private static void AddMeleeAdvancedAbilities(AbilityBuilder builder)
     {
         builder.AddAttack(
             "Execute",
             "A powerful finishing blow aimed at weakened foes.",
-            Skill.Swordsmanship,
+            Skill.Melee,
             20,
             6,
             4,
@@ -157,7 +157,7 @@ public class AbilityDefinitions(
             .AddAttack(
                 "Riposte",
                 "A swift counter-strike following a parry.",
-                Skill.Swordsmanship,
+                Skill.Melee,
                 25,
                 5,
                 5,
@@ -173,7 +173,7 @@ public class AbilityDefinitions(
             .AddAttack(
                 "Mortal Strike",
                 "A savage blow that opens a wound refusing to close.",
-                Skill.Swordsmanship,
+                Skill.Melee,
                 40,
                 8,
                 6,
@@ -186,7 +186,7 @@ public class AbilityDefinitions(
         builder.AddAttack(
             "Bladestorm",
             "A whirling tempest of steel that strikes all nearby foes.",
-            Skill.Swordsmanship,
+            Skill.Melee,
             45,
             10,
             7,
@@ -201,7 +201,7 @@ public class AbilityDefinitions(
             .AddAttack(
                 "Skull Splitter",
                 "A bone-shattering overhead blow that leaves the target reeling.",
-                Skill.Swordsmanship,
+                Skill.Melee,
                 60,
                 12,
                 8,
@@ -213,7 +213,7 @@ public class AbilityDefinitions(
         builder.AddAttack(
             "Hundred Blades",
             "A blinding sequence of precise cuts delivered in an instant.",
-            Skill.Swordsmanship,
+            Skill.Melee,
             65,
             15,
             10,
@@ -227,7 +227,7 @@ public class AbilityDefinitions(
         builder.AddAttack(
             "Legend's Blow",
             "A mythic strike of such force it shakes the earth.",
-            Skill.Swordsmanship,
+            Skill.Melee,
             90,
             20,
             15,
@@ -238,7 +238,7 @@ public class AbilityDefinitions(
         builder.AddAttack(
             "Eternal Whirlwind",
             "A cyclone of steel that never stops turning.",
-            Skill.Swordsmanship,
+            Skill.Melee,
             95,
             22,
             15,

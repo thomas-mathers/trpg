@@ -175,7 +175,7 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
 
     public async Task AllocateAttributePoints(
         Guid creatureId,
-        IReadOnlyDictionary<AttributeName, int> deltas,
+        IReadOnlyDictionary<AllocatableAttributeName, int> deltas,
         CancellationToken cancellationToken
     )
     {

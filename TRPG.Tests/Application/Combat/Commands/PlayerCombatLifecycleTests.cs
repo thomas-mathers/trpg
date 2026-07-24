@@ -31,24 +31,6 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         await _context.DisposeAsync();
     }
 
-    private static CreatureGenerator MakeCreatureGenerator()
-    {
-        var abilityDefinitions = AbilityDefinitions.Create();
-        var itemGenerator = new ItemGenerator(
-            new WeaponGenerator(abilityDefinitions),
-            new ArmorGenerator(abilityDefinitions),
-            new AccessoryGenerator(),
-            new ConsumableGenerator(),
-            new AmmoGenerator()
-        );
-        return new CreatureGenerator(
-            itemGenerator,
-            abilityDefinitions,
-            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions()),
-            Builders.MakeStatFormulas()
-        );
-    }
-
     [Fact]
     public async Task PlayerLifecycle_KeepsMaximumHpStable_FromCreationThroughCombat()
     {
@@ -56,15 +38,16 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         var worldId = Guid.NewGuid();
         var stateId = Guid.NewGuid();
         var abilityDefinitions = AbilityDefinitions.Create();
-        var generator = MakeCreatureGenerator();
+        var generator = Builders.MakeCreatureGenerator();
         var playerResult = generator.Generate(
             new CreatureGeneratorInput(
                 CreatureType.Human,
-                Profession.Knight,
+                CreatureArchetype.For(Profession.Knight),
                 worldId,
                 stateId,
                 stateId,
-                Level: 1
+                MinLevel: 1,
+                MaxLevel: 1
             )
         );
 
@@ -141,7 +124,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         );
         var resolution = PlayerActionResolver.Resolve(
             combatants,
-            new UseAbility("Strike", enemy.Name)
+            new UseAbility(enemy.Id, "Strike")
         );
         var resolved = Assert.IsType<ActionResolved>(resolution);
         engine.ProcessRound(combatants, resolved.Action);

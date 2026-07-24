@@ -72,6 +72,32 @@ public class CombatEngine(
         return tickEvents.Concat(actionEvents).ToList();
     }
 
+    private static readonly Dictionary<WeaponType, Skill> WeaponSkills = new()
+    {
+        [WeaponType.Sword] = Skill.Melee,
+        [WeaponType.Dagger] = Skill.Melee,
+        [WeaponType.Axe] = Skill.Melee,
+        [WeaponType.Mace] = Skill.Melee,
+        [WeaponType.Bow] = Skill.Archery,
+        [WeaponType.Staff] = Skill.Spellcasting,
+        [WeaponType.Wand] = Skill.Spellcasting,
+    };
+
+    // A General-skill attack is the weaponless "Strike" template — its training goes to the
+    // wielded weapon's tree (or Unarmed), not to General itself. Named abilities keep their
+    // inherent skill.
+    private static Skill GetTrainedSkill(Combatant actor, Ability ability)
+    {
+        if (ability is not AttackAbility || ability.Skill != Skill.General)
+        {
+            return ability.Skill;
+        }
+
+        return actor.Weapon is { } weapon
+            ? WeaponSkills.GetValueOrDefault(weapon.Type, Skill.General)
+            : Skill.Unarmed;
+    }
+
     private List<CombatEvent> ProcessAbility(Combatant actor, ResolvedAbility resolvedAbility)
     {
         var (ability, targets) = resolvedAbility;
@@ -79,8 +105,10 @@ public class CombatEngine(
         actor.CooldownRemainingByAbility[ability.Name] = ability.Cooldown;
         actor.CurrentAp -= ability.ApCost;
         actor.CurrentMp -= ability.MpCost;
-        actor.SkillUsageCounts[ability.Skill] =
-            actor.SkillUsageCounts.GetValueOrDefault(ability.Skill) + 1;
+
+        var trainedSkill = GetTrainedSkill(actor, ability);
+        actor.SkillUsageCounts[trainedSkill] =
+            actor.SkillUsageCounts.GetValueOrDefault(trainedSkill) + 1;
 
         return ability switch
         {
