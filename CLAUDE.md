@@ -16,6 +16,7 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 - `TRPG.Contracts` — DTOs shared between `TRPG` and `TRPG.Client` (requests/responses only, no logic)
 - `TRPG.Data` — EF Core: `TrpgDbContext`, entity models, migrations
 - `TRPG.Client` — thin console client; talks to `TRPG` over HTTP (REST) and SignalR
+- `TRPG.Client.Core` — small library shared by `TRPG.Client` and `TRPG.Tests`: the typed SignalR hub client (`GameHub`) and anything else both need without pulling in the console app's own dependencies (Spectre.Console, System.CommandLine, ...). `TRPG.Client` itself can't be referenced directly from `TRPG.Tests` — both it and `TRPG` are `Exe` projects with top-level-statement `Program` classes, so referencing both makes `Program` ambiguous (`CS0433`)
 - `TRPG.Tests` — all tests for the above (xUnit, Testcontainers-backed Postgres)
 
 ### Folder convention: feature-then-type
@@ -26,7 +27,7 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 ### Key request flows
 - **Plain HTTP**: `TRPG/<Feature>/Endpoints/<Feature>Endpoints.cs` → one or more `*QueryHandler`/`*CommandHandler` in `TRPG.Application` → `TrpgDbContext`
 - **Player turn (chat/wait)**: `TRPG/GameSessions/Hubs/ChatHub.cs` (SignalR) → `GameTurnRunner` (`TRPG.Application/GameSessions/GameTurnRunner.cs`) → LLM (`IChatClient`) with tool-calling (`TRPG.Application/*/Tools/`) → narration streamed back token-by-token
-- **Combat action (Attack/Defend/Item menu)**: client sends an action name + target over the same `SendCombatAction` hub method → `GameTurnRunner.StreamCombatActionResponse` → `PlayerActionResolver` (validates the action, never throws — returns `ActionResolved`/`ActionRejected`) → `CombatEngine.ProcessRound` (pure simulation over an already-validated action) → `ResolveCombatRoundCommand` persists the result → the LLM narrates the already-resolved outcome (tool-calling disabled for that one completion)
+- **Combat action (Attack/Defend/Item menu)**: client sends a typed `PlayerCombatAction` (`UseAbilityAction`/`UseItemAction`) over the same `SendCombatAction` hub method → `GameTurnRunner.StreamCombatActionResponse` → `PlayerCombatActionResolver` (validates the action, never throws — returns a `PlayerCombatActionResolverResult` with `Result`/`ErrorMessage`) → `CombatEngine.ProcessRound` (pure simulation over an already-validated action, also records any items consumed) → `ResolveCombatRoundCommand` persists the result and depletes any consumed inventory items → the LLM narrates the already-resolved outcome (tool-calling disabled for that one completion)
 
 Keep this section in sync: when a change adds, removes, or moves a top-level project, a feature folder, or alters one of the flows above, update this section in the same commit. This section is structural only (project/folder map, request-flow shapes) — it should rarely need touching for ordinary feature work, which is exactly why it's worth keeping accurate.
 
@@ -188,7 +189,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Primary constructor injection: `public class ReputationService(TrpgDbContext context)`
 - No interfaces — direct concrete classes
 - Throw `InvalidOperationException` for business rule violations
-- Exception: a pure resolver/validator whose caller needs to turn failure into user-facing output without exception-driven control flow (e.g. a SignalR-streamed response) can return a small Result-style union instead of throwing — see `PlayerActionResolver`'s `ActionResolved`/`ActionRejected`. Reserve this for that specific shape of caller, not general command/query handlers
+- Exception: a pure resolver/validator whose caller needs to turn failure into user-facing output without exception-driven control flow (e.g. a SignalR-streamed response) can return a small Result-style object instead of throwing — see `PlayerCombatActionResolver`'s `PlayerCombatActionResolverResult` (`Result`/`ErrorMessage`/`IsError`). Reserve this for that specific shape of caller, not general command/query handlers
 - No pre-checks for uniqueness — rely on DB constraints
 
 ### Patterns
@@ -245,6 +246,16 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 }
 ```
 
+### Constructing the handler under test
+- Default to DI-resolving the handler(s) under test via `AddTrpgTestServices(_context)` (`TRPG.Tests/Helpers/TestServiceCollectionExtensions.cs`) rather than manually nesting `new Handler(new OtherHandler(...), ...)` — even when the handler only has one or two dependencies. The cost is near zero (a missing registration fails loudly at `GetRequiredService` time) and it means a handler gaining a new constructor dependency later never breaks this test's compilation
+  ```csharp
+  _serviceProvider = new ServiceCollection().AddTrpgTestServices(_context).BuildServiceProvider();
+  _handler = _serviceProvider.GetRequiredService<FooCommandHandler>();
+  ```
+- `AddTrpgTestServices` wraps the production `AddTrpgApplicationServices()` registration, then adds the test's own already-constructed `TrpgDbContext` as a singleton **instance** (not a factory) — the container doesn't dispose an instance registered this way, so there's no double-dispose against the test's own `DisposeAsync`, and every resolved handler shares the exact same context/change-tracker the test seeded through
+- It also registers two open-generic fallbacks so most tests need zero extra setup: `ILogger<T>` → `NullLogger<T>`, and `IOptionsSnapshot<T>` → `DefaultOptionsSnapshot<T>` (default-constructs `T`; both types live in `TestOptionsSnapshot.cs`). A test whose assertions depend on a *specific* non-default options value (e.g. forcing guaranteed hits via `CombatOptions`) chains its own `.AddSingleton<IOptionsSnapshot<T>>(new TestOptionsSnapshot<T>(...))` after `AddTrpgTestServices(...)` — later registrations win over the open-generic default
+- Add a `ServiceProvider _serviceProvider` field and dispose it in `DisposeAsync`, alongside `_context`
+
 ### Seeding strategy
 - Promote entities to class fields when every (or nearly every) test needs them
 - A scalar seed value (a `Guid.NewGuid()` id shared across the class) is `private static readonly`, PascalCase, initialized inline — it isn't per-instance mutable state, so it doesn't get the `_camelCase` treatment
@@ -266,13 +277,14 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 - `Person.Name` has no unique constraint so a static string is fine
 - If a test needs a builder-made entity with field values the builder doesn't expose yet, add an optional parameter to the builder (e.g. `MakeCreature(level: 7, baseAttributes: ...)`) rather than writing a local `MakeSeedX()` wrapper that constructs-then-mutates in the test file — the builder is the one place entity construction lives
 - This applies to any builder-style factory method, not just `Builders` itself — a test file's own local `MakeX(...)` helper (e.g. a `MakeCombatant` in a single test class) follows the same rule: never call it and then mutate the result (`var c = MakeCombatant(...); c.CurrentHp = 1;`) — add the field as an optional parameter (`MakeCombatant(currentHp: 1)`) instead
-- If a builder-style factory method is copy-pasted near-identically across multiple test files (a strong sign each file independently hit the "too many optional parameters" wall above), consolidate it into one shared fluent builder in `TRPG.Tests/Helpers` instead of leaving N slightly-diverged local copies — e.g. `CombatantBuilder` (`Builders.NewCombatant().WithName("Hero").AsPlayer().WithDexterity(20).WithAbilities(strike).Build()`) replaced four separate local `MakeCombatant(...)` helpers that had each grown their own parameter list for `CombatEngineTests`/`HitCalculatorTests`/`DamageCalculatorTests`/`PlayerActionResolverTests`. A local one-line helper that just pre-seeds shared fields on the builder (e.g. `MakeCombatant(name) => Builders.NewCombatant().WithWorldId(_worldId).WithName(name)`) is fine — it isn't reconstructing the entity, just saving repetition of values every call site in that file needs anyway
+- If a builder-style factory method is copy-pasted near-identically across multiple test files (a strong sign each file independently hit the "too many optional parameters" wall above), consolidate it into one shared fluent builder in `TRPG.Tests/Helpers` instead of leaving N slightly-diverged local copies — e.g. `CombatantBuilder` (`Builders.NewCombatant().WithName("Hero").AsPlayer().WithDexterity(20).WithAbilities(strike).Build()`) replaced four separate local `MakeCombatant(...)` helpers that had each grown their own parameter list for `CombatEngineTests`/`HitCalculatorTests`/`DamageCalculatorTests`/`PlayerCombatActionResolverTests`. A local one-line helper that just pre-seeds shared fields on the builder (e.g. `MakeCombatant(name) => Builders.NewCombatant().WithWorldId(_worldId).WithName(name)`) is fine — it isn't reconstructing the entity, just saving repetition of values every call site in that file needs anyway
 
 ### AAA sections
 - Every test has `// Arrange`, `// Act`, `// Assert` comments
 - Exception-throwing tests use `// Act & Assert`
-- The Act section is exactly one statement — the single call under test. If getting there needs more than one line (e.g. awaiting the call, or a multi-line argument list), that's still one statement; never sequence two separate calls in Act
+- The Act section is exactly one statement — the single call under test. If getting there needs more than one line (e.g. awaiting the call, or a multi-line argument list), that's still one statement; never sequence two separate calls in Act, and never wrap it in a helper method either, even a same-shaped one repeated byte-for-byte across every `[Fact]` in the file — the call under test stays inline and visible, full stop
 - Arrange and Act are as small as possible — a reader should see at a glance what's being exercised without wading through setup. Push anything not essential to that one test into `Builders`, shared fields, or `InitializeAsync`
+- When Arrange has genuine ceremony repeated across multiple tests — a command-handler dispatch wrapped around a builder call (locking a door, adding a job, giving an item, always-empty fields on a larger record) — extract a `Seed*`/verb-named private helper for it, same as the `Seed*` convention below. But when the repeated-looking code is actually each test's essential, varying setup (which stats, which room, which ability combination, which conditions), leave it inline — extracting it hides the point of the test rather than clarifying it. The test is "is this the same mechanical ceremony every time" vs. "is this what makes each test different"
 - If a test seems to need two calls in Act, figure out which shape it actually is before fixing it:
   - If the first call is only there to establish pre-existing state (e.g. casting a buff so a second cast can be checked for stacking vs. refreshing), move that first call into Arrange and leave the second as the sole Act statement
   - If the two calls are independent, comparable scenarios bundled into one test (e.g. generating monsters for two different dungeon themes, or checking entry with two different valid keys), split into two separate `[Fact]`s instead — each gets its own one-statement Act and its own name
@@ -286,6 +298,10 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 ### Unique name collisions
 - Tests share one Postgres container with no rollback between tests
 - Any entity with a unique name constraint must use a Guid-suffixed name in builders and seed helpers
+
+### Hub tests
+- `ChatHubTests` invokes SignalR hub methods through the real `GameHub` wrapper (`TRPG.Client.Core`) instead of raw `connection.StreamAsync<string>("MethodName", args...)` calls — reusing the exact typed client the console app uses means a break here means the console app is broken too, not just an independently-maintained test double that can silently drift from what the real client actually sends
+- The two connection-lifecycle tests (`Connect_Succeeds_*`) are the exception — they assert on `HubConnectionState`/`StartAsync` directly against the raw `HubConnection`, since they're testing the connection itself, not a hub method call
 
 ### Endpoint tests
 - The one deliberate exception to "no mocking": HTTP endpoint tests (`WorldEndpointsTests`, `GameSessionEndpointsTests`) mock the LLM client, because a real LLM provider is external, non-deterministic, and slow — unlike Postgres, it can't be spun up reliably via Testcontainers, and real narration text isn't what these tests are checking

@@ -1,10 +1,5 @@
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging.Abstractions;
-using TRPG.Application.Buildings.Queries;
-using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Reputations.Queries;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -17,6 +12,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetSceneQueryHandler _handler = null!;
     private Creature _nearbyCreature = null!;
     private Creature _player = null!;
@@ -25,28 +21,11 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        var cache = new MemoryCache(new MemoryCacheOptions());
-        var getAllNearbyCreatures = new GetAllNearbyCreaturesQueryHandler(_context);
-        var getEffectiveReputations = new GetEffectiveReputationsQueryHandler(
-            _context,
-            NullLogger<GetEffectiveReputationsQueryHandler>.Instance
-        );
-        _handler = new GetSceneQueryHandler(
-            _context,
-            new GetStateByIdQueryHandler(_context, cache),
-            new GetCityByIdQueryHandler(_context, cache),
-            new GetCityByStateIdQueryHandler(_context, cache),
-            new GetAllDistrictsByCityIdQueryHandler(_context, cache),
-            new GetRoomSummaryQueryHandler(_context, cache),
-            new GetStaticPropsByRoomIdQueryHandler(_context, cache),
-            new GetConnectorsByRoomIdQueryHandler(_context),
-            new GetAllBuildingsByLocationQueryHandler(_context, cache),
-            new GetRoomsByIdsQueryHandler(_context, cache),
-            getAllNearbyCreatures,
-            getEffectiveReputations,
-            new GetTotalCharacterXpFromSkillsQueryHandler(_context),
-            NullLogger<GetSceneQueryHandler>.Instance
-        );
+
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<GetSceneQueryHandler>();
 
         var country = Builders.MakeCountry(WorldId);
         _state = Builders.MakeState(country.Id);
@@ -62,6 +41,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -128,15 +108,13 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var building = Builders.MakeBuilding(_state.Id);
         var room = Builders.MakeRoom(building.Id, worldId: WorldId);
         var destinationRoom = Builders.MakeRoom(building.Id, worldId: WorldId);
-        var connector = new RoomConnector
-        {
-            RoomId = room.Id,
-            WorldId = WorldId,
-            Name = "Wooden Door",
-            Description = "A creaking wooden door.",
-            DestinationRoomId = destinationRoom.Id,
-            IsLocked = false,
-        };
+        var connector = Builders.MakeRoomConnector(
+            room.Id,
+            destinationRoomId: destinationRoom.Id,
+            worldId: WorldId,
+            name: "Wooden Door",
+            description: "A creaking wooden door."
+        );
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(room, destinationRoom);
         _context.Props.Add(connector);

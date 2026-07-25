@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -10,16 +10,17 @@ namespace TRPG.Tests.Application.Worlds.Queries;
 public sealed class GetStateByIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetStateByIdQueryHandler _handler = null!;
     private State _state = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetStateByIdQueryHandler(
-            _context,
-            new MemoryCache(new MemoryCacheOptions())
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<GetStateByIdQueryHandler>();
 
         var world = Builders.MakeWorld();
         var country = Builders.MakeCountry(world.Id);
@@ -32,6 +33,7 @@ public sealed class GetStateByIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

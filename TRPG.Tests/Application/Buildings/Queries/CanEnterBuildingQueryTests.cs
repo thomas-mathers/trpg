@@ -1,7 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -15,6 +15,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     private Building _building = null!;
     private SetFrontDoorLockedCommandHandler _setFrontDoorLocked = null!;
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private Room _entranceRoom = null!;
     private RoomConnector _frontDoor = null!;
     private CanEnterBuildingQueryHandler _handler = null!;
@@ -23,25 +24,22 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _setFrontDoorLocked = new SetFrontDoorLockedCommandHandler(_context);
-        _addInventoryItem = new AddInventoryItemCommandHandler(_context);
-        _handler = new CanEnterBuildingQueryHandler(
-            new GetFrontDoorQueryHandler(_context),
-            new GetKeyItemIdsQueryHandler(_context),
-            new GetInventoryByCreatureIdQueryHandler(_context)
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _setFrontDoorLocked =
+            _serviceProvider.GetRequiredService<SetFrontDoorLockedCommandHandler>();
+        _addInventoryItem = _serviceProvider.GetRequiredService<AddInventoryItemCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<CanEnterBuildingQueryHandler>();
 
         _stateId = Guid.NewGuid();
         _building = Builders.MakeBuilding(_stateId);
         _entranceRoom = Builders.MakeRoom(_building.Id);
-        _frontDoor = new RoomConnector
-        {
-            RoomId = _entranceRoom.Id,
-            Name = "Front Door",
-            Description = "The door leading outside.",
-            DestinationRoomId = null,
-            IsLocked = false,
-        };
+        _frontDoor = Builders.MakeRoomConnector(
+            _entranceRoom.Id,
+            name: "Front Door",
+            description: "The door leading outside."
+        );
 
         _context.Buildings.Add(_building);
         _context.Rooms.Add(_entranceRoom);
@@ -51,8 +49,45 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
+
+    private Task LockFrontDoor() =>
+        _setFrontDoorLocked.Handle(
+            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
+            TestContext.Current.CancellationToken
+        );
+
+    private async Task<Creature> SeedCreature()
+    {
+        var creature = Builders.MakeCreature(stateId: _stateId);
+        _context.Creatures.Add(creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return creature;
+    }
+
+    private async Task<Item> SeedKey(Guid roomConnectorId, string name = "Test Key")
+    {
+        var keyItem = new Item { Name = name, Description = "A test key." };
+        _context.Items.Add(keyItem);
+        _context.RoomConnectorKeys.Add(
+            new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = roomConnectorId }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return keyItem;
+    }
+
+    private Task GiveKey(Guid creatureId, Guid itemId) =>
+        _addInventoryItem.Handle(
+            new AddInventoryItemCommand
+            {
+                CreatureId = creatureId,
+                ItemId = itemId,
+                Quantity = 1,
+            },
+            TestContext.Current.CancellationToken
+        );
 
     [Fact]
     public async Task Handle_ReturnsTrue_WhenNotLocked()
@@ -75,16 +110,8 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsFalse_WhenLockedAndNoKey()
     {
         // Arrange — a key exists for this door, just not in the entering creature's inventory
-        await _setFrontDoorLocked.Handle(
-            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
-            TestContext.Current.CancellationToken
-        );
-        var keyItem = new Item { Name = "Test Key", Description = "A test key." };
-        _context.Items.Add(keyItem);
-        _context.RoomConnectorKeys.Add(
-            new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = _frontDoor.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await LockFrontDoor();
+        await SeedKey(_frontDoor.Id);
 
         // Act
         var canEnter = await _handler.Handle(
@@ -104,27 +131,10 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsTrue_WhenLockedAndCarryingKey()
     {
         // Arrange
-        await _setFrontDoorLocked.Handle(
-            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
-            TestContext.Current.CancellationToken
-        );
-        var player = Builders.MakeCreature(stateId: _stateId);
-        var keyItem = new Item { Name = "Test Key", Description = "A test key." };
-        _context.Creatures.Add(player);
-        _context.Items.Add(keyItem);
-        _context.RoomConnectorKeys.Add(
-            new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = _frontDoor.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = player.Id,
-                ItemId = keyItem.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await LockFrontDoor();
+        var player = await SeedCreature();
+        var keyItem = await SeedKey(_frontDoor.Id);
+        await GiveKey(player.Id, keyItem.Id);
 
         // Act
         var canEnter = await _handler.Handle(
@@ -144,29 +154,11 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsTrue_WhenCarryingTheFirstOfTwoKeysRegisteredToTheDoor()
     {
         // Arrange — two distinct key items are registered to the same door; the first must work too
-        await _setFrontDoorLocked.Handle(
-            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
-            TestContext.Current.CancellationToken
-        );
-        var resident = Builders.MakeCreature(stateId: _stateId);
-        var keyA = new Item { Name = "Key A", Description = "Resident A's key." };
-        var keyB = new Item { Name = "Key B", Description = "Resident B's key." };
-        _context.Creatures.Add(resident);
-        _context.Items.AddRange(keyA, keyB);
-        _context.RoomConnectorKeys.AddRange(
-            new RoomConnectorKey { ItemId = keyA.Id, RoomConnectorId = _frontDoor.Id },
-            new RoomConnectorKey { ItemId = keyB.Id, RoomConnectorId = _frontDoor.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = resident.Id,
-                ItemId = keyA.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await LockFrontDoor();
+        var resident = await SeedCreature();
+        var keyA = await SeedKey(_frontDoor.Id, "Key A");
+        await SeedKey(_frontDoor.Id, "Key B");
+        await GiveKey(resident.Id, keyA.Id);
 
         // Act
         var canEnter = await _handler.Handle(
@@ -186,29 +178,11 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsTrue_WhenCarryingTheSecondOfTwoKeysRegisteredToTheDoor()
     {
         // Arrange — two distinct key items are registered to the same door; the second must work too
-        await _setFrontDoorLocked.Handle(
-            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
-            TestContext.Current.CancellationToken
-        );
-        var resident = Builders.MakeCreature(stateId: _stateId);
-        var keyA = new Item { Name = "Key A", Description = "Resident A's key." };
-        var keyB = new Item { Name = "Key B", Description = "Resident B's key." };
-        _context.Creatures.Add(resident);
-        _context.Items.AddRange(keyA, keyB);
-        _context.RoomConnectorKeys.AddRange(
-            new RoomConnectorKey { ItemId = keyA.Id, RoomConnectorId = _frontDoor.Id },
-            new RoomConnectorKey { ItemId = keyB.Id, RoomConnectorId = _frontDoor.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = resident.Id,
-                ItemId = keyB.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await LockFrontDoor();
+        var resident = await SeedCreature();
+        await SeedKey(_frontDoor.Id, "Key A");
+        var keyB = await SeedKey(_frontDoor.Id, "Key B");
+        await GiveKey(resident.Id, keyB.Id);
 
         // Act
         var canEnter = await _handler.Handle(
@@ -229,14 +203,12 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     {
         // Arrange
         var keylessDoorRoom = Builders.MakeRoom(_building.Id);
-        var keylessDoor = new RoomConnector
-        {
-            RoomId = keylessDoorRoom.Id,
-            Name = "Front Door",
-            Description = "The door leading outside.",
-            DestinationRoomId = null,
-            IsLocked = true,
-        };
+        var keylessDoor = Builders.MakeRoomConnector(
+            keylessDoorRoom.Id,
+            isLocked: true,
+            name: "Front Door",
+            description: "The door leading outside."
+        );
         _context.Rooms.Add(keylessDoorRoom);
         _context.Props.Add(keylessDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

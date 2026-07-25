@@ -41,13 +41,7 @@ public sealed class GetConnectorsByRoomIdQueryTests(DatabaseFixture db) : IAsync
             Name = $"Prop-{Guid.NewGuid():N}",
             Description = "A test prop",
         };
-        var connector = new RoomConnector
-        {
-            RoomId = room.Id,
-            Name = "Door",
-            Description = "A door.",
-            DestinationRoomId = null,
-        };
+        var connector = Builders.MakeRoomConnector(room.Id);
         _context.Props.AddRange(prop, connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

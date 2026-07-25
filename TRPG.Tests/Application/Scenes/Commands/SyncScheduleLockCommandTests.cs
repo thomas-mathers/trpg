@@ -1,7 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.CreatureJobs.Commands;
-using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Data;
@@ -19,31 +19,41 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
     private AddCreatureCommandHandler _addCreature = null!;
     private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetFrontDoorQueryHandler _getFrontDoor = null!;
     private SyncScheduleLockCommandHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _addJob = new AddCreatureJobCommandHandler(_context);
-        _addCreature = new AddCreatureCommandHandler(_context);
-        _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
-        _getFrontDoor = new GetFrontDoorQueryHandler(_context);
-        _handler = new SyncScheduleLockCommandHandler(
-            new GetAllOwnersByBuildingIdQueryHandler(_context),
-            new GetAllCreatureJobsByCreatureIdQueryHandler(_context),
-            new GetCreatureJobsOfBuildingWorkersQueryHandler(_context),
-            new SetFrontDoorLockedCommandHandler(_context)
-        );
+
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _addJob = _serviceProvider.GetRequiredService<AddCreatureJobCommandHandler>();
+        _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
+        _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
+        _getFrontDoor = _serviceProvider.GetRequiredService<GetFrontDoorQueryHandler>();
+        _handler = _serviceProvider.GetRequiredService<SyncScheduleLockCommandHandler>();
     }
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
-    private static InGameDate MakeDate(int hour) =>
-        new(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, hour);
+    private Task AddJob(CreatureJob job) =>
+        _addJob.Handle(
+            new AddCreatureJobCommand { CreatureJob = job },
+            TestContext.Current.CancellationToken
+        );
+
+    private Task<RoomConnector?> GetFrontDoor(Guid roomId) =>
+        _getFrontDoor.Handle(
+            new GetFrontDoorQuery { RoomId = roomId },
+            TestContext.Current.CancellationToken
+        );
 
     [Fact]
     public async Task Handle_Locks_DuringSleepHours()
@@ -52,31 +62,23 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var owner = await SeedOwner();
         var building = await SeedBuilding(owner.Id);
         var frontDoor = await SeedFrontDoor(building.Id);
-        await _addJob.Handle(
-            new AddCreatureJobCommand
-            {
-                CreatureJob = Builders.MakeCreatureJob(
-                    owner.Id,
-                    action: CreatureJobAction.Sleep,
-                    startHour: 22,
-                    endHour: 6,
-                    priority: 100
-                ),
-            },
-            TestContext.Current.CancellationToken
+        await AddJob(
+            Builders.MakeCreatureJob(
+                owner.Id,
+                action: CreatureJobAction.Sleep,
+                startHour: 22,
+                endHour: 6,
+                priority: 100
+            )
         );
-        await _addJob.Handle(
-            new AddCreatureJobCommand
-            {
-                CreatureJob = Builders.MakeCreatureJob(
-                    owner.Id,
-                    action: CreatureJobAction.Work,
-                    startHour: 8,
-                    endHour: 20,
-                    priority: 50
-                ),
-            },
-            TestContext.Current.CancellationToken
+        await AddJob(
+            Builders.MakeCreatureJob(
+                owner.Id,
+                action: CreatureJobAction.Work,
+                startHour: 8,
+                endHour: 20,
+                priority: 50
+            )
         );
 
         // Act
@@ -85,16 +87,13 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = building.BuildingType,
-                CurrentDate = MakeDate(23),
+                CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var door = await _getFrontDoor.Handle(
-            new GetFrontDoorQuery { RoomId = frontDoor.RoomId },
-            TestContext.Current.CancellationToken
-        );
+        var door = await GetFrontDoor(frontDoor.RoomId);
         Assert.True(door!.IsLocked);
     }
 
@@ -105,38 +104,30 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var owner = await SeedOwner();
         var building = await SeedBuilding(owner.Id);
         var frontDoor = await SeedFrontDoor(building.Id);
-        await _addJob.Handle(
-            new AddCreatureJobCommand
-            {
-                CreatureJob = Builders.MakeCreatureJob(
-                    owner.Id,
-                    action: CreatureJobAction.Sleep,
-                    startHour: 22,
-                    endHour: 6,
-                    priority: 100
-                ),
-            },
-            TestContext.Current.CancellationToken
+        await AddJob(
+            Builders.MakeCreatureJob(
+                owner.Id,
+                action: CreatureJobAction.Sleep,
+                startHour: 22,
+                endHour: 6,
+                priority: 100
+            )
         );
-        await _addJob.Handle(
-            new AddCreatureJobCommand
-            {
-                CreatureJob = Builders.MakeCreatureJob(
-                    owner.Id,
-                    action: CreatureJobAction.Work,
-                    startHour: 8,
-                    endHour: 20,
-                    priority: 50
-                ),
-            },
-            TestContext.Current.CancellationToken
+        await AddJob(
+            Builders.MakeCreatureJob(
+                owner.Id,
+                action: CreatureJobAction.Work,
+                startHour: 8,
+                endHour: 20,
+                priority: 50
+            )
         );
         await _handler.Handle(
             new SyncScheduleLockCommand
             {
                 BuildingId = building.Id,
                 BuildingType = building.BuildingType,
-                CurrentDate = MakeDate(23),
+                CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -147,16 +138,13 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = building.BuildingType,
-                CurrentDate = MakeDate(12),
+                CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var door = await _getFrontDoor.Handle(
-            new GetFrontDoorQuery { RoomId = frontDoor.RoomId },
-            TestContext.Current.CancellationToken
-        );
+        var door = await GetFrontDoor(frontDoor.RoomId);
         Assert.False(door!.IsLocked);
     }
 
@@ -167,18 +155,14 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var owner = await SeedOwner();
         var building = await SeedBuilding(owner.Id);
         var frontDoor = await SeedFrontDoor(building.Id);
-        await _addJob.Handle(
-            new AddCreatureJobCommand
-            {
-                CreatureJob = Builders.MakeCreatureJob(
-                    owner.Id,
-                    action: CreatureJobAction.Sleep,
-                    startHour: 22,
-                    endHour: 6,
-                    priority: 100
-                ),
-            },
-            TestContext.Current.CancellationToken
+        await AddJob(
+            Builders.MakeCreatureJob(
+                owner.Id,
+                action: CreatureJobAction.Sleep,
+                startHour: 22,
+                endHour: 6,
+                priority: 100
+            )
         );
 
         // Act
@@ -187,16 +171,13 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = BuildingType.Tavern,
-                CurrentDate = MakeDate(23),
+                CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var door = await _getFrontDoor.Handle(
-            new GetFrontDoorQuery { RoomId = frontDoor.RoomId },
-            TestContext.Current.CancellationToken
-        );
+        var door = await GetFrontDoor(frontDoor.RoomId);
         Assert.False(door!.IsLocked);
     }
 
@@ -207,19 +188,15 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
-        await _addJob.Handle(
-            new AddCreatureJobCommand
-            {
-                CreatureJob = Builders.MakeCreatureJob(
-                    worker.Id,
-                    action: CreatureJobAction.Work,
-                    startHour: 6,
-                    endHour: 14,
-                    priority: 50,
-                    roomId: frontDoor.RoomId
-                ),
-            },
-            TestContext.Current.CancellationToken
+        await AddJob(
+            Builders.MakeCreatureJob(
+                worker.Id,
+                action: CreatureJobAction.Work,
+                startHour: 6,
+                endHour: 14,
+                priority: 50,
+                roomId: frontDoor.RoomId
+            )
         );
 
         // Act
@@ -228,16 +205,13 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = MakeDate(16),
+                CurrentDate = Builders.MakeDate(16),
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var door = await _getFrontDoor.Handle(
-            new GetFrontDoorQuery { RoomId = frontDoor.RoomId },
-            TestContext.Current.CancellationToken
-        );
+        var door = await GetFrontDoor(frontDoor.RoomId);
         Assert.True(door!.IsLocked);
     }
 
@@ -248,26 +222,22 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
-        await _addJob.Handle(
-            new AddCreatureJobCommand
-            {
-                CreatureJob = Builders.MakeCreatureJob(
-                    worker.Id,
-                    action: CreatureJobAction.Work,
-                    startHour: 6,
-                    endHour: 14,
-                    priority: 50,
-                    roomId: frontDoor.RoomId
-                ),
-            },
-            TestContext.Current.CancellationToken
+        await AddJob(
+            Builders.MakeCreatureJob(
+                worker.Id,
+                action: CreatureJobAction.Work,
+                startHour: 6,
+                endHour: 14,
+                priority: 50,
+                roomId: frontDoor.RoomId
+            )
         );
         await _handler.Handle(
             new SyncScheduleLockCommand
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = MakeDate(16),
+                CurrentDate = Builders.MakeDate(16),
             },
             TestContext.Current.CancellationToken
         );
@@ -278,16 +248,13 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = MakeDate(10),
+                CurrentDate = Builders.MakeDate(10),
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var door = await _getFrontDoor.Handle(
-            new GetFrontDoorQuery { RoomId = frontDoor.RoomId },
-            TestContext.Current.CancellationToken
-        );
+        var door = await GetFrontDoor(frontDoor.RoomId);
         Assert.False(door!.IsLocked);
     }
 
@@ -298,33 +265,25 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
-        await _addJob.Handle(
-            new AddCreatureJobCommand
-            {
-                CreatureJob = Builders.MakeCreatureJob(
-                    worker.Id,
-                    action: CreatureJobAction.Work,
-                    startHour: 8,
-                    endHour: 18,
-                    priority: 50,
-                    roomId: frontDoor.RoomId
-                ),
-            },
-            TestContext.Current.CancellationToken
+        await AddJob(
+            Builders.MakeCreatureJob(
+                worker.Id,
+                action: CreatureJobAction.Work,
+                startHour: 8,
+                endHour: 18,
+                priority: 50,
+                roomId: frontDoor.RoomId
+            )
         );
-        await _addJob.Handle(
-            new AddCreatureJobCommand
-            {
-                CreatureJob = Builders.MakeCreatureJob(
-                    worker.Id,
-                    action: CreatureJobAction.Idle,
-                    startHour: 8,
-                    endHour: 18,
-                    priority: 60,
-                    specificDay: DayOfWeek.Thursday
-                ),
-            },
-            TestContext.Current.CancellationToken
+        await AddJob(
+            Builders.MakeCreatureJob(
+                worker.Id,
+                action: CreatureJobAction.Idle,
+                startHour: 8,
+                endHour: 18,
+                priority: 60,
+                specificDay: DayOfWeek.Thursday
+            )
         );
 
         // Act
@@ -333,16 +292,13 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = MakeDate(10),
+                CurrentDate = Builders.MakeDate(10),
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var door = await _getFrontDoor.Handle(
-            new GetFrontDoorQuery { RoomId = frontDoor.RoomId },
-            TestContext.Current.CancellationToken
-        );
+        var door = await GetFrontDoor(frontDoor.RoomId);
         Assert.True(door!.IsLocked);
     }
 
@@ -378,15 +334,12 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
     private async Task<RoomConnector> SeedFrontDoor(Guid buildingId)
     {
         var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
-        var frontDoor = new RoomConnector
-        {
-            RoomId = entranceRoom.Id,
-            WorldId = WorldId,
-            Name = "Front Door",
-            Description = "The door leading outside.",
-            DestinationRoomId = null,
-            IsLocked = false,
-        };
+        var frontDoor = Builders.MakeRoomConnector(
+            entranceRoom.Id,
+            worldId: WorldId,
+            name: "Front Door",
+            description: "The door leading outside."
+        );
         _context.Rooms.Add(entranceRoom);
         _context.Props.Add(frontDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

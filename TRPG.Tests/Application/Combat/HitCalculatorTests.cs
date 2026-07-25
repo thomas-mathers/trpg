@@ -41,31 +41,8 @@ public class HitCalculatorTests
             new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
         );
 
-    private static AttackAbility MakeAttack(DamageType damageType = DamageType.Physical)
-    {
-        return new AttackAbility
-        {
-            Name = "Test Attack",
-            Description = "A test attack.",
-            TargetType = AttackTargetType.Single,
-            DamageType = damageType,
-            DamageAmount = 100,
-            DamageAmountType = AmountType.Flat,
-        };
-    }
-
-    private WeaponItem MakeWeapon(WeaponType type = WeaponType.Sword)
-    {
-        return new WeaponItem
-        {
-            WorldId = _worldId,
-            Name = $"Item-{Guid.NewGuid():N}",
-            Description = "A test weapon.",
-            Type = type,
-            MinDamage = 5,
-            MaxDamage = 10,
-        };
-    }
+    private WeaponItem MakeWeapon(WeaponType type = WeaponType.Sword) =>
+        Builders.MakeWeaponItem(worldId: _worldId, type: type);
 
     [Fact]
     public void CalculateHitChance_IsTheProficiencyShareOfTheCombinedTotal()
@@ -75,7 +52,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = weapon })
+            .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 30)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(70).Build();
@@ -96,7 +73,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = weapon })
+            .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 1)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(999).Build();
@@ -117,7 +94,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = weapon })
+            .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 999)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(1).Build();
@@ -138,7 +115,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = weapon })
+            .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 0)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(0).Build();
@@ -174,7 +151,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = weapon })
+            .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 0)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(50).Build();
@@ -195,7 +172,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = weapon })
+            .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 30)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(20).Build();
@@ -217,7 +194,11 @@ public class HitCalculatorTests
         var calculator = new HitCalculator(AlwaysMiss);
 
         // Act
-        var didHit = calculator.DidHit(attacker, MakeAttack(DamageType.Fire), defender);
+        var didHit = calculator.DidHit(
+            attacker,
+            Builders.MakeAttackAbility(DamageType.Fire),
+            defender
+        );
 
         // Assert
         Assert.True(didHit);
@@ -233,30 +214,20 @@ public class HitCalculatorTests
         var alwaysMissCalculator = new HitCalculator(AlwaysMiss);
 
         // Act & Assert
-        Assert.True(alwaysHitCalculator.DidHit(attacker, MakeAttack(), defender));
-        Assert.False(alwaysMissCalculator.DidHit(attacker, MakeAttack(), defender));
+        Assert.True(alwaysHitCalculator.DidHit(attacker, Builders.MakeAttackAbility(), defender));
+        Assert.False(alwaysMissCalculator.DidHit(attacker, Builders.MakeAttackAbility(), defender));
     }
 
     [Fact]
     public void DidBlock_NeverBlocks_ForNonPhysicalAbilities()
     {
         // Arrange — a shield that would otherwise always block
-        var shield = new ShieldItem
-        {
-            WorldId = _worldId,
-            Name = $"Item-{Guid.NewGuid():N}",
-            Description = "A test shield.",
-            BlockChance = 1.0f,
-        };
-        var defender = Builders
-            .NewCombatant()
-            .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = shield })
-            .Build();
+        var shield = Builders.MakeShieldItem(worldId: _worldId, blockChance: 1.0f);
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithItem(shield).Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
-        var didBlock = calculator.DidBlock(MakeAttack(DamageType.Fire), defender);
+        var didBlock = calculator.DidBlock(Builders.MakeAttackAbility(DamageType.Fire), defender);
 
         // Assert
         Assert.False(didBlock);
@@ -266,23 +237,17 @@ public class HitCalculatorTests
     public void DidBlock_RollsAgainstBlockChance_ForPhysicalAbilities()
     {
         // Arrange
-        var blockingShield = new ShieldItem
-        {
-            WorldId = _worldId,
-            Name = $"Item-{Guid.NewGuid():N}",
-            Description = "A test shield.",
-            BlockChance = 1.0f,
-        };
+        var blockingShield = Builders.MakeShieldItem(worldId: _worldId, blockChance: 1.0f);
         var blockingDefender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = blockingShield })
+            .WithItem(blockingShield)
             .Build();
         var unshieldedDefender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new HitCalculator(Settings);
 
         // Act & Assert
-        Assert.True(calculator.DidBlock(MakeAttack(), blockingDefender));
-        Assert.False(calculator.DidBlock(MakeAttack(), unshieldedDefender));
+        Assert.True(calculator.DidBlock(Builders.MakeAttackAbility(), blockingDefender));
+        Assert.False(calculator.DidBlock(Builders.MakeAttackAbility(), unshieldedDefender));
     }
 }

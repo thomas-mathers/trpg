@@ -54,6 +54,14 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         await _context.DisposeAsync();
     }
 
+    private async Task<Fight> SeedFight()
+    {
+        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
+        _context.Fights.Add(fight);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return fight;
+    }
+
     private CombatantState MakeCombatantState(
         Guid id,
         bool isPlayer,
@@ -61,18 +69,13 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         bool isAlive,
         IReadOnlyDictionary<Guid, int>? itemsUsedCounts = null
     ) =>
-        new(
-            Id: id,
-            Name: isPlayer ? _player.Name : _enemy.Name,
-            IsPlayer: isPlayer,
-            CurrentHp: currentHp,
-            MaximumHp: 100,
-            CurrentAp: 7,
-            CurrentMp: 2,
-            IsAlive: isAlive,
-            Abilities: [],
-            ActiveConditions: new Dictionary<ConditionType, int>(),
-            ItemsUsedCounts: itemsUsedCounts ?? new Dictionary<Guid, int>()
+        Builders.MakeCombatantState(
+            id,
+            isPlayer ? _player.Name : _enemy.Name,
+            isPlayer,
+            currentHp,
+            isAlive,
+            itemsUsedCounts
         );
 
     private Combatant MakePlayerCombatant(int currentHp = 30) =>
@@ -85,20 +88,14 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_PersistsCombatantState_Always()
     {
         // Arrange
-        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
         var playerCombatant = MakePlayerCombatant(currentHp: 33);
-        var state = new CombatState(
-            Outcome: CombatOutcome.Ongoing,
-            Combatants:
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Ongoing,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
-            ],
-            Events: [],
-            GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            ]
         );
 
         // Act
@@ -127,19 +124,14 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_AdjustsWeaponProficiencies_WhenSwingsOccurred()
     {
         // Arrange
-        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var state = new CombatState(
-            Outcome: CombatOutcome.Ongoing,
-            Combatants:
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Ongoing,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
             ],
-            Events: [],
-            GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int> { [WeaponType.Sword] = 1 },
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            weaponSwingCounts: new Dictionary<WeaponType, int> { [WeaponType.Sword] = 1 }
         );
 
         // Act
@@ -172,20 +164,14 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_EndsFight_OnVictory()
     {
         // Arrange
-        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
-        _context.Fights.Add(fight);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var state = new CombatState(
-            Outcome: CombatOutcome.Victory,
-            Combatants:
+        var fight = await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Victory,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
             ],
-            Events: [],
-            GoldLooted: 50,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            goldLooted: 50
         );
 
         // Act
@@ -215,20 +201,13 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_LeavesFightOngoing_WhenOutcomeIsOngoing()
     {
         // Arrange
-        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
-        _context.Fights.Add(fight);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var state = new CombatState(
-            Outcome: CombatOutcome.Ongoing,
-            Combatants:
+        var fight = await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Ongoing,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
-            ],
-            Events: [],
-            GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            ]
         );
 
         // Act
@@ -258,19 +237,13 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_ReturnsCombatResult_MatchingState()
     {
         // Arrange
-        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var state = new CombatState(
-            Outcome: CombatOutcome.Ongoing,
-            Combatants:
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Ongoing,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
-            ],
-            Events: [],
-            GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            ]
         );
 
         // Act
@@ -299,7 +272,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async Task Handle_DepletesInventoryItem_WhenACombatantUsedOne()
     {
         // Arrange
-        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
+        await SeedFight();
         var potion = Builders.MakeConsumableItem(WorldId);
         _context.Items.Add(potion);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -312,9 +285,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             },
             TestContext.Current.CancellationToken
         );
-        var state = new CombatState(
-            Outcome: CombatOutcome.Ongoing,
-            Combatants:
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Ongoing,
             [
                 MakeCombatantState(
                     _player.Id,
@@ -324,11 +296,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
                     itemsUsedCounts: new Dictionary<Guid, int> { [potion.Id] = 1 }
                 ),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
-            ],
-            Events: [],
-            GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            ]
         );
 
         // Act

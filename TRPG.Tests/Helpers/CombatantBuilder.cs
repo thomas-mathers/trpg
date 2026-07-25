@@ -101,10 +101,16 @@ internal sealed class CombatantBuilder
         return this;
     }
 
-    public CombatantBuilder WithItem(InventoryItem inventoryItem)
+    public CombatantBuilder WithItem(Item item, int quantity = 1)
     {
-        inventoryItem.EquippedSlot ??= inventoryItem.Item.DefaultSlot;
-        _inventoryItems.Add(inventoryItem);
+        _inventoryItems.Add(
+            new InventoryItem
+            {
+                Item = item,
+                Quantity = quantity,
+                EquippedSlot = item.DefaultSlot,
+            }
+        );
         return this;
     }
 

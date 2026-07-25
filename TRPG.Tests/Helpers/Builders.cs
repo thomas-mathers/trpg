@@ -61,6 +61,90 @@ internal static class Builders
 
     public static CombatantBuilder NewCombatant() => new();
 
+    public static InGameDate MakeDate(int hour) =>
+        new(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, hour);
+
+    public static CreatureAbility MakeCreatureAbility(
+        Guid creatureId,
+        string abilityName,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            CreatureId = creatureId,
+            AbilityName = abilityName,
+            WorldId = worldId ?? Guid.NewGuid(),
+        };
+
+    public static RoomConnector MakeRoomConnector(
+        Guid roomId,
+        Guid? destinationRoomId = null,
+        bool isLocked = false,
+        Guid? worldId = null,
+        string name = "Door",
+        string description = "A door."
+    ) =>
+        new()
+        {
+            RoomId = roomId,
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = name,
+            Description = description,
+            DestinationRoomId = destinationRoomId,
+            IsLocked = isLocked,
+        };
+
+    public static CombatantState MakeCombatantState(
+        Guid id,
+        string name,
+        bool isPlayer,
+        int currentHp,
+        bool isAlive,
+        IReadOnlyDictionary<Guid, int>? itemsUsedCounts = null
+    ) =>
+        new(
+            Id: id,
+            Name: name,
+            IsPlayer: isPlayer,
+            CurrentHp: currentHp,
+            MaximumHp: 100,
+            CurrentAp: 7,
+            CurrentMp: 2,
+            IsAlive: isAlive,
+            Abilities: [],
+            ActiveConditions: new Dictionary<ConditionType, int>(),
+            ItemsUsedCounts: itemsUsedCounts ?? new Dictionary<Guid, int>()
+        );
+
+    public static CombatState MakeCombatState(
+        CombatOutcome outcome,
+        IReadOnlyList<CombatantState> combatants,
+        int? goldLooted = null,
+        IReadOnlyDictionary<WeaponType, int>? weaponSwingCounts = null
+    ) =>
+        new(
+            Outcome: outcome,
+            Combatants: combatants,
+            Events: [],
+            GoldLooted: goldLooted,
+            WeaponSwingCounts: weaponSwingCounts ?? new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
+        );
+
+    public static AttackAbility MakeAttackAbility(
+        DamageType damageType = DamageType.Physical,
+        float damageAmount = 100
+    ) =>
+        new()
+        {
+            Name = "Test Attack",
+            Description = "A test attack.",
+            TargetType = AttackTargetType.Single,
+            DamageType = damageType,
+            DamageAmount = damageAmount,
+            DamageAmountType = AmountType.Flat,
+        };
+
     public static Creature MakeCreature(
         Guid? worldId = null,
         CreatureType creatureType = CreatureType.Human,
@@ -157,7 +241,9 @@ internal static class Builders
 
     public static WeaponItem MakeWeaponItem(
         Guid? worldId = null,
-        WeaponType type = WeaponType.Sword
+        WeaponType type = WeaponType.Sword,
+        int minDamage = 5,
+        int maxDamage = 15
     )
     {
         return new WeaponItem
@@ -168,8 +254,8 @@ internal static class Builders
             Weight = 8,
             GoldValue = 50,
             Type = type,
-            MinDamage = 5,
-            MaxDamage = 15,
+            MinDamage = minDamage,
+            MaxDamage = maxDamage,
             Range = 1,
             AttackSpeed = 7,
             DurabilityMax = 100,
@@ -193,7 +279,7 @@ internal static class Builders
         };
     }
 
-    public static ShieldItem MakeShieldItem(Guid? worldId = null)
+    public static ShieldItem MakeShieldItem(Guid? worldId = null, float blockChance = 0.25f)
     {
         return new ShieldItem
         {
@@ -203,23 +289,28 @@ internal static class Builders
             Weight = 8,
             GoldValue = 30,
             Defense = 8,
-            BlockChance = 0.25f,
+            BlockChance = blockChance,
             DurabilityMax = 100,
             DurabilityCurrent = 100,
         };
     }
 
-    public static ConsumableItem MakeConsumableItem(Guid? worldId = null)
+    public static ConsumableItem MakeConsumableItem(
+        Guid? worldId = null,
+        string? name = null,
+        ResourceType resource = ResourceType.Hp,
+        int amount = 50
+    )
     {
         return new ConsumableItem
         {
             WorldId = worldId ?? Guid.NewGuid(),
-            Name = $"Item-{Guid.NewGuid():N}",
+            Name = name ?? $"Item-{Guid.NewGuid():N}",
             Description = "A test consumable",
             Weight = 1,
             GoldValue = 10,
-            Resource = ResourceType.Hp,
-            Amount = 50,
+            Resource = resource,
+            Amount = amount,
             Duration = 0,
         };
     }

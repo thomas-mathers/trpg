@@ -1,5 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.CreatureJobs.Commands;
-using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -10,15 +10,17 @@ namespace TRPG.Tests.Application.CreatureJobs.Commands;
 public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private ExecuteCreatureJobCommandHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new ExecuteCreatureJobCommandHandler(
-            new UpdateCreaturesCommandHandler(_context)
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<ExecuteCreatureJobCommandHandler>();
 
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -26,6 +28,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

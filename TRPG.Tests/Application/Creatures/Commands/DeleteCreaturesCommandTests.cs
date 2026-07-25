@@ -319,14 +319,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         _context.Items.Add(item);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        _context.CreatureAbilities.Add(
-            new CreatureAbility
-            {
-                CreatureId = creatureId,
-                AbilityName = "Strike",
-                WorldId = worldId,
-            }
-        );
+        _context.CreatureAbilities.Add(Builders.MakeCreatureAbility(creatureId, "Strike", worldId));
         _context.CreatureSkills.Add(
             new CreatureSkill
             {

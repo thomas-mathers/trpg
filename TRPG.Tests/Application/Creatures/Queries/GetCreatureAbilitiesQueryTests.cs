@@ -59,12 +59,7 @@ public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncL
     public async Task Handle_IncludesLearnedAbilities()
     {
         // Arrange
-        var ability = new CreatureAbility
-        {
-            WorldId = WorldId,
-            CreatureId = _player.Id,
-            AbilityName = "Slash",
-        };
+        var ability = Builders.MakeCreatureAbility(_player.Id, "Slash", WorldId);
         _context.CreatureAbilities.Add(ability);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -84,12 +79,7 @@ public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncL
     {
         // Arrange
         var otherCreature = Builders.MakeCreature(WorldId);
-        var ability = new CreatureAbility
-        {
-            WorldId = WorldId,
-            CreatureId = otherCreature.Id,
-            AbilityName = "Slash",
-        };
+        var ability = Builders.MakeCreatureAbility(otherCreature.Id, "Slash", WorldId);
         _context.Creatures.Add(otherCreature);
         _context.CreatureAbilities.Add(ability);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

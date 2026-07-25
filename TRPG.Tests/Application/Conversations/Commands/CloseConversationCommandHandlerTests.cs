@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
-using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -17,6 +15,7 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
     private static readonly Guid PlayerId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private CloseConversationCommandHandler _handler = null!;
     private GetConversationSummaryQueryHandler _getSummary = null!;
     private GameSession _session = null!;
@@ -24,25 +23,23 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _getSummary = new GetConversationSummaryQueryHandler(_context);
-        _handler = new CloseConversationCommandHandler(
-            new GetGameSessionQueryHandler(
-                _context,
-                NullLogger<GetGameSessionQueryHandler>.Instance
-            ),
-            new SetConversationSummaryCommandHandler(_context),
-            new UpdateGameSessionCommandHandler(
-                _context,
-                NullLogger<UpdateGameSessionCommandHandler>.Instance
-            )
-        );
+
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _getSummary = _serviceProvider.GetRequiredService<GetConversationSummaryQueryHandler>();
+        _handler = _serviceProvider.GetRequiredService<CloseConversationCommandHandler>();
 
         _session = Builders.MakeGameSession(WorldId, PlayerId);
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await _serviceProvider.DisposeAsync();
+        await _context.DisposeAsync();
+    }
 
     private async Task OpenConversation(string npcName, Guid npcId)
     {

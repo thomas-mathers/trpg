@@ -1,6 +1,5 @@
 using TRPG.Application.Combat;
 using TRPG.Contracts.Combat.Requests;
-using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Combat;
@@ -13,18 +12,13 @@ public class PlayerCombatActionResolverTests
     public void Resolve_ReturnsResolvedItem_WhenTheNamedItemExists()
     {
         // Arrange
-        var potion = new ConsumableItem
-        {
-            Name = "Health Potion",
-            Resource = ResourceType.Hp,
-            Amount = 20,
-        };
+        var potion = Builders.MakeConsumableItem(name: "Health Potion", amount: 20);
         var player = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithName("Hero")
             .AsPlayer()
-            .WithItem(new InventoryItem { Item = potion })
+            .WithItem(potion)
             .Build();
         IReadOnlyList<Combatant> combatants = [player];
 

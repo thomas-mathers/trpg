@@ -53,12 +53,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
             context.CreatureAbilities.Add(
-                new CreatureAbility
-                {
-                    WorldId = _worldId,
-                    CreatureId = _creature.Id,
-                    AbilityName = "Slash",
-                }
+                Builders.MakeCreatureAbility(_creature.Id, "Slash", _worldId)
             );
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }

@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Conversations.Commands;
-using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -15,29 +13,29 @@ public sealed class OpenConversationCommandHandlerTests(DatabaseFixture db) : IA
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private OpenConversationCommandHandler _handler = null!;
     private GameSession _session = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new OpenConversationCommandHandler(
-            new GetGameSessionQueryHandler(
-                _context,
-                NullLogger<GetGameSessionQueryHandler>.Instance
-            ),
-            new UpdateGameSessionCommandHandler(
-                _context,
-                NullLogger<UpdateGameSessionCommandHandler>.Instance
-            )
-        );
+
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<OpenConversationCommandHandler>();
 
         _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await _serviceProvider.DisposeAsync();
+        await _context.DisposeAsync();
+    }
 
     [Fact]
     public async Task Handle_ReturnsOpened_WhenNoConversationIsOpenForThatNpc()

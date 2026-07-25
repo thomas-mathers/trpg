@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
@@ -12,6 +12,7 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
 {
     private AdjustReputationCommandHandler _adjustReputation = null!;
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private Guid _creatureId;
     private GetEffectiveReputationQueryHandler _handler = null!;
     private readonly Faction _faction = Builders.MakeFaction();
@@ -19,14 +20,11 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _adjustReputation = new AdjustReputationCommandHandler(_context);
-        _handler = new GetEffectiveReputationQueryHandler(
-            _context,
-            new GetEffectiveReputationsQueryHandler(
-                _context,
-                NullLogger<GetEffectiveReputationsQueryHandler>.Instance
-            )
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _adjustReputation = _serviceProvider.GetRequiredService<AdjustReputationCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<GetEffectiveReputationQueryHandler>();
 
         var creature = Builders.MakeCreature();
         _context.Factions.Add(_faction);
@@ -37,6 +35,7 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

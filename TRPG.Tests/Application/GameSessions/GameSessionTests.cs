@@ -1,9 +1,10 @@
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Exceptions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
+using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.GameSessions;
 
@@ -11,6 +12,7 @@ namespace TRPG.Tests.Application.GameSessions;
 public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private CreateGameSessionCommandHandler _createGameSession = null!;
     private GetGameSessionQueryHandler _getGameSession = null!;
     private GetOpenConversationsQueryHandler _getOpenConversations = null!;
@@ -27,37 +29,28 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _createGameSession = new CreateGameSessionCommandHandler(_context);
-        _getGameSession = new GetGameSessionQueryHandler(
-            _context,
-            NullLogger<GetGameSessionQueryHandler>.Instance
-        );
-        _getOpenConversations = new GetOpenConversationsQueryHandler(_context);
-        _getPlaytime = new GetPlaytimeQueryHandler(
-            _context,
-            NullLogger<GetPlaytimeQueryHandler>.Instance
-        );
-        _updateGameSession = new UpdateGameSessionCommandHandler(
-            _context,
-            NullLogger<UpdateGameSessionCommandHandler>.Instance
-        );
-        _advanceTime = new AdvanceTimeCommandHandler(_getPlaytime, _updateGameSession);
-        _getChatMessages = new GetChatMessagesQueryHandler(
-            _context,
-            NullLogger<GetChatMessagesQueryHandler>.Instance
-        );
-        _appendChatMessages = new AppendChatMessagesCommandHandler(
-            _context,
-            NullLogger<AppendChatMessagesCommandHandler>.Instance
-        );
-        _clearChatMessages = new ClearChatMessagesCommandHandler(
-            _context,
-            NullLogger<ClearChatMessagesCommandHandler>.Instance
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _createGameSession = _serviceProvider.GetRequiredService<CreateGameSessionCommandHandler>();
+        _getGameSession = _serviceProvider.GetRequiredService<GetGameSessionQueryHandler>();
+        _getOpenConversations =
+            _serviceProvider.GetRequiredService<GetOpenConversationsQueryHandler>();
+        _getPlaytime = _serviceProvider.GetRequiredService<GetPlaytimeQueryHandler>();
+        _updateGameSession = _serviceProvider.GetRequiredService<UpdateGameSessionCommandHandler>();
+        _advanceTime = _serviceProvider.GetRequiredService<AdvanceTimeCommandHandler>();
+        _getChatMessages = _serviceProvider.GetRequiredService<GetChatMessagesQueryHandler>();
+        _appendChatMessages =
+            _serviceProvider.GetRequiredService<AppendChatMessagesCommandHandler>();
+        _clearChatMessages = _serviceProvider.GetRequiredService<ClearChatMessagesCommandHandler>();
         return ValueTask.CompletedTask;
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await _serviceProvider.DisposeAsync();
+        await _context.DisposeAsync();
+    }
 
     [Fact]
     public async Task GetGameSession_Throws_WhenSessionDoesNotExist()
