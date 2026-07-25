@@ -1,14 +1,10 @@
-using Microsoft.Extensions.Logging.Abstractions;
-using TRPG.Application.Abilities;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Configuration;
-using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Inventory.Queries;
-using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Application.Worlds.Generators;
+using TRPG.Contracts.Combat.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -19,15 +15,34 @@ namespace TRPG.Tests.Application.Combat.Commands;
 public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
+    private StartFightCommandHandler _startFight = null!;
+    private CombatEngine _combatEngine = null!;
+    private PersistCombatantsCommandHandler _persistCombatants = null!;
 
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
+
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .AddSingleton<IOptionsSnapshot<CombatOptions>>(
+                new TestOptionsSnapshot<CombatOptions>(
+                    new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
+                )
+            )
+            .BuildServiceProvider();
+
+        _startFight = _serviceProvider.GetRequiredService<StartFightCommandHandler>();
+        _combatEngine = _serviceProvider.GetRequiredService<CombatEngine>();
+        _persistCombatants = _serviceProvider.GetRequiredService<PersistCombatantsCommandHandler>();
+
         return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -37,7 +52,6 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         // Arrange — generate and persist a player exactly like real character creation does
         var worldId = Guid.NewGuid();
         var stateId = Guid.NewGuid();
-        var abilityDefinitions = AbilityDefinitions.Create();
         var generator = Builders.MakeCreatureGenerator();
         var playerResult = generator.Generate(
             new CreatureGeneratorInput(
@@ -82,22 +96,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         var currentHpAtCreation = playerResult.Creature.CurrentHp;
 
         // Act — start a fight exactly like StartFightTool does on the first attack
-        var startFight = new StartFightCommandHandler(
-            _context,
-            new GetCreatureByIdQueryHandler(_context),
-            new GetAllNearbyCreaturesQueryHandler(_context),
-            new GetInventoryByCreatureIdQueryHandler(_context),
-            new GetAllWeaponProficienciesQueryHandler(_context),
-            new GetCreatureAbilitiesQueryHandler(_context),
-            new ApplyPassiveRegenCommandHandler(
-                _context,
-                new TestOptionsSnapshot<CreatureRegenOptions>(new CreatureRegenOptions()),
-                new GetPlaytimeQueryHandler(_context, NullLogger<GetPlaytimeQueryHandler>.Instance)
-            ),
-            abilityDefinitions
-        );
-
-        var combatants = await startFight.Handle(
+        var combatants = await _startFight.Handle(
             new StartFightCommand
             {
                 SessionId = session.Id,
@@ -114,22 +113,13 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         Assert.Equal(currentHpAtCreation, playerCombatant.CurrentHp);
 
         // Act — run one full combat round with guaranteed hits both ways
-        var alwaysHit = new TestOptionsSnapshot<CombatOptions>(
-            new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
+        var resolution = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(enemy.Id, "Strike")
         );
-        var engine = new CombatEngine(
-            alwaysHit,
-            new HitCalculator(alwaysHit),
-            new DamageCalculator(alwaysHit)
-        );
-        var resolution = PlayerActionResolver.Resolve(
-            combatants,
-            new UseAbility(enemy.Id, "Strike")
-        );
-        var resolved = Assert.IsType<ActionResolved>(resolution);
-        engine.ProcessRound(combatants, resolved.Action);
+        Assert.NotNull(resolution.Result);
+        _combatEngine.ProcessRound(combatants, resolution.Result);
 
-        await new PersistCombatantsCommandHandler(_context).Handle(
+        await _persistCombatants.Handle(
             new PersistCombatantsCommand { Combatants = combatants },
             TestContext.Current.CancellationToken
         );

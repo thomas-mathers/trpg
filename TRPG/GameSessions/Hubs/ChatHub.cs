@@ -5,6 +5,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Contracts.Combat.Requests;
 using TRPG.Data.Models;
 
 namespace TRPG.GameSessions.Hubs;
@@ -83,12 +84,11 @@ internal sealed class ChatHub(
         RunTurn(turnRunner.StreamWaitResponse(hours, cancellationToken), cancellationToken);
 
     public IAsyncEnumerable<string> SendCombatAction(
-        Guid targetId,
-        string actionName,
+        PlayerCombatAction action,
         CancellationToken cancellationToken
     ) =>
         RunTurn(
-            turnRunner.StreamCombatActionResponse(targetId, actionName, cancellationToken),
+            turnRunner.StreamCombatActionResponse(action, cancellationToken),
             cancellationToken
         );
 

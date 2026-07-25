@@ -71,7 +71,8 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             CurrentMp: 2,
             IsAlive: isAlive,
             Abilities: [],
-            ActiveConditions: new Dictionary<ConditionType, int>()
+            ActiveConditions: new Dictionary<ConditionType, int>(),
+            ItemsUsedCounts: new Dictionary<Guid, int>()
         );
 
     [Fact]

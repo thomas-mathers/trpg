@@ -1,27 +1,24 @@
 using TRPG.Application.Abilities;
-using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Abilities.Queries;
+namespace TRPG.Tests.Application.Creatures.Queries;
 
 [Collection("Database")]
-public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private GetUsableAbilitiesQueryHandler _handler = null!;
+    private GetCreatureAbilitiesQueryHandler _handler = null!;
     private static readonly Guid WorldId = Guid.NewGuid();
     private readonly Creature _player = Builders.MakeCreature(WorldId);
+    private static readonly AbilityDefinitions AbilityDefinitions = AbilityDefinitions.Create();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetUsableAbilitiesQueryHandler(
-            new GetCreatureAbilitiesQueryHandler(_context),
-            AbilityDefinitions.Create()
-        );
+        _handler = new GetCreatureAbilitiesQueryHandler(_context, AbilityDefinitions);
 
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -37,7 +34,7 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
     {
         // Act
         var abilities = await _handler.Handle(
-            new GetUsableAbilitiesQuery { CreatureId = _player.Id },
+            new GetCreatureAbilitiesQuery { CreatureId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -50,7 +47,7 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
     {
         // Act
         var abilities = await _handler.Handle(
-            new GetUsableAbilitiesQuery { CreatureId = _player.Id },
+            new GetCreatureAbilitiesQuery { CreatureId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -73,7 +70,7 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
 
         // Act
         var abilities = await _handler.Handle(
-            new GetUsableAbilitiesQuery { CreatureId = _player.Id },
+            new GetCreatureAbilitiesQuery { CreatureId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -99,7 +96,7 @@ public sealed class GetUsableAbilitiesQueryTests(DatabaseFixture db) : IAsyncLif
 
         // Act
         var abilities = await _handler.Handle(
-            new GetUsableAbilitiesQuery { CreatureId = _player.Id },
+            new GetCreatureAbilitiesQuery { CreatureId = _player.Id },
             TestContext.Current.CancellationToken
         );
 

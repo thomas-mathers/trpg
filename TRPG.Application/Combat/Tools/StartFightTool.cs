@@ -6,6 +6,7 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
+using TRPG.Contracts.Combat.Requests;
 
 namespace TRPG.Application.Combat.Tools;
 
@@ -25,11 +26,11 @@ internal class StartFightTool(
         "Attacks a hostile creature by name, using the named ability. If not already in combat, this starts an encounter with every hostile creature nearby, not just the named target, and resolves the first round. Use one of the player's own learned abilities, or \"Strike\" for a plain unenhanced attack with whatever is equipped. Once a fight is underway, all further rounds are resolved through the player's combat menu, not through this tool."
     )]
     private async Task<object?> InvokeAsync(
-        [Description("The exact name of the ability to use.")] string abilityName,
         [Description(
             "The exact name of the creature to attack, copied verbatim from the most recent look result or combat result."
         )]
             string targetName,
+        [Description("The exact name of the ability to use.")] string abilityName,
         CancellationToken cancellationToken
     )
     {
@@ -64,16 +65,16 @@ internal class StartFightTool(
 
         var targetId = combatants.First(c => c.Name == targetName).CreatureId;
 
-        var resolution = PlayerActionResolver.Resolve(
-            combatants,
-            new UseAbility(targetId, abilityName)
+        var resolverResult = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(targetId, abilityName)
         );
-        if (resolution is ActionRejected rejected)
+
+        if (resolverResult.ErrorMessage is not null)
         {
-            return new ToolError(rejected.Reason);
+            return new ToolError(resolverResult.ErrorMessage!);
         }
 
-        var state = combatEngine.ProcessRound(combatants, ((ActionResolved)resolution).Action);
+        var state = combatEngine.ProcessRound(combatants, resolverResult.Result!);
 
         var result = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand

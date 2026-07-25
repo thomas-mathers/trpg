@@ -20,12 +20,12 @@ internal static class PlayerEndpoints
 
     private static async Task<IResult> GetFight(
         Guid playerId,
-        GetCombatantsQueryHandler getCombatants,
+        GetActiveFightCombatantsQueryHandler getCombatants,
         CancellationToken cancellationToken
     )
     {
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery { PlayerId = playerId },
+            new GetActiveFightCombatantsQuery { PlayerId = playerId },
             cancellationToken
         );
         if (combatants.Count == 0)

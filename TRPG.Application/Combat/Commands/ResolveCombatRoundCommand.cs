@@ -1,4 +1,5 @@
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data.Models;
 
@@ -17,6 +18,7 @@ internal class ResolveCombatRoundCommandHandler(
     PersistCombatantsCommandHandler persistCombatants,
     AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     AdjustCreatureSkillsCommandHandler adjustCreatureSkills,
+    RemoveInventoryItemCommandHandler removeInventoryItem,
     EndFightCommandHandler endFight
 )
 {
@@ -56,6 +58,22 @@ internal class ResolveCombatRoundCommandHandler(
                 },
                 cancellationToken
             );
+        }
+
+        foreach (var combatantState in state.Combatants)
+        {
+            foreach (var (itemId, quantity) in combatantState.ItemsUsedCounts)
+            {
+                await removeInventoryItem.Handle(
+                    new RemoveInventoryItemCommand
+                    {
+                        CreatureId = combatantState.Id,
+                        ItemId = itemId,
+                        Quantity = quantity,
+                    },
+                    cancellationToken
+                );
+            }
         }
 
         if (state.Outcome is CombatOutcome.Victory or CombatOutcome.Defeat or CombatOutcome.Fled)

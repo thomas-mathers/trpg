@@ -1,8 +1,6 @@
-using TRPG.Application.Abilities;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Inventory.Queries;
-using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -20,11 +18,8 @@ internal class StartFightCommandHandler(
     TrpgDbContext context,
     GetCreatureByIdQueryHandler getCreatureById,
     GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
-    GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
-    GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
-    GetCreatureAbilitiesQueryHandler getCreatureAbilities,
-    ApplyPassiveRegenCommandHandler applyPassiveRegen,
-    AbilityDefinitions abilityDefinitions
+    GetCombatantQueryHandler getCombatant,
+    ApplyPassiveRegenCommandHandler applyPassiveRegen
 )
 {
     private static readonly IReadOnlyCollection<CreatureType> HostileCreatureTypes =
@@ -79,28 +74,16 @@ internal class StartFightCommandHandler(
             cancellationToken
         );
 
-        var playerCombatant = await BuildPlayerCombatant(
-            regeneratedCreatures[player.Id],
-            command.WorldId,
-            cancellationToken
-        );
+        var combatants = new List<Combatant>();
 
-        var enemyCombatants = enemyIds
-            .Select(enemyId =>
-                Combatant.FromCreature(
-                    regeneratedCreatures[enemyId],
-                    [],
-                    abilityDefinitions.BasicAttack,
-                    abilityDefinitions.BlockStance,
-                    isPlayer: false,
-                    [],
-                    new Dictionary<WeaponType, int>(),
-                    []
-                )
-            )
-            .ToList();
-
-        var combatants = new[] { playerCombatant }.Concat(enemyCombatants).ToArray();
+        foreach (var creature in regeneratedCreatures.Values)
+        {
+            var combatant = await getCombatant.Handle(
+                new GetCombatantQuery { Creature = creature, IsPlayer = creature.Id == player.Id },
+                cancellationToken
+            );
+            combatants.Add(combatant);
+        }
 
         context.Fights.Add(
             new Fight
@@ -114,47 +97,5 @@ internal class StartFightCommandHandler(
         await context.SaveChangesAsync(cancellationToken);
 
         return combatants;
-    }
-
-    private async Task<Combatant> BuildPlayerCombatant(
-        Creature player,
-        Guid worldId,
-        CancellationToken cancellationToken
-    )
-    {
-        var inventoryItems = await getInventoryByCreatureId.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = player.Id },
-            cancellationToken
-        );
-        var equipped = inventoryItems
-            .Where(i => i.EquippedSlot != null)
-            .Select(i => i.Item)
-            .ToArray();
-        var usableItems = UsableItem.FromInventory(inventoryItems);
-
-        var weaponProficiencies = await getAllWeaponProficiencies.Handle(
-            new GetAllWeaponProficienciesQuery { WorldId = worldId, CreatureId = player.Id },
-            cancellationToken
-        );
-
-        var abilityNames = await getCreatureAbilities.Handle(
-            new GetCreatureAbilitiesQuery { CreatureId = player.Id },
-            cancellationToken
-        );
-        var abilities = abilityNames
-            .Select(abilityDefinitions.GetByName)
-            .OfType<Ability>()
-            .ToArray();
-
-        return Combatant.FromCreature(
-            player,
-            abilities,
-            abilityDefinitions.BasicAttack,
-            abilityDefinitions.BlockStance,
-            isPlayer: true,
-            equipped,
-            weaponProficiencies,
-            usableItems
-        );
     }
 }

@@ -11,7 +11,7 @@ internal sealed class CombatantBuilder
     private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
     private static readonly StatFormulas Formulas = Builders.MakeStatFormulas();
 
-    private readonly List<Item> _inventory = [];
+    private readonly List<InventoryItem> _inventoryItems = [];
     private readonly Dictionary<WeaponType, int> _weaponProficiencies = [];
     private Guid _worldId = Guid.NewGuid();
     private string _name = "Test Combatant";
@@ -25,7 +25,6 @@ internal sealed class CombatantBuilder
     private float _fireResistance;
     private float _poisonResistance;
     private IReadOnlyList<Ability> _abilities = [];
-    private IReadOnlyList<UsableItem> _usableItems = [];
     private int? _currentHp;
     private int? _currentAp;
     private int? _currentMp;
@@ -102,15 +101,10 @@ internal sealed class CombatantBuilder
         return this;
     }
 
-    public CombatantBuilder WithItem(Item item)
+    public CombatantBuilder WithItem(InventoryItem inventoryItem)
     {
-        _inventory.Add(item);
-        return this;
-    }
-
-    public CombatantBuilder WithUsableItems(params IReadOnlyList<UsableItem> usableItems)
-    {
-        _usableItems = usableItems;
+        inventoryItem.EquippedSlot ??= inventoryItem.Item.DefaultSlot;
+        _inventoryItems.Add(inventoryItem);
         return this;
     }
 
@@ -158,13 +152,10 @@ internal sealed class CombatantBuilder
 
         return Combatant.FromCreature(
             creature,
-            _abilities,
-            BasicAttack,
-            BlockStance,
+            [BasicAttack, BlockStance, .. _abilities],
             _isPlayer,
-            _inventory,
-            _weaponProficiencies,
-            _usableItems
+            _inventoryItems,
+            _weaponProficiencies
         );
     }
 }

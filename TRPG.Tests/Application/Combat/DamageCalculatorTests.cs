@@ -55,7 +55,11 @@ public class DamageCalculatorTests
     {
         // Arrange — fixed-range weapon removes the roll, ability at 100% = a plain swing
         var weapon = MakeFixedRangeWeapon(10);
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(new InventoryItem { Item = weapon })
+            .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
@@ -71,7 +75,11 @@ public class DamageCalculatorTests
     {
         // Arrange — 10 base × 150% = 15
         var weapon = MakeFixedRangeWeapon(10);
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(new InventoryItem { Item = weapon })
+            .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
@@ -106,7 +114,7 @@ public class DamageCalculatorTests
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithStrength(50)
-            .WithItem(weapon)
+            .WithItem(new InventoryItem { Item = weapon })
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
@@ -123,7 +131,11 @@ public class DamageCalculatorTests
     {
         // Arrange — magic ignores the weapon entirely
         var weapon = MakeFixedRangeWeapon(999);
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(new InventoryItem { Item = weapon })
+            .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 

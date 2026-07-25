@@ -1,0 +1,61 @@
+using TRPG.Application.Combat;
+using TRPG.Contracts.Combat.Requests;
+using TRPG.Data.Models;
+using TRPG.Tests.Helpers;
+
+namespace TRPG.Tests.Application.Combat;
+
+public class PlayerCombatActionResolverTests
+{
+    private readonly Guid _worldId = Guid.NewGuid();
+
+    [Fact]
+    public void Resolve_ReturnsResolvedItem_WhenTheNamedItemExists()
+    {
+        // Arrange
+        var potion = new ConsumableItem
+        {
+            Name = "Health Potion",
+            Resource = ResourceType.Hp,
+            Amount = 20,
+        };
+        var player = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithName("Hero")
+            .AsPlayer()
+            .WithItem(new InventoryItem { Item = potion })
+            .Build();
+        IReadOnlyList<Combatant> combatants = [player];
+
+        // Act
+        var action = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseItemAction("Health Potion")
+        );
+
+        // Assert
+        var resolvedItem = Assert.IsType<ResolvedPlayerUseItemAction>(action.Result);
+        Assert.Equal(potion.Id, resolvedItem.Item.ItemId);
+    }
+
+    [Fact]
+    public void Resolve_ReturnsActionRejected_WhenTheNamedItemDoesNotExist()
+    {
+        // Arrange
+        var player = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithName("Hero")
+            .AsPlayer()
+            .Build();
+        IReadOnlyList<Combatant> combatants = [player];
+
+        // Act
+        var action = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseItemAction("Health Potion")
+        );
+
+        // Assert
+        Assert.Equal("Item Health Potion not found", action.ErrorMessage);
+    }
+}

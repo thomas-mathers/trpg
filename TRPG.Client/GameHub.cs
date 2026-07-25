@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Microsoft.AspNetCore.SignalR.Client;
+using TRPG.Contracts.Combat.Requests;
 
 namespace TRPG.Client;
 
@@ -27,11 +28,9 @@ internal sealed class GameHub(HubConnection connection) : IAsyncDisposable
         connection.StreamAsync<string>("SendWait", hours, cancellationToken);
 
     public IAsyncEnumerable<string> StreamCombatAction(
-        Guid targetId,
-        string actionName,
+        PlayerCombatAction playerCombatAction,
         CancellationToken cancellationToken
-    ) =>
-        connection.StreamAsync<string>("SendCombatAction", targetId, actionName, cancellationToken);
+    ) => connection.StreamAsync<string>("SendCombatAction", playerCombatAction, cancellationToken);
 
     public IAsyncEnumerable<string> StreamFlee(CancellationToken cancellationToken) =>
         connection.StreamAsync<string>("SendFlee", cancellationToken);

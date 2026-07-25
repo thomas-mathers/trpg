@@ -14,7 +14,7 @@ using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Inventory.Commands;
+using TRPG.Contracts.Combat.Requests;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions;
@@ -36,10 +36,9 @@ internal class GameTurnRunner(
     GetChatMessagesQueryHandler getChatMessages,
     AppendChatMessagesCommandHandler appendChatMessages,
     ClearChatMessagesCommandHandler clearChatMessages,
-    GetCombatantsQueryHandler getCombatants,
+    GetActiveFightCombatantsQueryHandler getCombatants,
     CombatEngine combatEngine,
     ResolveCombatRoundCommandHandler resolveCombatRound,
-    RemoveInventoryItemCommandHandler removeInventoryItem,
     IEnumerable<AIFunction> tools,
     IOptionsMonitor<LlmRoleOptions> optionsMonitor,
     IOptionsSnapshot<GameClockOptions> gameClockOptions,
@@ -173,8 +172,7 @@ internal class GameTurnRunner(
     }
 
     public async IAsyncEnumerable<string> StreamCombatActionResponse(
-        Guid targetId,
-        string actionName,
+        PlayerCombatAction action,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
@@ -189,7 +187,7 @@ internal class GameTurnRunner(
         await BeginTurn(cancellationToken);
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery { PlayerId = turnContext.PlayerId },
+            new GetActiveFightCombatantsQuery { PlayerId = turnContext.PlayerId },
             cancellationToken
         );
         if (combatants.Count == 0)
@@ -198,40 +196,15 @@ internal class GameTurnRunner(
             yield break;
         }
 
-        var resolution = PlayerActionResolver.Resolve(combatants, targetId, actionName);
+        var resolverResult = new PlayerCombatActionResolver(combatants).Resolve(action);
 
-        ResolvedAction resolvedAction;
-
-        switch (resolution)
+        if (resolverResult.ErrorMessage is not null)
         {
-            case ActionRejected rejected:
-            {
-                yield return rejected.Reason;
-                yield break;
-            }
-            case ActionResolved resolved:
-                resolvedAction = resolved.Action;
-                break;
-            default:
-                throw new InvalidOperationException(
-                    $"Unhandled ActionResolution type: {resolution.GetType().Name}"
-                );
+            yield return resolverResult.ErrorMessage;
+            yield break;
         }
 
-        var state = combatEngine.ProcessRound(combatants, resolvedAction);
-
-        if (resolvedAction is ResolvedItem resolvedItem)
-        {
-            await removeInventoryItem.Handle(
-                new RemoveInventoryItemCommand
-                {
-                    CreatureId = turnContext.PlayerId,
-                    ItemId = resolvedItem.Item.ItemId,
-                    Quantity = 1,
-                },
-                cancellationToken
-            );
-        }
+        var state = combatEngine.ProcessRound(combatants, resolverResult.Result!);
 
         var result = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
@@ -272,7 +245,7 @@ internal class GameTurnRunner(
         await BeginTurn(cancellationToken);
 
         var combatants = await getCombatants.Handle(
-            new GetCombatantsQuery { PlayerId = turnContext.PlayerId },
+            new GetActiveFightCombatantsQuery { PlayerId = turnContext.PlayerId },
             cancellationToken
         );
         if (combatants.Count == 0)

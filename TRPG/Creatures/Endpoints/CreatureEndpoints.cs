@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using TRPG.Application.Abilities;
-using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Combat;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
@@ -32,12 +31,12 @@ internal static class CreatureEndpoints
 
     private static async Task<IResult> GetAbilities(
         Guid creatureId,
-        GetUsableAbilitiesQueryHandler getUsableAbilities,
+        GetCreatureAbilitiesQueryHandler getCreatureAbilities,
         CancellationToken cancellationToken
     )
     {
-        var abilities = await getUsableAbilities.Handle(
-            new GetUsableAbilitiesQuery { CreatureId = creatureId },
+        var abilities = await getCreatureAbilities.Handle(
+            new GetCreatureAbilitiesQuery { CreatureId = creatureId },
             cancellationToken
         );
 
@@ -54,7 +53,7 @@ internal static class CreatureEndpoints
             new GetInventoryByCreatureIdQuery { CreatureId = creatureId },
             cancellationToken
         );
-        var items = UsableItem.FromInventory(inventoryItems);
+        var items = UsableItem.FromInventoryItems(inventoryItems);
 
         return Results.Ok(items.Select(ToUsableItemSummary).ToArray());
     }
