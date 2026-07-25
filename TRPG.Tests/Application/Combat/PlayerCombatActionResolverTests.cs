@@ -51,11 +51,11 @@ public class PlayerCombatActionResolverTests
         IReadOnlyList<Combatant> combatants = [player];
 
         // Act
-        // Assert
-        Assert.True(
-            new PlayerCombatActionResolver(combatants)
-                .Resolve(new UseItemAction("Health Potion"))
-                .IsError
+        var action = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseItemAction("Health Potion")
         );
+
+        // Assert
+        Assert.Equal("Item Health Potion not found", action.ErrorMessage);
     }
 }

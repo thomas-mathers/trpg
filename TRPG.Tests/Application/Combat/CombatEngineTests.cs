@@ -418,24 +418,23 @@ public class CombatEngineTests
     public void ResolvePlayerAction_IsRejected_WhenAbilityIsUnknownOrUnaffordable()
     {
         // Arrange
-        var player = MakeCombatant("Hero")
-            .AsPlayer()
-            .WithStamina(1)
-            .WithAbilities(MakeAttack("Devour", cost: 99))
-            .Build();
+        var devour = MakeAttack("Devour", cost: 99);
+        var player = MakeCombatant("Hero").AsPlayer().WithStamina(1).WithAbilities(devour).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
         // Act & Assert — neither consumed the round
-        Assert.True(
-            new PlayerCombatActionResolver(combatants)
-                .Resolve(new UseAbilityAction(monster.CreatureId, "Fireball"))
-                .IsError
+        var unknownAbility = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(monster.CreatureId, "Fireball")
         );
-        Assert.True(
-            new PlayerCombatActionResolver(combatants)
-                .Resolve(new UseAbilityAction(monster.CreatureId, "Devour"))
-                .IsError
+        Assert.Equal("Ability Fireball not found", unknownAbility.ErrorMessage);
+
+        var unaffordableAbility = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(monster.CreatureId, "Devour")
+        );
+        Assert.Equal(
+            $"Ability Devour costs {devour.ApCost} AP but {player.Name} only has {player.CurrentAp}",
+            unaffordableAbility.ErrorMessage
         );
         Assert.Equal(player.MaximumHp, player.CurrentHp);
     }
@@ -447,13 +446,15 @@ public class CombatEngineTests
         var player = MakeCombatant("Hero").AsPlayer().Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
+        var unknownTargetId = Guid.NewGuid();
 
-        // Act & Assert
-        Assert.True(
-            new PlayerCombatActionResolver(combatants)
-                .Resolve(new UseAbilityAction(Guid.NewGuid(), "Strike"))
-                .IsError
+        // Act
+        var resolution = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(unknownTargetId, "Strike")
         );
+
+        // Assert
+        Assert.Equal($"Target {unknownTargetId} not found", resolution.ErrorMessage);
     }
 
     [Fact]
@@ -464,12 +465,13 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).WithCurrentHp(0).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
-        // Act & Assert
-        Assert.True(
-            new PlayerCombatActionResolver(combatants)
-                .Resolve(new UseAbilityAction(monster.CreatureId, "Strike"))
-                .IsError
+        // Act
+        var resolution = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(monster.CreatureId, "Strike")
         );
+
+        // Assert
+        Assert.Equal($"Target {monster.CreatureId} is already dead", resolution.ErrorMessage);
     }
 
     [Fact]
@@ -483,11 +485,15 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
-        // Act & Assert
-        Assert.True(
-            new PlayerCombatActionResolver(combatants)
-                .Resolve(new UseAbilityAction(monster.CreatureId, "Battle Stance"))
-                .IsError
+        // Act
+        var resolution = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(monster.CreatureId, "Battle Stance")
+        );
+
+        // Assert
+        Assert.Equal(
+            $"Ability Battle Stance can only be cast on {player.Name}",
+            resolution.ErrorMessage
         );
     }
 
@@ -499,30 +505,33 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
-        // Act & Assert
-        Assert.True(
-            new PlayerCombatActionResolver(combatants)
-                .Resolve(new UseAbilityAction(player.CreatureId, "Strike"))
-                .IsError
+        // Act
+        var resolution = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(player.CreatureId, "Strike")
         );
+
+        // Assert
+        Assert.Equal($"Ability Strike cannot target {player.Name}", resolution.ErrorMessage);
     }
 
     [Fact]
     public void ResolvePlayerAction_IsRejected_WhenPlayerCannotAffordMpCost()
     {
         // Arrange
-        var player = MakeCombatant("Hero")
-            .AsPlayer()
-            .WithAbilities(MakeAttack("Arcane Blast", mpCost: 99))
-            .Build();
+        var arcaneBlast = MakeAttack("Arcane Blast", mpCost: 99);
+        var player = MakeCombatant("Hero").AsPlayer().WithAbilities(arcaneBlast).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
 
-        // Act & Assert
-        Assert.True(
-            new PlayerCombatActionResolver(combatants)
-                .Resolve(new UseAbilityAction(monster.CreatureId, "Arcane Blast"))
-                .IsError
+        // Act
+        var resolution = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(monster.CreatureId, "Arcane Blast")
+        );
+
+        // Assert
+        Assert.Equal(
+            $"Ability Arcane Blast costs {arcaneBlast.MpCost} MP but {player.Name} only has {player.CurrentMp}",
+            resolution.ErrorMessage
         );
     }
 
@@ -550,10 +559,11 @@ public class CombatEngineTests
     public void ResolvePlayerAction_RespectsCooldowns_AcrossRounds()
     {
         // Arrange
+        var smite = MakeAttack("Smite", cooldown: 2);
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
-            .WithAbilities(MakeAttack("Smite", cooldown: 2))
+            .WithAbilities(smite)
             .Build();
         var monster = MakeCombatant("Wraith")
             .WithEndurance(100)
@@ -566,10 +576,12 @@ public class CombatEngineTests
         Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Smite"));
 
         // Assert — still cooling down next round, available again after two full rounds
-        Assert.True(
-            new PlayerCombatActionResolver(combatants)
-                .Resolve(new UseAbilityAction(monster.CreatureId, "Smite"))
-                .IsError
+        var stillOnCooldown = new PlayerCombatActionResolver(combatants).Resolve(
+            new UseAbilityAction(monster.CreatureId, "Smite")
+        );
+        Assert.Equal(
+            $"Ability 'Smite' is on cooldown for {smite.Cooldown} more round(s).",
+            stillOnCooldown.ErrorMessage
         );
         Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
         Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
