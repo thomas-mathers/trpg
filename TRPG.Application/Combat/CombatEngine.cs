@@ -13,7 +13,10 @@ public class CombatEngine(
     DamageCalculator damageCalculator
 )
 {
-    internal CombatState ProcessRound(IReadOnlyList<Combatant> combatants, ResolvedAction action)
+    internal CombatState ProcessRound(
+        IReadOnlyList<Combatant> combatants,
+        ResolvedPlayerCombatAction action
+    )
     {
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
@@ -42,7 +45,7 @@ public class CombatEngine(
         );
     }
 
-    private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedAction action)
+    private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedPlayerCombatAction action)
     {
         if (!actor.IsAlive)
         {
@@ -64,8 +67,8 @@ public class CombatEngine(
 
         var actionEvents = action switch
         {
-            ResolvedAbility resolved => ProcessAbility(actor, resolved),
-            ResolvedItem resolved => ProcessItem(actor, resolved.Item),
+            ResolvedPlayerUseAbilityAction resolved => ProcessAbility(actor, resolved),
+            ResolvedPlayerUseItemAction resolved => ProcessItem(actor, resolved.Item),
             _ => [],
         };
 
@@ -98,9 +101,12 @@ public class CombatEngine(
             : Skill.Unarmed;
     }
 
-    private List<CombatEvent> ProcessAbility(Combatant actor, ResolvedAbility resolvedAbility)
+    private List<CombatEvent> ProcessAbility(
+        Combatant actor,
+        ResolvedPlayerUseAbilityAction resolvedPlayerUseAbilityAction
+    )
     {
-        var (ability, targets) = resolvedAbility;
+        var (ability, targets) = resolvedPlayerUseAbilityAction;
 
         actor.CooldownRemainingByAbility[ability.Name] = ability.Cooldown;
         actor.CurrentAp -= ability.ApCost;
@@ -122,6 +128,9 @@ public class CombatEngine(
 
     private static List<CombatEvent> ProcessItem(Combatant actor, UsableItem item)
     {
+        actor.ItemsUsedCounts[item.ItemId] =
+            actor.ItemsUsedCounts.GetValueOrDefault(item.ItemId) + 1;
+
         var (currentValue, maximumValue) = item.Resource switch
         {
             ResourceType.Hp => (actor.CurrentHp, actor.MaximumHp),
@@ -457,7 +466,10 @@ public class CombatEngine(
         return damageTickedEvents;
     }
 
-    private static CombatEvent? GetIncapacitationEvent(Combatant attacker, ResolvedAction action)
+    private static CombatEvent? GetIncapacitationEvent(
+        Combatant attacker,
+        ResolvedPlayerCombatAction action
+    )
     {
         var frozenTurnsRemaining = attacker.ActiveConditions[ConditionType.Frozen];
         if (frozenTurnsRemaining > 0)
@@ -471,7 +483,9 @@ public class CombatEngine(
             return new NoAction(attacker.Name, ConditionType.Stunned);
         }
 
-        var ability = action is ResolvedAbility resolvedAbility ? resolvedAbility.Ability : null;
+        var ability = action is ResolvedPlayerUseAbilityAction resolvedAbility
+            ? resolvedAbility.Ability
+            : null;
 
         if (ability is null)
         {
@@ -507,7 +521,10 @@ public class CombatEngine(
         return null;
     }
 
-    private static ResolvedAbility ResolveEnemyAction(Combatant enemy, Combatant player)
+    private static ResolvedPlayerUseAbilityAction ResolveEnemyAction(
+        Combatant enemy,
+        Combatant player
+    )
     {
         var affordableAbilities = enemy.Abilities.Where(a =>
             enemy.CooldownRemainingByAbility[a.Name] == 0
@@ -522,7 +539,7 @@ public class CombatEngine(
             );
 
         var ability = bestAttackAbility ?? enemy.Abilities[0];
-        return new ResolvedAbility(ability, [player]);
+        return new ResolvedPlayerUseAbilityAction(ability, [player]);
     }
 
     private static CombatOutcome GetCurrentOutcome(

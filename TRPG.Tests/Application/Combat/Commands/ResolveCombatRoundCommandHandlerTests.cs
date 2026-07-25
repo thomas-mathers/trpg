@@ -1,11 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Configuration;
-using TRPG.Application.Creatures.Commands;
-using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.WeaponProficiency.Commands;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -18,6 +16,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private ResolveCombatRoundCommandHandler _handler = null!;
     private Guid _sessionId;
     private readonly Creature _player = Builders.MakeCreature(
@@ -36,28 +35,11 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new ResolveCombatRoundCommandHandler(
-            new PersistCombatantsCommandHandler(_context),
-            new AdjustWeaponProficienciesCommandHandler(_context),
-            new AdjustCreatureSkillsCommandHandler(
-                _context,
-                new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
-            ),
-            new EndFightCommandHandler(
-                _context,
-                new ApplyCombatRewardsCommandHandler(_context),
-                new UpdateCreaturesCommandHandler(_context),
-                new GetPlaytimeQueryHandler(
-                    _context,
-                    Microsoft
-                        .Extensions
-                        .Logging
-                        .Abstractions
-                        .NullLogger<GetPlaytimeQueryHandler>
-                        .Instance
-                )
-            )
-        );
+
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<ResolveCombatRoundCommandHandler>();
 
         var session = Builders.MakeGameSession(WorldId, _player.Id, TimeSpan.FromHours(1));
         _context.Creatures.AddRange(_player, _enemy);
@@ -68,6 +50,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -75,7 +58,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         Guid id,
         bool isPlayer,
         int currentHp,
-        bool isAlive
+        bool isAlive,
+        IReadOnlyDictionary<Guid, int>? itemsUsedCounts = null
     ) =>
         new(
             Id: id,
@@ -87,7 +71,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             CurrentMp: 2,
             IsAlive: isAlive,
             Abilities: [],
-            ActiveConditions: new Dictionary<ConditionType, int>()
+            ActiveConditions: new Dictionary<ConditionType, int>(),
+            ItemsUsedCounts: itemsUsedCounts ?? new Dictionary<Guid, int>()
         );
 
     private Combatant MakePlayerCombatant(int currentHp = 30) =>
@@ -308,5 +293,63 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         // Assert
         Assert.Equal(33, result.Player.CurrentHp);
         Assert.Single(result.Enemies);
+    }
+
+    [Fact]
+    public async Task Handle_DepletesInventoryItem_WhenACombatantUsedOne()
+    {
+        // Arrange
+        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
+        var potion = Builders.MakeConsumableItem(WorldId);
+        _context.Items.Add(potion);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await new AddInventoryItemCommandHandler(_context).Handle(
+            new AddInventoryItemCommand
+            {
+                CreatureId = _player.Id,
+                ItemId = potion.Id,
+                Quantity = 2,
+            },
+            TestContext.Current.CancellationToken
+        );
+        var state = new CombatState(
+            Outcome: CombatOutcome.Ongoing,
+            Combatants:
+            [
+                MakeCombatantState(
+                    _player.Id,
+                    isPlayer: true,
+                    currentHp: 33,
+                    isAlive: true,
+                    itemsUsedCounts: new Dictionary<Guid, int> { [potion.Id] = 1 }
+                ),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
+            ],
+            Events: [],
+            GoldLooted: null,
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
+        );
+
+        // Act
+        await _handler.Handle(
+            new ResolveCombatRoundCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                Combatants = [MakePlayerCombatant(), MakeEnemyCombatant(currentHp: 12)],
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var inventoryItem = await verifyContext.InventoryItems.SingleAsync(
+            i => i.CreatureId == _player.Id && i.ItemId == potion.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(1, inventoryItem.Quantity);
     }
 }

@@ -75,7 +75,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(weapon)
+            .WithItem(new InventoryItem { Item = weapon })
             .WithWeaponProficiency(weapon.Type, 30)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(70).Build();
@@ -96,7 +96,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(weapon)
+            .WithItem(new InventoryItem { Item = weapon })
             .WithWeaponProficiency(weapon.Type, 1)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(999).Build();
@@ -117,7 +117,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(weapon)
+            .WithItem(new InventoryItem { Item = weapon })
             .WithWeaponProficiency(weapon.Type, 999)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(1).Build();
@@ -138,7 +138,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(weapon)
+            .WithItem(new InventoryItem { Item = weapon })
             .WithWeaponProficiency(weapon.Type, 0)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(0).Build();
@@ -174,7 +174,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(weapon)
+            .WithItem(new InventoryItem { Item = weapon })
             .WithWeaponProficiency(weapon.Type, 0)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(50).Build();
@@ -195,7 +195,7 @@ public class HitCalculatorTests
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(weapon)
+            .WithItem(new InventoryItem { Item = weapon })
             .WithWeaponProficiency(weapon.Type, 30)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(20).Build();
@@ -248,7 +248,11 @@ public class HitCalculatorTests
             Description = "A test shield.",
             BlockChance = 1.0f,
         };
-        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithItem(shield).Build();
+        var defender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(new InventoryItem { Item = shield })
+            .Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -272,7 +276,7 @@ public class HitCalculatorTests
         var blockingDefender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
-            .WithItem(blockingShield)
+            .WithItem(new InventoryItem { Item = blockingShield })
             .Build();
         var unshieldedDefender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new HitCalculator(Settings);

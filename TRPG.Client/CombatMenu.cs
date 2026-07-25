@@ -2,6 +2,7 @@ using Spectre.Console;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
 using TRPG.Contracts.Abilities.Responses;
+using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Inventory.Responses;
 
@@ -85,7 +86,7 @@ internal sealed class CombatMenu(
         }
 
         await narrationRenderer.TryRender(
-            gameHub.StreamCombatAction(playerId, chosen.Name, cancellationToken)
+            gameHub.StreamCombatAction(new UseItemAction(chosen.Name), cancellationToken)
         );
         return true;
     }
@@ -156,7 +157,10 @@ internal sealed class CombatMenu(
         }
 
         await narrationRenderer.TryRender(
-            gameHub.StreamCombatAction(targetId, abilityName, cancellationToken)
+            gameHub.StreamCombatAction(
+                new UseAbilityAction(targetId, abilityName),
+                cancellationToken
+            )
         );
         return true;
     }

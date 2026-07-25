@@ -9,3 +9,11 @@ internal sealed class TestOptionsSnapshot<T>(T value) : IOptionsSnapshot<T>
 
     public T Get(string? name) => value;
 }
+
+internal sealed class DefaultOptionsSnapshot<T> : IOptionsSnapshot<T>
+    where T : class, new()
+{
+    public T Value { get; } = new T();
+
+    public T Get(string? name) => Value;
+}

@@ -14,7 +14,8 @@ public static class CombatantExtensions
             CurrentMp: combatant.CurrentMp,
             IsAlive: combatant.IsAlive,
             Abilities: combatant.Abilities.Select(a => a.Name).ToArray(),
-            ActiveConditions: combatant.ActiveConditions.Where(c => c.Value > 0).ToDictionary()
+            ActiveConditions: combatant.ActiveConditions.Where(c => c.Value > 0).ToDictionary(),
+            ItemsUsedCounts: combatant.ItemsUsedCounts
         );
     }
 }

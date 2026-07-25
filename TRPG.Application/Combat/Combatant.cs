@@ -21,20 +21,34 @@ public class ActiveHot
     public int RemainingTurns { get; set; }
 }
 
-public record UsableItem(Guid ItemId, string Name, ResourceType Resource, int Amount)
+public record UsableItem(Guid ItemId, string Name, ResourceType Resource, int Amount, int Quantity)
 {
-    public static IReadOnlyList<UsableItem> FromInventory(
+    public static IReadOnlyList<UsableItem> FromInventoryItems(
         IReadOnlyCollection<InventoryItem> inventoryItems
-    ) =>
-        inventoryItems
-            .Where(i => i.Item is ConsumableItem)
-            .Select(i => new UsableItem(
-                i.ItemId,
-                i.Item.Name,
-                ((ConsumableItem)i.Item).Resource,
-                ((ConsumableItem)i.Item).Amount
-            ))
-            .ToArray();
+    )
+    {
+        var usableItems = new List<UsableItem>();
+
+        foreach (var inventoryItem in inventoryItems)
+        {
+            if (inventoryItem.Item is not ConsumableItem consumableItem)
+            {
+                continue;
+            }
+
+            usableItems.Add(
+                new UsableItem(
+                    inventoryItem.Item.Id,
+                    inventoryItem.Item.Name,
+                    consumableItem.Resource,
+                    consumableItem.Amount,
+                    inventoryItem.Quantity
+                )
+            );
+        }
+
+        return usableItems;
+    }
 }
 
 public class Combatant
@@ -49,11 +63,12 @@ public class Combatant
     public int CurrentHp { get; set; }
     public int CurrentAp { get; set; }
     public int CurrentMp { get; set; }
-    public IReadOnlyList<Item> Inventory { get; init; } = [];
+    public IReadOnlyList<Item> EquippedItems { get; init; } = [];
     public IReadOnlyList<UsableItem> UsableItems { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponProficiencies { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponSwingCounts { get; init; } = [];
     public Dictionary<Skill, int> SkillUsageCounts { get; init; } = [];
+    public Dictionary<Guid, int> ItemsUsedCounts { get; init; } = [];
     public Dictionary<ConditionType, int> ActiveConditions { get; init; } = [];
     public List<ActiveDot> ActiveDots { get; init; } = [];
     public List<ActiveHot> ActiveHots { get; init; } = [];
@@ -63,29 +78,28 @@ public class Combatant
     public int MaximumHp => (int)CalculateEffectiveAttribute(AttributeName.MaximumHp);
     public int MaximumAp => (int)CalculateEffectiveAttribute(AttributeName.MaximumAp);
     public int MaximumMp => (int)CalculateEffectiveAttribute(AttributeName.MaximumMp);
-    public WeaponItem? Weapon => Inventory.OfType<WeaponItem>().SingleOrDefault();
+    public WeaponItem? Weapon => EquippedItems.OfType<WeaponItem>().SingleOrDefault();
     public int? WeaponProficiency => Weapon != null ? WeaponProficiencies[Weapon.Type] : null;
-    public ShieldItem? Shield => Inventory.OfType<ShieldItem>().SingleOrDefault();
+    public ShieldItem? Shield => EquippedItems.OfType<ShieldItem>().SingleOrDefault();
     public float BlockChance => Shield?.BlockChance ?? 0f;
 
     public static Combatant FromCreature(
         Creature creature,
         IReadOnlyList<Ability> abilities,
-        AttackAbility basicAttack,
-        BuffAbility blockStance,
         bool isPlayer,
-        IReadOnlyList<Item> inventory,
-        IReadOnlyDictionary<WeaponType, int> weaponProficiencies,
-        IReadOnlyList<UsableItem> usableItems
+        IReadOnlyList<InventoryItem> inventoryItems,
+        IReadOnlyDictionary<WeaponType, int> weaponProficiencies
     )
     {
-        var allAbilities = new Ability[] { basicAttack, blockStance }
-            .Concat(abilities)
+        var equippedItems = inventoryItems
+            .Where(i => i.EquippedSlot != null)
+            .Select(i => i.Item)
             .ToArray();
+
         var startingAttributes = StatFormulas.CalculateEffectiveAttributes(
             creature.BaseAttributes,
             [],
-            inventory
+            equippedItems
         );
 
         var combatant = new Combatant
@@ -95,22 +109,22 @@ public class Combatant
             IsPlayer = isPlayer,
             Level = creature.Level,
             Attributes = creature.BaseAttributes,
-            Abilities = allAbilities,
+            Abilities = abilities,
             Gold = creature.Gold,
             CurrentHp = Math.Clamp(creature.CurrentHp, 0, startingAttributes.MaximumHp),
             CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
             CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),
-            Inventory = inventory,
-            UsableItems = usableItems,
+            EquippedItems = equippedItems,
+            UsableItems = UsableItem.FromInventoryItems(inventoryItems),
             WeaponProficiencies = Enum.GetValues<WeaponType>()
-                .ToDictionary(type => type, type => weaponProficiencies.GetValueOrDefault(type)),
+                .ToDictionary(type => type, weaponProficiencies.GetValueOrDefault),
             ActiveConditions = Enum.GetValues<ConditionType>()
                 .ToDictionary(
                     condition => condition,
                     condition =>
                         creature.ActiveConditions.GetValueOrDefault(condition.ToString(), 0)
                 ),
-            CooldownRemainingByAbility = allAbilities.ToDictionary(
+            CooldownRemainingByAbility = abilities.ToDictionary(
                 ability => ability.Name,
                 ability => creature.CooldownRemainingByAbility.GetValueOrDefault(ability.Name, 0)
             ),
@@ -186,7 +200,7 @@ public class Combatant
             })
             .ToList();
 
-        CreatureAttributesRecalculator.Recalculate(creature, Inventory);
+        CreatureAttributesRecalculator.Recalculate(creature, EquippedItems);
 
         if (!IsAlive)
         {
@@ -195,5 +209,5 @@ public class Combatant
     }
 
     public float CalculateEffectiveAttribute(AttributeName attribute) =>
-        StatFormulas.CalculateEffectiveAttribute(Attributes, ActiveBuffs, Inventory, attribute);
+        StatFormulas.CalculateEffectiveAttribute(Attributes, ActiveBuffs, EquippedItems, attribute);
 }

@@ -11,7 +11,7 @@ internal class GetInventoryByCreatureIdQuery
 
 internal class GetInventoryByCreatureIdQueryHandler(TrpgDbContext context)
 {
-    public async Task<IReadOnlyCollection<InventoryItem>> Handle(
+    public async Task<IReadOnlyList<InventoryItem>> Handle(
         GetInventoryByCreatureIdQuery query,
         CancellationToken cancellationToken = default
     )

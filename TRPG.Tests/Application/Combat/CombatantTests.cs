@@ -1,4 +1,3 @@
-using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -7,8 +6,6 @@ namespace TRPG.Tests.Application.Combat;
 
 public class CombatantTests
 {
-    private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
-    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
     private readonly Guid _worldId = Guid.NewGuid();
 
     [Fact]
@@ -21,12 +18,9 @@ public class CombatantTests
         var combatant = Combatant.FromCreature(
             creature,
             [],
-            BasicAttack,
-            BlockStance,
             isPlayer: true,
             [],
-            new Dictionary<WeaponType, int>(),
-            []
+            new Dictionary<WeaponType, int>()
         );
 
         // Assert
@@ -34,24 +28,29 @@ public class CombatantTests
     }
 
     [Fact]
-    public void FromCreature_AlwaysIncludesTheBasicAttack_BeforeTheCreaturesOwnAbilities()
+    public void FromCreature_ExcludesUnequippedItems_FromEquippedItems()
     {
         // Arrange
         var creature = Builders.MakeCreature(_worldId);
+        var equippedWeapon = new WeaponItem { Name = "Equipped Sword", Type = WeaponType.Sword };
+        var unequippedWeapon = new WeaponItem { Name = "Spare Axe", Type = WeaponType.Axe };
+        IReadOnlyList<InventoryItem> inventoryItems =
+        [
+            new InventoryItem { Item = equippedWeapon, EquippedSlot = EquipmentSlot.RightHand },
+            new InventoryItem { Item = unequippedWeapon, EquippedSlot = null },
+        ];
 
         // Act
         var combatant = Combatant.FromCreature(
             creature,
             [],
-            BasicAttack,
-            BlockStance,
-            isPlayer: false,
-            [],
-            new Dictionary<WeaponType, int>(),
-            []
+            isPlayer: true,
+            inventoryItems,
+            new Dictionary<WeaponType, int>()
         );
 
-        // Assert
-        Assert.Equal(BasicAttack.Name, combatant.Abilities[0].Name);
+        // Assert — the unequipped spare never reaches EquippedItems, so Weapon resolves to
+        // the one actually worn instead of throwing on more than one WeaponItem
+        Assert.Equal(equippedWeapon.Name, combatant.Weapon!.Name);
     }
 }

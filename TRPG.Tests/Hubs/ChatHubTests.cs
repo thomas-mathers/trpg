@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -261,8 +262,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var narration = await Drain(
             connection.StreamAsync<string>(
                 "SendCombatAction",
-                enemy.Id,
-                "Strike",
+                new UseAbilityAction(enemy.Id, "Strike"),
                 TestContext.Current.CancellationToken
             )
         );
@@ -287,8 +287,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var narration = await Drain(
             connection.StreamAsync<string>(
                 "SendCombatAction",
-                Guid.NewGuid(),
-                "Strike",
+                new UseAbilityAction(Guid.NewGuid(), "Strike"),
                 TestContext.Current.CancellationToken
             )
         );
@@ -311,14 +310,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var narration = await Drain(
             connection.StreamAsync<string>(
                 "SendCombatAction",
-                enemy.Id,
-                "Nonexistent Move",
+                new UseAbilityAction(enemy.Id, "Nonexistent Move"),
                 TestContext.Current.CancellationToken
             )
         );
 
         // Assert
-        Assert.Equal("Item Nonexistent Move not found", narration);
+        Assert.Equal("Ability Nonexistent Move not found", narration);
     }
 
     [Fact]

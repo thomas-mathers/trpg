@@ -13,7 +13,8 @@ public record CombatantState(
     int CurrentMp,
     bool IsAlive,
     IReadOnlyList<string> Abilities,
-    IReadOnlyDictionary<ConditionType, int> ActiveConditions
+    IReadOnlyDictionary<ConditionType, int> ActiveConditions,
+    IReadOnlyDictionary<Guid, int> ItemsUsedCounts
 );
 
 public record CombatState(
