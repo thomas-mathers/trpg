@@ -532,14 +532,15 @@ public class CombatEngine(
             && enemy.CurrentMp >= a.MpCost
         );
 
+        // Every combatant always has the basic attack (0 AP/MP cost, 0 cooldown), so it's
+        // always in affordableAbilities and MaxBy can never return null here.
         var bestAttackAbility = affordableAbilities
             .OfType<AttackAbility>()
             .MaxBy(a =>
                 a.DamageType == DamageType.Physical ? a.DamageAmount / 100f : a.DamageAmount
             );
 
-        var ability = bestAttackAbility ?? enemy.Abilities[0];
-        return new ResolvedPlayerUseAbilityAction(ability, [player]);
+        return new ResolvedPlayerUseAbilityAction(bestAttackAbility!, [player]);
     }
 
     private static CombatOutcome GetCurrentOutcome(
