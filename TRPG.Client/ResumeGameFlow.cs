@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
+using TRPG.Client.Core;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
 

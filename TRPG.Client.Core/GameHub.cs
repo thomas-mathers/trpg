@@ -2,7 +2,7 @@ using System.ComponentModel;
 using Microsoft.AspNetCore.SignalR.Client;
 using TRPG.Contracts.Combat.Requests;
 
-namespace TRPG.Client;
+namespace TRPG.Client.Core;
 
 public enum ConnectionStatus
 {

@@ -1,13 +1,5 @@
-using Microsoft.Extensions.Caching.Memory;
-using TRPG.Application.Buildings.Commands;
-using TRPG.Application.Buildings.Queries;
-using TRPG.Application.CreatureJobs.Queries;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Scenes.Commands;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -21,47 +13,29 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     private static readonly Guid StateId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private MovePlayerCommandHandler _handler = null!;
     private GameSession _session = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        var getPlaytime = new GetPlaytimeQueryHandler(
-            _context,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<GetPlaytimeQueryHandler>.Instance
-        );
-        _handler = new MovePlayerCommandHandler(
-            new GetCreatureByIdQueryHandler(_context),
-            new GetAllNearbyCreaturesQueryHandler(_context),
-            new UpdateCreaturesCommandHandler(_context),
-            new DeleteCreaturesCommandHandler(_context),
-            new GetBuildingByNameInStateQueryHandler(_context),
-            new GetEntranceRoomQueryHandler(_context),
-            new GetExitByDestinationNameQueryHandler(_context),
-            new GetDistrictByNameInCityQueryHandler(_context),
-            new GetCityByStateIdQueryHandler(_context, new MemoryCache(new MemoryCacheOptions())),
-            new CanEnterBuildingQueryHandler(
-                new GetFrontDoorQueryHandler(_context),
-                new GetKeyItemIdsQueryHandler(_context),
-                new GetInventoryByCreatureIdQueryHandler(_context)
-            ),
-            new SyncScheduleLockCommandHandler(
-                new GetAllOwnersByBuildingIdQueryHandler(_context),
-                new GetAllCreatureJobsByCreatureIdQueryHandler(_context),
-                new GetCreatureJobsOfBuildingWorkersQueryHandler(_context),
-                new SetFrontDoorLockedCommandHandler(_context)
-            ),
-            getPlaytime,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<MovePlayerCommandHandler>.Instance
-        );
+
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<MovePlayerCommandHandler>();
 
         _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await _serviceProvider.DisposeAsync();
+        await _context.DisposeAsync();
+    }
 
     [Fact]
     public async Task Handle_EntersTheBuilding_WhenOutdoorsAndDestinationIsABuilding()

@@ -1,12 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.CreatureJobs.Commands;
-using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -23,42 +20,28 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     private AddCreatureCommandHandler _addCreature = null!;
     private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetWorkstationsByRoomIdQueryHandler _getWorkstationsByRoomId = null!;
     private SyncCommandHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _addJob = new AddCreatureJobCommandHandler(_context);
-        _addCreature = new AddCreatureCommandHandler(_context);
-        _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
-        _getWorkstationsByRoomId = new GetWorkstationsByRoomIdQueryHandler(_context);
-        var executeJob = new ExecuteCreatureJobCommandHandler(
-            new UpdateCreaturesCommandHandler(_context)
-        );
-        var getAllJobsByCreatureId = new GetAllCreatureJobsByCreatureIdQueryHandler(_context);
-        var syncScheduleLock = new SyncScheduleLockCommandHandler(
-            new GetAllOwnersByBuildingIdQueryHandler(_context),
-            getAllJobsByCreatureId,
-            new GetCreatureJobsOfBuildingWorkersQueryHandler(_context),
-            new SetFrontDoorLockedCommandHandler(_context)
-        );
-        _handler = new SyncCommandHandler(
-            new GetCreatureIdsWithCreatureJobInRoomQueryHandler(_context),
-            getAllJobsByCreatureId,
-            new GetCreatureIdsByDistrictQueryHandler(_context),
-            new GetCreatureByIdQueryHandler(_context),
-            executeJob,
-            _getWorkstationsByRoomId,
-            new SetWorkstationOccupantCommandHandler(_context),
-            new GetRoomSummaryQueryHandler(_context, new MemoryCache(new MemoryCacheOptions())),
-            syncScheduleLock,
-            NullLogger<SyncCommandHandler>.Instance
-        );
+
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _addJob = _serviceProvider.GetRequiredService<AddCreatureJobCommandHandler>();
+        _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
+        _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
+        _getWorkstationsByRoomId =
+            _serviceProvider.GetRequiredService<GetWorkstationsByRoomIdQueryHandler>();
+        _handler = _serviceProvider.GetRequiredService<SyncCommandHandler>();
     }
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
