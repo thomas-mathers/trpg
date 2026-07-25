@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -11,6 +11,7 @@ namespace TRPG.Tests.Application.Creatures.Commands;
 public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private AdjustCreatureSkillsCommandHandler _handler = null!;
     private Guid _worldId;
     private readonly Creature _creature = Builders.MakeCreature();
@@ -18,10 +19,10 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new AdjustCreatureSkillsCommandHandler(
-            _context,
-            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<AdjustCreatureSkillsCommandHandler>();
 
         _worldId = _creature.WorldId;
         _context.Creatures.Add(_creature);
@@ -30,6 +31,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

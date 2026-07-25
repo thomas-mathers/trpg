@@ -96,14 +96,12 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         var player = Builders.MakeCreature(WorldId, stateId: StateId);
         var building = Builders.MakeBuilding(StateId, name: "The Locked Vault");
         var entranceRoom = Builders.MakeRoom(building.Id);
-        var frontDoor = new RoomConnector
-        {
-            RoomId = entranceRoom.Id,
-            Name = "Front Door",
-            Description = "The door leading outside.",
-            DestinationRoomId = null,
-            IsLocked = true,
-        };
+        var frontDoor = Builders.MakeRoomConnector(
+            entranceRoom.Id,
+            isLocked: true,
+            name: "Front Door",
+            description: "The door leading outside."
+        );
         var keyItem = new Item { Name = "Vault Key", Description = "A test key." };
         _context.Creatures.Add(player);
         _context.Buildings.Add(building);
@@ -188,14 +186,12 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         var building = Builders.MakeBuilding(StateId);
         var currentRoom = Builders.MakeRoom(building.Id);
         var nextRoom = Builders.MakeRoom(building.Id, capacity: 4);
-        var connector = new RoomConnector
-        {
-            RoomId = currentRoom.Id,
-            Name = "Hallway",
-            Description = "A hallway.",
-            DestinationRoomId = nextRoom.Id,
-            IsLocked = false,
-        };
+        var connector = Builders.MakeRoomConnector(
+            currentRoom.Id,
+            destinationRoomId: nextRoom.Id,
+            name: "Hallway",
+            description: "A hallway."
+        );
         var player = Builders.MakeCreature(WorldId, stateId: StateId, roomId: currentRoom.Id);
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(currentRoom, nextRoom);

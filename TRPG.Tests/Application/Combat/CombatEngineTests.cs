@@ -396,11 +396,7 @@ public class CombatEngineTests
             MinDamage = 5,
             MaxDamage = 10,
         };
-        var player = MakeCombatant("Hero")
-            .AsPlayer()
-            .WithDexterity(20)
-            .WithItem(new InventoryItem { Item = weapon })
-            .Build();
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(weapon).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
@@ -905,11 +901,7 @@ public class CombatEngineTests
             Resource = ResourceType.Hp,
             Amount = 999,
         };
-        var player = MakeCombatant("Hero")
-            .AsPlayer()
-            .WithItem(new InventoryItem { Item = potion })
-            .WithCurrentHp(1)
-            .Build();
+        var player = MakeCombatant("Hero").AsPlayer().WithItem(potion).WithCurrentHp(1).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
@@ -936,11 +928,7 @@ public class CombatEngineTests
             Resource = ResourceType.Ap,
             Amount = 999,
         };
-        var player = MakeCombatant("Hero")
-            .AsPlayer()
-            .WithItem(new InventoryItem { Item = potion })
-            .WithCurrentAp(1)
-            .Build();
+        var player = MakeCombatant("Hero").AsPlayer().WithItem(potion).WithCurrentAp(1).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
@@ -967,11 +955,7 @@ public class CombatEngineTests
             Resource = ResourceType.Mp,
             Amount = 999,
         };
-        var player = MakeCombatant("Hero")
-            .AsPlayer()
-            .WithItem(new InventoryItem { Item = potion })
-            .WithCurrentMp(1)
-            .Build();
+        var player = MakeCombatant("Hero").AsPlayer().WithItem(potion).WithCurrentMp(1).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
@@ -998,11 +982,7 @@ public class CombatEngineTests
             Resource = ResourceType.Hp,
             Amount = 20,
         };
-        var player = MakeCombatant("Hero")
-            .AsPlayer()
-            .WithItem(new InventoryItem { Item = potion })
-            .WithCurrentHp(1)
-            .Build();
+        var player = MakeCombatant("Hero").AsPlayer().WithItem(potion).WithCurrentHp(1).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);

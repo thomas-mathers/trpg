@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -12,16 +12,17 @@ public sealed class GetBuildingByIdQueryTests(DatabaseFixture db) : IAsyncLifeti
     private static readonly Guid StateId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetBuildingByIdQueryHandler _handler = null!;
     private readonly Building _building = Builders.MakeBuilding(StateId);
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetBuildingByIdQueryHandler(
-            _context,
-            new MemoryCache(new MemoryCacheOptions())
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<GetBuildingByIdQueryHandler>();
 
         _context.Buildings.Add(_building);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -29,6 +30,7 @@ public sealed class GetBuildingByIdQueryTests(DatabaseFixture db) : IAsyncLifeti
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

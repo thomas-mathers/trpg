@@ -69,33 +69,13 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         bool isAlive,
         IReadOnlyDictionary<Guid, int>? itemsUsedCounts = null
     ) =>
-        new(
-            Id: id,
-            Name: isPlayer ? _player.Name : _enemy.Name,
-            IsPlayer: isPlayer,
-            CurrentHp: currentHp,
-            MaximumHp: 100,
-            CurrentAp: 7,
-            CurrentMp: 2,
-            IsAlive: isAlive,
-            Abilities: [],
-            ActiveConditions: new Dictionary<ConditionType, int>(),
-            ItemsUsedCounts: itemsUsedCounts ?? new Dictionary<Guid, int>()
-        );
-
-    private static CombatState MakeCombatState(
-        CombatOutcome outcome,
-        IReadOnlyList<CombatantState> combatants,
-        int? goldLooted = null,
-        IReadOnlyDictionary<WeaponType, int>? weaponSwingCounts = null
-    ) =>
-        new(
-            Outcome: outcome,
-            Combatants: combatants,
-            Events: [],
-            GoldLooted: goldLooted,
-            WeaponSwingCounts: weaponSwingCounts ?? new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+        Builders.MakeCombatantState(
+            id,
+            isPlayer ? _player.Name : _enemy.Name,
+            isPlayer,
+            currentHp,
+            isAlive,
+            itemsUsedCounts
         );
 
     private Combatant MakePlayerCombatant(int currentHp = 30) =>
@@ -110,7 +90,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         // Arrange
         await SeedFight();
         var playerCombatant = MakePlayerCombatant(currentHp: 33);
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Ongoing,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
@@ -145,7 +125,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     {
         // Arrange
         await SeedFight();
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Ongoing,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
@@ -185,7 +165,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     {
         // Arrange
         var fight = await SeedFight();
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Victory,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
@@ -222,7 +202,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     {
         // Arrange
         var fight = await SeedFight();
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Ongoing,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
@@ -258,7 +238,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     {
         // Arrange
         await SeedFight();
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Ongoing,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
@@ -305,7 +285,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             },
             TestContext.Current.CancellationToken
         );
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Ongoing,
             [
                 MakeCombatantState(

@@ -108,15 +108,13 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var building = Builders.MakeBuilding(_state.Id);
         var room = Builders.MakeRoom(building.Id, worldId: WorldId);
         var destinationRoom = Builders.MakeRoom(building.Id, worldId: WorldId);
-        var connector = new RoomConnector
-        {
-            RoomId = room.Id,
-            WorldId = WorldId,
-            Name = "Wooden Door",
-            Description = "A creaking wooden door.",
-            DestinationRoomId = destinationRoom.Id,
-            IsLocked = false,
-        };
+        var connector = Builders.MakeRoomConnector(
+            room.Id,
+            destinationRoomId: destinationRoom.Id,
+            worldId: WorldId,
+            name: "Wooden Door",
+            description: "A creaking wooden door."
+        );
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(room, destinationRoom);
         _context.Props.Add(connector);

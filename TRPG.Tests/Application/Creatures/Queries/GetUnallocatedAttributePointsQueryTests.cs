@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
@@ -10,6 +12,7 @@ namespace TRPG.Tests.Application.Creatures.Queries;
 public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetUnallocatedAttributePointsQueryHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature(
         level: 1,
@@ -28,10 +31,15 @@ public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetUnallocatedAttributePointsQueryHandler(
-            _context,
-            Builders.MakeStatFormulas(new CreatureGeneratorOptions { PointsPerLevel = 5 })
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .AddSingleton<IOptionsSnapshot<CreatureGeneratorOptions>>(
+                new TestOptionsSnapshot<CreatureGeneratorOptions>(
+                    new CreatureGeneratorOptions { PointsPerLevel = 5 }
+                )
+            )
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<GetUnallocatedAttributePointsQueryHandler>();
 
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -39,6 +47,7 @@ public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) 
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

@@ -21,50 +21,24 @@ public class DamageCalculatorTests
             }
         );
 
-    private static AttackAbility MakeAttack(
-        DamageType damageType = DamageType.Physical,
-        float damageAmount = 100
-    )
-    {
-        return new AttackAbility
-        {
-            Name = "Test Attack",
-            Description = "A test attack.",
-            TargetType = AttackTargetType.Single,
-            DamageType = damageType,
-            DamageAmount = damageAmount,
-            DamageAmountType = AmountType.Flat,
-        };
-    }
-
-    private WeaponItem MakeFixedRangeWeapon(int damage)
-    {
-        return new WeaponItem
-        {
-            WorldId = _worldId,
-            Name = $"Item-{Guid.NewGuid():N}",
-            Description = "A test weapon.",
-            Type = WeaponType.Sword,
-            MinDamage = damage,
-            MaxDamage = damage,
-        };
-    }
+    private WeaponItem MakeFixedRangeWeapon(int damage) =>
+        Builders.MakeWeaponItem(worldId: _worldId, minDamage: damage, maxDamage: damage);
 
     [Fact]
     public void CalculateDamage_RollsAgainstTheWeapon_ForPhysicalAbilities()
     {
         // Arrange — fixed-range weapon removes the roll, ability at 100% = a plain swing
         var weapon = MakeFixedRangeWeapon(10);
-        var attacker = Builders
-            .NewCombatant()
-            .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = weapon })
-            .Build();
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
-        var damage = calculator.CalculateDamage(attacker, MakeAttack(damageAmount: 100), defender);
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageAmount: 100),
+            defender
+        );
 
         // Assert
         Assert.Equal(10, damage);
@@ -75,16 +49,16 @@ public class DamageCalculatorTests
     {
         // Arrange — 10 base × 150% = 15
         var weapon = MakeFixedRangeWeapon(10);
-        var attacker = Builders
-            .NewCombatant()
-            .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = weapon })
-            .Build();
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
-        var damage = calculator.CalculateDamage(attacker, MakeAttack(damageAmount: 150), defender);
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageAmount: 150),
+            defender
+        );
 
         // Assert
         Assert.Equal(15, damage);
@@ -99,7 +73,11 @@ public class DamageCalculatorTests
         var calculator = new DamageCalculator(Settings);
 
         // Act
-        var damage = calculator.CalculateDamage(attacker, MakeAttack(damageAmount: 100), defender);
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageAmount: 100),
+            defender
+        );
 
         // Assert
         Assert.Equal(3, damage);
@@ -114,13 +92,17 @@ public class DamageCalculatorTests
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithStrength(50)
-            .WithItem(new InventoryItem { Item = weapon })
+            .WithItem(weapon)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
-        var damage = calculator.CalculateDamage(attacker, MakeAttack(damageAmount: 100), defender);
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageAmount: 100),
+            defender
+        );
 
         // Assert
         Assert.Equal(15, damage);
@@ -131,18 +113,14 @@ public class DamageCalculatorTests
     {
         // Arrange — magic ignores the weapon entirely
         var weapon = MakeFixedRangeWeapon(999);
-        var attacker = Builders
-            .NewCombatant()
-            .WithWorldId(_worldId)
-            .WithItem(new InventoryItem { Item = weapon })
-            .Build();
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
         // Act
         var damage = calculator.CalculateDamage(
             attacker,
-            MakeAttack(damageType: DamageType.Fire, damageAmount: 20),
+            Builders.MakeAttackAbility(damageType: DamageType.Fire, damageAmount: 20),
             defender
         );
 
@@ -161,7 +139,7 @@ public class DamageCalculatorTests
         // Act
         var damage = calculator.CalculateDamage(
             attacker,
-            MakeAttack(damageType: DamageType.Fire, damageAmount: 20),
+            Builders.MakeAttackAbility(damageType: DamageType.Fire, damageAmount: 20),
             defender
         );
 
@@ -184,7 +162,7 @@ public class DamageCalculatorTests
         // Act
         var damage = calculator.CalculateDamage(
             attacker,
-            MakeAttack(damageType: DamageType.Fire, damageAmount: 20),
+            Builders.MakeAttackAbility(damageType: DamageType.Fire, damageAmount: 20),
             defender
         );
 
@@ -207,7 +185,7 @@ public class DamageCalculatorTests
         // Act
         var damage = calculator.CalculateDamage(
             attacker,
-            MakeAttack(damageType: DamageType.Fire, damageAmount: 20),
+            Builders.MakeAttackAbility(damageType: DamageType.Fire, damageAmount: 20),
             defender
         );
 

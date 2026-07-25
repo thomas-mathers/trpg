@@ -1,7 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -15,6 +15,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     private Building _building = null!;
     private SetFrontDoorLockedCommandHandler _setFrontDoorLocked = null!;
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private Room _entranceRoom = null!;
     private RoomConnector _frontDoor = null!;
     private CanEnterBuildingQueryHandler _handler = null!;
@@ -23,25 +24,22 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _setFrontDoorLocked = new SetFrontDoorLockedCommandHandler(_context);
-        _addInventoryItem = new AddInventoryItemCommandHandler(_context);
-        _handler = new CanEnterBuildingQueryHandler(
-            new GetFrontDoorQueryHandler(_context),
-            new GetKeyItemIdsQueryHandler(_context),
-            new GetInventoryByCreatureIdQueryHandler(_context)
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _setFrontDoorLocked =
+            _serviceProvider.GetRequiredService<SetFrontDoorLockedCommandHandler>();
+        _addInventoryItem = _serviceProvider.GetRequiredService<AddInventoryItemCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<CanEnterBuildingQueryHandler>();
 
         _stateId = Guid.NewGuid();
         _building = Builders.MakeBuilding(_stateId);
         _entranceRoom = Builders.MakeRoom(_building.Id);
-        _frontDoor = new RoomConnector
-        {
-            RoomId = _entranceRoom.Id,
-            Name = "Front Door",
-            Description = "The door leading outside.",
-            DestinationRoomId = null,
-            IsLocked = false,
-        };
+        _frontDoor = Builders.MakeRoomConnector(
+            _entranceRoom.Id,
+            name: "Front Door",
+            description: "The door leading outside."
+        );
 
         _context.Buildings.Add(_building);
         _context.Rooms.Add(_entranceRoom);
@@ -51,6 +49,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -204,14 +203,12 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     {
         // Arrange
         var keylessDoorRoom = Builders.MakeRoom(_building.Id);
-        var keylessDoor = new RoomConnector
-        {
-            RoomId = keylessDoorRoom.Id,
-            Name = "Front Door",
-            Description = "The door leading outside.",
-            DestinationRoomId = null,
-            IsLocked = true,
-        };
+        var keylessDoor = Builders.MakeRoomConnector(
+            keylessDoorRoom.Id,
+            isLocked: true,
+            name: "Front Door",
+            description: "The door leading outside."
+        );
         _context.Rooms.Add(keylessDoorRoom);
         _context.Props.Add(keylessDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

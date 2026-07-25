@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -12,16 +12,17 @@ public sealed class GetStaticPropsByRoomIdQueryTests(DatabaseFixture db) : IAsyn
     private static readonly Guid StateId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetStaticPropsByRoomIdQueryHandler _handler = null!;
     private readonly Building _building = Builders.MakeBuilding(StateId);
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetStaticPropsByRoomIdQueryHandler(
-            _context,
-            new MemoryCache(new MemoryCacheOptions())
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<GetStaticPropsByRoomIdQueryHandler>();
 
         _context.Buildings.Add(_building);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -29,6 +30,7 @@ public sealed class GetStaticPropsByRoomIdQueryTests(DatabaseFixture db) : IAsyn
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -45,13 +47,7 @@ public sealed class GetStaticPropsByRoomIdQueryTests(DatabaseFixture db) : IAsyn
             Name = $"Prop-{Guid.NewGuid():N}",
             Description = "A test prop",
         };
-        var connector = new RoomConnector
-        {
-            RoomId = room.Id,
-            Name = "Door",
-            Description = "A door.",
-            DestinationRoomId = null,
-        };
+        var connector = Builders.MakeRoomConnector(room.Id);
         _context.Props.AddRange(prop, connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

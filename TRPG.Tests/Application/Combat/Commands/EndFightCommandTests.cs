@@ -1,9 +1,7 @@
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Creatures.Commands;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -16,6 +14,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private EndFightCommandHandler _handler = null!;
     private readonly Creature _player = Builders.MakeCreature(
         WorldId,
@@ -36,12 +35,10 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new EndFightCommandHandler(
-            _context,
-            new ApplyCombatRewardsCommandHandler(_context),
-            new UpdateCreaturesCommandHandler(_context),
-            new GetPlaytimeQueryHandler(_context, NullLogger<GetPlaytimeQueryHandler>.Instance)
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<EndFightCommandHandler>();
 
         _session = Builders.MakeGameSession(WorldId, _player.Id, TimeSpan.FromHours(1));
         _context.Creatures.AddRange(_player, _enemy);
@@ -52,6 +49,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -69,32 +67,12 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
         int currentHp,
         bool isAlive
     ) =>
-        new(
-            Id: id,
-            Name: isPlayer ? _player.Name : _enemy.Name,
-            IsPlayer: isPlayer,
-            CurrentHp: currentHp,
-            MaximumHp: 100,
-            CurrentAp: 7,
-            CurrentMp: 2,
-            IsAlive: isAlive,
-            Abilities: [],
-            ActiveConditions: new Dictionary<ConditionType, int>(),
-            ItemsUsedCounts: new Dictionary<Guid, int>()
-        );
-
-    private static CombatState MakeCombatState(
-        CombatOutcome outcome,
-        IReadOnlyList<CombatantState> combatants,
-        int? goldLooted = null
-    ) =>
-        new(
-            Outcome: outcome,
-            Combatants: combatants,
-            Events: [],
-            GoldLooted: goldLooted,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+        Builders.MakeCombatantState(
+            id,
+            isPlayer ? _player.Name : _enemy.Name,
+            isPlayer,
+            currentHp,
+            isAlive
         );
 
     [Fact]
@@ -102,7 +80,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         await SeedFight();
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Victory,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
@@ -136,7 +114,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         await SeedFight();
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Defeat,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 0, isAlive: false),
@@ -169,7 +147,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var fight = await SeedFight();
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Fled,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 12, isAlive: true),
@@ -204,7 +182,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange — the player survives, the enemy doesn't
         _session.Playtime = TimeSpan.FromHours(3);
         await SeedFight();
-        var state = MakeCombatState(
+        var state = Builders.MakeCombatState(
             CombatOutcome.Victory,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),

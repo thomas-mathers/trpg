@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -22,6 +22,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     };
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GameSession _session = null!;
     private Guid _sessionId;
     private ApplyPassiveRegenCommandHandler _handler = null!;
@@ -41,15 +42,18 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _sessionId = _session.Id;
 
-        _handler = new ApplyPassiveRegenCommandHandler(
-            _context,
-            new TestOptionsSnapshot<CreatureRegenOptions>(RegenOptions),
-            new GetPlaytimeQueryHandler(_context, NullLogger<GetPlaytimeQueryHandler>.Instance)
-        );
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .AddSingleton<IOptionsSnapshot<CreatureRegenOptions>>(
+                new TestOptionsSnapshot<CreatureRegenOptions>(RegenOptions)
+            )
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<ApplyPassiveRegenCommandHandler>();
     }
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -211,11 +215,14 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
         await SetPlaytime(GameClock.RealTimePerInGameHour);
 
         var fullHpRegenOptions = new CreatureRegenOptions { HpRegenPercentPerHour = 1.0f };
-        var handler = new ApplyPassiveRegenCommandHandler(
-            _context,
-            new TestOptionsSnapshot<CreatureRegenOptions>(fullHpRegenOptions),
-            new GetPlaytimeQueryHandler(_context, NullLogger<GetPlaytimeQueryHandler>.Instance)
-        );
+        await using var fullRegenServiceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .AddSingleton<IOptionsSnapshot<CreatureRegenOptions>>(
+                new TestOptionsSnapshot<CreatureRegenOptions>(fullHpRegenOptions)
+            )
+            .BuildServiceProvider();
+        var handler =
+            fullRegenServiceProvider.GetRequiredService<ApplyPassiveRegenCommandHandler>();
 
         // Act
         await handler.Handle(

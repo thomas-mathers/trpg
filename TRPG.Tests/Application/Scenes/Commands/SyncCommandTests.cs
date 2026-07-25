@@ -45,9 +45,6 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _context.DisposeAsync();
     }
 
-    private static InGameDate MakeDate(int hour) =>
-        new(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, hour);
-
     private async Task<Creature> SeedCreature(Guid? roomId = null, Guid? districtId = null)
     {
         var creature = Builders.MakeCreature(WorldId, roomId: roomId, districtId: districtId);
@@ -88,7 +85,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 RoomId = sleepRoomId,
                 DistrictId = null,
-                CurrentDate = MakeDate(23),
+                CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -137,7 +134,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 RoomId = sleepRoomId,
                 DistrictId = null,
-                CurrentDate = MakeDate(10),
+                CurrentDate = Builders.MakeDate(10),
             },
             TestContext.Current.CancellationToken
         );
@@ -165,7 +162,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 RoomId = Guid.NewGuid(),
                 DistrictId = null,
-                CurrentDate = MakeDate(12),
+                CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -214,7 +211,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 RoomId = null,
                 DistrictId = districtId,
-                CurrentDate = MakeDate(12),
+                CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -282,7 +279,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 RoomId = shopRoomId,
                 DistrictId = null,
-                CurrentDate = MakeDate(12),
+                CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -345,7 +342,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 RoomId = shopRoomId,
                 DistrictId = null,
-                CurrentDate = MakeDate(12),
+                CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -385,7 +382,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 RoomId = frontDoor.RoomId,
                 DistrictId = null,
-                CurrentDate = MakeDate(23),
+                CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -413,15 +410,12 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     private async Task<RoomConnector> SeedFrontDoor(Guid buildingId)
     {
         var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
-        var frontDoor = new RoomConnector
-        {
-            RoomId = entranceRoom.Id,
-            WorldId = WorldId,
-            Name = "Front Door",
-            Description = "The door leading outside.",
-            DestinationRoomId = null,
-            IsLocked = false,
-        };
+        var frontDoor = Builders.MakeRoomConnector(
+            entranceRoom.Id,
+            worldId: WorldId,
+            name: "Front Door",
+            description: "The door leading outside."
+        );
         _context.Rooms.Add(entranceRoom);
         _context.Props.Add(frontDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

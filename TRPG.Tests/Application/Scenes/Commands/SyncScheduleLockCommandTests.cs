@@ -43,9 +43,6 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         await _context.DisposeAsync();
     }
 
-    private static InGameDate MakeDate(int hour) =>
-        new(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, hour);
-
     private Task AddJob(CreatureJob job) =>
         _addJob.Handle(
             new AddCreatureJobCommand { CreatureJob = job },
@@ -90,7 +87,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = building.BuildingType,
-                CurrentDate = MakeDate(23),
+                CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -130,7 +127,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = building.BuildingType,
-                CurrentDate = MakeDate(23),
+                CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -141,7 +138,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = building.BuildingType,
-                CurrentDate = MakeDate(12),
+                CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -174,7 +171,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = BuildingType.Tavern,
-                CurrentDate = MakeDate(23),
+                CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -208,7 +205,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = MakeDate(16),
+                CurrentDate = Builders.MakeDate(16),
             },
             TestContext.Current.CancellationToken
         );
@@ -240,7 +237,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = MakeDate(16),
+                CurrentDate = Builders.MakeDate(16),
             },
             TestContext.Current.CancellationToken
         );
@@ -251,7 +248,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = MakeDate(10),
+                CurrentDate = Builders.MakeDate(10),
             },
             TestContext.Current.CancellationToken
         );
@@ -295,7 +292,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = MakeDate(10),
+                CurrentDate = Builders.MakeDate(10),
             },
             TestContext.Current.CancellationToken
         );
@@ -337,15 +334,12 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
     private async Task<RoomConnector> SeedFrontDoor(Guid buildingId)
     {
         var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
-        var frontDoor = new RoomConnector
-        {
-            RoomId = entranceRoom.Id,
-            WorldId = WorldId,
-            Name = "Front Door",
-            Description = "The door leading outside.",
-            DestinationRoomId = null,
-            IsLocked = false,
-        };
+        var frontDoor = Builders.MakeRoomConnector(
+            entranceRoom.Id,
+            worldId: WorldId,
+            name: "Front Door",
+            description: "The door leading outside."
+        );
         _context.Rooms.Add(entranceRoom);
         _context.Props.Add(frontDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
