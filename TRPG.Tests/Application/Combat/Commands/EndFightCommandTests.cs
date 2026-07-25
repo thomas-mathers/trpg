@@ -55,6 +55,14 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _context.DisposeAsync();
     }
 
+    private async Task<Fight> SeedFight()
+    {
+        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
+        _context.Fights.Add(fight);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return fight;
+    }
+
     private CombatantState MakeCombatantState(
         Guid id,
         bool isPlayer,
@@ -75,23 +83,32 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             ItemsUsedCounts: new Dictionary<Guid, int>()
         );
 
+    private static CombatState MakeCombatState(
+        CombatOutcome outcome,
+        IReadOnlyList<CombatantState> combatants,
+        int? goldLooted = null
+    ) =>
+        new(
+            Outcome: outcome,
+            Combatants: combatants,
+            Events: [],
+            GoldLooted: goldLooted,
+            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
+            SkillUsageCounts: new Dictionary<Skill, int>()
+        );
+
     [Fact]
     public async Task Handle_GrantsRewards_OnVictory()
     {
         // Arrange
-        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var state = new CombatState(
-            Outcome: CombatOutcome.Victory,
-            Combatants:
+        await SeedFight();
+        var state = MakeCombatState(
+            CombatOutcome.Victory,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
             ],
-            Events: [],
-            GoldLooted: 50,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            goldLooted: 50
         );
 
         // Act
@@ -118,19 +135,13 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_DoesNotGrantRewards_OnDefeat()
     {
         // Arrange
-        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var state = new CombatState(
-            Outcome: CombatOutcome.Defeat,
-            Combatants:
+        await SeedFight();
+        var state = MakeCombatState(
+            CombatOutcome.Defeat,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 0, isAlive: false),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 20, isAlive: true),
-            ],
-            Events: [],
-            GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            ]
         );
 
         // Act
@@ -157,20 +168,13 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_MarksActiveFightCompleted()
     {
         // Arrange
-        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
-        _context.Fights.Add(fight);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var state = new CombatState(
-            Outcome: CombatOutcome.Fled,
-            Combatants:
+        var fight = await SeedFight();
+        var state = MakeCombatState(
+            CombatOutcome.Fled,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 12, isAlive: true),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
-            ],
-            Events: [],
-            GoldLooted: null,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            ]
         );
 
         // Act
@@ -198,20 +202,15 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_AdvancesLastRegenPlaytime_ForSurvivingCombatants()
     {
         // Arrange — the player survives, the enemy doesn't
-        _context.Fights.Add(Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]));
         _session.Playtime = TimeSpan.FromHours(3);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var state = new CombatState(
-            Outcome: CombatOutcome.Victory,
-            Combatants:
+        await SeedFight();
+        var state = MakeCombatState(
+            CombatOutcome.Victory,
             [
                 MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
                 MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
             ],
-            Events: [],
-            GoldLooted: 50,
-            WeaponSwingCounts: new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            goldLooted: 50
         );
 
         // Act

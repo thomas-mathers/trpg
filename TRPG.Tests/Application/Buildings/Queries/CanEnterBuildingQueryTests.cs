@@ -54,6 +54,42 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         await _context.DisposeAsync();
     }
 
+    private Task LockFrontDoor() =>
+        _setFrontDoorLocked.Handle(
+            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
+            TestContext.Current.CancellationToken
+        );
+
+    private async Task<Creature> SeedCreature()
+    {
+        var creature = Builders.MakeCreature(stateId: _stateId);
+        _context.Creatures.Add(creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return creature;
+    }
+
+    private async Task<Item> SeedKey(Guid roomConnectorId, string name = "Test Key")
+    {
+        var keyItem = new Item { Name = name, Description = "A test key." };
+        _context.Items.Add(keyItem);
+        _context.RoomConnectorKeys.Add(
+            new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = roomConnectorId }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return keyItem;
+    }
+
+    private Task GiveKey(Guid creatureId, Guid itemId) =>
+        _addInventoryItem.Handle(
+            new AddInventoryItemCommand
+            {
+                CreatureId = creatureId,
+                ItemId = itemId,
+                Quantity = 1,
+            },
+            TestContext.Current.CancellationToken
+        );
+
     [Fact]
     public async Task Handle_ReturnsTrue_WhenNotLocked()
     {
@@ -75,16 +111,8 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsFalse_WhenLockedAndNoKey()
     {
         // Arrange — a key exists for this door, just not in the entering creature's inventory
-        await _setFrontDoorLocked.Handle(
-            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
-            TestContext.Current.CancellationToken
-        );
-        var keyItem = new Item { Name = "Test Key", Description = "A test key." };
-        _context.Items.Add(keyItem);
-        _context.RoomConnectorKeys.Add(
-            new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = _frontDoor.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await LockFrontDoor();
+        await SeedKey(_frontDoor.Id);
 
         // Act
         var canEnter = await _handler.Handle(
@@ -104,27 +132,10 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsTrue_WhenLockedAndCarryingKey()
     {
         // Arrange
-        await _setFrontDoorLocked.Handle(
-            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
-            TestContext.Current.CancellationToken
-        );
-        var player = Builders.MakeCreature(stateId: _stateId);
-        var keyItem = new Item { Name = "Test Key", Description = "A test key." };
-        _context.Creatures.Add(player);
-        _context.Items.Add(keyItem);
-        _context.RoomConnectorKeys.Add(
-            new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = _frontDoor.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = player.Id,
-                ItemId = keyItem.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await LockFrontDoor();
+        var player = await SeedCreature();
+        var keyItem = await SeedKey(_frontDoor.Id);
+        await GiveKey(player.Id, keyItem.Id);
 
         // Act
         var canEnter = await _handler.Handle(
@@ -144,29 +155,11 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsTrue_WhenCarryingTheFirstOfTwoKeysRegisteredToTheDoor()
     {
         // Arrange — two distinct key items are registered to the same door; the first must work too
-        await _setFrontDoorLocked.Handle(
-            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
-            TestContext.Current.CancellationToken
-        );
-        var resident = Builders.MakeCreature(stateId: _stateId);
-        var keyA = new Item { Name = "Key A", Description = "Resident A's key." };
-        var keyB = new Item { Name = "Key B", Description = "Resident B's key." };
-        _context.Creatures.Add(resident);
-        _context.Items.AddRange(keyA, keyB);
-        _context.RoomConnectorKeys.AddRange(
-            new RoomConnectorKey { ItemId = keyA.Id, RoomConnectorId = _frontDoor.Id },
-            new RoomConnectorKey { ItemId = keyB.Id, RoomConnectorId = _frontDoor.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = resident.Id,
-                ItemId = keyA.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await LockFrontDoor();
+        var resident = await SeedCreature();
+        var keyA = await SeedKey(_frontDoor.Id, "Key A");
+        await SeedKey(_frontDoor.Id, "Key B");
+        await GiveKey(resident.Id, keyA.Id);
 
         // Act
         var canEnter = await _handler.Handle(
@@ -186,29 +179,11 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsTrue_WhenCarryingTheSecondOfTwoKeysRegisteredToTheDoor()
     {
         // Arrange — two distinct key items are registered to the same door; the second must work too
-        await _setFrontDoorLocked.Handle(
-            new SetFrontDoorLockedCommand { BuildingId = _building.Id, IsLocked = true },
-            TestContext.Current.CancellationToken
-        );
-        var resident = Builders.MakeCreature(stateId: _stateId);
-        var keyA = new Item { Name = "Key A", Description = "Resident A's key." };
-        var keyB = new Item { Name = "Key B", Description = "Resident B's key." };
-        _context.Creatures.Add(resident);
-        _context.Items.AddRange(keyA, keyB);
-        _context.RoomConnectorKeys.AddRange(
-            new RoomConnectorKey { ItemId = keyA.Id, RoomConnectorId = _frontDoor.Id },
-            new RoomConnectorKey { ItemId = keyB.Id, RoomConnectorId = _frontDoor.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = resident.Id,
-                ItemId = keyB.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await LockFrontDoor();
+        var resident = await SeedCreature();
+        await SeedKey(_frontDoor.Id, "Key A");
+        var keyB = await SeedKey(_frontDoor.Id, "Key B");
+        await GiveKey(resident.Id, keyB.Id);
 
         // Act
         var canEnter = await _handler.Handle(
