@@ -42,9 +42,9 @@ internal static class ItemEquipmentPolicy
     {
         var type = item.GetType();
         var node = JsonSerializer.SerializeToNode(item, type)!.AsObject();
-        node["Id"] = Guid.NewGuid();
-        node["Quantity"] = quantity;
-        node["Ownership"] = JsonSerializer.SerializeToNode(
+        node[nameof(Item.Id)] = Guid.NewGuid();
+        node[nameof(Item.Quantity)] = quantity;
+        node[nameof(Item.Ownership)] = JsonSerializer.SerializeToNode(
             new ItemOwnership { OwnerId = ownerId, OwnerType = ownerType }
         );
         return (Item)node.Deserialize(type)!;
