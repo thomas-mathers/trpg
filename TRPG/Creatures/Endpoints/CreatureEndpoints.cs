@@ -166,55 +166,54 @@ internal static class CreatureEndpoints
     private static InventoryItemSummary ToInventoryItemSummary(InventoryItem inventoryItem) =>
         inventoryItem.Item switch
         {
-            WeaponItem w => new WeaponItemSummary(
-                w.Id,
-                w.Name,
-                inventoryItem.Quantity,
-                w.Rarity.ToContract(),
-                w.Type.ToContract(),
-                w.MinDamage,
-                w.MaxDamage
-            ),
-            ArmorItem a => new ArmorItemSummary(
-                a.Id,
-                a.Name,
-                inventoryItem.Quantity,
-                a.Rarity.ToContract(),
-                a.Type.ToContract(),
-                a.Defense
-            ),
-            ShieldItem s => new ShieldItemSummary(
-                s.Id,
-                s.Name,
-                inventoryItem.Quantity,
-                s.Rarity.ToContract(),
-                s.Defense,
-                s.BlockChance
-            ),
-            ConsumableItem c => new ConsumableItemSummary(
-                c.Id,
-                c.Name,
-                inventoryItem.Quantity,
-                c.Rarity.ToContract(),
-                c.Resource.ToContract(),
-                c.Amount
-            ),
-            AmmunitionItem am => new AmmunitionItemSummary(
-                am.Id,
-                am.Name,
-                inventoryItem.Quantity,
-                am.Rarity.ToContract(),
-                am.Type.ToContract()
-            ),
-            AccessoryItem ac => new AccessoryItemSummary(
-                ac.Id,
-                ac.Name,
-                inventoryItem.Quantity,
-                ac.Rarity.ToContract(),
-                ac.Type.ToContract()
-            ),
+            WeaponItem w => ToSummary(w, inventoryItem.Quantity),
+            ArmorItem a => ToSummary(a, inventoryItem.Quantity),
+            ShieldItem s => ToSummary(s, inventoryItem.Quantity),
+            ConsumableItem c => ToSummary(c, inventoryItem.Quantity),
+            AmmunitionItem am => ToSummary(am, inventoryItem.Quantity),
+            AccessoryItem ac => ToSummary(ac, inventoryItem.Quantity),
             _ => throw new ArgumentOutOfRangeException(nameof(inventoryItem)),
         };
+
+    private static WeaponItemSummary ToSummary(WeaponItem item, int quantity) =>
+        new(
+            item.Id,
+            item.Name,
+            quantity,
+            item.Rarity.ToContract(),
+            item.Type.ToContract(),
+            item.MinDamage,
+            item.MaxDamage
+        );
+
+    private static ArmorItemSummary ToSummary(ArmorItem item, int quantity) =>
+        new(
+            item.Id,
+            item.Name,
+            quantity,
+            item.Rarity.ToContract(),
+            item.Type.ToContract(),
+            item.Defense
+        );
+
+    private static ShieldItemSummary ToSummary(ShieldItem item, int quantity) =>
+        new(item.Id, item.Name, quantity, item.Rarity.ToContract(), item.Defense, item.BlockChance);
+
+    private static ConsumableItemSummary ToSummary(ConsumableItem item, int quantity) =>
+        new(
+            item.Id,
+            item.Name,
+            quantity,
+            item.Rarity.ToContract(),
+            item.Resource.ToContract(),
+            item.Amount
+        );
+
+    private static AmmunitionItemSummary ToSummary(AmmunitionItem item, int quantity) =>
+        new(item.Id, item.Name, quantity, item.Rarity.ToContract(), item.Type.ToContract());
+
+    private static AccessoryItemSummary ToSummary(AccessoryItem item, int quantity) =>
+        new(item.Id, item.Name, quantity, item.Rarity.ToContract(), item.Type.ToContract());
 
     private static AbilitySummary ToAbilitySummary(Ability ability) =>
         new(
