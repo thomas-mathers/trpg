@@ -161,7 +161,8 @@ internal static class Builders
         int? currentHp = null,
         int? currentAp = null,
         int? currentMp = null,
-        CreatureState state = default
+        CreatureState state = default,
+        int gold = 0
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -180,6 +181,7 @@ internal static class Builders
             RoomId = roomId,
             Level = level,
             State = state,
+            Gold = gold,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,

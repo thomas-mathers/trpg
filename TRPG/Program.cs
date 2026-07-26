@@ -17,6 +17,7 @@ using TRPG.Extensions;
 using TRPG.GameSessions.Endpoints;
 using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
+using TRPG.Inventory.Endpoints;
 using TRPG.Players.Endpoints;
 using TRPG.Worlds.Endpoints;
 
@@ -86,6 +87,7 @@ app.MapCreatureGenerationEndpoints();
 app.MapGameSessionEndpoints();
 app.MapJobsEndpoints();
 app.MapAdminEndpoints();
+app.MapInventoryEndpoints();
 app.MapHub<ChatHub>("/hubs/chat");
 
 await app.RunAsync();

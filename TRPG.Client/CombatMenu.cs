@@ -92,8 +92,8 @@ internal sealed class CombatMenu(
         return true;
     }
 
-    private static Task<UsableItemSummary?> PromptForItem(
-        IReadOnlyList<UsableItemSummary> candidates,
+    private static Task<ConsumableItemSummary?> PromptForItem(
+        IReadOnlyList<ConsumableItemSummary> candidates,
         CancellationToken cancellationToken
     ) =>
         PromptForOption(

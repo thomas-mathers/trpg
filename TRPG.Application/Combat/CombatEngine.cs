@@ -126,7 +126,7 @@ public class CombatEngine(
         };
     }
 
-    private static List<CombatEvent> ProcessItem(Combatant actor, UsableItem item)
+    private static List<CombatEvent> ProcessItem(Combatant actor, ConsumableItemSnapshot item)
     {
         actor.ItemsUsedCounts[item.ItemId] =
             actor.ItemsUsedCounts.GetValueOrDefault(item.ItemId) + 1;

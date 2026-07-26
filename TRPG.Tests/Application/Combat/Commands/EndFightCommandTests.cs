@@ -75,51 +75,30 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
             isAlive
         );
 
-    [Fact]
-    public async Task Handle_GrantsRewards_OnVictory()
+    [Theory]
+    [InlineData(CombatOutcome.Victory)]
+    [InlineData(CombatOutcome.Defeat)]
+    public async Task Handle_NeverChangesPlayerGold(CombatOutcome outcome)
     {
-        // Arrange
+        // Arrange — gold now stays on the corpse; looting it is a separate, explicit action
         await SeedFight();
         var state = Builders.MakeCombatState(
-            CombatOutcome.Victory,
+            outcome,
             [
-                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
-                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
+                MakeCombatantState(
+                    _player.Id,
+                    isPlayer: true,
+                    currentHp: outcome == CombatOutcome.Victory ? 35 : 0,
+                    isAlive: outcome == CombatOutcome.Victory
+                ),
+                MakeCombatantState(
+                    _enemy.Id,
+                    isPlayer: false,
+                    currentHp: outcome == CombatOutcome.Victory ? 0 : 20,
+                    isAlive: outcome != CombatOutcome.Victory
+                ),
             ],
             goldLooted: 50
-        );
-
-        // Act
-        await _handler.Handle(
-            new EndFightCommand
-            {
-                SessionId = _sessionId,
-                WorldId = WorldId,
-                State = state,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var player = await verifyContext.Creatures.FindAsync(
-            [_player.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(50, player!.Gold);
-    }
-
-    [Fact]
-    public async Task Handle_DoesNotGrantRewards_OnDefeat()
-    {
-        // Arrange
-        await SeedFight();
-        var state = Builders.MakeCombatState(
-            CombatOutcome.Defeat,
-            [
-                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 0, isAlive: false),
-                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 20, isAlive: true),
-            ]
         );
 
         // Act
