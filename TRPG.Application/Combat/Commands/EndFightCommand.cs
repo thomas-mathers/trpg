@@ -15,7 +15,6 @@ internal class EndFightCommand
 
 internal class EndFightCommandHandler(
     TrpgDbContext context,
-    ApplyCombatRewardsCommandHandler applyCombatRewards,
     UpdateCreaturesCommandHandler updateCreatures,
     GetPlaytimeQueryHandler getPlaytime
 )
@@ -23,23 +22,10 @@ internal class EndFightCommandHandler(
     public async Task Handle(EndFightCommand command, CancellationToken cancellationToken = default)
     {
         var state = command.State;
-        var playerId = state.Combatants.Single(c => c.IsPlayer).Id;
 
         await using var transaction = await context.Database.BeginTransactionAsync(
             cancellationToken
         );
-
-        if (state.Outcome == CombatOutcome.Victory)
-        {
-            await applyCombatRewards.Handle(
-                new ApplyCombatRewardsCommand
-                {
-                    CreatureId = playerId,
-                    GoldGained = state.GoldLooted ?? 0,
-                },
-                cancellationToken
-            );
-        }
 
         var playtime = await getPlaytime.Handle(
             new GetPlaytimeQuery { SessionId = command.SessionId },

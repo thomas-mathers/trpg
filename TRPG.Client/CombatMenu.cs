@@ -73,7 +73,7 @@ internal sealed class CombatMenu(
 
     private async Task<bool> HandleItemMenu(CancellationToken cancellationToken)
     {
-        var items = await client.GetUsableItems(playerId, cancellationToken);
+        var items = await client.GetConsumableItems(playerId, cancellationToken);
         if (items.Count == 0)
         {
             AnsiConsole.AnnounceWarning("No usable items.");
@@ -92,8 +92,8 @@ internal sealed class CombatMenu(
         return true;
     }
 
-    private static Task<UsableItemSummary?> PromptForItem(
-        IReadOnlyList<UsableItemSummary> candidates,
+    private static Task<ConsumableItemSummary?> PromptForItem(
+        IReadOnlyList<ConsumableItemSummary> candidates,
         CancellationToken cancellationToken
     ) =>
         PromptForOption(

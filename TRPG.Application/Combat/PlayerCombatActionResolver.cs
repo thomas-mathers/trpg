@@ -10,7 +10,8 @@ internal sealed record ResolvedPlayerUseAbilityAction(
     IReadOnlyList<Combatant> Targets
 ) : ResolvedPlayerCombatAction;
 
-internal sealed record ResolvedPlayerUseItemAction(UsableItem Item) : ResolvedPlayerCombatAction;
+internal sealed record ResolvedPlayerUseItemAction(ConsumableItemSnapshot Item)
+    : ResolvedPlayerCombatAction;
 
 internal class PlayerCombatActionResolverResult
 {
@@ -145,7 +146,9 @@ internal class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
             return PlayerCombatActionResolverResult.Failure("No active player found in combat.");
         }
 
-        var item = player.UsableItems.FirstOrDefault(i => i.Name == useItemAction.ItemName);
+        var item = player.ConsumableItemSnapshots.FirstOrDefault(i =>
+            i.Name == useItemAction.ItemName
+        );
         if (item is null)
         {
             return PlayerCombatActionResolverResult.Failure(

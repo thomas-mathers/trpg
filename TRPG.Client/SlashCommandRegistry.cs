@@ -208,6 +208,16 @@ internal sealed class SlashCommandRegistry(
             }
         );
 
+        var lootCommand = new Command("loot", "Loot a nearby corpse");
+        lootCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var menu = new LootMenu(client, playerId);
+                await menu.Run(cancellationToken);
+                return 0;
+            }
+        );
+
         var exitCommand = new Command("exit", "End the session and return to the menu");
         exitCommand.SetAction(_ =>
         {
@@ -228,6 +238,7 @@ internal sealed class SlashCommandRegistry(
             abilityCommand,
             skillsCommand,
             allocateCommand,
+            lootCommand,
             exitCommand,
         ];
 

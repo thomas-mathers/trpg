@@ -97,7 +97,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
     }
 
     [Fact]
-    public async Task GetUsableItems_ReturnsConsumablesFromInventory()
+    public async Task GetInventory_ReturnsConsumablesOnly_WhenFilteredToConsumableOnly()
     {
         // Arrange
         await using (var scope = fixture.CreateScope())
@@ -127,37 +127,37 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{_creature.Id}/items", UriKind.Relative),
+            new Uri($"/creatures/{_creature.Id}/inventory?consumableOnly=true", UriKind.Relative),
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var items = await response.Content.ReadFromJsonAsync<List<UsableItemSummary>>(
+        var result = await response.Content.ReadFromJsonAsync<InventorySummary>(
             TrpgJsonOptions.Default,
             TestContext.Current.CancellationToken
         );
-        Assert.NotNull(items);
-        Assert.Contains(items, i => i.Name == "Health Potion");
+        Assert.NotNull(result);
+        Assert.Contains(result.Items, i => i.Name == "Health Potion");
     }
 
     [Fact]
-    public async Task GetUsableItems_ReturnsEmpty_ForUnknownCreatureId()
+    public async Task GetInventory_ReturnsEmpty_ForUnknownCreatureId()
     {
         // Act — no existence check by design; an unknown creature id just has no inventory
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{Guid.NewGuid()}/items", UriKind.Relative),
+            new Uri($"/creatures/{Guid.NewGuid()}/inventory", UriKind.Relative),
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var items = await response.Content.ReadFromJsonAsync<List<UsableItemSummary>>(
+        var result = await response.Content.ReadFromJsonAsync<InventorySummary>(
             TrpgJsonOptions.Default,
             TestContext.Current.CancellationToken
         );
-        Assert.NotNull(items);
-        Assert.Empty(items);
+        Assert.NotNull(result);
+        Assert.Empty(result.Items);
     }
 
     [Fact]

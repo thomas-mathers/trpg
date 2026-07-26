@@ -21,13 +21,19 @@ public class ActiveHot
     public int RemainingTurns { get; set; }
 }
 
-public record UsableItem(Guid ItemId, string Name, ResourceType Resource, int Amount, int Quantity)
+public record ConsumableItemSnapshot(
+    Guid ItemId,
+    string Name,
+    ResourceType Resource,
+    int Amount,
+    int Quantity
+)
 {
-    public static IReadOnlyList<UsableItem> FromInventoryItems(
+    public static IReadOnlyList<ConsumableItemSnapshot> FromInventoryItems(
         IReadOnlyCollection<InventoryItem> inventoryItems
     )
     {
-        var usableItems = new List<UsableItem>();
+        var snapshots = new List<ConsumableItemSnapshot>();
 
         foreach (var inventoryItem in inventoryItems)
         {
@@ -36,8 +42,8 @@ public record UsableItem(Guid ItemId, string Name, ResourceType Resource, int Am
                 continue;
             }
 
-            usableItems.Add(
-                new UsableItem(
+            snapshots.Add(
+                new ConsumableItemSnapshot(
                     inventoryItem.Item.Id,
                     inventoryItem.Item.Name,
                     consumableItem.Resource,
@@ -47,7 +53,7 @@ public record UsableItem(Guid ItemId, string Name, ResourceType Resource, int Am
             );
         }
 
-        return usableItems;
+        return snapshots;
     }
 }
 
@@ -64,7 +70,7 @@ public class Combatant
     public int CurrentAp { get; set; }
     public int CurrentMp { get; set; }
     public IReadOnlyList<Item> EquippedItems { get; init; } = [];
-    public IReadOnlyList<UsableItem> UsableItems { get; init; } = [];
+    public IReadOnlyList<ConsumableItemSnapshot> ConsumableItemSnapshots { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponProficiencies { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponSwingCounts { get; init; } = [];
     public Dictionary<Skill, int> SkillUsageCounts { get; init; } = [];
@@ -115,7 +121,7 @@ public class Combatant
             CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
             CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),
             EquippedItems = equippedItems,
-            UsableItems = UsableItem.FromInventoryItems(inventoryItems),
+            ConsumableItemSnapshots = ConsumableItemSnapshot.FromInventoryItems(inventoryItems),
             WeaponProficiencies = Enum.GetValues<WeaponType>()
                 .ToDictionary(type => type, weaponProficiencies.GetValueOrDefault),
             ActiveConditions = Enum.GetValues<ConditionType>()

@@ -6,6 +6,7 @@ using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Contracts.Creatures.Responses;
 using TRPG.Contracts.GameSessions.Responses;
+using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Inventory.Responses;
 using TRPG.Contracts.Jobs.Responses;
 using TRPG.Contracts.Scenes.Responses;
@@ -125,17 +126,59 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
         return result ?? [];
     }
 
-    public async Task<IReadOnlyList<UsableItemSummary>> GetUsableItems(
+    public async Task<IReadOnlyList<ConsumableItemSummary>> GetConsumableItems(
         Guid creatureId,
         CancellationToken cancellationToken
     )
     {
-        var result = await httpClient.GetFromJsonAsync<List<UsableItemSummary>>(
-            new Uri($"/creatures/{creatureId}/items", UriKind.Relative),
+        var result = await httpClient.GetFromJsonAsync<InventorySummary>(
+            new Uri($"/creatures/{creatureId}/inventory?consumableOnly=true", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result?.Items.Cast<ConsumableItemSummary>().ToArray() ?? [];
+    }
+
+    public async Task<InventorySummary> GetInventory(
+        Guid creatureId,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await httpClient.GetFromJsonAsync<InventorySummary>(
+            new Uri($"/creatures/{creatureId}/inventory", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result!;
+    }
+
+    public async Task<IReadOnlyList<NearbyCorpseSummary>> GetNearbyCorpses(
+        Guid playerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await httpClient.GetFromJsonAsync<List<NearbyCorpseSummary>>(
+            new Uri($"/corpses?nearPlayerId={playerId}", UriKind.Relative),
             TrpgJsonOptions.Default,
             cancellationToken
         );
         return result ?? [];
+    }
+
+    public async Task InventoryTransfer(
+        Guid fromId,
+        Guid toId,
+        InventoryTransferRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var response = await httpClient.PostAsJsonAsync(
+            new Uri($"/transfers?fromId={fromId}&toId={toId}", UriKind.Relative),
+            request,
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        response.EnsureSuccessStatusCode();
     }
 
     public async Task<int> GetUnallocatedAttributePoints(
