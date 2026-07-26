@@ -13,7 +13,7 @@ using TRPG.Data;
 namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    [Migration("20260726162942_UnifyItemOwnership")]
+    [Migration("20260726171258_UnifyItemOwnership")]
     partial class UnifyItemOwnership
     {
         /// <inheritdoc />
@@ -2007,6 +2007,10 @@ namespace TRPG.Data.Migrations
                                 .HasColumnType("uuid")
                                 .HasColumnName("id");
 
+                            b1.Property<DateTime>("AcquiredAt")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("ownership_acquired_at");
+
                             b1.Property<string>("EquippedSlot")
                                 .HasColumnType("text")
                                 .HasColumnName("ownership_equipped_slot");
@@ -2019,10 +2023,6 @@ namespace TRPG.Data.Migrations
                                 .IsRequired()
                                 .HasColumnType("text")
                                 .HasColumnName("ownership_owner_type");
-
-                            b1.Property<int>("SortOrder")
-                                .HasColumnType("integer")
-                                .HasColumnName("ownership_sort_order");
 
                             b1.HasKey("ItemId");
 

@@ -25,7 +25,6 @@ internal static class InventoryEndpoints
             {
                 FromCreatureId = fromId,
                 ToCreatureId = toId,
-                TakeGold = request.TakeGold,
                 Items = request.Items,
             },
             cancellationToken

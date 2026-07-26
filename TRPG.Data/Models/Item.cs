@@ -34,7 +34,7 @@ public class ItemOwnership
     public Guid OwnerId { get; set; }
     public OwnerType OwnerType { get; set; }
     public EquipmentSlot? EquippedSlot { get; set; }
-    public int SortOrder { get; set; }
+    public DateTime AcquiredAt { get; set; } = DateTime.UtcNow;
 }
 
 public class Item

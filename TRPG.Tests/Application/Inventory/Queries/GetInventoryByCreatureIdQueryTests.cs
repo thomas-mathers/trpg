@@ -44,17 +44,17 @@ public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAs
     }
 
     [Fact]
-    public async Task Handle_ReturnsItemsOrderedBySortOrder()
+    public async Task Handle_ReturnsItemsOrderedByAcquiredAt()
     {
         // Arrange
         _item.Quantity = 1;
         _item.Ownership.OwnerId = _creature.Id;
         _item.Ownership.OwnerType = OwnerType.Creature;
-        _item.Ownership.SortOrder = 0;
+        _item.Ownership.AcquiredAt = DateTime.UtcNow.AddMinutes(-1);
         _otherItem.Quantity = 1;
         _otherItem.Ownership.OwnerId = _creature.Id;
         _otherItem.Ownership.OwnerType = OwnerType.Creature;
-        _otherItem.Ownership.SortOrder = 1;
+        _otherItem.Ownership.AcquiredAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

@@ -190,9 +190,9 @@ public sealed class CreatureArchetype
         creatureType: Data.Models.CreatureType.Goblin,
         startingGear:
         [
-            new WeaponSpec(WeaponType.Dagger),
             new WeaponSpec(WeaponType.Bow),
             new AmmoSpec(AmmoType.Arrow, 20),
+            new WeaponSpec(WeaponType.Dagger),
         ],
         biography: "A small, vicious scavenger that hunts in packs and covets anything shiny."
     );

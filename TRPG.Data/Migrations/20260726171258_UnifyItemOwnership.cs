@@ -78,6 +78,14 @@ namespace TRPG.Data.Migrations
                 oldType: "integer"
             );
 
+            migrationBuilder.AddColumn<DateTime>(
+                name: "ownership_acquired_at",
+                table: "items",
+                type: "timestamp with time zone",
+                nullable: false,
+                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+            );
+
             migrationBuilder.AddColumn<string>(
                 name: "ownership_equipped_slot",
                 table: "items",
@@ -99,14 +107,6 @@ namespace TRPG.Data.Migrations
                 type: "text",
                 nullable: false,
                 defaultValue: ""
-            );
-
-            migrationBuilder.AddColumn<int>(
-                name: "ownership_sort_order",
-                table: "items",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0
             );
 
             migrationBuilder.AddColumn<int>(
@@ -141,13 +141,13 @@ namespace TRPG.Data.Migrations
 
             migrationBuilder.DropIndex(name: "ux_items_owner_equipped_slot", table: "items");
 
+            migrationBuilder.DropColumn(name: "ownership_acquired_at", table: "items");
+
             migrationBuilder.DropColumn(name: "ownership_equipped_slot", table: "items");
 
             migrationBuilder.DropColumn(name: "ownership_owner_id", table: "items");
 
             migrationBuilder.DropColumn(name: "ownership_owner_type", table: "items");
-
-            migrationBuilder.DropColumn(name: "ownership_sort_order", table: "items");
 
             migrationBuilder.DropColumn(name: "quantity", table: "items");
 

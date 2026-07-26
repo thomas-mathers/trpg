@@ -172,6 +172,7 @@ internal static class CreatureEndpoints
             Consumable c => ToSummary(c),
             Ammunition am => ToSummary(am),
             Accessory ac => ToSummary(ac),
+            Gold g => ToSummary(g),
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
@@ -221,6 +222,14 @@ internal static class CreatureEndpoints
 
     private static AccessoryItemSummary ToSummary(Accessory item) =>
         new(item.Id, item.Name, item.Quantity, item.Rarity.ToContract(), item.Type.ToContract());
+
+    private static GoldItemSummary ToSummary(Gold item) =>
+        new(
+            item.Id,
+            item.Name,
+            item.Quantity,
+            TRPG.Contracts.Inventory.Responses.ItemRarity.Normal
+        );
 
     private static AbilitySummary ToAbilitySummary(Ability ability) =>
         new(

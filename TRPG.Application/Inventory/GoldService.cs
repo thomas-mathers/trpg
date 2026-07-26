@@ -7,30 +7,24 @@ namespace TRPG.Application.Inventory;
 internal class GoldService(TrpgDbContext context)
 {
     public async Task Transfer(
-        Creature from,
-        Creature to,
+        Gold sourceGoldItem,
+        Creature fromCreature,
+        Creature toCreature,
         CancellationToken cancellationToken = default
     )
     {
-        var fromGoldItem = await FindGoldItem(from.Id, cancellationToken);
-        // Fall back to the cached value when a creature has never gone through a path that
-        // materializes its Gold item yet (e.g. a freshly-seeded creature) — the cache is
-        // authoritative until an item exists to back it.
-        var amount = fromGoldItem?.Quantity ?? from.Gold;
+        var amount = sourceGoldItem.Quantity;
         if (amount <= 0)
         {
             return;
         }
 
-        if (fromGoldItem != null)
-        {
-            fromGoldItem.Quantity = 0;
-        }
-        from.Gold = 0;
+        sourceGoldItem.Quantity = 0;
+        fromCreature.Gold = 0;
 
-        var toGoldItem = await FindOrCreateGoldItem(to, cancellationToken);
+        var toGoldItem = await FindOrCreateGoldItem(toCreature, cancellationToken);
         toGoldItem.Quantity += amount;
-        to.Gold = toGoldItem.Quantity;
+        toCreature.Gold = toGoldItem.Quantity;
     }
 
     private async Task<Gold?> FindGoldItem(Guid creatureId, CancellationToken cancellationToken) =>

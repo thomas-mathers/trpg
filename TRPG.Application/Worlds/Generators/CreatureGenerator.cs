@@ -905,7 +905,6 @@ public class CreatureGenerator(
     public CreatureGeneratorResult AddStartingPotions(CreatureGeneratorResult result)
     {
         var creature = result.Creature;
-        var nextIndex = result.Items.Count;
 
         var potions = ConsumableGenerator
             .PotionNamesByResource.Keys.Select(resource =>
@@ -913,12 +912,11 @@ public class CreatureGenerator(
             )
             .ToArray();
 
-        foreach (var (potion, index) in potions.Select((item, index) => (item, index)))
+        foreach (var potion in potions)
         {
             potion.Quantity = 1;
             potion.Ownership.OwnerId = creature.Id;
             potion.Ownership.OwnerType = OwnerType.Creature;
-            potion.Ownership.SortOrder = nextIndex + index;
         }
 
         return result with
@@ -1070,15 +1068,20 @@ public class CreatureGenerator(
     {
         var startingItems = GetStartingItems(creature, archetype);
         var items = new List<Item>();
-        var index = 0;
+        var occupiedSlots = new HashSet<EquipmentSlot>();
 
         foreach (var (item, quantity, slotOverride) in startingItems)
         {
             item.Quantity = quantity;
             item.Ownership.OwnerId = creature.Id;
             item.Ownership.OwnerType = OwnerType.Creature;
-            item.Ownership.EquippedSlot = slotOverride ?? ItemEquipmentPolicy.GetDefaultSlot(item);
-            item.Ownership.SortOrder = index++;
+
+            var resolvedSlot = slotOverride ?? ItemEquipmentPolicy.GetDefaultSlot(item);
+            if (resolvedSlot != null && occupiedSlots.Add(resolvedSlot.Value))
+            {
+                item.Ownership.EquippedSlot = resolvedSlot;
+            }
+
             items.Add(item);
         }
 

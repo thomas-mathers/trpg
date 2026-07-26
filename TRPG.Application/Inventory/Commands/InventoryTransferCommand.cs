@@ -10,7 +10,6 @@ internal class InventoryTransferCommand
 {
     public required Guid FromCreatureId { get; init; }
     public required Guid ToCreatureId { get; init; }
-    public required bool TakeGold { get; init; }
     public required IReadOnlyList<LootItemSelection> Items { get; init; }
 }
 
@@ -48,14 +47,9 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldServic
             cancellationToken
         );
 
-        if (command.TakeGold)
-        {
-            await goldService.Transfer(fromCreature, toCreature, cancellationToken);
-        }
-
         if (command.Items.Count > 0)
         {
-            await TransferItems(command, fromCreature, cancellationToken);
+            await TransferItems(command, fromCreature, toCreature, cancellationToken);
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -65,6 +59,7 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldServic
     private async Task TransferItems(
         InventoryTransferCommand command,
         Creature fromCreature,
+        Creature toCreature,
         CancellationToken cancellationToken
     )
     {
@@ -72,15 +67,6 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldServic
         var items = await context
             .Items.Where(i => itemIds.Contains(i.Id))
             .ToListAsync(cancellationToken);
-
-        var nextSortOrder =
-            await context
-                .Items.Where(i =>
-                    i.Ownership.OwnerType == OwnerType.Creature
-                    && i.Ownership.OwnerId == command.ToCreatureId
-                )
-                .MaxAsync(i => (int?)i.Ownership.SortOrder, cancellationToken)
-            ?? -1;
 
         foreach (var selection in command.Items)
         {
@@ -107,9 +93,16 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldServic
                 );
             }
 
-            item.Ownership.OwnerId = command.ToCreatureId;
-            item.Ownership.EquippedSlot = null;
-            item.Ownership.SortOrder = ++nextSortOrder;
+            if (item is Gold goldItem)
+            {
+                await goldService.Transfer(goldItem, fromCreature, toCreature, cancellationToken);
+            }
+            else
+            {
+                item.Ownership.OwnerId = command.ToCreatureId;
+                item.Ownership.EquippedSlot = null;
+                item.Ownership.AcquiredAt = DateTime.UtcNow;
+            }
         }
 
         var remainingEquipped = await context

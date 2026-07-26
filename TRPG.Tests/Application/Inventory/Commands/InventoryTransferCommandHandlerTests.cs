@@ -17,11 +17,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private InventoryTransferCommandHandler _handler = null!;
-    private readonly Creature _fromCreature = Builders.MakeCreature(
-        WorldId,
-        roomId: RoomId,
-        gold: 100
-    );
+    private readonly Creature _fromCreature = Builders.MakeCreature(WorldId, roomId: RoomId);
     private readonly Creature _player = Builders.MakeCreature(WorldId, roomId: RoomId);
 
     public async ValueTask InitializeAsync()
@@ -53,17 +49,30 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         return item;
     }
 
-    [Fact]
-    public async Task Handle_MovesGold_WhenTakeGoldIsTrue()
+    private async Task<Gold> SeedGoldOnFromCreature(int quantity)
     {
+        var gold = Builders.MakeGold(WorldId, quantity);
+        gold.Ownership.OwnerId = _fromCreature.Id;
+        gold.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.Add(gold);
+        _fromCreature.Gold = quantity;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return gold;
+    }
+
+    [Fact]
+    public async Task Handle_MovesGold_WhenGoldItemIsSelected()
+    {
+        // Arrange
+        var gold = await SeedGoldOnFromCreature(100);
+
         // Act
         await _handler.Handle(
             new InventoryTransferCommand
             {
                 FromCreatureId = _fromCreature.Id,
                 ToCreatureId = _player.Id,
-                TakeGold = true,
-                Items = [],
+                Items = [new LootItemSelection(gold.Id, 100)],
             },
             TestContext.Current.CancellationToken
         );
@@ -83,9 +92,10 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
-    public async Task Handle_LeavesGoldUntouched_WhenTakeGoldIsFalse()
+    public async Task Handle_LeavesGoldUntouched_WhenGoldIsNotSelected()
     {
         // Arrange
+        await SeedGoldOnFromCreature(100);
         var item = await SeedItemOnFromCreature(quantity: 1);
 
         // Act
@@ -94,7 +104,6 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 FromCreatureId = _fromCreature.Id,
                 ToCreatureId = _player.Id,
-                TakeGold = false,
                 Items = [new LootItemSelection(item.Id, 1)],
             },
             TestContext.Current.CancellationToken
@@ -121,7 +130,6 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 FromCreatureId = _fromCreature.Id,
                 ToCreatureId = _player.Id,
-                TakeGold = false,
                 Items = [new LootItemSelection(item.Id, 3)],
             },
             TestContext.Current.CancellationToken
@@ -138,9 +146,10 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
-    public async Task Handle_MovesBothGoldAndItems_WhenBothAreRequested()
+    public async Task Handle_MovesBothGoldAndItems_WhenBothAreSelected()
     {
         // Arrange
+        var gold = await SeedGoldOnFromCreature(100);
         var item = await SeedItemOnFromCreature(quantity: 1);
 
         // Act
@@ -149,8 +158,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 FromCreatureId = _fromCreature.Id,
                 ToCreatureId = _player.Id,
-                TakeGold = true,
-                Items = [new LootItemSelection(item.Id, 1)],
+                Items = [new LootItemSelection(gold.Id, 100), new LootItemSelection(item.Id, 1)],
             },
             TestContext.Current.CancellationToken
         );
@@ -184,7 +192,6 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
                 {
                     FromCreatureId = _fromCreature.Id,
                     ToCreatureId = farPlayer.Id,
-                    TakeGold = true,
                     Items = [],
                 },
                 TestContext.Current.CancellationToken

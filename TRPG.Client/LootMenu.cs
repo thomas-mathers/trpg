@@ -18,10 +18,6 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
 
     private sealed record MenuOption<T>(string Label, T? Value = default);
 
-    private sealed record LootChoice(string Label, bool IsGold, InventoryItemSummary? Item);
-
-    private sealed record LootSelection(bool TakeGold, IReadOnlyList<LootItemSelection> Items);
-
     public async Task Run(CancellationToken cancellationToken)
     {
         var corpses = await client.GetNearbyCorpses(playerId, cancellationToken);
@@ -38,14 +34,14 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
         }
 
         var inventory = await client.GetInventory(corpse.Id, cancellationToken);
-        if (inventory.Gold == 0 && inventory.Items.Count == 0)
+        if (inventory.Items.Count == 0)
         {
             AnsiConsole.AnnounceWarning($"{corpse.Name} has nothing left to loot.");
             return;
         }
 
         var selection = await PromptForSelection(inventory, cancellationToken);
-        if (!selection.TakeGold && selection.Items.Count == 0)
+        if (selection.Count == 0)
         {
             return;
         }
@@ -53,13 +49,11 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
         await client.InventoryTransfer(
             corpse.Id,
             playerId,
-            new InventoryTransferRequest(selection.TakeGold, selection.Items),
+            new InventoryTransferRequest(selection),
             cancellationToken
         );
 
-        AnsiConsole.AnnounceSuccess(
-            DescribeLoot(selection.TakeGold, inventory.Gold, selection.Items, inventory.Items)
-        );
+        AnsiConsole.AnnounceSuccess(DescribeLoot(selection, inventory.Items));
     }
 
     private static Task<NearbyCorpseSummary?> PromptForCorpse(
@@ -67,7 +61,7 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
         CancellationToken cancellationToken
     ) => PromptForOption("Loot which corpse?", candidates, c => c.Name, cancellationToken);
 
-    private static async Task<LootSelection> PromptForSelection(
+    private static async Task<IReadOnlyList<LootItemSelection>> PromptForSelection(
         InventorySummary inventory,
         CancellationToken cancellationToken
     )
@@ -84,66 +78,37 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
 
         if (mode == TakeMode.TakeEverything)
         {
-            return new LootSelection(
-                inventory.Gold > 0,
-                inventory.Items.Select(i => new LootItemSelection(i.ItemId, i.Quantity)).ToArray()
-            );
+            return inventory
+                .Items.Select(i => new LootItemSelection(i.ItemId, i.Quantity))
+                .ToArray();
         }
-
-        var choices = new List<LootChoice>();
-        if (inventory.Gold > 0)
-        {
-            choices.Add(new LootChoice($"Gold ({inventory.Gold})", IsGold: true, Item: null));
-        }
-
-        choices.AddRange(
-            inventory.Items.Select(i => new LootChoice(
-                $"{i.Name} x{i.Quantity}",
-                IsGold: false,
-                Item: i
-            ))
-        );
 
         var chosen = await AnsiConsole.PromptAsync(
-            new MultiSelectionPrompt<LootChoice>()
+            new MultiSelectionPrompt<InventoryItemSummary>()
                 .Title("Choose what to take:")
                 .NotRequired()
-                .UseConverter(c => c.Label)
-                .AddChoices(choices),
+                .UseConverter(i => $"{i.Name} x{i.Quantity}")
+                .AddChoices(inventory.Items),
             cancellationToken
         );
 
-        var takeGold = chosen.Any(c => c.IsGold);
-        var items = chosen
-            .Where(c => c.Item != null)
-            .Select(c => new LootItemSelection(c.Item!.ItemId, c.Item.Quantity))
-            .ToArray();
-
-        return new LootSelection(takeGold, items);
+        return chosen.Select(i => new LootItemSelection(i.ItemId, i.Quantity)).ToArray();
     }
 
     private static string DescribeLoot(
-        bool takeGold,
-        int gold,
         IReadOnlyCollection<LootItemSelection> takenItems,
         IReadOnlyList<InventoryItemSummary> availableItems
     )
     {
-        var parts = new List<string>();
-        if (takeGold)
-        {
-            parts.Add($"{gold} gold");
-        }
-
-        parts.AddRange(
-            takenItems.Select(taken =>
+        var parts = takenItems
+            .Select(taken =>
             {
                 var item = availableItems.First(i => i.ItemId == taken.ItemId);
                 return $"{item.Name} x{taken.Quantity}";
             })
-        );
+            .ToArray();
 
-        return parts.Count > 0 ? $"You looted: {string.Join(", ", parts)}." : "You took nothing.";
+        return parts.Length > 0 ? $"You looted: {string.Join(", ", parts)}." : "You took nothing.";
     }
 
     private static async Task<T?> PromptForOption<T>(

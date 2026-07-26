@@ -21,9 +21,9 @@ internal class GetInventoryByCreatureIdQueryHandler(TrpgDbContext context)
             .Where(i =>
                 i.Ownership.OwnerType == OwnerType.Creature
                 && i.Ownership.OwnerId == query.CreatureId
-                && !(i is Gold)
+                && i.Quantity > 0
             )
-            .OrderBy(i => i.Ownership.SortOrder)
+            .OrderBy(i => i.Ownership.AcquiredAt)
             .ToArrayAsync(cancellationToken);
     }
 }

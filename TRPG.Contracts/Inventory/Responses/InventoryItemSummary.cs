@@ -60,6 +60,7 @@ public enum AccessoryType
 [JsonDerivedType(typeof(ConsumableItemSummary), nameof(ConsumableItemSummary))]
 [JsonDerivedType(typeof(AmmunitionItemSummary), nameof(AmmunitionItemSummary))]
 [JsonDerivedType(typeof(AccessoryItemSummary), nameof(AccessoryItemSummary))]
+[JsonDerivedType(typeof(GoldItemSummary), nameof(GoldItemSummary))]
 public abstract record InventoryItemSummary(
     Guid ItemId,
     string Name,
@@ -119,3 +120,6 @@ public sealed record AccessoryItemSummary(
     ItemRarity Rarity,
     AccessoryType Type
 ) : InventoryItemSummary(ItemId, Name, Quantity, Rarity);
+
+public sealed record GoldItemSummary(Guid ItemId, string Name, int Quantity, ItemRarity Rarity)
+    : InventoryItemSummary(ItemId, Name, Quantity, Rarity);
