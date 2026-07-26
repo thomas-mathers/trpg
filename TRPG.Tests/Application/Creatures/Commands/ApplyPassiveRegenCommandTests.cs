@@ -189,17 +189,10 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
                 AmountType = AmountType.Flat,
             }
         );
+        gear.Quantity = 1;
+        gear.Ownership.OwnerId = _creature.Id;
+        gear.Ownership.OwnerType = OwnerType.Creature;
         _context.Items.Add(gear);
-        _context.InventoryItems.Add(
-            new InventoryItem
-            {
-                CreatureId = _creature.Id,
-                ItemId = gear.Id,
-                Quantity = 1,
-                Index = 0,
-                WorldId = _creature.WorldId,
-            }
-        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         await new EquipInventoryItemCommandHandler(_context).Handle(

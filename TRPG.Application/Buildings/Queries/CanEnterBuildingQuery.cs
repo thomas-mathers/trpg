@@ -41,6 +41,6 @@ internal class CanEnterBuildingQueryHandler(
             new GetInventoryByCreatureIdQuery { CreatureId = buildingQuery.EnteringCreatureId },
             cancellationToken
         );
-        return inventory.Any(i => validKeyItemIds.Contains(i.ItemId));
+        return inventory.Any(i => validKeyItemIds.Contains(i.Id));
     }
 }

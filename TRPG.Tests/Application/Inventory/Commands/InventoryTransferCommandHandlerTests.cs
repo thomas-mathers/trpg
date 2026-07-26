@@ -45,17 +45,10 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
     private async Task<Item> SeedItemOnFromCreature(int quantity)
     {
         var item = Builders.MakeWeaponItem(WorldId);
+        item.Quantity = quantity;
+        item.Ownership.OwnerId = _fromCreature.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
         _context.Items.Add(item);
-        _context.InventoryItems.Add(
-            new InventoryItem
-            {
-                WorldId = WorldId,
-                CreatureId = _fromCreature.Id,
-                ItemId = item.Id,
-                Quantity = quantity,
-                Index = 0,
-            }
-        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return item;
     }
@@ -136,16 +129,12 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var corpseHasItem = await verifyContext.InventoryItems.AnyAsync(
-            i => i.CreatureId == _fromCreature.Id && i.ItemId == item.Id,
+        var movedItem = await verifyContext.Items.SingleAsync(
+            i => i.Id == item.Id,
             TestContext.Current.CancellationToken
         );
-        var playerItem = await verifyContext.InventoryItems.SingleAsync(
-            i => i.CreatureId == _player.Id && i.ItemId == item.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.False(corpseHasItem);
-        Assert.Equal(3, playerItem.Quantity);
+        Assert.Equal(_player.Id, movedItem.Ownership.OwnerId);
+        Assert.Equal(3, movedItem.Quantity);
     }
 
     [Fact]
@@ -172,12 +161,12 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             [_player.Id],
             TestContext.Current.CancellationToken
         );
-        var playerHasItem = await verifyContext.InventoryItems.AnyAsync(
-            i => i.CreatureId == _player.Id && i.ItemId == item.Id,
+        var movedItem = await verifyContext.Items.SingleAsync(
+            i => i.Id == item.Id,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(100, player!.Gold);
-        Assert.True(playerHasItem);
+        Assert.Equal(_player.Id, movedItem.Ownership.OwnerId);
     }
 
     [Fact]

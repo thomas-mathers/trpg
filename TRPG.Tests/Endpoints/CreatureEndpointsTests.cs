@@ -103,25 +103,21 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            var potion = new ConsumableItem
+            var potion = new Consumable
             {
                 WorldId = _worldId,
                 Name = "Health Potion",
                 Description = "",
                 Resource = Data.Models.ResourceType.Hp,
-                Amount = 50,
+                RestoreAmount = 50,
+                Quantity = 1,
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = _creature.Id,
+                    OwnerType = OwnerType.Creature,
+                },
             };
             context.Items.Add(potion);
-            context.InventoryItems.Add(
-                new InventoryItem
-                {
-                    WorldId = _worldId,
-                    CreatureId = _creature.Id,
-                    ItemId = potion.Id,
-                    Quantity = 1,
-                    Index = 0,
-                }
-            );
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 

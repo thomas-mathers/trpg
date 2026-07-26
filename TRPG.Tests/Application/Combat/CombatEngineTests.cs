@@ -387,7 +387,7 @@ public class CombatEngineTests
     public void ResolvePlayerAction_TracksWeaponSwings_ForThePlayersPhysicalAttacks()
     {
         // Arrange
-        var weapon = new WeaponItem
+        var weapon = new Weapon
         {
             WorldId = _worldId,
             Name = "Test Sword",
@@ -895,11 +895,11 @@ public class CombatEngineTests
     public void ProcessItem_RestoresHp_ClampedToMaximum()
     {
         // Arrange
-        var potion = new ConsumableItem
+        var potion = new Consumable
         {
             Name = "Health Potion",
             Resource = ResourceType.Hp,
-            Amount = 999,
+            RestoreAmount = 999,
         };
         var player = MakeCombatant("Hero").AsPlayer().WithItem(potion).WithCurrentHp(1).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
@@ -922,11 +922,11 @@ public class CombatEngineTests
     public void ProcessItem_RestoresAp_ClampedToMaximum()
     {
         // Arrange
-        var potion = new ConsumableItem
+        var potion = new Consumable
         {
             Name = "Ap Tonic",
             Resource = ResourceType.Ap,
-            Amount = 999,
+            RestoreAmount = 999,
         };
         var player = MakeCombatant("Hero").AsPlayer().WithItem(potion).WithCurrentAp(1).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
@@ -949,11 +949,11 @@ public class CombatEngineTests
     public void ProcessItem_RestoresMp_ClampedToMaximum()
     {
         // Arrange
-        var potion = new ConsumableItem
+        var potion = new Consumable
         {
             Name = "Mp Tonic",
             Resource = ResourceType.Mp,
-            Amount = 999,
+            RestoreAmount = 999,
         };
         var player = MakeCombatant("Hero").AsPlayer().WithItem(potion).WithCurrentMp(1).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
@@ -976,11 +976,11 @@ public class CombatEngineTests
     public void ProcessItem_RecordsItemUsage_InItemsUsedCounts()
     {
         // Arrange
-        var potion = new ConsumableItem
+        var potion = new Consumable
         {
             Name = "Health Potion",
             Resource = ResourceType.Hp,
-            Amount = 20,
+            RestoreAmount = 20,
         };
         var player = MakeCombatant("Hero").AsPlayer().WithItem(potion).WithCurrentHp(1).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();

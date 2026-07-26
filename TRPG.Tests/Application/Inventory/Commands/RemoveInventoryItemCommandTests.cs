@@ -9,7 +9,6 @@ namespace TRPG.Tests.Application.Inventory.Commands;
 [Collection("Database")]
 public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private AddInventoryItemCommandHandler _addHandler = null!;
     private TrpgDbContext _context = null!;
     private GetInventoryByCreatureIdQueryHandler _getHandler = null!;
     private RemoveInventoryItemCommandHandler _removeHandler = null!;
@@ -20,7 +19,6 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _addHandler = new AddInventoryItemCommandHandler(_context);
         _removeHandler = new RemoveInventoryItemCommandHandler(_context);
         _getHandler = new GetInventoryByCreatureIdQueryHandler(_context);
 
@@ -35,19 +33,19 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
         await _context.DisposeAsync();
     }
 
+    private async Task GiveToCreature(Item item, int quantity)
+    {
+        item.Quantity = quantity;
+        item.Ownership.OwnerId = _creature.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     [Fact]
     public async Task Handle_DecreasesQuantity()
     {
         // Arrange
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = _stackableItem.Id,
-                Quantity = 5,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await GiveToCreature(_stackableItem, 5);
 
         // Act
         await _removeHandler.Handle(
@@ -66,22 +64,14 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
             TestContext.Current.CancellationToken
         );
         Assert.Single(items);
-        Assert.Equal(2, items.First().Quantity);
+        Assert.Equal(2, items[0].Quantity);
     }
 
     [Fact]
     public async Task Handle_RemovesEntry_WhenQuantityReachesZero()
     {
         // Arrange
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = _item.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await GiveToCreature(_item, 1);
 
         // Act
         await _removeHandler.Handle(
@@ -134,16 +124,7 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
             }
         );
         _context.Items.Add(gear);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = gear.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await GiveToCreature(gear, 1);
         await new EquipInventoryItemCommandHandler(_context).Handle(
             new EquipInventoryItemCommand
             {

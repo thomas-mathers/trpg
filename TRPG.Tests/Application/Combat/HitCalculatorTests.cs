@@ -41,7 +41,7 @@ public class HitCalculatorTests
             new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
         );
 
-    private WeaponItem MakeWeapon(WeaponType type = WeaponType.Sword) =>
+    private Weapon MakeWeapon(WeaponType type = WeaponType.Sword) =>
         Builders.MakeWeaponItem(worldId: _worldId, type: type);
 
     [Fact]

@@ -32,25 +32,26 @@ public class CombatantTests
     {
         // Arrange
         var creature = Builders.MakeCreature(_worldId);
-        var equippedWeapon = new WeaponItem { Name = "Equipped Sword", Type = WeaponType.Sword };
-        var unequippedWeapon = new WeaponItem { Name = "Spare Axe", Type = WeaponType.Axe };
-        IReadOnlyList<InventoryItem> inventoryItems =
-        [
-            new InventoryItem { Item = equippedWeapon, EquippedSlot = EquipmentSlot.RightHand },
-            new InventoryItem { Item = unequippedWeapon, EquippedSlot = null },
-        ];
+        var equippedWeapon = new Weapon
+        {
+            Name = "Equipped Sword",
+            Type = WeaponType.Sword,
+            Ownership = new ItemOwnership { EquippedSlot = EquipmentSlot.RightHand },
+        };
+        var unequippedWeapon = new Weapon { Name = "Spare Axe", Type = WeaponType.Axe };
+        IReadOnlyList<Item> items = [equippedWeapon, unequippedWeapon];
 
         // Act
         var combatant = Combatant.FromCreature(
             creature,
             [],
             isPlayer: true,
-            inventoryItems,
+            items,
             new Dictionary<WeaponType, int>()
         );
 
         // Assert — the unequipped spare never reaches EquippedItems, so Weapon resolves to
-        // the one actually worn instead of throwing on more than one WeaponItem
+        // the one actually worn instead of throwing on more than one Weapon
         Assert.Equal(equippedWeapon.Name, combatant.Weapon!.Name);
     }
 }

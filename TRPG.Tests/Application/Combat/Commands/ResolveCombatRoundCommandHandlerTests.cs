@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -274,17 +273,11 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         // Arrange
         await SeedFight();
         var potion = Builders.MakeConsumableItem(WorldId);
+        potion.Quantity = 2;
+        potion.Ownership.OwnerId = _player.Id;
+        potion.Ownership.OwnerType = OwnerType.Creature;
         _context.Items.Add(potion);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await new AddInventoryItemCommandHandler(_context).Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _player.Id,
-                ItemId = potion.Id,
-                Quantity = 2,
-            },
-            TestContext.Current.CancellationToken
-        );
         var state = Builders.MakeCombatState(
             CombatOutcome.Ongoing,
             [
@@ -314,10 +307,10 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var inventoryItem = await verifyContext.InventoryItems.SingleAsync(
-            i => i.CreatureId == _player.Id && i.ItemId == potion.Id,
+        var updatedPotion = await verifyContext.Items.SingleAsync(
+            i => i.Id == potion.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(1, inventoryItem.Quantity);
+        Assert.Equal(1, updatedPotion.Quantity);
     }
 }

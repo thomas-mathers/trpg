@@ -1,6 +1,7 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Creatures;
+using TRPG.Application.Inventory;
 using TRPG.Data.Models;
 
 namespace TRPG.Tests.Helpers;
@@ -11,7 +12,7 @@ internal sealed class CombatantBuilder
     private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
     private static readonly StatFormulas Formulas = Builders.MakeStatFormulas();
 
-    private readonly List<InventoryItem> _inventoryItems = [];
+    private readonly List<Item> _items = [];
     private readonly Dictionary<WeaponType, int> _weaponProficiencies = [];
     private Guid _worldId = Guid.NewGuid();
     private string _name = "Test Combatant";
@@ -103,14 +104,9 @@ internal sealed class CombatantBuilder
 
     public CombatantBuilder WithItem(Item item, int quantity = 1)
     {
-        _inventoryItems.Add(
-            new InventoryItem
-            {
-                Item = item,
-                Quantity = quantity,
-                EquippedSlot = item.DefaultSlot,
-            }
-        );
+        item.Quantity = quantity;
+        item.Ownership.EquippedSlot = ItemEquipmentPolicy.GetDefaultSlot(item);
+        _items.Add(item);
         return this;
     }
 
@@ -160,7 +156,7 @@ internal sealed class CombatantBuilder
             creature,
             [BasicAttack, BlockStance, .. _abilities],
             _isPlayer,
-            _inventoryItems,
+            _items,
             _weaponProficiencies
         );
     }

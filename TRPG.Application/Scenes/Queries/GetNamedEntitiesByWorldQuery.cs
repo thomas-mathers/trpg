@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Data;
-using TRPG.Data.Models;
 
 namespace TRPG.Application.Scenes.Queries;
 
@@ -10,7 +9,6 @@ internal enum NamedEntityType
     Creature,
     Building,
     District,
-    Item,
     World,
     Country,
     State,
@@ -61,12 +59,6 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
             .Select(d => new NamedEntitySummary(d.Id, d.Name, NamedEntityType.District))
             .ToArrayAsync(cancellationToken);
 
-        var uniqueItems = await context
-            .Items.AsNoTracking()
-            .Where(i => i.WorldId == worldId && i.Rarity == ItemRarity.Unique)
-            .Select(i => new NamedEntitySummary(i.Id, i.Name, NamedEntityType.Item))
-            .ToArrayAsync(cancellationToken);
-
         var world = await context
             .Worlds.AsNoTracking()
             .Where(w => w.Id == worldId)
@@ -94,7 +86,6 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
         return creatures
             .Concat(buildings)
             .Concat(districts)
-            .Concat(uniqueItems)
             .Concat(world)
             .Concat(countries)
             .Concat(states)

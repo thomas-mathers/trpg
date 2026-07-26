@@ -13,16 +13,16 @@ public class ConsumableGenerator
             [ResourceType.Ap] = "Stamina Potion",
         };
 
-    public ConsumableItem Generate(int level, Guid worldId)
+    public Consumable Generate(int level, Guid worldId)
     {
         var resources = PotionNamesByResource.Keys.ToArray();
         var resource = resources[Random.Shared.Next(resources.Length)];
         return Generate(resource, level, worldId);
     }
 
-    public ConsumableItem Generate(ResourceType resource, int level, Guid worldId)
+    public Consumable Generate(ResourceType resource, int level, Guid worldId)
     {
-        return new ConsumableItem
+        return new Consumable
         {
             WorldId = worldId,
             Level = level,
@@ -32,7 +32,7 @@ public class ConsumableGenerator
             Weight = 1,
             GoldValue = level * 5 + Random.Shared.Next(11),
             Resource = resource,
-            Amount = Roll(level, 20, 100),
+            RestoreAmount = Roll(level, 20, 100),
             Duration = 0,
         };
     }

@@ -118,7 +118,6 @@ internal static class GameSessionEndpoints
                 NamedEntityType.Creature => EntityType.Creature,
                 NamedEntityType.Building => EntityType.Building,
                 NamedEntityType.District => EntityType.District,
-                NamedEntityType.Item => EntityType.Item,
                 NamedEntityType.World => EntityType.World,
                 NamedEntityType.Country => EntityType.Country,
                 NamedEntityType.State => EntityType.State,

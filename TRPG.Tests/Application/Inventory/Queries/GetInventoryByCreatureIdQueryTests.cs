@@ -1,4 +1,3 @@
-using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -9,7 +8,6 @@ namespace TRPG.Tests.Application.Inventory.Queries;
 [Collection("Database")]
 public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private AddInventoryItemCommandHandler _addHandler = null!;
     private TrpgDbContext _context = null!;
     private GetInventoryByCreatureIdQueryHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
@@ -19,7 +17,6 @@ public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAs
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _addHandler = new AddInventoryItemCommandHandler(_context);
         _handler = new GetInventoryByCreatureIdQueryHandler(_context);
 
         _context.Creatures.Add(_creature);
@@ -47,27 +44,18 @@ public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAs
     }
 
     [Fact]
-    public async Task Handle_ReturnsItemsOrderedByIndex()
+    public async Task Handle_ReturnsItemsOrderedBySortOrder()
     {
         // Arrange
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = _item.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = _otherItem.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
+        _item.Quantity = 1;
+        _item.Ownership.OwnerId = _creature.Id;
+        _item.Ownership.OwnerType = OwnerType.Creature;
+        _item.Ownership.SortOrder = 0;
+        _otherItem.Quantity = 1;
+        _otherItem.Ownership.OwnerId = _creature.Id;
+        _otherItem.Ownership.OwnerType = OwnerType.Creature;
+        _otherItem.Ownership.SortOrder = 1;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var items = await _handler.Handle(
@@ -76,6 +64,6 @@ public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAs
         );
 
         // Assert
-        Assert.Equal([_item.Id, _otherItem.Id], items.Select(i => i.ItemId));
+        Assert.Equal([_item.Id, _otherItem.Id], items.Select(i => i.Id));
     }
 }

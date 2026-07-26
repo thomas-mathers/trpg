@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Creatures;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Commands;
 
@@ -12,11 +14,7 @@ internal class InventoryTransferCommand
     public required IReadOnlyList<LootItemSelection> Items { get; init; }
 }
 
-internal class InventoryTransferCommandHandler(
-    TrpgDbContext context,
-    RemoveInventoryItemCommandHandler removeInventoryItem,
-    AddInventoryItemCommandHandler addInventoryItem
-)
+internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldService goldService)
 {
     public async Task Handle(
         InventoryTransferCommand command,
@@ -50,36 +48,77 @@ internal class InventoryTransferCommandHandler(
             cancellationToken
         );
 
-        if (command.TakeGold && fromCreature.Gold > 0)
+        if (command.TakeGold)
         {
-            var gold = fromCreature.Gold;
-            fromCreature.Gold = 0;
-            toCreature.Gold += gold;
-            await context.SaveChangesAsync(cancellationToken);
+            await goldService.Transfer(fromCreature, toCreature, cancellationToken);
         }
+
+        if (command.Items.Count > 0)
+        {
+            await TransferItems(command, fromCreature, cancellationToken);
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private async Task TransferItems(
+        InventoryTransferCommand command,
+        Creature fromCreature,
+        CancellationToken cancellationToken
+    )
+    {
+        var itemIds = command.Items.Select(i => i.ItemId).ToArray();
+        var items = await context
+            .Items.Where(i => itemIds.Contains(i.Id))
+            .ToListAsync(cancellationToken);
+
+        var nextSortOrder =
+            await context
+                .Items.Where(i =>
+                    i.Ownership.OwnerType == OwnerType.Creature
+                    && i.Ownership.OwnerId == command.ToCreatureId
+                )
+                .MaxAsync(i => (int?)i.Ownership.SortOrder, cancellationToken)
+            ?? -1;
 
         foreach (var selection in command.Items)
         {
-            await removeInventoryItem.Handle(
-                new RemoveInventoryItemCommand
-                {
-                    CreatureId = command.FromCreatureId,
-                    ItemId = selection.ItemId,
-                    Quantity = selection.Quantity,
-                },
-                cancellationToken
-            );
-            await addInventoryItem.Handle(
-                new AddInventoryItemCommand
-                {
-                    CreatureId = command.ToCreatureId,
-                    ItemId = selection.ItemId,
-                    Quantity = selection.Quantity,
-                },
-                cancellationToken
-            );
+            var item =
+                items.FirstOrDefault(i => i.Id == selection.ItemId)
+                ?? throw new InvalidOperationException(
+                    $"Item {selection.ItemId} not found in creature {command.FromCreatureId}'s inventory."
+                );
+
+            if (
+                item.Ownership.OwnerType != OwnerType.Creature
+                || item.Ownership.OwnerId != command.FromCreatureId
+            )
+            {
+                throw new InvalidOperationException(
+                    $"Item {selection.ItemId} is not owned by creature {command.FromCreatureId}."
+                );
+            }
+
+            if (selection.Quantity != item.Quantity)
+            {
+                throw new InvalidOperationException(
+                    $"Partial transfer of item {selection.ItemId} is not supported."
+                );
+            }
+
+            item.Ownership.OwnerId = command.ToCreatureId;
+            item.Ownership.EquippedSlot = null;
+            item.Ownership.SortOrder = ++nextSortOrder;
         }
 
-        await transaction.CommitAsync(cancellationToken);
+        var remainingEquipped = await context
+            .Items.Where(i =>
+                i.Ownership.OwnerType == OwnerType.Creature
+                && i.Ownership.OwnerId == command.FromCreatureId
+                && i.Ownership.EquippedSlot != null
+            )
+            .ToListAsync(cancellationToken);
+        CreatureAttributesRecalculator.Recalculate(fromCreature, remainingEquipped);
     }
 }

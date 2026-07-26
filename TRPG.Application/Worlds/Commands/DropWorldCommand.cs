@@ -22,16 +22,10 @@ public class DropWorldCommandHandler(TrpgDbContext context)
         );
 
         await context
-            .ContainerItems.Where(x => x.WorldId == worldId)
-            .ExecuteDeleteAsync(cancellationToken);
-        await context
             .RoomConnectorKeys.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
         await context.Props.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Rooms.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context
-            .InventoryItems.Where(x => x.WorldId == worldId)
-            .ExecuteDeleteAsync(cancellationToken);
         await context
             .BuildingOwners.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);

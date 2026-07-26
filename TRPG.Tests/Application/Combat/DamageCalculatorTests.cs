@@ -21,7 +21,7 @@ public class DamageCalculatorTests
             }
         );
 
-    private WeaponItem MakeFixedRangeWeapon(int damage) =>
+    private Weapon MakeFixedRangeWeapon(int damage) =>
         Builders.MakeWeaponItem(worldId: _worldId, minDamage: damage, maxDamage: damage);
 
     [Fact]

@@ -27,12 +27,14 @@ internal class UnequipInventoryItemCommandHandler(TrpgDbContext context)
             throw new InvalidOperationException($"Creature {command.CreatureId} not found.");
         }
 
-        var inventoryItems = await context
-            .InventoryItems.Include(i => i.Item)
-            .Where(i => i.CreatureId == command.CreatureId)
+        var items = await context
+            .Items.Where(i =>
+                i.Ownership.OwnerType == OwnerType.Creature
+                && i.Ownership.OwnerId == command.CreatureId
+            )
             .ToArrayAsync(cancellationToken);
 
-        var item = inventoryItems.FirstOrDefault(i => i.EquippedSlot == command.Slot);
+        var item = items.FirstOrDefault(i => i.Ownership.EquippedSlot == command.Slot);
         if (item == null)
         {
             throw new InvalidOperationException(
@@ -40,12 +42,9 @@ internal class UnequipInventoryItemCommandHandler(TrpgDbContext context)
             );
         }
 
-        item.EquippedSlot = null;
+        item.Ownership.EquippedSlot = null;
 
-        var equippedItems = inventoryItems
-            .Where(i => i.EquippedSlot != null)
-            .Select(i => i.Item)
-            .ToArray();
+        var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
         CreatureAttributesRecalculator.Recalculate(creature, equippedItems);
 
         await context.SaveChangesAsync(cancellationToken);

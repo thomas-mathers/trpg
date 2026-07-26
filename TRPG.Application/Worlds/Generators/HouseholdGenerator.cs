@@ -22,7 +22,6 @@ public class HouseholdGeneratorResult
     public required Guid HouseOwnerId { get; init; }
     public required Guid HomeRoomId { get; init; }
     public required IReadOnlyList<Item> KeyItems { get; init; }
-    public required IReadOnlyList<InventoryItem> KeyInventoryItems { get; init; }
     public required IReadOnlyList<RoomConnectorKey> KeyConnectorKeys { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required Creature? DesignatedWorker { get; init; }
@@ -106,7 +105,6 @@ public class HouseholdGenerator(
         );
 
         var keyItems = new List<Item>();
-        var keyInventoryItems = new List<InventoryItem>();
         var keyConnectorKeys = new List<RoomConnectorKey>();
         var houseFrontDoor = houseResult
             .Props.OfType<RoomConnector>()
@@ -118,17 +116,14 @@ public class HouseholdGenerator(
                 WorldId = input.WorldId,
                 Name = $"Key to {houseResult.Building.Name}",
                 Description = $"A key that unlocks {houseResult.Building.Name}.",
+                Quantity = 1,
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = resident.Creature.Id,
+                    OwnerType = OwnerType.Creature,
+                },
             };
             keyItems.Add(houseKeyItem);
-            keyInventoryItems.Add(
-                new InventoryItem
-                {
-                    CreatureId = resident.Creature.Id,
-                    ItemId = houseKeyItem.Id,
-                    Quantity = 1,
-                    WorldId = input.WorldId,
-                }
-            );
             keyConnectorKeys.Add(
                 new RoomConnectorKey
                 {
@@ -177,7 +172,6 @@ public class HouseholdGenerator(
             HouseOwnerId = houseOwner.Creature.Id,
             HomeRoomId = homeRoomId,
             KeyItems = keyItems.ToArray(),
-            KeyInventoryItems = keyInventoryItems.ToArray(),
             KeyConnectorKeys = keyConnectorKeys.ToArray(),
             Jobs = jobs.ToArray(),
             DesignatedWorker = designatedWorker?.Creature,

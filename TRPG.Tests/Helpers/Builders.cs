@@ -228,7 +228,7 @@ internal static class Builders
         };
     }
 
-    public static Item MakeItem(Guid? worldId = null, ItemRarity rarity = ItemRarity.Normal)
+    public static Item MakeItem(Guid? worldId = null)
     {
         return new Item
         {
@@ -236,19 +236,27 @@ internal static class Builders
             Name = $"Item-{Guid.NewGuid():N}",
             Description = "A test item",
             Weight = 1,
-            GoldValue = 10,
-            Rarity = rarity,
         };
     }
 
-    public static WeaponItem MakeWeaponItem(
+    public static Gold MakeGold(Guid? worldId = null, int quantity = 0)
+    {
+        return new Gold
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = "Gold",
+            Quantity = quantity,
+        };
+    }
+
+    public static Weapon MakeWeaponItem(
         Guid? worldId = null,
         WeaponType type = WeaponType.Sword,
         int minDamage = 5,
         int maxDamage = 15
     )
     {
-        return new WeaponItem
+        return new Weapon
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Item-{Guid.NewGuid():N}",
@@ -265,9 +273,9 @@ internal static class Builders
         };
     }
 
-    public static ArmorItem MakeArmorItem(Guid? worldId = null, ArmorType type = ArmorType.Chest)
+    public static Armor MakeArmorItem(Guid? worldId = null, ArmorType type = ArmorType.Chest)
     {
-        return new ArmorItem
+        return new Armor
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Item-{Guid.NewGuid():N}",
@@ -281,9 +289,9 @@ internal static class Builders
         };
     }
 
-    public static ShieldItem MakeShieldItem(Guid? worldId = null, float blockChance = 0.25f)
+    public static Shield MakeShieldItem(Guid? worldId = null, float blockChance = 0.25f)
     {
-        return new ShieldItem
+        return new Shield
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Item-{Guid.NewGuid():N}",
@@ -297,14 +305,14 @@ internal static class Builders
         };
     }
 
-    public static ConsumableItem MakeConsumableItem(
+    public static Consumable MakeConsumableItem(
         Guid? worldId = null,
         string? name = null,
         ResourceType resource = ResourceType.Hp,
         int amount = 50
     )
     {
-        return new ConsumableItem
+        return new Consumable
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name ?? $"Item-{Guid.NewGuid():N}",
@@ -312,17 +320,17 @@ internal static class Builders
             Weight = 1,
             GoldValue = 10,
             Resource = resource,
-            Amount = amount,
+            RestoreAmount = amount,
             Duration = 0,
         };
     }
 
-    public static AmmunitionItem MakeAmmunitionItem(
+    public static Ammunition MakeAmmunitionItem(
         Guid? worldId = null,
         AmmoType type = AmmoType.Arrow
     )
     {
-        return new AmmunitionItem
+        return new Ammunition
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Item-{Guid.NewGuid():N}",
@@ -333,12 +341,12 @@ internal static class Builders
         };
     }
 
-    public static AccessoryItem MakeAccessoryItem(
+    public static Accessory MakeAccessoryItem(
         Guid? worldId = null,
         AccessoryType type = AccessoryType.Ring
     )
     {
-        return new AccessoryItem
+        return new Accessory
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Item-{Guid.NewGuid():N}",

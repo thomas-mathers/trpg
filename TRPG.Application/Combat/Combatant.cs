@@ -29,26 +29,24 @@ public record ConsumableItemSnapshot(
     int Quantity
 )
 {
-    public static IReadOnlyList<ConsumableItemSnapshot> FromInventoryItems(
-        IReadOnlyCollection<InventoryItem> inventoryItems
-    )
+    public static IReadOnlyList<ConsumableItemSnapshot> FromItems(IReadOnlyCollection<Item> items)
     {
         var snapshots = new List<ConsumableItemSnapshot>();
 
-        foreach (var inventoryItem in inventoryItems)
+        foreach (var item in items)
         {
-            if (inventoryItem.Item is not ConsumableItem consumableItem)
+            if (item is not Consumable consumable)
             {
                 continue;
             }
 
             snapshots.Add(
                 new ConsumableItemSnapshot(
-                    inventoryItem.Item.Id,
-                    inventoryItem.Item.Name,
-                    consumableItem.Resource,
-                    consumableItem.Amount,
-                    inventoryItem.Quantity
+                    item.Id,
+                    item.Name,
+                    consumable.Resource,
+                    consumable.RestoreAmount,
+                    item.Quantity
                 )
             );
         }
@@ -84,23 +82,20 @@ public class Combatant
     public int MaximumHp => (int)CalculateEffectiveAttribute(AttributeName.MaximumHp);
     public int MaximumAp => (int)CalculateEffectiveAttribute(AttributeName.MaximumAp);
     public int MaximumMp => (int)CalculateEffectiveAttribute(AttributeName.MaximumMp);
-    public WeaponItem? Weapon => EquippedItems.OfType<WeaponItem>().SingleOrDefault();
+    public Weapon? Weapon => EquippedItems.OfType<Weapon>().SingleOrDefault();
     public int? WeaponProficiency => Weapon != null ? WeaponProficiencies[Weapon.Type] : null;
-    public ShieldItem? Shield => EquippedItems.OfType<ShieldItem>().SingleOrDefault();
+    public Shield? Shield => EquippedItems.OfType<Shield>().SingleOrDefault();
     public float BlockChance => Shield?.BlockChance ?? 0f;
 
     public static Combatant FromCreature(
         Creature creature,
         IReadOnlyList<Ability> abilities,
         bool isPlayer,
-        IReadOnlyList<InventoryItem> inventoryItems,
+        IReadOnlyList<Item> items,
         IReadOnlyDictionary<WeaponType, int> weaponProficiencies
     )
     {
-        var equippedItems = inventoryItems
-            .Where(i => i.EquippedSlot != null)
-            .Select(i => i.Item)
-            .ToArray();
+        var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
 
         var startingAttributes = StatFormulas.CalculateEffectiveAttributes(
             creature.BaseAttributes,
@@ -121,7 +116,7 @@ public class Combatant
             CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
             CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),
             EquippedItems = equippedItems,
-            ConsumableItemSnapshots = ConsumableItemSnapshot.FromInventoryItems(inventoryItems),
+            ConsumableItemSnapshots = ConsumableItemSnapshot.FromItems(items),
             WeaponProficiencies = Enum.GetValues<WeaponType>()
                 .ToDictionary(type => type, weaponProficiencies.GetValueOrDefault),
             ActiveConditions = Enum.GetValues<ConditionType>()

@@ -290,9 +290,8 @@ public class CreatureGeneratorTests
         // Act
         var result = _creatureGenerator.Generate(MakeMonsterInput(CreatureArchetype.Beast, 5));
 
-        // Assert
-        Assert.Empty(result.Items);
-        Assert.Empty(result.InventoryItems);
+        // Assert — starting gold still mints its own Gold item, but no gear
+        Assert.DoesNotContain(result.Items, i => i is not Gold);
     }
 
     [Fact]
@@ -301,8 +300,8 @@ public class CreatureGeneratorTests
         // Act
         var result = _creatureGenerator.Generate(MakeMonsterInput(CreatureArchetype.Undead, 5));
 
-        // Assert — one sword plus the four armor pieces, and nothing else
-        Assert.Equal(5, result.Items.Count);
+        // Assert — one sword plus the four armor pieces, and nothing else besides gold
+        Assert.Equal(5, result.Items.Count(i => i is not Gold));
     }
 
     [Fact]

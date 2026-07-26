@@ -204,7 +204,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
         ),
     ];
 
-    public ArmorItem GenerateArmor(ArmorType type, ArmorClass armorClass, int level, Guid worldId)
+    public Armor GenerateArmor(ArmorType type, ArmorClass armorClass, int level, Guid worldId)
     {
         var fallback = new ArmorClassData([type.ToString()], 5, 2, 20);
         var data = Types.GetValueOrDefault(type)?.GetValueOrDefault(armorClass) ?? fallback;
@@ -214,7 +214,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
         var modifiers = chosen.Select(t => t.Build(level)).ToList();
         var durabilityMax = 60 + level * 6;
 
-        return new ArmorItem
+        return new Armor
         {
             WorldId = worldId,
             Level = level,
@@ -232,7 +232,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
         };
     }
 
-    public ShieldItem GenerateShield(int level, Guid worldId)
+    public Shield GenerateShield(int level, Guid worldId)
     {
         var baseName = ShieldBaseNames[Random.Shared.Next(ShieldBaseNames.Length)];
         var eligible = _modifiers.Where(t => t.MinItemLevel <= level).ToList();
@@ -240,7 +240,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
         var modifiers = chosen.Select(t => t.Build(level)).ToList();
         var durabilityMax = 60 + level * 6;
 
-        return new ShieldItem
+        return new Shield
         {
             WorldId = worldId,
             Level = level,

@@ -11,6 +11,7 @@ using TRPG.Data;
 using TRPG.Tests.Helpers;
 using DataCreatureType = TRPG.Data.Models.CreatureType;
 using DataSkill = TRPG.Data.Models.Skill;
+using OwnerType = TRPG.Data.Models.OwnerType;
 
 namespace TRPG.Tests.Endpoints;
 
@@ -152,9 +153,12 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         ).ToLookup(a => a.CreatureId);
         var inventoryByCreature = (
             await context
-                .InventoryItems.Where(i => monsterIds.Contains(i.CreatureId))
+                .Items.Where(i =>
+                    i.Ownership.OwnerType == OwnerType.Creature
+                    && monsterIds.Contains(i.Ownership.OwnerId)
+                )
                 .ToListAsync(TestContext.Current.CancellationToken)
-        ).ToLookup(i => i.CreatureId);
+        ).ToLookup(i => i.Ownership.OwnerId);
 
         Assert.All(
             monsters,

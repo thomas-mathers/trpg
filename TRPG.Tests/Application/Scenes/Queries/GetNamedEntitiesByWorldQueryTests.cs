@@ -98,24 +98,4 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
         Assert.Contains(result, e => e.Name == state.Name && e.Type == NamedEntityType.State);
         Assert.Contains(result, e => e.Name == city.Name && e.Type == NamedEntityType.City);
     }
-
-    [Fact]
-    public async Task Handle_IncludesUniqueItems_ButExcludesOtherRarities()
-    {
-        // Arrange
-        var uniqueItem = Builders.MakeItem(WorldId, ItemRarity.Unique);
-        var normalItem = Builders.MakeItem(WorldId);
-        _context.Items.AddRange(uniqueItem, normalItem);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var result = await _handler.Handle(
-            new GetNamedEntitiesByWorldQuery { WorldId = WorldId },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Contains(result, e => e.Name == uniqueItem.Name && e.Type == NamedEntityType.Item);
-        Assert.DoesNotContain(result, e => e.Name == normalItem.Name);
-    }
 }

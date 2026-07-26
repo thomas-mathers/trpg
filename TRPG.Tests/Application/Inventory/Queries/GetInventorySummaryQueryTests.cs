@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -10,7 +9,6 @@ namespace TRPG.Tests.Application.Inventory.Queries;
 [Collection("Database")]
 public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private AddInventoryItemCommandHandler _addInventoryItem = null!;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private GetInventorySummaryQueryHandler _handler = null!;
@@ -22,7 +20,6 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _addInventoryItem = _serviceProvider.GetRequiredService<AddInventoryItemCommandHandler>();
         _handler = _serviceProvider.GetRequiredService<GetInventorySummaryQueryHandler>();
 
         _context.Creatures.Add(_creature);
@@ -35,8 +32,11 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
         await _context.DisposeAsync();
     }
 
-    private async Task<Item> SeedItem(Item item)
+    private async Task<Item> SeedItem(Item item, int quantity)
     {
+        item.Quantity = quantity;
+        item.Ownership.OwnerId = _creature.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
         _context.Items.Add(item);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return item;
@@ -73,26 +73,8 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_ReturnsEveryItem_WhenConsumableOnlyIsFalse()
     {
         // Arrange
-        var weapon = await SeedItem(Builders.MakeWeaponItem(_creature.WorldId));
-        var potion = await SeedItem(Builders.MakeConsumableItem(_creature.WorldId));
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = weapon.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = potion.Id,
-                Quantity = 3,
-            },
-            TestContext.Current.CancellationToken
-        );
+        var weapon = await SeedItem(Builders.MakeWeaponItem(_creature.WorldId), 1);
+        var potion = await SeedItem(Builders.MakeConsumableItem(_creature.WorldId), 3);
 
         // Act
         var result = await _handler.Handle(
@@ -102,34 +84,16 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         Assert.Equal(2, result.Items.Count);
-        Assert.Contains(result.Items, i => i.ItemId == weapon.Id);
-        Assert.Contains(result.Items, i => i.ItemId == potion.Id);
+        Assert.Contains(result.Items, i => i.Id == weapon.Id);
+        Assert.Contains(result.Items, i => i.Id == potion.Id);
     }
 
     [Fact]
     public async Task Handle_ReturnsOnlyConsumables_WhenConsumableOnlyIsTrue()
     {
         // Arrange
-        var weapon = await SeedItem(Builders.MakeWeaponItem(_creature.WorldId));
-        var potion = await SeedItem(Builders.MakeConsumableItem(_creature.WorldId));
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = weapon.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
-        await _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = potion.Id,
-                Quantity = 3,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await SeedItem(Builders.MakeWeaponItem(_creature.WorldId), 1);
+        var potion = await SeedItem(Builders.MakeConsumableItem(_creature.WorldId), 3);
 
         // Act
         var result = await _handler.Handle(
@@ -139,6 +103,6 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         var item = Assert.Single(result.Items);
-        Assert.Equal(potion.Id, item.ItemId);
+        Assert.Equal(potion.Id, item.Id);
     }
 }

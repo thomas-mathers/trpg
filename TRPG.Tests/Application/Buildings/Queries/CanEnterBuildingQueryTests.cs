@@ -1,7 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
-using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -11,7 +11,6 @@ namespace TRPG.Tests.Application.Buildings.Queries;
 [Collection("Database")]
 public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private AddInventoryItemCommandHandler _addInventoryItem = null!;
     private Building _building = null!;
     private SetFrontDoorLockedCommandHandler _setFrontDoorLocked = null!;
     private TrpgDbContext _context = null!;
@@ -29,7 +28,6 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
             .BuildServiceProvider();
         _setFrontDoorLocked =
             _serviceProvider.GetRequiredService<SetFrontDoorLockedCommandHandler>();
-        _addInventoryItem = _serviceProvider.GetRequiredService<AddInventoryItemCommandHandler>();
         _handler = _serviceProvider.GetRequiredService<CanEnterBuildingQueryHandler>();
 
         _stateId = Guid.NewGuid();
@@ -78,16 +76,17 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         return keyItem;
     }
 
-    private Task GiveKey(Guid creatureId, Guid itemId) =>
-        _addInventoryItem.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = creatureId,
-                ItemId = itemId,
-                Quantity = 1,
-            },
+    private async Task GiveKey(Guid creatureId, Guid itemId)
+    {
+        var item = await _context.Items.FirstAsync(
+            i => i.Id == itemId,
             TestContext.Current.CancellationToken
         );
+        item.Quantity = 1;
+        item.Ownership.OwnerId = creatureId;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
 
     [Fact]
     public async Task Handle_ReturnsTrue_WhenNotLocked()

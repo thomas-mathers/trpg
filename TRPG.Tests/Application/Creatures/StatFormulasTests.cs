@@ -106,7 +106,7 @@ public class StatFormulasTests
         // Arrange
         Item[] inventory =
         [
-            new WeaponItem
+            new Weapon
             {
                 Name = "Test Weapon",
                 Modifiers =

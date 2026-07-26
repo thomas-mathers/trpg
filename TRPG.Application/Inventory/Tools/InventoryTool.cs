@@ -81,7 +81,7 @@ internal class InventoryTool(
         var result = new InventoryResult(
             target.Name,
             target.Gold,
-            items.Select(i => new InventoryItemInfo(i.Item.Name, i.Quantity)).ToArray()
+            items.Select(i => new InventoryItemInfo(i.Name, i.Quantity)).ToArray()
         );
 
         logger.LogInformation(

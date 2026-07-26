@@ -10,11 +10,11 @@ public class AmmoGenerator
         [AmmoType.Bolt] = ["Bolts", "Broadhead Bolts", "Steel Bolts"],
     };
 
-    public AmmunitionItem Generate(AmmoType type, Guid worldId)
+    public Ammunition Generate(AmmoType type, Guid worldId)
     {
         var names = BaseNames.GetValueOrDefault(type, [type.ToString()]);
         var baseName = names[Random.Shared.Next(names.Length)];
-        return new AmmunitionItem
+        return new Ammunition
         {
             WorldId = worldId,
             Level = 1,

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures;
+using TRPG.Application.Inventory;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -28,12 +29,14 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
             throw new InvalidOperationException($"Creature {command.CreatureId} not found.");
         }
 
-        var inventoryItems = await context
-            .InventoryItems.Include(i => i.Item)
-            .Where(i => i.CreatureId == command.CreatureId)
+        var items = await context
+            .Items.Where(i =>
+                i.Ownership.OwnerType == OwnerType.Creature
+                && i.Ownership.OwnerId == command.CreatureId
+            )
             .ToArrayAsync(cancellationToken);
 
-        var toEquip = inventoryItems.FirstOrDefault(i => i.ItemId == command.ItemId);
+        var toEquip = items.FirstOrDefault(i => i.Id == command.ItemId);
         if (toEquip == null)
         {
             throw new InvalidOperationException(
@@ -41,18 +44,24 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
             );
         }
 
-        var currentlyEquipped = inventoryItems.FirstOrDefault(i => i.EquippedSlot == command.Slot);
-        if (currentlyEquipped != null)
+        if (ItemEquipmentPolicy.GetDefaultSlot(toEquip) == null)
         {
-            currentlyEquipped.EquippedSlot = null;
+            throw new InvalidOperationException($"Item {command.ItemId} cannot be equipped.");
         }
 
-        toEquip.EquippedSlot = command.Slot;
+        var currentlyEquipped = items.FirstOrDefault(i => i.Ownership.EquippedSlot == command.Slot);
+        if (currentlyEquipped != null)
+        {
+            currentlyEquipped.Ownership.EquippedSlot = null;
+            // Saved separately so the old occupant's slot clears before the new one is set —
+            // doing both in one SaveChangesAsync can transiently violate the
+            // ux_items_owner_equipped_slot unique index depending on statement order.
+            await context.SaveChangesAsync(cancellationToken);
+        }
 
-        var equippedItems = inventoryItems
-            .Where(i => i.EquippedSlot != null)
-            .Select(i => i.Item)
-            .ToArray();
+        toEquip.Ownership.EquippedSlot = command.Slot;
+
+        var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
         CreatureAttributesRecalculator.Recalculate(creature, equippedItems);
 
         await context.SaveChangesAsync(cancellationToken);
