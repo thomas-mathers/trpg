@@ -50,8 +50,8 @@ public class StatFormulas(IOptionsSnapshot<CreatureGeneratorOptions> optionsSnap
             .ToArray();
         var extraFlat =
             attribute == AttributeName.Defense
-                ? inventory.OfType<ArmorItem>().Sum(armor => armor.Defense)
-                    + inventory.OfType<ShieldItem>().Sum(shield => shield.Defense)
+                ? inventory.OfType<Armor>().Sum(armor => armor.Defense)
+                    + inventory.OfType<Shield>().Sum(shield => shield.Defense)
                 : 0;
 
         var flat =

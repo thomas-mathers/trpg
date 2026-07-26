@@ -22,7 +22,6 @@ public class CityGeneratorResult
     public required IReadOnlyList<BuildingOwner> BuildingOwners { get; init; }
     public required IReadOnlyList<FactionMember> FactionMembers { get; init; }
     public required IReadOnlyList<Item> Items { get; init; }
-    public required IReadOnlyList<InventoryItem> InventoryItems { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<CreatureSkill> Skills { get; init; }
@@ -55,7 +54,6 @@ public class CityGenerator(
         public List<BuildingOwner> BuildingOwners { get; } = [];
         public List<FactionMember> FactionMembers { get; } = [];
         public List<Item> Items { get; } = [];
-        public List<InventoryItem> InventoryItems { get; } = [];
         public List<Room> Rooms { get; } = [];
         public List<Prop> Props { get; } = [];
         public List<CreatureSkill> Skills { get; } = [];
@@ -166,7 +164,6 @@ public class CityGenerator(
             BuildingOwners = workspace.BuildingOwners.ToArray(),
             FactionMembers = workspace.FactionMembers.ToArray(),
             Items = workspace.Items.ToArray(),
-            InventoryItems = workspace.InventoryItems.ToArray(),
             Rooms = workspace.Rooms.ToArray(),
             Props = workspace.Props.ToArray(),
             Skills = workspace.Skills.ToArray(),
@@ -327,17 +324,14 @@ public class CityGenerator(
                 WorldId = worldId,
                 Name = $"Key to {buildingResult.Building.Name}",
                 Description = $"A key that unlocks {buildingResult.Building.Name}.",
+                Quantity = 1,
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = residentId,
+                    OwnerType = OwnerType.Creature,
+                },
             };
             workspace.Items.Add(keyItem);
-            workspace.InventoryItems.Add(
-                new InventoryItem
-                {
-                    CreatureId = residentId,
-                    ItemId = keyItem.Id,
-                    Quantity = 1,
-                    WorldId = worldId,
-                }
-            );
             workspace.RoomConnectorKeys.Add(
                 new RoomConnectorKey
                 {
@@ -401,7 +395,6 @@ public class CityGenerator(
             memberCreature.Creature.RoomId = groundFloorRoomId;
             workspace.Creatures.Add(memberCreature.Creature);
             workspace.Items.AddRange(memberCreature.Items);
-            workspace.InventoryItems.AddRange(memberCreature.InventoryItems);
             workspace.Skills.AddRange(memberCreature.Skills);
             workspace.Abilities.AddRange(memberCreature.Abilities);
 
@@ -543,7 +536,6 @@ public class CityGenerator(
         }
 
         workspace.Items.AddRange(household.KeyItems);
-        workspace.InventoryItems.AddRange(household.KeyInventoryItems);
         workspace.RoomConnectorKeys.AddRange(household.KeyConnectorKeys);
         workspace.Jobs.AddRange(household.Jobs);
 
@@ -560,7 +552,6 @@ public class CityGenerator(
                 }
             );
             workspace.Items.AddRange(member.Items);
-            workspace.InventoryItems.AddRange(member.InventoryItems);
             workspace.Skills.AddRange(member.Skills);
             workspace.Abilities.AddRange(member.Abilities);
             workspace.HomeRoomIdByMemberId[member.Creature.Id] = household.HomeRoomId;

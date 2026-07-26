@@ -259,7 +259,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
         ),
     ];
 
-    public WeaponItem Generate(WeaponType type, int level, Guid worldId)
+    public Weapon Generate(WeaponType type, int level, Guid worldId)
     {
         var data = Types.GetValueOrDefault(
             type,
@@ -271,7 +271,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
         var modifiers = chosen.Select(t => t.Build(level)).ToList();
         var durabilityMax = 50 + level * 5;
 
-        return new WeaponItem
+        return new Weapon
         {
             WorldId = worldId,
             Level = level,

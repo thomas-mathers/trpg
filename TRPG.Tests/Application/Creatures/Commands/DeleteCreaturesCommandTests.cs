@@ -138,8 +138,9 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.False(
-            await verifyContext.InventoryItems.AnyAsync(
-                x => x.CreatureId == target.Id,
+            await verifyContext.Items.AnyAsync(
+                x =>
+                    x.Ownership.OwnerType == OwnerType.Creature && x.Ownership.OwnerId == target.Id,
                 cancellationToken
             )
         );
@@ -244,8 +245,8 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.True(
-            await verifyContext.InventoryItems.AnyAsync(
-                x => x.CreatureId == other.Id,
+            await verifyContext.Items.AnyAsync(
+                x => x.Ownership.OwnerType == OwnerType.Creature && x.Ownership.OwnerId == other.Id,
                 cancellationToken
             )
         );
@@ -315,6 +316,9 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
     {
         var faction = Builders.MakeFaction(worldId);
         var item = Builders.MakeItem(worldId);
+        item.Quantity = 1;
+        item.Ownership.OwnerId = creatureId;
+        item.Ownership.OwnerType = OwnerType.Creature;
         _context.Factions.Add(faction);
         _context.Items.Add(item);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -353,15 +357,6 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = creatureId,
                 QuestId = questId,
                 Status = QuestStatus.Accepted,
-                WorldId = worldId,
-            }
-        );
-        _context.InventoryItems.Add(
-            new InventoryItem
-            {
-                CreatureId = creatureId,
-                ItemId = item.Id,
-                Quantity = 1,
                 WorldId = worldId,
             }
         );

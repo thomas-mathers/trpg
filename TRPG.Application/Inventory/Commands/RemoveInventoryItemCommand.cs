@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures;
 using TRPG.Data;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Commands;
 
@@ -27,12 +28,14 @@ internal class RemoveInventoryItemCommandHandler(TrpgDbContext context)
             throw new InvalidOperationException($"Creature {command.CreatureId} not found.");
         }
 
-        var inventoryItems = await context
-            .InventoryItems.Include(i => i.Item)
-            .Where(i => i.CreatureId == command.CreatureId)
+        var items = await context
+            .Items.Where(i =>
+                i.Ownership.OwnerType == OwnerType.Creature
+                && i.Ownership.OwnerId == command.CreatureId
+            )
             .ToListAsync(cancellationToken);
 
-        var existing = inventoryItems.FirstOrDefault(i => i.ItemId == command.ItemId);
+        var existing = items.FirstOrDefault(i => i.Id == command.ItemId);
         if (existing == null)
         {
             throw new InvalidOperationException(
@@ -44,14 +47,11 @@ internal class RemoveInventoryItemCommandHandler(TrpgDbContext context)
 
         if (existing.Quantity <= 0)
         {
-            context.InventoryItems.Remove(existing);
-            inventoryItems.Remove(existing);
+            context.Items.Remove(existing);
+            items.Remove(existing);
         }
 
-        var equippedItems = inventoryItems
-            .Where(i => i.EquippedSlot != null)
-            .Select(i => i.Item)
-            .ToArray();
+        var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
         CreatureAttributesRecalculator.Recalculate(creature, equippedItems);
 
         await context.SaveChangesAsync(cancellationToken);

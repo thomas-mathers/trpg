@@ -32,7 +32,6 @@ public class WorldGeneratorResult
     public required IReadOnlyList<District> Districts { get; init; }
     public required IReadOnlyList<FactionMember> FactionMembers { get; init; }
     public required IReadOnlyList<Faction> Factions { get; init; }
-    public required IReadOnlyList<InventoryItem> InventoryItems { get; init; }
     public required IReadOnlyList<Item> Items { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required IReadOnlyList<CreatureKnowledge> Knowledge { get; init; }
@@ -118,7 +117,6 @@ public class WorldGenerator(
         var buildingOwners = new List<BuildingOwner>();
         var factionMembers = new List<FactionMember>();
         var items = new List<Item>();
-        var inventoryItems = new List<InventoryItem>();
         var rooms = new List<Room>();
         var props = new List<Prop>();
         var skills = new List<CreatureSkill>();
@@ -153,7 +151,6 @@ public class WorldGenerator(
             buildingOwners.AddRange(cityResult.BuildingOwners);
             factionMembers.AddRange(cityResult.FactionMembers);
             items.AddRange(cityResult.Items);
-            inventoryItems.AddRange(cityResult.InventoryItems);
             rooms.AddRange(cityResult.Rooms);
             props.AddRange(cityResult.Props);
             skills.AddRange(cityResult.Skills);
@@ -192,7 +189,6 @@ public class WorldGenerator(
                 );
                 monsters.AddRange(dungeonMonsters.Select(m => m.Creature));
                 items.AddRange(dungeonMonsters.SelectMany(m => m.Items));
-                inventoryItems.AddRange(dungeonMonsters.SelectMany(m => m.InventoryItems));
                 skills.AddRange(dungeonMonsters.SelectMany(m => m.Skills));
                 abilities.AddRange(dungeonMonsters.SelectMany(m => m.Abilities));
             }
@@ -244,7 +240,6 @@ public class WorldGenerator(
             BuildingOwners = buildingOwners,
             FactionMembers = factionMembers,
             Items = items,
-            InventoryItems = inventoryItems,
             Rooms = rooms,
             Props = props,
             Skills = skills,

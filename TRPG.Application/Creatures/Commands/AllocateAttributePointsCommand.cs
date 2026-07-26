@@ -66,14 +66,11 @@ internal class AllocateAttributePointsCommandHandler(
             creature.BaseAttributes
         );
 
-        var inventoryItems = await getInventoryByCreatureId.Handle(
+        var items = await getInventoryByCreatureId.Handle(
             new GetInventoryByCreatureIdQuery { CreatureId = command.CreatureId },
             cancellationToken
         );
-        var equippedItems = inventoryItems
-            .Where(i => i.EquippedSlot != null)
-            .Select(i => i.Item)
-            .ToArray();
+        var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
         CreatureAttributesRecalculator.Recalculate(creature, equippedItems);
 
         await context.SaveChangesAsync(cancellationToken);

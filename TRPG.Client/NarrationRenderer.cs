@@ -14,7 +14,6 @@ internal sealed class NarrationRenderer(ILogger logger, IReadOnlyList<NamedEntit
             [EntityType.Creature] = $"{Theme.ChipForeground} on {Theme.CreatureAccent}",
             [EntityType.Building] = $"{Theme.ChipForeground} on {Theme.BuildingAccent}",
             [EntityType.District] = $"{Theme.ChipForeground} on {Theme.DistrictAccent}",
-            [EntityType.Item] = $"{Theme.ChipForeground} on {Theme.Accent}",
             [EntityType.World] = $"{Theme.ChipForeground} on {Theme.WorldAccent}",
             [EntityType.Country] = $"{Theme.ChipForeground} on {Theme.CountryAccent}",
             [EntityType.State] = $"{Theme.ChipForeground} on {Theme.StateAccent}",

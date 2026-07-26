@@ -31,7 +31,7 @@ internal class GetCombatantQueryHandler(
             cancellationToken
         );
 
-        var inventoryItems = await getInventory.Handle(
+        var items = await getInventory.Handle(
             new GetInventoryByCreatureIdQuery { CreatureId = query.Creature.Id },
             cancellationToken
         );
@@ -45,7 +45,7 @@ internal class GetCombatantQueryHandler(
             query.Creature,
             abilities,
             query.IsPlayer,
-            inventoryItems,
+            items,
             weaponProficiencies
         );
     }

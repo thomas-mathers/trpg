@@ -9,21 +9,23 @@ namespace TRPG.Tests.Application.Inventory.Commands;
 [Collection("Database")]
 public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private AddInventoryItemCommandHandler _addHandler = null!;
     private TrpgDbContext _context = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
     private GetInventoryByCreatureIdQueryHandler _getHandler = null!;
     private UnequipInventoryItemCommandHandler _unequipHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
-    private readonly Item _item = Builders.MakeItem();
+    private readonly Item _item = Builders.MakeWeaponItem();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _addHandler = new AddInventoryItemCommandHandler(_context);
         _equipHandler = new EquipInventoryItemCommandHandler(_context);
         _unequipHandler = new UnequipInventoryItemCommandHandler(_context);
         _getHandler = new GetInventoryByCreatureIdQueryHandler(_context);
+
+        _item.Quantity = 1;
+        _item.Ownership.OwnerId = _creature.Id;
+        _item.Ownership.OwnerType = OwnerType.Creature;
 
         _context.Creatures.Add(_creature);
         _context.Items.Add(_item);
@@ -40,15 +42,6 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
     public async Task Handle_ClearsSlot()
     {
         // Arrange
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = _item.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
         await _equipHandler.Handle(
             new EquipInventoryItemCommand
             {
@@ -74,7 +67,7 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
             new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
-        Assert.Null(items.First().EquippedSlot);
+        Assert.Null(items[0].Ownership.EquippedSlot);
     }
 
     [Fact]
@@ -107,17 +100,11 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
                 AmountType = AmountType.Flat,
             }
         );
+        gear.Quantity = 1;
+        gear.Ownership.OwnerId = _creature.Id;
+        gear.Ownership.OwnerType = OwnerType.Creature;
         _context.Items.Add(gear);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = gear.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
         await _equipHandler.Handle(
             new EquipInventoryItemCommand
             {

@@ -5,7 +5,6 @@ public enum EntityType
     Creature,
     Building,
     District,
-    Item,
     World,
     Country,
     State,

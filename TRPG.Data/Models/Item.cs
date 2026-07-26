@@ -23,17 +23,28 @@ public enum ItemRarity
     Unique,
 }
 
-public class Item
+public enum OwnerType
 {
-    public virtual EquipmentSlot? DefaultSlot => null;
-    public string Description { get; init; } = "";
-    public int GoldValue { get; init; }
+    Creature,
+    Container,
+}
+
+public class ItemOwnership
+{
+    public Guid OwnerId { get; set; }
+    public OwnerType OwnerType { get; set; }
+    public EquipmentSlot? EquippedSlot { get; set; }
+    public DateTime AcquiredAt { get; set; } = DateTime.UtcNow;
+}
+
+public record Item
+{
     public Guid Id { get; init; } = Guid.NewGuid();
-    public virtual bool IsStackable => false;
-    public int Level { get; init; }
-    public List<ItemModifier> Modifiers { get; init; } = [];
-    public string Name { get; init; } = "";
-    public ItemRarity Rarity { get; init; }
-    public int Weight { get; init; }
     public Guid WorldId { get; init; }
+    public string Name { get; init; } = "";
+    public string Description { get; init; } = "";
+    public int Weight { get; init; }
+    public int Quantity { get; set; }
+    public List<ItemModifier> Modifiers { get; init; } = [];
+    public ItemOwnership Ownership { get; init; } = new();
 }

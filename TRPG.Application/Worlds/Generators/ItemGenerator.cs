@@ -10,37 +10,37 @@ public class ItemGenerator(
     AmmoGenerator ammoGenerator
 )
 {
-    public WeaponItem GenerateWeapon(WeaponType type, int level, Guid worldId)
+    public Weapon GenerateWeapon(WeaponType type, int level, Guid worldId)
     {
         return weaponGenerator.Generate(type, level, worldId);
     }
 
-    public ArmorItem GenerateArmor(ArmorType type, ArmorClass armorClass, int level, Guid worldId)
+    public Armor GenerateArmor(ArmorType type, ArmorClass armorClass, int level, Guid worldId)
     {
         return armorGenerator.GenerateArmor(type, armorClass, level, worldId);
     }
 
-    public ShieldItem GenerateShield(int level, Guid worldId)
+    public Shield GenerateShield(int level, Guid worldId)
     {
         return armorGenerator.GenerateShield(level, worldId);
     }
 
-    public AccessoryItem GenerateAccessory(AccessoryType type, int level, Guid worldId)
+    public Accessory GenerateAccessory(AccessoryType type, int level, Guid worldId)
     {
         return accessoryGenerator.Generate(type, level, worldId);
     }
 
-    public ConsumableItem GenerateConsumable(int level, Guid worldId)
+    public Consumable GenerateConsumable(int level, Guid worldId)
     {
         return consumableGenerator.Generate(level, worldId);
     }
 
-    public ConsumableItem GenerateConsumable(ResourceType resource, int level, Guid worldId)
+    public Consumable GenerateConsumable(ResourceType resource, int level, Guid worldId)
     {
         return consumableGenerator.Generate(resource, level, worldId);
     }
 
-    public AmmunitionItem GenerateAmmo(AmmoType type, Guid worldId)
+    public Ammunition GenerateAmmo(AmmoType type, Guid worldId)
     {
         return ammoGenerator.Generate(type, worldId);
     }

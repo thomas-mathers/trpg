@@ -54,20 +54,16 @@ public enum AccessoryType
 }
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
-[JsonDerivedType(typeof(WeaponItemSummary), nameof(WeaponItemSummary))]
-[JsonDerivedType(typeof(ArmorItemSummary), nameof(ArmorItemSummary))]
-[JsonDerivedType(typeof(ShieldItemSummary), nameof(ShieldItemSummary))]
-[JsonDerivedType(typeof(ConsumableItemSummary), nameof(ConsumableItemSummary))]
-[JsonDerivedType(typeof(AmmunitionItemSummary), nameof(AmmunitionItemSummary))]
-[JsonDerivedType(typeof(AccessoryItemSummary), nameof(AccessoryItemSummary))]
-public abstract record InventoryItemSummary(
-    Guid ItemId,
-    string Name,
-    int Quantity,
-    ItemRarity Rarity
-);
+[JsonDerivedType(typeof(WeaponSummary), nameof(WeaponSummary))]
+[JsonDerivedType(typeof(ArmorSummary), nameof(ArmorSummary))]
+[JsonDerivedType(typeof(ShieldSummary), nameof(ShieldSummary))]
+[JsonDerivedType(typeof(ConsumableSummary), nameof(ConsumableSummary))]
+[JsonDerivedType(typeof(AmmunitionSummary), nameof(AmmunitionSummary))]
+[JsonDerivedType(typeof(AccessorySummary), nameof(AccessorySummary))]
+[JsonDerivedType(typeof(GoldSummary), nameof(GoldSummary))]
+public abstract record InventoryItemSummary(Guid ItemId, string Name, int Quantity);
 
-public sealed record WeaponItemSummary(
+public sealed record WeaponSummary(
     Guid ItemId,
     string Name,
     int Quantity,
@@ -75,47 +71,50 @@ public sealed record WeaponItemSummary(
     WeaponType Type,
     int MinDamage,
     int MaxDamage
-) : InventoryItemSummary(ItemId, Name, Quantity, Rarity);
+) : InventoryItemSummary(ItemId, Name, Quantity);
 
-public sealed record ArmorItemSummary(
+public sealed record ArmorSummary(
     Guid ItemId,
     string Name,
     int Quantity,
     ItemRarity Rarity,
     ArmorType Type,
     int Defense
-) : InventoryItemSummary(ItemId, Name, Quantity, Rarity);
+) : InventoryItemSummary(ItemId, Name, Quantity);
 
-public sealed record ShieldItemSummary(
+public sealed record ShieldSummary(
     Guid ItemId,
     string Name,
     int Quantity,
     ItemRarity Rarity,
     int Defense,
     float BlockChance
-) : InventoryItemSummary(ItemId, Name, Quantity, Rarity);
+) : InventoryItemSummary(ItemId, Name, Quantity);
 
-public sealed record ConsumableItemSummary(
+public sealed record ConsumableSummary(
     Guid ItemId,
     string Name,
     int Quantity,
     ItemRarity Rarity,
     ResourceType Resource,
-    int Amount
-) : InventoryItemSummary(ItemId, Name, Quantity, Rarity);
+    int RestoreAmount
+) : InventoryItemSummary(ItemId, Name, Quantity);
 
-public sealed record AmmunitionItemSummary(
+public sealed record AmmunitionSummary(
     Guid ItemId,
     string Name,
     int Quantity,
     ItemRarity Rarity,
     AmmoType Type
-) : InventoryItemSummary(ItemId, Name, Quantity, Rarity);
+) : InventoryItemSummary(ItemId, Name, Quantity);
 
-public sealed record AccessoryItemSummary(
+public sealed record AccessorySummary(
     Guid ItemId,
     string Name,
     int Quantity,
     ItemRarity Rarity,
     AccessoryType Type
-) : InventoryItemSummary(ItemId, Name, Quantity, Rarity);
+) : InventoryItemSummary(ItemId, Name, Quantity);
+
+public sealed record GoldSummary(Guid ItemId, string Name, int Quantity)
+    : InventoryItemSummary(ItemId, Name, Quantity);

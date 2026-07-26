@@ -16,7 +16,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
     public DbSet<Building> Buildings => Set<Building>();
     public DbSet<City> Cities => Set<City>();
-    public DbSet<ContainerItem> ContainerItems => Set<ContainerItem>();
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<CreatureAbility> CreatureAbilities => Set<CreatureAbility>();
     public DbSet<CreatureKnowledge> CreatureKnowledge => Set<CreatureKnowledge>();
@@ -29,7 +28,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<District> Districts => Set<District>();
     public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
     public DbSet<Faction> Factions => Set<Faction>();
-    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<CreatureJob> CreatureJobs => Set<CreatureJob>();
     public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
@@ -138,12 +136,13 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity
                 .HasDiscriminator<string>("item_type")
                 .HasValue<Item>("generic")
-                .HasValue<WeaponItem>("weapon")
-                .HasValue<ShieldItem>("shield")
-                .HasValue<ArmorItem>("armor")
-                .HasValue<ConsumableItem>("consumable")
-                .HasValue<AmmunitionItem>("ammunition")
-                .HasValue<AccessoryItem>("accessory");
+                .HasValue<Weapon>("weapon")
+                .HasValue<Shield>("shield")
+                .HasValue<Armor>("armor")
+                .HasValue<Consumable>("consumable")
+                .HasValue<Ammunition>("ammunition")
+                .HasValue<Accessory>("accessory")
+                .HasValue<Gold>("gold");
             entity
                 .Property(i => i.Modifiers)
                 .HasConversion(
@@ -154,19 +153,47 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 )
                 .HasColumnType("jsonb");
             entity.HasIndex(i => i.WorldId);
+            entity.OwnsOne(
+                i => i.Ownership,
+                ownership =>
+                {
+                    ownership.HasIndex(o => o.OwnerId).HasDatabaseName("ix_items_owner_id");
+                    ownership
+                        .HasIndex(o => new { o.OwnerId, o.EquippedSlot })
+                        .IsUnique()
+                        .HasDatabaseName("ux_items_owner_equipped_slot")
+                        .HasFilter("ownership_equipped_slot IS NOT NULL");
+                    ownership
+                        .HasIndex(o => o.OwnerId)
+                        .IsUnique()
+                        .HasDatabaseName("ux_items_gold_owner")
+                        .HasFilter("item_type = 'gold'");
+                }
+            );
         });
 
-        modelBuilder.Entity<WeaponItem>().Property(w => w.Type).HasColumnName("weapon_type");
-        modelBuilder.Entity<ArmorItem>().Property(a => a.Type).HasColumnName("armor_type");
-        modelBuilder.Entity<AmmunitionItem>().Property(a => a.Type).HasColumnName("ammo_type");
-        modelBuilder.Entity<AccessoryItem>().Property(a => a.Type).HasColumnName("accessory_type");
-
-        modelBuilder.Entity<InventoryItem>(entity =>
+        foreach (
+            var tradeableItemType in new[]
+            {
+                typeof(Weapon),
+                typeof(Armor),
+                typeof(Shield),
+                typeof(Accessory),
+                typeof(Consumable),
+                typeof(Ammunition),
+            }
+        )
         {
-            entity.HasOne(i => i.Item).WithMany().HasForeignKey(i => i.ItemId);
-            entity.HasIndex(i => i.CreatureId);
-            entity.HasIndex(i => i.WorldId);
-        });
+            var entity = modelBuilder.Entity(tradeableItemType);
+            entity.Property("GoldValue").HasColumnName("gold_value");
+            entity.Property("Level").HasColumnName("level");
+            entity.Property("Rarity").HasColumnName("rarity");
+        }
+
+        modelBuilder.Entity<Weapon>().Property(w => w.Type).HasColumnName("weapon_type");
+        modelBuilder.Entity<Armor>().Property(a => a.Type).HasColumnName("armor_type");
+        modelBuilder.Entity<Ammunition>().Property(a => a.Type).HasColumnName("ammo_type");
+        modelBuilder.Entity<Accessory>().Property(a => a.Type).HasColumnName("accessory_type");
 
         modelBuilder.Entity<RoomConnectorKey>(entity =>
         {
@@ -242,17 +269,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<Trigger>("Trigger");
             entity.HasIndex(p => p.RoomId);
             entity.HasIndex(p => p.WorldId);
-        });
-
-        modelBuilder.Entity<Container>(entity =>
-        {
-            entity.HasMany(s => s.Items).WithOne().HasForeignKey(pi => pi.ContainerId);
-        });
-
-        modelBuilder.Entity<ContainerItem>(entity =>
-        {
-            entity.HasIndex(pi => new { pi.ContainerId, pi.Index }).IsUnique();
-            entity.HasIndex(pi => pi.WorldId);
         });
 
         modelBuilder.Entity<Quest>(entity =>

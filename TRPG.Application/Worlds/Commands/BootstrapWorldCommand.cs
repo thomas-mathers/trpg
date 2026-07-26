@@ -34,7 +34,6 @@ public class BootstrapWorldCommandHandler(
         context.Creatures.AddRange(world.Creatures);
         context.BuildingOwners.AddRange(world.BuildingOwners);
         context.Items.AddRange(world.Items);
-        context.InventoryItems.AddRange(world.InventoryItems);
         context.Rooms.AddRange(world.Rooms);
         context.Props.AddRange(world.Props);
         context.CreatureSkills.AddRange(world.Skills);
@@ -48,7 +47,6 @@ public class BootstrapWorldCommandHandler(
         {
             context.Creatures.Add(player.Creature);
             context.Items.AddRange(player.Items);
-            context.InventoryItems.AddRange(player.InventoryItems);
             context.CreatureSkills.AddRange(player.Skills);
             context.CreatureAbilities.AddRange(player.Abilities);
         }

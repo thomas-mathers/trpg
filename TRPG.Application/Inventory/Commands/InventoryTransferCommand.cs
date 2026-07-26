@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Creatures;
+using TRPG.Application.Inventory;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Commands;
 
@@ -8,15 +11,10 @@ internal class InventoryTransferCommand
 {
     public required Guid FromCreatureId { get; init; }
     public required Guid ToCreatureId { get; init; }
-    public required bool TakeGold { get; init; }
     public required IReadOnlyList<LootItemSelection> Items { get; init; }
 }
 
-internal class InventoryTransferCommandHandler(
-    TrpgDbContext context,
-    RemoveInventoryItemCommandHandler removeInventoryItem,
-    AddInventoryItemCommandHandler addInventoryItem
-)
+internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldService goldService)
 {
     public async Task Handle(
         InventoryTransferCommand command,
@@ -50,36 +48,86 @@ internal class InventoryTransferCommandHandler(
             cancellationToken
         );
 
-        if (command.TakeGold && fromCreature.Gold > 0)
+        if (command.Items.Count > 0)
         {
-            var gold = fromCreature.Gold;
-            fromCreature.Gold = 0;
-            toCreature.Gold += gold;
-            await context.SaveChangesAsync(cancellationToken);
+            await TransferItems(command, fromCreature, toCreature, cancellationToken);
         }
+
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private async Task TransferItems(
+        InventoryTransferCommand command,
+        Creature fromCreature,
+        Creature toCreature,
+        CancellationToken cancellationToken
+    )
+    {
+        var itemIds = command.Items.Select(i => i.ItemId).ToArray();
+        var items = await context
+            .Items.Where(i => itemIds.Contains(i.Id))
+            .ToListAsync(cancellationToken);
 
         foreach (var selection in command.Items)
         {
-            await removeInventoryItem.Handle(
-                new RemoveInventoryItemCommand
-                {
-                    CreatureId = command.FromCreatureId,
-                    ItemId = selection.ItemId,
-                    Quantity = selection.Quantity,
-                },
-                cancellationToken
-            );
-            await addInventoryItem.Handle(
-                new AddInventoryItemCommand
-                {
-                    CreatureId = command.ToCreatureId,
-                    ItemId = selection.ItemId,
-                    Quantity = selection.Quantity,
-                },
-                cancellationToken
-            );
+            var item =
+                items.FirstOrDefault(i => i.Id == selection.ItemId)
+                ?? throw new InvalidOperationException(
+                    $"Item {selection.ItemId} not found in creature {command.FromCreatureId}'s inventory."
+                );
+
+            if (item.Ownership.OwnerId != command.FromCreatureId)
+            {
+                throw new InvalidOperationException(
+                    $"Item {selection.ItemId} is not owned by creature {command.FromCreatureId}."
+                );
+            }
+
+            if (selection.Quantity <= 0 || selection.Quantity > item.Quantity)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot transfer {selection.Quantity} of item {selection.ItemId}; only {item.Quantity} available."
+                );
+            }
+
+            if (item is Gold goldItem)
+            {
+                await goldService.Transfer(
+                    goldItem,
+                    fromCreature,
+                    toCreature,
+                    selection.Quantity,
+                    cancellationToken
+                );
+            }
+            else if (selection.Quantity == item.Quantity)
+            {
+                item.Ownership.OwnerId = command.ToCreatureId;
+                item.Ownership.EquippedSlot = null;
+                item.Ownership.AcquiredAt = DateTime.UtcNow;
+            }
+            else
+            {
+                item.Quantity -= selection.Quantity;
+                context.Items.Add(
+                    ItemEquipmentPolicy.Split(
+                        item,
+                        selection.Quantity,
+                        command.ToCreatureId,
+                        OwnerType.Creature
+                    )
+                );
+            }
         }
 
-        await transaction.CommitAsync(cancellationToken);
+        var remainingEquipped = await context
+            .Items.Where(i =>
+                i.Ownership.OwnerType == OwnerType.Creature
+                && i.Ownership.OwnerId == command.FromCreatureId
+                && i.Ownership.EquippedSlot != null
+            )
+            .ToListAsync(cancellationToken);
+        CreatureAttributesRecalculator.Recalculate(fromCreature, remainingEquipped);
     }
 }

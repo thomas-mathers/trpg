@@ -10,7 +10,7 @@ internal class GetInventorySummaryQuery
     public required bool ConsumableOnly { get; init; }
 }
 
-internal record InventorySnapshot(int Gold, IReadOnlyList<InventoryItem> Items);
+internal record InventorySnapshot(int Gold, IReadOnlyList<Item> Items);
 
 internal class GetInventorySummaryQueryHandler(
     TrpgDbContext context,
@@ -35,7 +35,7 @@ internal class GetInventorySummaryQueryHandler(
 
         if (query.ConsumableOnly)
         {
-            items = items.Where(i => i.Item is ConsumableItem).ToArray();
+            items = items.Where(i => i is Consumable).ToArray();
         }
 
         return new InventorySnapshot(gold, items);

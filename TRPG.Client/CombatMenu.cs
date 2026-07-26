@@ -92,14 +92,14 @@ internal sealed class CombatMenu(
         return true;
     }
 
-    private static Task<ConsumableItemSummary?> PromptForItem(
-        IReadOnlyList<ConsumableItemSummary> candidates,
+    private static Task<ConsumableSummary?> PromptForItem(
+        IReadOnlyList<ConsumableSummary> candidates,
         CancellationToken cancellationToken
     ) =>
         PromptForOption(
             "Choose an item:",
             candidates,
-            i => $"{i.Name} (+{i.Amount} {i.Resource.ToDisplayName()})",
+            i => $"{i.Name} (+{i.RestoreAmount} {i.Resource.ToDisplayName()})",
             cancellationToken
         );
 

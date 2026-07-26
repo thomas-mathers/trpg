@@ -3,6 +3,7 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Common.Algorithms;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
+using TRPG.Application.Inventory;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data.Models;
 
@@ -26,7 +27,6 @@ public record CreatureGeneratorInput(
 public record CreatureGeneratorResult(
     Creature Creature,
     IReadOnlyList<Item> Items,
-    IReadOnlyList<InventoryItem> InventoryItems,
     IReadOnlyCollection<CreatureSkill> Skills,
     IReadOnlyCollection<CreatureAbility> Abilities
 );
@@ -870,12 +870,24 @@ public class CreatureGenerator(
             Level = level,
         };
 
-        var (items, inventoryItems) = GenerateStartingInventory(creature, archetype);
-        var equippedItems = items
-            .Zip(inventoryItems, (item, inventoryItem) => (item, inventoryItem))
-            .Where(pair => pair.inventoryItem.EquippedSlot != null)
-            .Select(pair => pair.item)
-            .ToArray();
+        var items = GenerateStartingInventory(creature, archetype).ToList();
+        if (creature.Gold > 0)
+        {
+            items.Add(
+                new Gold
+                {
+                    WorldId = creature.WorldId,
+                    Name = "Gold",
+                    Quantity = creature.Gold,
+                    Ownership = new ItemOwnership
+                    {
+                        OwnerId = creature.Id,
+                        OwnerType = OwnerType.Creature,
+                    },
+                }
+            );
+        }
+        var equippedItems = items.Where(item => item.Ownership.EquippedSlot != null).ToArray();
 
         CreatureAttributesRecalculator.Recalculate(creature, equippedItems);
 
@@ -887,13 +899,12 @@ public class CreatureGenerator(
 
         var abilities = GetAbilities(creature, skills);
 
-        return new CreatureGeneratorResult(creature, items, inventoryItems, skills, abilities);
+        return new CreatureGeneratorResult(creature, items, skills, abilities);
     }
 
     public CreatureGeneratorResult AddStartingPotions(CreatureGeneratorResult result)
     {
         var creature = result.Creature;
-        var nextIndex = result.InventoryItems.Count;
 
         var potions = ConsumableGenerator
             .PotionNamesByResource.Keys.Select(resource =>
@@ -901,25 +912,16 @@ public class CreatureGenerator(
             )
             .ToArray();
 
-        var potionInventoryItems = potions
-            .Select(
-                (item, index) =>
-                    new InventoryItem
-                    {
-                        CreatureId = creature.Id,
-                        ItemId = item.Id,
-                        Quantity = 1,
-                        Index = nextIndex + index,
-                        EquippedSlot = null,
-                        WorldId = creature.WorldId,
-                    }
-            )
-            .ToArray();
+        foreach (var potion in potions)
+        {
+            potion.Quantity = 1;
+            potion.Ownership.OwnerId = creature.Id;
+            potion.Ownership.OwnerType = OwnerType.Creature;
+        }
 
         return result with
         {
             Items = [.. result.Items, .. potions],
-            InventoryItems = [.. result.InventoryItems, .. potionInventoryItems],
         };
     }
 
@@ -1059,33 +1061,31 @@ public class CreatureGenerator(
         };
     }
 
-    private StartingInventoryResult GenerateStartingInventory(
+    private IReadOnlyList<Item> GenerateStartingInventory(
         Creature creature,
         CreatureArchetype archetype
     )
     {
         var startingItems = GetStartingItems(creature, archetype);
         var items = new List<Item>();
-        var inventoryItems = new List<InventoryItem>();
-        var index = 0;
+        var occupiedSlots = new HashSet<EquipmentSlot>();
 
         foreach (var (item, quantity, slotOverride) in startingItems)
         {
+            item.Quantity = quantity;
+            item.Ownership.OwnerId = creature.Id;
+            item.Ownership.OwnerType = OwnerType.Creature;
+
+            var resolvedSlot = slotOverride ?? ItemEquipmentPolicy.GetDefaultSlot(item);
+            if (resolvedSlot != null && occupiedSlots.Add(resolvedSlot.Value))
+            {
+                item.Ownership.EquippedSlot = resolvedSlot;
+            }
+
             items.Add(item);
-            inventoryItems.Add(
-                new InventoryItem
-                {
-                    CreatureId = creature.Id,
-                    ItemId = item.Id,
-                    Quantity = quantity,
-                    Index = index++,
-                    EquippedSlot = slotOverride ?? item.DefaultSlot,
-                    WorldId = creature.WorldId,
-                }
-            );
         }
 
-        return new StartingInventoryResult(items.ToArray(), inventoryItems.ToArray());
+        return items;
     }
 
     private StartingItem[] GetStartingItems(Creature creature, CreatureArchetype archetype)
@@ -1278,11 +1278,6 @@ public class CreatureGenerator(
     }
 
     private record NamePool(string[] MaleFirstNames, string[] FemaleFirstNames, string[] LastNames);
-
-    private record StartingInventoryResult(
-        IReadOnlyList<Item> Items,
-        IReadOnlyList<InventoryItem> InventoryItems
-    );
 
     private record StartingItem(Item Item, int Quantity, EquipmentSlot? SlotOverride = null);
 }

@@ -148,7 +148,7 @@ public class AccessoryGenerator
         ),
     ];
 
-    public AccessoryItem Generate(AccessoryType type, int level, Guid worldId)
+    public Accessory Generate(AccessoryType type, int level, Guid worldId)
     {
         var data = Types.GetValueOrDefault(type, new AccessoryTypeData([type.ToString()], 1));
         var baseName = data.BaseNames[Random.Shared.Next(data.BaseNames.Length)];
@@ -156,7 +156,7 @@ public class AccessoryGenerator
         var chosen = PickModifierTemplates(eligible, ModifierCount(level), level);
         var modifiers = chosen.Select(t => t.Build(level)).ToList();
 
-        return new AccessoryItem
+        return new Accessory
         {
             WorldId = worldId,
             Level = level,

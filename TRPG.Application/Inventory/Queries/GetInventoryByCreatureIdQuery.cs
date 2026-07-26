@@ -11,16 +11,19 @@ internal class GetInventoryByCreatureIdQuery
 
 internal class GetInventoryByCreatureIdQueryHandler(TrpgDbContext context)
 {
-    public async Task<IReadOnlyList<InventoryItem>> Handle(
+    public async Task<IReadOnlyList<Item>> Handle(
         GetInventoryByCreatureIdQuery query,
         CancellationToken cancellationToken = default
     )
     {
         return await context
-            .InventoryItems.AsNoTracking()
-            .Include(i => i.Item)
-            .Where(i => i.CreatureId == query.CreatureId)
-            .OrderBy(i => i.Index)
+            .Items.AsNoTracking()
+            .Where(i =>
+                i.Ownership.OwnerType == OwnerType.Creature
+                && i.Ownership.OwnerId == query.CreatureId
+                && i.Quantity > 0
+            )
+            .OrderBy(i => i.Ownership.AcquiredAt)
             .ToArrayAsync(cancellationToken);
     }
 }

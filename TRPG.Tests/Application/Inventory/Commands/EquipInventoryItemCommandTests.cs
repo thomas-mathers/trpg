@@ -9,23 +9,24 @@ namespace TRPG.Tests.Application.Inventory.Commands;
 [Collection("Database")]
 public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private AddInventoryItemCommandHandler _addHandler = null!;
     private TrpgDbContext _context = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
     private GetInventoryByCreatureIdQueryHandler _getHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
-    private readonly Item _item = Builders.MakeItem();
-    private readonly Item _stackableItem = Builders.MakeConsumableItem();
+    private readonly Item _weapon = Builders.MakeWeaponItem();
+    private readonly Item _otherWeapon = Builders.MakeWeaponItem();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _addHandler = new AddInventoryItemCommandHandler(_context);
         _equipHandler = new EquipInventoryItemCommandHandler(_context);
         _getHandler = new GetInventoryByCreatureIdQueryHandler(_context);
 
+        GiveToCreature(_weapon);
+        GiveToCreature(_otherWeapon);
+
         _context.Creatures.Add(_creature);
-        _context.Items.AddRange(_item, _stackableItem);
+        _context.Items.AddRange(_weapon, _otherWeapon);
 
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -35,26 +36,22 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
         await _context.DisposeAsync();
     }
 
+    private void GiveToCreature(Item item)
+    {
+        item.Quantity = 1;
+        item.Ownership.OwnerId = _creature.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+    }
+
     [Fact]
     public async Task Handle_SetsEquippedSlot()
     {
-        // Arrange
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = _item.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
-
         // Act
         await _equipHandler.Handle(
             new EquipInventoryItemCommand
             {
                 CreatureId = _creature.Id,
-                ItemId = _item.Id,
+                ItemId = _weapon.Id,
                 Slot = EquipmentSlot.RightHand,
             },
             TestContext.Current.CancellationToken
@@ -65,36 +62,21 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
             new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(EquipmentSlot.RightHand, items.First().EquippedSlot);
+        Assert.Equal(
+            EquipmentSlot.RightHand,
+            items.First(i => i.Id == _weapon.Id).Ownership.EquippedSlot
+        );
     }
 
     [Fact]
     public async Task Handle_UnequipsPrevious_WhenSlotAlreadyOccupied()
     {
         // Arrange
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = _item.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = _stackableItem.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
         await _equipHandler.Handle(
             new EquipInventoryItemCommand
             {
                 CreatureId = _creature.Id,
-                ItemId = _item.Id,
+                ItemId = _weapon.Id,
                 Slot = EquipmentSlot.RightHand,
             },
             TestContext.Current.CancellationToken
@@ -105,7 +87,7 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
             new EquipInventoryItemCommand
             {
                 CreatureId = _creature.Id,
-                ItemId = _stackableItem.Id,
+                ItemId = _otherWeapon.Id,
                 Slot = EquipmentSlot.RightHand,
             },
             TestContext.Current.CancellationToken
@@ -116,10 +98,12 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
             new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
-        var equipped = items.Where(i => i.EquippedSlot == EquipmentSlot.RightHand).ToList();
+        var equipped = items
+            .Where(i => i.Ownership.EquippedSlot == EquipmentSlot.RightHand)
+            .ToList();
 
         Assert.Single(equipped);
-        Assert.Equal(_stackableItem.Id, equipped[0].ItemId);
+        Assert.Equal(_otherWeapon.Id, equipped[0].Id);
     }
 
     [Fact]
@@ -128,17 +112,9 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
         // Arrange
         var baseDefense = _creature.Defense;
         var armor = Builders.MakeArmorItem(worldId: _creature.WorldId);
+        GiveToCreature(armor);
         _context.Items.Add(armor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addHandler.Handle(
-            new AddInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = armor.Id,
-                Quantity = 1,
-            },
-            TestContext.Current.CancellationToken
-        );
 
         // Act
         await _equipHandler.Handle(
@@ -158,5 +134,28 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
             TestContext.Current.CancellationToken
         );
         Assert.Equal(baseDefense + armor.Defense, updated!.Defense);
+    }
+
+    [Fact]
+    public async Task Handle_Throws_WhenItemIsNotEquippable()
+    {
+        // Arrange
+        var potion = Builders.MakeConsumableItem(worldId: _creature.WorldId);
+        GiveToCreature(potion);
+        _context.Items.Add(potion);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _equipHandler.Handle(
+                new EquipInventoryItemCommand
+                {
+                    CreatureId = _creature.Id,
+                    ItemId = potion.Id,
+                    Slot = EquipmentSlot.RightHand,
+                },
+                TestContext.Current.CancellationToken
+            )
+        );
     }
 }
