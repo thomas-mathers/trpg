@@ -12,7 +12,7 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private GetInventorySummaryQueryHandler _handler = null!;
-    private readonly Creature _creature = Builders.MakeCreature(gold: 100);
+    private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
@@ -45,6 +45,9 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_ReturnsTheCreaturesGold()
     {
+        // Arrange
+        await SeedItem(Builders.MakeGold(_creature.WorldId), 100);
+
         // Act
         var result = await _handler.Handle(
             new GetInventorySummaryQuery { CreatureId = _creature.Id, ConsumableOnly = false },

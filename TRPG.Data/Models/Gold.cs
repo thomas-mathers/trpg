@@ -1,3 +1,3 @@
 namespace TRPG.Data.Models;
 
-public record Gold : Item;
+public class Gold : Item;

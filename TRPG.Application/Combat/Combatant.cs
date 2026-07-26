@@ -111,7 +111,7 @@ public class Combatant
             Level = creature.Level,
             Attributes = creature.BaseAttributes,
             Abilities = abilities,
-            Gold = creature.Gold,
+            Gold = items.OfType<Gold>().Sum(i => i.Quantity),
             CurrentHp = Math.Clamp(creature.CurrentHp, 0, startingAttributes.MaximumHp),
             CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
             CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),

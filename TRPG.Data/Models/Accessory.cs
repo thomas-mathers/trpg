@@ -7,7 +7,7 @@ public enum AccessoryType
     Belt,
 }
 
-public record Accessory : Item
+public class Accessory : Item
 {
     public int GoldValue { get; init; }
     public int Level { get; init; }

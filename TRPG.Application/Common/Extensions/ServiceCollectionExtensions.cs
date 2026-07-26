@@ -19,7 +19,6 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Tools;
@@ -69,7 +68,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetInventoryByCreatureIdQueryHandler>()
             .AddTransient<GetInventorySummaryQueryHandler>()
             .AddTransient<InventoryTransferCommandHandler>()
-            .AddTransient<GoldService>()
             .AddTransient<AddCreatureJobCommandHandler>()
             .AddTransient<DeleteCreatureJobCommandHandler>()
             .AddTransient<GetAllCreatureJobsByCreatureIdQueryHandler>()

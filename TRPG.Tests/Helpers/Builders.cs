@@ -161,8 +161,7 @@ internal static class Builders
         int? currentHp = null,
         int? currentAp = null,
         int? currentMp = null,
-        CreatureState state = default,
-        int gold = 0
+        CreatureState state = default
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -181,7 +180,6 @@ internal static class Builders
             RoomId = roomId,
             Level = level,
             State = state,
-            Gold = gold,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,
@@ -273,7 +271,11 @@ internal static class Builders
         };
     }
 
-    public static Armor MakeArmorItem(Guid? worldId = null, ArmorType type = ArmorType.Chest)
+    public static Armor MakeArmorItem(
+        Guid? worldId = null,
+        ArmorType type = ArmorType.Chest,
+        IReadOnlyCollection<ItemModifier>? modifiers = null
+    )
     {
         return new Armor
         {
@@ -286,6 +288,7 @@ internal static class Builders
             Defense = 10,
             DurabilityMax = 100,
             DurabilityCurrent = 100,
+            Modifiers = modifiers ?? [],
         };
     }
 

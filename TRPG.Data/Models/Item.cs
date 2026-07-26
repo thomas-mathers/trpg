@@ -37,7 +37,7 @@ public class ItemOwnership
     public DateTime AcquiredAt { get; set; } = DateTime.UtcNow;
 }
 
-public record Item
+public class Item
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid WorldId { get; init; }
@@ -45,6 +45,6 @@ public record Item
     public string Description { get; init; } = "";
     public int Weight { get; init; }
     public int Quantity { get; set; }
-    public List<ItemModifier> Modifiers { get; init; } = [];
+    public IReadOnlyCollection<ItemModifier> Modifiers { get; init; } = [];
     public ItemOwnership Ownership { get; init; } = new();
 }

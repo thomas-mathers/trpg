@@ -55,10 +55,17 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         gold.Ownership.OwnerId = _fromCreature.Id;
         gold.Ownership.OwnerType = OwnerType.Creature;
         _context.Items.Add(gold);
-        _fromCreature.Gold = quantity;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return gold;
     }
+
+    private static async Task<int> GetGoldQuantity(TrpgDbContext context, Guid ownerId) =>
+        await context
+            .Items.OfType<Gold>()
+            .Where(i => i.Ownership.OwnerId == ownerId)
+            .Select(i => (int?)i.Quantity)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken)
+        ?? 0;
 
     private async Task<Item> SeedAmmunitionOnFromCreature(int quantity)
     {
@@ -90,16 +97,8 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var corpse = await verifyContext.Creatures.FindAsync(
-            [_fromCreature.Id],
-            TestContext.Current.CancellationToken
-        );
-        var player = await verifyContext.Creatures.FindAsync(
-            [_player.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(0, corpse!.Gold);
-        Assert.Equal(100, player!.Gold);
+        Assert.Equal(0, await GetGoldQuantity(verifyContext, _fromCreature.Id));
+        Assert.Equal(100, await GetGoldQuantity(verifyContext, _player.Id));
     }
 
     [Fact]
@@ -122,11 +121,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var corpse = await verifyContext.Creatures.FindAsync(
-            [_fromCreature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(100, corpse!.Gold);
+        Assert.Equal(100, await GetGoldQuantity(verifyContext, _fromCreature.Id));
     }
 
     [Fact]
@@ -176,15 +171,11 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var player = await verifyContext.Creatures.FindAsync(
-            [_player.Id],
-            TestContext.Current.CancellationToken
-        );
         var movedItem = await verifyContext.Items.SingleAsync(
             i => i.Id == item.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(100, player!.Gold);
+        Assert.Equal(100, await GetGoldQuantity(verifyContext, _player.Id));
         Assert.Equal(_player.Id, movedItem.Ownership.OwnerId);
     }
 
@@ -241,16 +232,8 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var corpse = await verifyContext.Creatures.FindAsync(
-            [_fromCreature.Id],
-            TestContext.Current.CancellationToken
-        );
-        var player = await verifyContext.Creatures.FindAsync(
-            [_player.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(70, corpse!.Gold);
-        Assert.Equal(30, player!.Gold);
+        Assert.Equal(70, await GetGoldQuantity(verifyContext, _fromCreature.Id));
+        Assert.Equal(30, await GetGoldQuantity(verifyContext, _player.Id));
     }
 
     [Fact]
