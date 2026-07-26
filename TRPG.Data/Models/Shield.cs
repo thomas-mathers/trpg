@@ -1,6 +1,6 @@
 namespace TRPG.Data.Models;
 
-public record Shield : Item
+public class Shield : Item
 {
     public int GoldValue { get; init; }
     public int Level { get; init; }

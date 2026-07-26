@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory;
@@ -36,12 +38,15 @@ internal static class ItemEquipmentPolicy
             _ => false,
         };
 
-    public static Item Split(Item item, int quantity, Guid ownerId, OwnerType ownerType) =>
-        item with
-        {
-            Id = Guid.NewGuid(),
-            Quantity = quantity,
-            Modifiers = [.. item.Modifiers],
-            Ownership = new ItemOwnership { OwnerId = ownerId, OwnerType = ownerType },
-        };
+    public static Item Split(Item item, int quantity, Guid ownerId, OwnerType ownerType)
+    {
+        var type = item.GetType();
+        var node = JsonSerializer.SerializeToNode(item, type)!.AsObject();
+        node["Id"] = Guid.NewGuid();
+        node["Quantity"] = quantity;
+        node["Ownership"] = JsonSerializer.SerializeToNode(
+            new ItemOwnership { OwnerId = ownerId, OwnerType = ownerType }
+        );
+        return (Item)node.Deserialize(type)!;
+    }
 }

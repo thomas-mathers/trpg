@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Queries;
@@ -13,7 +11,6 @@ internal class GetInventorySummaryQuery
 internal record InventorySnapshot(int Gold, IReadOnlyList<Item> Items);
 
 internal class GetInventorySummaryQueryHandler(
-    TrpgDbContext context,
     GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId
 )
 {
@@ -22,16 +19,12 @@ internal class GetInventorySummaryQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var gold = await context
-            .Creatures.AsNoTracking()
-            .Where(c => c.Id == query.CreatureId)
-            .Select(c => c.Gold)
-            .FirstOrDefaultAsync(cancellationToken);
-
         var items = await getInventoryByCreatureId.Handle(
             new GetInventoryByCreatureIdQuery { CreatureId = query.CreatureId },
             cancellationToken
         );
+
+        var gold = items.OfType<Gold>().Sum(i => i.Quantity);
 
         if (query.ConsumableOnly)
         {

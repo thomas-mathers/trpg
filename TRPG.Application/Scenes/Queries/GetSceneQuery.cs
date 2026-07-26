@@ -228,7 +228,12 @@ internal class GetSceneQueryHandler(
                 p.Name,
                 p.Profession,
                 p.Level,
-                p.Gold,
+                context
+                    .Items.OfType<Gold>()
+                    .Where(g => g.Ownership.OwnerId == p.Id)
+                    .Select(g => (int?)g.Quantity)
+                    .FirstOrDefault()
+                    ?? 0,
                 p.BirthYear,
                 p.StateId,
                 p.CityId,

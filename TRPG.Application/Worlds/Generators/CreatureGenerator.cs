@@ -863,22 +863,22 @@ public class CreatureGenerator(
                 generatorInput.MinBirthYear ?? 900,
                 generatorInput.MaxBirthYear ?? 975
             ),
-            Gold = GetGold(level, archetype),
             StateId = generatorInput.StateId,
             BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
             Level = level,
         };
 
+        var startingGold = GetGold(level, archetype);
         var items = GenerateStartingInventory(creature, archetype).ToList();
-        if (creature.Gold > 0)
+        if (startingGold > 0)
         {
             items.Add(
                 new Gold
                 {
                     WorldId = creature.WorldId,
                     Name = "Gold",
-                    Quantity = creature.Gold,
+                    Quantity = startingGold,
                     Ownership = new ItemOwnership
                     {
                         OwnerId = creature.Id,

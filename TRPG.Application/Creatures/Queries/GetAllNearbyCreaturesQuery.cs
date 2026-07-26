@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -90,7 +89,7 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
             creatureQuery = creatureQuery.Where(p => p.State != CreatureState.Dead);
         }
 
-        return await creatureQuery.Select(ToCreatureSummary).ToArrayAsync(cancellationToken);
+        return await BuildSummaries(creatureQuery, cancellationToken);
     }
 
     private async Task<IReadOnlyCollection<CreatureSummary>> GetAllOutdoorsInLocation(
@@ -126,11 +125,31 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
             creatureQuery = creatureQuery.Where(p => p.State != CreatureState.Dead);
         }
 
-        return await creatureQuery.Select(ToCreatureSummary).ToArrayAsync(cancellationToken);
+        return await BuildSummaries(creatureQuery, cancellationToken);
     }
 
-    private static readonly Expression<Func<Creature, CreatureSummary>> ToCreatureSummary =
-        p => new CreatureSummary(
+    private async Task<IReadOnlyCollection<CreatureSummary>> BuildSummaries(
+        IQueryable<Creature> creatureQuery,
+        CancellationToken cancellationToken
+    )
+    {
+        var rows = await creatureQuery
+            .Select(p => new
+            {
+                Creature = p,
+                Gold = context
+                    .Items.OfType<Gold>()
+                    .Where(g => g.Ownership.OwnerId == p.Id)
+                    .Select(g => (int?)g.Quantity)
+                    .FirstOrDefault(),
+            })
+            .ToArrayAsync(cancellationToken);
+
+        return rows.Select(r => ToCreatureSummary(r.Creature, r.Gold ?? 0)).ToArray();
+    }
+
+    private static CreatureSummary ToCreatureSummary(Creature p, int gold) =>
+        new(
             p.Id,
             p.Name,
             p.CreatureType,
@@ -139,7 +158,7 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
             p.Level,
             p.BirthYear,
             p.State,
-            p.Gold,
+            gold,
             p.CurrentHp,
             p.MaximumHp,
             p.CurrentAp,

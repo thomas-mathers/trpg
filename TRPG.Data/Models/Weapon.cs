@@ -14,7 +14,7 @@ public enum WeaponType
     Javelin,
 }
 
-public record Weapon : Item
+public class Weapon : Item
 {
     public int GoldValue { get; init; }
     public int Level { get; init; }

@@ -180,14 +180,17 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     {
         // Arrange
         var baseMaximumHp = _creature.MaximumHp;
-        var gear = Builders.MakeArmorItem(worldId: _creature.WorldId);
-        gear.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.MaximumHp,
-                Amount = 50,
-                AmountType = AmountType.Flat,
-            }
+        var gear = Builders.MakeArmorItem(
+            worldId: _creature.WorldId,
+            modifiers:
+            [
+                new AttributeModifier
+                {
+                    Attribute = AttributeName.MaximumHp,
+                    Amount = 50,
+                    AmountType = AmountType.Flat,
+                },
+            ]
         );
         gear.Quantity = 1;
         gear.Ownership.OwnerId = _creature.Id;

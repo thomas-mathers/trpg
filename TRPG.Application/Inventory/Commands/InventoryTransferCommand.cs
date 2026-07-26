@@ -14,7 +14,7 @@ internal class InventoryTransferCommand
     public required IReadOnlyList<LootItemSelection> Items { get; init; }
 }
 
-internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldService goldService)
+internal class InventoryTransferCommandHandler(TrpgDbContext context)
 {
     public async Task Handle(
         InventoryTransferCommand command,
@@ -93,13 +93,7 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldServic
 
             if (item is Gold goldItem)
             {
-                await goldService.Transfer(
-                    goldItem,
-                    fromCreature,
-                    toCreature,
-                    selection.Quantity,
-                    cancellationToken
-                );
+                await TransferGold(goldItem, toCreature, selection.Quantity, cancellationToken);
             }
             else if (selection.Quantity == item.Quantity)
             {
@@ -129,5 +123,48 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldServic
             )
             .ToListAsync(cancellationToken);
         CreatureAttributesRecalculator.Recalculate(fromCreature, remainingEquipped);
+    }
+
+    private async Task TransferGold(
+        Gold sourceGoldItem,
+        Creature toCreature,
+        int amount,
+        CancellationToken cancellationToken
+    )
+    {
+        sourceGoldItem.Quantity -= amount;
+        var toGoldItem = await FindOrCreateGoldItem(toCreature, cancellationToken);
+        toGoldItem.Quantity += amount;
+    }
+
+    private async Task<Gold?> FindGoldItem(Guid creatureId, CancellationToken cancellationToken) =>
+        await context
+            .Items.OfType<Gold>()
+            .FirstOrDefaultAsync(
+                i =>
+                    i.Ownership.OwnerType == OwnerType.Creature
+                    && i.Ownership.OwnerId == creatureId,
+                cancellationToken
+            );
+
+    private async Task<Gold> FindOrCreateGoldItem(
+        Creature creature,
+        CancellationToken cancellationToken
+    )
+    {
+        var existing = await FindGoldItem(creature.Id, cancellationToken);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        var goldItem = new Gold
+        {
+            WorldId = creature.WorldId,
+            Name = "Gold",
+            Ownership = new ItemOwnership { OwnerId = creature.Id, OwnerType = OwnerType.Creature },
+        };
+        context.Items.Add(goldItem);
+        return goldItem;
     }
 }

@@ -114,14 +114,17 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
     {
         // Arrange
         var baseMaximumHp = _creature.MaximumHp;
-        var gear = Builders.MakeArmorItem(worldId: _creature.WorldId);
-        gear.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.MaximumHp,
-                Amount = 50,
-                AmountType = AmountType.Flat,
-            }
+        var gear = Builders.MakeArmorItem(
+            worldId: _creature.WorldId,
+            modifiers:
+            [
+                new AttributeModifier
+                {
+                    Attribute = AttributeName.MaximumHp,
+                    Amount = 50,
+                    AmountType = AmountType.Flat,
+                },
+            ]
         );
         _context.Items.Add(gear);
         await GiveToCreature(gear, 1);

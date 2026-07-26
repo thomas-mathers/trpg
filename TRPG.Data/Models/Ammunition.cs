@@ -6,7 +6,7 @@ public enum AmmoType
     Bolt,
 }
 
-public record Ammunition : Item
+public class Ammunition : Item
 {
     public int GoldValue { get; init; }
     public int Level { get; init; }

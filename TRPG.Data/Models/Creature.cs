@@ -112,7 +112,6 @@ public class Creature
     public int CurrentMp { get; set; }
     public Guid? DistrictId { get; set; }
     public Gender Gender { get; init; }
-    public int Gold { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public TimeSpan LastRegenPlaytime { get; set; }
     public int Level { get; set; }

@@ -276,33 +276,4 @@ public class BiographyGeneratorTests
         Assert.DoesNotContain("They work at", creature.Biography, StringComparison.Ordinal);
         Assert.DoesNotContain("They live at", creature.Biography, StringComparison.Ordinal);
     }
-
-    [Fact]
-    public void AssignBiographies_NeverMentionsGold()
-    {
-        // Arrange — one rich, one poor, so the removed gold-outlier sentence would have fired for both
-        var richCreature = Builders.MakeCreature(_worldId, birthStateId: _state.Id, birthYear: 950);
-        richCreature.Gold = 100_000;
-        var poorCreature = Builders.MakeCreature(_worldId, birthStateId: _state.Id, birthYear: 950);
-        poorCreature.Gold = 0;
-
-        // Act
-        BiographyGenerator.AssignBiographies(
-            new BiographyGeneratorInput(
-                [richCreature, poorCreature],
-                new Dictionary<Guid, State> { [_state.Id] = _state },
-                [],
-                [],
-                [],
-                [],
-                [],
-                [],
-                []
-            )
-        );
-
-        // Assert
-        Assert.DoesNotContain("wealthy", richCreature.Biography, StringComparison.Ordinal);
-        Assert.DoesNotContain("scrape by", poorCreature.Biography, StringComparison.Ordinal);
-    }
 }

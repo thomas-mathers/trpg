@@ -80,7 +80,7 @@ internal class InventoryTool(
 
         var result = new InventoryResult(
             target.Name,
-            target.Gold,
+            items.OfType<Gold>().Sum(i => i.Quantity),
             items.Select(i => new InventoryItemInfo(i.Name, i.Quantity)).ToArray()
         );
 

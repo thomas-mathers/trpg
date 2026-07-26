@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
@@ -114,11 +115,12 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var player = await verifyContext.Creatures.FindAsync(
-            [_player.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(0, player!.Gold);
+        var playerGold = await verifyContext
+            .Items.OfType<Gold>()
+            .Where(i => i.Ownership.OwnerId == _player.Id)
+            .Select(i => (int?)i.Quantity)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(0, playerGold ?? 0);
     }
 
     [Fact]
