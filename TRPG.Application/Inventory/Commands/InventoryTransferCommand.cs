@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
-using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Commands;
 
@@ -36,20 +35,15 @@ internal class InventoryTransferCommandHandler(
                 cancellationToken
             ) ?? throw new InvalidOperationException($"Creature {command.ToCreatureId} not found.");
 
-        if (fromCreature.State != CreatureState.Dead)
-        {
-            throw new InvalidOperationException(
-                $"Creature {command.FromCreatureId} is not a corpse."
-            );
-        }
-
         var sameLocation =
             fromCreature.RoomId != null
                 ? fromCreature.RoomId == toCreature.RoomId
                 : fromCreature.DistrictId == toCreature.DistrictId;
         if (!sameLocation)
         {
-            throw new InvalidOperationException("The corpse is not nearby.");
+            throw new InvalidOperationException(
+                $"Creature {command.FromCreatureId} is not nearby."
+            );
         }
 
         await using var transaction = await context.Database.BeginTransactionAsync(

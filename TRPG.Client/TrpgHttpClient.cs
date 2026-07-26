@@ -126,7 +126,7 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
         return result ?? [];
     }
 
-    public async Task<IReadOnlyList<ConsumableItemSummary>> GetUsableItems(
+    public async Task<IReadOnlyList<ConsumableItemSummary>> GetConsumableItems(
         Guid creatureId,
         CancellationToken cancellationToken
     )
