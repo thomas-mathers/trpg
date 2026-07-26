@@ -37,7 +37,7 @@ public class ItemOwnership
     public DateTime AcquiredAt { get; set; } = DateTime.UtcNow;
 }
 
-public class Item
+public record Item
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid WorldId { get; init; }

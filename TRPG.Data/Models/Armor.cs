@@ -16,7 +16,7 @@ public enum ArmorType
     Gloves,
 }
 
-public class Armor : Item
+public record Armor : Item
 {
     public int GoldValue { get; init; }
     public int Level { get; init; }

@@ -110,12 +110,14 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldServic
             else
             {
                 item.Quantity -= selection.Quantity;
-
-                var split = ItemEquipmentPolicy.Clone(item);
-                split.Quantity = selection.Quantity;
-                split.Ownership.OwnerId = command.ToCreatureId;
-                split.Ownership.OwnerType = OwnerType.Creature;
-                context.Items.Add(split);
+                context.Items.Add(
+                    ItemEquipmentPolicy.Split(
+                        item,
+                        selection.Quantity,
+                        command.ToCreatureId,
+                        OwnerType.Creature
+                    )
+                );
             }
         }
 

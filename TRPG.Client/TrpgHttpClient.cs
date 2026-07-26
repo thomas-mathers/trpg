@@ -126,7 +126,7 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
         return result ?? [];
     }
 
-    public async Task<IReadOnlyList<ConsumableItemSummary>> GetConsumableItems(
+    public async Task<IReadOnlyList<ConsumableSummary>> GetConsumableItems(
         Guid creatureId,
         CancellationToken cancellationToken
     )
@@ -136,7 +136,7 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
             TrpgJsonOptions.Default,
             cancellationToken
         );
-        return result?.Items.Cast<ConsumableItemSummary>().ToArray() ?? [];
+        return result?.Items.Cast<ConsumableSummary>().ToArray() ?? [];
     }
 
     public async Task<InventorySummary> GetInventory(

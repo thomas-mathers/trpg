@@ -176,7 +176,7 @@ internal static class CreatureEndpoints
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
-    private static WeaponItemSummary ToSummary(Weapon item) =>
+    private static WeaponSummary ToSummary(Weapon item) =>
         new(
             item.Id,
             item.Name,
@@ -187,7 +187,7 @@ internal static class CreatureEndpoints
             item.MaxDamage
         );
 
-    private static ArmorItemSummary ToSummary(Armor item) =>
+    private static ArmorSummary ToSummary(Armor item) =>
         new(
             item.Id,
             item.Name,
@@ -197,7 +197,7 @@ internal static class CreatureEndpoints
             item.Defense
         );
 
-    private static ShieldItemSummary ToSummary(Shield item) =>
+    private static ShieldSummary ToSummary(Shield item) =>
         new(
             item.Id,
             item.Name,
@@ -207,7 +207,7 @@ internal static class CreatureEndpoints
             item.BlockChance
         );
 
-    private static ConsumableItemSummary ToSummary(Consumable item) =>
+    private static ConsumableSummary ToSummary(Consumable item) =>
         new(
             item.Id,
             item.Name,
@@ -217,19 +217,13 @@ internal static class CreatureEndpoints
             item.RestoreAmount
         );
 
-    private static AmmunitionItemSummary ToSummary(Ammunition item) =>
+    private static AmmunitionSummary ToSummary(Ammunition item) =>
         new(item.Id, item.Name, item.Quantity, item.Rarity.ToContract(), item.Type.ToContract());
 
-    private static AccessoryItemSummary ToSummary(Accessory item) =>
+    private static AccessorySummary ToSummary(Accessory item) =>
         new(item.Id, item.Name, item.Quantity, item.Rarity.ToContract(), item.Type.ToContract());
 
-    private static GoldItemSummary ToSummary(Gold item) =>
-        new(
-            item.Id,
-            item.Name,
-            item.Quantity,
-            TRPG.Contracts.Inventory.Responses.ItemRarity.Normal
-        );
+    private static GoldSummary ToSummary(Gold item) => new(item.Id, item.Name, item.Quantity);
 
     private static AbilitySummary ToAbilitySummary(Ability ability) =>
         new(

@@ -7,7 +7,7 @@ public enum ResourceType
     Mp,
 }
 
-public class Consumable : Item
+public record Consumable : Item
 {
     public int GoldValue { get; init; }
     public int Level { get; init; }

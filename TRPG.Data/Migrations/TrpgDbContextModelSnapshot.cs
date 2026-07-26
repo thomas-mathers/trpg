@@ -1877,7 +1877,7 @@ namespace TRPG.Migrations
                             b1.HasKey("CountryId")
                                 .HasName("pk_countries");
 
-                            b1.ToTable("countries");
+                            b1.ToTable("countries", (string)null);
 
                             b1
                                 .ToJson("boundary")
@@ -1901,7 +1901,7 @@ namespace TRPG.Migrations
                                     b2.HasKey("PolygonCountryId", "__synthesizedOrdinal")
                                         .HasName("pk_countries");
 
-                                    b2.ToTable("countries");
+                                    b2.ToTable("countries", (string)null);
 
                                     b2.WithOwner()
                                         .HasForeignKey("PolygonCountryId")
@@ -1957,7 +1957,7 @@ namespace TRPG.Migrations
 
                             b1.HasKey("CreatureId");
 
-                            b1.ToTable("creatures");
+                            b1.ToTable("creatures", (string)null);
 
                             b1
                                 .ToJson("base_attributes")
@@ -2033,7 +2033,7 @@ namespace TRPG.Migrations
                                 .HasDatabaseName("ux_items_owner_equipped_slot")
                                 .HasFilter("ownership_equipped_slot IS NOT NULL");
 
-                            b1.ToTable("items");
+                            b1.ToTable("items", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("ItemId")
@@ -2052,7 +2052,7 @@ namespace TRPG.Migrations
 
                             b1.HasKey("StateId");
 
-                            b1.ToTable("states");
+                            b1.ToTable("states", (string)null);
 
                             b1
                                 .ToJson("boundary")
@@ -2075,7 +2075,7 @@ namespace TRPG.Migrations
 
                                     b2.HasKey("PolygonStateId", "__synthesizedOrdinal");
 
-                                    b2.ToTable("states");
+                                    b2.ToTable("states", (string)null);
 
                                     b2.WithOwner()
                                         .HasForeignKey("PolygonStateId")
@@ -2095,7 +2095,7 @@ namespace TRPG.Migrations
 
                             b1.HasKey("StateId");
 
-                            b1.ToTable("states");
+                            b1.ToTable("states", (string)null);
 
                             b1
                                 .ToJson("center")
@@ -2129,7 +2129,7 @@ namespace TRPG.Migrations
 
                             b1.HasKey("WorldId");
 
-                            b1.ToTable("worlds");
+                            b1.ToTable("worlds", (string)null);
 
                             b1
                                 .ToJson("boundary")
