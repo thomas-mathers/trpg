@@ -10,17 +10,17 @@ internal class GoldService(TrpgDbContext context)
         Gold sourceGoldItem,
         Creature fromCreature,
         Creature toCreature,
+        int amount,
         CancellationToken cancellationToken = default
     )
     {
-        var amount = sourceGoldItem.Quantity;
         if (amount <= 0)
         {
             return;
         }
 
-        sourceGoldItem.Quantity = 0;
-        fromCreature.Gold = 0;
+        sourceGoldItem.Quantity -= amount;
+        fromCreature.Gold = sourceGoldItem.Quantity;
 
         var toGoldItem = await FindOrCreateGoldItem(toCreature, cancellationToken);
         toGoldItem.Quantity += amount;

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures;
+using TRPG.Application.Inventory;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -76,32 +77,45 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, GoldServic
                     $"Item {selection.ItemId} not found in creature {command.FromCreatureId}'s inventory."
                 );
 
-            if (
-                item.Ownership.OwnerType != OwnerType.Creature
-                || item.Ownership.OwnerId != command.FromCreatureId
-            )
+            if (item.Ownership.OwnerId != command.FromCreatureId)
             {
                 throw new InvalidOperationException(
                     $"Item {selection.ItemId} is not owned by creature {command.FromCreatureId}."
                 );
             }
 
-            if (selection.Quantity != item.Quantity)
+            if (selection.Quantity <= 0 || selection.Quantity > item.Quantity)
             {
                 throw new InvalidOperationException(
-                    $"Partial transfer of item {selection.ItemId} is not supported."
+                    $"Cannot transfer {selection.Quantity} of item {selection.ItemId}; only {item.Quantity} available."
                 );
             }
 
             if (item is Gold goldItem)
             {
-                await goldService.Transfer(goldItem, fromCreature, toCreature, cancellationToken);
+                await goldService.Transfer(
+                    goldItem,
+                    fromCreature,
+                    toCreature,
+                    selection.Quantity,
+                    cancellationToken
+                );
             }
-            else
+            else if (selection.Quantity == item.Quantity)
             {
                 item.Ownership.OwnerId = command.ToCreatureId;
                 item.Ownership.EquippedSlot = null;
                 item.Ownership.AcquiredAt = DateTime.UtcNow;
+            }
+            else
+            {
+                item.Quantity -= selection.Quantity;
+
+                var split = ItemEquipmentPolicy.Clone(item);
+                split.Quantity = selection.Quantity;
+                split.Ownership.OwnerId = command.ToCreatureId;
+                split.Ownership.OwnerType = OwnerType.Creature;
+                context.Items.Add(split);
             }
         }
 
