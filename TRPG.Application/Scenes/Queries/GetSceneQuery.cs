@@ -67,7 +67,21 @@ public record SceneCreatureInfo(
     int CurrentMp,
     int MaximumMp,
     int ExperienceCurrent,
-    int ExperienceToNextLevel
+    int ExperienceToNextLevel,
+    int Strength,
+    int Dexterity,
+    int Intelligence,
+    int Endurance,
+    int Stamina,
+    int Mana,
+    int Defense,
+    float MovementSpeed,
+    float PhysicalResistance,
+    float FireResistance,
+    float IceResistance,
+    float LightningResistance,
+    float PoisonResistance,
+    float MagicResistance
 );
 
 public record SceneNearbyBuildingInfo(string Name, BuildingType Type);
@@ -102,7 +116,21 @@ internal record SceneBootstrap(
     int CurrentAp,
     int MaximumAp,
     int CurrentMp,
-    int MaximumMp
+    int MaximumMp,
+    int Strength,
+    int Dexterity,
+    int Intelligence,
+    int Endurance,
+    int Stamina,
+    int Mana,
+    int Defense,
+    float MovementSpeed,
+    float PhysicalResistance,
+    float FireResistance,
+    float IceResistance,
+    float LightningResistance,
+    float PoisonResistance,
+    float MagicResistance
 );
 
 internal record SceneLocationDetails(
@@ -212,7 +240,21 @@ internal class GetSceneQueryHandler(
             bootstrap.CurrentMp,
             bootstrap.MaximumMp,
             experienceProgress.Current,
-            experienceProgress.ToNextLevel
+            experienceProgress.ToNextLevel,
+            bootstrap.Strength,
+            bootstrap.Dexterity,
+            bootstrap.Intelligence,
+            bootstrap.Endurance,
+            bootstrap.Stamina,
+            bootstrap.Mana,
+            bootstrap.Defense,
+            bootstrap.MovementSpeed,
+            bootstrap.PhysicalResistance,
+            bootstrap.FireResistance,
+            bootstrap.IceResistance,
+            bootstrap.LightningResistance,
+            bootstrap.PoisonResistance,
+            bootstrap.MagicResistance
         );
     }
 
@@ -246,7 +288,21 @@ internal class GetSceneQueryHandler(
                 p.CurrentAp,
                 p.MaximumAp,
                 p.CurrentMp,
-                p.MaximumMp
+                p.MaximumMp,
+                p.Strength,
+                p.Dexterity,
+                p.Intelligence,
+                p.Endurance,
+                p.Stamina,
+                p.Mana,
+                p.Defense,
+                p.MovementSpeed,
+                p.PhysicalResistance,
+                p.FireResistance,
+                p.IceResistance,
+                p.LightningResistance,
+                p.PoisonResistance,
+                p.MagicResistance
             ))
             .FirstAsync(cancellationToken);
     }
@@ -482,7 +538,21 @@ internal class GetSceneQueryHandler(
                     x.CurrentMp,
                     x.MaximumMp,
                     experienceProgress.Current,
-                    experienceProgress.ToNextLevel
+                    experienceProgress.ToNextLevel,
+                    x.Strength,
+                    x.Dexterity,
+                    x.Intelligence,
+                    x.Endurance,
+                    x.Stamina,
+                    x.Mana,
+                    x.Defense,
+                    x.MovementSpeed,
+                    x.PhysicalResistance,
+                    x.FireResistance,
+                    x.IceResistance,
+                    x.LightningResistance,
+                    x.PoisonResistance,
+                    x.MagicResistance
                 );
             })
             .ToArray();

@@ -259,13 +259,14 @@ internal sealed class SlashCommandRegistry(
         }
 
         AnsiConsole.PrintTable(
-            ["Name", "Race", "Level", "Reputation", "Status"],
+            ["Name", "Race", "Level", "State", "Reputation", "Status"],
             creatures.Select(c =>
                 new[]
                 {
                     c.Name,
                     AnsiConsole.FormatCreatureChip(c.CreatureType),
                     c.Level.ToString(CultureInfo.InvariantCulture),
+                    c.State is { } state ? FormatStateChip(state) : "",
                     FormatReputation(c.Reputation ?? 0),
                     FormatStatusBars(
                         c.CurrentHp,
@@ -412,6 +413,39 @@ internal sealed class SlashCommandRegistry(
         rows.Add([
             "XP",
             $"{AnsiConsole.FormatBar(status.ExperienceCurrent, status.ExperienceToNextLevel, Theme.XpBar, width: 14)} {status.ExperienceCurrent}/{status.ExperienceToNextLevel}",
+        ]);
+
+        rows.Add(["Strength", status.Strength.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Dexterity", status.Dexterity.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Intelligence", status.Intelligence.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Endurance", status.Endurance.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Stamina", status.Stamina.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Mana", status.Mana.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Defense", status.Defense.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add([
+            "Movement Speed",
+            status.MovementSpeed.ToString("F1", CultureInfo.InvariantCulture),
+        ]);
+        rows.Add([
+            "Physical Resist",
+            status.PhysicalResistance.ToString("F1", CultureInfo.InvariantCulture),
+        ]);
+        rows.Add([
+            "Fire Resist",
+            status.FireResistance.ToString("F1", CultureInfo.InvariantCulture),
+        ]);
+        rows.Add(["Ice Resist", status.IceResistance.ToString("F1", CultureInfo.InvariantCulture)]);
+        rows.Add([
+            "Lightning Resist",
+            status.LightningResistance.ToString("F1", CultureInfo.InvariantCulture),
+        ]);
+        rows.Add([
+            "Poison Resist",
+            status.PoisonResistance.ToString("F1", CultureInfo.InvariantCulture),
+        ]);
+        rows.Add([
+            "Magic Resist",
+            status.MagicResistance.ToString("F1", CultureInfo.InvariantCulture),
         ]);
 
         if (status.FactionNames is { Count: > 0 } factionNames)

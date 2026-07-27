@@ -145,7 +145,21 @@ public record CreatureStatusSnapshot(
     int ExperienceCurrent,
     int ExperienceToNextLevel,
     IReadOnlyCollection<string>? FactionNames,
-    int? Reputation
+    int? Reputation,
+    int Strength,
+    int Dexterity,
+    int Intelligence,
+    int Endurance,
+    int Stamina,
+    int Mana,
+    int Defense,
+    float MovementSpeed,
+    float PhysicalResistance,
+    float FireResistance,
+    float IceResistance,
+    float LightningResistance,
+    float PoisonResistance,
+    float MagicResistance
 );
 
 public record NearbyDistrictSnapshot(string Name, DistrictType Type);

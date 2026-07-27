@@ -19,7 +19,21 @@ internal record CreatureSummary(
     int CurrentAp,
     int MaximumAp,
     int CurrentMp,
-    int MaximumMp
+    int MaximumMp,
+    int Strength,
+    int Dexterity,
+    int Intelligence,
+    int Endurance,
+    int Stamina,
+    int Mana,
+    int Defense,
+    float MovementSpeed,
+    float PhysicalResistance,
+    float FireResistance,
+    float IceResistance,
+    float LightningResistance,
+    float PoisonResistance,
+    float MagicResistance
 );
 
 internal record CreatureLocation(Guid WorldId, Guid? RoomId, Guid StateId, Guid? DistrictId);
@@ -164,6 +178,20 @@ internal class GetAllNearbyCreaturesQueryHandler(TrpgDbContext context)
             p.CurrentAp,
             p.MaximumAp,
             p.CurrentMp,
-            p.MaximumMp
+            p.MaximumMp,
+            p.Strength,
+            p.Dexterity,
+            p.Intelligence,
+            p.Endurance,
+            p.Stamina,
+            p.Mana,
+            p.Defense,
+            p.MovementSpeed,
+            p.PhysicalResistance,
+            p.FireResistance,
+            p.IceResistance,
+            p.LightningResistance,
+            p.PoisonResistance,
+            p.MagicResistance
         );
 }

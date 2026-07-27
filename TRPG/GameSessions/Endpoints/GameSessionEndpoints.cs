@@ -190,6 +190,20 @@ internal static class GameSessionEndpoints
             ExperienceCurrent: creature.ExperienceCurrent,
             ExperienceToNextLevel: creature.ExperienceToNextLevel,
             FactionNames: creature.FactionNames,
-            Reputation: creature.Reputation
+            Reputation: creature.Reputation,
+            Strength: creature.Strength,
+            Dexterity: creature.Dexterity,
+            Intelligence: creature.Intelligence,
+            Endurance: creature.Endurance,
+            Stamina: creature.Stamina,
+            Mana: creature.Mana,
+            Defense: creature.Defense,
+            MovementSpeed: creature.MovementSpeed,
+            PhysicalResistance: creature.PhysicalResistance,
+            FireResistance: creature.FireResistance,
+            IceResistance: creature.IceResistance,
+            LightningResistance: creature.LightningResistance,
+            PoisonResistance: creature.PoisonResistance,
+            MagicResistance: creature.MagicResistance
         );
 }
