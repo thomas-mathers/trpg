@@ -183,7 +183,10 @@ internal static class ServiceCollectionExtensions
                                 };
                             }
                         )
-                        .Use(innerClient => new PromptCachingChatClient(innerClient))
+                        .Use(innerClient => new PromptCachingChatClient(
+                            innerClient,
+                            loggerFactory.CreateLogger<PromptCachingChatClient>()
+                        ))
                         .Build();
                 }
             );

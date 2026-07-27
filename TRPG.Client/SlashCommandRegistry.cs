@@ -259,13 +259,14 @@ internal sealed class SlashCommandRegistry(
         }
 
         AnsiConsole.PrintTable(
-            ["Name", "Race", "Level", "Reputation", "Status"],
+            ["Name", "Race", "Level", "State", "Reputation", "Status"],
             creatures.Select(c =>
                 new[]
                 {
                     c.Name,
                     AnsiConsole.FormatCreatureChip(c.CreatureType),
                     c.Level.ToString(CultureInfo.InvariantCulture),
+                    c.State is { } state ? FormatStateChip(state) : "",
                     FormatReputation(c.Reputation ?? 0),
                     FormatStatusBars(
                         c.CurrentHp,
@@ -414,6 +415,24 @@ internal sealed class SlashCommandRegistry(
             $"{AnsiConsole.FormatBar(status.ExperienceCurrent, status.ExperienceToNextLevel, Theme.XpBar, width: 14)} {status.ExperienceCurrent}/{status.ExperienceToNextLevel}",
         ]);
 
+        rows.Add(["Strength", status.Strength.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Dexterity", status.Dexterity.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Intelligence", status.Intelligence.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Endurance", status.Endurance.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Stamina", status.Stamina.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Mana", status.Mana.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add(["Defense", status.Defense.ToString(CultureInfo.InvariantCulture)]);
+        rows.Add([
+            "Movement Speed",
+            status.MovementSpeed.ToString("F1", CultureInfo.InvariantCulture),
+        ]);
+        rows.Add(["Physical Resist", FormatPercent(status.PhysicalResistance)]);
+        rows.Add(["Fire Resist", FormatPercent(status.FireResistance)]);
+        rows.Add(["Ice Resist", FormatPercent(status.IceResistance)]);
+        rows.Add(["Lightning Resist", FormatPercent(status.LightningResistance)]);
+        rows.Add(["Poison Resist", FormatPercent(status.PoisonResistance)]);
+        rows.Add(["Magic Resist", FormatPercent(status.MagicResistance)]);
+
         if (status.FactionNames is { Count: > 0 } factionNames)
         {
             rows.Add(["Factions", string.Join(" ", factionNames.Select(FormatNeutralChip))]);
@@ -487,6 +506,9 @@ internal sealed class SlashCommandRegistry(
         };
         return $"[{color}]{reputation}[/]";
     }
+
+    private static string FormatPercent(float fraction) =>
+        $"{(fraction * 100).ToString("F0", CultureInfo.InvariantCulture)}%";
 
     private static string FormatStatusBars(
         int currentHp,

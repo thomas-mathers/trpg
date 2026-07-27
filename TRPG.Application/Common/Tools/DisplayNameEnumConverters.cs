@@ -156,6 +156,18 @@ internal sealed class ConditionTypeJsonConverter : JsonConverter<ConditionType>
         ConditionType value,
         JsonSerializerOptions options
     ) => writer.WriteStringValue(value.ToContract().ToDisplayName());
+
+    public override ConditionType ReadAsPropertyName(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    ) => ParseDisplayName<ConditionType>(reader.GetString());
+
+    public override void WriteAsPropertyName(
+        Utf8JsonWriter writer,
+        ConditionType value,
+        JsonSerializerOptions options
+    ) => writer.WritePropertyName(value.ToContract().ToDisplayName());
 }
 
 internal static class DisplayNameEnumConverterHelper
