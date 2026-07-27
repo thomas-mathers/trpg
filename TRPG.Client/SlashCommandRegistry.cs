@@ -426,27 +426,12 @@ internal sealed class SlashCommandRegistry(
             "Movement Speed",
             status.MovementSpeed.ToString("F1", CultureInfo.InvariantCulture),
         ]);
-        rows.Add([
-            "Physical Resist",
-            status.PhysicalResistance.ToString("F1", CultureInfo.InvariantCulture),
-        ]);
-        rows.Add([
-            "Fire Resist",
-            status.FireResistance.ToString("F1", CultureInfo.InvariantCulture),
-        ]);
-        rows.Add(["Ice Resist", status.IceResistance.ToString("F1", CultureInfo.InvariantCulture)]);
-        rows.Add([
-            "Lightning Resist",
-            status.LightningResistance.ToString("F1", CultureInfo.InvariantCulture),
-        ]);
-        rows.Add([
-            "Poison Resist",
-            status.PoisonResistance.ToString("F1", CultureInfo.InvariantCulture),
-        ]);
-        rows.Add([
-            "Magic Resist",
-            status.MagicResistance.ToString("F1", CultureInfo.InvariantCulture),
-        ]);
+        rows.Add(["Physical Resist", FormatPercent(status.PhysicalResistance)]);
+        rows.Add(["Fire Resist", FormatPercent(status.FireResistance)]);
+        rows.Add(["Ice Resist", FormatPercent(status.IceResistance)]);
+        rows.Add(["Lightning Resist", FormatPercent(status.LightningResistance)]);
+        rows.Add(["Poison Resist", FormatPercent(status.PoisonResistance)]);
+        rows.Add(["Magic Resist", FormatPercent(status.MagicResistance)]);
 
         if (status.FactionNames is { Count: > 0 } factionNames)
         {
@@ -521,6 +506,9 @@ internal sealed class SlashCommandRegistry(
         };
         return $"[{color}]{reputation}[/]";
     }
+
+    private static string FormatPercent(float fraction) =>
+        $"{(fraction * 100).ToString("F0", CultureInfo.InvariantCulture)}%";
 
     private static string FormatStatusBars(
         int currentHp,
