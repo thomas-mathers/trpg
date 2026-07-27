@@ -5,7 +5,6 @@ namespace TRPG.Application.Inventory.Queries;
 internal class GetInventorySummaryQuery
 {
     public required Guid CreatureId { get; init; }
-    public required bool ConsumableOnly { get; init; }
 }
 
 internal record InventorySnapshot(int Gold, IReadOnlyList<Item> Items);
@@ -25,11 +24,6 @@ internal class GetInventorySummaryQueryHandler(
         );
 
         var gold = items.OfType<Gold>().Sum(i => i.Quantity);
-
-        if (query.ConsumableOnly)
-        {
-            items = items.Where(i => i is Consumable).ToArray();
-        }
 
         return new InventorySnapshot(gold, items);
     }

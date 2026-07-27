@@ -50,7 +50,7 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
 
         // Act
         var result = await _handler.Handle(
-            new GetInventorySummaryQuery { CreatureId = _creature.Id, ConsumableOnly = false },
+            new GetInventorySummaryQuery { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -63,7 +63,7 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
     {
         // Act — no existence check by design; an unknown creature id just has no gold or items
         var result = await _handler.Handle(
-            new GetInventorySummaryQuery { CreatureId = Guid.NewGuid(), ConsumableOnly = false },
+            new GetInventorySummaryQuery { CreatureId = Guid.NewGuid() },
             TestContext.Current.CancellationToken
         );
 
@@ -73,7 +73,7 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
-    public async Task Handle_ReturnsEveryItem_WhenConsumableOnlyIsFalse()
+    public async Task Handle_ReturnsEveryItem()
     {
         // Arrange
         var weapon = await SeedItem(Builders.MakeWeaponItem(_creature.WorldId), 1);
@@ -81,7 +81,7 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
 
         // Act
         var result = await _handler.Handle(
-            new GetInventorySummaryQuery { CreatureId = _creature.Id, ConsumableOnly = false },
+            new GetInventorySummaryQuery { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -89,23 +89,5 @@ public sealed class GetInventorySummaryQueryTests(DatabaseFixture db) : IAsyncLi
         Assert.Equal(2, result.Items.Count);
         Assert.Contains(result.Items, i => i.Id == weapon.Id);
         Assert.Contains(result.Items, i => i.Id == potion.Id);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsOnlyConsumables_WhenConsumableOnlyIsTrue()
-    {
-        // Arrange
-        await SeedItem(Builders.MakeWeaponItem(_creature.WorldId), 1);
-        var potion = await SeedItem(Builders.MakeConsumableItem(_creature.WorldId), 3);
-
-        // Act
-        var result = await _handler.Handle(
-            new GetInventorySummaryQuery { CreatureId = _creature.Id, ConsumableOnly = true },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var item = Assert.Single(result.Items);
-        Assert.Equal(potion.Id, item.Id);
     }
 }

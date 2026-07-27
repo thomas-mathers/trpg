@@ -59,7 +59,13 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
     private static Task<NearbyCorpseSummary?> PromptForCorpse(
         IReadOnlyList<NearbyCorpseSummary> candidates,
         CancellationToken cancellationToken
-    ) => PromptForOption("Loot which corpse?", candidates, c => c.Name, cancellationToken);
+    ) =>
+        PromptForOption(
+            "Loot which corpse?",
+            candidates,
+            c => $"{c.Name} ({c.ItemCount})",
+            cancellationToken
+        );
 
     private static async Task<IReadOnlyList<LootItemSelection>> PromptForSelection(
         InventorySummary inventory,
@@ -84,7 +90,7 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
         }
 
         var chosen = await AnsiConsole.PromptAsync(
-            new MultiSelectionPrompt<InventoryItemSummary>()
+            new MultiSelectionPrompt<ItemSummary>()
                 .Title("Choose what to take:")
                 .NotRequired()
                 .UseConverter(i => $"{i.Name} x{i.Quantity}")
@@ -92,12 +98,42 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
             cancellationToken
         );
 
-        return chosen.Select(i => new LootItemSelection(i.ItemId, i.Quantity)).ToArray();
+        var selections = new List<LootItemSelection>();
+        foreach (var item in chosen)
+        {
+            var quantity =
+                item.Quantity > 1
+                    ? await PromptForQuantity(item, cancellationToken)
+                    : item.Quantity;
+            selections.Add(new LootItemSelection(item.ItemId, quantity));
+        }
+
+        return selections;
     }
+
+    private static Task<int> PromptForQuantity(
+        ItemSummary item,
+        CancellationToken cancellationToken
+    ) =>
+        AnsiConsole.PromptAsync(
+            new TextPrompt<int>(
+                $"How many {item.Name.EscapeMarkup()} to take? (1-{item.Quantity})"
+            ).Validate(quantity =>
+                quantity switch
+                {
+                    < 1 => ValidationResult.Error("Must take at least 1."),
+                    _ when quantity > item.Quantity => ValidationResult.Error(
+                        $"Only {item.Quantity} available."
+                    ),
+                    _ => ValidationResult.Success(),
+                }
+            ),
+            cancellationToken
+        );
 
     private static string DescribeLoot(
         IReadOnlyCollection<LootItemSelection> takenItems,
-        IReadOnlyList<InventoryItemSummary> availableItems
+        IReadOnlyList<ItemSummary> availableItems
     )
     {
         var parts = takenItems

@@ -1,9 +1,6 @@
 using AbilitiesConditionType = TRPG.Application.Abilities.ConditionType;
 using ContractAbilitySkill = TRPG.Contracts.Abilities.Responses.Skill;
-using ContractAccessoryType = TRPG.Contracts.Inventory.Responses.AccessoryType;
-using ContractAmmoType = TRPG.Contracts.Inventory.Responses.AmmoType;
 using ContractAmountType = TRPG.Contracts.Combat.Responses.AmountType;
-using ContractArmorType = TRPG.Contracts.Inventory.Responses.ArmorType;
 using ContractAttributeName = TRPG.Contracts.Combat.Responses.AttributeName;
 using ContractBuildingType = TRPG.Contracts.Scenes.Responses.BuildingType;
 using ContractConditionType = TRPG.Contracts.Combat.Responses.ConditionType;
@@ -11,27 +8,24 @@ using ContractCreatureState = TRPG.Contracts.Scenes.Responses.CreatureState;
 using ContractCreatureType = TRPG.Contracts.Scenes.Responses.CreatureType;
 using ContractDamageType = TRPG.Contracts.Combat.Responses.DamageType;
 using ContractDistrictType = TRPG.Contracts.Scenes.Responses.DistrictType;
+using ContractEquipmentSlot = TRPG.Contracts.Inventory.Responses.EquipmentSlot;
 using ContractGender = TRPG.Contracts.Worlds.Requests.Gender;
 using ContractItemRarity = TRPG.Contracts.Inventory.Responses.ItemRarity;
 using ContractProfession = TRPG.Contracts.Scenes.Responses.Profession;
 using ContractResourceType = TRPG.Contracts.Inventory.Responses.ResourceType;
-using ContractWeaponType = TRPG.Contracts.Inventory.Responses.WeaponType;
-using DataAccessoryType = TRPG.Data.Models.AccessoryType;
-using DataAmmoType = TRPG.Data.Models.AmmoType;
 using DataAmountType = TRPG.Data.Models.AmountType;
-using DataArmorType = TRPG.Data.Models.ArmorType;
 using DataAttributeName = TRPG.Data.Models.AttributeName;
 using DataBuildingType = TRPG.Data.Models.BuildingType;
 using DataCreatureState = TRPG.Data.Models.CreatureState;
 using DataCreatureType = TRPG.Data.Models.CreatureType;
 using DataDamageType = TRPG.Data.Models.DamageType;
 using DataDistrictType = TRPG.Data.Models.DistrictType;
+using DataEquipmentSlot = TRPG.Data.Models.EquipmentSlot;
 using DataGender = TRPG.Data.Models.Gender;
 using DataItemRarity = TRPG.Data.Models.ItemRarity;
 using DataProfession = TRPG.Data.Models.Profession;
 using DataResourceType = TRPG.Data.Models.ResourceType;
 using DataSkill = TRPG.Data.Models.Skill;
-using DataWeaponType = TRPG.Data.Models.WeaponType;
 
 namespace TRPG.Application.Common.Mappers;
 
@@ -239,46 +233,19 @@ internal static class ResponseEnumMappers
             _ => throw new ArgumentOutOfRangeException(nameof(rarity), rarity, null),
         };
 
-    public static ContractWeaponType ToContract(this DataWeaponType type) =>
-        type switch
+    public static ContractEquipmentSlot ToContract(this DataEquipmentSlot slot) =>
+        slot switch
         {
-            DataWeaponType.Dagger => ContractWeaponType.Dagger,
-            DataWeaponType.Sword => ContractWeaponType.Sword,
-            DataWeaponType.Axe => ContractWeaponType.Axe,
-            DataWeaponType.Mace => ContractWeaponType.Mace,
-            DataWeaponType.Hammer => ContractWeaponType.Hammer,
-            DataWeaponType.Staff => ContractWeaponType.Staff,
-            DataWeaponType.Wand => ContractWeaponType.Wand,
-            DataWeaponType.Bow => ContractWeaponType.Bow,
-            DataWeaponType.Crossbow => ContractWeaponType.Crossbow,
-            DataWeaponType.Javelin => ContractWeaponType.Javelin,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-        };
-
-    public static ContractArmorType ToContract(this DataArmorType type) =>
-        type switch
-        {
-            DataArmorType.Helm => ContractArmorType.Helm,
-            DataArmorType.Chest => ContractArmorType.Chest,
-            DataArmorType.Boots => ContractArmorType.Boots,
-            DataArmorType.Gloves => ContractArmorType.Gloves,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-        };
-
-    public static ContractAmmoType ToContract(this DataAmmoType type) =>
-        type switch
-        {
-            DataAmmoType.Arrow => ContractAmmoType.Arrow,
-            DataAmmoType.Bolt => ContractAmmoType.Bolt,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-        };
-
-    public static ContractAccessoryType ToContract(this DataAccessoryType type) =>
-        type switch
-        {
-            DataAccessoryType.Ring => ContractAccessoryType.Ring,
-            DataAccessoryType.Necklace => ContractAccessoryType.Necklace,
-            DataAccessoryType.Belt => ContractAccessoryType.Belt,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+            DataEquipmentSlot.Helm => ContractEquipmentSlot.Helm,
+            DataEquipmentSlot.Chest => ContractEquipmentSlot.Chest,
+            DataEquipmentSlot.LeftHand => ContractEquipmentSlot.LeftHand,
+            DataEquipmentSlot.RightHand => ContractEquipmentSlot.RightHand,
+            DataEquipmentSlot.Boots => ContractEquipmentSlot.Boots,
+            DataEquipmentSlot.Necklace => ContractEquipmentSlot.Necklace,
+            DataEquipmentSlot.Gloves => ContractEquipmentSlot.Gloves,
+            DataEquipmentSlot.LeftRing => ContractEquipmentSlot.LeftRing,
+            DataEquipmentSlot.RightRing => ContractEquipmentSlot.RightRing,
+            DataEquipmentSlot.Belt => ContractEquipmentSlot.Belt,
+            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
         };
 }

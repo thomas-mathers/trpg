@@ -126,17 +126,30 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
         return result ?? [];
     }
 
+    public async Task<IReadOnlyList<AbilitySummary>> GetAbilitiesBySkill(
+        Skill skill,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await httpClient.GetFromJsonAsync<List<AbilitySummary>>(
+            new Uri($"/abilities/{skill}", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result ?? [];
+    }
+
     public async Task<IReadOnlyList<ConsumableSummary>> GetConsumableItems(
         Guid creatureId,
         CancellationToken cancellationToken
     )
     {
-        var result = await httpClient.GetFromJsonAsync<InventorySummary>(
-            new Uri($"/creatures/{creatureId}/inventory?consumableOnly=true", UriKind.Relative),
+        var result = await httpClient.GetFromJsonAsync<List<ConsumableSummary>>(
+            new Uri($"/creatures/{creatureId}/consumables", UriKind.Relative),
             TrpgJsonOptions.Default,
             cancellationToken
         );
-        return result?.Items.Cast<ConsumableSummary>().ToArray() ?? [];
+        return result ?? [];
     }
 
     public async Task<InventorySummary> GetInventory(

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
+using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Combat;
@@ -114,6 +115,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetNearbyCorpsesQueryHandler>()
             .AddTransient<GetTotalCharacterXpFromSkillsQueryHandler>()
             .AddTransient<GetCreatureAbilitiesQueryHandler>()
+            .AddTransient<GetAbilitiesBySkillQueryHandler>()
             .AddTransient<GetCreatureKnowledgeQueryHandler>()
             .AddTransient<AdjustReputationCommandHandler>()
             .AddTransient<GetAllReputationsByCreatureIdQueryHandler>()

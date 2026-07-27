@@ -6,6 +6,7 @@ using TRPG.Client.Extensions;
 using TRPG.Contracts;
 using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Creatures.Responses;
+using TRPG.Contracts.Inventory.Responses;
 using TRPG.Contracts.Scenes.Responses;
 
 namespace TRPG.Client;
@@ -195,6 +196,52 @@ internal sealed class SlashCommandRegistry(
             }
         );
 
+        var inventoryCommand = new Command("inventory", "List your own inventory");
+        inventoryCommand.SetAction(
+            async (_, cancellationToken) =>
+            {
+                var inventory = await client.GetInventory(playerId, cancellationToken);
+                PrintInventory(inventory.Items);
+                return 0;
+            }
+        );
+
+        var skillNameArgument = new Argument<string[]>("name")
+        {
+            Description = "Name of the skill to inspect (e.g. Melee, Archery, Spellcasting)",
+        };
+        var skillCommand = new Command(
+            "skill",
+            "Show your level in a skill and its full ability tree"
+        )
+        {
+            skillNameArgument,
+        };
+        skillCommand.SetAction(
+            async (parseResult, cancellationToken) =>
+            {
+                var name = string.Join(' ', parseResult.GetValue(skillNameArgument) ?? []);
+                if (
+                    !Enum.TryParse<Skill>(
+                        name.Replace(" ", "", StringComparison.OrdinalIgnoreCase),
+                        ignoreCase: true,
+                        out var skill
+                    )
+                )
+                {
+                    AnsiConsole.AnnounceWarning($"Unknown skill '{name.EscapeMarkup()}'.");
+                    return 0;
+                }
+
+                var skills = await client.GetSkills(playerId, cancellationToken);
+                var skillAbilities = await client.GetAbilitiesBySkill(skill, cancellationToken);
+                var learnedAbilities = await client.GetAbilities(playerId, cancellationToken);
+                PrintSkillDetail(skill, skills, skillAbilities, learnedAbilities);
+
+                return 0;
+            }
+        );
+
         var allocateCommand = new Command(
             "allocate",
             "Spend any attribute points you've earned from leveling up"
@@ -237,6 +284,8 @@ internal sealed class SlashCommandRegistry(
             characterCommand,
             abilityCommand,
             skillsCommand,
+            skillCommand,
+            inventoryCommand,
             allocateCommand,
             lootCommand,
             exitCommand,
@@ -462,6 +511,49 @@ internal sealed class SlashCommandRegistry(
         );
     }
 
+    private static void PrintSkillDetail(
+        Skill skill,
+        IReadOnlyCollection<SkillProgressSummary> skills,
+        IReadOnlyCollection<AbilitySummary> skillAbilities,
+        IReadOnlyCollection<AbilitySummary> learnedAbilities
+    )
+    {
+        var progress = skills.FirstOrDefault(s => s.Skill == skill);
+        var level = progress?.Level ?? 0;
+        var experienceCurrent = progress?.ExperienceCurrent ?? 0;
+        var experienceToNextLevel = progress?.ExperienceToNextLevel ?? 0;
+
+        Announce(
+            $"{AnsiConsole.FormatNeutralChip(skill)} — Level {level} "
+                + $"({AnsiConsole.FormatBar(experienceCurrent, experienceToNextLevel, Theme.XpBar, width: 14)} {experienceCurrent}/{experienceToNextLevel})"
+        );
+
+        if (skillAbilities.Count == 0)
+        {
+            Announce("No abilities defined for this skill.");
+            return;
+        }
+
+        var learnedNames = learnedAbilities.Select(a => a.Name).ToHashSet();
+
+        AnsiConsole.PrintTable(
+            ["Name", "Description", "AP", "MP", "Cooldown", "Acquired"],
+            skillAbilities.Select(a =>
+                new[]
+                {
+                    a.Name,
+                    a.Description,
+                    a.ApCost.ToString(CultureInfo.InvariantCulture),
+                    a.MpCost.ToString(CultureInfo.InvariantCulture),
+                    a.Cooldown.ToString(CultureInfo.InvariantCulture),
+                    learnedNames.Contains(a.Name)
+                        ? $"[{Theme.Positive}]Yes[/]"
+                        : $"[{Theme.Negative}]No[/]",
+                }
+            )
+        );
+    }
+
     private static void PrintAbilities(IReadOnlyCollection<AbilitySummary> abilities)
     {
         if (abilities.Count == 0)
@@ -481,6 +573,29 @@ internal sealed class SlashCommandRegistry(
                     a.ApCost.ToString(CultureInfo.InvariantCulture),
                     a.MpCost.ToString(CultureInfo.InvariantCulture),
                     a.Cooldown.ToString(CultureInfo.InvariantCulture),
+                }
+            )
+        );
+    }
+
+    private static void PrintInventory(IReadOnlyCollection<ItemSummary> items)
+    {
+        if (items.Count == 0)
+        {
+            Announce("Your inventory is empty.");
+            return;
+        }
+
+        AnsiConsole.PrintTable(
+            ["Name", "Weight", "Quantity", "Type", "Slot"],
+            items.Select(i =>
+                new[]
+                {
+                    i.Name,
+                    i.Weight.ToString(CultureInfo.InvariantCulture),
+                    i.Quantity.ToString(CultureInfo.InvariantCulture),
+                    AnsiConsole.FormatNeutralChip(i.Type),
+                    i.EquippedSlot is { } slot ? AnsiConsole.FormatNeutralChip(slot) : "",
                 }
             )
         );

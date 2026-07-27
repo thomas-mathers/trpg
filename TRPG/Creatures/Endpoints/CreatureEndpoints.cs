@@ -19,6 +19,7 @@ internal static class CreatureEndpoints
     {
         app.MapGet("/creatures/{creatureId:guid}/abilities", GetAbilities);
         app.MapGet("/creatures/{creatureId:guid}/inventory", GetInventory);
+        app.MapGet("/creatures/{creatureId:guid}/consumables", GetConsumables);
         app.MapGet("/creatures/{creatureId:guid}/attribute-points", GetAttributePoints);
         app.MapPost(
             "/creatures/{creatureId:guid}/attribute-points/allocate",
@@ -46,26 +47,32 @@ internal static class CreatureEndpoints
 
     private static async Task<IResult> GetInventory(
         Guid creatureId,
-        bool? consumableOnly,
         GetInventorySummaryQueryHandler getInventorySummary,
         CancellationToken cancellationToken
     )
     {
         var snapshot = await getInventorySummary.Handle(
-            new GetInventorySummaryQuery
-            {
-                CreatureId = creatureId,
-                ConsumableOnly = consumableOnly ?? false,
-            },
+            new GetInventorySummaryQuery { CreatureId = creatureId },
             cancellationToken
         );
 
         return Results.Ok(
-            new InventorySummary(
-                snapshot.Gold,
-                snapshot.Items.Select(ToInventoryItemSummary).ToArray()
-            )
+            new InventorySummary(snapshot.Gold, snapshot.Items.Select(ToItemSummary).ToArray())
         );
+    }
+
+    private static async Task<IResult> GetConsumables(
+        Guid creatureId,
+        GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
+        CancellationToken cancellationToken
+    )
+    {
+        var items = await getInventoryByCreatureId.Handle(
+            new GetInventoryByCreatureIdQuery { CreatureId = creatureId },
+            cancellationToken
+        );
+
+        return Results.Ok(items.OfType<Consumable>().Select(ToConsumableSummary).ToArray());
     }
 
     private static async Task<IResult> GetNearbyCorpses(
@@ -79,7 +86,9 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.Ok(corpses.Select(c => new NearbyCorpseSummary(c.Id, c.Name)).ToArray());
+        return Results.Ok(
+            corpses.Select(c => new NearbyCorpseSummary(c.Id, c.Name, c.ItemCount)).ToArray()
+        );
     }
 
     private static async Task<IResult> GetAttributePoints(
@@ -163,67 +172,76 @@ internal static class CreatureEndpoints
         return Results.Ok(new CreatureLevelResponse(level));
     }
 
-    private static InventoryItemSummary ToInventoryItemSummary(Item item) =>
+    private static ItemSummary ToItemSummary(Item item) =>
+        new(
+            item.Id,
+            item.Name,
+            item.Weight,
+            item.Quantity,
+            item.Ownership.EquippedSlot?.ToContract(),
+            ToItemType(item),
+            ToRarity(item)
+        );
+
+    private static ItemType ToItemType(Item item) =>
         item switch
         {
-            Weapon w => ToSummary(w),
-            Armor a => ToSummary(a),
-            Shield s => ToSummary(s),
-            Consumable c => ToSummary(c),
-            Ammunition am => ToSummary(am),
-            Accessory ac => ToSummary(ac),
-            Gold g => ToSummary(g),
+            Weapon w => w.Type switch
+            {
+                WeaponType.Dagger => ItemType.Dagger,
+                WeaponType.Sword => ItemType.Sword,
+                WeaponType.Axe => ItemType.Axe,
+                WeaponType.Mace => ItemType.Mace,
+                WeaponType.Hammer => ItemType.Hammer,
+                WeaponType.Staff => ItemType.Staff,
+                WeaponType.Wand => ItemType.Wand,
+                WeaponType.Bow => ItemType.Bow,
+                WeaponType.Crossbow => ItemType.Crossbow,
+                WeaponType.Javelin => ItemType.Javelin,
+                _ => throw new ArgumentOutOfRangeException(nameof(item)),
+            },
+            Armor a => a.Type switch
+            {
+                ArmorType.Helm => ItemType.Helm,
+                ArmorType.Chest => ItemType.Chest,
+                ArmorType.Boots => ItemType.Boots,
+                ArmorType.Gloves => ItemType.Gloves,
+                _ => throw new ArgumentOutOfRangeException(nameof(item)),
+            },
+            Shield => ItemType.Shield,
+            Consumable => ItemType.Consumable,
+            Ammunition am => am.Type switch
+            {
+                AmmoType.Arrow => ItemType.Arrow,
+                AmmoType.Bolt => ItemType.Bolt,
+                _ => throw new ArgumentOutOfRangeException(nameof(item)),
+            },
+            Accessory ac => ac.Type switch
+            {
+                AccessoryType.Ring => ItemType.Ring,
+                AccessoryType.Necklace => ItemType.Necklace,
+                AccessoryType.Belt => ItemType.Belt,
+                _ => throw new ArgumentOutOfRangeException(nameof(item)),
+            },
+            Gold => ItemType.Gold,
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
-    private static WeaponSummary ToSummary(Weapon item) =>
-        new(
-            item.Id,
-            item.Name,
-            item.Quantity,
-            item.Rarity.ToContract(),
-            item.Type.ToContract(),
-            item.MinDamage,
-            item.MaxDamage
-        );
+    private static Contracts.Inventory.Responses.ItemRarity? ToRarity(Item item) =>
+        item switch
+        {
+            Weapon w => w.Rarity.ToContract(),
+            Armor a => a.Rarity.ToContract(),
+            Shield s => s.Rarity.ToContract(),
+            Consumable c => c.Rarity.ToContract(),
+            Ammunition am => am.Rarity.ToContract(),
+            Accessory ac => ac.Rarity.ToContract(),
+            Gold => null,
+            _ => throw new ArgumentOutOfRangeException(nameof(item)),
+        };
 
-    private static ArmorSummary ToSummary(Armor item) =>
-        new(
-            item.Id,
-            item.Name,
-            item.Quantity,
-            item.Rarity.ToContract(),
-            item.Type.ToContract(),
-            item.Defense
-        );
-
-    private static ShieldSummary ToSummary(Shield item) =>
-        new(
-            item.Id,
-            item.Name,
-            item.Quantity,
-            item.Rarity.ToContract(),
-            item.Defense,
-            item.BlockChance
-        );
-
-    private static ConsumableSummary ToSummary(Consumable item) =>
-        new(
-            item.Id,
-            item.Name,
-            item.Quantity,
-            item.Rarity.ToContract(),
-            item.Resource.ToContract(),
-            item.RestoreAmount
-        );
-
-    private static AmmunitionSummary ToSummary(Ammunition item) =>
-        new(item.Id, item.Name, item.Quantity, item.Rarity.ToContract(), item.Type.ToContract());
-
-    private static AccessorySummary ToSummary(Accessory item) =>
-        new(item.Id, item.Name, item.Quantity, item.Rarity.ToContract(), item.Type.ToContract());
-
-    private static GoldSummary ToSummary(Gold item) => new(item.Id, item.Name, item.Quantity);
+    private static ConsumableSummary ToConsumableSummary(Consumable item) =>
+        new(item.Id, item.Name, item.Quantity, item.Resource.ToContract(), item.RestoreAmount);
 
     private static AbilitySummary ToAbilitySummary(Ability ability) =>
         new(
