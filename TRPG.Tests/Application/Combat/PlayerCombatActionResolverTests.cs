@@ -28,7 +28,7 @@ public class PlayerCombatActionResolverTests
         );
 
         // Assert
-        var resolvedItem = Assert.IsType<ResolvedPlayerUseItemAction>(action.Result);
+        var resolvedItem = Assert.IsType<ResolvedUseItemAction>(action.Result);
         Assert.Equal(potion.Id, resolvedItem.Item.ItemId);
     }
 

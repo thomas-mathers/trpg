@@ -803,22 +803,355 @@ public class CreatureGenerator(
         ]
     );
 
-    private static readonly string[] MonsterEpithets =
+    private static readonly string[] UndeadEpithets =
     [
         "Grim",
-        "Foul",
-        "Ancient",
-        "Feral",
-        "Ravenous",
+        "Rotting",
         "Withered",
-        "Nameless",
-        "Restless",
+        "Hollow",
+        "Pale",
+        "Cursed",
+        "Forsaken",
+        "Deathless",
+        "Sunken",
+        "Moldering",
+        "Ashen",
+        "Forgotten",
+        "Silent",
+        "Grave-born",
     ];
 
-    private static readonly NamePool MonsterPool = new(
-        MonsterEpithets,
-        MonsterEpithets,
-        ["Wraith", "Husk", "Fiend", "Beast", "Horror", "Shade", "Abomination", "Stalker"]
+    private static readonly NamePool UndeadPool = new(
+        UndeadEpithets,
+        UndeadEpithets,
+        [
+            "Ghoul",
+            "Revenant",
+            "Banshee",
+            "Cadaver",
+            "Lich",
+            "Specter",
+            "Corpse",
+            "Deadwalker",
+            "Bonewalker",
+            "Graveborn",
+            "Wight",
+            "Shroud",
+            "Mourner",
+            "Deathknell",
+        ]
+    );
+
+    private static readonly string[] DemonEpithets =
+    [
+        "Vile",
+        "Damned",
+        "Infernal",
+        "Wicked",
+        "Cruel",
+        "Malevolent",
+        "Scorched",
+        "Blackened",
+        "Tormented",
+        "Depraved",
+        "Hellborn",
+        "Accursed",
+        "Bloodstained",
+        "Corrupted",
+    ];
+
+    private static readonly NamePool DemonPool = new(
+        DemonEpithets,
+        DemonEpithets,
+        [
+            "Fiend",
+            "Devilkin",
+            "Imp",
+            "Hellspawn",
+            "Tormentor",
+            "Defiler",
+            "Brimstone",
+            "Malice",
+            "Corruptor",
+            "Doomcaller",
+            "Netherborn",
+            "Soulrender",
+            "Pyreclaw",
+            "Ashfiend",
+        ]
+    );
+
+    private static readonly string[] BeastEpithets =
+    [
+        "Feral",
+        "Savage",
+        "Ravenous",
+        "Wild",
+        "Snarling",
+        "Prowling",
+        "Bloodfanged",
+        "Rabid",
+        "Untamed",
+        "Slavering",
+        "Fanged",
+        "Clawed",
+        "Matted",
+        "Bristling",
+    ];
+
+    private static readonly NamePool BeastPool = new(
+        BeastEpithets,
+        BeastEpithets,
+        [
+            "Fang",
+            "Claw",
+            "Prowler",
+            "Stalker",
+            "Howler",
+            "Ripper",
+            "Maw",
+            "Talon",
+            "Predator",
+            "Hunter",
+            "Snarler",
+            "Gnasher",
+            "Rager",
+            "Skulker",
+        ]
+    );
+
+    private static readonly string[] ConstructEpithets =
+    [
+        "Iron",
+        "Stone",
+        "Rusted",
+        "Forged",
+        "Brazen",
+        "Hollow",
+        "Grinding",
+        "Clockwork",
+        "Runic",
+        "Gearbound",
+        "Ironclad",
+        "Chiseled",
+        "Riveted",
+        "Leaden",
+    ];
+
+    private static readonly NamePool ConstructPool = new(
+        ConstructEpithets,
+        ConstructEpithets,
+        [
+            "Golem",
+            "Automaton",
+            "Sentinel",
+            "Colossus",
+            "Warden",
+            "Juggernaut",
+            "Guardian",
+            "Mechanism",
+            "Effigy",
+            "Bulwark",
+            "Statuary",
+            "Cog",
+            "Anvilborn",
+            "Stoneheart",
+        ]
+    );
+
+    private static readonly string[] ElementalEpithets =
+    [
+        "Burning",
+        "Freezing",
+        "Roaring",
+        "Churning",
+        "Molten",
+        "Crackling",
+        "Howling",
+        "Surging",
+        "Volcanic",
+        "Glacial",
+        "Thundering",
+        "Swirling",
+        "Blazing",
+        "Rippling",
+    ];
+
+    private static readonly NamePool ElementalPool = new(
+        ElementalEpithets,
+        ElementalEpithets,
+        [
+            "Cinder",
+            "Torrent",
+            "Gale",
+            "Boulder",
+            "Ember",
+            "Frost",
+            "Cyclone",
+            "Magma",
+            "Squall",
+            "Geyser",
+            "Avalanche",
+            "Firestorm",
+            "Undertow",
+            "Whirlwind",
+        ]
+    );
+
+    private static readonly string[] GoblinEpithets =
+    [
+        "Sneaky",
+        "Grubby",
+        "Snivel",
+        "Filthy",
+        "Cackling",
+        "Scrawny",
+        "Sniveling",
+        "Ratty",
+        "Grimy",
+        "Impish",
+        "Sly",
+        "Yellow-toothed",
+        "Scabby",
+        "Twitchy",
+    ];
+
+    private static readonly NamePool GoblinPool = new(
+        GoblinEpithets,
+        GoblinEpithets,
+        [
+            "Snagtooth",
+            "Grubfinger",
+            "Ratbite",
+            "Muckwallow",
+            "Snivelrat",
+            "Gutgnash",
+            "Filchpocket",
+            "Backstab",
+            "Gnashtooth",
+            "Sneakwart",
+            "Boneyip",
+            "Rustynail",
+            "Scrapfang",
+            "Puswhistle",
+        ]
+    );
+
+    private static readonly string[] WraithEpithets =
+    [
+        "Whispering",
+        "Ghostly",
+        "Ethereal",
+        "Mournful",
+        "Weeping",
+        "Shrouded",
+        "Fading",
+        "Silent",
+        "Spectral",
+        "Haunting",
+        "Veiled",
+        "Drifting",
+        "Wandering",
+        "Sorrowful",
+    ];
+
+    private static readonly NamePool WraithPool = new(
+        WraithEpithets,
+        WraithEpithets,
+        [
+            "Wisp",
+            "Echo",
+            "Mist",
+            "Sorrow",
+            "Lament",
+            "Gloom",
+            "Veil",
+            "Whisper",
+            "Chill",
+            "Phantasm",
+            "Remnant",
+            "Nightmist",
+            "Farshade",
+            "Hollowmoan",
+        ]
+    );
+
+    private static readonly string[] GiantEpithets =
+    [
+        "Towering",
+        "Mighty",
+        "Colossal",
+        "Thunderous",
+        "Bone-crushing",
+        "Mountainous",
+        "Lumbering",
+        "Hulking",
+        "Earthshaking",
+        "Massive",
+        "Brutish",
+        "Titanic",
+        "Craggy",
+        "Broadshouldered",
+    ];
+
+    private static readonly NamePool GiantPool = new(
+        GiantEpithets,
+        GiantEpithets,
+        [
+            "Crusher",
+            "Stonefist",
+            "Skullbreaker",
+            "Boulderthrow",
+            "Cloudreach",
+            "Earthshaker",
+            "Highstrider",
+            "Mountainborn",
+            "Landbreaker",
+            "Ridgeback",
+            "Thunderfoot",
+            "Hillstomper",
+            "Rockjaw",
+            "Timberfell",
+        ]
+    );
+
+    private static readonly string[] DragonEpithets =
+    [
+        "Ancient",
+        "Wyrmborn",
+        "Scaled",
+        "Fireforged",
+        "Skytorn",
+        "Eternal",
+        "Dread",
+        "Stormwreathed",
+        "Goldeneyed",
+        "Coiled",
+        "Venomous",
+        "Sovereign",
+        "Sunscaled",
+        "Nightscaled",
+    ];
+
+    private static readonly NamePool DragonPool = new(
+        DragonEpithets,
+        DragonEpithets,
+        [
+            "Wyrm",
+            "Drake",
+            "Scaletail",
+            "Flameheart",
+            "Emberwing",
+            "Frostbane",
+            "Stormwing",
+            "Bloodscale",
+            "Nightwing",
+            "Doomwing",
+            "Skyrender",
+            "Ashwing",
+            "Starclaw",
+            "Ironscale",
+        ]
     );
 
     private static readonly Dictionary<CreatureType, NamePool[]> Pools = new()
@@ -829,11 +1162,15 @@ public class CreatureGenerator(
         [CreatureType.Orc] = [OrcPool],
         [CreatureType.Halfling] = [HalflingPool],
         [CreatureType.Gnome] = [GnomePool],
-        [CreatureType.Undead] = [MonsterPool],
-        [CreatureType.Demon] = [MonsterPool],
-        [CreatureType.Beast] = [MonsterPool],
-        [CreatureType.Construct] = [MonsterPool],
-        [CreatureType.Elemental] = [MonsterPool],
+        [CreatureType.Undead] = [UndeadPool],
+        [CreatureType.Demon] = [DemonPool],
+        [CreatureType.Beast] = [BeastPool],
+        [CreatureType.Construct] = [ConstructPool],
+        [CreatureType.Elemental] = [ElementalPool],
+        [CreatureType.Goblin] = [GoblinPool],
+        [CreatureType.Wraith] = [WraithPool],
+        [CreatureType.Giant] = [GiantPool],
+        [CreatureType.Dragon] = [DragonPool],
     };
 
     public CreatureGeneratorResult Generate(CreatureGeneratorInput generatorInput)
@@ -1273,7 +1610,7 @@ public class CreatureGenerator(
 
     private static NamePool GetPool(CreatureType creatureType)
     {
-        var pools = Pools.GetValueOrDefault(creatureType, [MonsterPool]);
+        var pools = Pools.GetValueOrDefault(creatureType, [BeastPool]);
         return pools[Random.Shared.Next(pools.Length)];
     }
 

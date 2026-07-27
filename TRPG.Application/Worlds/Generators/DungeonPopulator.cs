@@ -83,6 +83,11 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             )
         );
 
+        if (archetype.HasPotions)
+        {
+            result = creatureGenerator.AddStartingPotions(result);
+        }
+
         result.Creature.RoomId = input.RoomId;
 
         return result;
