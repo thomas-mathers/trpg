@@ -577,7 +577,7 @@ public class CombatEngine(
                 return new ResolvedUseItemAction(hpPotion);
             }
 
-            var stance = FindUsableBuff(enemy, affordableAbilities, longRunning: false);
+            var stance = FindUsableStance(enemy, affordableAbilities);
             return stance is not null ? new ResolvedUseAbilityAction(stance, [enemy]) : null;
         }
 
@@ -597,24 +597,32 @@ public class CombatEngine(
             return new ResolvedUseItemAction(mpPotion);
         }
 
-        var openingBuff = FindUsableBuff(enemy, affordableAbilities, longRunning: true);
+        var openingBuff = FindUsableOpeningBuff(enemy, affordableAbilities);
         return openingBuff is not null ? new ResolvedUseAbilityAction(openingBuff, [enemy]) : null;
     }
 
-    // A single-turn stance (Duration 1, like Block) is meant to be triggered situationally
-    // rather than left running, unlike a real skill-tree buff meant to be cast once and left
-    // active — so the two are never interchangeable candidates for the same decision.
-    private static Ability? FindUsableBuff(
+    // A real skill-tree buff meant to be cast once and left active for several rounds.
+    private static Ability? FindUsableOpeningBuff(
         Combatant enemy,
-        IReadOnlyList<Ability> affordableAbilities,
-        bool longRunning
+        IReadOnlyList<Ability> affordableAbilities
     ) =>
         affordableAbilities
             .OfType<BuffAbility>()
-            .FirstOrDefault(a =>
-                (a.Duration > 1) == longRunning
-                && enemy.ActiveBuffs.All(b => b.AbilityName != a.Name)
-            );
+            .FirstOrDefault(a => a.Duration > 1 && IsUnused(enemy, a));
+
+    // A single-turn stance (Duration 1, like Block) is meant to be triggered situationally
+    // rather than left running, unlike a real skill-tree buff — never an interchangeable
+    // candidate for the opening-move decision above.
+    private static Ability? FindUsableStance(
+        Combatant enemy,
+        IReadOnlyList<Ability> affordableAbilities
+    ) =>
+        affordableAbilities
+            .OfType<BuffAbility>()
+            .FirstOrDefault(a => a.Duration <= 1 && IsUnused(enemy, a));
+
+    private static bool IsUnused(Combatant enemy, Ability ability) =>
+        enemy.ActiveBuffs.All(b => b.AbilityName != ability.Name);
 
     private static bool IsLow(int current, int maximum, float threshold) =>
         maximum > 0 && current / (float)maximum < threshold;
