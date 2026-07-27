@@ -1,21 +1,18 @@
 using TRPG.Application.Common.Mappers;
 using AbilitiesConditionType = TRPG.Application.Abilities.ConditionType;
-using DataAccessoryType = TRPG.Data.Models.AccessoryType;
-using DataAmmoType = TRPG.Data.Models.AmmoType;
 using DataAmountType = TRPG.Data.Models.AmountType;
-using DataArmorType = TRPG.Data.Models.ArmorType;
 using DataAttributeName = TRPG.Data.Models.AttributeName;
 using DataBuildingType = TRPG.Data.Models.BuildingType;
 using DataCreatureState = TRPG.Data.Models.CreatureState;
 using DataCreatureType = TRPG.Data.Models.CreatureType;
 using DataDamageType = TRPG.Data.Models.DamageType;
 using DataDistrictType = TRPG.Data.Models.DistrictType;
+using DataEquipmentSlot = TRPG.Data.Models.EquipmentSlot;
 using DataGender = TRPG.Data.Models.Gender;
 using DataItemRarity = TRPG.Data.Models.ItemRarity;
 using DataProfession = TRPG.Data.Models.Profession;
 using DataResourceType = TRPG.Data.Models.ResourceType;
 using DataSkill = TRPG.Data.Models.Skill;
-using DataWeaponType = TRPG.Data.Models.WeaponType;
 
 namespace TRPG.Tests.Application.Common.Mappers;
 
@@ -165,41 +162,8 @@ public class ResponseEnumMappersTests
     }
 
     [Theory]
-    [MemberData(nameof(WeaponTypeValues))]
-    public void ToContract_MapsWeaponTypeByName(DataWeaponType value)
-    {
-        // Act
-        var result = value.ToContract();
-
-        // Assert
-        Assert.Equal(value.ToString(), result.ToString());
-    }
-
-    [Theory]
-    [MemberData(nameof(ArmorTypeValues))]
-    public void ToContract_MapsArmorTypeByName(DataArmorType value)
-    {
-        // Act
-        var result = value.ToContract();
-
-        // Assert
-        Assert.Equal(value.ToString(), result.ToString());
-    }
-
-    [Theory]
-    [MemberData(nameof(AmmoTypeValues))]
-    public void ToContract_MapsAmmoTypeByName(DataAmmoType value)
-    {
-        // Act
-        var result = value.ToContract();
-
-        // Assert
-        Assert.Equal(value.ToString(), result.ToString());
-    }
-
-    [Theory]
-    [MemberData(nameof(AccessoryTypeValues))]
-    public void ToContract_MapsAccessoryTypeByName(DataAccessoryType value)
+    [MemberData(nameof(EquipmentSlotValues))]
+    public void ToContract_MapsEquipmentSlotByName(DataEquipmentSlot value)
     {
         // Act
         var result = value.ToContract();
@@ -235,13 +199,7 @@ public class ResponseEnumMappersTests
 
     public static IEnumerable<object[]> ItemRarityValues() => AllValues<DataItemRarity>();
 
-    public static IEnumerable<object[]> WeaponTypeValues() => AllValues<DataWeaponType>();
-
-    public static IEnumerable<object[]> ArmorTypeValues() => AllValues<DataArmorType>();
-
-    public static IEnumerable<object[]> AmmoTypeValues() => AllValues<DataAmmoType>();
-
-    public static IEnumerable<object[]> AccessoryTypeValues() => AllValues<DataAccessoryType>();
+    public static IEnumerable<object[]> EquipmentSlotValues() => AllValues<DataEquipmentSlot>();
 
     private static IEnumerable<object[]> AllValues<TEnum>()
         where TEnum : struct, Enum => Enum.GetValues<TEnum>().Select(v => new object[] { v });

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TickerQ.DependencyInjection;
 using TRPG;
+using TRPG.Abilities.Endpoints;
 using TRPG.Admin.Endpoints;
 using TRPG.Application.Common.Extensions;
 using TRPG.Configuration;
@@ -81,6 +82,7 @@ _ = Task.Run(async () =>
 });
 
 app.MapWorldEndpoints();
+app.MapAbilityEndpoints();
 app.MapCreatureEndpoints();
 app.MapPlayerEndpoints();
 app.MapCreatureGenerationEndpoints();
