@@ -10,12 +10,13 @@ namespace TRPG.Application.Combat;
 public class CombatEngine(
     IOptionsSnapshot<CombatOptions> optionsSnapshot,
     HitCalculator hitCalculator,
-    DamageCalculator damageCalculator
+    DamageCalculator damageCalculator,
+    EnemyCombatActionResolver enemyCombatActionResolver
 )
 {
     internal CombatState ProcessRound(
         IReadOnlyList<Combatant> combatants,
-        ResolvedPlayerCombatAction action
+        ResolvedCombatAction action
     )
     {
         var player = combatants.Single(c => c.IsPlayer);
@@ -29,7 +30,7 @@ public class CombatEngine(
             .SelectMany(combatant =>
                 combatant == player
                     ? ProcessTurn(player, action)
-                    : ProcessTurn(combatant, ResolveEnemyAction(combatant, player))
+                    : ProcessTurn(combatant, enemyCombatActionResolver.Resolve(combatant, player))
             )
             .ToArray();
 
@@ -45,7 +46,7 @@ public class CombatEngine(
         );
     }
 
-    private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedPlayerCombatAction action)
+    private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedCombatAction action)
     {
         if (!actor.IsAlive)
         {
@@ -67,8 +68,8 @@ public class CombatEngine(
 
         var actionEvents = action switch
         {
-            ResolvedPlayerUseAbilityAction resolved => ProcessAbility(actor, resolved),
-            ResolvedPlayerUseItemAction resolved => ProcessItem(actor, resolved.Item),
+            ResolvedUseAbilityAction resolved => ProcessAbility(actor, resolved),
+            ResolvedUseItemAction resolved => ProcessItem(actor, resolved.Item),
             _ => [],
         };
 
@@ -103,10 +104,10 @@ public class CombatEngine(
 
     private List<CombatEvent> ProcessAbility(
         Combatant actor,
-        ResolvedPlayerUseAbilityAction resolvedPlayerUseAbilityAction
+        ResolvedUseAbilityAction resolvedUseAbilityAction
     )
     {
-        var (ability, targets) = resolvedPlayerUseAbilityAction;
+        var (ability, targets) = resolvedUseAbilityAction;
 
         actor.CooldownRemainingByAbility[ability.Name] = ability.Cooldown;
         actor.CurrentAp -= ability.ApCost;
@@ -468,7 +469,7 @@ public class CombatEngine(
 
     private static CombatEvent? GetIncapacitationEvent(
         Combatant attacker,
-        ResolvedPlayerCombatAction action
+        ResolvedCombatAction action
     )
     {
         var frozenTurnsRemaining = attacker.ActiveConditions[ConditionType.Frozen];
@@ -483,7 +484,7 @@ public class CombatEngine(
             return new NoAction(attacker.Name, ConditionType.Stunned);
         }
 
-        var ability = action is ResolvedPlayerUseAbilityAction resolvedAbility
+        var ability = action is ResolvedUseAbilityAction resolvedAbility
             ? resolvedAbility.Ability
             : null;
 
@@ -519,28 +520,6 @@ public class CombatEngine(
         }
 
         return null;
-    }
-
-    private static ResolvedPlayerUseAbilityAction ResolveEnemyAction(
-        Combatant enemy,
-        Combatant player
-    )
-    {
-        var affordableAbilities = enemy.Abilities.Where(a =>
-            enemy.CooldownRemainingByAbility[a.Name] == 0
-            && enemy.CurrentAp >= a.ApCost
-            && enemy.CurrentMp >= a.MpCost
-        );
-
-        // Every combatant always has the basic attack (0 AP/MP cost, 0 cooldown), so it's
-        // always in affordableAbilities and MaxBy can never return null here.
-        var bestAttackAbility = affordableAbilities
-            .OfType<AttackAbility>()
-            .MaxBy(a =>
-                a.DamageType == DamageType.Physical ? a.DamageAmount / 100f : a.DamageAmount
-            );
-
-        return new ResolvedPlayerUseAbilityAction(bestAttackAbility!, [player]);
     }
 
     private static CombatOutcome GetCurrentOutcome(
@@ -586,7 +565,9 @@ public class CombatEngine(
 
             foreach (var enemy in enemyTurnOrder)
             {
-                combatEvents.AddRange(ProcessTurn(enemy, ResolveEnemyAction(enemy, player)));
+                combatEvents.AddRange(
+                    ProcessTurn(enemy, enemyCombatActionResolver.Resolve(enemy, player))
+                );
             }
         }
 

@@ -10,4 +10,5 @@ public class CombatOptions
     public float MaxHitChance { get; init; } = 0.95f;
     public float StrengthDamageBonusPerPoint { get; init; } = 0.01f;
     public float IntelligenceDamageBonusPerPoint { get; init; } = 0.01f;
+    public float LowResourceThresholdPercent { get; init; } = 0.3f;
 }

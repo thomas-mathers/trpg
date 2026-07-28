@@ -33,6 +33,7 @@ public sealed class CreatureArchetype
     public IReadOnlyList<StartingGearSpec> StartingGear { get; }
     public ArmorClass? ArmorClass { get; }
     public bool HasAccessories { get; }
+    public bool HasPotions { get; }
     public string? Biography { get; }
 
     private CreatureArchetype(
@@ -43,6 +44,7 @@ public sealed class CreatureArchetype
         IReadOnlyList<StartingGearSpec>? startingGear = null,
         ArmorClass? armorClass = null,
         bool hasAccessories = false,
+        bool hasPotions = false,
         string? biography = null
     )
     {
@@ -53,6 +55,7 @@ public sealed class CreatureArchetype
         StartingGear = startingGear ?? [];
         ArmorClass = armorClass;
         HasAccessories = hasAccessories;
+        HasPotions = hasPotions;
         Biography = biography;
     }
 
@@ -147,6 +150,7 @@ public sealed class CreatureArchetype
         },
         creatureType: Data.Models.CreatureType.Demon,
         startingGear: [new WeaponSpec(WeaponType.Sword)],
+        hasPotions: true,
         biography: "A malevolent entity from somewhere that is not this world."
     );
 
@@ -194,6 +198,7 @@ public sealed class CreatureArchetype
             new AmmoSpec(AmmoType.Arrow, 20),
             new WeaponSpec(WeaponType.Dagger),
         ],
+        hasPotions: true,
         biography: "A small, vicious scavenger that hunts in packs and covets anything shiny."
     );
 

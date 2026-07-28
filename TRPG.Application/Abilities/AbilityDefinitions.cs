@@ -20,7 +20,7 @@ public class AbilityDefinitions(
             TargetType = AttackTargetType.Single,
             DamageType = DamageType.Physical,
             DamageAmount = 100,
-            DamageAmountType = AmountType.Flat,
+            DamageAmountType = AmountType.Percent,
         };
 
     public BuffAbility BlockStance { get; } =
@@ -1256,7 +1256,11 @@ public class AbilityDefinitions(
                 Cooldown = cooldown,
                 TargetType = targetType,
                 DamageType = damageType,
-                DamageAmountType = AmountType.Flat,
+                // Physical damage is a percentage of weapon damage (see
+                // DamageCalculator.CalculatePhysicalRawDamage); every other damage type is a
+                // flat amount.
+                DamageAmountType =
+                    damageType == DamageType.Physical ? AmountType.Percent : AmountType.Flat,
                 DamageAmount = damageAmount,
             };
             ByName[name] = attack;

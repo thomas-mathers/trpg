@@ -3,24 +3,21 @@ using TRPG.Contracts.Combat.Requests;
 
 namespace TRPG.Application.Combat;
 
-internal abstract record ResolvedPlayerCombatAction;
+internal abstract record ResolvedCombatAction;
 
-internal sealed record ResolvedPlayerUseAbilityAction(
-    Ability Ability,
-    IReadOnlyList<Combatant> Targets
-) : ResolvedPlayerCombatAction;
+internal sealed record ResolvedUseAbilityAction(Ability Ability, IReadOnlyList<Combatant> Targets)
+    : ResolvedCombatAction;
 
-internal sealed record ResolvedPlayerUseItemAction(ConsumableItemSnapshot Item)
-    : ResolvedPlayerCombatAction;
+internal sealed record ResolvedUseItemAction(ConsumableItemSnapshot Item) : ResolvedCombatAction;
 
 internal class PlayerCombatActionResolverResult
 {
-    public ResolvedPlayerCombatAction? Result { get; }
+    public ResolvedCombatAction? Result { get; }
     public string? ErrorMessage { get; }
     public bool IsError => ErrorMessage != null;
 
     private PlayerCombatActionResolverResult(
-        ResolvedPlayerCombatAction? result,
+        ResolvedCombatAction? result,
         string? errorMessage = null
     )
     {
@@ -28,7 +25,7 @@ internal class PlayerCombatActionResolverResult
         ErrorMessage = errorMessage;
     }
 
-    public static PlayerCombatActionResolverResult Success(ResolvedPlayerCombatAction result) =>
+    public static PlayerCombatActionResolverResult Success(ResolvedCombatAction result) =>
         new(result);
 
     public static PlayerCombatActionResolverResult Failure(string? errorMessage = null) =>
@@ -131,7 +128,7 @@ internal class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
         };
 
         return PlayerCombatActionResolverResult.Success(
-            new ResolvedPlayerUseAbilityAction(ability, targets)
+            new ResolvedUseAbilityAction(ability, targets)
         );
     }
 
@@ -156,6 +153,6 @@ internal class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
             );
         }
 
-        return PlayerCombatActionResolverResult.Success(new ResolvedPlayerUseItemAction(item));
+        return PlayerCombatActionResolverResult.Success(new ResolvedUseItemAction(item));
     }
 }
