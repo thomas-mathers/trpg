@@ -167,6 +167,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<AdjustWeaponProficienciesCommandHandler>()
             .AddTransient<HitCalculator>()
             .AddTransient<DamageCalculator>()
+            .AddTransient<EnemyCombatActionResolver>()
             .AddTransient<CombatEngine>()
             .AddGameTool<WorldInfoTool>()
             .AddGameTool<LookTool>()

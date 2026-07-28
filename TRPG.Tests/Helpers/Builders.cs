@@ -145,6 +145,39 @@ internal static class Builders
             DamageAmountType = AmountType.Flat,
         };
 
+    public static InstantHealAbility MakeInstantHealAbility(
+        string name = "Cure",
+        int amount = 20,
+        int cost = 0,
+        int cooldown = 0
+    ) =>
+        new()
+        {
+            Name = name,
+            Description = "A test instant-heal ability.",
+            ApCost = cost,
+            Cooldown = cooldown,
+            TargetType = TargetType.Single,
+            Amount = amount,
+        };
+
+    public static BuffAbility MakeBuffAbility(
+        string name = "Buff",
+        int cost = 0,
+        int cooldown = 0,
+        int duration = 3,
+        TargetType targetType = TargetType.Single
+    ) =>
+        new()
+        {
+            Name = name,
+            Description = "A test support ability.",
+            ApCost = cost,
+            Cooldown = cooldown,
+            TargetType = targetType,
+            Duration = duration,
+        };
+
     public static Creature MakeCreature(
         Guid? worldId = null,
         CreatureType creatureType = CreatureType.Human,

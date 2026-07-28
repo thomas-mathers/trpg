@@ -29,7 +29,13 @@ public class CombatEngineTests
     {
         var hitCalculator = new HitCalculator(optionsSnapshot);
         var damageCalculator = new DamageCalculator(optionsSnapshot);
-        return new CombatEngine(optionsSnapshot, hitCalculator, damageCalculator);
+        var enemyCombatActionResolver = new EnemyCombatActionResolver(optionsSnapshot);
+        return new CombatEngine(
+            optionsSnapshot,
+            hitCalculator,
+            damageCalculator,
+            enemyCombatActionResolver
+        );
     }
 
     private static CombatState Resolve(
@@ -71,24 +77,6 @@ public class CombatEngineTests
         };
     }
 
-    private static BuffAbility MakeSupport(
-        string name = "Buff",
-        int cost = 0,
-        int cooldown = 0,
-        TargetType targetType = TargetType.Single
-    )
-    {
-        return new BuffAbility
-        {
-            Name = name,
-            Description = "A test support ability.",
-            ApCost = cost,
-            Cooldown = cooldown,
-            TargetType = targetType,
-            Duration = 3,
-        };
-    }
-
     private static HealOverTimeAbility MakeRegen(
         string name = "Regen",
         int amountPerTurn = 5,
@@ -106,24 +94,6 @@ public class CombatEngineTests
             TargetType = TargetType.Single,
             AmountPerTurn = amountPerTurn,
             Duration = duration,
-        };
-    }
-
-    private static InstantHealAbility MakeInstantHeal(
-        string name = "Cure",
-        int amount = 20,
-        int cost = 0,
-        int cooldown = 0
-    )
-    {
-        return new InstantHealAbility
-        {
-            Name = name,
-            Description = "A test instant-heal ability.",
-            ApCost = cost,
-            Cooldown = cooldown,
-            TargetType = TargetType.Single,
-            Amount = amount,
         };
     }
 
@@ -476,7 +446,7 @@ public class CombatEngineTests
         // Arrange
         var player = MakeCombatant("Hero")
             .AsPlayer()
-            .WithAbilities(MakeSupport("Battle Stance", targetType: TargetType.Self))
+            .WithAbilities(Builders.MakeBuffAbility("Battle Stance", targetType: TargetType.Self))
             .Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
@@ -622,7 +592,7 @@ public class CombatEngineTests
     public void ProcessRound_TicksDownAndExpiresBuffs_OverSubsequentRounds()
     {
         // Arrange
-        var buffAbility = MakeSupport(name: "Battle Stance");
+        var buffAbility = Builders.MakeBuffAbility(name: "Battle Stance");
         buffAbility.Modifiers.Add(
             new AttributeModifier
             {
@@ -661,7 +631,7 @@ public class CombatEngineTests
     public void ProcessRound_RefreshesExistingBuff_InsteadOfStacking_WhenSameAbilityReapplied()
     {
         // Arrange
-        var buffAbility = MakeSupport(name: "Battle Stance");
+        var buffAbility = Builders.MakeBuffAbility(name: "Battle Stance");
         buffAbility.Modifiers.Add(
             new AttributeModifier
             {
@@ -695,7 +665,7 @@ public class CombatEngineTests
     public void ApplyBuff_AllowsDifferentNamedBuffs_ToCoexist()
     {
         // Arrange
-        var battleStance = MakeSupport("Battle Stance");
+        var battleStance = Builders.MakeBuffAbility("Battle Stance");
         battleStance.Modifiers.Add(
             new AttributeModifier
             {
@@ -704,7 +674,7 @@ public class CombatEngineTests
                 Amount = 5,
             }
         );
-        var ironWill = MakeSupport("Iron Will");
+        var ironWill = Builders.MakeBuffAbility("Iron Will");
         ironWill.Modifiers.Add(
             new AttributeModifier
             {
@@ -1004,7 +974,7 @@ public class CombatEngineTests
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
-            .WithAbilities(MakeInstantHeal(amount: 999))
+            .WithAbilities(Builders.MakeInstantHealAbility(amount: 999))
             .WithCurrentHp(1)
             .Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
@@ -1022,9 +992,10 @@ public class CombatEngineTests
     }
 
     [Fact]
-    public void ResolveEnemyAction_DrinksHealthPotion_WhenLowOnHpAndNoHealAbility()
+    public void ProcessRound_DelegatesEnemyTurnToEnemyCombatActionResolver()
     {
-        // Arrange
+        // Arrange — the AI decision itself is covered by EnemyCombatActionResolverTests; this
+        // only proves CombatEngine actually wires that resolver's decision into the round
         var potion = new Consumable
         {
             Name = "Health Potion",
@@ -1042,119 +1013,5 @@ public class CombatEngineTests
         // Assert — drank the potion instead of attacking
         var consumed = Assert.IsType<ConsumedPotion>(state.Events[1]);
         Assert.Equal(ResourceType.Hp, consumed.Resource);
-    }
-
-    [Fact]
-    public void ResolveEnemyAction_UsesHealAbility_OverHealthPotion_WhenBothAreAvailable()
-    {
-        // Arrange
-        var potion = new Consumable
-        {
-            Name = "Health Potion",
-            Resource = ResourceType.Hp,
-            RestoreAmount = 50,
-        };
-        var player = MakeCombatant("Hero").AsPlayer().Build();
-        var monster = MakeCombatant("Wraith")
-            .WithAbilities(MakeInstantHeal())
-            .WithItem(potion)
-            .WithCurrentHp(1)
-            .Build();
-        IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysMiss);
-
-        // Act
-        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
-
-        // Assert — the ability is preferred; the potion is left untouched
-        var healed = Assert.IsType<Healed>(state.Events[1]);
-        Assert.Equal("Wraith", healed.TargetName);
-    }
-
-    [Fact]
-    public void ResolveEnemyAction_DrinksApPotion_WhenHpIsFineButApIsLow()
-    {
-        // Arrange
-        var potion = new Consumable
-        {
-            Name = "Ap Tonic",
-            Resource = ResourceType.Ap,
-            RestoreAmount = 50,
-        };
-        var player = MakeCombatant("Hero").AsPlayer().Build();
-        var monster = MakeCombatant("Wraith").WithItem(potion).WithCurrentAp(1).Build();
-        IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysMiss);
-
-        // Act
-        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
-
-        // Assert
-        var consumed = Assert.IsType<ConsumedPotion>(state.Events[1]);
-        Assert.Equal(ResourceType.Ap, consumed.Resource);
-    }
-
-    [Fact]
-    public void ResolveEnemyAction_DrinksMpPotion_WhenHpIsFineButMpIsLow()
-    {
-        // Arrange
-        var potion = new Consumable
-        {
-            Name = "Mp Tonic",
-            Resource = ResourceType.Mp,
-            RestoreAmount = 50,
-        };
-        var player = MakeCombatant("Hero").AsPlayer().Build();
-        var monster = MakeCombatant("Wraith").WithItem(potion).WithCurrentMp(1).Build();
-        IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysMiss);
-
-        // Act
-        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
-
-        // Assert
-        var consumed = Assert.IsType<ConsumedPotion>(state.Events[1]);
-        Assert.Equal(ResourceType.Mp, consumed.Resource);
-    }
-
-    [Fact]
-    public void ResolveEnemyAction_FallsBackToBlock_WhenLowOnHpWithNoHealOrPotionForIt()
-    {
-        // Arrange — an Ap potion is present but doesn't address the emergency, so it's ignored
-        var apPotion = new Consumable
-        {
-            Name = "Ap Tonic",
-            Resource = ResourceType.Ap,
-            RestoreAmount = 50,
-        };
-        var player = MakeCombatant("Hero").AsPlayer().Build();
-        var monster = MakeCombatant("Wraith").WithItem(apPotion).WithCurrentHp(1).Build();
-        IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysMiss);
-
-        // Act
-        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
-
-        // Assert — raises its guard as a last resort rather than drinking an unrelated potion
-        var buffApplied = Assert.IsType<BuffApplied>(state.Events[1]);
-        Assert.Equal("Block", buffApplied.AbilityName);
-    }
-
-    [Fact]
-    public void ResolveEnemyAction_CastsOpeningBuff_WhenHealthyAndNotYetActive()
-    {
-        // Arrange — a long-running buff (Duration > 1) is cast proactively, unlike Block
-        var battleStance = MakeSupport("Battle Stance");
-        var player = MakeCombatant("Hero").AsPlayer().Build();
-        var monster = MakeCombatant("Wraith").WithAbilities(battleStance).Build();
-        IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysMiss);
-
-        // Act
-        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
-
-        // Assert
-        var buffApplied = Assert.IsType<BuffApplied>(state.Events[1]);
-        Assert.Equal("Battle Stance", buffApplied.AbilityName);
     }
 }
