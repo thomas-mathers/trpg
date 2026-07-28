@@ -142,7 +142,8 @@ internal static class Builders
             TargetType = AttackTargetType.Single,
             DamageType = damageType,
             DamageAmount = damageAmount,
-            DamageAmountType = AmountType.Flat,
+            DamageAmountType =
+                damageType == DamageType.Physical ? AmountType.Percent : AmountType.Flat,
         };
 
     public static InstantHealAbility MakeInstantHealAbility(

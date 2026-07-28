@@ -71,7 +71,8 @@ public class CombatEngineTests
             TargetType = targetType,
             DamageType = damageType,
             DamageAmount = damage,
-            DamageAmountType = AmountType.Flat,
+            DamageAmountType =
+                damageType == DamageType.Physical ? AmountType.Percent : AmountType.Flat,
             Dots = dot != null ? [dot] : [],
             Conditions = status != null ? [status] : [],
         };

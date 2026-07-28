@@ -24,11 +24,13 @@ public class EnemyCombatActionResolver(IOptionsSnapshot<CombatOptions> optionsSn
         }
 
         // Every combatant always has the basic attack (0 AP/MP cost, 0 cooldown), so it's
-        // always in affordableAbilities and MaxBy can never return null here.
+        // always in affordableAbilities and MaxBy can never return null here. Percent-based
+        // DamageAmount (physical, a % of weapon damage) is normalized down to roughly the same
+        // scale as a flat DamageAmount so the comparison isn't just "physical always wins."
         var bestAttackAbility = affordableAbilities
             .OfType<AttackAbility>()
             .MaxBy(a =>
-                a.DamageType == DamageType.Physical ? a.DamageAmount / 100f : a.DamageAmount
+                a.DamageAmountType == AmountType.Percent ? a.DamageAmount / 100f : a.DamageAmount
             );
 
         return new ResolvedUseAbilityAction(bestAttackAbility!, [player]);
