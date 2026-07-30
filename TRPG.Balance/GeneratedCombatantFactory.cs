@@ -5,7 +5,7 @@ using TRPG.Application.Creatures;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Balance;
+namespace TRPG.Balance;
 
 public record GeneratedCombatantContext(
     CreatureGenerator Generator,

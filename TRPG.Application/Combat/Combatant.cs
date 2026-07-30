@@ -86,26 +86,11 @@ public class Combatant
     public int MaximumAp => (int)CalculateEffectiveAttribute(AttributeName.MaximumAp);
     public int MaximumMp => (int)CalculateEffectiveAttribute(AttributeName.MaximumMp);
 
-    // Single source of truth for turn order: CombatEngine sorts by this to decide who acts
-    // when, and callers outside combat resolution (e.g. the fight-status endpoint) read it too,
-    // so the panel display always matches the order actions actually resolve in.
-    public float TurnOrderValue => CalculateEffectiveAttribute(AttributeName.Dexterity);
+    public float TurnOrder => CalculateEffectiveAttribute(AttributeName.Dexterity);
     public Weapon? Weapon => EquippedItems.OfType<Weapon>().SingleOrDefault();
     public int? WeaponProficiency => Weapon != null ? WeaponProficiencies[Weapon.Type] : null;
     public Shield? Shield => EquippedItems.OfType<Shield>().SingleOrDefault();
     public float BlockChance => Shield?.BlockChance ?? 0f;
-
-    // Snared has no dedicated incapacitation check (unlike Frozen/Stunned/Blinded/Silenced - see
-    // CombatEngine.GetIncapacitationEvent); instead it hobbles this combatant's own effective
-    // Dexterity wherever it's read for combat purposes (evasion, crit chance), whether this
-    // combatant is attacking or defending.
-    public float CalculateCombatDexterity(float snareDexterityReductionPercent)
-    {
-        var dexterity = CalculateEffectiveAttribute(AttributeName.Dexterity);
-        return ActiveConditions[ConditionType.Snared] > 0
-            ? dexterity * (1 - snareDexterityReductionPercent)
-            : dexterity;
-    }
 
     public static Combatant FromCreature(
         Creature creature,

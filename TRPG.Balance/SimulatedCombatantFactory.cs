@@ -4,7 +4,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Balance;
+namespace TRPG.Balance;
 
 internal static class SimulatedCombatantFactory
 {

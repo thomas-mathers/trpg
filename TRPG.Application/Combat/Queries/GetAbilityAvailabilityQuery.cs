@@ -32,8 +32,6 @@ internal class GetAbilityAvailabilityQueryHandler(
         return player.Abilities.Select(ability => Evaluate(player, ability)).ToArray();
     }
 
-    // Mirrors the check order PlayerCombatActionResolver uses to reject an action, so the
-    // reason shown here always matches the reason the server would reject it for.
     private static AbilityAvailability Evaluate(Combatant player, Ability ability)
     {
         var cooldownRemaining = player.CooldownRemainingByAbility.GetValueOrDefault(ability.Name);

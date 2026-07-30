@@ -4,7 +4,8 @@ namespace TRPG.Application.Abilities;
 
 public class AbilityDefinitions(
     Dictionary<string, Ability> byName,
-    Dictionary<string, HashSet<string>> prerequisites
+    Dictionary<string, HashSet<string>> prerequisites,
+    BuffAbility blockStance
 )
 {
     public IReadOnlyCollection<Ability> Abilities => byName.Values;
@@ -23,17 +24,14 @@ public class AbilityDefinitions(
             DamageAmountType = AmountType.Percent,
         };
 
-    // Registered by AddBlockingAbilities as a normal learnable ability (Skill.Blocking); this
-    // property just exposes the same instance by name for call sites that need "the" Block
-    // ability directly rather than looking it up.
-    public BuffAbility BlockStance => (BuffAbility)byName["Block"];
+    public BuffAbility BlockStance { get; } = blockStance;
 
     public static AbilityDefinitions Create()
     {
         var builder = new AbilityBuilder();
         AddMeleeAbilities(builder);
         AddMeleeAdvancedAbilities(builder);
-        AddBlockingAbilities(builder);
+        var blockStance = AddBlockingAbilities(builder);
         AddSneakAbilities(builder);
         AddSneakAdvancedAbilities(builder);
         AddDestructionAbilities(builder);
@@ -44,7 +42,7 @@ public class AbilityDefinitions(
         AddRestorationAbilities(builder);
         AddRestorationAdvancedAbilities(builder);
         AddAlterationAbilities(builder);
-        return new AbilityDefinitions(builder.ByName, builder.Prerequisites);
+        return new AbilityDefinitions(builder.ByName, builder.Prerequisites, blockStance);
     }
 
     public string RandomAttackAbility()
@@ -78,7 +76,8 @@ public class AbilityDefinitions(
             0,
             AttackTargetType.Single,
             DamageType.Physical,
-            150
+            150,
+            gearRequirement: GearRequirement.MeleeWeapon
         );
         var cleave = builder
             .AddAttack(
@@ -90,7 +89,8 @@ public class AbilityDefinitions(
                 0,
                 AttackTargetType.Aoe,
                 DamageType.Physical,
-                170
+                170,
+                gearRequirement: GearRequirement.MeleeWeapon
             )
             .Requires(slash);
         builder
@@ -116,7 +116,8 @@ public class AbilityDefinitions(
                 3,
                 AttackTargetType.Single,
                 DamageType.Physical,
-                185
+                185,
+                gearRequirement: GearRequirement.MeleeWeapon
             )
             .AddDot(2, 3f)
             .AddStatus(ConditionType.Bleeding, 2)
@@ -131,7 +132,8 @@ public class AbilityDefinitions(
                 3,
                 AttackTargetType.Aoe,
                 DamageType.Physical,
-                210
+                210,
+                gearRequirement: GearRequirement.MeleeWeapon
             )
             .Requires(cleave);
     }
@@ -147,7 +149,8 @@ public class AbilityDefinitions(
             4,
             AttackTargetType.Single,
             DamageType.Physical,
-            245
+            245,
+            gearRequirement: GearRequirement.MeleeWeapon
         );
         builder.AddPrerequisiteByName("Execute", "Whirlwind");
 
@@ -191,7 +194,8 @@ public class AbilityDefinitions(
                 6,
                 AttackTargetType.Single,
                 DamageType.Physical,
-                230
+                230,
+                gearRequirement: GearRequirement.MeleeWeapon
             )
             .AddDot(3, 5f)
             .AddStatus(ConditionType.Bleeding, 3);
@@ -204,7 +208,8 @@ public class AbilityDefinitions(
             7,
             AttackTargetType.Aoe,
             DamageType.Physical,
-            210
+            210,
+            gearRequirement: GearRequirement.MeleeWeapon
         );
         builder.AddPrerequisiteByName("Mortal Strike", "Execute");
         builder.AddPrerequisiteByName("Bladestorm", "Whirlwind");
@@ -219,7 +224,8 @@ public class AbilityDefinitions(
                 8,
                 AttackTargetType.Single,
                 DamageType.Physical,
-                290
+                290,
+                gearRequirement: GearRequirement.MeleeWeapon
             )
             .AddStatus(ConditionType.Stunned, 2);
         builder.AddAttack(
@@ -231,7 +237,8 @@ public class AbilityDefinitions(
             10,
             AttackTargetType.Single,
             DamageType.Physical,
-            340
+            340,
+            gearRequirement: GearRequirement.MeleeWeapon
         );
         builder.AddPrerequisiteByName("Skull Splitter", "Mortal Strike");
         builder.AddPrerequisiteByName("Hundred Blades", "Bladestorm");
@@ -245,7 +252,8 @@ public class AbilityDefinitions(
             15,
             AttackTargetType.Single,
             DamageType.Physical,
-            520
+            520,
+            gearRequirement: GearRequirement.MeleeWeapon
         );
         builder.AddAttack(
             "Eternal Whirlwind",
@@ -256,7 +264,8 @@ public class AbilityDefinitions(
             15,
             AttackTargetType.Aoe,
             DamageType.Physical,
-            370
+            370,
+            gearRequirement: GearRequirement.MeleeWeapon
         );
         builder
             .AddBuff(
@@ -276,7 +285,7 @@ public class AbilityDefinitions(
         builder.AddPrerequisiteByName("Legion Might", "War Cry");
     }
 
-    private static void AddBlockingAbilities(AbilityBuilder builder)
+    private static BuffAbility AddBlockingAbilities(AbilityBuilder builder)
     {
         var block = builder
             .AddBuff(
@@ -319,7 +328,8 @@ public class AbilityDefinitions(
                 2,
                 AttackTargetType.Single,
                 DamageType.Physical,
-                130
+                130,
+                gearRequirement: GearRequirement.Shield
             )
             .AddStatus(ConditionType.Stunned, 1)
             .Requires(block);
@@ -353,6 +363,8 @@ public class AbilityDefinitions(
             )
             .AddStatus(ConditionType.Stunned, 1);
         builder.AddPrerequisiteByName("Riposte", "Shield Bash");
+
+        return (BuffAbility)block.Ability;
     }
 
     private static void AddSneakAbilities(AbilityBuilder builder)
@@ -865,7 +877,8 @@ public class AbilityDefinitions(
             0,
             AttackTargetType.Single,
             DamageType.Physical,
-            150
+            150,
+            gearRequirement: GearRequirement.RangedWeapon
         );
         builder
             .AddAttack(
@@ -877,7 +890,8 @@ public class AbilityDefinitions(
                 0,
                 AttackTargetType.Single,
                 DamageType.Physical,
-                185
+                185,
+                gearRequirement: GearRequirement.RangedWeapon
             )
             .AddDot(1, 3f)
             .AddStatus(ConditionType.Bleeding, 1)
@@ -905,7 +919,8 @@ public class AbilityDefinitions(
                 2,
                 AttackTargetType.Single,
                 DamageType.Poison,
-                6
+                6,
+                gearRequirement: GearRequirement.RangedWeapon
             )
             .AddDot(3, 3f)
             .AddStatus(ConditionType.Poisoned, 3)
@@ -920,7 +935,8 @@ public class AbilityDefinitions(
                 3,
                 AttackTargetType.Aoe,
                 DamageType.Physical,
-                160
+                160,
+                gearRequirement: GearRequirement.RangedWeapon
             )
             .Requires(arrowShot);
     }
@@ -937,7 +953,8 @@ public class AbilityDefinitions(
                 4,
                 AttackTargetType.Single,
                 DamageType.Physical,
-                190
+                190,
+                gearRequirement: GearRequirement.RangedWeapon
             )
             .AddStatus(ConditionType.Snared, 3);
         builder.AddAttack(
@@ -949,7 +966,8 @@ public class AbilityDefinitions(
             5,
             AttackTargetType.Aoe,
             DamageType.Physical,
-            170
+            170,
+            gearRequirement: GearRequirement.RangedWeapon
         );
         builder
             .AddAttack(
@@ -961,7 +979,8 @@ public class AbilityDefinitions(
                 5,
                 AttackTargetType.Single,
                 DamageType.Physical,
-                190
+                190,
+                gearRequirement: GearRequirement.RangedWeapon
             )
             .AddStatus(ConditionType.Stunned, 2);
         builder.AddPrerequisiteByName("Crippling Arrow", "Piercing Shot");
@@ -977,7 +996,8 @@ public class AbilityDefinitions(
             7,
             AttackTargetType.Aoe,
             DamageType.Physical,
-            160
+            160,
+            gearRequirement: GearRequirement.RangedWeapon
         );
         builder
             .AddAttack(
@@ -989,7 +1009,8 @@ public class AbilityDefinitions(
                 6,
                 AttackTargetType.Single,
                 DamageType.Poison,
-                14
+                14,
+                gearRequirement: GearRequirement.RangedWeapon
             )
             .AddDot(4, 6f)
             .AddStatus(ConditionType.Poisoned, 4);
@@ -1005,7 +1026,8 @@ public class AbilityDefinitions(
             9,
             AttackTargetType.Aoe,
             DamageType.Physical,
-            195
+            195,
+            gearRequirement: GearRequirement.RangedWeapon
         );
         builder
             .AddAttack(
@@ -1017,7 +1039,8 @@ public class AbilityDefinitions(
                 8,
                 AttackTargetType.Single,
                 DamageType.Physical,
-                250
+                250,
+                gearRequirement: GearRequirement.RangedWeapon
             )
             .AddStatus(ConditionType.Snared, 4);
         builder.AddPrerequisiteByName("Rain of Arrows", "Barrage");
@@ -1032,7 +1055,8 @@ public class AbilityDefinitions(
             14,
             AttackTargetType.Aoe,
             DamageType.Physical,
-            310
+            310,
+            gearRequirement: GearRequirement.RangedWeapon
         );
         builder.AddAttack(
             "Death from Afar",
@@ -1043,7 +1067,8 @@ public class AbilityDefinitions(
             16,
             AttackTargetType.Single,
             DamageType.Physical,
-            490
+            490,
+            gearRequirement: GearRequirement.RangedWeapon
         );
         builder.AddPrerequisiteByName("Arrow Storm", "Rain of Arrows");
         builder.AddPrerequisiteByName("Death from Afar", "Pinning Shot");
@@ -1303,7 +1328,8 @@ public class AbilityDefinitions(
             AttackTargetType targetType,
             DamageType damageType,
             float damageAmount,
-            AmountType? damageAmountTypeOverride = null
+            AmountType? damageAmountTypeOverride = null,
+            GearRequirement gearRequirement = GearRequirement.None
         )
         {
             var (apCost, mpCost) = ResourceCost(skill, cost);
@@ -1327,6 +1353,7 @@ public class AbilityDefinitions(
                     damageAmountTypeOverride
                     ?? (damageType == DamageType.Physical ? AmountType.Percent : AmountType.Flat),
                 DamageAmount = damageAmount,
+                GearRequirement = gearRequirement,
             };
             ByName[name] = attack;
             return new AttackAbilityEntry(attack, this);

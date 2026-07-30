@@ -37,7 +37,7 @@ public class HitCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         var settings = optionsSnapshot.Value;
         var defense = defender.CalculateEffectiveAttribute(AttributeName.Defense);
         var evasion =
-            defender.CalculateCombatDexterity(settings.SnareDexterityReductionPercent)
+            CalculateSnaredDexterity(defender, settings.SnareDexterityReductionPercent)
             * settings.EvasionPerDexterityPoint;
 
         // The player's proficiency is driven by actual accumulated practice (see
@@ -59,5 +59,19 @@ public class HitCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
             settings.MinHitChance,
             settings.MaxHitChance
         );
+    }
+
+    // Snared has no dedicated incapacitation check (unlike Frozen/Stunned/Blinded/Silenced - see
+    // CombatEngine.GetIncapacitationEvent); instead it hobbles effective Dexterity wherever it's
+    // read for combat purposes.
+    private static float CalculateSnaredDexterity(
+        Combatant combatant,
+        float snareDexterityReductionPercent
+    )
+    {
+        var dexterity = combatant.CalculateEffectiveAttribute(AttributeName.Dexterity);
+        return combatant.ActiveConditions[ConditionType.Snared] > 0
+            ? dexterity * (1 - snareDexterityReductionPercent)
+            : dexterity;
     }
 }

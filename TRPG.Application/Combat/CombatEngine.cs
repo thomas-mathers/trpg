@@ -22,12 +22,7 @@ public class CombatEngine(
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
 
-        // Shuffled before the (stable) sort so a Dexterity tie doesn't always resolve in favor
-        // of whichever combatant happened to be listed first - without this, ties are a
-        // structural, repeatable bias rather than a genuine coin flip.
-        var turnOrder = combatants.ToArray();
-        Random.Shared.Shuffle(turnOrder);
-        turnOrder = turnOrder.OrderByDescending(c => c.TurnOrderValue).ToArray();
+        var turnOrder = OrderByTurnOrder(combatants);
 
         var combatEvents = turnOrder
             .SelectMany(combatant =>
@@ -47,6 +42,16 @@ public class CombatEngine(
             WeaponSwingCounts: player.WeaponSwingCounts,
             SkillUsageCounts: player.SkillUsageCounts
         );
+    }
+
+    // Shuffled before the (stable) sort so a Dexterity tie doesn't always resolve in favor of
+    // whichever combatant happened to be listed first - without this, ties are a structural,
+    // repeatable bias rather than a genuine coin flip.
+    private static IReadOnlyList<Combatant> OrderByTurnOrder(IEnumerable<Combatant> combatants)
+    {
+        var shuffled = combatants.ToArray();
+        Random.Shared.Shuffle(shuffled);
+        return shuffled.OrderByDescending(c => c.TurnOrder).ToArray();
     }
 
     private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedCombatAction action)
@@ -258,10 +263,11 @@ public class CombatEngine(
         IReadOnlyList<Combatant> targets
     )
     {
-        var modifiers =
-            ability.ParryCapableModifiers.Count > 0 && AbilityGearRequirement.IsParryCapable(actor)
-                ? ability.ParryCapableModifiers
-                : ability.Modifiers;
+        var usesParryCapableModifiers =
+            ability.ParryCapableModifiers.Count > 0 && AbilityGearRequirement.IsParryCapable(actor);
+        var modifiers = usesParryCapableModifiers
+            ? ability.ParryCapableModifiers
+            : ability.Modifiers;
 
         var buffEvents = new List<CombatEvent>();
 
@@ -300,11 +306,6 @@ public class CombatEngine(
 
         return buffEvents;
     }
-
-    // Only the ability itself lands on the first swing (its own DamageAmount, dots, conditions).
-    // Any bonus swings from a fast weapon (see WeaponAttackSpeed) are the weapon striking again on
-    // its own - independently rolled, damage-only, no extra AP/MP cost.
-    private const string BonusSwingAbilityName = "Follow-up Strike";
 
     private List<CombatEvent> ApplyAttack(
         Combatant attacker,
@@ -410,7 +411,7 @@ public class CombatEngine(
 
         if (!didHit)
         {
-            return new Miss(attacker.Name, BonusSwingAbilityName, defender.Name);
+            return new Miss(attacker.Name, WeaponAttackSpeed.BonusSwingAbilityName, defender.Name);
         }
 
         var didBlock = hitCalculator.DidBlockWeaponSwing(defender);
@@ -419,7 +420,7 @@ public class CombatEngine(
         {
             defender.SkillUsageCounts[Skill.Blocking] =
                 defender.SkillUsageCounts.GetValueOrDefault(Skill.Blocking) + 1;
-            return new Block(attacker.Name, BonusSwingAbilityName, defender.Name);
+            return new Block(attacker.Name, WeaponAttackSpeed.BonusSwingAbilityName, defender.Name);
         }
 
         var damage = damageCalculator.CalculateBonusSwingDamage(attacker, defender);
@@ -428,7 +429,7 @@ public class CombatEngine(
 
         return new Hit(
             attacker.Name,
-            BonusSwingAbilityName,
+            WeaponAttackSpeed.BonusSwingAbilityName,
             defender.Name,
             defender.CurrentHp,
             defender.MaximumHp,
@@ -635,9 +636,7 @@ public class CombatEngine(
 
         if (player.IsAlive)
         {
-            var shuffledEnemies = enemies.Where(e => e.IsAlive).ToArray();
-            Random.Shared.Shuffle(shuffledEnemies);
-            var enemyTurnOrder = shuffledEnemies.OrderByDescending(e => e.TurnOrderValue);
+            var enemyTurnOrder = OrderByTurnOrder(enemies.Where(e => e.IsAlive));
 
             foreach (var enemy in enemyTurnOrder)
             {

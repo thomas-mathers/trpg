@@ -1,6 +1,6 @@
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Balance;
+namespace TRPG.Balance;
 
 // A directly-specified combatant for balance simulation - no procedural generation, no
 // database. MaximumHp/Ap/Mp on Attributes are ignored and recomputed via StatFormulas, so

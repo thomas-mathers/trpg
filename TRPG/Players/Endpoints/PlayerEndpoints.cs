@@ -61,7 +61,7 @@ internal static class PlayerEndpoints
             combatants
                 // Matches the turn order CombatEngine.ProcessRound actually resolves actions in,
                 // so the panel order lines up with who acts when.
-                .OrderByDescending(c => c.TurnOrderValue)
+                .OrderByDescending(c => c.TurnOrder)
                 .Select(c => new CombatantState(
                     Id: c.CreatureId,
                     Name: c.Name,

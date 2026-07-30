@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
-using TRPG.Application.Balance;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Generators;

@@ -5,6 +5,8 @@ namespace TRPG.Application.Combat;
 
 public static class AbilityGearRequirement
 {
+    // Which skill trains when this weapon type lands a swing (see CombatEngine.GetTrainedSkill) -
+    // a separate concern from which GearRequirement category the weapon satisfies below.
     public static readonly IReadOnlyDictionary<WeaponType, Skill> WeaponSkills = new Dictionary<
         WeaponType,
         Skill
@@ -22,49 +24,48 @@ public static class AbilityGearRequirement
         [WeaponType.Wand] = Skill.Destruction,
     };
 
+    private static readonly IReadOnlyDictionary<
+        WeaponType,
+        GearRequirement
+    > WeaponGearRequirements = new Dictionary<WeaponType, GearRequirement>
+    {
+        [WeaponType.Sword] = GearRequirement.MeleeWeapon,
+        [WeaponType.Dagger] = GearRequirement.MeleeWeapon,
+        [WeaponType.Axe] = GearRequirement.MeleeWeapon,
+        [WeaponType.Mace] = GearRequirement.MeleeWeapon,
+        [WeaponType.Hammer] = GearRequirement.MeleeWeapon,
+        [WeaponType.Bow] = GearRequirement.RangedWeapon,
+        [WeaponType.Crossbow] = GearRequirement.RangedWeapon,
+        [WeaponType.Javelin] = GearRequirement.RangedWeapon,
+        [WeaponType.Staff] = GearRequirement.CasterWeapon,
+        [WeaponType.Wand] = GearRequirement.CasterWeapon,
+    };
+
     // Shield or melee weapon: something you can actively deflect a blow with, as opposed to
     // bracing bare-handed or with a ranged/casting weapon that isn't built for it.
     public static bool IsParryCapable(Combatant actor) =>
-        actor.Shield != null
-        || (
-            actor.Weapon is { } weapon && WeaponSkills.GetValueOrDefault(weapon.Type) == Skill.Melee
-        );
+        actor.Shield != null || HasMeleeWeaponEquipped(actor);
 
-    // Per-ability, not per-skill: most Blocking-tree abilities (e.g. Block itself) need no
-    // particular gear, so this isn't derived from Skill the way WeaponSkills is.
-    private static readonly HashSet<string> AbilitiesRequiringShield = ["Shield Bash"];
-
-    // Destruction/Illusion are deliberately excluded — casting works without a staff/wand equipped.
-    private static readonly HashSet<Skill> WeaponRequiredSkills = [Skill.Melee, Skill.Archery];
-
-    public static bool IsMet(Combatant actor, Ability ability)
-    {
-        if (AbilitiesRequiringShield.Contains(ability.Name))
+    public static bool IsMet(Combatant actor, Ability ability) =>
+        ability.GearRequirement switch
         {
-            return actor.Shield != null;
-        }
+            GearRequirement.Shield => actor.Shield != null,
+            GearRequirement.None => true,
+            _ => actor.Weapon is { } weapon
+                && WeaponGearRequirements.GetValueOrDefault(weapon.Type) == ability.GearRequirement,
+        };
 
-        if (!WeaponRequiredSkills.Contains(ability.Skill))
+    public static string DescribeRequirement(Ability ability) =>
+        ability.GearRequirement switch
         {
-            return true;
-        }
-
-        return actor.Weapon is { } weapon
-            && WeaponSkills.GetValueOrDefault(weapon.Type) == ability.Skill;
-    }
-
-    public static string DescribeRequirement(Ability ability)
-    {
-        if (AbilitiesRequiringShield.Contains(ability.Name))
-        {
-            return "a shield";
-        }
-
-        return ability.Skill switch
-        {
-            Skill.Melee => "a melee weapon",
-            Skill.Archery => "a bow",
+            GearRequirement.Shield => "a shield",
+            GearRequirement.MeleeWeapon => "a melee weapon",
+            GearRequirement.RangedWeapon => "a bow",
+            GearRequirement.CasterWeapon => "a staff or wand",
             _ => "the right gear",
         };
-    }
+
+    private static bool HasMeleeWeaponEquipped(Combatant actor) =>
+        actor.Weapon is { } weapon
+        && WeaponGearRequirements.GetValueOrDefault(weapon.Type) == GearRequirement.MeleeWeapon;
 }

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace TRPG.Application.Balance;
+namespace TRPG.Balance;
 
 // A minimal IOptionsSnapshot<T> that just returns a fixed value, so simulation code can
 // construct CombatEngine/DamageCalculator/etc. without going through the DI container.

@@ -124,15 +124,26 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
             ? rawDamage * ability.BonusDamageMultiplier
             : rawDamage;
 
-    // A second, universal payoff for Dexterity beyond evasion/turn order (see HitCalculator and
-    // Combatant.TurnOrderValue) - applies to every damage type rather than gating on Physical, so
-    // a finesse-built attacker's crit chance isn't a special case tied to weapon type.
     private float CalculateCritChance(Combatant attacker) =>
         Math.Min(
             optionsSnapshot.Value.MaxCritChance,
-            attacker.CalculateCombatDexterity(optionsSnapshot.Value.SnareDexterityReductionPercent)
+            CalculateSnaredDexterity(attacker, optionsSnapshot.Value.SnareDexterityReductionPercent)
                 * optionsSnapshot.Value.CritChancePerDexterityPoint
         );
+
+    // Snared has no dedicated incapacitation check (unlike Frozen/Stunned/Blinded/Silenced - see
+    // CombatEngine.GetIncapacitationEvent); instead it hobbles effective Dexterity wherever it's
+    // read for combat purposes.
+    private static float CalculateSnaredDexterity(
+        Combatant combatant,
+        float snareDexterityReductionPercent
+    )
+    {
+        var dexterity = combatant.CalculateEffectiveAttribute(AttributeName.Dexterity);
+        return combatant.ActiveConditions[ConditionType.Snared] > 0
+            ? dexterity * (1 - snareDexterityReductionPercent)
+            : dexterity;
+    }
 
     private float ApplyCrit(float rawDamage, Combatant attacker) =>
         Random.Shared.NextDouble() < CalculateCritChance(attacker)

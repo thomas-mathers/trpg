@@ -2,6 +2,15 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Abilities;
 
+public enum GearRequirement
+{
+    None,
+    MeleeWeapon,
+    RangedWeapon,
+    CasterWeapon,
+    Shield,
+}
+
 public class Ability
 {
     public int ApCost { get; init; }
@@ -10,8 +19,6 @@ public class Ability
     public int MpCost { get; init; }
     public string Name { get; init; } = "";
     public int RequiredSkillLevel { get; init; }
-
-    // General, not Melee (the enum's default value), so an ability whose skill nobody bothered
-    // to set is treated as gear-agnostic rather than silently requiring a melee weapon.
     public Skill Skill { get; init; } = Skill.General;
+    public GearRequirement GearRequirement { get; init; } = GearRequirement.None;
 }
