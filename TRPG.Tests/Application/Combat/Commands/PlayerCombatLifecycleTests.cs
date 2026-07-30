@@ -28,7 +28,14 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
             .AddTrpgTestServices(_context)
             .AddSingleton<IOptionsSnapshot<CombatOptions>>(
                 new TestOptionsSnapshot<CombatOptions>(
-                    new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
+                    new CombatOptions
+                    {
+                        MinHitChance = 1.0f,
+                        MaxHitChance = 1.0f,
+                        // A real random crit roll would otherwise make this test's exact HP
+                        // assertions flaky.
+                        CritChancePerDexterityPoint = 0f,
+                    }
                 )
             )
             .BuildServiceProvider();

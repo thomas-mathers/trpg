@@ -34,12 +34,14 @@ internal static class AbilityEndpoints
         {
             Skill.Melee => DataSkill.Melee,
             Skill.Unarmed => DataSkill.Unarmed,
-            Skill.Stealth => DataSkill.Stealth,
-            Skill.Spellcasting => DataSkill.Spellcasting,
+            Skill.Sneak => DataSkill.Sneak,
+            Skill.Destruction => DataSkill.Destruction,
+            Skill.Illusion => DataSkill.Illusion,
             Skill.Archery => DataSkill.Archery,
-            Skill.Devotion => DataSkill.Devotion,
-            Skill.Warfare => DataSkill.Warfare,
+            Skill.Restoration => DataSkill.Restoration,
+            Skill.Alteration => DataSkill.Alteration,
             Skill.General => DataSkill.General,
+            Skill.Blocking => DataSkill.Blocking,
             _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, null),
         };
 

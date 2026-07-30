@@ -3,6 +3,7 @@ using Spectre.Console;
 using TRPG.Client.Core;
 using TRPG.Client.Extensions;
 using TRPG.Contracts;
+using TRPG.Contracts.Combat.Responses;
 
 namespace TRPG.Client;
 
@@ -119,6 +120,7 @@ internal sealed class ResumeGameFlow(
         var combatMenu = new CombatMenu(client, narrationRenderer, gameHub, playerId);
         var levelBefore = await client.GetLevel(playerId, cancellationToken);
 
+        FightState? previousFight = null;
         while (true)
         {
             var fight = await client.GetFight(playerId, cancellationToken);
@@ -127,7 +129,8 @@ internal sealed class ResumeGameFlow(
                 break;
             }
 
-            AnsiConsole.PrintCombatStatus(fight);
+            AnsiConsole.PrintCombatStatus(fight, previousFight);
+            previousFight = fight;
             await combatMenu.RunTurn(fight, cancellationToken);
         }
 

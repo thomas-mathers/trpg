@@ -252,6 +252,11 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             Modifiers = modifiers,
             Defense = Roll(level, 3, 25),
             BlockChance = Roll(level, 10, 50) / 100f,
+            MagicResistance = Roll(level, 1, 4) / 100f,
+            FireResistance = Roll(level, 1, 4) / 100f,
+            IceResistance = Roll(level, 1, 4) / 100f,
+            LightningResistance = Roll(level, 1, 4) / 100f,
+            PoisonResistance = Roll(level, 1, 4) / 100f,
             DurabilityMax = durabilityMax,
             DurabilityCurrent = durabilityMax,
         };

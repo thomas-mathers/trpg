@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Spectre.Console;
 using TRPG.Contracts;
 using TRPG.Contracts.Combat.Responses;
@@ -82,13 +83,7 @@ public static class AnsiConsoleExtensions
         public static string FormatDistrictChip(Enum value) =>
             $"[{Theme.ChipForeground} on {Theme.DistrictAccent}] {value.ToDisplayName().EscapeMarkup()} [/]";
 
-        private static string FormatDebuffChip(string label, int remainingTurns) =>
-            $"[{Theme.ChipForeground} on {Theme.Negative}] {label.EscapeMarkup()} · {remainingTurns}t [/]";
-
-        private static string FormatPositiveChip(string label, int remainingTurns) =>
-            $"[{Theme.ChipForeground} on {Theme.Positive}] {label.EscapeMarkup()} · {remainingTurns}t [/]";
-
-        public static void PrintCombatStatus(FightState combat)
+        public static void PrintCombatStatus(FightState combat, FightState? previous = null)
         {
             AnsiConsole.Write(
                 new Padder(
@@ -96,77 +91,210 @@ public static class AnsiConsoleExtensions
                     new Padding(0, 1)
                 )
             );
+
+            var playerLevel = combat.Combatants.First(c => c.IsPlayer).Level;
+
+            // Fixed rather than sized to current content, so panels don't resize turn to turn as
+            // effects come and go. +4 covers the panel's default border (1 char each side) and
+            // padding (1 char each side).
             AnsiConsole.Write(
-                new Columns(combat.Combatants.Select(BuildCombatantPanel)) { Expand = false }
+                new Columns(
+                    combat.Combatants.Select(c =>
+                        BuildCombatantPanel(
+                            c,
+                            previous?.Combatants.FirstOrDefault(p => p.Id == c.Id),
+                            playerLevel,
+                            PanelContentWidth + 4
+                        )
+                    )
+                )
+                {
+                    Expand = false,
+                }
             );
         }
 
-        private static Panel BuildCombatantPanel(CombatantState combatant)
+        private static int VisibleLength(string markup) =>
+            MarkupTagPattern.Replace(markup, "").Length;
+
+        private static string Truncate(string text, int maxWidth)
+        {
+            if (text.Length <= maxWidth)
+            {
+                return text;
+            }
+
+            return maxWidth <= 3 ? text[..maxWidth] : text[..(maxWidth - 3)] + "...";
+        }
+
+        // A simple over/under/even split against the player's own level - a quick "is this fight
+        // above my weight class" signal, not meant to convey exactly how much harder/easier.
+        private static string FormatLevel(int level, int playerLevel)
+        {
+            var color = level switch
+            {
+                _ when level > playerLevel => Theme.Negative,
+                _ when level < playerLevel => Theme.Positive,
+                _ => Theme.Neutral,
+            };
+
+            return $"[{color}](Lv {level})[/]";
+        }
+
+        private static Panel BuildCombatantPanel(
+            CombatantState combatant,
+            CombatantState? previous,
+            int playerLevel,
+            int width
+        )
         {
             var hpColor = HealthColor(combatant.CurrentHp, combatant.MaximumHp);
             var nameColor = combatant.IsPlayer ? Theme.PlayerAccent : Theme.Negative;
             var nameLine = combatant.IsPlayer
                 ? $"[{nameColor}]{combatant.Name.EscapeMarkup()}[/] [{Theme.Neutral}](you)[/]"
-                : $"[{nameColor}]{combatant.Name.EscapeMarkup()}[/]";
+                : $"[{nameColor}]{combatant.Name.EscapeMarkup()}[/] {FormatLevel(combatant.Level, playerLevel)}";
 
             List<string> lines =
             [
                 nameLine,
-                $"HP {FormatBar(combatant.CurrentHp, combatant.MaximumHp, hpColor, width: 10)} {combatant.CurrentHp}/{combatant.MaximumHp}",
-                $"AP {FormatBar(combatant.CurrentAp, combatant.MaximumAp, Theme.ApBar, width: 10)} {combatant.CurrentAp}/{combatant.MaximumAp}",
-                $"MP {FormatBar(combatant.CurrentMp, combatant.MaximumMp, Theme.MpBar, width: 10)} {combatant.CurrentMp}/{combatant.MaximumMp}",
+                BuildResourceLine(
+                    "HP",
+                    combatant.CurrentHp,
+                    combatant.MaximumHp,
+                    hpColor,
+                    previous?.CurrentHp
+                ),
+                BuildResourceLine(
+                    "AP",
+                    combatant.CurrentAp,
+                    combatant.MaximumAp,
+                    Theme.ApBar,
+                    previous?.CurrentAp
+                ),
+                BuildResourceLine(
+                    "MP",
+                    combatant.CurrentMp,
+                    combatant.MaximumMp,
+                    Theme.MpBar,
+                    previous?.CurrentMp
+                ),
             ];
 
-            var effectChips = BuildEffectChips(combatant);
-            if (effectChips.Count > 0)
-            {
-                lines.Add(string.Join(" ", effectChips));
-            }
+            lines.AddRange(BuildEffectLines(combatant));
 
             return new Panel(string.Join("\n", lines))
             {
                 Border = BoxBorder.Rounded,
                 Expand = false,
+                Width = width,
             };
         }
 
-        private static List<string> BuildEffectChips(CombatantState combatant)
+        // The bar stretches to fill whatever width the fixed panel width leaves free after the
+        // "XX " tag and the current/maximum/delta text, so it always fills the panel rather than
+        // sitting at a fixed size with wasted or overflowing space next to it.
+        private static string BuildResourceLine(
+            string tag,
+            int current,
+            int maximum,
+            string barColor,
+            int? previousCurrent
+        )
         {
-            var chips = new List<string>();
+            var suffix = $"{current}/{maximum}{FormatDelta(current, previousCurrent)}";
+            var barWidth = Math.Max(
+                MinimumBarWidth,
+                PanelContentWidth - tag.Length - 1 - 1 - VisibleLength(suffix)
+            );
 
-            chips.AddRange(
+            return $"{tag} {FormatBar(current, maximum, barColor, barWidth)} {suffix}";
+        }
+
+        // No delta shown on the very first render of a fight (previous is null, nothing to
+        // compare against yet) or for a combatant that's new to this render (e.g. wasn't in the
+        // previous snapshot).
+        private static string FormatDelta(int current, int? previous)
+        {
+            if (previous is null || current == previous.Value)
+            {
+                return "";
+            }
+
+            // No arrow glyph: common Windows terminal fonts cover the Block Elements range (used
+            // by the bars above) but not Geometric Shapes, so a triangle silently fails to
+            // render. Color plus the signed number already conveys direction unambiguously.
+            var delta = current - previous.Value;
+            return delta > 0 ? $" [{Theme.Positive}]+{delta}[/]" : $" [{Theme.Negative}]{delta}[/]";
+        }
+
+        // One line per effect type, added only when non-empty. Buffs are always positive today -
+        // no ability applies a negative stat modifier yet (that'd be a curse, a future feature) -
+        // so this doesn't need to handle mixed-sign buffs; revisit if that changes.
+        private static List<string> BuildEffectLines(CombatantState combatant)
+        {
+            List<string> lines = [];
+
+            AddEffectLine(
+                lines,
+                "Conditions",
                 combatant.ActiveConditions.Select(condition =>
-                    FormatDebuffChip(condition.Key.ToDisplayName(), condition.Value)
-                )
+                    $"{AbbreviateCondition(condition.Key)} ({condition.Value}t)"
+                ),
+                Theme.Negative
             );
 
-            chips.AddRange(
+            AddEffectLine(
+                lines,
+                "Dots",
                 combatant.ActiveDots.Select(dot =>
-                    FormatDebuffChip(
-                        $"{dot.AbilityName} · {dot.Amount} {dot.DamageType.ToDisplayName()}",
-                        dot.RemainingTurns
-                    )
-                )
+                    $"-{dot.Amount} {AbbreviateDamageType(dot.DamageType)} ({dot.RemainingTurns}t)"
+                ),
+                Theme.Negative
             );
 
-            chips.AddRange(
-                combatant.ActiveHots.Select(hot =>
-                    FormatPositiveChip($"{hot.AbilityName} +{hot.Amount}/turn", hot.RemainingTurns)
-                )
+            AddEffectLine(
+                lines,
+                "Hots",
+                combatant.ActiveHots.Select(hot => $"+{hot.Amount} HP ({hot.RemainingTurns}t)"),
+                Theme.Positive
             );
 
-            chips.AddRange(
+            AddEffectLine(
+                lines,
+                "Buffs",
                 combatant.ActiveBuffs.Select(buff =>
-                {
-                    var label =
-                        $"{buff.AbilityName} · {buff.Attribute.ToDisplayName()} {FormatBuffAmount(buff)}";
-                    return buff.Amount >= 0
-                        ? FormatPositiveChip(label, buff.RemainingTurns)
-                        : FormatDebuffChip(label, buff.RemainingTurns);
-                })
+                    $"{FormatBuffAmount(buff)} {AbbreviateAttribute(buff.Attribute)} ({buff.RemainingTurns}t)"
+                ),
+                Theme.Positive
             );
 
-            return chips;
+            return lines;
+        }
+
+        private static void AddEffectLine(
+            List<string> lines,
+            string label,
+            IEnumerable<string> entrySource,
+            string color
+        )
+        {
+            var entries = entrySource.ToArray();
+            if (entries.Length == 0)
+            {
+                return;
+            }
+
+            var text = string.Join(", ", entries.Take(MaxEffectEntriesPerLine));
+            var overflow = entries.Length - MaxEffectEntriesPerLine;
+            if (overflow > 0)
+            {
+                text += $", +{overflow} more";
+            }
+
+            // "{label}: " prefix takes label.Length + 2 (colon and space) before text starts.
+            text = Truncate(text, PanelContentWidth - label.Length - 2);
+
+            lines.Add($"[{Theme.Neutral}]{label}:[/] [{color}]{text.EscapeMarkup()}[/]");
         }
 
         private static string FormatBuffAmount(ActiveBuff buff)
@@ -177,6 +305,62 @@ public static class AnsiConsoleExtensions
                     : $"{buff.Amount:0.#}";
             return buff.Amount >= 0 ? $"+{magnitude}" : magnitude;
         }
+
+        // Only ever shown in the tight combat status line above, so abbreviated here rather
+        // than in the shared ToDisplayName() extension every other enum in the app relies on.
+        private static string AbbreviateAttribute(AttributeName attribute) =>
+            attribute switch
+            {
+                AttributeName.MaximumHp => "HP",
+                AttributeName.MaximumAp => "AP",
+                AttributeName.MaximumMp => "MP",
+                AttributeName.Strength => "STR",
+                AttributeName.Defense => "DEF",
+                AttributeName.Dexterity => "DEX",
+                AttributeName.Endurance => "END",
+                AttributeName.Stamina => "STA",
+                AttributeName.Mana => "MAN",
+                AttributeName.Intelligence => "INT",
+                AttributeName.PhysicalResistance => "PR",
+                AttributeName.FireResistance => "FR",
+                AttributeName.IceResistance => "IR",
+                AttributeName.LightningResistance => "LR",
+                AttributeName.PoisonResistance => "PoR",
+                AttributeName.MagicResistance => "MR",
+                AttributeName.MovementSpeed => "SPD",
+                _ => attribute.ToDisplayName(),
+            };
+
+        // Only ever shown in the tight combat status line above, so abbreviated here rather
+        // than in the shared ToDisplayName() extension every other enum in the app relies on.
+        private static string AbbreviateCondition(ConditionType condition) =>
+            condition switch
+            {
+                ConditionType.Blinded => "BLI",
+                ConditionType.Bleeding => "BLE",
+                ConditionType.Burning => "BRN",
+                ConditionType.Disarmed => "DIS",
+                ConditionType.Frozen => "FRZ",
+                ConditionType.Poisoned => "POI",
+                ConditionType.Silenced => "SIL",
+                ConditionType.Snared => "SNR",
+                ConditionType.Stunned => "STN",
+                _ => condition.ToDisplayName(),
+            };
+
+        // Only ever shown in the tight combat status line above, so abbreviated here rather
+        // than in the shared ToDisplayName() extension every other enum in the app relies on.
+        private static string AbbreviateDamageType(DamageType damageType) =>
+            damageType switch
+            {
+                DamageType.Physical => "PHY",
+                DamageType.Fire => "FIR",
+                DamageType.Ice => "ICE",
+                DamageType.Lightning => "LGT",
+                DamageType.Poison => "PSN",
+                DamageType.Magic => "MAG",
+                _ => damageType.ToDisplayName(),
+            };
 
         private static void AnnounceWithColor(string color, string message)
         {
@@ -198,4 +382,14 @@ public static class AnsiConsoleExtensions
             );
         }
     }
+
+    private static readonly Regex MarkupTagPattern = new(@"\[[^\]]*\]", RegexOptions.Compiled);
+    private const int MaxEffectEntriesPerLine = 3;
+
+    // Rough estimate - fits typical effect lines (label plus a couple of entries) without
+    // wrapping, but a combatant stacked with 3 long entries on the longest label ("Conditions:")
+    // could overflow. Retune by eye if real content wraps more than expected.
+    private const int PanelContentWidth = 42;
+
+    private const int MinimumBarWidth = 5;
 }

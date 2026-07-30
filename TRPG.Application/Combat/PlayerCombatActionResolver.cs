@@ -104,6 +104,13 @@ internal class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
             );
         }
 
+        if (!AbilityGearRequirement.IsMet(player, ability))
+        {
+            return PlayerCombatActionResolverResult.Failure(
+                $"Ability {useAbilityAction.AbilityName} requires {AbilityGearRequirement.DescribeRequirement(ability)} to be equipped."
+            );
+        }
+
         if (player.CurrentAp < ability.ApCost)
         {
             return PlayerCombatActionResolverResult.Failure(

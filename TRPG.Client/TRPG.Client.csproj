@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Temporary: local fork (vendor/, gitignored) with disabled-item support for
+         SelectionPrompt, pending https://github.com/spectreconsole/spectre.console/discussions/2179.
+         Revert to the Spectre.Console NuGet package once that lands upstream. -->
+    <ProjectReference Include="..\vendor\spectre.console\src\Spectre.Console\Spectre.Console.csproj" />
     <ProjectReference Include="..\TRPG.Client.Core\TRPG.Client.Core.csproj" />
     <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
   </ItemGroup>
@@ -15,7 +19,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.8.0" />
-    <PackageReference Include="Spectre.Console" Version="0.57.2" />
     <PackageReference Include="System.CommandLine" Version="2.0.9" />
     <PackageReference Include="ZLogger" Version="2.5.10" />
   </ItemGroup>

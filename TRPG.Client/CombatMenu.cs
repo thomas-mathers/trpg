@@ -118,9 +118,12 @@ internal sealed class CombatMenu(
             return false;
         }
 
+        var availability = await client.GetAbilityAvailability(playerId, cancellationToken);
+        var availabilityByName = availability.ToDictionary(a => a.Name);
+
         while (true)
         {
-            var chosen = await PromptForAbility(candidates, cancellationToken);
+            var chosen = await PromptForAbility(candidates, availabilityByName, cancellationToken);
             if (chosen == null)
             {
                 return false;
@@ -166,16 +169,41 @@ internal sealed class CombatMenu(
         return true;
     }
 
-    private static Task<AbilitySummary?> PromptForAbility(
+    private static async Task<AbilitySummary?> PromptForAbility(
         IReadOnlyList<AbilitySummary> candidates,
+        IReadOnlyDictionary<string, AbilityAvailability> availabilityByName,
         CancellationToken cancellationToken
-    ) =>
-        PromptForOption(
-            "Choose an ability:",
-            candidates,
-            a => $"{a.Name} (AP {a.ApCost}, MP {a.MpCost})",
-            cancellationToken
-        );
+    )
+    {
+        var prompt = new SelectionPrompt<MenuOption<AbilitySummary>>()
+            .Title("Choose an ability:")
+            .UseConverter(c => c.Label);
+
+        foreach (var ability in candidates)
+        {
+            var reason =
+                availabilityByName.TryGetValue(ability.Name, out var status) && !status.IsUsable
+                    ? status.Reason
+                    : null;
+
+            var label = $"{ability.Name} (AP {ability.ApCost}, MP {ability.MpCost})";
+            if (reason != null)
+            {
+                label += $" ({reason})";
+            }
+
+            var choice = prompt.AddChoice(new MenuOption<AbilitySummary>(label, ability));
+            if (reason != null)
+            {
+                choice.Disable();
+            }
+        }
+
+        prompt.AddChoice(new MenuOption<AbilitySummary>(BackLabel));
+
+        var chosen = await AnsiConsole.PromptAsync(prompt, cancellationToken);
+        return chosen.Value;
+    }
 
     private static async Task<Guid?> PromptForTarget(
         FightState fight,

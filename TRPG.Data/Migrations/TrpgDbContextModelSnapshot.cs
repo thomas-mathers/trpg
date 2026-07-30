@@ -383,6 +383,14 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
+                    b.Property<int>("NaturalWeaponMaxDamage")
+                        .HasColumnType("integer")
+                        .HasColumnName("natural_weapon_max_damage");
+
+                    b.Property<int>("NaturalWeaponMinDamage")
+                        .HasColumnType("integer")
+                        .HasColumnName("natural_weapon_min_damage");
+
                     b.Property<float>("PhysicalResistance")
                         .HasColumnType("real")
                         .HasColumnName("physical_resistance");
@@ -1662,15 +1670,35 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("durability_max");
 
+                    b.Property<float>("FireResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("fire_resistance");
+
                     b.Property<int>("GoldValue")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("integer")
                         .HasColumnName("gold_value");
 
+                    b.Property<float>("IceResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("ice_resistance");
+
                     b.Property<int>("Level")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("integer")
                         .HasColumnName("level");
+
+                    b.Property<float>("LightningResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("lightning_resistance");
+
+                    b.Property<float>("MagicResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("magic_resistance");
+
+                    b.Property<float>("PoisonResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("poison_resistance");
 
                     b.Property<string>("Rarity")
                         .IsRequired()

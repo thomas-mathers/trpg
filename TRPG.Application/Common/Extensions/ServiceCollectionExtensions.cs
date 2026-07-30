@@ -158,6 +158,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ClearChatMessagesCommandHandler>()
             .AddTransient<GetActiveFightQueryHandler>()
             .AddTransient<GetActiveFightCombatantsQueryHandler>()
+            .AddTransient<GetAbilityAvailabilityQueryHandler>()
             .AddTransient<GetCombatantQueryHandler>()
             .AddTransient<PersistCombatantsCommandHandler>()
             .AddTransient<StartFightCommandHandler>()

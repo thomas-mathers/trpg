@@ -84,7 +84,7 @@ public class CreatureGeneratorTests
     [Fact]
     public void Generate_AppliesAllocationOnTopOfBaseline_WhenStartingAttributeAllocationProvided()
     {
-        // Arrange — default options: BaseAttributes all 1, PointsPerLevel 5, so level 1 grants
+        // Arrange — default options: BaseAttributes all 5, PointsPerLevel 5, so level 1 grants
         // exactly 5 points; spending all 5 on Strength should leave every other stat at baseline.
         var input = MakeInput(
             Profession.Knight,
@@ -99,13 +99,13 @@ public class CreatureGeneratorTests
         var result = _creatureGenerator.Generate(input);
 
         // Assert
-        Assert.Equal(6, result.Creature.BaseAttributes.Strength);
-        Assert.Equal(1, result.Creature.BaseAttributes.Defense);
-        Assert.Equal(1, result.Creature.BaseAttributes.Dexterity);
-        Assert.Equal(1, result.Creature.BaseAttributes.Endurance);
-        Assert.Equal(1, result.Creature.BaseAttributes.Stamina);
-        Assert.Equal(1, result.Creature.BaseAttributes.Mana);
-        Assert.Equal(1, result.Creature.BaseAttributes.Intelligence);
+        Assert.Equal(10, result.Creature.BaseAttributes.Strength);
+        Assert.Equal(5, result.Creature.BaseAttributes.Defense);
+        Assert.Equal(5, result.Creature.BaseAttributes.Dexterity);
+        Assert.Equal(5, result.Creature.BaseAttributes.Endurance);
+        Assert.Equal(5, result.Creature.BaseAttributes.Stamina);
+        Assert.Equal(5, result.Creature.BaseAttributes.Mana);
+        Assert.Equal(5, result.Creature.BaseAttributes.Intelligence);
     }
 
     [Fact]
@@ -125,8 +125,8 @@ public class CreatureGeneratorTests
         var result = _creatureGenerator.Generate(input);
 
         // Assert
-        Assert.Equal(3, result.Creature.BaseAttributes.Mana);
-        Assert.Equal(1, result.Creature.BaseAttributes.Strength);
+        Assert.Equal(7, result.Creature.BaseAttributes.Mana);
+        Assert.Equal(5, result.Creature.BaseAttributes.Strength);
     }
 
     [Fact]
@@ -176,7 +176,14 @@ public class CreatureGeneratorTests
     [Fact]
     public void Generate_Throws_WhenAllocationWouldTakeAnAttributeBelowOne()
     {
-        // Arrange — Strength starts at the default base of 1
+        // Arrange — Strength pinned to a base of 1 so a -1 delta would take it to 0
+        var generator = Builders.MakeCreatureGenerator(
+            new CreatureGeneratorOptions
+            {
+                PointsPerLevel = 5,
+                BaseAttributes = new StartingAttributes { Strength = 1 },
+            }
+        );
         var input = MakeInput(
             Profession.Knight,
             level: 1,
@@ -187,7 +194,7 @@ public class CreatureGeneratorTests
         );
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => _creatureGenerator.Generate(input));
+        Assert.Throws<InvalidOperationException>(() => generator.Generate(input));
     }
 
     [Fact]
@@ -215,8 +222,8 @@ public class CreatureGeneratorTests
         // Act
         var result = generator.Generate(input);
 
-        // Assert
-        Assert.Equal(7, result.Creature.BaseAttributes.Strength);
+        // Assert — Strength uses the default base of 5 (only Endurance is overridden above)
+        Assert.Equal(11, result.Creature.BaseAttributes.Strength);
         Assert.Equal(2, result.Creature.BaseAttributes.Endurance);
     }
 
@@ -236,7 +243,7 @@ public class CreatureGeneratorTests
         // Act
         var result = _creatureGenerator.Generate(MakeInput(Profession.Knight, level: 10));
 
-        // Assert — default BaseAttributes total 7, PointsPerLevel 5, level 10
+        // Assert — default BaseAttributes total 35, PointsPerLevel 5, level 10
         var attributes = result.Creature.BaseAttributes;
         var total =
             attributes.Strength
@@ -246,31 +253,58 @@ public class CreatureGeneratorTests
             + attributes.Stamina
             + attributes.Mana
             + attributes.Intelligence;
-        Assert.Equal(7 + 10 * 5, total);
+        Assert.Equal(35 + 10 * 5, total);
     }
 
     [Fact]
     public void Generate_ScalesOnlyProfessionSkills_AboveFloor()
     {
-        // Act — Knight's profession skills are Melee and Warfare
+        // Act — Knight's profession skills are Melee and Blocking
         var result = _creatureGenerator.Generate(MakeInput(Profession.Knight, level: 10));
 
         // Assert — the random weighted split between the two profession skills means neither
         // one reliably lands on an exact level, only that both scale above the floor
         var skillLevels = result.Skills.ToDictionary(s => s.Skill, s => s.Level);
         Assert.True(skillLevels[Skill.Melee] > 1);
-        Assert.True(skillLevels[Skill.Warfare] > 1);
-        Assert.Equal(1, skillLevels[Skill.Archery]);
+        Assert.True(skillLevels[Skill.Blocking] > 1);
     }
 
     [Fact]
-    public void Generate_GrantsLevelOneAbilities_AcrossEverySkillTree_RegardlessOfProfession()
+    public void Generate_LeavesSkillAtZero_WhenProfessionHasNoAffinityForIt()
     {
-        // Act — Baker has no Melee profession skill, but "Slash" unlocks at skill level 1
+        // Act — Knight has no Archery affinity, so it never gets seeded to the level-1 floor
+        var result = _creatureGenerator.Generate(MakeInput(Profession.Knight, level: 10));
+
+        // Assert
+        var skillLevels = result.Skills.ToDictionary(s => s.Skill, s => s.Level);
+        Assert.Equal(0, skillLevels[Skill.Archery]);
+    }
+
+    [Fact]
+    public void Generate_DoesNotGrantAbilities_FromSkillTreesOutsideArchetypeAffinity()
+    {
+        // Act — Baker has no Melee affinity, so it should never learn "Slash" (Melee level 1)
         var result = _creatureGenerator.Generate(MakeInput(Profession.Baker, level: 1));
 
         // Assert
-        Assert.Contains(result.Abilities, a => a.AbilityName == "Slash");
+        Assert.DoesNotContain(result.Abilities, a => a.AbilityName == "Slash");
+    }
+
+    [Fact]
+    public void Generate_GrantsBaselineOneInEverySkill_WhenGeneratingThePlayer()
+    {
+        // Act — Knight has no Archery affinity, but the player can dabble in anything
+        var result = _creatureGenerator.Generate(
+            MakeInput(
+                Profession.Knight,
+                level: 1,
+                startingAttributeAllocation: new Dictionary<AllocatableAttributeName, int>()
+            )
+        );
+
+        // Assert
+        var skillLevels = result.Skills.ToDictionary(s => s.Skill, s => s.Level);
+        Assert.Equal(1, skillLevels[Skill.Archery]);
     }
 
     [Fact]

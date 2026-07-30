@@ -12,13 +12,16 @@ public class CreatureGeneratorOptions
 
 public class StartingAttributes
 {
-    public int Strength { get; init; } = 1;
-    public int Defense { get; init; } = 1;
-    public int Dexterity { get; init; } = 1;
-    public int Endurance { get; init; } = 1;
-    public int Stamina { get; init; } = 1;
-    public int Mana { get; init; } = 1;
-    public int Intelligence { get; init; } = 1;
+    // Matches appsettings.json's "CreatureGenerator:BaseAttributes" section - kept in sync so
+    // that code relying on the C# default (e.g. TRPG.Balance's experiments, which never wire up
+    // configuration) matches actual production values instead of silently diverging from them.
+    public int Strength { get; init; } = 5;
+    public int Defense { get; init; } = 5;
+    public int Dexterity { get; init; } = 5;
+    public int Endurance { get; init; } = 5;
+    public int Stamina { get; init; } = 5;
+    public int Mana { get; init; } = 5;
+    public int Intelligence { get; init; } = 5;
 
     public int Total() =>
         Strength + Defense + Dexterity + Endurance + Stamina + Mana + Intelligence;

@@ -4,12 +4,14 @@ public enum Skill
 {
     Melee,
     Unarmed,
-    Stealth,
-    Spellcasting,
+    Sneak,
+    Destruction,
+    Illusion,
     Archery,
-    Devotion,
-    Warfare,
+    Restoration,
+    Alteration,
     General,
+    Blocking,
 }
 
 public enum AbilityCategory

@@ -4,6 +4,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Mappers;
 using TRPG.Contracts.Combat.Responses;
+using AbilityAvailability = TRPG.Contracts.Combat.Responses.AbilityAvailability;
 using ActiveBuff = TRPG.Contracts.Combat.Responses.ActiveBuff;
 using ActiveDot = TRPG.Contracts.Combat.Responses.ActiveDot;
 using ActiveHot = TRPG.Contracts.Combat.Responses.ActiveHot;
@@ -16,6 +17,7 @@ internal static class PlayerEndpoints
     public static void MapPlayerEndpoints(this WebApplication app)
     {
         app.MapGet("/players/{playerId:guid}/fight", GetFight);
+        app.MapGet("/players/{playerId:guid}/fight/abilities", GetAbilityAvailability);
     }
 
     private static async Task<IResult> GetFight(
@@ -36,12 +38,34 @@ internal static class PlayerEndpoints
         return Results.Ok(ToFightState(combatants));
     }
 
+    private static async Task<IResult> GetAbilityAvailability(
+        Guid playerId,
+        GetAbilityAvailabilityQueryHandler getAbilityAvailability,
+        CancellationToken cancellationToken
+    )
+    {
+        var availability = await getAbilityAvailability.Handle(
+            new GetAbilityAvailabilityQuery { PlayerId = playerId },
+            cancellationToken
+        );
+
+        return Results.Ok(
+            availability
+                .Select(a => new AbilityAvailability(a.Name, a.IsUsable, a.Reason))
+                .ToArray()
+        );
+    }
+
     private static FightState ToFightState(IReadOnlyList<Combatant> combatants) =>
         new(
             combatants
+                // Matches the turn order CombatEngine.ProcessRound actually resolves actions in,
+                // so the panel order lines up with who acts when.
+                .OrderByDescending(c => c.TurnOrderValue)
                 .Select(c => new CombatantState(
                     Id: c.CreatureId,
                     Name: c.Name,
+                    Level: c.Level,
                     IsPlayer: c.IsPlayer,
                     IsAlive: c.IsAlive,
                     CurrentHp: c.CurrentHp,

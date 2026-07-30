@@ -199,12 +199,14 @@ internal static class ResponseEnumMappers
         {
             DataSkill.Melee => ContractAbilitySkill.Melee,
             DataSkill.Unarmed => ContractAbilitySkill.Unarmed,
-            DataSkill.Stealth => ContractAbilitySkill.Stealth,
-            DataSkill.Spellcasting => ContractAbilitySkill.Spellcasting,
+            DataSkill.Sneak => ContractAbilitySkill.Sneak,
+            DataSkill.Destruction => ContractAbilitySkill.Destruction,
+            DataSkill.Illusion => ContractAbilitySkill.Illusion,
             DataSkill.Archery => ContractAbilitySkill.Archery,
-            DataSkill.Devotion => ContractAbilitySkill.Devotion,
-            DataSkill.Warfare => ContractAbilitySkill.Warfare,
+            DataSkill.Restoration => ContractAbilitySkill.Restoration,
+            DataSkill.Alteration => ContractAbilitySkill.Alteration,
             DataSkill.General => ContractAbilitySkill.General,
+            DataSkill.Blocking => ContractAbilitySkill.Blocking,
             _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, null),
         };
 
@@ -214,6 +216,7 @@ internal static class ResponseEnumMappers
             AbilitiesConditionType.Blinded => ContractConditionType.Blinded,
             AbilitiesConditionType.Bleeding => ContractConditionType.Bleeding,
             AbilitiesConditionType.Burning => ContractConditionType.Burning,
+            AbilitiesConditionType.Disarmed => ContractConditionType.Disarmed,
             AbilitiesConditionType.Frozen => ContractConditionType.Frozen,
             AbilitiesConditionType.Poisoned => ContractConditionType.Poisoned,
             AbilitiesConditionType.Silenced => ContractConditionType.Silenced,

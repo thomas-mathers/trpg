@@ -2,10 +2,15 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Configuration;
 using TRPG.Data.Models;
+using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
 
 namespace TRPG.Application.Combat;
 
-public class EnemyCombatActionResolver(IOptionsSnapshot<CombatOptions> optionsSnapshot)
+public class EnemyCombatActionResolver(
+    IOptionsSnapshot<CombatOptions> optionsSnapshot,
+    DamageCalculator damageCalculator,
+    HitCalculator hitCalculator
+)
 {
     internal ResolvedCombatAction Resolve(Combatant enemy, Combatant player)
     {
@@ -14,35 +19,64 @@ public class EnemyCombatActionResolver(IOptionsSnapshot<CombatOptions> optionsSn
                 enemy.CooldownRemainingByAbility[a.Name] == 0
                 && enemy.CurrentAp >= a.ApCost
                 && enemy.CurrentMp >= a.MpCost
+                && AbilityGearRequirement.IsMet(enemy, a)
             )
             .ToArray();
 
-        var defensiveAction = ResolveDefensiveAction(enemy, affordableAbilities);
-        if (defensiveAction is not null)
+        var resourceAction = ResolveResourceAction(enemy, affordableAbilities);
+        if (resourceAction is not null)
         {
-            return defensiveAction;
+            return resourceAction;
         }
 
-        // Every combatant always has the basic attack (0 AP/MP cost, 0 cooldown), so it's
-        // always in affordableAbilities and MaxBy can never return null here. Percent-based
-        // DamageAmount (physical, a % of weapon damage) is normalized down to roughly the same
-        // scale as a flat DamageAmount so the comparison isn't just "physical always wins."
+        // Purely a tactical/flavor choice, unlike the resource logic below, so it's the one
+        // decision allowed to be a coin flip rather than always taking the "best" option.
+        var openingBuff = FindUsableOpeningBuff(enemy, player, affordableAbilities);
+        if (
+            openingBuff is not null
+            && Random.Shared.NextDouble() < optionsSnapshot.Value.OpeningBuffChancePercent
+        )
+        {
+            return new ResolvedUseAbilityAction(openingBuff, [enemy]);
+        }
+
+        // Every combatant always has the basic attack (0 AP/MP cost, 0 cooldown), so it's always
+        // in affordableAbilities and MaxBy can never return null here. Ranked by actual expected
+        // damage against this target (weapon roll, strength/intelligence bonuses, the target's
+        // real resistances, and hit chance all included) rather than raw ability metadata -
+        // comparing DamageAmount directly made a small flat-damage ability (a non-physical
+        // ability like a poison arrow) look bigger than a percent-of-weapon physical attack just
+        // because its number happened to be larger, even though it deals far less real damage.
+        // Factoring in hit chance matters just as much: a hard-hitting physical attack that only
+        // connects 1-in-6 times is worse in practice than a reliable spell that always lands.
         var bestAttackAbility = affordableAbilities
             .OfType<AttackAbility>()
-            .MaxBy(a =>
-                a.DamageAmountType == AmountType.Percent ? a.DamageAmount / 100f : a.DamageAmount
-            );
+            .MaxBy(a => EstimateExpectedDamage(enemy, a, player));
 
         return new ResolvedUseAbilityAction(bestAttackAbility!, [player]);
     }
 
-    // A monster prioritizes surviving over anything else. While healthy it opens with any
-    // unused long-running buff (e.g. a skill-tree buff) and only reaches for AP/MP potions
-    // once nothing else is going on. Once hurt, a heal ability beats a health potion (no
+    // Magic attacks always hit (see HitCalculator.DidHit), so only physical attacks discount
+    // their damage-if-it-hits by the actual chance of it hitting at all.
+    private float EstimateExpectedDamage(
+        Combatant attacker,
+        AttackAbility ability,
+        Combatant defender
+    )
+    {
+        var damage = damageCalculator.EstimateDamage(attacker, ability, defender);
+
+        return ability.DamageType == DamageType.Physical
+            ? damage * hitCalculator.CalculateHitChance(attacker, defender)
+            : damage;
+    }
+
+    // A monster prioritizes surviving over anything else, deterministically — always the best
+    // available option, never left to chance. A heal ability beats a health potion (no
     // inventory cost); a single-turn stance like Block is only used as a last resort once
     // there's nothing left to heal with, rather than eating a hit unguarded — never as an
     // opening move before any damage was taken.
-    private ResolvedCombatAction? ResolveDefensiveAction(
+    private ResolvedCombatAction? ResolveResourceAction(
         Combatant enemy,
         IReadOnlyList<Ability> affordableAbilities
     )
@@ -80,23 +114,113 @@ public class EnemyCombatActionResolver(IOptionsSnapshot<CombatOptions> optionsSn
         var mpPotion = IsLow(enemy.CurrentMp, enemy.MaximumMp, threshold)
             ? FindPotion(enemy, ResourceType.Mp)
             : null;
-        if (mpPotion is not null)
-        {
-            return new ResolvedUseItemAction(mpPotion);
-        }
-
-        var openingBuff = FindUsableOpeningBuff(enemy, affordableAbilities);
-        return openingBuff is not null ? new ResolvedUseAbilityAction(openingBuff, [enemy]) : null;
+        return mpPotion is not null ? new ResolvedUseItemAction(mpPotion) : null;
     }
 
-    // A real skill-tree buff meant to be cast once and left active for several rounds.
-    private static Ability? FindUsableOpeningBuff(
+    // A real skill-tree buff meant to be cast once and left active for several rounds. Ranked by
+    // combined value: how much more damage the monster's own best attack would deal with the
+    // buff active, plus how much less damage the player's best attack against this monster would
+    // deal - both measured with the same EstimateDamage used for attack selection, so a Strength
+    // buff scores well for the same reason it'd help an actual attack, and a resistance buff
+    // scores well for blunting the player's biggest threat. No randomness in which buff wins;
+    // OpeningBuffChancePercent above is the only randomized part of this decision.
+    private Ability? FindUsableOpeningBuff(
         Combatant enemy,
+        Combatant player,
         IReadOnlyList<Ability> affordableAbilities
-    ) =>
-        affordableAbilities
+    )
+    {
+        var candidates = affordableAbilities
             .OfType<BuffAbility>()
-            .FirstOrDefault(a => a.Duration > 1 && IsUnused(enemy, a));
+            .Where(a => a.Duration > 1 && IsUnused(enemy, a))
+            .ToArray();
+
+        if (candidates.Length == 0)
+        {
+            return null;
+        }
+
+        var enemyBestAttack = enemy
+            .Abilities.OfType<AttackAbility>()
+            .MaxBy(a => EstimateExpectedDamage(enemy, a, player));
+        var playerBestAttack = player
+            .Abilities.OfType<AttackAbility>()
+            .MaxBy(a => EstimateExpectedDamage(player, a, enemy));
+
+        var baselineOffense = enemyBestAttack is null
+            ? 0
+            : EstimateExpectedDamage(enemy, enemyBestAttack, player);
+        var baselineDefense = playerBestAttack is null
+            ? 0
+            : EstimateExpectedDamage(player, playerBestAttack, enemy);
+
+        return candidates.MaxBy(buff =>
+            ScoreBuff(
+                enemy,
+                player,
+                buff,
+                enemyBestAttack,
+                playerBestAttack,
+                baselineOffense,
+                baselineDefense
+            )
+        );
+    }
+
+    private float ScoreBuff(
+        Combatant enemy,
+        Combatant player,
+        BuffAbility buff,
+        AttackAbility? enemyBestAttack,
+        AttackAbility? playerBestAttack,
+        float baselineOffense,
+        float baselineDefense
+    )
+    {
+        ApplyTemporaryModifiers(enemy, buff);
+
+        var buffedOffense = enemyBestAttack is null
+            ? 0
+            : EstimateExpectedDamage(enemy, enemyBestAttack, player);
+        var buffedDefense = playerBestAttack is null
+            ? 0
+            : EstimateExpectedDamage(player, playerBestAttack, enemy);
+
+        RemoveTemporaryModifiers(enemy, buff);
+
+        var offensiveGain = buffedOffense - baselineOffense;
+        var defensiveGain = baselineDefense - buffedDefense;
+
+        return offensiveGain + defensiveGain;
+    }
+
+    // Mirrors CombatEngine.ApplyBuff's real modifier-to-ActiveBuff conversion, applied
+    // temporarily just to measure this candidate's value - always paired with
+    // RemoveTemporaryModifiers so the monster's real state is untouched once scoring is done.
+    private static void ApplyTemporaryModifiers(Combatant enemy, BuffAbility buff)
+    {
+        var modifiers =
+            buff.ParryCapableModifiers.Count > 0 && AbilityGearRequirement.IsParryCapable(enemy)
+                ? buff.ParryCapableModifiers
+                : buff.Modifiers;
+
+        foreach (var modifier in modifiers)
+        {
+            enemy.ActiveBuffs.Add(
+                new ActiveBuff
+                {
+                    AbilityName = buff.Name,
+                    Amount = modifier.Amount,
+                    AmountType = modifier.AmountType,
+                    Attribute = modifier.Attribute,
+                    RemainingTurns = buff.Duration,
+                }
+            );
+        }
+    }
+
+    private static void RemoveTemporaryModifiers(Combatant enemy, BuffAbility buff) =>
+        enemy.ActiveBuffs.RemoveAll(b => b.AbilityName == buff.Name);
 
     // A single-turn stance (Duration 1, like Block) is meant to be triggered situationally
     // rather than left running, unlike a real skill-tree buff — never an interchangeable
@@ -105,9 +229,17 @@ public class EnemyCombatActionResolver(IOptionsSnapshot<CombatOptions> optionsSn
         Combatant enemy,
         IReadOnlyList<Ability> affordableAbilities
     ) =>
-        affordableAbilities
-            .OfType<BuffAbility>()
-            .FirstOrDefault(a => a.Duration <= 1 && IsUnused(enemy, a));
+        PickRandom(
+            affordableAbilities
+                .OfType<BuffAbility>()
+                .Where(a => a.Duration <= 1 && IsUnused(enemy, a))
+        );
+
+    private static Ability? PickRandom(IEnumerable<Ability> candidates)
+    {
+        var pool = candidates.ToArray();
+        return pool.Length > 0 ? pool[Random.Shared.Next(pool.Length)] : null;
+    }
 
     private static bool IsUnused(Combatant enemy, Ability ability) =>
         enemy.ActiveBuffs.All(b => b.AbilityName != ability.Name);

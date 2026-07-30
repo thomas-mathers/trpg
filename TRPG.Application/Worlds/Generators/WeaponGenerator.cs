@@ -11,10 +11,10 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
         [WeaponType.Dagger] = new WeaponTypeData(
             ["Dagger", "Dirk", "Stiletto", "Kris", "Knife"],
             2,
-            1,
-            5,
-            5,
-            20,
+            2,
+            7,
+            8,
+            27,
             1,
             10
         ),

@@ -2,9 +2,12 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
 
+// Only the attributes a player can actually allocate points into (see
+// AllocatableAttributeName) - Defense is deliberately excluded here too, matching
+// CreatureGenerator.GetPlayerAttributes: Defense always comes from gear, never from the
+// stat-pool draw, for players and monsters alike.
 public record StatAffinities(
     int Strength,
-    int Defense,
     int Dexterity,
     int Endurance,
     int Stamina,
@@ -24,8 +27,27 @@ public sealed record AmmoSpec(AmmoType AmmoType, int Quantity) : StartingGearSpe
 
 public sealed record ConsumableSpec(int Quantity) : StartingGearSpec;
 
+// Every creature gets a natural-weapon roll (used whenever it has no equipped Weapon - see
+// DamageCalculator.CalculatePhysicalRawDamage), scaled by level via the same Roll(level, low,
+// high) helper weapons themselves use. MinDamageLow/High and MaxDamageLow/High describe how
+// NaturalWeaponMinDamage/MaxDamage individually scale from level 1 to level 100, exactly
+// mirroring WeaponGenerator's WeaponTypeData shape.
+public sealed record NaturalWeaponDamageRange(
+    int MinDamageLow,
+    int MinDamageHigh,
+    int MaxDamageLow,
+    int MaxDamageHigh
+);
+
 public sealed class CreatureArchetype
 {
+    // Roughly a level below the comparable weapon tier (e.g. Humanoid sits under a Sword's own
+    // ~8-35 scaled range) - a creature reaches for an actual weapon over its bare fists/claws
+    // precisely because the weapon hits harder.
+    private static readonly NaturalWeaponDamageRange SmallNaturalWeapon = new(1, 5, 3, 14);
+    private static readonly NaturalWeaponDamageRange HumanoidNaturalWeapon = new(1, 6, 4, 20);
+    private static readonly NaturalWeaponDamageRange LargeNaturalWeapon = new(3, 15, 10, 45);
+
     public Profession? Profession { get; }
     public CreatureType? CreatureType { get; }
     public StatAffinities StatAffinities { get; }
@@ -34,6 +56,7 @@ public sealed class CreatureArchetype
     public ArmorClass? ArmorClass { get; }
     public bool HasAccessories { get; }
     public bool HasPotions { get; }
+    public NaturalWeaponDamageRange NaturalWeaponDamage { get; }
     public string? Biography { get; }
 
     private CreatureArchetype(
@@ -45,6 +68,7 @@ public sealed class CreatureArchetype
         ArmorClass? armorClass = null,
         bool hasAccessories = false,
         bool hasPotions = false,
+        NaturalWeaponDamageRange? naturalWeaponDamage = null,
         string? biography = null
     )
     {
@@ -56,6 +80,7 @@ public sealed class CreatureArchetype
         ArmorClass = armorClass;
         HasAccessories = hasAccessories;
         HasPotions = hasPotions;
+        NaturalWeaponDamage = naturalWeaponDamage ?? HumanoidNaturalWeapon;
         Biography = biography;
     }
 
@@ -67,14 +92,13 @@ public sealed class CreatureArchetype
     private static readonly Dictionary<Skill, int> SoldierSkillAffinities = new()
     {
         [Skill.Melee] = 3,
-        [Skill.Warfare] = 2,
+        [Skill.Blocking] = 2,
         [Skill.General] = 1,
     };
 
     public static readonly CreatureArchetype Beast = new(
         statAffinities: new StatAffinities(
             Strength: 3,
-            Defense: 1,
             Dexterity: 2,
             Endurance: 2,
             Stamina: 2,
@@ -82,12 +106,7 @@ public sealed class CreatureArchetype
             Intelligence: 0,
             GoldMultiplier: 0.2f
         ),
-        skillAffinities: new Dictionary<Skill, int>
-        {
-            [Skill.Warfare] = 2,
-            [Skill.Stealth] = 1,
-            [Skill.General] = 1,
-        },
+        skillAffinities: new Dictionary<Skill, int> { [Skill.Melee] = 2, [Skill.General] = 1 },
         creatureType: Data.Models.CreatureType.Beast,
         biography: "A feral creature of claw and hunger, hostile to intruders."
     );
@@ -95,9 +114,8 @@ public sealed class CreatureArchetype
     public static readonly CreatureArchetype Undead = new(
         statAffinities: new StatAffinities(
             Strength: 2,
-            Defense: 2,
             Dexterity: 1,
-            Endurance: 3,
+            Endurance: 2,
             Stamina: 1,
             Mana: 0,
             Intelligence: 0,
@@ -106,7 +124,7 @@ public sealed class CreatureArchetype
         skillAffinities: new Dictionary<Skill, int>
         {
             [Skill.Melee] = 2,
-            [Skill.Warfare] = 1,
+            [Skill.Blocking] = 1,
             [Skill.General] = 1,
         },
         creatureType: Data.Models.CreatureType.Undead,
@@ -117,8 +135,7 @@ public sealed class CreatureArchetype
 
     public static readonly CreatureArchetype Construct = new(
         statAffinities: new StatAffinities(
-            Strength: 2,
-            Defense: 4,
+            Strength: 3,
             Dexterity: 0,
             Endurance: 3,
             Stamina: 1,
@@ -126,15 +143,17 @@ public sealed class CreatureArchetype
             Intelligence: 0,
             GoldMultiplier: 0.4f
         ),
-        skillAffinities: new Dictionary<Skill, int> { [Skill.Warfare] = 2, [Skill.General] = 1 },
+        skillAffinities: new Dictionary<Skill, int> { [Skill.Blocking] = 2, [Skill.General] = 1 },
         creatureType: Data.Models.CreatureType.Construct,
+        // No dedicated attack skill or weapon needed - a golem's fists (via NaturalWeaponDamage)
+        // are its real offense, same as Giant.
+        naturalWeaponDamage: LargeNaturalWeapon,
         biography: "An artificial thing still obeying an order given long ago."
     );
 
     public static readonly CreatureArchetype Demon = new(
         statAffinities: new StatAffinities(
             Strength: 3,
-            Defense: 1,
             Dexterity: 1,
             Endurance: 2,
             Stamina: 1,
@@ -144,8 +163,8 @@ public sealed class CreatureArchetype
         ),
         skillAffinities: new Dictionary<Skill, int>
         {
-            [Skill.Spellcasting] = 2,
-            [Skill.Warfare] = 2,
+            [Skill.Destruction] = 2,
+            [Skill.Melee] = 2,
             [Skill.General] = 1,
         },
         creatureType: Data.Models.CreatureType.Demon,
@@ -157,7 +176,6 @@ public sealed class CreatureArchetype
     public static readonly CreatureArchetype Elemental = new(
         statAffinities: new StatAffinities(
             Strength: 0,
-            Defense: 1,
             Dexterity: 1,
             Endurance: 1,
             Stamina: 1,
@@ -167,7 +185,7 @@ public sealed class CreatureArchetype
         ),
         skillAffinities: new Dictionary<Skill, int>
         {
-            [Skill.Spellcasting] = 3,
+            [Skill.Destruction] = 3,
             [Skill.General] = 1,
         },
         creatureType: Data.Models.CreatureType.Elemental,
@@ -177,7 +195,6 @@ public sealed class CreatureArchetype
     public static readonly CreatureArchetype Goblin = new(
         statAffinities: new StatAffinities(
             Strength: 1,
-            Defense: 0,
             Dexterity: 3,
             Endurance: 1,
             Stamina: 2,
@@ -188,7 +205,7 @@ public sealed class CreatureArchetype
         skillAffinities: new Dictionary<Skill, int>
         {
             [Skill.Archery] = 2,
-            [Skill.Stealth] = 1,
+            [Skill.Sneak] = 1,
             [Skill.General] = 1,
         },
         creatureType: Data.Models.CreatureType.Goblin,
@@ -198,14 +215,17 @@ public sealed class CreatureArchetype
             new AmmoSpec(AmmoType.Arrow, 20),
             new WeaponSpec(WeaponType.Dagger),
         ],
+        // Same Defense concern as Beast - a Goblin's scavenged scraps rather than any real
+        // craftsmanship, but zero Defense made it trivial for every profession.
+        armorClass: Data.Models.ArmorClass.Leather,
         hasPotions: true,
+        naturalWeaponDamage: SmallNaturalWeapon,
         biography: "A small, vicious scavenger that hunts in packs and covets anything shiny."
     );
 
     public static readonly CreatureArchetype Wraith = new(
         statAffinities: new StatAffinities(
             Strength: 0,
-            Defense: 1,
             Dexterity: 2,
             Endurance: 1,
             Stamina: 1,
@@ -213,10 +233,15 @@ public sealed class CreatureArchetype
             Intelligence: 2,
             GoldMultiplier: 0.3f
         ),
+        // Sneak's attack list (Stab, Backstab, Garrote, Kidney Shot...) is all corporeal
+        // blade-and-hands rogue flavor, which doesn't fit an incorporeal spirit - dropped in
+        // favor of a split Destruction/Illusion focus (a hateful spirit that both terrifies and
+        // strikes with raw hostile magic), same split as Mage - pure Illusion left Wraith with
+        // too little damage to be any threat at all.
         skillAffinities: new Dictionary<Skill, int>
         {
-            [Skill.Devotion] = 2,
-            [Skill.Stealth] = 2,
+            [Skill.Destruction] = 1,
+            [Skill.Illusion] = 1,
             [Skill.General] = 1,
         },
         creatureType: Data.Models.CreatureType.Wraith,
@@ -226,23 +251,25 @@ public sealed class CreatureArchetype
     public static readonly CreatureArchetype Giant = new(
         statAffinities: new StatAffinities(
             Strength: 4,
-            Defense: 2,
             Dexterity: 0,
-            Endurance: 3,
+            Endurance: 2,
             Stamina: 1,
             Mana: 0,
             Intelligence: 0,
             GoldMultiplier: 0.5f
         ),
-        skillAffinities: new Dictionary<Skill, int> { [Skill.Warfare] = 3, [Skill.General] = 1 },
+        skillAffinities: new Dictionary<Skill, int> { [Skill.Melee] = 3, [Skill.General] = 1 },
         creatureType: Data.Models.CreatureType.Giant,
+        // WeaponType.Mace's name pool includes "Club"/"War Club" - no armor, matching a giant
+        // that relies on raw size and a crude bludgeon rather than any real armament.
+        startingGear: [new WeaponSpec(WeaponType.Mace)],
+        naturalWeaponDamage: LargeNaturalWeapon,
         biography: "A towering brute whose footsteps announce it long before it is seen."
     );
 
     public static readonly CreatureArchetype Dragon = new(
         statAffinities: new StatAffinities(
             Strength: 3,
-            Defense: 2,
             Dexterity: 1,
             Endurance: 2,
             Stamina: 1,
@@ -252,11 +279,12 @@ public sealed class CreatureArchetype
         ),
         skillAffinities: new Dictionary<Skill, int>
         {
-            [Skill.Spellcasting] = 2,
-            [Skill.Warfare] = 2,
+            [Skill.Destruction] = 2,
+            [Skill.Melee] = 2,
             [Skill.General] = 1,
         },
         creatureType: Data.Models.CreatureType.Dragon,
+        naturalWeaponDamage: LargeNaturalWeapon,
         biography: "An ancient winged predator of scale and flame, jealous of its hoard."
     );
 
@@ -265,7 +293,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Knight] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 3,
-                Defense: 3,
                 Dexterity: 0,
                 Endurance: 2,
                 Stamina: 2,
@@ -282,7 +309,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Rogue] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 1,
-                Defense: 0,
                 Dexterity: 4,
                 Endurance: 1,
                 Stamina: 2,
@@ -292,23 +318,18 @@ public sealed class CreatureArchetype
             ),
             skillAffinities: new Dictionary<Skill, int>
             {
-                [Skill.Stealth] = 3,
+                [Skill.Sneak] = 3,
                 [Skill.Melee] = 2,
                 [Skill.General] = 1,
             },
             profession: Data.Models.Profession.Rogue,
-            startingGear:
-            [
-                new WeaponSpec(WeaponType.Dagger),
-                new WeaponSpec(WeaponType.Dagger, EquipmentSlot.LeftHand),
-            ],
+            startingGear: [new WeaponSpec(WeaponType.Dagger)],
             armorClass: Data.Models.ArmorClass.Leather,
             hasAccessories: true
         ),
         [Data.Models.Profession.Ranger] = new CreatureArchetype(
             statAffinities: new StatAffinities(
-                Strength: 1,
-                Defense: 0,
+                Strength: 2,
                 Dexterity: 3,
                 Endurance: 2,
                 Stamina: 2,
@@ -329,7 +350,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Mage] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 0,
                 Endurance: 1,
                 Stamina: 0,
@@ -339,7 +359,8 @@ public sealed class CreatureArchetype
             ),
             skillAffinities: new Dictionary<Skill, int>
             {
-                [Skill.Spellcasting] = 2,
+                [Skill.Destruction] = 1,
+                [Skill.Illusion] = 1,
                 [Skill.General] = 1,
             },
             profession: Data.Models.Profession.Mage,
@@ -350,7 +371,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Cleric] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 2,
                 Dexterity: 0,
                 Endurance: 1,
                 Stamina: 1,
@@ -360,8 +380,8 @@ public sealed class CreatureArchetype
             ),
             skillAffinities: new Dictionary<Skill, int>
             {
-                [Skill.Devotion] = 2,
-                [Skill.Warfare] = 2,
+                [Skill.Restoration] = 2,
+                [Skill.Alteration] = 2,
                 [Skill.General] = 1,
             },
             profession: Data.Models.Profession.Cleric,
@@ -372,7 +392,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Mercenary] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 3,
-                Defense: 2,
                 Dexterity: 1,
                 Endurance: 1,
                 Stamina: 3,
@@ -389,7 +408,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Alchemist] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 2,
                 Endurance: 1,
                 Stamina: 0,
@@ -406,7 +424,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Blacksmith] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 4,
-                Defense: 1,
                 Dexterity: 1,
                 Endurance: 3,
                 Stamina: 1,
@@ -423,7 +440,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Scholar] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 1,
                 Endurance: 1,
                 Stamina: 0,
@@ -440,7 +456,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Merchant] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 3,
                 Endurance: 1,
                 Stamina: 1,
@@ -457,7 +472,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Politician] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 1,
                 Endurance: 0,
                 Stamina: 0,
@@ -474,7 +488,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.StableMaster] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 1,
-                Defense: 0,
                 Dexterity: 3,
                 Endurance: 3,
                 Stamina: 2,
@@ -491,7 +504,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Bartender] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 3,
                 Endurance: 1,
                 Stamina: 2,
@@ -508,7 +520,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Guard] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 2,
-                Defense: 3,
                 Dexterity: 1,
                 Endurance: 3,
                 Stamina: 1,
@@ -525,7 +536,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Baker] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 1,
-                Defense: 0,
                 Dexterity: 2,
                 Endurance: 2,
                 Stamina: 2,
@@ -542,7 +552,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Innkeeper] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 2,
                 Endurance: 1,
                 Stamina: 2,
@@ -559,7 +568,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Tailor] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 3,
                 Endurance: 1,
                 Stamina: 1,
@@ -576,7 +584,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Carpenter] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 2,
-                Defense: 0,
                 Dexterity: 2,
                 Endurance: 2,
                 Stamina: 2,
@@ -593,7 +600,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Jeweler] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 3,
                 Endurance: 0,
                 Stamina: 1,
@@ -610,7 +616,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Homemaker] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 1,
                 Endurance: 2,
                 Stamina: 2,
@@ -627,7 +632,6 @@ public sealed class CreatureArchetype
         [Data.Models.Profession.Unemployed] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
-                Defense: 0,
                 Dexterity: 1,
                 Endurance: 1,
                 Stamina: 1,

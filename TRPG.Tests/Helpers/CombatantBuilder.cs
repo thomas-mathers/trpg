@@ -9,14 +9,16 @@ namespace TRPG.Tests.Helpers;
 internal sealed class CombatantBuilder
 {
     private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
-    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
     private static readonly StatFormulas Formulas = Builders.MakeStatFormulas();
 
     private readonly List<Item> _items = [];
     private readonly Dictionary<WeaponType, int> _weaponProficiencies = [];
+    private readonly Dictionary<ConditionType, int> _activeConditions = [];
     private Guid _worldId = Guid.NewGuid();
     private string _name = "Test Combatant";
     private bool _isPlayer;
+    private CreatureType _creatureType = CreatureType.Human;
+    private int _level = 1;
     private int _endurance = 10;
     private int _dexterity = 10;
     private int _strength;
@@ -29,6 +31,8 @@ internal sealed class CombatantBuilder
     private int? _currentHp;
     private int? _currentAp;
     private int? _currentMp;
+    private int? _naturalWeaponMinDamage;
+    private int? _naturalWeaponMaxDamage;
 
     public CombatantBuilder WithWorldId(Guid worldId)
     {
@@ -45,6 +49,18 @@ internal sealed class CombatantBuilder
     public CombatantBuilder AsPlayer()
     {
         _isPlayer = true;
+        return this;
+    }
+
+    public CombatantBuilder WithCreatureType(CreatureType creatureType)
+    {
+        _creatureType = creatureType;
+        return this;
+    }
+
+    public CombatantBuilder WithLevel(int level)
+    {
+        _level = level;
         return this;
     }
 
@@ -134,9 +150,29 @@ internal sealed class CombatantBuilder
         return this;
     }
 
+    public CombatantBuilder WithNaturalWeaponDamage(int minDamage, int maxDamage)
+    {
+        _naturalWeaponMinDamage = minDamage;
+        _naturalWeaponMaxDamage = maxDamage;
+        return this;
+    }
+
+    public CombatantBuilder WithCondition(ConditionType condition, int remainingTurns)
+    {
+        _activeConditions[condition] = remainingTurns;
+        return this;
+    }
+
     public Combatant Build()
     {
-        var creature = Builders.MakeCreature(_worldId, name: _name);
+        var creature = Builders.MakeCreature(
+            _worldId,
+            creatureType: _creatureType,
+            name: _name,
+            level: _level,
+            naturalWeaponMinDamage: _naturalWeaponMinDamage ?? 3,
+            naturalWeaponMaxDamage: _naturalWeaponMaxDamage ?? 3
+        );
         creature.BaseAttributes.Endurance = _endurance;
         creature.BaseAttributes.Dexterity = _dexterity;
         creature.BaseAttributes.Strength = _strength;
@@ -151,10 +187,14 @@ internal sealed class CombatantBuilder
         creature.CurrentHp = _currentHp ?? creature.BaseAttributes.MaximumHp;
         creature.CurrentAp = _currentAp ?? creature.BaseAttributes.MaximumAp;
         creature.CurrentMp = _currentMp ?? creature.BaseAttributes.MaximumMp;
+        creature.ActiveConditions = _activeConditions.ToDictionary(
+            kv => kv.Key.ToString(),
+            kv => kv.Value
+        );
 
         return Combatant.FromCreature(
             creature,
-            [BasicAttack, BlockStance, .. _abilities],
+            [BasicAttack, .. _abilities],
             _isPlayer,
             _items,
             _weaponProficiencies

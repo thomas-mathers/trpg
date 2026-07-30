@@ -48,11 +48,30 @@ public class StatFormulas(IOptionsSnapshot<CreatureGeneratorOptions> optionsSnap
             .SelectMany(item => item.Modifiers)
             .OfType<AttributeModifier>()
             .ToArray();
-        var extraFlat =
-            attribute == AttributeName.Defense
-                ? inventory.OfType<Armor>().Sum(armor => armor.Defense)
-                    + inventory.OfType<Shield>().Sum(shield => shield.Defense)
-                : 0;
+        // Guaranteed baseline resistances from carrying a shield - everyone starts every
+        // resistance at 0, so a Percent-type modifier against that base would be a no-op;
+        // these have to land in the flat bucket to have any effect at all.
+        var extraFlat = attribute switch
+        {
+            AttributeName.Defense => inventory.OfType<Armor>().Sum(armor => armor.Defense)
+                + inventory.OfType<Shield>().Sum(shield => shield.Defense),
+            AttributeName.MagicResistance => inventory
+                .OfType<Shield>()
+                .Sum(shield => shield.MagicResistance),
+            AttributeName.FireResistance => inventory
+                .OfType<Shield>()
+                .Sum(shield => shield.FireResistance),
+            AttributeName.IceResistance => inventory
+                .OfType<Shield>()
+                .Sum(shield => shield.IceResistance),
+            AttributeName.LightningResistance => inventory
+                .OfType<Shield>()
+                .Sum(shield => shield.LightningResistance),
+            AttributeName.PoisonResistance => inventory
+                .OfType<Shield>()
+                .Sum(shield => shield.PoisonResistance),
+            _ => 0,
+        };
 
         var flat =
             buffs

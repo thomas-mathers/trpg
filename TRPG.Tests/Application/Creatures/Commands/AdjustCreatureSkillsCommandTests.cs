@@ -145,8 +145,8 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
         // CalculateExperienceFromLevel(3) = 6, proving the skills' contributions are summed
         // together rather than checked independently (any one alone, at 2, only reaches level 2)
         await SeedSkill(Skill.Melee, level: 1, experience: 140);
-        await SeedSkill(Skill.Warfare, level: 1, experience: 140);
-        await SeedSkill(Skill.Devotion, level: 1, experience: 140);
+        await SeedSkill(Skill.Alteration, level: 1, experience: 140);
+        await SeedSkill(Skill.Restoration, level: 1, experience: 140);
 
         // Act
         await _handler.Handle(
@@ -157,8 +157,8 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
                 UsageCounts = new Dictionary<Skill, int>
                 {
                     [Skill.Melee] = 1,
-                    [Skill.Warfare] = 1,
-                    [Skill.Devotion] = 1,
+                    [Skill.Alteration] = 1,
+                    [Skill.Restoration] = 1,
                 },
             },
             TestContext.Current.CancellationToken
@@ -220,13 +220,13 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
     [Fact]
     public async Task Handle_SkipsSkill_WhenNoMatchingCreatureSkillRowExists()
     {
-        // Act — Stealth was never seeded for this creature
+        // Act — Sneak was never seeded for this creature
         await _handler.Handle(
             new AdjustCreatureSkillsCommand
             {
                 WorldId = _worldId,
                 CreatureId = _creature.Id,
-                UsageCounts = new Dictionary<Skill, int> { [Skill.Stealth] = 5 },
+                UsageCounts = new Dictionary<Skill, int> { [Skill.Sneak] = 5 },
             },
             TestContext.Current.CancellationToken
         );

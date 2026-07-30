@@ -66,7 +66,8 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
     [Fact]
     public async Task Handle_AppliesDeltas_ToBaseAttributes()
     {
-        // Arrange — 5 points available (7 + 1*5 - 7)
+        // Arrange — well within the available unallocated points (see
+        // Handle_Throws_WhenRequestedTotalExceedsUnallocatedPoints for the full math)
         // Act
         await _handler.Handle(
             new AllocateAttributePointsCommand
@@ -112,7 +113,9 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
     [Fact]
     public async Task Handle_Throws_WhenRequestedTotalExceedsUnallocatedPoints()
     {
-        // Act & Assert — only 5 points available, requesting 6
+        // Act & Assert — creature totals 7 (7 stats at 1 each), options default BaseAttributes
+        // totals 35, so unallocated = 35 + level(1) * pointsPerLevel(5) - 7 = 33; requesting 34
+        // exceeds it
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _handler.Handle(
                 new AllocateAttributePointsCommand
@@ -120,7 +123,7 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db) : IA
                     CreatureId = _creature.Id,
                     Deltas = new Dictionary<AllocatableAttributeName, int>
                     {
-                        [AllocatableAttributeName.Strength] = 6,
+                        [AllocatableAttributeName.Strength] = 34,
                     },
                 },
                 TestContext.Current.CancellationToken

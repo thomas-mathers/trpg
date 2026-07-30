@@ -60,10 +60,13 @@ public class Combatant
     public required Guid CreatureId { get; init; }
     public required string Name { get; init; }
     public required bool IsPlayer { get; init; }
+    public required CreatureType CreatureType { get; init; }
     public required int Level { get; init; }
     public required Attributes Attributes { get; init; }
     public required IReadOnlyList<Ability> Abilities { get; init; }
     public required int Gold { get; init; }
+    public required int NaturalWeaponMinDamage { get; init; }
+    public required int NaturalWeaponMaxDamage { get; init; }
     public int CurrentHp { get; set; }
     public int CurrentAp { get; set; }
     public int CurrentMp { get; set; }
@@ -82,10 +85,27 @@ public class Combatant
     public int MaximumHp => (int)CalculateEffectiveAttribute(AttributeName.MaximumHp);
     public int MaximumAp => (int)CalculateEffectiveAttribute(AttributeName.MaximumAp);
     public int MaximumMp => (int)CalculateEffectiveAttribute(AttributeName.MaximumMp);
+
+    // Single source of truth for turn order: CombatEngine sorts by this to decide who acts
+    // when, and callers outside combat resolution (e.g. the fight-status endpoint) read it too,
+    // so the panel display always matches the order actions actually resolve in.
+    public float TurnOrderValue => CalculateEffectiveAttribute(AttributeName.Dexterity);
     public Weapon? Weapon => EquippedItems.OfType<Weapon>().SingleOrDefault();
     public int? WeaponProficiency => Weapon != null ? WeaponProficiencies[Weapon.Type] : null;
     public Shield? Shield => EquippedItems.OfType<Shield>().SingleOrDefault();
     public float BlockChance => Shield?.BlockChance ?? 0f;
+
+    // Snared has no dedicated incapacitation check (unlike Frozen/Stunned/Blinded/Silenced - see
+    // CombatEngine.GetIncapacitationEvent); instead it hobbles this combatant's own effective
+    // Dexterity wherever it's read for combat purposes (evasion, crit chance), whether this
+    // combatant is attacking or defending.
+    public float CalculateCombatDexterity(float snareDexterityReductionPercent)
+    {
+        var dexterity = CalculateEffectiveAttribute(AttributeName.Dexterity);
+        return ActiveConditions[ConditionType.Snared] > 0
+            ? dexterity * (1 - snareDexterityReductionPercent)
+            : dexterity;
+    }
 
     public static Combatant FromCreature(
         Creature creature,
@@ -108,10 +128,13 @@ public class Combatant
             CreatureId = creature.Id,
             Name = creature.Name,
             IsPlayer = isPlayer,
+            CreatureType = creature.CreatureType,
             Level = creature.Level,
             Attributes = creature.BaseAttributes,
             Abilities = abilities,
             Gold = items.OfType<Gold>().Sum(i => i.Quantity),
+            NaturalWeaponMinDamage = creature.NaturalWeaponMinDamage,
+            NaturalWeaponMaxDamage = creature.NaturalWeaponMaxDamage,
             CurrentHp = Math.Clamp(creature.CurrentHp, 0, startingAttributes.MaximumHp),
             CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
             CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),

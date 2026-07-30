@@ -29,4 +29,9 @@ public class BuffAbility : SupportAbility
 {
     public int Duration { get; init; }
     public List<AttributeModifier> Modifiers { get; init; } = [];
+
+    // Used instead of Modifiers when the caster is parry-capable (shield or melee weapon
+    // equipped) at cast time — see AbilityGearRequirement.IsParryCapable. Empty for every
+    // buff that doesn't vary by equipped gear.
+    public List<AttributeModifier> ParryCapableModifiers { get; init; } = [];
 }

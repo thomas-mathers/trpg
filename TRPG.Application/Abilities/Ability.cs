@@ -10,5 +10,8 @@ public class Ability
     public int MpCost { get; init; }
     public string Name { get; init; } = "";
     public int RequiredSkillLevel { get; init; }
-    public Skill Skill { get; init; }
+
+    // General, not Melee (the enum's default value), so an ability whose skill nobody bothered
+    // to set is treated as gear-agnostic rather than silently requiring a melee weapon.
+    public Skill Skill { get; init; } = Skill.General;
 }
