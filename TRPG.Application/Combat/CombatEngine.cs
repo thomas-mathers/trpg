@@ -263,11 +263,11 @@ public class CombatEngine(
         IReadOnlyList<Combatant> targets
     )
     {
-        var usesParryCapableModifiers =
-            ability.ParryCapableModifiers.Count > 0 && AbilityGearRequirement.IsParryCapable(actor);
-        var modifiers = usesParryCapableModifiers
-            ? ability.ParryCapableModifiers
-            : ability.Modifiers;
+        var modifiers =
+            ability is GuardStanceAbility guardStance
+            && AbilityGearRequirement.IsParryCapable(actor)
+                ? guardStance.ParryCapableModifiers
+                : ability.Modifiers;
 
         var buffEvents = new List<CombatEvent>();
 

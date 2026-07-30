@@ -200,8 +200,8 @@ public class EnemyCombatActionResolver(
     private static void ApplyTemporaryModifiers(Combatant enemy, BuffAbility buff)
     {
         var modifiers =
-            buff.ParryCapableModifiers.Count > 0 && AbilityGearRequirement.IsParryCapable(enemy)
-                ? buff.ParryCapableModifiers
+            buff is GuardStanceAbility guardStance && AbilityGearRequirement.IsParryCapable(enemy)
+                ? guardStance.ParryCapableModifiers
                 : buff.Modifiers;
 
         foreach (var modifier in modifiers)

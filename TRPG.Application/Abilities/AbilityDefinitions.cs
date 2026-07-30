@@ -288,7 +288,7 @@ public class AbilityDefinitions(
     private static BuffAbility AddBlockingAbilities(AbilityBuilder builder)
     {
         var block = builder
-            .AddBuff(
+            .AddGuardStance(
                 "Block",
                 "Raise your guard: a shield or melee weapon lets you parry, sharply reducing "
                     + "your chance to be hit; without one, you brace instead, blunting the "
@@ -1445,6 +1445,34 @@ public class AbilityDefinitions(
             return new BuffAbilityEntry(buff, this);
         }
 
+        public GuardStanceAbilityEntry AddGuardStance(
+            string name,
+            string description,
+            Skill skill,
+            int requiredSkillLevel,
+            int cost,
+            int cooldown,
+            TargetType targetType,
+            int duration
+        )
+        {
+            var (apCost, mpCost) = ResourceCost(skill, cost);
+            var buff = new GuardStanceAbility
+            {
+                Name = name,
+                Description = description,
+                Skill = skill,
+                RequiredSkillLevel = requiredSkillLevel,
+                ApCost = apCost,
+                MpCost = mpCost,
+                Cooldown = cooldown,
+                TargetType = targetType,
+                Duration = duration,
+            };
+            ByName[name] = buff;
+            return new GuardStanceAbilityEntry(buff, this);
+        }
+
         private static (int ApCost, int MpCost) ResourceCost(Skill skill, int cost) =>
             skill is Skill.Destruction or Skill.Illusion or Skill.Restoration
                 ? (0, cost)
@@ -1559,7 +1587,34 @@ public class AbilityDefinitions(
             return this;
         }
 
-        public BuffAbilityEntry AddParryModifier(
+        public BuffAbilityEntry Requires(AbilityEntry prereq)
+        {
+            Owner.AddPrerequisite(Ability, prereq.Ability);
+            return this;
+        }
+    }
+
+    private class GuardStanceAbilityEntry(GuardStanceAbility buff, AbilityBuilder owner)
+        : AbilityEntry(buff, owner)
+    {
+        public GuardStanceAbilityEntry AddModifier(
+            AttributeName attribute,
+            float amount,
+            AmountType amountType = AmountType.Flat
+        )
+        {
+            buff.Modifiers.Add(
+                new AttributeModifier
+                {
+                    Attribute = attribute,
+                    AmountType = amountType,
+                    Amount = amount,
+                }
+            );
+            return this;
+        }
+
+        public GuardStanceAbilityEntry AddParryModifier(
             AttributeName attribute,
             float amount,
             AmountType amountType = AmountType.Flat
@@ -1573,12 +1628,6 @@ public class AbilityDefinitions(
                     Amount = amount,
                 }
             );
-            return this;
-        }
-
-        public BuffAbilityEntry Requires(AbilityEntry prereq)
-        {
-            Owner.AddPrerequisite(Ability, prereq.Ability);
             return this;
         }
     }
