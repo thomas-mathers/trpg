@@ -41,6 +41,7 @@ internal static class Builders
         Guid? creatureId = null,
         string name = "Test Combatant",
         bool isPlayer = true,
+        CreatureType creatureType = CreatureType.Human,
         int currentHp = 100,
         int currentAp = 20,
         int currentMp = 10
@@ -50,10 +51,13 @@ internal static class Builders
             CreatureId = creatureId ?? Guid.NewGuid(),
             Name = name,
             IsPlayer = isPlayer,
+            CreatureType = creatureType,
             Level = 1,
             Attributes = MakeAttributes(),
             Abilities = [],
             Gold = 0,
+            NaturalWeaponMinDamage = 3,
+            NaturalWeaponMaxDamage = 3,
             CurrentHp = currentHp,
             CurrentAp = currentAp,
             CurrentMp = currentMp,
@@ -195,7 +199,9 @@ internal static class Builders
         int? currentHp = null,
         int? currentAp = null,
         int? currentMp = null,
-        CreatureState state = default
+        CreatureState state = default,
+        int naturalWeaponMinDamage = 3,
+        int naturalWeaponMaxDamage = 3
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -235,6 +241,8 @@ internal static class Builders
             LightningResistance = attributes.LightningResistance,
             PoisonResistance = attributes.PoisonResistance,
             MagicResistance = attributes.MagicResistance,
+            NaturalWeaponMinDamage = naturalWeaponMinDamage,
+            NaturalWeaponMaxDamage = naturalWeaponMaxDamage,
         };
     }
 
@@ -285,7 +293,8 @@ internal static class Builders
         Guid? worldId = null,
         WeaponType type = WeaponType.Sword,
         int minDamage = 5,
-        int maxDamage = 15
+        int maxDamage = 15,
+        int attackSpeed = 7
     )
     {
         return new Weapon
@@ -299,7 +308,7 @@ internal static class Builders
             MinDamage = minDamage,
             MaxDamage = maxDamage,
             Range = 1,
-            AttackSpeed = 7,
+            AttackSpeed = attackSpeed,
             DurabilityMax = 100,
             DurabilityCurrent = 100,
         };

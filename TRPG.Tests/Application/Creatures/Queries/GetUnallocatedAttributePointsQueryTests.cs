@@ -14,17 +14,20 @@ public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private GetUnallocatedAttributePointsQueryHandler _handler = null!;
+
+    // Matches CreatureGeneratorOptions' default BaseAttributes (5 each, Total 35) so the
+    // creature starts with exactly options.PointsPerLevel(5) unallocated at level 1.
     private readonly Creature _creature = Builders.MakeCreature(
         level: 1,
         baseAttributes: new Attributes
         {
-            Strength = 1,
-            Defense = 1,
-            Dexterity = 1,
-            Endurance = 1,
-            Stamina = 1,
-            Mana = 1,
-            Intelligence = 1,
+            Strength = 5,
+            Defense = 5,
+            Dexterity = 5,
+            Endurance = 5,
+            Stamina = 5,
+            Mana = 5,
+            Intelligence = 5,
         }
     );
 
@@ -54,7 +57,7 @@ public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) 
     [Fact]
     public async Task Handle_ReturnsExpectedMinusCurrentTotal()
     {
-        // Arrange — 7 base stats at 1 each = 7; expected = 7 + level(1) * pointsPerLevel(5) = 12
+        // Arrange — 7 base stats at 5 each = 35; expected = 35 + level(1) * pointsPerLevel(5) = 40
         // Act
         var unallocated = await _handler.Handle(
             new GetUnallocatedAttributePointsQuery { CreatureId = _creature.Id },

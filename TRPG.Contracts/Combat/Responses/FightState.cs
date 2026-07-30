@@ -63,6 +63,7 @@ public enum ConditionType
     Blinded,
     Bleeding,
     Burning,
+    Disarmed,
     Frozen,
     Poisoned,
     Silenced,
@@ -75,6 +76,7 @@ public record FightState(IReadOnlyCollection<CombatantState> Combatants);
 public record CombatantState(
     Guid Id,
     string Name,
+    int Level,
     bool IsPlayer,
     bool IsAlive,
     int CurrentHp,

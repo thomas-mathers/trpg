@@ -43,16 +43,16 @@ public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
-    public async Task Handle_IncludesBlock_EvenWithNoLearnedAbilities()
+    public async Task Handle_ExcludesBlock_WhenNotLearned()
     {
-        // Act
+        // Act — unlike Strike, Block is a normal learned ability, not hardcoded onto everyone
         var abilities = await _handler.Handle(
             new GetCreatureAbilitiesQuery { CreatureId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Contains(abilities, a => a.Name == "Block");
+        Assert.DoesNotContain(abilities, a => a.Name == "Block");
     }
 
     [Fact]

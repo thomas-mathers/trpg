@@ -16,4 +16,8 @@ public class AttackAbility : Ability
     public float DamageAmount { get; init; }
     public AmountType DamageAmountType { get; init; }
     public DamageType DamageType { get; init; }
+
+    // Multiplies damage when the defender's CreatureType matches (e.g. Turn Undead vs Undead).
+    public CreatureType? BonusTargetCreatureType { get; set; }
+    public float BonusDamageMultiplier { get; set; } = 1f;
 }

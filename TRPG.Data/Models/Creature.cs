@@ -139,6 +139,8 @@ public class Creature
     public float LightningResistance { get; set; }
     public float PoisonResistance { get; set; }
     public float MagicResistance { get; set; }
+    public int NaturalWeaponMinDamage { get; set; }
+    public int NaturalWeaponMaxDamage { get; set; }
     public Dictionary<string, int> ActiveConditions { get; set; } = [];
     public Dictionary<string, int> CooldownRemainingByAbility { get; set; } = [];
     public List<ActiveDot> ActiveDots { get; set; } = [];

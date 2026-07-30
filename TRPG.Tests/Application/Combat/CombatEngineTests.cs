@@ -13,14 +13,26 @@ public class CombatEngineTests
     private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
     private readonly Guid _worldId = Guid.NewGuid();
 
+    // CritChancePerDexterityPoint is zeroed on both - a real random crit roll would otherwise
+    // make these tests' exact HP/damage assertions flaky; crit behavior gets its own test instead.
     private static readonly IOptionsSnapshot<CombatOptions> AlwaysHit =
         new TestOptionsSnapshot<CombatOptions>(
-            new CombatOptions { MinHitChance = 1.0f, MaxHitChance = 1.0f }
+            new CombatOptions
+            {
+                MinHitChance = 1.0f,
+                MaxHitChance = 1.0f,
+                CritChancePerDexterityPoint = 0f,
+            }
         );
 
     private static readonly IOptionsSnapshot<CombatOptions> AlwaysMiss =
         new TestOptionsSnapshot<CombatOptions>(
-            new CombatOptions { MinHitChance = 0.0f, MaxHitChance = 0.0f }
+            new CombatOptions
+            {
+                MinHitChance = 0.0f,
+                MaxHitChance = 0.0f,
+                CritChancePerDexterityPoint = 0f,
+            }
         );
 
     private static readonly string[] CleaveTargets = ["Husk", "Wraith"];
@@ -29,7 +41,11 @@ public class CombatEngineTests
     {
         var hitCalculator = new HitCalculator(optionsSnapshot);
         var damageCalculator = new DamageCalculator(optionsSnapshot);
-        var enemyCombatActionResolver = new EnemyCombatActionResolver(optionsSnapshot);
+        var enemyCombatActionResolver = new EnemyCombatActionResolver(
+            optionsSnapshot,
+            damageCalculator,
+            hitCalculator
+        );
         return new CombatEngine(
             optionsSnapshot,
             hitCalculator,
@@ -141,12 +157,77 @@ public class CombatEngineTests
     }
 
     [Fact]
+    public void ResolvePlayerAction_ResolvesABonusSwing_WhenAttackerWieldsAFastWeapon()
+    {
+        // Arrange — AttackSpeed 10 crosses the fast-weapon threshold for a bonus swing
+        var dagger = Builders.MakeWeaponItem(attackSpeed: 10);
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(dagger).Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
+
+        // Assert — one ability use with a fast weapon produces two Hit events for the attacker
+        var playerHits = state.Events.OfType<Hit>().Count(h => h.AttackerName == "Hero");
+        Assert.Equal(2, playerHits);
+    }
+
+    [Fact]
+    public void ResolvePlayerAction_ResolvesOnlyOneSwing_WhenAttackerWieldsAStandardSpeedWeapon()
+    {
+        // Arrange — the default AttackSpeed (7) is below the fast-weapon threshold
+        var sword = Builders.MakeWeaponItem(attackSpeed: 7);
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(sword).Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
+
+        // Assert
+        var playerHits = state.Events.OfType<Hit>().Count(h => h.AttackerName == "Hero");
+        Assert.Equal(1, playerHits);
+    }
+
+    [Fact]
+    public void ResolvePlayerAction_BonusSwingCarriesNoStatusAndLessDamage_ThanThePrimarySwing()
+    {
+        // Arrange — a high-percent ability with a status effect; only the first swing should
+        // carry either, the bonus swing is a plain 100% weapon hit
+        var dagger = Builders.MakeWeaponItem(minDamage: 5, maxDamage: 5, attackSpeed: 10);
+        var stun = new StatusEffect { Condition = ConditionType.Stunned, Duration = 1 };
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(MakeAttack("Smite", damage: 500, status: stun))
+            .WithItem(dagger)
+            .Build();
+        var monster = MakeCombatant("Wraith").Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Smite"));
+
+        // Assert
+        var playerHits = state.Events.OfType<Hit>().Where(h => h.AttackerName == "Hero").ToArray();
+        Assert.Equal(2, playerHits.Length);
+        Assert.NotEmpty(playerHits[0].AppliedConditions);
+        Assert.Empty(playerHits[1].AppliedConditions);
+        Assert.True(playerHits[0].Damage > playerHits[1].Damage);
+    }
+
+    [Fact]
     public void ResolvePlayerAction_EndsInVictory_WhenLastEnemyDies()
     {
         // Arrange — one fragile monster, one overwhelming attack
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithStrength(100)
+            .WithDexterity(20)
             .WithAbilities(MakeAttack("Smite", damage: 100))
             .Build();
         var monster = MakeCombatant("Wraith").WithEndurance(1).WithAbilities(MakeAttack()).Build();
@@ -629,6 +710,33 @@ public class CombatEngineTests
     }
 
     [Fact]
+    public void ProcessRound_TicksDownAndExpiresConditions_OverSubsequentRounds()
+    {
+        // Arrange
+        var status = new StatusEffect { Condition = ConditionType.Blinded, Duration = 2 };
+        var attackWithCondition = MakeAttack(name: "Sand Throw", status: status);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(attackWithCondition)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act — inflict the condition (duration 2). The player acts first (higher dexterity), so
+        // the target's own tick later this same round already counts it down once.
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Sand Throw"));
+        var target = combatants.Single(c => !c.IsPlayer);
+        Assert.Equal(1, target.ActiveConditions[ConditionType.Blinded]);
+
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
+
+        // Assert — expired after its duration elapsed
+        Assert.Equal(0, target.ActiveConditions[ConditionType.Blinded]);
+    }
+
+    [Fact]
     public void ProcessRound_RefreshesExistingBuff_InsteadOfStacking_WhenSameAbilityReapplied()
     {
         // Arrange
@@ -823,11 +931,17 @@ public class CombatEngineTests
     }
 
     [Fact]
-    public void ProcessRound_Block_AppliesDefenseBuff_AlwaysAvailableLikeStrike()
+    public void ProcessRound_Block_AppliesDefenseBuff_WhenParryCapable()
     {
-        // Arrange — "Block" is never passed via `abilities`, only ever added by MakeCombatant
-        // itself (mirroring Strike), so resolving it here proves it's always available.
-        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithDefense(10).Build();
+        // Arrange — a melee weapon makes the caster parry-capable, so Block doubles Defense
+        var weapon = Builders.MakeWeaponItem(_worldId);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithDefense(10)
+            .WithAbilities(BlockStance)
+            .WithItem(weapon)
+            .Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
@@ -845,11 +959,39 @@ public class CombatEngineTests
     }
 
     [Fact]
+    public void ProcessRound_Block_AppliesPhysicalResistance_WhenNotParryCapable()
+    {
+        // Arrange — no shield or melee weapon equipped, so Block braces instead of parrying
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(BlockStance)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss);
+
+        // Act
+        Resolve(engine, combatants, new UseAbilityAction(player.CreatureId, "Block"));
+
+        // Assert
+        var playerState = combatants.Single(c => c.IsPlayer);
+        Assert.Contains(
+            playerState.ActiveBuffs,
+            b => b is { AbilityName: "Block", Attribute: AttributeName.PhysicalResistance }
+        );
+    }
+
+    [Fact]
     public void ProcessRound_Block_DeductsItsApCost()
     {
         // Arrange — player starts at full AP, so this round's regen is a no-op and only the
         // ability's own cost should change CurrentAp
-        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(BlockStance)
+            .Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
@@ -1012,7 +1154,9 @@ public class CombatEngineTests
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
 
         // Assert — drank the potion instead of attacking
-        var consumed = Assert.IsType<ConsumedPotion>(state.Events[1]);
+        var consumed = Assert.IsType<ConsumedPotion>(
+            Assert.Single(state.Events, e => e is ConsumedPotion)
+        );
         Assert.Equal(ResourceType.Hp, consumed.Resource);
     }
 }

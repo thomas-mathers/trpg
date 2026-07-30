@@ -6,6 +6,7 @@ using TRPG.Application.Creatures;
 using TRPG.Application.Inventory;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data.Models;
+using static TRPG.Application.Worlds.Generators.ItemModifierHelpers;
 
 namespace TRPG.Application.Worlds.Generators;
 
@@ -1181,6 +1182,7 @@ public class CreatureGenerator(
         var gender =
             generatorInput.Gender ?? Random.Shared.GetItems(Enum.GetValues<Gender>(), 1).First();
 
+        var isPlayer = generatorInput.StartingAttributeAllocation is not null;
         var attributes = generatorInput.StartingAttributeAllocation is { } allocation
             ? GetPlayerAttributes(level, allocation)
             : GetAttributes(level, archetype);
@@ -1204,6 +1206,19 @@ public class CreatureGenerator(
             BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
             Level = level,
+            // Used whenever this creature has no equipped Weapon - see
+            // DamageCalculator.CalculatePhysicalRawDamage. Scaled with level the same way a
+            // weapon's own MinDamage/MaxDamage are, via the archetype's NaturalWeaponDamage tier.
+            NaturalWeaponMinDamage = Roll(
+                level,
+                archetype.NaturalWeaponDamage.MinDamageLow,
+                archetype.NaturalWeaponDamage.MinDamageHigh
+            ),
+            NaturalWeaponMaxDamage = Roll(
+                level,
+                archetype.NaturalWeaponDamage.MaxDamageLow,
+                archetype.NaturalWeaponDamage.MaxDamageHigh
+            ),
         };
 
         var startingGold = GetGold(level, archetype);
@@ -1232,7 +1247,11 @@ public class CreatureGenerator(
         creature.CurrentAp = creature.MaximumAp;
         creature.CurrentMp = creature.MaximumMp;
 
-        var skills = CreatureSkillsGenerator.Generate(creature, archetype.SkillAffinities);
+        var skills = CreatureSkillsGenerator.Generate(
+            creature,
+            archetype.SkillAffinities,
+            isPlayer
+        );
 
         var abilities = GetAbilities(creature, skills);
 
@@ -1288,23 +1307,19 @@ public class CreatureGenerator(
         return (int)(spread * archetype.StatAffinities.GoldMultiplier);
     }
 
+    // Defense is never drawn from the stat pool, for players or monsters alike - it always
+    // comes from gear (see StatFormulas' Defense handling and CreatureGenerator.GetPlayerAttributes,
+    // which pins it to the baseline the same way).
     private Attributes GetAttributes(int level, CreatureArchetype archetype)
     {
         var a = archetype.StatAffinities;
-        int[] pool =
-        [
-            a.Strength,
-            a.Defense,
-            a.Dexterity,
-            a.Endurance,
-            a.Stamina,
-            a.Mana,
-            a.Intelligence,
-        ];
+        int[] pool = [a.Strength, a.Dexterity, a.Endurance, a.Stamina, a.Mana, a.Intelligence];
         var baseline = optionsSnapshot.Value.BaseAttributes;
-        int[] stats = [1, 1, 1, 1, 1, 1, 1];
+        int[] stats = [1, 1, 1, 1, 1, 1];
 
-        var draws = baseline.Total() - stats.Length + level * optionsSnapshot.Value.PointsPerLevel;
+        var allocatableBaselineTotal = baseline.Total() - baseline.Defense;
+        var draws =
+            allocatableBaselineTotal - stats.Length + level * optionsSnapshot.Value.PointsPerLevel;
         for (var i = 0; i < draws; i++)
         {
             stats[WeightedSampler.SampleIndex(pool)]++;
@@ -1313,12 +1328,12 @@ public class CreatureGenerator(
         var baseAttributes = new Attributes
         {
             Strength = stats[0],
-            Defense = stats[1],
-            Dexterity = stats[2],
-            Endurance = stats[3],
-            Stamina = stats[4],
-            Mana = stats[5],
-            Intelligence = stats[6],
+            Defense = baseline.Defense,
+            Dexterity = stats[1],
+            Endurance = stats[2],
+            Stamina = stats[3],
+            Mana = stats[4],
+            Intelligence = stats[5],
         };
 
         return baseAttributes with

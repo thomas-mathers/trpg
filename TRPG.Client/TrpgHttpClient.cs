@@ -287,4 +287,17 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
             cancellationToken
         );
     }
+
+    public async Task<IReadOnlyList<AbilityAvailability>> GetAbilityAvailability(
+        Guid playerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var result = await httpClient.GetFromJsonAsync<List<AbilityAvailability>>(
+            new Uri($"/players/{playerId}/fight/abilities", UriKind.Relative),
+            TrpgJsonOptions.Default,
+            cancellationToken
+        );
+        return result ?? [];
+    }
 }

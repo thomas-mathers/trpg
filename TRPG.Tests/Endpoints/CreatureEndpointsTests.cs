@@ -76,9 +76,11 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
     }
 
     [Fact]
-    public async Task GetAbilities_ReturnsStrikeAndBlockOnly_ForUnknownCreatureId()
+    public async Task GetAbilities_ReturnsStrikeOnly_ForUnknownCreatureId()
     {
-        // Act — no existence check by design; an unknown creature id just has no learned abilities
+        // Act — no existence check by design; an unknown creature id just has no learned
+        // abilities. Unlike Strike, Block is a normal learned ability now, so it can't appear
+        // for a creature that doesn't even exist.
         var response = await _client.GetAsync(
             new Uri($"/creatures/{Guid.NewGuid()}/abilities", UriKind.Relative),
             TestContext.Current.CancellationToken
@@ -91,9 +93,8 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(abilities);
-        Assert.Contains(abilities, a => a.Name == "Strike");
-        Assert.Contains(abilities, a => a.Name == "Block");
-        Assert.Equal(2, abilities.Count);
+        var ability = Assert.Single(abilities);
+        Assert.Equal("Strike", ability.Name);
     }
 
     [Fact]

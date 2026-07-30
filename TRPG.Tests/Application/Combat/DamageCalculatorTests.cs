@@ -16,8 +16,11 @@ public class DamageCalculatorTests
             new CombatOptions
             {
                 StrengthDamageBonusPerPoint = 0.01f,
-                IntelligenceDamageBonusPerPoint = 0.01f,
-                UnarmedBaseDamage = 3,
+                IntelligenceDamageLogDivisor = 50f,
+                MaxResistancePercent = 0.75f,
+                // Zeroed so CalculateDamage's real random crit roll can't turn an exact-value
+                // assertion flaky - crit behavior itself gets its own dedicated test instead.
+                CritChancePerDexterityPoint = 0f,
             }
         );
 
@@ -65,9 +68,36 @@ public class DamageCalculatorTests
     }
 
     [Fact]
+    public void CalculateDamage_UsesTheNaturalWeaponRoll_WhenAttackerIsDisarmed()
+    {
+        // Arrange — a real 10-damage weapon is equipped, but Disarmed forces the fallback to the
+        // natural-weapon roll instead (fixed at 3-3 by the builder's default): 3 x 100% = 3
+        var weapon = MakeFixedRangeWeapon(10);
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithCondition(ConditionType.Disarmed, 3)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var calculator = new DamageCalculator(Settings);
+
+        // Act
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageAmount: 100),
+            defender
+        );
+
+        // Assert
+        Assert.Equal(3, damage);
+    }
+
+    [Fact]
     public void CalculateDamage_UsesTheUnarmedBaseline_WhenNoWeaponIsEquipped()
     {
-        // Arrange — no weapon, so UnarmedBaseDamage (3) stands in for the roll: 3 × 100% = 3
+        // Arrange — no weapon, so the combatant's natural-weapon range (fixed at 3-3 by the
+        // builder's default) stands in for the roll: 3 × 100% = 3
         var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
@@ -129,9 +159,9 @@ public class DamageCalculatorTests
     }
 
     [Fact]
-    public void CalculateDamage_AppliesIntelligenceAsAPercentBonus_ForMagicAbilities()
+    public void CalculateDamage_AppliesIntelligenceAsALogarithmicBonus_ForMagicAbilities()
     {
-        // Arrange — 20 base × (1 + 50 × 0.01) = 30
+        // Arrange — 20 base × (1 + ln(1 + 50 / 50)) = 20 × (1 + ln(2)) ≈ 33
         var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithIntelligence(50).Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
@@ -144,7 +174,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(30, damage);
+        Assert.Equal(33, damage);
     }
 
     [Fact]
@@ -171,9 +201,9 @@ public class DamageCalculatorTests
     }
 
     [Fact]
-    public void CalculateDamage_NeverGoesBelowZero_WhenResistanceExceedsTheRawAmount()
+    public void CalculateDamage_ClampsResistanceAtMaxResistancePercent_WhenResistanceExceedsTheCap()
     {
-        // Arrange
+        // Arrange — 20 fire damage, resistance rolled at 150% but clamped to the 75% cap = 5
         var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var defender = Builders
             .NewCombatant()
@@ -190,7 +220,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(0, damage);
+        Assert.Equal(5, damage);
     }
 
     [Fact]
@@ -209,5 +239,69 @@ public class DamageCalculatorTests
 
         // Assert
         Assert.Equal(5, damage);
+    }
+
+    [Fact]
+    public void EstimateDamage_AppliesExpectedCritBonus_BasedOnDexterity()
+    {
+        // Arrange — 20 base magic damage, crit chance 100 x 0.01 = 100% capped at 50%; the
+        // expected-value blend is 20 x (1 + 0.5 x (2 - 1)) = 30
+        var settings = new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions
+            {
+                CritChancePerDexterityPoint = 0.01f,
+                MaxCritChance = 0.5f,
+                CritDamageMultiplier = 2f,
+            }
+        );
+        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithDexterity(100).Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var calculator = new DamageCalculator(settings);
+
+        // Act
+        var damage = calculator.EstimateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageType: DamageType.Fire, damageAmount: 20),
+            defender
+        );
+
+        // Assert
+        Assert.Equal(30, damage);
+    }
+
+    [Fact]
+    public void EstimateDamage_ReducesCritChanceContribution_WhenAttackerIsSnared()
+    {
+        // Arrange — same setup as the crit test above, but Snared halves the 100 Dexterity to 50,
+        // halving crit chance to 50% x 0.01 = 50% (still capped, unaffected) - use a lower
+        // Dexterity so the halving actually changes the capped outcome: 60 x 0.01 = 60% capped to
+        // 50% unsnared (full multiplier); snared, 30 x 0.01 = 30% (partial): 20 x (1 + 0.3) = 26
+        var settings = new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions
+            {
+                CritChancePerDexterityPoint = 0.01f,
+                MaxCritChance = 0.5f,
+                CritDamageMultiplier = 2f,
+                SnareDexterityReductionPercent = 0.5f,
+            }
+        );
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithDexterity(60)
+            .WithCondition(ConditionType.Snared, 2)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var calculator = new DamageCalculator(settings);
+
+        // Act
+        var damage = calculator.EstimateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageType: DamageType.Fire, damageAmount: 20),
+            defender
+        );
+
+        // Assert
+        Assert.Equal(26, damage);
     }
 }

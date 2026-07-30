@@ -14,7 +14,24 @@ public class EnemyCombatActionResolverTests
     private static readonly IOptionsSnapshot<CombatOptions> DefaultOptions =
         new TestOptionsSnapshot<CombatOptions>(new CombatOptions());
 
-    private static readonly EnemyCombatActionResolver Resolver = new(DefaultOptions);
+    private static readonly EnemyCombatActionResolver Resolver = new(
+        DefaultOptions,
+        new DamageCalculator(DefaultOptions),
+        new HitCalculator(DefaultOptions)
+    );
+    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
+
+    private static EnemyCombatActionResolver MakeResolver(float openingBuffChancePercent)
+    {
+        var options = new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions { OpeningBuffChancePercent = openingBuffChancePercent }
+        );
+        return new EnemyCombatActionResolver(
+            options,
+            new DamageCalculator(options),
+            new HitCalculator(options)
+        );
+    }
 
     private CombatantBuilder MakeCombatant(string name) =>
         Builders.NewCombatant().WithWorldId(_worldId).WithName(name);
@@ -118,7 +135,11 @@ public class EnemyCombatActionResolverTests
             RestoreAmount = 50,
         };
         var player = MakeCombatant("Hero").AsPlayer().Build();
-        var monster = MakeCombatant("Wraith").WithItem(apPotion).WithCurrentHp(1).Build();
+        var monster = MakeCombatant("Wraith")
+            .WithAbilities(BlockStance)
+            .WithItem(apPotion)
+            .WithCurrentHp(1)
+            .Build();
 
         // Act
         var result = Resolver.Resolve(monster, player);
@@ -129,18 +150,68 @@ public class EnemyCombatActionResolverTests
     }
 
     [Fact]
-    public void Resolve_CastsOpeningBuff_WhenHealthyAndNotYetActive()
+    public void Resolve_CastsOpeningBuff_WhenChanceIsAlwaysTaken()
     {
-        // Arrange — a long-running buff (Duration > 1) is cast proactively, unlike Block
+        // Arrange — a long-running buff (Duration > 1) is eligible; OpeningBuffChancePercent: 1
+        // makes the coin flip deterministic instead of needing statistical trials
         var battleStance = Builders.MakeBuffAbility("Battle Stance");
         var player = MakeCombatant("Hero").AsPlayer().Build();
         var monster = MakeCombatant("Wraith").WithAbilities(battleStance).Build();
 
         // Act
-        var result = Resolver.Resolve(monster, player);
+        var result = MakeResolver(openingBuffChancePercent: 1f).Resolve(monster, player);
 
         // Assert
-        var abilityAction = Assert.IsType<ResolvedUseAbilityAction>(result);
-        Assert.Equal("Battle Stance", abilityAction.Ability.Name);
+        Assert.Equal("Battle Stance", Assert.IsType<ResolvedUseAbilityAction>(result).Ability.Name);
+    }
+
+    [Fact]
+    public void Resolve_PicksHighestValueBuff_WhenMultipleAreEligible()
+    {
+        // Arrange — a Strength buff boosts the monster's physical Strike; a MovementSpeed-only
+        // buff provides no offensive or defensive value, so it should never win the comparison
+        var strengthBuff = Builders.MakeBuffAbility("Battle Stance");
+        strengthBuff.Modifiers.Add(
+            new AttributeModifier
+            {
+                Attribute = AttributeName.Strength,
+                AmountType = AmountType.Flat,
+                Amount = 50,
+            }
+        );
+        var speedBuff = Builders.MakeBuffAbility("Haste");
+        speedBuff.Modifiers.Add(
+            new AttributeModifier
+            {
+                Attribute = AttributeName.MovementSpeed,
+                AmountType = AmountType.Flat,
+                Amount = 10,
+            }
+        );
+
+        var player = MakeCombatant("Hero").AsPlayer().Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(strengthBuff, speedBuff).Build();
+
+        // Act
+        var result = MakeResolver(openingBuffChancePercent: 1f).Resolve(monster, player);
+
+        // Assert
+        Assert.Equal("Battle Stance", Assert.IsType<ResolvedUseAbilityAction>(result).Ability.Name);
+    }
+
+    [Fact]
+    public void Resolve_AttacksInstead_WhenOpeningBuffChanceIsNeverTaken()
+    {
+        // Arrange — same eligible buff as above, but OpeningBuffChancePercent: 0 means the coin
+        // flip never favors it, so the monster falls through to attacking
+        var battleStance = Builders.MakeBuffAbility("Battle Stance");
+        var player = MakeCombatant("Hero").AsPlayer().Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(battleStance).Build();
+
+        // Act
+        var result = MakeResolver(openingBuffChancePercent: 0f).Resolve(monster, player);
+
+        // Assert
+        Assert.Equal("Strike", Assert.IsType<ResolvedUseAbilityAction>(result).Ability.Name);
     }
 }

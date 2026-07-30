@@ -22,9 +22,7 @@ public class CombatEngine(
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
 
-        var turnOrder = combatants
-            .OrderByDescending(c => c.CalculateEffectiveAttribute(AttributeName.Dexterity))
-            .ToArray();
+        var turnOrder = OrderByTurnOrder(combatants);
 
         var combatEvents = turnOrder
             .SelectMany(combatant =>
@@ -46,6 +44,16 @@ public class CombatEngine(
         );
     }
 
+    // Shuffled before the (stable) sort so a Dexterity tie doesn't always resolve in favor of
+    // whichever combatant happened to be listed first - without this, ties are a structural,
+    // repeatable bias rather than a genuine coin flip.
+    private static IReadOnlyList<Combatant> OrderByTurnOrder(IEnumerable<Combatant> combatants)
+    {
+        var shuffled = combatants.ToArray();
+        Random.Shared.Shuffle(shuffled);
+        return shuffled.OrderByDescending(c => c.TurnOrder).ToArray();
+    }
+
     private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedCombatAction action)
     {
         if (!actor.IsAlive)
@@ -61,6 +69,12 @@ public class CombatEngine(
         }
 
         var incapacitationEvent = GetIncapacitationEvent(actor, action);
+
+        // Ticked after the check above reads it, not before (unlike buffs/dots/hots, which apply
+        // their own effect as part of their own tick) - a condition set to Duration=1 needs to
+        // still be read as active for the one turn it's meant to block, then expire afterward.
+        TickConditions(actor);
+
         if (incapacitationEvent is not null)
         {
             return tickEvents.Concat([incapacitationEvent]).ToList();
@@ -76,17 +90,6 @@ public class CombatEngine(
         return tickEvents.Concat(actionEvents).ToList();
     }
 
-    private static readonly Dictionary<WeaponType, Skill> WeaponSkills = new()
-    {
-        [WeaponType.Sword] = Skill.Melee,
-        [WeaponType.Dagger] = Skill.Melee,
-        [WeaponType.Axe] = Skill.Melee,
-        [WeaponType.Mace] = Skill.Melee,
-        [WeaponType.Bow] = Skill.Archery,
-        [WeaponType.Staff] = Skill.Spellcasting,
-        [WeaponType.Wand] = Skill.Spellcasting,
-    };
-
     // A General-skill attack is the weaponless "Strike" template — its training goes to the
     // wielded weapon's tree (or Unarmed), not to General itself. Named abilities keep their
     // inherent skill.
@@ -98,7 +101,7 @@ public class CombatEngine(
         }
 
         return actor.Weapon is { } weapon
-            ? WeaponSkills.GetValueOrDefault(weapon.Type, Skill.General)
+            ? AbilityGearRequirement.WeaponSkills.GetValueOrDefault(weapon.Type, Skill.General)
             : Skill.Unarmed;
     }
 
@@ -260,13 +263,19 @@ public class CombatEngine(
         IReadOnlyList<Combatant> targets
     )
     {
+        var modifiers =
+            ability is GuardStanceAbility guardStance
+            && AbilityGearRequirement.IsParryCapable(actor)
+                ? guardStance.ParryCapableModifiers
+                : ability.Modifiers;
+
         var buffEvents = new List<CombatEvent>();
 
         foreach (var target in targets)
         {
             var buffs = new List<BuffModifierInfo>();
 
-            foreach (var modifier in ability.Modifiers)
+            foreach (var modifier in modifiers)
             {
                 target.ActiveBuffs.RemoveAll(b =>
                     b.AbilityName == ability.Name && b.Attribute == modifier.Attribute
@@ -304,77 +313,131 @@ public class CombatEngine(
         IReadOnlyList<Combatant> defenders
     )
     {
+        var attacksPerTurn = WeaponAttackSpeed.AttacksPerTurn(attacker.Weapon);
+        var combatEvents = new List<CombatEvent>();
+
+        foreach (var defender in defenders)
+        {
+            combatEvents.Add(ResolvePrimarySwing(attacker, ability, defender));
+
+            for (var swing = 1; swing < attacksPerTurn; swing++)
+            {
+                combatEvents.Add(ResolveBonusSwing(attacker, defender));
+            }
+        }
+
+        return combatEvents;
+    }
+
+    private CombatEvent ResolvePrimarySwing(
+        Combatant attacker,
+        AttackAbility ability,
+        Combatant defender
+    )
+    {
         if (ability.DamageType == DamageType.Physical && attacker.Weapon is { } weapon)
         {
             attacker.WeaponSwingCounts[weapon.Type] =
                 attacker.WeaponSwingCounts.GetValueOrDefault(weapon.Type) + 1;
         }
 
-        var combatEvents = new List<CombatEvent>();
+        var didHit = hitCalculator.DidHit(attacker, ability, defender);
 
-        foreach (var defender in defenders)
+        if (!didHit)
         {
-            var didHit = hitCalculator.DidHit(attacker, ability, defender);
+            return new Miss(attacker.Name, ability.Name, defender.Name);
+        }
 
-            if (!didHit)
-            {
-                combatEvents.Add(new Miss(attacker.Name, ability.Name, defender.Name));
-                continue;
-            }
+        var didBlock = hitCalculator.DidBlock(ability, defender);
 
-            var didBlock = hitCalculator.DidBlock(ability, defender);
+        if (didBlock)
+        {
+            defender.SkillUsageCounts[Skill.Blocking] =
+                defender.SkillUsageCounts.GetValueOrDefault(Skill.Blocking) + 1;
+            return new Block(attacker.Name, ability.Name, defender.Name);
+        }
 
-            if (didBlock)
-            {
-                combatEvents.Add(new Block(attacker.Name, ability.Name, defender.Name));
-                continue;
-            }
+        var damage = damageCalculator.CalculateDamage(attacker, ability, defender);
 
-            var damage = damageCalculator.CalculateDamage(attacker, ability, defender);
+        defender.CurrentHp = Math.Max(defender.CurrentHp - damage, 0);
 
-            defender.CurrentHp = Math.Max(defender.CurrentHp - damage, 0);
-
-            foreach (var dot in ability.Dots)
-            {
-                defender.ActiveDots.RemoveAll(d => d.AbilityName == ability.Name);
-                defender.ActiveDots.Add(
-                    new ActiveDot
-                    {
-                        AbilityName = ability.Name,
-                        Amount =
-                            dot.AmountType == AmountType.Percent
-                                ? (int)Math.Round(defender.MaximumHp * dot.Amount)
-                                : (int)Math.Round(dot.Amount),
-                        DamageType = ability.DamageType,
-                        RemainingTurns = dot.Duration,
-                    }
-                );
-            }
-
-            var appliedConditions = new List<ConditionType>();
-
-            foreach (var status in ability.Conditions)
-            {
-                defender.ActiveConditions[status.Condition] = status.Duration;
-                appliedConditions.Add(status.Condition);
-            }
-
-            combatEvents.Add(
-                new Hit(
-                    attacker.Name,
-                    ability.Name,
-                    defender.Name,
-                    defender.CurrentHp,
-                    defender.MaximumHp,
-                    !defender.IsAlive,
-                    damage,
-                    ability.DamageType,
-                    appliedConditions
-                )
+        foreach (var dot in ability.Dots)
+        {
+            defender.ActiveDots.RemoveAll(d => d.AbilityName == ability.Name);
+            defender.ActiveDots.Add(
+                new ActiveDot
+                {
+                    AbilityName = ability.Name,
+                    Amount =
+                        dot.AmountType == AmountType.Percent
+                            ? (int)Math.Round(defender.MaximumHp * dot.Amount)
+                            : (int)Math.Round(dot.Amount),
+                    DamageType = ability.DamageType,
+                    RemainingTurns = dot.Duration,
+                }
             );
         }
 
-        return combatEvents;
+        var appliedConditions = new List<ConditionType>();
+
+        foreach (var status in ability.Conditions)
+        {
+            defender.ActiveConditions[status.Condition] = status.Duration;
+            appliedConditions.Add(status.Condition);
+        }
+
+        return new Hit(
+            attacker.Name,
+            ability.Name,
+            defender.Name,
+            defender.CurrentHp,
+            defender.MaximumHp,
+            !defender.IsAlive,
+            damage,
+            ability.DamageType,
+            appliedConditions
+        );
+    }
+
+    private CombatEvent ResolveBonusSwing(Combatant attacker, Combatant defender)
+    {
+        if (attacker.Weapon is { } weapon)
+        {
+            attacker.WeaponSwingCounts[weapon.Type] =
+                attacker.WeaponSwingCounts.GetValueOrDefault(weapon.Type) + 1;
+        }
+
+        var didHit = hitCalculator.DidHitWithWeapon(attacker, defender);
+
+        if (!didHit)
+        {
+            return new Miss(attacker.Name, WeaponAttackSpeed.BonusSwingAbilityName, defender.Name);
+        }
+
+        var didBlock = hitCalculator.DidBlockWeaponSwing(defender);
+
+        if (didBlock)
+        {
+            defender.SkillUsageCounts[Skill.Blocking] =
+                defender.SkillUsageCounts.GetValueOrDefault(Skill.Blocking) + 1;
+            return new Block(attacker.Name, WeaponAttackSpeed.BonusSwingAbilityName, defender.Name);
+        }
+
+        var damage = damageCalculator.CalculateBonusSwingDamage(attacker, defender);
+
+        defender.CurrentHp = Math.Max(defender.CurrentHp - damage, 0);
+
+        return new Hit(
+            attacker.Name,
+            WeaponAttackSpeed.BonusSwingAbilityName,
+            defender.Name,
+            defender.CurrentHp,
+            defender.MaximumHp,
+            !defender.IsAlive,
+            damage,
+            DamageType.Physical,
+            []
+        );
     }
 
     private List<CombatEvent> ProcessTicks(Combatant actor)
@@ -393,6 +456,19 @@ public class CombatEngine(
         }
 
         return tickEvents;
+    }
+
+    // Every ConditionType key is always present (Combatant initializes all of them), so this
+    // just counts each one down without needing to add or remove keys.
+    private static void TickConditions(Combatant actor)
+    {
+        foreach (var condition in actor.ActiveConditions.Keys.ToArray())
+        {
+            if (actor.ActiveConditions[condition] > 0)
+            {
+                actor.ActiveConditions[condition]--;
+            }
+        }
     }
 
     private static List<CombatEvent> TickHots(Combatant actor)
@@ -554,14 +630,13 @@ public class CombatEngine(
         var dotEvents = TickDots(player);
 
         TickBuffs(player);
+        TickConditions(player);
 
         var combatEvents = hotEvents.Concat(dotEvents).ToList();
 
         if (player.IsAlive)
         {
-            var enemyTurnOrder = enemies
-                .Where(e => e.IsAlive)
-                .OrderByDescending(e => e.CalculateEffectiveAttribute(AttributeName.Dexterity));
+            var enemyTurnOrder = OrderByTurnOrder(enemies.Where(e => e.IsAlive));
 
             foreach (var enemy in enemyTurnOrder)
             {

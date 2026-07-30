@@ -27,11 +27,6 @@ internal class GetCreatureAbilitiesQueryHandler(
 
         var learnedAbilities = abilityNames.Select(abilityDefinitions.GetByName).OfType<Ability>();
 
-        return
-        [
-            abilityDefinitions.BasicAttack,
-            abilityDefinitions.BlockStance,
-            .. learnedAbilities,
-        ];
+        return [abilityDefinitions.BasicAttack, .. learnedAbilities];
     }
 }

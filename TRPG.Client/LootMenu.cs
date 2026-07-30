@@ -43,6 +43,7 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
         var selection = await PromptForSelection(inventory, cancellationToken);
         if (selection.Count == 0)
         {
+            AnsiConsole.AnnounceWarning("You took nothing.");
             return;
         }
 
@@ -136,15 +137,13 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
         IReadOnlyList<ItemSummary> availableItems
     )
     {
-        var parts = takenItems
-            .Select(taken =>
-            {
-                var item = availableItems.First(i => i.ItemId == taken.ItemId);
-                return $"{item.Name} x{taken.Quantity}";
-            })
-            .ToArray();
+        var parts = takenItems.Select(taken =>
+        {
+            var item = availableItems.First(i => i.ItemId == taken.ItemId);
+            return $"{item.Name} x{taken.Quantity}";
+        });
 
-        return parts.Length > 0 ? $"You looted: {string.Join(", ", parts)}." : "You took nothing.";
+        return $"You looted: {string.Join(", ", parts)}.";
     }
 
     private static async Task<T?> PromptForOption<T>(
