@@ -10,7 +10,7 @@ namespace TRPG.Tests.Application.Combat;
 
 public class CombatEngineTests
 {
-    private static readonly BuffAbility BlockStance = AbilityCatalog.Block;
+    private static readonly SupportAbility BlockStance = AbilityCatalog.Block;
     private readonly Guid _worldId = Guid.NewGuid();
 
     // CritChancePerDexterityPoint is zeroed on both - a real random crit roll would otherwise
@@ -82,7 +82,8 @@ public class CombatEngineTests
         AttackTargetType targetType = AttackTargetType.Single,
         DamageType damageType = DamageType.Physical,
         DotEffect? dot = null,
-        StatusEffect? status = null
+        StatusEffect? status = null,
+        AttributeEffect? debuff = null
     )
     {
         return new AttackAbility
@@ -99,10 +100,11 @@ public class CombatEngineTests
                 damageType == DamageType.Physical ? AmountType.Percent : AmountType.Flat,
             Dots = dot != null ? [dot] : [],
             Conditions = status != null ? [status] : [],
+            Debuffs = debuff != null ? [debuff] : [],
         };
     }
 
-    private static HealOverTimeAbility MakeRegen(
+    private static SupportAbility MakeRegen(
         string name = "Regen",
         int amountPerTurn = 5,
         int duration = 3,
@@ -110,15 +112,14 @@ public class CombatEngineTests
         int cooldown = 0
     )
     {
-        return new HealOverTimeAbility
+        return new SupportAbility
         {
             Name = name,
             Description = "A test heal-over-time ability.",
             ApCost = cost,
             Cooldown = cooldown,
             TargetType = TargetType.Single,
-            AmountPerTurn = amountPerTurn,
-            Duration = duration,
+            Hots = [new HotEffect { Amount = amountPerTurn, Duration = duration }],
         };
     }
 
@@ -324,6 +325,40 @@ public class CombatEngineTests
         Assert.Equal(ConditionType.Stunned, Assert.Single(playerHit.AppliedConditions));
         var enemyState = state.Combatants.Single(c => !c.IsPlayer);
         Assert.True(enemyState.ActiveConditions.ContainsKey(ConditionType.Stunned));
+    }
+
+    [Fact]
+    public void ResolvePlayerAction_AppliesTheAttacksDebuff_WhenItHits()
+    {
+        // Arrange
+        var slow = new AttributeEffect
+        {
+            Attribute = AttributeName.Dexterity,
+            AmountType = AmountType.Percent,
+            Amount = -50,
+            Duration = 2,
+        };
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(MakeAttack("Hamstring", debuff: slow))
+            .Build();
+        var monster = MakeCombatant("Wraith")
+            .WithDexterity(100)
+            .WithAbilities(MakeAttack())
+            .Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Hamstring"));
+
+        // Assert — the debuff landed on the target and its effective Dexterity is halved
+        var appliedDebuff = Assert.Single(monster.ActiveBuffs);
+        Assert.Equal(AttributeName.Dexterity, appliedDebuff.Attribute);
+        Assert.Equal(-50, appliedDebuff.Amount);
+        Assert.Equal(2, appliedDebuff.RemainingTurns);
+        Assert.Equal(50f, monster.Dexterity);
     }
 
     [Fact]
@@ -686,14 +721,6 @@ public class CombatEngineTests
     {
         // Arrange
         var buffAbility = Builders.MakeBuffAbility(name: "Battle Stance");
-        buffAbility.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.Strength,
-                AmountType = AmountType.Flat,
-                Amount = 5,
-            }
-        );
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -752,14 +779,6 @@ public class CombatEngineTests
     {
         // Arrange
         var buffAbility = Builders.MakeBuffAbility(name: "Battle Stance");
-        buffAbility.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.Strength,
-                AmountType = AmountType.Flat,
-                Amount = 5,
-            }
-        );
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -786,22 +805,10 @@ public class CombatEngineTests
     {
         // Arrange
         var battleStance = Builders.MakeBuffAbility("Battle Stance");
-        battleStance.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.Strength,
-                AmountType = AmountType.Flat,
-                Amount = 5,
-            }
-        );
-        var ironWill = Builders.MakeBuffAbility("Iron Will");
-        ironWill.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.Defense,
-                AmountType = AmountType.Flat,
-                Amount = 10,
-            }
+        var ironWill = Builders.MakeBuffAbility(
+            "Iron Will",
+            attribute: AttributeName.Defense,
+            amount: 10
         );
         var player = MakeCombatant("Hero")
             .AsPlayer()

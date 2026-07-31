@@ -67,9 +67,7 @@ public class EnemyCombatActionResolver(
 
         if (IsLow(enemy.CurrentHp, enemy.MaximumHp, threshold))
         {
-            var healAbility = affordableAbilities.FirstOrDefault(a =>
-                a is InstantHealAbility or HealOverTimeAbility
-            );
+            var healAbility = affordableAbilities.FirstOrDefault(IsHealingAbility);
             if (healAbility is not null)
             {
                 return new ResolvedUseAbilityAction(healAbility, [enemy]);
@@ -106,8 +104,8 @@ public class EnemyCombatActionResolver(
     )
     {
         var candidates = affordableAbilities
-            .OfType<BuffAbility>()
-            .Where(a => a.Duration > 1 && IsUnused(enemy, a))
+            .OfType<SupportAbility>()
+            .Where(a => HasBuffs(a) && GetBuffDuration(a, enemy) > 1 && IsUnused(enemy, a))
             .ToArray();
 
         if (candidates.Length == 0)
@@ -145,7 +143,7 @@ public class EnemyCombatActionResolver(
     private float ScoreBuff(
         Combatant enemy,
         Combatant player,
-        BuffAbility buff,
+        SupportAbility buff,
         AttackAbility? enemyBestAttack,
         AttackAbility? playerBestAttack,
         float baselineOffense,
@@ -169,14 +167,9 @@ public class EnemyCombatActionResolver(
         return offensiveGain + defensiveGain;
     }
 
-    private static void ApplyTemporaryModifiers(Combatant enemy, BuffAbility buff)
+    private static void ApplyTemporaryModifiers(Combatant enemy, SupportAbility buff)
     {
-        var modifiers =
-            buff is GuardStanceAbility guardStance && AbilityGearRequirement.IsParryCapable(enemy)
-                ? guardStance.ParryCapableModifiers
-                : buff.Modifiers;
-
-        foreach (var modifier in modifiers)
+        foreach (var modifier in GetBuffs(buff, enemy))
         {
             enemy.ActiveBuffs.Add(
                 new ActiveBuff
@@ -185,13 +178,13 @@ public class EnemyCombatActionResolver(
                     Amount = modifier.Amount,
                     AmountType = modifier.AmountType,
                     Attribute = modifier.Attribute,
-                    RemainingTurns = buff.Duration,
+                    RemainingTurns = modifier.Duration,
                 }
             );
         }
     }
 
-    private static void RemoveTemporaryModifiers(Combatant enemy, BuffAbility buff) =>
+    private static void RemoveTemporaryModifiers(Combatant enemy, SupportAbility buff) =>
         enemy.ActiveBuffs.RemoveAll(b => b.AbilityName == buff.Name);
 
     private static Ability? FindUsableStance(
@@ -200,9 +193,29 @@ public class EnemyCombatActionResolver(
     ) =>
         PickRandom(
             affordableAbilities
-                .OfType<BuffAbility>()
-                .Where(a => a.Duration <= 1 && IsUnused(enemy, a))
+                .OfType<SupportAbility>()
+                .Where(a => HasBuffs(a) && GetBuffDuration(a, enemy) <= 1 && IsUnused(enemy, a))
         );
+
+    private static bool IsHealingAbility(Ability ability) =>
+        ability is SupportAbility support && (support.HealAmount > 0 || support.Hots.Count > 0);
+
+    private static bool HasBuffs(SupportAbility ability) =>
+        ability.Buffs.Count > 0 || ability.BuffsWhileParrying.Count > 0;
+
+    private static IReadOnlyList<AttributeEffect> GetBuffs(
+        SupportAbility ability,
+        Combatant enemy
+    ) =>
+        ability.BuffsWhileParrying.Count > 0 && AbilityGearRequirement.IsParryCapable(enemy)
+            ? ability.BuffsWhileParrying
+            : ability.Buffs;
+
+    private static int GetBuffDuration(SupportAbility ability, Combatant enemy)
+    {
+        var buffs = GetBuffs(ability, enemy);
+        return buffs.Count > 0 ? buffs[0].Duration : 0;
+    }
 
     private static Ability? PickRandom(IEnumerable<Ability> candidates)
     {

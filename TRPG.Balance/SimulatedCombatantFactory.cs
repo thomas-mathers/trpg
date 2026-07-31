@@ -51,12 +51,12 @@ internal static class SimulatedCombatantFactory
         var items = BuildBaselineGear(spec.SkillLevels, creature.WorldId);
 
         return Combatant.FromCreature(
+            combatOptions,
+            isPlayer,
             creature,
             abilities,
-            isPlayer,
             items,
-            weaponProficiencies: new Dictionary<WeaponType, int>(),
-            combatOptions
+            weaponProficiencies: new Dictionary<WeaponType, int>()
         );
     }
 

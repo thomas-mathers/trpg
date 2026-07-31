@@ -51,12 +51,12 @@ public static class GeneratedCombatantFactory
             : new Dictionary<WeaponType, int>();
 
         return Combatant.FromCreature(
+            combatOptions ?? new CombatOptions(),
+            isPlayer,
             result.Creature,
             abilities,
-            isPlayer,
             result.Items,
-            weaponProficiencies,
-            combatOptions ?? new CombatOptions()
+            weaponProficiencies
         );
     }
 }

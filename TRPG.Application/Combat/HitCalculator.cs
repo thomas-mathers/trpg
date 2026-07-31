@@ -34,15 +34,15 @@ public class HitCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         var settings = optionsSnapshot.Value;
         var defense = defender.Defense;
         var evasion = defender.Evasion;
-        var proficiency = attacker.Proficiency;
+        var attackRating = attacker.AttackRating;
 
-        if (proficiency + defense + evasion == 0)
+        if (attackRating + defense + evasion == 0)
         {
             return settings.MinHitChance;
         }
 
         return Math.Clamp(
-            proficiency / (proficiency + defense + evasion),
+            attackRating / (attackRating + defense + evasion),
             settings.MinHitChance,
             settings.MaxHitChance
         );

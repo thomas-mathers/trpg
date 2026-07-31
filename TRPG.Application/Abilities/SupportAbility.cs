@@ -9,29 +9,19 @@ public enum TargetType
     Self,
 }
 
-public abstract class SupportAbility : Ability
+public class HotEffect
+{
+    public float Amount { get; init; }
+    public AmountType AmountType { get; init; }
+    public int Duration { get; init; }
+}
+
+public class SupportAbility : Ability
 {
     public TargetType TargetType { get; init; }
-}
-
-public class InstantHealAbility : SupportAbility
-{
-    public int Amount { get; init; }
-}
-
-public class HealOverTimeAbility : SupportAbility
-{
-    public int AmountPerTurn { get; init; }
-    public int Duration { get; init; }
-}
-
-public class BuffAbility : SupportAbility
-{
-    public int Duration { get; init; }
-    public List<AttributeModifier> Modifiers { get; init; } = [];
-}
-
-public class GuardStanceAbility : BuffAbility
-{
-    public List<AttributeModifier> ParryCapableModifiers { get; init; } = [];
+    public float HealAmount { get; init; }
+    public AmountType HealAmountType { get; init; }
+    public List<HotEffect> Hots { get; init; } = [];
+    public List<AttributeEffect> Buffs { get; init; } = [];
+    public List<AttributeEffect> BuffsWhileParrying { get; init; } = [];
 }

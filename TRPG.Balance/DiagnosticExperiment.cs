@@ -91,7 +91,7 @@ internal static class DiagnosticExperiment
         );
         Console.WriteLine(
             combatant.Weapon is { } weapon
-                ? $"  Weapon={weapon.Type} {weapon.MinDamage}-{weapon.MaxDamage} (proficiency={combatant.Proficiency:F1})"
+                ? $"  Weapon={weapon.Type} {weapon.MinDamage}-{weapon.MaxDamage} (proficiency={combatant.AttackRating:F1})"
                 : "  Weapon=none"
         );
     }

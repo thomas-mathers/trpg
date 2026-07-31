@@ -114,10 +114,10 @@ public class HitCalculatorTests
     }
 
     [Fact]
-    public void CalculateHitChance_HalvesEvasionContribution_WhenDefenderIsSnared()
+    public void CalculateHitChance_HalvesEvasionContribution_WhenDefenderHasASnareDebuff()
     {
-        // Arrange — proficiency 30 vs (defense 0 + dexterity 100 x 0.5 snared x 0.6 evasion = 30)
-        // = 30 vs 30 = 50%, instead of the 33.3% an un-snared defender would get (see the
+        // Arrange — proficiency 30 vs (defense 0 + dexterity 100 x 0.5 snare debuff x 0.6 evasion
+        // = 30) = 30 vs 30 = 50%, instead of the 33.3% an undebuffed defender would get (see the
         // AddsDexterityAsEvasion test above)
         var weapon = MakeWeapon();
         var attacker = Builders
@@ -133,7 +133,7 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithDefense(0)
             .WithDexterity(100)
-            .WithCondition(ConditionType.Snared, 2)
+            .WithActiveBuff(AttributeName.Dexterity, -50, AmountType.Percent, remainingTurns: 2)
             .WithCombatOptions(Settings.Value)
             .Build();
         var calculator = new HitCalculator(Settings);

@@ -17,12 +17,12 @@ public class CombatantTests
 
         // Act
         var combatant = Combatant.FromCreature(
-            creature,
-            [],
+            new CombatOptions(),
             isPlayer: true,
-            [],
-            new Dictionary<WeaponType, int>(),
-            new CombatOptions()
+            creature: creature,
+            abilities: [],
+            items: [],
+            weaponProficiencies: new Dictionary<WeaponType, int>()
         );
 
         // Assert
@@ -45,12 +45,12 @@ public class CombatantTests
 
         // Act
         var combatant = Combatant.FromCreature(
-            creature,
-            [],
+            new CombatOptions(),
             isPlayer: true,
-            items,
-            new Dictionary<WeaponType, int>(),
-            new CombatOptions()
+            creature: creature,
+            abilities: [],
+            items: items,
+            weaponProficiencies: new Dictionary<WeaponType, int>()
         );
 
         // Assert — the unequipped spare never reaches EquippedItems, so Weapon resolves to

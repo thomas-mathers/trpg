@@ -13,7 +13,6 @@ public class CombatOptions
     public float IntelligenceDamageLogDivisor { get; init; } = 50f;
     public float MaxResistancePercent { get; init; } = 0.75f;
     public float EvasionPerDexterityPoint { get; init; } = 0.6f;
-    public float SnareDexterityReductionPercent { get; init; } = 0.5f;
     public float LowResourceThresholdPercent { get; init; } = 0.3f;
     public float OpeningBuffChancePercent { get; init; } = 0.5f;
     public float CritChancePerDexterityPoint { get; init; } = 0.002f;

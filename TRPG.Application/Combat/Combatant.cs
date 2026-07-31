@@ -89,7 +89,6 @@ public class Combatant
     public float Strength => CalculateEffectiveAttribute(AttributeName.Strength);
     public float Defense => CalculateEffectiveAttribute(AttributeName.Defense);
     public float Dexterity => CalculateEffectiveAttribute(AttributeName.Dexterity);
-    public float Endurance => CalculateEffectiveAttribute(AttributeName.Endurance);
     public float Stamina => CalculateEffectiveAttribute(AttributeName.Stamina);
     public float Mana => CalculateEffectiveAttribute(AttributeName.Mana);
     public float Intelligence => CalculateEffectiveAttribute(AttributeName.Intelligence);
@@ -101,21 +100,42 @@ public class Combatant
         CalculateEffectiveAttribute(AttributeName.LightningResistance);
     public float PoisonResistance => CalculateEffectiveAttribute(AttributeName.PoisonResistance);
     public float MagicResistance => CalculateEffectiveAttribute(AttributeName.MagicResistance);
-    public float MovementSpeed => CalculateEffectiveAttribute(AttributeName.MovementSpeed);
-
-    public float TurnOrder => SnaredDexterity;
+    public float TurnOrder => Dexterity;
     public Weapon? Weapon => EquippedItems.OfType<Weapon>().SingleOrDefault();
-    private int? WeaponProficiency => Weapon != null ? WeaponProficiencies[Weapon.Type] : null;
     public Shield? Shield => EquippedItems.OfType<Shield>().SingleOrDefault();
     public float BlockChance => Shield?.BlockChance ?? 0f;
 
+    public float Evasion => Dexterity * CombatOptions.EvasionPerDexterityPoint;
+
+    public float AttackRating
+    {
+        get
+        {
+            if (IsPlayer)
+            {
+                var weaponProficiency = Weapon != null ? WeaponProficiencies[Weapon.Type] : 0;
+                return CombatOptions.BaseProficiency + weaponProficiency;
+            }
+            return CombatOptions.NonPlayerProficiencyBase
+                + CombatOptions.NonPlayerProficiencyPerLevel * Level;
+        }
+    }
+
+    public float CritChance =>
+        Math.Min(
+            CombatOptions.MaxCritChance,
+            Dexterity * CombatOptions.CritChancePerDexterityPoint
+        );
+
+    public float CritDamageMultiplier => CombatOptions.CritDamageMultiplier;
+
     public static Combatant FromCreature(
+        CombatOptions combatOptions,
+        bool isPlayer,
         Creature creature,
         IReadOnlyList<Ability> abilities,
-        bool isPlayer,
         IReadOnlyList<Item> items,
-        IReadOnlyDictionary<WeaponType, int> weaponProficiencies,
-        CombatOptions combatOptions
+        IReadOnlyDictionary<WeaponType, int> weaponProficiencies
     )
     {
         var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
@@ -249,25 +269,4 @@ public class Combatant
             DamageType.Magic => MagicResistance,
             _ => throw new ArgumentOutOfRangeException(nameof(damageType)),
         };
-
-    public float SnaredDexterity =>
-        ActiveConditions[ConditionType.Snared] > 0
-            ? Dexterity * (1 - CombatOptions.SnareDexterityReductionPercent)
-            : Dexterity;
-
-    public float Evasion => SnaredDexterity * CombatOptions.EvasionPerDexterityPoint;
-
-    public float Proficiency =>
-        IsPlayer
-            ? CombatOptions.BaseProficiency + (WeaponProficiency ?? 0)
-            : CombatOptions.NonPlayerProficiencyBase
-                + CombatOptions.NonPlayerProficiencyPerLevel * Level;
-
-    public float CritChance =>
-        Math.Min(
-            CombatOptions.MaxCritChance,
-            SnaredDexterity * CombatOptions.CritChancePerDexterityPoint
-        );
-
-    public float CritDamageMultiplier => CombatOptions.CritDamageMultiplier;
 }

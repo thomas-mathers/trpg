@@ -1,4 +1,5 @@
 using TRPG.Application.Abilities;
+using TRPG.Data.Models;
 
 namespace TRPG.Tests.Application.Abilities;
 
@@ -86,6 +87,7 @@ public class AbilityCatalogTests
             ["Smite"] = [],
             ["Spell Ward"] = ["Arcane Infusion"],
             ["Stab"] = [],
+            ["Sunder"] = ["Cleave"],
             ["Thunderstorm"] = ["Chain Lightning"],
             ["Turn Undead"] = ["Smite"],
             ["Venom Strike"] = ["Poison Arrow"],
@@ -114,5 +116,76 @@ public class AbilityCatalogTests
         {
             Assert.Equal(expectedPrerequisites, actual[name]);
         }
+    }
+
+    [Fact]
+    public void Abilities_PairSnaredConditionWithADexterityDebuff_WheneverInflicted()
+    {
+        // Act — AddSnare is the only way to add ConditionType.Snared to an ability; this checks
+        // the pairing it guarantees actually holds for the real catalog data
+        var snaringAbilities = AbilityCatalog
+            .Abilities.OfType<AttackAbility>()
+            .Where(a => a.Conditions.Any(c => c.Condition == ConditionType.Snared))
+            .ToArray();
+
+        // Assert
+        Assert.NotEmpty(snaringAbilities);
+        Assert.All(
+            snaringAbilities,
+            a => Assert.Contains(a.Debuffs, d => d.Attribute == AttributeName.Dexterity)
+        );
+    }
+
+    [Fact]
+    public void Abilities_PairBleedingConditionWithADotAndAResistanceDebuff_WheneverInflicted()
+    {
+        // Act — AddBleed is the only way to add ConditionType.Bleeding to an ability; this checks
+        // the pairing it guarantees actually holds for the real catalog data
+        var bleedingAbilities = AbilityCatalog
+            .Abilities.OfType<AttackAbility>()
+            .Where(a => a.Conditions.Any(c => c.Condition == ConditionType.Bleeding))
+            .ToArray();
+
+        // Assert
+        Assert.NotEmpty(bleedingAbilities);
+        Assert.All(bleedingAbilities, a => Assert.NotEmpty(a.Dots));
+        Assert.All(
+            bleedingAbilities,
+            a => Assert.Contains(a.Debuffs, d => d.Attribute == AttributeName.PhysicalResistance)
+        );
+    }
+
+    [Fact]
+    public void Abilities_PairBurningConditionWithADot_WheneverInflicted()
+    {
+        // Act — AddBurn is the only way to add ConditionType.Burning to an ability; this checks
+        // the pairing it guarantees actually holds for the real catalog data
+        var burningAbilities = AbilityCatalog
+            .Abilities.OfType<AttackAbility>()
+            .Where(a => a.Conditions.Any(c => c.Condition == ConditionType.Burning))
+            .ToArray();
+
+        // Assert
+        Assert.NotEmpty(burningAbilities);
+        Assert.All(burningAbilities, a => Assert.NotEmpty(a.Dots));
+    }
+
+    [Fact]
+    public void Abilities_PairPoisonedConditionWithADotAndAStrengthDebuff_WheneverInflicted()
+    {
+        // Act — AddPoison is the only way to add ConditionType.Poisoned to an ability; this checks
+        // the pairing it guarantees actually holds for the real catalog data
+        var poisonedAbilities = AbilityCatalog
+            .Abilities.OfType<AttackAbility>()
+            .Where(a => a.Conditions.Any(c => c.Condition == ConditionType.Poisoned))
+            .ToArray();
+
+        // Assert
+        Assert.NotEmpty(poisonedAbilities);
+        Assert.All(poisonedAbilities, a => Assert.NotEmpty(a.Dots));
+        Assert.All(
+            poisonedAbilities,
+            a => Assert.Contains(a.Debuffs, d => d.Attribute == AttributeName.Strength)
+        );
     }
 }

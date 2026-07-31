@@ -18,16 +18,13 @@ public static class AbilityCatalog
             DamageAmountType = AmountType.Percent,
         };
 
-    public static GuardStanceAbility Block => Catalog.Block;
+    public static SupportAbility Block => Catalog.Block;
 
     public static IEnumerable<Ability> Abilities => Catalog.ByName.Values;
 
     private static readonly CatalogResult Catalog = BuildCatalog();
 
-    private sealed record CatalogResult(
-        Dictionary<string, Ability> ByName,
-        GuardStanceAbility Block
-    );
+    private sealed record CatalogResult(Dictionary<string, Ability> ByName, SupportAbility Block);
 
     private static CatalogResult BuildCatalog()
     {
@@ -46,7 +43,7 @@ public static class AbilityCatalog
     private static void AddMeleeAbilities(AbilityBuilder builder)
     {
         var battleStance = builder
-            .AddBuff(
+            .AddSupport(
                 "Battle Stance",
                 "Braces the caster for combat, increasing strength.",
                 Skill.Melee,
@@ -54,10 +51,9 @@ public static class AbilityCatalog
                 1,
                 0,
                 12,
-                TargetType.Self,
-                10
+                TargetType.Self
             )
-            .AddModifier(AttributeName.Strength, 5);
+            .AddModifier(AttributeName.Strength, 5, 10);
         var slash = builder.AddAttack(
             "Slash",
             "A basic melee strike.",
@@ -89,7 +85,7 @@ public static class AbilityCatalog
             )
             .Requires(slash);
         var rally = builder
-            .AddBuff(
+            .AddSupport(
                 "Rally",
                 "A battle cry that strengthens nearby allies.",
                 Skill.Melee,
@@ -97,10 +93,9 @@ public static class AbilityCatalog
                 3,
                 0,
                 13,
-                TargetType.Aoe,
-                11
+                TargetType.Aoe
             )
-            .AddModifier(AttributeName.Strength, 8)
+            .AddModifier(AttributeName.Strength, 8, 11)
             .Requires(battleStance);
         builder
             .AddAttack(
@@ -117,8 +112,7 @@ public static class AbilityCatalog
                 AmountType.Percent,
                 gearRequirement: GearRequirement.MeleeWeapon
             )
-            .AddDot(2, 3f)
-            .AddStatus(ConditionType.Bleeding, 2)
+            .AddBleed(2, 3f, 0.05f)
             .Requires(cleave);
         var whirlwind = builder
             .AddAttack(
@@ -135,6 +129,23 @@ public static class AbilityCatalog
                 AmountType.Percent,
                 gearRequirement: GearRequirement.MeleeWeapon
             )
+            .Requires(cleave);
+        builder
+            .AddAttack(
+                "Sunder",
+                "A heavy blow aimed at the target's armor, leaving it exposed.",
+                Skill.Melee,
+                3,
+                3,
+                0,
+                3,
+                AttackTargetType.Single,
+                DamageType.Physical,
+                150,
+                AmountType.Percent,
+                gearRequirement: GearRequirement.MeleeWeapon
+            )
+            .AddDebuff(AttributeName.Defense, 30, AmountType.Percent, 3)
             .Requires(cleave);
 
         var execute = builder
@@ -155,7 +166,7 @@ public static class AbilityCatalog
             .Requires(whirlwind);
 
         var warCry = builder
-            .AddBuff(
+            .AddSupport(
                 "War Cry",
                 "A thunderous battle cry that strengthens all nearby allies.",
                 Skill.Melee,
@@ -163,15 +174,14 @@ public static class AbilityCatalog
                 6,
                 0,
                 18,
-                TargetType.Aoe,
-                16
+                TargetType.Aoe
             )
-            .AddModifier(AttributeName.Strength, 10)
-            .AddModifier(AttributeName.Defense, 5)
+            .AddModifier(AttributeName.Strength, 10, 16)
+            .AddModifier(AttributeName.Defense, 5, 16)
             .Requires(rally);
 
         builder
-            .AddBuff(
+            .AddSupport(
                 "Berserker Stance",
                 "Abandon defense for unbridled offensive power.",
                 Skill.Melee,
@@ -179,11 +189,10 @@ public static class AbilityCatalog
                 8,
                 0,
                 25,
-                TargetType.Self,
-                23
+                TargetType.Self
             )
-            .AddModifier(AttributeName.Strength, 20)
-            .AddModifier(AttributeName.Dexterity, 10)
+            .AddModifier(AttributeName.Strength, 20, 23)
+            .AddModifier(AttributeName.Dexterity, 10, 23)
             .Requires(battleStance);
 
         var mortalStrike = builder
@@ -201,8 +210,7 @@ public static class AbilityCatalog
                 AmountType.Percent,
                 gearRequirement: GearRequirement.MeleeWeapon
             )
-            .AddDot(3, 5f)
-            .AddStatus(ConditionType.Bleeding, 3)
+            .AddBleed(3, 5f, 0.12f)
             .Requires(execute);
 
         var bladestorm = builder
@@ -237,7 +245,7 @@ public static class AbilityCatalog
                 AmountType.Percent,
                 gearRequirement: GearRequirement.MeleeWeapon
             )
-            .AddStatus(ConditionType.Stunned, 2)
+            .AddStun(2)
             .Requires(mortalStrike);
 
         var hundredBlades = builder
@@ -292,7 +300,7 @@ public static class AbilityCatalog
             .Requires(bladestorm);
 
         builder
-            .AddBuff(
+            .AddSupport(
                 "Legion Might",
                 "A war cry of legendary power that emboldens all nearby.",
                 Skill.Melee,
@@ -300,18 +308,17 @@ public static class AbilityCatalog
                 22,
                 0,
                 42,
-                TargetType.Aoe,
-                40
+                TargetType.Aoe
             )
-            .AddModifier(AttributeName.Strength, 25)
-            .AddModifier(AttributeName.Defense, 20)
+            .AddModifier(AttributeName.Strength, 25, 40)
+            .AddModifier(AttributeName.Defense, 20, 40)
             .Requires(warCry);
     }
 
-    private static GuardStanceAbility AddBlockingAbilities(AbilityBuilder builder)
+    private static SupportAbility AddBlockingAbilities(AbilityBuilder builder)
     {
         var block = builder
-            .AddGuardStance(
+            .AddSupport(
                 "Block",
                 "Raise your guard: a shield or melee weapon lets you parry, sharply reducing "
                     + "your chance to be hit; without one, you brace instead, blunting the "
@@ -321,14 +328,13 @@ public static class AbilityCatalog
                 2,
                 0,
                 0,
-                TargetType.Self,
-                1
+                TargetType.Self
             )
-            .AddModifier(AttributeName.PhysicalResistance, 0.15f)
-            .AddParryModifier(AttributeName.Defense, 100, AmountType.Percent);
+            .AddModifier(AttributeName.PhysicalResistance, 0.15f, 1)
+            .AddParryModifier(AttributeName.Defense, 100, 1, AmountType.Percent);
 
         var ironWill = builder
-            .AddBuff(
+            .AddSupport(
                 "Iron Will",
                 "Hardens the caster's resolve against physical harm.",
                 Skill.Blocking,
@@ -336,11 +342,10 @@ public static class AbilityCatalog
                 2,
                 0,
                 13,
-                TargetType.Self,
-                11
+                TargetType.Self
             )
-            .AddModifier(AttributeName.Defense, 10)
-            .AddModifier(AttributeName.Endurance, 10)
+            .AddModifier(AttributeName.Defense, 10, 11)
+            .AddModifier(AttributeName.Endurance, 10, 11)
             .Requires(block);
 
         var shieldBash = builder
@@ -358,11 +363,11 @@ public static class AbilityCatalog
                 AmountType.Percent,
                 gearRequirement: GearRequirement.Shield
             )
-            .AddStatus(ConditionType.Stunned, 1)
+            .AddStun(1)
             .Requires(block);
 
         builder
-            .AddBuff(
+            .AddSupport(
                 "Fortify",
                 "Strengthen an ally's defenses significantly.",
                 Skill.Blocking,
@@ -370,11 +375,10 @@ public static class AbilityCatalog
                 6,
                 0,
                 20,
-                TargetType.Single,
-                18
+                TargetType.Single
             )
-            .AddModifier(AttributeName.Defense, 15)
-            .AddModifier(AttributeName.Endurance, 8)
+            .AddModifier(AttributeName.Defense, 15, 18)
+            .AddModifier(AttributeName.Endurance, 8, 18)
             .Requires(ironWill);
 
         builder
@@ -391,10 +395,10 @@ public static class AbilityCatalog
                 220,
                 AmountType.Percent
             )
-            .AddStatus(ConditionType.Stunned, 1)
+            .AddStun(1)
             .Requires(shieldBash);
 
-        return (GuardStanceAbility)block.Ability;
+        return (SupportAbility)block.Ability;
     }
 
     private static void AddSneakAbilities(AbilityBuilder builder)
@@ -441,10 +445,10 @@ public static class AbilityCatalog
                 135,
                 AmountType.Percent
             )
-            .AddStatus(ConditionType.Snared, 2)
+            .AddSnare(2, 50)
             .Requires(stab);
         builder
-            .AddBuff(
+            .AddSupport(
                 "Haste",
                 "Accelerates an ally's movements and reflexes.",
                 Skill.Sneak,
@@ -452,11 +456,10 @@ public static class AbilityCatalog
                 2,
                 0,
                 13,
-                TargetType.Single,
-                11
+                TargetType.Single
             )
-            .AddModifier(AttributeName.Dexterity, 5)
-            .AddModifier(AttributeName.MovementSpeed, 3);
+            .AddModifier(AttributeName.Dexterity, 5, 11)
+            .AddModifier(AttributeName.MovementSpeed, 3, 11);
         var hemorrhage = builder
             .AddAttack(
                 "Hemorrhage",
@@ -471,8 +474,7 @@ public static class AbilityCatalog
                 150,
                 AmountType.Percent
             )
-            .AddDot(3, 4f)
-            .AddStatus(ConditionType.Bleeding, 3)
+            .AddBleed(3, 4f, 0.08f)
             .Requires(hamstring);
         builder
             .AddAttack(
@@ -488,7 +490,7 @@ public static class AbilityCatalog
                 120,
                 AmountType.Percent
             )
-            .AddStatus(ConditionType.Disarmed, 3)
+            .AddDisarm(3)
             .Requires(hamstring);
         var shadowstepStrike = builder
             .AddAttack(
@@ -504,7 +506,7 @@ public static class AbilityCatalog
                 220,
                 AmountType.Percent
             )
-            .AddStatus(ConditionType.Blinded, 1)
+            .AddBlind(1)
             .Requires(backstab);
 
         var kidneyShot = builder
@@ -521,7 +523,7 @@ public static class AbilityCatalog
                 190,
                 AmountType.Percent
             )
-            .AddStatus(ConditionType.Stunned, 2)
+            .AddStun(2)
             .Requires(backstab);
         builder
             .AddAttack(
@@ -537,7 +539,7 @@ public static class AbilityCatalog
                 170,
                 AmountType.Percent
             )
-            .AddStatus(ConditionType.Snared, 3)
+            .AddSnare(3, 50)
             .Requires(hamstring);
 
         builder
@@ -554,7 +556,7 @@ public static class AbilityCatalog
                 210,
                 AmountType.Percent
             )
-            .AddStatus(ConditionType.Silenced, 3)
+            .AddSilence(3)
             .Requires(kidneyShot);
         var markedForDeath = builder
             .AddAttack(
@@ -570,8 +572,7 @@ public static class AbilityCatalog
                 230,
                 AmountType.Percent
             )
-            .AddDot(4, 6f)
-            .AddStatus(ConditionType.Bleeding, 4)
+            .AddBleed(4, 6f, 0.15f)
             .Requires(hemorrhage);
 
         var phantasm = builder
@@ -588,7 +589,7 @@ public static class AbilityCatalog
                 290,
                 AmountType.Percent
             )
-            .AddStatus(ConditionType.Blinded, 2)
+            .AddBlind(2)
             .Requires(shadowstepStrike);
         var deathBlossom = builder
             .AddAttack(
@@ -604,8 +605,7 @@ public static class AbilityCatalog
                 250,
                 AmountType.Percent
             )
-            .AddDot(4, 6f)
-            .AddStatus(ConditionType.Bleeding, 4)
+            .AddBleed(4, 6f, 0.15f)
             .Requires(markedForDeath);
 
         builder
@@ -637,8 +637,7 @@ public static class AbilityCatalog
                 210,
                 AmountType.Percent
             )
-            .AddDot(5, 8f)
-            .AddStatus(ConditionType.Bleeding, 5)
+            .AddBleed(5, 8f, 0.2f)
             .Requires(deathBlossom);
     }
 
@@ -671,8 +670,7 @@ public static class AbilityCatalog
                 12,
                 AmountType.Flat
             )
-            .AddDot(1, 3f)
-            .AddStatus(ConditionType.Burning, 1);
+            .AddBurn(1, 3f);
         var chainLightning = builder.AddAttack(
             "Chain Lightning",
             "Lightning that arcs between nearby enemies.",
@@ -700,8 +698,7 @@ public static class AbilityCatalog
                 8,
                 AmountType.Flat
             )
-            .AddDot(3, 3f)
-            .AddStatus(ConditionType.Poisoned, 3);
+            .AddPoison(3, 3f, 8);
         var arcaneBlast = builder.AddAttack(
             "Arcane Blast",
             "A concussive burst of raw magic.",
@@ -744,8 +741,7 @@ public static class AbilityCatalog
                 20,
                 AmountType.Flat
             )
-            .AddDot(2, 4f)
-            .AddStatus(ConditionType.Burning, 2)
+            .AddBurn(2, 4f)
             .Requires(fireball);
         var thunderstorm = builder
             .AddAttack(
@@ -792,8 +788,7 @@ public static class AbilityCatalog
                 24,
                 AmountType.Flat
             )
-            .AddDot(2, 4f)
-            .AddStatus(ConditionType.Burning, 2)
+            .AddBurn(2, 4f)
             .Requires(fireball);
 
         var glacialSpike = builder
@@ -810,7 +805,7 @@ public static class AbilityCatalog
                 32,
                 AmountType.Flat
             )
-            .AddStatus(ConditionType.Frozen, 2)
+            .AddFreeze(2)
             .Requires(iceLance);
         var meteor = builder
             .AddAttack(
@@ -826,8 +821,7 @@ public static class AbilityCatalog
                 28,
                 AmountType.Flat
             )
-            .AddDot(2, 3f)
-            .AddStatus(ConditionType.Burning, 2)
+            .AddBurn(2, 3f)
             .Requires(scorch);
 
         builder
@@ -844,7 +838,7 @@ public static class AbilityCatalog
                 22,
                 AmountType.Flat
             )
-            .AddStatus(ConditionType.Frozen, 2)
+            .AddFreeze(2)
             .Requires(glacialSpike);
         builder
             .AddAttack(
@@ -876,8 +870,7 @@ public static class AbilityCatalog
                 55,
                 AmountType.Flat
             )
-            .AddDot(3, 5f)
-            .AddStatus(ConditionType.Burning, 3)
+            .AddBurn(3, 5f)
             .Requires(meteor);
         builder
             .AddAttack(
@@ -912,7 +905,7 @@ public static class AbilityCatalog
                 14,
                 AmountType.Flat
             )
-            .AddStatus(ConditionType.Snared, 2);
+            .AddSnare(2, 50);
         var maddeningWhispers = builder
             .AddAttack(
                 "Maddening Whispers",
@@ -927,7 +920,7 @@ public static class AbilityCatalog
                 24,
                 AmountType.Flat
             )
-            .AddStatus(ConditionType.Silenced, 2)
+            .AddSilence(2)
             .Requires(fear);
         var paralyze = builder
             .AddAttack(
@@ -943,7 +936,7 @@ public static class AbilityCatalog
                 30,
                 AmountType.Flat
             )
-            .AddStatus(ConditionType.Stunned, 2)
+            .AddStun(2)
             .Requires(maddeningWhispers);
         builder
             .AddAttack(
@@ -959,7 +952,7 @@ public static class AbilityCatalog
                 28,
                 AmountType.Flat
             )
-            .AddStatus(ConditionType.Stunned, 2)
+            .AddStun(2)
             .Requires(paralyze);
     }
 
@@ -994,11 +987,10 @@ public static class AbilityCatalog
                 AmountType.Percent,
                 gearRequirement: GearRequirement.RangedWeapon
             )
-            .AddDot(1, 3f)
-            .AddStatus(ConditionType.Bleeding, 1)
+            .AddBleed(1, 3f, 0.05f)
             .Requires(arrowShot);
         builder
-            .AddBuff(
+            .AddSupport(
                 "Quickdraw",
                 "Draw and loose with practiced speed, sharpening the caster's reflexes.",
                 Skill.Archery,
@@ -1006,10 +998,9 @@ public static class AbilityCatalog
                 3,
                 0,
                 13,
-                TargetType.Self,
-                11
+                TargetType.Self
             )
-            .AddModifier(AttributeName.Dexterity, 5)
+            .AddModifier(AttributeName.Dexterity, 5, 11)
             .Requires(arrowShot);
         var poisonArrow = builder
             .AddAttack(
@@ -1026,8 +1017,7 @@ public static class AbilityCatalog
                 AmountType.Flat,
                 gearRequirement: GearRequirement.RangedWeapon
             )
-            .AddDot(3, 3f)
-            .AddStatus(ConditionType.Poisoned, 3)
+            .AddPoison(3, 3f, 8)
             .Requires(arrowShot);
         var volley = builder
             .AddAttack(
@@ -1061,7 +1051,7 @@ public static class AbilityCatalog
                 AmountType.Percent,
                 gearRequirement: GearRequirement.RangedWeapon
             )
-            .AddStatus(ConditionType.Snared, 3)
+            .AddSnare(3, 50)
             .Requires(piercingShot);
         var multishot = builder
             .AddAttack(
@@ -1094,7 +1084,7 @@ public static class AbilityCatalog
                 AmountType.Percent,
                 gearRequirement: GearRequirement.RangedWeapon
             )
-            .AddStatus(ConditionType.Stunned, 2)
+            .AddStun(2)
             .Requires(cripplingArrow);
 
         var barrage = builder
@@ -1128,8 +1118,7 @@ public static class AbilityCatalog
                 AmountType.Flat,
                 gearRequirement: GearRequirement.RangedWeapon
             )
-            .AddDot(4, 6f)
-            .AddStatus(ConditionType.Poisoned, 4)
+            .AddPoison(4, 6f, 15)
             .Requires(poisonArrow);
 
         var rainOfArrows = builder
@@ -1163,7 +1152,7 @@ public static class AbilityCatalog
                 AmountType.Percent,
                 gearRequirement: GearRequirement.RangedWeapon
             )
-            .AddStatus(ConditionType.Snared, 4)
+            .AddSnare(4, 50)
             .Requires(cripplingArrow);
 
         builder
@@ -1202,7 +1191,7 @@ public static class AbilityCatalog
 
     private static void AddRestorationAbilities(AbilityBuilder builder)
     {
-        var mend = builder.AddInstantHeal(
+        var mend = builder.AddSupport(
             "Mend",
             "Restores a portion of an ally's health.",
             Skill.Restoration,
@@ -1227,9 +1216,9 @@ public static class AbilityCatalog
                 8,
                 AmountType.Flat
             )
-            .AddStatus(ConditionType.Silenced, 2);
+            .AddSilence(2);
         var regenerate = builder
-            .AddHealOverTime(
+            .AddSupport(
                 "Regenerate",
                 "Grants an ally health regeneration over time.",
                 Skill.Restoration,
@@ -1237,10 +1226,9 @@ public static class AbilityCatalog
                 0,
                 3,
                 3,
-                TargetType.Single,
-                8,
-                3
+                TargetType.Single
             )
+            .AddHot(3, 8)
             .Requires(mend);
         var smite = builder.AddAttack(
             "Smite",
@@ -1256,7 +1244,7 @@ public static class AbilityCatalog
             AmountType.Flat
         );
         var massHeal = builder
-            .AddInstantHeal(
+            .AddSupport(
                 "Mass Heal",
                 "Restores health to all nearby allies.",
                 Skill.Restoration,
@@ -1270,7 +1258,7 @@ public static class AbilityCatalog
             .Requires(regenerate);
 
         var greaterMend = builder
-            .AddInstantHeal(
+            .AddSupport(
                 "Greater Mend",
                 "A stronger healing touch that restores more vitality.",
                 Skill.Restoration,
@@ -1297,7 +1285,7 @@ public static class AbilityCatalog
                 15,
                 AmountType.Flat
             )
-            .AddStatus(ConditionType.Stunned, 1)
+            .AddStun(1)
             .AddCreatureTypeBonus(CreatureType.Undead, 3f)
             .Requires(smite);
 
@@ -1318,7 +1306,7 @@ public static class AbilityCatalog
             .Requires(turnUndead);
 
         var sacredGround = builder
-            .AddHealOverTime(
+            .AddSupport(
                 "Sacred Ground",
                 "Consecrate an area that heals allies who stand within.",
                 Skill.Restoration,
@@ -1326,14 +1314,13 @@ public static class AbilityCatalog
                 0,
                 10,
                 7,
-                TargetType.Aoe,
-                12,
-                3
+                TargetType.Aoe
             )
+            .AddHot(3, 12)
             .Requires(massHeal);
 
         builder
-            .AddHealOverTime(
+            .AddSupport(
                 "Resurrection Pulse",
                 "A wave of healing energy that restores all nearby allies.",
                 Skill.Restoration,
@@ -1341,10 +1328,9 @@ public static class AbilityCatalog
                 0,
                 15,
                 10,
-                TargetType.Aoe,
-                15,
-                4
+                TargetType.Aoe
             )
+            .AddHot(4, 15)
             .Requires(sacredGround);
 
         var destroyUndead = builder
@@ -1361,7 +1347,7 @@ public static class AbilityCatalog
                 28,
                 AmountType.Flat
             )
-            .AddStatus(ConditionType.Stunned, 2)
+            .AddStun(2)
             .AddCreatureTypeBonus(CreatureType.Undead, 3f)
             .Requires(radiantBurst);
 
@@ -1382,7 +1368,7 @@ public static class AbilityCatalog
             .Requires(destroyUndead);
 
         builder
-            .AddInstantHeal(
+            .AddSupport(
                 "Divine Intervention",
                 "Call upon divine power to massively restore a single ally.",
                 Skill.Restoration,
@@ -1399,7 +1385,7 @@ public static class AbilityCatalog
     private static void AddAlterationAbilities(AbilityBuilder builder)
     {
         var arcaneInfusion = builder
-            .AddBuff(
+            .AddSupport(
                 "Arcane Infusion",
                 "Infuses an ally with arcane energy, boosting intelligence.",
                 Skill.Alteration,
@@ -1407,12 +1393,11 @@ public static class AbilityCatalog
                 2,
                 0,
                 12,
-                TargetType.Single,
-                10
+                TargetType.Single
             )
-            .AddModifier(AttributeName.Intelligence, 10);
+            .AddModifier(AttributeName.Intelligence, 10, 10);
         builder
-            .AddBuff(
+            .AddSupport(
                 "Divine Shield",
                 "Fortifies an ally with a magical barrier.",
                 Skill.Alteration,
@@ -1420,12 +1405,11 @@ public static class AbilityCatalog
                 3,
                 0,
                 13,
-                TargetType.Single,
-                11
+                TargetType.Single
             )
-            .AddModifier(AttributeName.PhysicalResistance, 0.2f);
+            .AddModifier(AttributeName.PhysicalResistance, 0.2f, 11);
         builder
-            .AddBuff(
+            .AddSupport(
                 "Spell Ward",
                 "Erects a magical barrier against incoming spells.",
                 Skill.Alteration,
@@ -1433,13 +1417,12 @@ public static class AbilityCatalog
                 3,
                 0,
                 13,
-                TargetType.Self,
-                11
+                TargetType.Self
             )
-            .AddModifier(AttributeName.MagicResistance, 0.2f)
+            .AddModifier(AttributeName.MagicResistance, 0.2f, 11)
             .Requires(arcaneInfusion);
         builder
-            .AddBuff(
+            .AddSupport(
                 "Mystic Focus",
                 "Channel arcane energy for enhanced spellcasting.",
                 Skill.Alteration,
@@ -1447,11 +1430,10 @@ public static class AbilityCatalog
                 6,
                 0,
                 20,
-                TargetType.Self,
-                18
+                TargetType.Self
             )
-            .AddModifier(AttributeName.Intelligence, 15)
-            .AddModifier(AttributeName.Mana, 10)
+            .AddModifier(AttributeName.Intelligence, 15, 18)
+            .AddModifier(AttributeName.Mana, 10, 18)
             .Requires(arcaneInfusion);
     }
 
@@ -1493,7 +1475,7 @@ public static class AbilityCatalog
             return new AttackAbilityEntry(attack);
         }
 
-        public InstantHealAbilityEntry AddInstantHeal(
+        public SupportAbilityEntry AddSupport(
             string name,
             string description,
             Skill skill,
@@ -1502,10 +1484,11 @@ public static class AbilityCatalog
             int mpCost,
             int cooldown,
             TargetType targetType,
-            int amount
+            float healAmount = 0f,
+            AmountType healAmountType = AmountType.Flat
         )
         {
-            var heal = new InstantHealAbility
+            var support = new SupportAbility
             {
                 Name = name,
                 Description = description,
@@ -1515,96 +1498,11 @@ public static class AbilityCatalog
                 MpCost = mpCost,
                 Cooldown = cooldown,
                 TargetType = targetType,
-                Amount = amount,
+                HealAmount = healAmount,
+                HealAmountType = healAmountType,
             };
-            ByName[name] = heal;
-            return new InstantHealAbilityEntry(heal);
-        }
-
-        public HealOverTimeAbilityEntry AddHealOverTime(
-            string name,
-            string description,
-            Skill skill,
-            int requiredSkillLevel,
-            int apCost,
-            int mpCost,
-            int cooldown,
-            TargetType targetType,
-            int amountPerTurn,
-            int duration
-        )
-        {
-            var heal = new HealOverTimeAbility
-            {
-                Name = name,
-                Description = description,
-                Skill = skill,
-                RequiredSkillLevel = requiredSkillLevel,
-                ApCost = apCost,
-                MpCost = mpCost,
-                Cooldown = cooldown,
-                TargetType = targetType,
-                AmountPerTurn = amountPerTurn,
-                Duration = duration,
-            };
-            ByName[name] = heal;
-            return new HealOverTimeAbilityEntry(heal);
-        }
-
-        public BuffAbilityEntry AddBuff(
-            string name,
-            string description,
-            Skill skill,
-            int requiredSkillLevel,
-            int apCost,
-            int mpCost,
-            int cooldown,
-            TargetType targetType,
-            int duration
-        )
-        {
-            var buff = new BuffAbility
-            {
-                Name = name,
-                Description = description,
-                Skill = skill,
-                RequiredSkillLevel = requiredSkillLevel,
-                ApCost = apCost,
-                MpCost = mpCost,
-                Cooldown = cooldown,
-                TargetType = targetType,
-                Duration = duration,
-            };
-            ByName[name] = buff;
-            return new BuffAbilityEntry(buff);
-        }
-
-        public GuardStanceAbilityEntry AddGuardStance(
-            string name,
-            string description,
-            Skill skill,
-            int requiredSkillLevel,
-            int apCost,
-            int mpCost,
-            int cooldown,
-            TargetType targetType,
-            int duration
-        )
-        {
-            var buff = new GuardStanceAbility
-            {
-                Name = name,
-                Description = description,
-                Skill = skill,
-                RequiredSkillLevel = requiredSkillLevel,
-                ApCost = apCost,
-                MpCost = mpCost,
-                Cooldown = cooldown,
-                TargetType = targetType,
-                Duration = duration,
-            };
-            ByName[name] = buff;
-            return new GuardStanceAbilityEntry(buff);
+            ByName[name] = support;
+            return new SupportAbilityEntry(support);
         }
     }
 
@@ -1632,9 +1530,98 @@ public static class AbilityCatalog
             return this;
         }
 
-        public AttackAbilityEntry AddStatus(ConditionType condition, int duration)
+        private AttackAbilityEntry AddCondition(ConditionType condition, int duration)
         {
             attack.Conditions.Add(new StatusEffect { Condition = condition, Duration = duration });
+            return this;
+        }
+
+        public AttackAbilityEntry AddStun(int duration) =>
+            AddCondition(ConditionType.Stunned, duration);
+
+        public AttackAbilityEntry AddBlind(int duration) =>
+            AddCondition(ConditionType.Blinded, duration);
+
+        public AttackAbilityEntry AddSilence(int duration) =>
+            AddCondition(ConditionType.Silenced, duration);
+
+        public AttackAbilityEntry AddFreeze(int duration) =>
+            AddCondition(ConditionType.Frozen, duration);
+
+        public AttackAbilityEntry AddDisarm(int duration) =>
+            AddCondition(ConditionType.Disarmed, duration);
+
+        public AttackAbilityEntry AddSnare(int duration, float dexterityReductionPercent)
+        {
+            AddCondition(ConditionType.Snared, duration);
+            return AddDebuff(
+                AttributeName.Dexterity,
+                dexterityReductionPercent,
+                AmountType.Percent,
+                duration
+            );
+        }
+
+        public AttackAbilityEntry AddBleed(
+            int duration,
+            float dotAmount,
+            float physicalResistanceDebuffPercent,
+            AmountType dotAmountType = AmountType.Flat
+        )
+        {
+            AddDot(duration, dotAmount, dotAmountType);
+            AddCondition(ConditionType.Bleeding, duration);
+            return AddDebuff(
+                AttributeName.PhysicalResistance,
+                physicalResistanceDebuffPercent,
+                AmountType.Flat,
+                duration
+            );
+        }
+
+        public AttackAbilityEntry AddBurn(
+            int duration,
+            float dotAmount,
+            AmountType dotAmountType = AmountType.Flat
+        )
+        {
+            AddDot(duration, dotAmount, dotAmountType);
+            return AddCondition(ConditionType.Burning, duration);
+        }
+
+        public AttackAbilityEntry AddPoison(
+            int duration,
+            float dotAmount,
+            float strengthDebuffPercent,
+            AmountType dotAmountType = AmountType.Flat
+        )
+        {
+            AddDot(duration, dotAmount, dotAmountType);
+            AddCondition(ConditionType.Poisoned, duration);
+            return AddDebuff(
+                AttributeName.Strength,
+                strengthDebuffPercent,
+                AmountType.Percent,
+                duration
+            );
+        }
+
+        public AttackAbilityEntry AddDebuff(
+            AttributeName attribute,
+            float amount,
+            AmountType amountType,
+            int duration
+        )
+        {
+            attack.Debuffs.Add(
+                new AttributeEffect
+                {
+                    Attribute = attribute,
+                    AmountType = amountType,
+                    Amount = -amount,
+                    Duration = duration,
+                }
+            );
             return this;
         }
 
@@ -1652,83 +1639,66 @@ public static class AbilityCatalog
         }
     }
 
-    private class InstantHealAbilityEntry(InstantHealAbility heal) : AbilityEntry(heal)
+    private class SupportAbilityEntry(SupportAbility support) : AbilityEntry(support)
     {
-        public InstantHealAbilityEntry Requires(AbilityEntry prereq)
-        {
-            Ability.Prerequisites.Add(prereq.Ability.Name);
-            return this;
-        }
-    }
-
-    private class HealOverTimeAbilityEntry(HealOverTimeAbility heal) : AbilityEntry(heal)
-    {
-        public HealOverTimeAbilityEntry Requires(AbilityEntry prereq)
-        {
-            Ability.Prerequisites.Add(prereq.Ability.Name);
-            return this;
-        }
-    }
-
-    private class BuffAbilityEntry(BuffAbility buff) : AbilityEntry(buff)
-    {
-        public BuffAbilityEntry AddModifier(
-            AttributeName attribute,
-            float amount,
+        public SupportAbilityEntry AddHot(
+            int duration,
+            float amountPerTurn,
             AmountType amountType = AmountType.Flat
         )
         {
-            buff.Modifiers.Add(
-                new AttributeModifier
+            support.Hots.Add(
+                new HotEffect
                 {
-                    Attribute = attribute,
+                    Amount = amountPerTurn,
                     AmountType = amountType,
-                    Amount = amount,
+                    Duration = duration,
                 }
             );
             return this;
         }
 
-        public BuffAbilityEntry Requires(AbilityEntry prereq)
+        public SupportAbilityEntry AddModifier(
+            AttributeName attribute,
+            float amount,
+            int duration,
+            AmountType amountType = AmountType.Flat
+        )
+        {
+            support.Buffs.Add(
+                new AttributeEffect
+                {
+                    Attribute = attribute,
+                    AmountType = amountType,
+                    Amount = amount,
+                    Duration = duration,
+                }
+            );
+            return this;
+        }
+
+        public SupportAbilityEntry AddParryModifier(
+            AttributeName attribute,
+            float amount,
+            int duration,
+            AmountType amountType = AmountType.Flat
+        )
+        {
+            support.BuffsWhileParrying.Add(
+                new AttributeEffect
+                {
+                    Attribute = attribute,
+                    AmountType = amountType,
+                    Amount = amount,
+                    Duration = duration,
+                }
+            );
+            return this;
+        }
+
+        public SupportAbilityEntry Requires(AbilityEntry prereq)
         {
             Ability.Prerequisites.Add(prereq.Ability.Name);
-            return this;
-        }
-    }
-
-    private class GuardStanceAbilityEntry(GuardStanceAbility buff) : AbilityEntry(buff)
-    {
-        public GuardStanceAbilityEntry AddModifier(
-            AttributeName attribute,
-            float amount,
-            AmountType amountType = AmountType.Flat
-        )
-        {
-            buff.Modifiers.Add(
-                new AttributeModifier
-                {
-                    Attribute = attribute,
-                    AmountType = amountType,
-                    Amount = amount,
-                }
-            );
-            return this;
-        }
-
-        public GuardStanceAbilityEntry AddParryModifier(
-            AttributeName attribute,
-            float amount,
-            AmountType amountType = AmountType.Flat
-        )
-        {
-            buff.ParryCapableModifiers.Add(
-                new AttributeModifier
-                {
-                    Attribute = attribute,
-                    AmountType = amountType,
-                    Amount = amount,
-                }
-            );
             return this;
         }
     }

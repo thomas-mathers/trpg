@@ -309,26 +309,26 @@ public class DamageCalculatorTests
     }
 
     [Fact]
-    public void EstimateDamage_ReducesCritChanceContribution_WhenAttackerIsSnared()
+    public void EstimateDamage_ReducesCritChanceContribution_WhenAttackerHasASnareDebuff()
     {
-        // Arrange — same setup as the crit test above, but Snared halves the 100 Dexterity to 50,
-        // halving crit chance to 50% x 0.01 = 50% (still capped, unaffected) - use a lower
-        // Dexterity so the halving actually changes the capped outcome: 60 x 0.01 = 60% capped to
-        // 50% unsnared (full multiplier); snared, 30 x 0.01 = 30% (partial): 20 x (1 + 0.3) = 26
+        // Arrange — same setup as the crit test above, but a snare debuff halves the 100
+        // Dexterity to 50, halving crit chance to 50% x 0.01 = 50% (still capped, unaffected) -
+        // use a lower Dexterity so the halving actually changes the capped outcome: 60 x 0.01 =
+        // 60% capped to 50% undebuffed (full multiplier); debuffed, 30 x 0.01 = 30% (partial):
+        // 20 x (1 + 0.3) = 26
         var settings = new TestOptionsSnapshot<CombatOptions>(
             new CombatOptions
             {
                 CritChancePerDexterityPoint = 0.01f,
                 MaxCritChance = 0.5f,
                 CritDamageMultiplier = 2f,
-                SnareDexterityReductionPercent = 0.5f,
             }
         );
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDexterity(60)
-            .WithCondition(ConditionType.Snared, 2)
+            .WithActiveBuff(AttributeName.Dexterity, -50, AmountType.Percent, remainingTurns: 2)
             .WithCombatOptions(settings.Value)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();

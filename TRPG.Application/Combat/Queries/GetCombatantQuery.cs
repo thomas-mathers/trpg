@@ -45,12 +45,12 @@ internal class GetCombatantQueryHandler(
         );
 
         return Combatant.FromCreature(
+            optionsSnapshot.Value,
+            query.IsPlayer,
             query.Creature,
             abilities,
-            query.IsPlayer,
             items,
-            weaponProficiencies,
-            optionsSnapshot.Value
+            weaponProficiencies
         );
     }
 }

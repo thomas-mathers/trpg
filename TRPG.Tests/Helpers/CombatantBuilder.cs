@@ -4,6 +4,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Application.Inventory;
 using TRPG.Data.Models;
+using PersistedActiveBuff = TRPG.Data.Models.ActiveBuff;
 
 namespace TRPG.Tests.Helpers;
 
@@ -15,6 +16,7 @@ internal sealed class CombatantBuilder
     private readonly List<Item> _items = [];
     private readonly Dictionary<WeaponType, int> _weaponProficiencies = [];
     private readonly Dictionary<ConditionType, int> _activeConditions = [];
+    private readonly List<PersistedActiveBuff> _activeBuffs = [];
     private Guid _worldId = Guid.NewGuid();
     private string _name = "Test Combatant";
     private bool _isPlayer;
@@ -165,6 +167,27 @@ internal sealed class CombatantBuilder
         return this;
     }
 
+    public CombatantBuilder WithActiveBuff(
+        AttributeName attribute,
+        float amount,
+        AmountType amountType,
+        int remainingTurns,
+        string abilityName = "Test Buff"
+    )
+    {
+        _activeBuffs.Add(
+            new PersistedActiveBuff
+            {
+                AbilityName = abilityName,
+                Amount = amount,
+                Attribute = attribute.ToString(),
+                AmountType = amountType.ToString(),
+                RemainingTurns = remainingTurns,
+            }
+        );
+        return this;
+    }
+
     public CombatantBuilder WithCombatOptions(CombatOptions combatOptions)
     {
         _combatOptions = combatOptions;
@@ -199,14 +222,15 @@ internal sealed class CombatantBuilder
             kv => kv.Key.ToString(),
             kv => kv.Value
         );
+        creature.ActiveBuffs = _activeBuffs;
 
         return Combatant.FromCreature(
+            _combatOptions,
+            _isPlayer,
             creature,
             [BasicAttack, .. _abilities],
-            _isPlayer,
             _items,
-            _weaponProficiencies,
-            _combatOptions
+            _weaponProficiencies
         );
     }
 }

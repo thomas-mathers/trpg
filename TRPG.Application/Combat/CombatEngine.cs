@@ -95,9 +95,7 @@ public class CombatEngine(
 
         return ability switch
         {
-            InstantHealAbility heal => ApplyInstantHeal(actor, heal, targets),
-            HealOverTimeAbility hot => ApplyHealOverTime(actor, hot, targets),
-            BuffAbility buff => ApplyBuff(actor, buff, targets),
+            SupportAbility support => ApplySupport(actor, support, targets),
             AttackAbility attack => ApplyAttack(actor, attack, targets),
             _ => [],
         };
@@ -169,115 +167,120 @@ public class CombatEngine(
         }
     }
 
-    private static List<CombatEvent> ApplyInstantHeal(
+    private static List<CombatEvent> ApplySupport(
         Combatant actor,
-        InstantHealAbility ability,
+        SupportAbility ability,
         IReadOnlyList<Combatant> targets
     )
     {
+        var buffs =
+            ability.BuffsWhileParrying.Count > 0 && AbilityGearRequirement.IsParryCapable(actor)
+                ? ability.BuffsWhileParrying
+                : ability.Buffs;
+
         var combatEvents = new List<CombatEvent>();
 
         foreach (var target in targets)
         {
-            target.CurrentHp = Math.Min(target.CurrentHp + ability.Amount, target.MaximumHp);
+            if (ability.HealAmount > 0)
+            {
+                combatEvents.Add(ApplyHeal(actor, ability, target));
+            }
 
-            combatEvents.Add(
-                new Healed(
-                    actor.Name,
-                    ability.Name,
-                    target.Name,
-                    ability.Amount,
-                    target.CurrentHp,
-                    target.MaximumHp
-                )
+            combatEvents.AddRange(
+                ability.Hots.Select(hot => ApplyHot(actor, ability.Name, hot, target))
             );
+
+            if (buffs.Count > 0)
+            {
+                combatEvents.Add(ApplyBuffs(actor, ability.Name, buffs, target));
+            }
         }
 
         return combatEvents;
     }
 
-    private static List<CombatEvent> ApplyHealOverTime(
+    private static CombatEvent ApplyHeal(Combatant actor, SupportAbility ability, Combatant target)
+    {
+        var amount =
+            ability.HealAmountType == AmountType.Percent
+                ? (int)Math.Round(target.MaximumHp * ability.HealAmount)
+                : (int)Math.Round(ability.HealAmount);
+
+        target.CurrentHp = Math.Min(target.CurrentHp + amount, target.MaximumHp);
+
+        return new Healed(
+            actor.Name,
+            ability.Name,
+            target.Name,
+            amount,
+            target.CurrentHp,
+            target.MaximumHp
+        );
+    }
+
+    private static CombatEvent ApplyHot(
         Combatant actor,
-        HealOverTimeAbility ability,
-        IReadOnlyList<Combatant> targets
+        string abilityName,
+        HotEffect hot,
+        Combatant target
     )
     {
-        var combatEvents = new List<CombatEvent>();
+        var amountPerTurn =
+            hot.AmountType == AmountType.Percent
+                ? (int)Math.Round(target.MaximumHp * hot.Amount)
+                : (int)Math.Round(hot.Amount);
 
-        foreach (var target in targets)
+        target.ActiveHots.RemoveAll(h => h.AbilityName == abilityName);
+        target.ActiveHots.Add(
+            new ActiveHot
+            {
+                AbilityName = abilityName,
+                Amount = amountPerTurn,
+                RemainingTurns = hot.Duration,
+            }
+        );
+
+        return new HealOverTimeApplied(
+            actor.Name,
+            abilityName,
+            target.Name,
+            amountPerTurn,
+            hot.Duration
+        );
+    }
+
+    private static CombatEvent ApplyBuffs(
+        Combatant actor,
+        string abilityName,
+        IReadOnlyList<AttributeEffect> buffs,
+        Combatant target
+    )
+    {
+        var appliedModifiers = new List<BuffModifierInfo>();
+
+        foreach (var buff in buffs)
         {
-            target.ActiveHots.RemoveAll(h => h.AbilityName == ability.Name);
-            target.ActiveHots.Add(
-                new ActiveHot
+            target.ActiveBuffs.RemoveAll(b =>
+                b.AbilityName == abilityName && b.Attribute == buff.Attribute
+            );
+            target.ActiveBuffs.Add(
+                new ActiveBuff
                 {
-                    AbilityName = ability.Name,
-                    Amount = ability.AmountPerTurn,
-                    RemainingTurns = ability.Duration,
+                    AbilityName = abilityName,
+                    Amount = buff.Amount,
+                    AmountType = buff.AmountType,
+                    Attribute = buff.Attribute,
+                    RemainingTurns = buff.Duration,
                 }
             );
 
-            combatEvents.Add(
-                new HealOverTimeApplied(
-                    actor.Name,
-                    ability.Name,
-                    target.Name,
-                    ability.AmountPerTurn,
-                    ability.Duration
-                )
+            appliedModifiers.Add(
+                new BuffModifierInfo(buff.Amount, buff.AmountType, buff.Attribute, buff.Duration)
             );
         }
 
-        return combatEvents;
-    }
-
-    private static List<CombatEvent> ApplyBuff(
-        Combatant actor,
-        BuffAbility ability,
-        IReadOnlyList<Combatant> targets
-    )
-    {
-        var modifiers =
-            ability is GuardStanceAbility guardStance
-            && AbilityGearRequirement.IsParryCapable(actor)
-                ? guardStance.ParryCapableModifiers
-                : ability.Modifiers;
-
-        var buffEvents = new List<CombatEvent>();
-
-        foreach (var target in targets)
-        {
-            var buffs = new List<BuffModifierInfo>();
-
-            foreach (var modifier in modifiers)
-            {
-                target.ActiveBuffs.RemoveAll(b =>
-                    b.AbilityName == ability.Name && b.Attribute == modifier.Attribute
-                );
-                target.ActiveBuffs.Add(
-                    new ActiveBuff
-                    {
-                        AbilityName = ability.Name,
-                        Amount = modifier.Amount,
-                        AmountType = modifier.AmountType,
-                        Attribute = modifier.Attribute,
-                        RemainingTurns = ability.Duration,
-                    }
-                );
-
-                buffs.Add(
-                    new BuffModifierInfo(
-                        modifier.Amount,
-                        modifier.AmountType,
-                        modifier.Attribute,
-                        ability.Duration
-                    )
-                );
-            }
-
-            buffEvents.Add(new BuffApplied(actor.Name, ability.Name, target.Name, buffs));
-        }
-
-        return buffEvents;
+        return new BuffApplied(actor.Name, abilityName, target.Name, appliedModifiers);
     }
 
     private List<CombatEvent> ApplyAttack(
@@ -357,6 +360,23 @@ public class CombatEngine(
         {
             defender.ActiveConditions[status.Condition] = status.Duration;
             appliedConditions.Add(status.Condition);
+        }
+
+        foreach (var debuff in ability.Debuffs)
+        {
+            defender.ActiveBuffs.RemoveAll(b =>
+                b.AbilityName == ability.Name && b.Attribute == debuff.Attribute
+            );
+            defender.ActiveBuffs.Add(
+                new ActiveBuff
+                {
+                    AbilityName = ability.Name,
+                    Amount = debuff.Amount,
+                    AmountType = debuff.AmountType,
+                    Attribute = debuff.Attribute,
+                    RemainingTurns = debuff.Duration,
+                }
+            );
         }
 
         return new Hit(

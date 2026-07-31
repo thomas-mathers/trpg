@@ -148,7 +148,7 @@ internal static class Builders
                 damageType == DamageType.Physical ? AmountType.Percent : AmountType.Flat,
         };
 
-    public static InstantHealAbility MakeInstantHealAbility(
+    public static SupportAbility MakeInstantHealAbility(
         string name = "Cure",
         int amount = 20,
         int cost = 0,
@@ -161,15 +161,18 @@ internal static class Builders
             ApCost = cost,
             Cooldown = cooldown,
             TargetType = TargetType.Single,
-            Amount = amount,
+            HealAmount = amount,
         };
 
-    public static BuffAbility MakeBuffAbility(
+    public static SupportAbility MakeBuffAbility(
         string name = "Buff",
         int cost = 0,
         int cooldown = 0,
         int duration = 3,
-        TargetType targetType = TargetType.Single
+        TargetType targetType = TargetType.Single,
+        AttributeName attribute = AttributeName.Strength,
+        float amount = 5f,
+        AmountType amountType = AmountType.Flat
     ) =>
         new()
         {
@@ -178,7 +181,16 @@ internal static class Builders
             ApCost = cost,
             Cooldown = cooldown,
             TargetType = targetType,
-            Duration = duration,
+            Buffs =
+            [
+                new AttributeEffect
+                {
+                    Attribute = attribute,
+                    AmountType = amountType,
+                    Amount = amount,
+                    Duration = duration,
+                },
+            ],
         };
 
     public static Creature MakeCreature(
