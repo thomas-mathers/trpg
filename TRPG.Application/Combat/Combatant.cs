@@ -101,24 +101,30 @@ public class Combatant
     public float PoisonResistance => CalculateEffectiveAttribute(AttributeName.PoisonResistance);
     public float MagicResistance => CalculateEffectiveAttribute(AttributeName.MagicResistance);
     public float TurnOrder => Dexterity;
-    public Weapon? Weapon => EquippedItems.OfType<Weapon>().SingleOrDefault();
+    public Weapon? MainHandWeapon =>
+        EquippedItems
+            .OfType<Weapon>()
+            .FirstOrDefault(w => w.Ownership.EquippedSlot == EquipmentSlot.RightHand);
+    public Weapon? OffHandWeapon =>
+        EquippedItems
+            .OfType<Weapon>()
+            .FirstOrDefault(w => w.Ownership.EquippedSlot == EquipmentSlot.LeftHand);
     public Shield? Shield => EquippedItems.OfType<Shield>().SingleOrDefault();
     public float BlockChance => Shield?.BlockChance ?? 0f;
 
     public float Evasion => Dexterity * CombatOptions.EvasionPerDexterityPoint;
 
-    public float AttackRating
+    public float AttackRating => AttackRatingFor(MainHandWeapon);
+
+    public float AttackRatingFor(Weapon? weapon)
     {
-        get
+        if (IsPlayer)
         {
-            if (IsPlayer)
-            {
-                var weaponProficiency = Weapon != null ? WeaponProficiencies[Weapon.Type] : 0;
-                return CombatOptions.BaseProficiency + weaponProficiency;
-            }
-            return CombatOptions.NonPlayerProficiencyBase
-                + CombatOptions.NonPlayerProficiencyPerLevel * Level;
+            var weaponProficiency = weapon != null ? WeaponProficiencies[weapon.Type] : 0;
+            return CombatOptions.BaseProficiency + weaponProficiency;
         }
+        return CombatOptions.NonPlayerProficiencyBase
+            + CombatOptions.NonPlayerProficiencyPerLevel * Level;
     }
 
     public float CritChance =>

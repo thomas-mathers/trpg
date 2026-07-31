@@ -289,16 +289,28 @@ public class CombatEngine(
         IReadOnlyList<Combatant> defenders
     )
     {
-        var attacksPerTurn = attacker.Weapon?.AttacksPerTurn ?? 1;
+        var mainHandWeapon = attacker.MainHandWeapon;
+        var offHandWeapon = attacker.OffHandWeapon;
+        var mainHandBonusSwings = Math.Max(0, (mainHandWeapon?.AttacksPerTurn ?? 1) - 1);
+        var offHandSwings = offHandWeapon?.AttacksPerTurn ?? 0;
         var combatEvents = new List<CombatEvent>();
 
         foreach (var defender in defenders)
         {
-            combatEvents.Add(ResolveWeaponSwing(attacker, ability, defender));
+            combatEvents.Add(ResolveWeaponSwing(attacker, ability, defender, mainHandWeapon));
 
-            for (var swing = 1; swing < attacksPerTurn; swing++)
+            for (var swing = 0; swing < mainHandBonusSwings; swing++)
             {
-                combatEvents.Add(ResolveWeaponSwing(attacker, AbilityCatalog.Strike, defender));
+                combatEvents.Add(
+                    ResolveWeaponSwing(attacker, AbilityCatalog.Strike, defender, mainHandWeapon)
+                );
+            }
+
+            for (var swing = 0; swing < offHandSwings; swing++)
+            {
+                combatEvents.Add(
+                    ResolveWeaponSwing(attacker, AbilityCatalog.Strike, defender, offHandWeapon)
+                );
             }
         }
 
@@ -308,16 +320,17 @@ public class CombatEngine(
     private CombatEvent ResolveWeaponSwing(
         Combatant attacker,
         AttackAbility ability,
-        Combatant defender
+        Combatant defender,
+        Weapon? weapon
     )
     {
-        if (ability.DamageType == DamageType.Physical && attacker.Weapon is { } weapon)
+        if (ability.DamageType == DamageType.Physical && weapon is { } swungWeapon)
         {
-            attacker.WeaponSwingCounts[weapon.Type] =
-                attacker.WeaponSwingCounts.GetValueOrDefault(weapon.Type) + 1;
+            attacker.WeaponSwingCounts[swungWeapon.Type] =
+                attacker.WeaponSwingCounts.GetValueOrDefault(swungWeapon.Type) + 1;
         }
 
-        var didHit = hitCalculator.RollHit(attacker, ability, defender);
+        var didHit = hitCalculator.RollHit(attacker, ability, defender, weapon);
 
         if (!didHit)
         {
@@ -333,7 +346,7 @@ public class CombatEngine(
             return new Block(attacker.Name, ability.Name, defender.Name);
         }
 
-        var damage = damageCalculator.CalculateDamage(attacker, ability, defender);
+        var damage = damageCalculator.CalculateDamage(attacker, ability, defender, weapon);
 
         defender.CurrentHp = Math.Max(defender.CurrentHp - damage, 0);
 

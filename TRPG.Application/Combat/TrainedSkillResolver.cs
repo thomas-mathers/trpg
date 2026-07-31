@@ -29,7 +29,7 @@ public static class TrainedSkillResolver
             return ability.Skill;
         }
 
-        return actor.Weapon is { } weapon
+        return actor.MainHandWeapon is { } weapon
             ? WeaponSkills.GetValueOrDefault(weapon.Type, Skill.General)
             : Skill.Unarmed;
     }

@@ -122,10 +122,10 @@ internal sealed class CombatantBuilder
         return this;
     }
 
-    public CombatantBuilder WithItem(Item item, int quantity = 1)
+    public CombatantBuilder WithItem(Item item, int quantity = 1, EquipmentSlot? slot = null)
     {
         item.Quantity = quantity;
-        item.Ownership.EquippedSlot = ItemEquipmentPolicy.GetDefaultSlot(item);
+        item.Ownership.EquippedSlot = slot ?? ItemEquipmentPolicy.GetDefaultSlot(item);
         _items.Add(item);
         return this;
     }

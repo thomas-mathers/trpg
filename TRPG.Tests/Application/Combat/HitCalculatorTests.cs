@@ -344,6 +344,41 @@ public class HitCalculatorTests
     }
 
     [Fact]
+    public void CalculateHitChance_UsesTheSuppliedWeaponsProficiency_NotMainHands()
+    {
+        // Arrange — main hand trained 200 (deliberately huge), off hand trained 30; passing the
+        // off-hand weapon explicitly must use its own 30, not the main hand's 200
+        // (base 50 + 30 vs defense 20 = 80%; using main hand's proficiency instead would clamp
+        // to MaxHitChance 95%)
+        var mainHandWeapon = MakeWeapon(WeaponType.Dagger);
+        var offHandWeapon = MakeWeapon(WeaponType.Sword);
+        var attacker = Builders
+            .NewCombatant()
+            .AsPlayer()
+            .WithWorldId(_worldId)
+            .WithItem(mainHandWeapon)
+            .WithItem(offHandWeapon, slot: EquipmentSlot.LeftHand)
+            .WithWeaponProficiency(mainHandWeapon.Type, 200)
+            .WithWeaponProficiency(offHandWeapon.Type, 30)
+            .WithCombatOptions(BaseProficiencySettings.Value)
+            .Build();
+        var defender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithDefense(20)
+            .WithDexterity(0)
+            .WithCombatOptions(BaseProficiencySettings.Value)
+            .Build();
+        var calculator = new HitCalculator(BaseProficiencySettings);
+
+        // Act
+        var chance = calculator.CalculateHitChance(attacker, defender, offHandWeapon);
+
+        // Assert
+        Assert.Equal(0.8f, chance, precision: 3);
+    }
+
+    [Fact]
     public void CalculateHitChance_IgnoresWeaponProficiency_ForNonPlayerCombatants()
     {
         // Arrange — level 1: formulaic proficiency 100 + 10 = 110 vs defense 10 = 92%, regardless

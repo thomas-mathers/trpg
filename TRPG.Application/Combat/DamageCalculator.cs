@@ -7,12 +7,18 @@ namespace TRPG.Application.Combat;
 
 public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 {
-    public int CalculateDamage(Combatant attacker, AttackAbility ability, Combatant defender)
+    public int CalculateDamage(
+        Combatant attacker,
+        AttackAbility ability,
+        Combatant defender,
+        Weapon? weapon = null
+    )
     {
         var rawDamage =
             ability.DamageType == DamageType.Physical
                 ? CalculatePhysicalRawDamage(
                     attacker,
+                    weapon ?? attacker.MainHandWeapon,
                     ability.DamageAmount,
                     ability.DamageAmountType,
                     (min, max) => Random.Shared.Next(min, max + 1)
@@ -23,12 +29,18 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         return CalculateDamage(ApplyCrit(withBonus, attacker), ability.DamageType, defender);
     }
 
-    public int EstimateDamage(Combatant attacker, AttackAbility ability, Combatant defender)
+    public int EstimateDamage(
+        Combatant attacker,
+        AttackAbility ability,
+        Combatant defender,
+        Weapon? weapon = null
+    )
     {
         var rawDamage =
             ability.DamageType == DamageType.Physical
                 ? CalculatePhysicalRawDamage(
                     attacker,
+                    weapon ?? attacker.MainHandWeapon,
                     ability.DamageAmount,
                     ability.DamageAmountType,
                     (min, max) => (min + max) / 2
@@ -56,6 +68,7 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 
     private float CalculatePhysicalRawDamage(
         Combatant attacker,
+        Weapon? weapon,
         float damageAmount,
         AmountType damageAmountType,
         Func<int, int, int> rollRange
@@ -63,10 +76,10 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
     {
         var strengthBonus = attacker.Strength * optionsSnapshot.Value.StrengthDamageBonusPerPoint;
 
-        var weapon = attacker.ActiveConditions[ConditionType.Disarmed] > 0 ? null : attacker.Weapon;
-        var roll = weapon is null
+        var effectiveWeapon = attacker.ActiveConditions[ConditionType.Disarmed] > 0 ? null : weapon;
+        var roll = effectiveWeapon is null
             ? rollRange(attacker.NaturalWeaponMinDamage, attacker.NaturalWeaponMaxDamage)
-            : rollRange(weapon.MinDamage, weapon.MaxDamage);
+            : rollRange(effectiveWeapon.MinDamage, effectiveWeapon.MaxDamage);
 
         var baseDamage =
             damageAmountType == AmountType.Percent

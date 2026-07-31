@@ -234,6 +234,58 @@ public class CombatEngineTests
     }
 
     [Fact]
+    public void ResolvePlayerAction_ResolvesFourSwings_WhenDualWieldingFastWeapons()
+    {
+        // Arrange — two AttacksPerTurn=2 daggers combine into up to 4 attacks
+        var mainDagger = Builders.MakeWeaponItem(type: WeaponType.Dagger, attacksPerTurn: 2);
+        var offDagger = Builders.MakeWeaponItem(type: WeaponType.Dagger, attacksPerTurn: 2);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithItem(mainDagger)
+            .WithItem(offDagger, slot: EquipmentSlot.LeftHand)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
+
+        // Assert
+        var playerHits = state.Events.OfType<Hit>().Count(h => h.AttackerName == "Hero");
+        Assert.Equal(4, playerHits);
+    }
+
+    [Fact]
+    public void ResolvePlayerAction_OffHandBonusSwing_RollsOffHandWeaponsOwnDamage()
+    {
+        // Arrange — fixed, distinct damage ranges prove an off-hand swing uses OffHandWeapon's
+        // own damage roll rather than the main-hand weapon's
+        var mainDagger = Builders.MakeWeaponItem(minDamage: 5, maxDamage: 5, attacksPerTurn: 1);
+        var offDagger = Builders.MakeWeaponItem(minDamage: 50, maxDamage: 50, attacksPerTurn: 1);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(MakeAttack("Smite", damage: 100))
+            .WithItem(mainDagger)
+            .WithItem(offDagger, slot: EquipmentSlot.LeftHand)
+            .Build();
+        var monster = MakeCombatant("Wraith").Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act
+        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Smite"));
+
+        // Assert
+        var playerHits = state.Events.OfType<Hit>().Where(h => h.AttackerName == "Hero").ToArray();
+        Assert.Equal(2, playerHits.Length);
+        Assert.Equal(5, playerHits[0].Damage);
+        Assert.Equal(50, playerHits[1].Damage);
+    }
+
+    [Fact]
     public void ResolvePlayerAction_EndsInVictory_WhenLastEnemyDies()
     {
         // Arrange — one fragile monster, one overwhelming attack

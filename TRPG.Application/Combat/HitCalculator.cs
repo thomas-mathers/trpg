@@ -7,16 +7,20 @@ namespace TRPG.Application.Combat;
 
 public class HitCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 {
-    public bool RollHit(Combatant attacker, AttackAbility ability, Combatant defender) =>
-        ability.DamageType != DamageType.Physical || RollWeaponHit(attacker, defender);
+    public bool RollHit(
+        Combatant attacker,
+        AttackAbility ability,
+        Combatant defender,
+        Weapon? weapon = null
+    ) => ability.DamageType != DamageType.Physical || RollWeaponHit(attacker, defender, weapon);
 
     public bool RollBlock(AttackAbility ability, Combatant defender) =>
         ability.DamageType == DamageType.Physical && RollWeaponBlock(defender);
 
-    private bool RollWeaponHit(Combatant attacker, Combatant defender)
+    private bool RollWeaponHit(Combatant attacker, Combatant defender, Weapon? weapon)
     {
         var hitRoll = Random.Shared.NextSingle();
-        var hitChance = CalculateHitChance(attacker, defender);
+        var hitChance = CalculateHitChance(attacker, defender, weapon);
 
         return hitRoll < hitChance;
     }
@@ -29,12 +33,12 @@ public class HitCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         return hitRoll < hitChance;
     }
 
-    public float CalculateHitChance(Combatant attacker, Combatant defender)
+    public float CalculateHitChance(Combatant attacker, Combatant defender, Weapon? weapon = null)
     {
         var settings = optionsSnapshot.Value;
         var defense = defender.Defense;
         var evasion = defender.Evasion;
-        var attackRating = attacker.AttackRating;
+        var attackRating = attacker.AttackRatingFor(weapon ?? attacker.MainHandWeapon);
 
         if (attackRating + defense + evasion == 0)
         {

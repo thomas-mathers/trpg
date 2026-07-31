@@ -300,7 +300,11 @@ public sealed class CreatureArchetype
                 [Skill.General] = 1,
             },
             profession: Data.Models.Profession.Rogue,
-            startingGear: [new WeaponSpec(WeaponType.Dagger)],
+            startingGear:
+            [
+                new WeaponSpec(WeaponType.Dagger),
+                new WeaponSpec(WeaponType.Dagger, SlotOverride: EquipmentSlot.LeftHand),
+            ],
             armorClass: Data.Models.ArmorClass.Leather,
             hasAccessories: true
         ),
