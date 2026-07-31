@@ -4,7 +4,7 @@ using static TRPG.Application.Worlds.Generators.ItemModifierHelpers;
 
 namespace TRPG.Application.Worlds.Generators;
 
-public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
+public class ArmorGenerator
 {
     private static readonly string[] ShieldBaseNames =
     [
@@ -197,7 +197,7 @@ public class ArmorGenerator(AbilityDefinitions abilityDefinitions)
             5,
             level => new ProcModifier
             {
-                AbilityName = abilityDefinitions.RandomAttackAbility(),
+                AbilityName = AbilityCatalog.Abilities.RandomAttackAbility(),
                 Chance = Roll(level, 5, 15) / 100f,
                 Trigger = ProcTrigger.WhenStruck,
             }

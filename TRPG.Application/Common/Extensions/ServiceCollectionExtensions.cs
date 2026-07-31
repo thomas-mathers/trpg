@@ -1,6 +1,5 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Abilities;
 using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
@@ -90,7 +89,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<SetConversationSummaryCommandHandler>()
             .AddTransient<OpenConversationCommandHandler>()
             .AddTransient<CloseConversationCommandHandler>()
-            .AddSingleton(AbilityDefinitions.Create())
             .AddTransient<AddCreatureCommandHandler>()
             .AddTransient<UpdateCreaturesCommandHandler>()
             .AddTransient<MovePlayerCommandHandler>()

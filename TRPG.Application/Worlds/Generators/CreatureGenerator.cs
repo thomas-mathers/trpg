@@ -34,7 +34,6 @@ public record CreatureGeneratorResult(
 
 public class CreatureGenerator(
     ItemGenerator itemGenerator,
-    AbilityDefinitions abilityDefinitions,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot,
     StatFormulas statFormulas
 )
@@ -1206,9 +1205,6 @@ public class CreatureGenerator(
             BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
             Level = level,
-            // Used whenever this creature has no equipped Weapon - see
-            // DamageCalculator.CalculatePhysicalRawDamage. Scaled with level the same way a
-            // weapon's own MinDamage/MaxDamage are, via the archetype's NaturalWeaponDamage tier.
             NaturalWeaponMinDamage = Roll(
                 level,
                 archetype.NaturalWeaponDamage.MinDamageLow,
@@ -1288,7 +1284,7 @@ public class CreatureGenerator(
     {
         return skills
             .SelectMany(cs =>
-                abilityDefinitions
+                AbilityCatalog
                     .Abilities.Where(a => a.Skill == cs.Skill && a.RequiredSkillLevel <= cs.Level)
                     .Select(a => new CreatureAbility
                     {
@@ -1307,9 +1303,6 @@ public class CreatureGenerator(
         return (int)(spread * archetype.StatAffinities.GoldMultiplier);
     }
 
-    // Defense is never drawn from the stat pool, for players or monsters alike - it always
-    // comes from gear (see StatFormulas' Defense handling and CreatureGenerator.GetPlayerAttributes,
-    // which pins it to the baseline the same way).
     private Attributes GetAttributes(int level, CreatureArchetype archetype)
     {
         var a = archetype.StatAffinities;

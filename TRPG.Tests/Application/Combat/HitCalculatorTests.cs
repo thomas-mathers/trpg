@@ -66,12 +66,14 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 30)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDefense(70)
             .WithDexterity(0)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var calculator = new HitCalculator(Settings);
 
@@ -93,12 +95,14 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 30)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDefense(0)
             .WithDexterity(100)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var calculator = new HitCalculator(Settings);
 
@@ -110,10 +114,10 @@ public class HitCalculatorTests
     }
 
     [Fact]
-    public void CalculateHitChance_HalvesEvasionContribution_WhenDefenderIsSnared()
+    public void CalculateHitChance_HalvesEvasionContribution_WhenDefenderHasASnareDebuff()
     {
-        // Arrange — proficiency 30 vs (defense 0 + dexterity 100 x 0.5 snared x 0.6 evasion = 30)
-        // = 30 vs 30 = 50%, instead of the 33.3% an un-snared defender would get (see the
+        // Arrange — proficiency 30 vs (defense 0 + dexterity 100 x 0.5 snare debuff x 0.6 evasion
+        // = 30) = 30 vs 30 = 50%, instead of the 33.3% an undebuffed defender would get (see the
         // AddsDexterityAsEvasion test above)
         var weapon = MakeWeapon();
         var attacker = Builders
@@ -122,13 +126,15 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 30)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDefense(0)
             .WithDexterity(100)
-            .WithCondition(ConditionType.Snared, 2)
+            .WithActiveBuff(AttributeName.Dexterity, -50, AmountType.Percent, remainingTurns: 2)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var calculator = new HitCalculator(Settings);
 
@@ -150,8 +156,14 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 1)
+            .WithCombatOptions(Settings.Value)
             .Build();
-        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(999).Build();
+        var defender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithDefense(999)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -173,8 +185,14 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 1)
+            .WithCombatOptions(Settings.Value)
             .Build();
-        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDexterity(999_999).Build();
+        var defender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithDexterity(999_999)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -195,8 +213,14 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 999)
+            .WithCombatOptions(Settings.Value)
             .Build();
-        var defender = Builders.NewCombatant().WithWorldId(_worldId).WithDefense(1).Build();
+        var defender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithDefense(1)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var calculator = new HitCalculator(Settings);
 
         // Act
@@ -217,12 +241,14 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 0)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDefense(0)
             .WithDexterity(0)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var calculator = new HitCalculator(Settings);
 
@@ -237,12 +263,18 @@ public class HitCalculatorTests
     public void CalculateHitChance_UsesBaseProficiency_WhenUnarmed()
     {
         // Arrange — unarmed relies on the base proficiency alone: 50 vs defense 50 = 50%
-        var attacker = Builders.NewCombatant().AsPlayer().WithWorldId(_worldId).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .AsPlayer()
+            .WithWorldId(_worldId)
+            .WithCombatOptions(BaseProficiencySettings.Value)
+            .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDefense(50)
             .WithDexterity(0)
+            .WithCombatOptions(BaseProficiencySettings.Value)
             .Build();
         var calculator = new HitCalculator(BaseProficiencySettings);
 
@@ -264,12 +296,14 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 0)
+            .WithCombatOptions(BaseProficiencySettings.Value)
             .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDefense(50)
             .WithDexterity(0)
+            .WithCombatOptions(BaseProficiencySettings.Value)
             .Build();
         var calculator = new HitCalculator(BaseProficiencySettings);
 
@@ -291,12 +325,14 @@ public class HitCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 30)
+            .WithCombatOptions(BaseProficiencySettings.Value)
             .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDefense(20)
             .WithDexterity(0)
+            .WithCombatOptions(BaseProficiencySettings.Value)
             .Build();
         var calculator = new HitCalculator(BaseProficiencySettings);
 
@@ -319,12 +355,14 @@ public class HitCalculatorTests
             .WithLevel(1)
             .WithItem(weapon)
             .WithWeaponProficiency(weapon.Type, 999_999)
+            .WithCombatOptions(NonPlayerProficiencySettings.Value)
             .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDefense(10)
             .WithDexterity(0)
+            .WithCombatOptions(NonPlayerProficiencySettings.Value)
             .Build();
         var calculator = new HitCalculator(NonPlayerProficiencySettings);
 
@@ -339,12 +377,18 @@ public class HitCalculatorTests
     public void CalculateHitChance_ScalesFormulaicProficiency_ByLevel_ForNonPlayerCombatants()
     {
         // Arrange — level 10: proficiency 100 + 10 × 10 = 200 vs defense 200 = 50%
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithLevel(10).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithLevel(10)
+            .WithCombatOptions(NonPlayerProficiencySettings.Value)
+            .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDefense(200)
             .WithDexterity(0)
+            .WithCombatOptions(NonPlayerProficiencySettings.Value)
             .Build();
         var calculator = new HitCalculator(NonPlayerProficiencySettings);
 
@@ -356,7 +400,7 @@ public class HitCalculatorTests
     }
 
     [Fact]
-    public void DidHit_AlwaysHits_ForNonPhysicalAbilities()
+    public void RollHit_AlwaysHits_ForNonPhysicalAbilities()
     {
         // Arrange — settings that would always miss a physical roll
         var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
@@ -364,7 +408,7 @@ public class HitCalculatorTests
         var calculator = new HitCalculator(AlwaysMiss);
 
         // Act
-        var didHit = calculator.DidHit(
+        var didHit = calculator.RollHit(
             attacker,
             Builders.MakeAttackAbility(DamageType.Fire),
             defender
@@ -375,7 +419,7 @@ public class HitCalculatorTests
     }
 
     [Fact]
-    public void DidHit_RespectsTheClampedChance_ForPhysicalAbilities()
+    public void RollHit_RespectsTheClampedChance_ForPhysicalAbilities()
     {
         // Arrange
         var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
@@ -384,12 +428,14 @@ public class HitCalculatorTests
         var alwaysMissCalculator = new HitCalculator(AlwaysMiss);
 
         // Act & Assert
-        Assert.True(alwaysHitCalculator.DidHit(attacker, Builders.MakeAttackAbility(), defender));
-        Assert.False(alwaysMissCalculator.DidHit(attacker, Builders.MakeAttackAbility(), defender));
+        Assert.True(alwaysHitCalculator.RollHit(attacker, Builders.MakeAttackAbility(), defender));
+        Assert.False(
+            alwaysMissCalculator.RollHit(attacker, Builders.MakeAttackAbility(), defender)
+        );
     }
 
     [Fact]
-    public void DidBlock_NeverBlocks_ForNonPhysicalAbilities()
+    public void RollBlock_NeverBlocks_ForNonPhysicalAbilities()
     {
         // Arrange — a shield that would otherwise always block
         var shield = Builders.MakeShieldItem(worldId: _worldId, blockChance: 1.0f);
@@ -397,14 +443,14 @@ public class HitCalculatorTests
         var calculator = new HitCalculator(Settings);
 
         // Act
-        var didBlock = calculator.DidBlock(Builders.MakeAttackAbility(DamageType.Fire), defender);
+        var didBlock = calculator.RollBlock(Builders.MakeAttackAbility(DamageType.Fire), defender);
 
         // Assert
         Assert.False(didBlock);
     }
 
     [Fact]
-    public void DidBlock_RollsAgainstBlockChance_ForPhysicalAbilities()
+    public void RollBlock_RollsAgainstBlockChance_ForPhysicalAbilities()
     {
         // Arrange
         var blockingShield = Builders.MakeShieldItem(worldId: _worldId, blockChance: 1.0f);
@@ -417,7 +463,7 @@ public class HitCalculatorTests
         var calculator = new HitCalculator(Settings);
 
         // Act & Assert
-        Assert.True(calculator.DidBlock(Builders.MakeAttackAbility(), blockingDefender));
-        Assert.False(calculator.DidBlock(Builders.MakeAttackAbility(), unshieldedDefender));
+        Assert.True(calculator.RollBlock(Builders.MakeAttackAbility(), blockingDefender));
+        Assert.False(calculator.RollBlock(Builders.MakeAttackAbility(), unshieldedDefender));
     }
 }

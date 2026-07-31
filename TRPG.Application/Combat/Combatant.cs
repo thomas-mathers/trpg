@@ -1,4 +1,5 @@
 using TRPG.Application.Abilities;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
@@ -64,9 +65,9 @@ public class Combatant
     public required int Level { get; init; }
     public required Attributes Attributes { get; init; }
     public required IReadOnlyList<Ability> Abilities { get; init; }
-    public required int Gold { get; init; }
     public required int NaturalWeaponMinDamage { get; init; }
     public required int NaturalWeaponMaxDamage { get; init; }
+    public required CombatOptions CombatOptions { get; init; }
     public int CurrentHp { get; set; }
     public int CurrentAp { get; set; }
     public int CurrentMp { get; set; }
@@ -85,17 +86,54 @@ public class Combatant
     public int MaximumHp => (int)CalculateEffectiveAttribute(AttributeName.MaximumHp);
     public int MaximumAp => (int)CalculateEffectiveAttribute(AttributeName.MaximumAp);
     public int MaximumMp => (int)CalculateEffectiveAttribute(AttributeName.MaximumMp);
-
-    public float TurnOrder => CalculateEffectiveAttribute(AttributeName.Dexterity);
+    public float Strength => CalculateEffectiveAttribute(AttributeName.Strength);
+    public float Defense => CalculateEffectiveAttribute(AttributeName.Defense);
+    public float Dexterity => CalculateEffectiveAttribute(AttributeName.Dexterity);
+    public float Stamina => CalculateEffectiveAttribute(AttributeName.Stamina);
+    public float Mana => CalculateEffectiveAttribute(AttributeName.Mana);
+    public float Intelligence => CalculateEffectiveAttribute(AttributeName.Intelligence);
+    public float PhysicalResistance =>
+        CalculateEffectiveAttribute(AttributeName.PhysicalResistance);
+    public float FireResistance => CalculateEffectiveAttribute(AttributeName.FireResistance);
+    public float IceResistance => CalculateEffectiveAttribute(AttributeName.IceResistance);
+    public float LightningResistance =>
+        CalculateEffectiveAttribute(AttributeName.LightningResistance);
+    public float PoisonResistance => CalculateEffectiveAttribute(AttributeName.PoisonResistance);
+    public float MagicResistance => CalculateEffectiveAttribute(AttributeName.MagicResistance);
+    public float TurnOrder => Dexterity;
     public Weapon? Weapon => EquippedItems.OfType<Weapon>().SingleOrDefault();
-    public int? WeaponProficiency => Weapon != null ? WeaponProficiencies[Weapon.Type] : null;
     public Shield? Shield => EquippedItems.OfType<Shield>().SingleOrDefault();
     public float BlockChance => Shield?.BlockChance ?? 0f;
 
+    public float Evasion => Dexterity * CombatOptions.EvasionPerDexterityPoint;
+
+    public float AttackRating
+    {
+        get
+        {
+            if (IsPlayer)
+            {
+                var weaponProficiency = Weapon != null ? WeaponProficiencies[Weapon.Type] : 0;
+                return CombatOptions.BaseProficiency + weaponProficiency;
+            }
+            return CombatOptions.NonPlayerProficiencyBase
+                + CombatOptions.NonPlayerProficiencyPerLevel * Level;
+        }
+    }
+
+    public float CritChance =>
+        Math.Min(
+            CombatOptions.MaxCritChance,
+            Dexterity * CombatOptions.CritChancePerDexterityPoint
+        );
+
+    public float CritDamageMultiplier => CombatOptions.CritDamageMultiplier;
+
     public static Combatant FromCreature(
+        CombatOptions combatOptions,
+        bool isPlayer,
         Creature creature,
         IReadOnlyList<Ability> abilities,
-        bool isPlayer,
         IReadOnlyList<Item> items,
         IReadOnlyDictionary<WeaponType, int> weaponProficiencies
     )
@@ -117,9 +155,9 @@ public class Combatant
             Level = creature.Level,
             Attributes = creature.BaseAttributes,
             Abilities = abilities,
-            Gold = items.OfType<Gold>().Sum(i => i.Quantity),
             NaturalWeaponMinDamage = creature.NaturalWeaponMinDamage,
             NaturalWeaponMaxDamage = creature.NaturalWeaponMaxDamage,
+            CombatOptions = combatOptions,
             CurrentHp = Math.Clamp(creature.CurrentHp, 0, startingAttributes.MaximumHp),
             CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
             CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),
@@ -217,6 +255,18 @@ public class Combatant
         }
     }
 
-    public float CalculateEffectiveAttribute(AttributeName attribute) =>
+    private float CalculateEffectiveAttribute(AttributeName attribute) =>
         StatFormulas.CalculateEffectiveAttribute(Attributes, ActiveBuffs, EquippedItems, attribute);
+
+    public float ResistanceFor(DamageType damageType) =>
+        damageType switch
+        {
+            DamageType.Physical => PhysicalResistance,
+            DamageType.Fire => FireResistance,
+            DamageType.Ice => IceResistance,
+            DamageType.Lightning => LightningResistance,
+            DamageType.Poison => PoisonResistance,
+            DamageType.Magic => MagicResistance,
+            _ => throw new ArgumentOutOfRangeException(nameof(damageType)),
+        };
 }

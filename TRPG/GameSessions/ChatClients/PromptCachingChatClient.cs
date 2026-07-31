@@ -20,21 +20,14 @@ internal sealed class PromptCachingChatClient(
     {
         var messageList = messages as IReadOnlyList<ChatMessage> ?? messages.ToList();
 
-        // FunctionInvokingChatClient calls this client once per internal tool-calling
-        // round within a single turn, and each round's message list still contains the
-        // previous round's breakpoints. Clear them first so a turn with several rounds
-        // (retries, multiple tool calls) never exceeds Anthropic's 4-breakpoint cap.
         ClearCacheControl(messageList);
 
-        // Fixed breakpoint: caches tools + system prompt as one shared, long-lived unit.
         messageList[0].Contents[^1].WithCacheControl(Ttl.Ttl1h);
-
-        // Rolling breakpoint: advances to the newest message every call, so each
-        // subsequent call only pays full price for what's new since the last one.
         messageList[^1].Contents[^1].WithCacheControl(Ttl.Ttl5m);
 
         var enumerator = base.GetStreamingResponseAsync(messageList, options, cancellationToken)
             .GetAsyncEnumerator(cancellationToken);
+
         while (true)
         {
             ChatResponseUpdate update;
@@ -65,8 +58,6 @@ internal sealed class PromptCachingChatClient(
         }
     }
 
-    // Safety net for the cache_control breakpoint cap — logs which blocks were marked
-    // if a request is ever rejected for exceeding it again.
     private void LogCacheControlBlocks(IReadOnlyList<ChatMessage> messageList, Exception ex)
     {
         var markedBlocks = messageList

@@ -7,13 +7,13 @@ internal class GetAbilitiesBySkillQuery
     public required Skill Skill { get; init; }
 }
 
-internal class GetAbilitiesBySkillQueryHandler(AbilityDefinitions abilityDefinitions)
+internal class GetAbilitiesBySkillQueryHandler
 {
     public Task<IReadOnlyCollection<Ability>> Handle(
         GetAbilitiesBySkillQuery query,
         CancellationToken cancellationToken = default
     ) =>
         Task.FromResult<IReadOnlyCollection<Ability>>(
-            abilityDefinitions.Abilities.Where(a => a.Skill == query.Skill).ToArray()
+            AbilityCatalog.Abilities.Where(a => a.Skill == query.Skill).ToArray()
         );
 }

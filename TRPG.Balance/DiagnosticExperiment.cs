@@ -3,7 +3,6 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Generators;
-using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data.Models;
 
 namespace TRPG.Balance;
@@ -16,10 +15,6 @@ internal sealed class DiagnosticOptionsSnapshot<T>(T value) : IOptionsSnapshot<T
     public T Get(string? name) => value;
 }
 
-// One-off ground-truth dump for a single profession-vs-monster-type pairing at a given level:
-// actual generated attributes, equipped weapon, and per-ability EstimateDamage against the
-// opponent's actual resistances - used to diagnose why the win-rate matrix skews the way it
-// does, instead of hand-deriving it from the damage formulas and stat-affinity weights.
 internal static class DiagnosticExperiment
 {
     public static void Run(Profession profession, CreatureType monsterCreatureType, int level)
@@ -40,20 +35,13 @@ internal static class DiagnosticExperiment
             Guid.NewGuid(),
             level,
             level,
-            // See ProfessionMatrixExperiment.GeneratePlayer/BuildRealisticAllocation - a non-null
-            // allocation signals the player skill-baseline path, and must actually spend the
-            // level's point budget rather than leaving every stat at the bare baseline.
             StartingAttributeAllocation: ProfessionMatrixExperiment.BuildRealisticAllocation(
                 playerArchetype,
                 level
             )
         );
         var playerResult = context.Generator.Generate(playerInput);
-        var player = GeneratedCombatantFactory.ToCombatant(
-            playerResult,
-            context.AbilityDefinitions,
-            isPlayer: true
-        );
+        var player = GeneratedCombatantFactory.ToCombatant(playerResult, isPlayer: true);
 
         var monsterInput = new CreatureGeneratorInput(
             monsterCreatureType,
@@ -65,11 +53,7 @@ internal static class DiagnosticExperiment
             level
         );
         var monsterResult = context.Generator.Generate(monsterInput);
-        var monster = GeneratedCombatantFactory.ToCombatant(
-            monsterResult,
-            context.AbilityDefinitions,
-            isPlayer: false
-        );
+        var monster = GeneratedCombatantFactory.ToCombatant(monsterResult, isPlayer: false);
 
         PrintCombatant($"{profession} (level {level})", player);
         PrintCombatant($"{monsterCreatureType} (level {level})", monster);
@@ -87,27 +71,27 @@ internal static class DiagnosticExperiment
     {
         Console.WriteLine($"{label}:");
         Console.WriteLine(
-            $"  Str={combatant.CalculateEffectiveAttribute(AttributeName.Strength):F1} "
-                + $"Int={combatant.CalculateEffectiveAttribute(AttributeName.Intelligence):F1} "
-                + $"Dex={combatant.CalculateEffectiveAttribute(AttributeName.Dexterity):F1} "
-                + $"Def={combatant.CalculateEffectiveAttribute(AttributeName.Defense):F1}"
+            $"  Str={combatant.Strength:F1} "
+                + $"Int={combatant.Intelligence:F1} "
+                + $"Dex={combatant.Dexterity:F1} "
+                + $"Def={combatant.Defense:F1}"
         );
         Console.WriteLine(
-            $"  PhysRes={combatant.CalculateEffectiveAttribute(AttributeName.PhysicalResistance):F2} "
-                + $"MagicRes={combatant.CalculateEffectiveAttribute(AttributeName.MagicResistance):F2} "
-                + $"FireRes={combatant.CalculateEffectiveAttribute(AttributeName.FireResistance):F2} "
-                + $"IceRes={combatant.CalculateEffectiveAttribute(AttributeName.IceResistance):F2} "
-                + $"LightningRes={combatant.CalculateEffectiveAttribute(AttributeName.LightningResistance):F2} "
-                + $"PoisonRes={combatant.CalculateEffectiveAttribute(AttributeName.PoisonResistance):F2}"
+            $"  PhysRes={combatant.PhysicalResistance:F2} "
+                + $"MagicRes={combatant.MagicResistance:F2} "
+                + $"FireRes={combatant.FireResistance:F2} "
+                + $"IceRes={combatant.IceResistance:F2} "
+                + $"LightningRes={combatant.LightningResistance:F2} "
+                + $"PoisonRes={combatant.PoisonResistance:F2}"
         );
         Console.WriteLine(
             $"  MaxHp={combatant.MaximumHp} MaxAp={combatant.MaximumAp} MaxMp={combatant.MaximumMp} "
-                + $"Stamina={combatant.CalculateEffectiveAttribute(AttributeName.Stamina):F1} "
-                + $"Mana={combatant.CalculateEffectiveAttribute(AttributeName.Mana):F1}"
+                + $"Stamina={combatant.Stamina:F1} "
+                + $"Mana={combatant.Mana:F1}"
         );
         Console.WriteLine(
             combatant.Weapon is { } weapon
-                ? $"  Weapon={weapon.Type} {weapon.MinDamage}-{weapon.MaxDamage} (proficiency={combatant.WeaponProficiency})"
+                ? $"  Weapon={weapon.Type} {weapon.MinDamage}-{weapon.MaxDamage} (proficiency={combatant.AttackRating:F1})"
                 : "  Weapon=none"
         );
     }

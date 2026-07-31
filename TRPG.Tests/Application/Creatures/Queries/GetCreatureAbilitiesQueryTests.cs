@@ -1,4 +1,3 @@
-using TRPG.Application.Abilities;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -13,12 +12,11 @@ public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncL
     private GetCreatureAbilitiesQueryHandler _handler = null!;
     private static readonly Guid WorldId = Guid.NewGuid();
     private readonly Creature _player = Builders.MakeCreature(WorldId);
-    private static readonly AbilityDefinitions AbilityDefinitions = AbilityDefinitions.Create();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetCreatureAbilitiesQueryHandler(_context, AbilityDefinitions);
+        _handler = new GetCreatureAbilitiesQueryHandler(_context);
 
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

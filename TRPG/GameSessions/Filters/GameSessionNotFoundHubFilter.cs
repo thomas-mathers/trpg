@@ -24,11 +24,7 @@ internal class GameSessionNotFoundHubFilter : IHubFilter
         {
             await next(context, exception);
         }
-        catch (GameSessionNotFoundException)
-        {
-            // The session was already ended (e.g. via the HTTP DELETE endpoint) before the
-            // connection closed — nothing left to clean up here.
-        }
+        catch (GameSessionNotFoundException) { }
     }
 
     private static async IAsyncEnumerable<string> Wrap(IAsyncEnumerable<string> inner)

@@ -10,7 +10,7 @@ namespace TRPG.Tests.Application.Combat;
 
 public class CombatEngineTests
 {
-    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
+    private static readonly SupportAbility BlockStance = AbilityCatalog.Block;
     private readonly Guid _worldId = Guid.NewGuid();
 
     // CritChancePerDexterityPoint is zeroed on both - a real random crit roll would otherwise
@@ -34,6 +34,14 @@ public class CombatEngineTests
                 CritChancePerDexterityPoint = 0f,
             }
         );
+
+    // Matches AlwaysHit/AlwaysMiss on every field Combatant itself reads (only
+    // CritChancePerDexterityPoint) so a combatant's own crit roll can't turn these tests flaky,
+    // regardless of which of the two engine variants a given test pairs it with.
+    private static readonly CombatOptions TestCombatOptions = new()
+    {
+        CritChancePerDexterityPoint = 0f,
+    };
 
     private static readonly string[] CleaveTargets = ["Husk", "Wraith"];
 
@@ -74,7 +82,8 @@ public class CombatEngineTests
         AttackTargetType targetType = AttackTargetType.Single,
         DamageType damageType = DamageType.Physical,
         DotEffect? dot = null,
-        StatusEffect? status = null
+        StatusEffect? status = null,
+        AttributeEffect? debuff = null
     )
     {
         return new AttackAbility
@@ -91,10 +100,11 @@ public class CombatEngineTests
                 damageType == DamageType.Physical ? AmountType.Percent : AmountType.Flat,
             Dots = dot != null ? [dot] : [],
             Conditions = status != null ? [status] : [],
+            Debuffs = debuff != null ? [debuff] : [],
         };
     }
 
-    private static HealOverTimeAbility MakeRegen(
+    private static SupportAbility MakeRegen(
         string name = "Regen",
         int amountPerTurn = 5,
         int duration = 3,
@@ -102,20 +112,23 @@ public class CombatEngineTests
         int cooldown = 0
     )
     {
-        return new HealOverTimeAbility
+        return new SupportAbility
         {
             Name = name,
             Description = "A test heal-over-time ability.",
             ApCost = cost,
             Cooldown = cooldown,
             TargetType = TargetType.Single,
-            AmountPerTurn = amountPerTurn,
-            Duration = duration,
+            Hots = [new HotEffect { Amount = amountPerTurn, Duration = duration }],
         };
     }
 
     private CombatantBuilder MakeCombatant(string name) =>
-        Builders.NewCombatant().WithWorldId(_worldId).WithName(name);
+        Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithName(name)
+            .WithCombatOptions(TestCombatOptions);
 
     [Fact]
     public void ResolvePlayerAction_ResolvesFullRound_PlayerAndEnemies()
@@ -159,8 +172,8 @@ public class CombatEngineTests
     [Fact]
     public void ResolvePlayerAction_ResolvesABonusSwing_WhenAttackerWieldsAFastWeapon()
     {
-        // Arrange — AttackSpeed 10 crosses the fast-weapon threshold for a bonus swing
-        var dagger = Builders.MakeWeaponItem(attackSpeed: 10);
+        // Arrange — AttacksPerTurn 2 grants a bonus swing
+        var dagger = Builders.MakeWeaponItem(attacksPerTurn: 2);
         var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(dagger).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
@@ -177,8 +190,8 @@ public class CombatEngineTests
     [Fact]
     public void ResolvePlayerAction_ResolvesOnlyOneSwing_WhenAttackerWieldsAStandardSpeedWeapon()
     {
-        // Arrange — the default AttackSpeed (7) is below the fast-weapon threshold
-        var sword = Builders.MakeWeaponItem(attackSpeed: 7);
+        // Arrange — the default AttacksPerTurn (1) grants no bonus swing
+        var sword = Builders.MakeWeaponItem();
         var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(sword).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
@@ -197,7 +210,7 @@ public class CombatEngineTests
     {
         // Arrange — a high-percent ability with a status effect; only the first swing should
         // carry either, the bonus swing is a plain 100% weapon hit
-        var dagger = Builders.MakeWeaponItem(minDamage: 5, maxDamage: 5, attackSpeed: 10);
+        var dagger = Builders.MakeWeaponItem(minDamage: 5, maxDamage: 5, attacksPerTurn: 2);
         var stun = new StatusEffect { Condition = ConditionType.Stunned, Duration = 1 };
         var player = MakeCombatant("Hero")
             .AsPlayer()
@@ -242,7 +255,6 @@ public class CombatEngineTests
         var hit = Assert.IsType<Hit>(Assert.Single(state.Events));
         Assert.True(hit.Killed);
         Assert.False(state.Combatants.Single(c => !c.IsPlayer).IsAlive);
-        Assert.NotNull(state.GoldLooted);
     }
 
     [Fact]
@@ -313,6 +325,40 @@ public class CombatEngineTests
         Assert.Equal(ConditionType.Stunned, Assert.Single(playerHit.AppliedConditions));
         var enemyState = state.Combatants.Single(c => !c.IsPlayer);
         Assert.True(enemyState.ActiveConditions.ContainsKey(ConditionType.Stunned));
+    }
+
+    [Fact]
+    public void ResolvePlayerAction_AppliesTheAttacksDebuff_WhenItHits()
+    {
+        // Arrange
+        var slow = new AttributeEffect
+        {
+            Attribute = AttributeName.Dexterity,
+            AmountType = AmountType.Percent,
+            Amount = -50,
+            Duration = 2,
+        };
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(MakeAttack("Hamstring", debuff: slow))
+            .Build();
+        var monster = MakeCombatant("Wraith")
+            .WithDexterity(100)
+            .WithAbilities(MakeAttack())
+            .Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Hamstring"));
+
+        // Assert — the debuff landed on the target and its effective Dexterity is halved
+        var appliedDebuff = Assert.Single(monster.ActiveBuffs);
+        Assert.Equal(AttributeName.Dexterity, appliedDebuff.Attribute);
+        Assert.Equal(-50, appliedDebuff.Amount);
+        Assert.Equal(2, appliedDebuff.RemainingTurns);
+        Assert.Equal(50f, monster.Dexterity);
     }
 
     [Fact]
@@ -675,14 +721,6 @@ public class CombatEngineTests
     {
         // Arrange
         var buffAbility = Builders.MakeBuffAbility(name: "Battle Stance");
-        buffAbility.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.Strength,
-                AmountType = AmountType.Flat,
-                Amount = 5,
-            }
-        );
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -741,14 +779,6 @@ public class CombatEngineTests
     {
         // Arrange
         var buffAbility = Builders.MakeBuffAbility(name: "Battle Stance");
-        buffAbility.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.Strength,
-                AmountType = AmountType.Flat,
-                Amount = 5,
-            }
-        );
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -767,7 +797,7 @@ public class CombatEngineTests
         var playerState = combatants.Single(c => c.IsPlayer);
         var buff = Assert.Single(playerState.ActiveBuffs);
         Assert.Equal(5, buff.Amount);
-        Assert.Equal(5, playerState.CalculateEffectiveAttribute(AttributeName.Strength));
+        Assert.Equal(5, playerState.Strength);
     }
 
     [Fact]
@@ -775,22 +805,10 @@ public class CombatEngineTests
     {
         // Arrange
         var battleStance = Builders.MakeBuffAbility("Battle Stance");
-        battleStance.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.Strength,
-                AmountType = AmountType.Flat,
-                Amount = 5,
-            }
-        );
-        var ironWill = Builders.MakeBuffAbility("Iron Will");
-        ironWill.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.Defense,
-                AmountType = AmountType.Flat,
-                Amount = 10,
-            }
+        var ironWill = Builders.MakeBuffAbility(
+            "Iron Will",
+            attribute: AttributeName.Defense,
+            amount: 10
         );
         var player = MakeCombatant("Hero")
             .AsPlayer()
@@ -951,7 +969,7 @@ public class CombatEngineTests
 
         // Assert — Defense is doubled via the buff, not a bespoke damage-mitigation path
         var playerState = combatants.Single(c => c.IsPlayer);
-        Assert.Equal(20, playerState.CalculateEffectiveAttribute(AttributeName.Defense));
+        Assert.Equal(20, playerState.Defense);
         Assert.Contains(
             playerState.ActiveBuffs,
             b => b is { AbilityName: "Block", Attribute: AttributeName.Defense }

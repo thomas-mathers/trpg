@@ -152,7 +152,7 @@ public class AbilityGearRequirementTests
     [Fact]
     public void IsMet_ReturnsTrue_WhenNoGearIsRequired()
     {
-        // Arrange - Destruction/Illusion abilities in the real AbilityDefinitions never set a
+        // Arrange - Destruction/Illusion abilities in the real AbilityCatalog never set a
         // GearRequirement, so casting works without a staff/wand equipped.
         var actor = MakeCombatant().Build();
         var ability = MakeAbility("Fireball", GearRequirement.None);

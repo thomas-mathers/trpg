@@ -1,4 +1,3 @@
-using TRPG.Application.Abilities;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Worlds.Generators;
@@ -35,17 +34,15 @@ public class HouseholdGeneratorTests
 
     private static HouseholdGenerator MakeHouseholdGenerator()
     {
-        var abilityDefinitions = AbilityDefinitions.Create();
         var itemGenerator = new ItemGenerator(
-            new WeaponGenerator(abilityDefinitions),
-            new ArmorGenerator(abilityDefinitions),
+            new WeaponGenerator(),
+            new ArmorGenerator(),
             new AccessoryGenerator(),
             new ConsumableGenerator(),
             new AmmoGenerator()
         );
         var creatureGenerator = new CreatureGenerator(
             itemGenerator,
-            abilityDefinitions,
             new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions()),
             Builders.MakeStatFormulas()
         );

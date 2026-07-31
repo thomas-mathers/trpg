@@ -22,8 +22,7 @@ internal record CombatResult(
     CombatOutcome Outcome,
     CombatResultPlayerState Player,
     IReadOnlyList<CombatResultEnemyState> Enemies,
-    IReadOnlyList<CombatEvent> Events,
-    int? GoldLooted
+    IReadOnlyList<CombatEvent> Events
 );
 
 internal static class CombatStateExtensions
@@ -50,8 +49,7 @@ internal static class CombatStateExtensions
                     enemy.ActiveConditions
                 ))
                 .ToArray(),
-            state.Events,
-            state.GoldLooted
+            state.Events
         );
     }
 }

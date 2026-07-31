@@ -1,4 +1,5 @@
 using TRPG.Application.Combat;
+using TRPG.Application.Configuration;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
@@ -16,11 +17,12 @@ public class CombatantTests
 
         // Act
         var combatant = Combatant.FromCreature(
-            creature,
-            [],
+            new CombatOptions(),
             isPlayer: true,
-            [],
-            new Dictionary<WeaponType, int>()
+            creature: creature,
+            abilities: [],
+            items: [],
+            weaponProficiencies: new Dictionary<WeaponType, int>()
         );
 
         // Assert
@@ -43,11 +45,12 @@ public class CombatantTests
 
         // Act
         var combatant = Combatant.FromCreature(
-            creature,
-            [],
+            new CombatOptions(),
             isPlayer: true,
-            items,
-            new Dictionary<WeaponType, int>()
+            creature: creature,
+            abilities: [],
+            items: items,
+            weaponProficiencies: new Dictionary<WeaponType, int>()
         );
 
         // Assert — the unequipped spare never reaches EquippedItems, so Weapon resolves to

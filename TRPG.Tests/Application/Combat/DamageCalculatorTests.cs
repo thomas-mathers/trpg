@@ -32,7 +32,12 @@ public class DamageCalculatorTests
     {
         // Arrange — fixed-range weapon removes the roll, ability at 100% = a plain swing
         var weapon = MakeFixedRangeWeapon(10);
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
@@ -52,7 +57,12 @@ public class DamageCalculatorTests
     {
         // Arrange — 10 base × 150% = 15
         var weapon = MakeFixedRangeWeapon(10);
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
@@ -78,6 +88,7 @@ public class DamageCalculatorTests
             .WithWorldId(_worldId)
             .WithItem(weapon)
             .WithCondition(ConditionType.Disarmed, 3)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
@@ -98,7 +109,11 @@ public class DamageCalculatorTests
     {
         // Arrange — no weapon, so the combatant's natural-weapon range (fixed at 3-3 by the
         // builder's default) stands in for the roll: 3 × 100% = 3
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
@@ -123,6 +138,7 @@ public class DamageCalculatorTests
             .WithWorldId(_worldId)
             .WithStrength(50)
             .WithItem(weapon)
+            .WithCombatOptions(Settings.Value)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
@@ -143,7 +159,12 @@ public class DamageCalculatorTests
     {
         // Arrange — magic ignores the weapon entirely
         var weapon = MakeFixedRangeWeapon(999);
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithItem(weapon).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
@@ -162,7 +183,12 @@ public class DamageCalculatorTests
     public void CalculateDamage_AppliesIntelligenceAsALogarithmicBonus_ForMagicAbilities()
     {
         // Arrange — 20 base × (1 + ln(1 + 50 / 50)) = 20 × (1 + ln(2)) ≈ 33
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithIntelligence(50).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithIntelligence(50)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(Settings);
 
@@ -181,7 +207,11 @@ public class DamageCalculatorTests
     public void CalculateDamage_MitigatesByTheMatchingResistance()
     {
         // Arrange — 20 fire damage, 25% fire resistance = 15
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
@@ -204,7 +234,11 @@ public class DamageCalculatorTests
     public void CalculateDamage_ClampsResistanceAtMaxResistancePercent_WhenResistanceExceedsTheCap()
     {
         // Arrange — 20 fire damage, resistance rolled at 150% but clamped to the 75% cap = 5
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithCombatOptions(Settings.Value)
+            .Build();
         var defender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
@@ -254,7 +288,12 @@ public class DamageCalculatorTests
                 CritDamageMultiplier = 2f,
             }
         );
-        var attacker = Builders.NewCombatant().WithWorldId(_worldId).WithDexterity(100).Build();
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithDexterity(100)
+            .WithCombatOptions(settings.Value)
+            .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(settings);
 
@@ -270,26 +309,27 @@ public class DamageCalculatorTests
     }
 
     [Fact]
-    public void EstimateDamage_ReducesCritChanceContribution_WhenAttackerIsSnared()
+    public void EstimateDamage_ReducesCritChanceContribution_WhenAttackerHasASnareDebuff()
     {
-        // Arrange — same setup as the crit test above, but Snared halves the 100 Dexterity to 50,
-        // halving crit chance to 50% x 0.01 = 50% (still capped, unaffected) - use a lower
-        // Dexterity so the halving actually changes the capped outcome: 60 x 0.01 = 60% capped to
-        // 50% unsnared (full multiplier); snared, 30 x 0.01 = 30% (partial): 20 x (1 + 0.3) = 26
+        // Arrange — same setup as the crit test above, but a snare debuff halves the 100
+        // Dexterity to 50, halving crit chance to 50% x 0.01 = 50% (still capped, unaffected) -
+        // use a lower Dexterity so the halving actually changes the capped outcome: 60 x 0.01 =
+        // 60% capped to 50% undebuffed (full multiplier); debuffed, 30 x 0.01 = 30% (partial):
+        // 20 x (1 + 0.3) = 26
         var settings = new TestOptionsSnapshot<CombatOptions>(
             new CombatOptions
             {
                 CritChancePerDexterityPoint = 0.01f,
                 MaxCritChance = 0.5f,
                 CritDamageMultiplier = 2f,
-                SnareDexterityReductionPercent = 0.5f,
             }
         );
         var attacker = Builders
             .NewCombatant()
             .WithWorldId(_worldId)
             .WithDexterity(60)
-            .WithCondition(ConditionType.Snared, 2)
+            .WithActiveBuff(AttributeName.Dexterity, -50, AmountType.Percent, remainingTurns: 2)
+            .WithCombatOptions(settings.Value)
             .Build();
         var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
         var calculator = new DamageCalculator(settings);

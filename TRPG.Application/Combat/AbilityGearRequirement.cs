@@ -5,25 +5,6 @@ namespace TRPG.Application.Combat;
 
 public static class AbilityGearRequirement
 {
-    // Which skill trains when this weapon type lands a swing (see CombatEngine.GetTrainedSkill) -
-    // a separate concern from which GearRequirement category the weapon satisfies below.
-    public static readonly IReadOnlyDictionary<WeaponType, Skill> WeaponSkills = new Dictionary<
-        WeaponType,
-        Skill
-    >
-    {
-        [WeaponType.Sword] = Skill.Melee,
-        [WeaponType.Dagger] = Skill.Melee,
-        [WeaponType.Axe] = Skill.Melee,
-        [WeaponType.Mace] = Skill.Melee,
-        [WeaponType.Hammer] = Skill.Melee,
-        [WeaponType.Bow] = Skill.Archery,
-        [WeaponType.Crossbow] = Skill.Archery,
-        [WeaponType.Javelin] = Skill.Archery,
-        [WeaponType.Staff] = Skill.Destruction,
-        [WeaponType.Wand] = Skill.Destruction,
-    };
-
     private static readonly IReadOnlyDictionary<
         WeaponType,
         GearRequirement
@@ -41,8 +22,6 @@ public static class AbilityGearRequirement
         [WeaponType.Wand] = GearRequirement.CasterWeapon,
     };
 
-    // Shield or melee weapon: something you can actively deflect a blow with, as opposed to
-    // bracing bare-handed or with a ranged/casting weapon that isn't built for it.
     public static bool IsParryCapable(Combatant actor) =>
         actor.Shield != null || HasMeleeWeaponEquipped(actor);
 

@@ -48,9 +48,6 @@ public class StatFormulas(IOptionsSnapshot<CreatureGeneratorOptions> optionsSnap
             .SelectMany(item => item.Modifiers)
             .OfType<AttributeModifier>()
             .ToArray();
-        // Guaranteed baseline resistances from carrying a shield - everyone starts every
-        // resistance at 0, so a Percent-type modifier against that base would be a no-op;
-        // these have to land in the flat bucket to have any effect at all.
         var extraFlat = attribute switch
         {
             AttributeName.Defense => inventory.OfType<Armor>().Sum(armor => armor.Defense)

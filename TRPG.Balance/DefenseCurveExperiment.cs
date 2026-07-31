@@ -4,11 +4,6 @@ using TRPG.Data.Models;
 
 namespace TRPG.Balance;
 
-// Measures each playable profession's actual generated Defense+Evasion at a spread of levels,
-// averages them per level, and back-solves the monster WeaponProficiency that would land a
-// target hit chance against that average - see HitCalculator.CalculateHitChance for the formula
-// this inverts. Used to pick a level -> monster-proficiency curve grounded in real generated
-// stats instead of a guessed constant.
 internal static class DefenseCurveExperiment
 {
     private static readonly IReadOnlyList<Profession> PlayableProfessions =
@@ -47,12 +42,11 @@ internal static class DefenseCurveExperiment
                             var player = ProfessionMatrixExperiment.GeneratePlayer(
                                 context,
                                 profession,
-                                level
+                                level,
+                                combatOptions
                             );
-                            var defense = player.CalculateEffectiveAttribute(AttributeName.Defense);
-                            var evasion =
-                                player.CalculateEffectiveAttribute(AttributeName.Dexterity)
-                                * combatOptions.EvasionPerDexterityPoint;
+                            var defense = player.Defense;
+                            var evasion = player.Evasion;
                             return defense + evasion;
                         });
                     return samples.Average();
@@ -60,9 +54,6 @@ internal static class DefenseCurveExperiment
                 .ToArray();
 
             var average = defensePlusEvasionByProfession.Average();
-
-            // Invert HitCalculator.CalculateHitChance's ratio: hitChance = proficiency / (proficiency + D)
-            // => proficiency = hitChance * D / (1 - hitChance)
             var requiredProficiency = targetHitChance * average / (1 - targetHitChance);
             var suggestedWeaponProficiency = Math.Max(
                 0,

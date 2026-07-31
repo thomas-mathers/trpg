@@ -1,4 +1,3 @@
-using TRPG.Application.Abilities;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
@@ -37,17 +36,15 @@ public class CityGeneratorTests
 
     private static CityGenerator MakeCityGenerator()
     {
-        var abilityDefinitions = AbilityDefinitions.Create();
         var itemGenerator = new ItemGenerator(
-            new WeaponGenerator(abilityDefinitions),
-            new ArmorGenerator(abilityDefinitions),
+            new WeaponGenerator(),
+            new ArmorGenerator(),
             new AccessoryGenerator(),
             new ConsumableGenerator(),
             new AmmoGenerator()
         );
         var creatureGenerator = new CreatureGenerator(
             itemGenerator,
-            abilityDefinitions,
             new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions()),
             Builders.MakeStatFormulas()
         );

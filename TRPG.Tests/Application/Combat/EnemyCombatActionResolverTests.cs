@@ -19,7 +19,7 @@ public class EnemyCombatActionResolverTests
         new DamageCalculator(DefaultOptions),
         new HitCalculator(DefaultOptions)
     );
-    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
+    private static readonly SupportAbility BlockStance = AbilityCatalog.Block;
 
     private static EnemyCombatActionResolver MakeResolver(float openingBuffChancePercent)
     {
@@ -79,7 +79,7 @@ public class EnemyCombatActionResolverTests
 
         // Assert — the ability is preferred; the potion is left untouched
         var abilityAction = Assert.IsType<ResolvedUseAbilityAction>(result);
-        Assert.IsType<InstantHealAbility>(abilityAction.Ability);
+        Assert.IsType<SupportAbility>(abilityAction.Ability);
     }
 
     [Fact]
@@ -170,23 +170,15 @@ public class EnemyCombatActionResolverTests
     {
         // Arrange — a Strength buff boosts the monster's physical Strike; a MovementSpeed-only
         // buff provides no offensive or defensive value, so it should never win the comparison
-        var strengthBuff = Builders.MakeBuffAbility("Battle Stance");
-        strengthBuff.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.Strength,
-                AmountType = AmountType.Flat,
-                Amount = 50,
-            }
+        var strengthBuff = Builders.MakeBuffAbility(
+            "Battle Stance",
+            attribute: AttributeName.Strength,
+            amount: 50
         );
-        var speedBuff = Builders.MakeBuffAbility("Haste");
-        speedBuff.Modifiers.Add(
-            new AttributeModifier
-            {
-                Attribute = AttributeName.MovementSpeed,
-                AmountType = AmountType.Flat,
-                Amount = 10,
-            }
+        var speedBuff = Builders.MakeBuffAbility(
+            "Haste",
+            attribute: AttributeName.MovementSpeed,
+            amount: 10
         );
 
         var player = MakeCombatant("Hero").AsPlayer().Build();

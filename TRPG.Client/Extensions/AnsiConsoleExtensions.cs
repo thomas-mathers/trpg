@@ -94,9 +94,6 @@ public static class AnsiConsoleExtensions
 
             var playerLevel = combat.Combatants.First(c => c.IsPlayer).Level;
 
-            // Fixed rather than sized to current content, so panels don't resize turn to turn as
-            // effects come and go. +4 covers the panel's default border (1 char each side) and
-            // padding (1 char each side).
             AnsiConsole.Write(
                 new Columns(
                     combat.Combatants.Select(c =>
@@ -127,8 +124,6 @@ public static class AnsiConsoleExtensions
             return maxWidth <= 3 ? text[..maxWidth] : text[..(maxWidth - 3)] + "...";
         }
 
-        // A simple over/under/even split against the player's own level - a quick "is this fight
-        // above my weight class" signal, not meant to convey exactly how much harder/easier.
         private static string FormatLevel(int level, int playerLevel)
         {
             var color = level switch
@@ -190,9 +185,6 @@ public static class AnsiConsoleExtensions
             };
         }
 
-        // The bar stretches to fill whatever width the fixed panel width leaves free after the
-        // "XX " tag and the current/maximum/delta text, so it always fills the panel rather than
-        // sitting at a fixed size with wasted or overflowing space next to it.
         private static string BuildResourceLine(
             string tag,
             int current,
@@ -210,9 +202,6 @@ public static class AnsiConsoleExtensions
             return $"{tag} {FormatBar(current, maximum, barColor, barWidth)} {suffix}";
         }
 
-        // No delta shown on the very first render of a fight (previous is null, nothing to
-        // compare against yet) or for a combatant that's new to this render (e.g. wasn't in the
-        // previous snapshot).
         private static string FormatDelta(int current, int? previous)
         {
             if (previous is null || current == previous.Value)
@@ -220,16 +209,10 @@ public static class AnsiConsoleExtensions
                 return "";
             }
 
-            // No arrow glyph: common Windows terminal fonts cover the Block Elements range (used
-            // by the bars above) but not Geometric Shapes, so a triangle silently fails to
-            // render. Color plus the signed number already conveys direction unambiguously.
             var delta = current - previous.Value;
             return delta > 0 ? $" [{Theme.Positive}]+{delta}[/]" : $" [{Theme.Negative}]{delta}[/]";
         }
 
-        // One line per effect type, added only when non-empty. Buffs are always positive today -
-        // no ability applies a negative stat modifier yet (that'd be a curse, a future feature) -
-        // so this doesn't need to handle mixed-sign buffs; revisit if that changes.
         private static List<string> BuildEffectLines(CombatantState combatant)
         {
             List<string> lines = [];
@@ -291,7 +274,6 @@ public static class AnsiConsoleExtensions
                 text += $", +{overflow} more";
             }
 
-            // "{label}: " prefix takes label.Length + 2 (colon and space) before text starts.
             text = Truncate(text, PanelContentWidth - label.Length - 2);
 
             lines.Add($"[{Theme.Neutral}]{label}:[/] [{color}]{text.EscapeMarkup()}[/]");
@@ -306,8 +288,6 @@ public static class AnsiConsoleExtensions
             return buff.Amount >= 0 ? $"+{magnitude}" : magnitude;
         }
 
-        // Only ever shown in the tight combat status line above, so abbreviated here rather
-        // than in the shared ToDisplayName() extension every other enum in the app relies on.
         private static string AbbreviateAttribute(AttributeName attribute) =>
             attribute switch
             {
@@ -331,8 +311,6 @@ public static class AnsiConsoleExtensions
                 _ => attribute.ToDisplayName(),
             };
 
-        // Only ever shown in the tight combat status line above, so abbreviated here rather
-        // than in the shared ToDisplayName() extension every other enum in the app relies on.
         private static string AbbreviateCondition(ConditionType condition) =>
             condition switch
             {
@@ -348,8 +326,6 @@ public static class AnsiConsoleExtensions
                 _ => condition.ToDisplayName(),
             };
 
-        // Only ever shown in the tight combat status line above, so abbreviated here rather
-        // than in the shared ToDisplayName() extension every other enum in the app relies on.
         private static string AbbreviateDamageType(DamageType damageType) =>
             damageType switch
             {
@@ -385,11 +361,6 @@ public static class AnsiConsoleExtensions
 
     private static readonly Regex MarkupTagPattern = new(@"\[[^\]]*\]", RegexOptions.Compiled);
     private const int MaxEffectEntriesPerLine = 3;
-
-    // Rough estimate - fits typical effect lines (label plus a couple of entries) without
-    // wrapping, but a combatant stacked with 3 long entries on the longest label ("Conditions:")
-    // could overflow. Retune by eye if real content wraps more than expected.
     private const int PanelContentWidth = 42;
-
     private const int MinimumBarWidth = 5;
 }

@@ -23,10 +23,6 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         return CalculateDamage(ApplyCrit(withBonus, attacker), ability.DamageType, defender);
     }
 
-    // Same formula as CalculateDamage, but with a deterministic (average, not rolled) weapon
-    // damage, so callers ranking abilities against each other (e.g. enemy AI choosing its best
-    // attack) get a reproducible comparison instead of re-rolling a different answer every time
-    // they ask. Real damage application always goes through CalculateDamage instead.
     public int EstimateDamage(Combatant attacker, AttackAbility ability, Combatant defender)
     {
         var rawDamage =
@@ -47,26 +43,11 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         );
     }
 
-    // A bonus swing from a fast weapon (see WeaponAttackSpeed) doesn't carry the triggering
-    // ability's payload - it's the weapon striking again on its own, at a plain 100% weapon roll,
-    // always physical regardless of what ability was actually used.
-    public int CalculateBonusSwingDamage(Combatant attacker, Combatant defender)
-    {
-        var rawDamage = CalculatePhysicalRawDamage(
-            attacker,
-            damageAmount: 100f,
-            AmountType.Percent,
-            (min, max) => Random.Shared.Next(min, max + 1)
-        );
-
-        return CalculateDamage(ApplyCrit(rawDamage, attacker), DamageType.Physical, defender);
-    }
-
     public int CalculateDamage(float amount, DamageType type, Combatant defender)
     {
         var resistance = Math.Min(
             optionsSnapshot.Value.MaxResistancePercent,
-            defender.CalculateEffectiveAttribute(ResistanceAttributeFor(type))
+            defender.ResistanceFor(type)
         );
         var mitigated = amount * (1 - resistance);
 
@@ -80,23 +61,13 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         Func<int, int, int> rollRange
     )
     {
-        var strengthBonus =
-            attacker.CalculateEffectiveAttribute(AttributeName.Strength)
-            * optionsSnapshot.Value.StrengthDamageBonusPerPoint;
+        var strengthBonus = attacker.Strength * optionsSnapshot.Value.StrengthDamageBonusPerPoint;
 
-        // No equipped weapon: roll against this creature's own natural-weapon range instead (see
-        // CreatureArchetype.NaturalWeaponDamage) - scaled by level the same way a real weapon is,
-        // rather than a single flat constant shared by every unarmed creature in the game.
-        // Disarmed forces this same fallback regardless of what's actually equipped - already
-        // unarmed creatures (Beast, Elemental, Wraith) are naturally immune to it.
         var weapon = attacker.ActiveConditions[ConditionType.Disarmed] > 0 ? null : attacker.Weapon;
         var roll = weapon is null
             ? rollRange(attacker.NaturalWeaponMinDamage, attacker.NaturalWeaponMaxDamage)
             : rollRange(weapon.MinDamage, weapon.MaxDamage);
 
-        // Percent-type abilities (a weapon/natural-weapon swing) scale off the roll; Flat-type
-        // abilities add their own damage on top of it instead, so an unarmed attacker's Strength
-        // bonus multiplies a real base rather than a token amount alone.
         var baseDamage =
             damageAmountType == AmountType.Percent
                 ? roll * (damageAmount / 100f)
@@ -107,7 +78,7 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 
     private float CalculateMagicRawDamage(Combatant attacker, AttackAbility ability)
     {
-        var intelligence = attacker.CalculateEffectiveAttribute(AttributeName.Intelligence);
+        var intelligence = attacker.Intelligence;
         var intelligenceBonus = MathF.Log(
             1 + intelligence / optionsSnapshot.Value.IntelligenceDamageLogDivisor
         );
@@ -124,49 +95,11 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
             ? rawDamage * ability.BonusDamageMultiplier
             : rawDamage;
 
-    private float CalculateCritChance(Combatant attacker) =>
-        Math.Min(
-            optionsSnapshot.Value.MaxCritChance,
-            CalculateSnaredDexterity(attacker, optionsSnapshot.Value.SnareDexterityReductionPercent)
-                * optionsSnapshot.Value.CritChancePerDexterityPoint
-        );
-
-    // Snared has no dedicated incapacitation check (unlike Frozen/Stunned/Blinded/Silenced - see
-    // CombatEngine.GetIncapacitationEvent); instead it hobbles effective Dexterity wherever it's
-    // read for combat purposes.
-    private static float CalculateSnaredDexterity(
-        Combatant combatant,
-        float snareDexterityReductionPercent
-    )
-    {
-        var dexterity = combatant.CalculateEffectiveAttribute(AttributeName.Dexterity);
-        return combatant.ActiveConditions[ConditionType.Snared] > 0
-            ? dexterity * (1 - snareDexterityReductionPercent)
-            : dexterity;
-    }
-
-    private float ApplyCrit(float rawDamage, Combatant attacker) =>
-        Random.Shared.NextDouble() < CalculateCritChance(attacker)
-            ? rawDamage * optionsSnapshot.Value.CritDamageMultiplier
+    private static float ApplyCrit(float rawDamage, Combatant attacker) =>
+        Random.Shared.NextDouble() < attacker.CritChance
+            ? rawDamage * attacker.CritDamageMultiplier
             : rawDamage;
 
-    // EstimateDamage's counterpart to ApplyCrit - an expected-value blend instead of a coin flip,
-    // matching how EstimateDamage already averages a rolled weapon range instead of rolling it.
-    private float ApplyExpectedCrit(float rawDamage, Combatant attacker)
-    {
-        var critChance = CalculateCritChance(attacker);
-        return rawDamage * (1 + critChance * (optionsSnapshot.Value.CritDamageMultiplier - 1));
-    }
-
-    private static AttributeName ResistanceAttributeFor(DamageType damageType) =>
-        damageType switch
-        {
-            DamageType.Physical => AttributeName.PhysicalResistance,
-            DamageType.Fire => AttributeName.FireResistance,
-            DamageType.Ice => AttributeName.IceResistance,
-            DamageType.Lightning => AttributeName.LightningResistance,
-            DamageType.Poison => AttributeName.PoisonResistance,
-            DamageType.Magic => AttributeName.MagicResistance,
-            _ => throw new ArgumentOutOfRangeException(nameof(damageType)),
-        };
+    private static float ApplyExpectedCrit(float rawDamage, Combatant attacker) =>
+        rawDamage * (1 + attacker.CritChance * (attacker.CritDamageMultiplier - 1));
 }
