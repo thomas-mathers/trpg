@@ -58,7 +58,7 @@ public class WeaponGenerator
             1
         ),
         [WeaponType.Hammer] = new WeaponTypeData(
-            ["Warhammer", "Maul", "Great Hammer", "Sledgehammer"],
+            ["Warhammer", "Maul", "Sledgehammer"],
             12,
             5,
             12,
@@ -102,7 +102,8 @@ public class WeaponGenerator
             8,
             30,
             15,
-            1
+            1,
+            IsTwoHanded: true
         ),
         [WeaponType.Crossbow] = new WeaponTypeData(
             ["Light Crossbow", "Heavy Crossbow", "Repeating Crossbow"],
@@ -112,7 +113,8 @@ public class WeaponGenerator
             12,
             40,
             18,
-            1
+            1,
+            IsTwoHanded: true
         ),
         [WeaponType.Javelin] = new WeaponTypeData(
             ["Javelin", "Pilum", "War Dart", "Throwing Spear"],
@@ -123,6 +125,39 @@ public class WeaponGenerator
             35,
             6,
             1
+        ),
+        [WeaponType.GreatSword] = new WeaponTypeData(
+            ["Greatsword", "Zweihander", "Claymore", "Executioner's Blade"],
+            14,
+            5,
+            12,
+            15,
+            50,
+            1,
+            1,
+            IsTwoHanded: true
+        ),
+        [WeaponType.GreatAxe] = new WeaponTypeData(
+            ["Great Axe", "Battleaxe", "War Cleaver", "Reaper's Axe"],
+            16,
+            6,
+            14,
+            18,
+            55,
+            1,
+            1,
+            IsTwoHanded: true
+        ),
+        [WeaponType.GreatHammer] = new WeaponTypeData(
+            ["Great Hammer", "Warmaul", "Skullcrusher", "Earth Breaker"],
+            18,
+            7,
+            16,
+            20,
+            60,
+            1,
+            1,
+            IsTwoHanded: true
         ),
     };
 
@@ -286,6 +321,7 @@ public class WeaponGenerator
             MaxDamage = Roll(level, data.MaximumDamageLow, data.MaximumDamageHigh),
             Range = data.Range,
             AttacksPerTurn = data.AttacksPerTurn,
+            IsTwoHanded = data.IsTwoHanded,
             DurabilityMax = durabilityMax,
             DurabilityCurrent = durabilityMax,
         };
@@ -299,6 +335,7 @@ public class WeaponGenerator
         int MaximumDamageLow,
         int MaximumDamageHigh,
         int Range,
-        int AttacksPerTurn
+        int AttacksPerTurn,
+        bool IsTwoHanded = false
     );
 }

@@ -293,25 +293,31 @@ public class CombatEngine(
         var offHandWeapon = attacker.OffHandWeapon;
         var mainHandBonusSwings = Math.Max(0, (mainHandWeapon?.AttacksPerTurn ?? 1) - 1);
         var offHandSwings = offHandWeapon?.AttacksPerTurn ?? 0;
+
+        List<AttackAbility> mainHandAbilities =
+        [
+            ability,
+            .. Enumerable.Repeat(AbilityCatalog.Strike, mainHandBonusSwings),
+        ];
+        List<AttackAbility> offHandAbilities =
+        [
+            .. Enumerable.Repeat(AbilityCatalog.Strike, offHandSwings),
+        ];
+
         var combatEvents = new List<CombatEvent>();
 
         foreach (var defender in defenders)
         {
-            combatEvents.Add(ResolveWeaponSwing(attacker, ability, defender, mainHandWeapon));
-
-            for (var swing = 0; swing < mainHandBonusSwings; swing++)
-            {
-                combatEvents.Add(
-                    ResolveWeaponSwing(attacker, AbilityCatalog.Strike, defender, mainHandWeapon)
-                );
-            }
-
-            for (var swing = 0; swing < offHandSwings; swing++)
-            {
-                combatEvents.Add(
-                    ResolveWeaponSwing(attacker, AbilityCatalog.Strike, defender, offHandWeapon)
-                );
-            }
+            combatEvents.AddRange(
+                mainHandAbilities.Select(a =>
+                    ResolveWeaponSwing(attacker, a, defender, mainHandWeapon)
+                )
+            );
+            combatEvents.AddRange(
+                offHandAbilities.Select(a =>
+                    ResolveWeaponSwing(attacker, a, defender, offHandWeapon)
+                )
+            );
         }
 
         return combatEvents;

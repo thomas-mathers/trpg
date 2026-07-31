@@ -304,7 +304,8 @@ internal static class Builders
         WeaponType type = WeaponType.Sword,
         int minDamage = 5,
         int maxDamage = 15,
-        int attacksPerTurn = 1
+        int attacksPerTurn = 1,
+        bool isTwoHanded = false
     )
     {
         return new Weapon
@@ -319,6 +320,7 @@ internal static class Builders
             MaxDamage = maxDamage,
             Range = 1,
             AttacksPerTurn = attacksPerTurn,
+            IsTwoHanded = isTwoHanded,
             DurabilityMax = 100,
             DurabilityCurrent = 100,
         };

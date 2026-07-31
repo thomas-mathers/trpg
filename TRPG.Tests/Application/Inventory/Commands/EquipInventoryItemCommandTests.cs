@@ -158,4 +158,127 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
             )
         );
     }
+
+    [Fact]
+    public async Task Handle_ClearsBothHandSlots_WhenEquippingTwoHandedWeapon()
+    {
+        // Arrange
+        await _equipHandler.Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = _weapon.Id,
+                Slot = EquipmentSlot.RightHand,
+            },
+            TestContext.Current.CancellationToken
+        );
+        await _equipHandler.Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = _otherWeapon.Id,
+                Slot = EquipmentSlot.LeftHand,
+            },
+            TestContext.Current.CancellationToken
+        );
+        var greatSword = Builders.MakeWeaponItem(worldId: _creature.WorldId, isTwoHanded: true);
+        GiveToCreature(greatSword);
+        _context.Items.Add(greatSword);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _equipHandler.Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = greatSword.Id,
+                Slot = EquipmentSlot.RightHand,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var items = await _getHandler.Handle(
+            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(
+            EquipmentSlot.RightHand,
+            items.First(i => i.Id == greatSword.Id).Ownership.EquippedSlot
+        );
+        Assert.Null(items.First(i => i.Id == _weapon.Id).Ownership.EquippedSlot);
+        Assert.Null(items.First(i => i.Id == _otherWeapon.Id).Ownership.EquippedSlot);
+    }
+
+    [Fact]
+    public async Task Handle_ResolvesTwoHandedWeaponToRightHand_WhenLeftHandRequested()
+    {
+        // Arrange
+        var greatAxe = Builders.MakeWeaponItem(worldId: _creature.WorldId, isTwoHanded: true);
+        GiveToCreature(greatAxe);
+        _context.Items.Add(greatAxe);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _equipHandler.Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = greatAxe.Id,
+                Slot = EquipmentSlot.LeftHand,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var items = await _getHandler.Handle(
+            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(
+            EquipmentSlot.RightHand,
+            items.First(i => i.Id == greatAxe.Id).Ownership.EquippedSlot
+        );
+    }
+
+    [Fact]
+    public async Task Handle_UnequipsTwoHandedWeapon_WhenEquippingOffHandItem()
+    {
+        // Arrange
+        var greatHammer = Builders.MakeWeaponItem(worldId: _creature.WorldId, isTwoHanded: true);
+        GiveToCreature(greatHammer);
+        _context.Items.Add(greatHammer);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _equipHandler.Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = greatHammer.Id,
+                Slot = EquipmentSlot.RightHand,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _equipHandler.Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = _creature.Id,
+                ItemId = _otherWeapon.Id,
+                Slot = EquipmentSlot.LeftHand,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var items = await _getHandler.Handle(
+            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(
+            EquipmentSlot.LeftHand,
+            items.First(i => i.Id == _otherWeapon.Id).Ownership.EquippedSlot
+        );
+        Assert.Null(items.First(i => i.Id == greatHammer.Id).Ownership.EquippedSlot);
+    }
 }

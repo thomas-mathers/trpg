@@ -49,18 +49,47 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
             throw new InvalidOperationException($"Item {command.ItemId} cannot be equipped.");
         }
 
-        var currentlyEquipped = items.FirstOrDefault(i => i.Ownership.EquippedSlot == command.Slot);
-        if (currentlyEquipped != null)
-        {
-            currentlyEquipped.Ownership.EquippedSlot = null;
-            await context.SaveChangesAsync(cancellationToken);
-        }
+        await UnequipConflictingItems(command, toEquip, items, cancellationToken);
 
-        toEquip.Ownership.EquippedSlot = command.Slot;
+        toEquip.Ownership.EquippedSlot = ItemEquipmentPolicy.ResolveEquippedSlot(
+            toEquip,
+            command.Slot
+        );
 
         var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
         CreatureAttributesRecalculator.Recalculate(creature, equippedItems);
 
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task UnequipConflictingItems(
+        EquipInventoryItemCommand command,
+        Item toEquip,
+        IReadOnlyCollection<Item> items,
+        CancellationToken cancellationToken
+    )
+    {
+        var newFootprint = ItemEquipmentPolicy.GetFootprint(toEquip, command.Slot);
+
+        var conflicting = items
+            .Where(i => i.Id != toEquip.Id && i.Ownership.EquippedSlot != null)
+            .Where(i =>
+                ItemEquipmentPolicy
+                    .GetFootprint(i, i.Ownership.EquippedSlot!.Value)
+                    .Intersect(newFootprint)
+                    .Any()
+            )
+            .ToArray();
+
+        if (conflicting.Length == 0)
+        {
+            return;
+        }
+
+        foreach (var item in conflicting)
+        {
+            item.Ownership.EquippedSlot = null;
+        }
         await context.SaveChangesAsync(cancellationToken);
     }
 }

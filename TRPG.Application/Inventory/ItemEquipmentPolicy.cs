@@ -38,6 +38,14 @@ internal static class ItemEquipmentPolicy
             _ => false,
         };
 
+    public static IReadOnlyCollection<EquipmentSlot> GetFootprint(Item item, EquipmentSlot slot) =>
+        item is Weapon { IsTwoHanded: true }
+            ? [EquipmentSlot.RightHand, EquipmentSlot.LeftHand]
+            : [slot];
+
+    public static EquipmentSlot ResolveEquippedSlot(Item item, EquipmentSlot requestedSlot) =>
+        item is Weapon { IsTwoHanded: true } ? EquipmentSlot.RightHand : requestedSlot;
+
     public static Item Split(Item item, int quantity, Guid ownerId, OwnerType ownerType)
     {
         var type = item.GetType();

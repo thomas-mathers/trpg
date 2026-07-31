@@ -12,6 +12,9 @@ public enum WeaponType
     Bow,
     Crossbow,
     Javelin,
+    GreatSword,
+    GreatAxe,
+    GreatHammer,
 }
 
 public class Weapon : Item
@@ -24,6 +27,7 @@ public class Weapon : Item
     public int MaxDamage { get; init; }
     public int Range { get; init; }
     public int AttacksPerTurn { get; init; }
+    public bool IsTwoHanded { get; init; }
     public int DurabilityCurrent { get; set; }
     public int DurabilityMax { get; init; }
 }
