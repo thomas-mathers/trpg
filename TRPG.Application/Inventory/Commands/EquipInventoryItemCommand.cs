@@ -53,9 +53,6 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
         if (currentlyEquipped != null)
         {
             currentlyEquipped.Ownership.EquippedSlot = null;
-            // Saved separately so the old occupant's slot clears before the new one is set —
-            // doing both in one SaveChangesAsync can transiently violate the
-            // ux_items_owner_equipped_slot unique index depending on statement order.
             await context.SaveChangesAsync(cancellationToken);
         }
 

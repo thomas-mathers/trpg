@@ -10,7 +10,7 @@ namespace TRPG.Tests.Application.Combat;
 
 public class CombatEngineTests
 {
-    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
+    private static readonly BuffAbility BlockStance = AbilityCatalog.Block;
     private readonly Guid _worldId = Guid.NewGuid();
 
     // CritChancePerDexterityPoint is zeroed on both - a real random crit roll would otherwise
@@ -34,6 +34,14 @@ public class CombatEngineTests
                 CritChancePerDexterityPoint = 0f,
             }
         );
+
+    // Matches AlwaysHit/AlwaysMiss on every field Combatant itself reads (only
+    // CritChancePerDexterityPoint) so a combatant's own crit roll can't turn these tests flaky,
+    // regardless of which of the two engine variants a given test pairs it with.
+    private static readonly CombatOptions TestCombatOptions = new()
+    {
+        CritChancePerDexterityPoint = 0f,
+    };
 
     private static readonly string[] CleaveTargets = ["Husk", "Wraith"];
 
@@ -115,7 +123,11 @@ public class CombatEngineTests
     }
 
     private CombatantBuilder MakeCombatant(string name) =>
-        Builders.NewCombatant().WithWorldId(_worldId).WithName(name);
+        Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithName(name)
+            .WithCombatOptions(TestCombatOptions);
 
     [Fact]
     public void ResolvePlayerAction_ResolvesFullRound_PlayerAndEnemies()
@@ -159,8 +171,8 @@ public class CombatEngineTests
     [Fact]
     public void ResolvePlayerAction_ResolvesABonusSwing_WhenAttackerWieldsAFastWeapon()
     {
-        // Arrange — AttackSpeed 10 crosses the fast-weapon threshold for a bonus swing
-        var dagger = Builders.MakeWeaponItem(attackSpeed: 10);
+        // Arrange — AttacksPerTurn 2 grants a bonus swing
+        var dagger = Builders.MakeWeaponItem(attacksPerTurn: 2);
         var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(dagger).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
@@ -177,8 +189,8 @@ public class CombatEngineTests
     [Fact]
     public void ResolvePlayerAction_ResolvesOnlyOneSwing_WhenAttackerWieldsAStandardSpeedWeapon()
     {
-        // Arrange — the default AttackSpeed (7) is below the fast-weapon threshold
-        var sword = Builders.MakeWeaponItem(attackSpeed: 7);
+        // Arrange — the default AttacksPerTurn (1) grants no bonus swing
+        var sword = Builders.MakeWeaponItem();
         var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(sword).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
@@ -197,7 +209,7 @@ public class CombatEngineTests
     {
         // Arrange — a high-percent ability with a status effect; only the first swing should
         // carry either, the bonus swing is a plain 100% weapon hit
-        var dagger = Builders.MakeWeaponItem(minDamage: 5, maxDamage: 5, attackSpeed: 10);
+        var dagger = Builders.MakeWeaponItem(minDamage: 5, maxDamage: 5, attacksPerTurn: 2);
         var stun = new StatusEffect { Condition = ConditionType.Stunned, Duration = 1 };
         var player = MakeCombatant("Hero")
             .AsPlayer()
@@ -242,7 +254,6 @@ public class CombatEngineTests
         var hit = Assert.IsType<Hit>(Assert.Single(state.Events));
         Assert.True(hit.Killed);
         Assert.False(state.Combatants.Single(c => !c.IsPlayer).IsAlive);
-        Assert.NotNull(state.GoldLooted);
     }
 
     [Fact]
@@ -767,7 +778,7 @@ public class CombatEngineTests
         var playerState = combatants.Single(c => c.IsPlayer);
         var buff = Assert.Single(playerState.ActiveBuffs);
         Assert.Equal(5, buff.Amount);
-        Assert.Equal(5, playerState.CalculateEffectiveAttribute(AttributeName.Strength));
+        Assert.Equal(5, playerState.Strength);
     }
 
     [Fact]
@@ -951,7 +962,7 @@ public class CombatEngineTests
 
         // Assert — Defense is doubled via the buff, not a bespoke damage-mitigation path
         var playerState = combatants.Single(c => c.IsPlayer);
-        Assert.Equal(20, playerState.CalculateEffectiveAttribute(AttributeName.Defense));
+        Assert.Equal(20, playerState.Defense);
         Assert.Contains(
             playerState.ActiveBuffs,
             b => b is { AbilityName: "Block", Attribute: AttributeName.Defense }

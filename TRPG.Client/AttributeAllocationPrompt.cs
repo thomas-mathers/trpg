@@ -26,7 +26,6 @@ internal static class AttributeAllocationPrompt
         AllocatableAttributeName? Attribute = null
     );
 
-    // Spending leftover points from a level-up — additive only, never below the current value.
     public static Task<IReadOnlyDictionary<AllocatableAttributeName, int>?> Run(
         int totalPoints,
         BaseAttributesResponse baseAttributes,
@@ -39,7 +38,6 @@ internal static class AttributeAllocationPrompt
             cancellationToken
         );
 
-    // Character creation — an attribute can be lowered below its base to fund another, down to a floor of 1.
     public static Task<IReadOnlyDictionary<AllocatableAttributeName, int>?> RunAtCreation(
         int totalPoints,
         BaseAttributesResponse baseAttributes,

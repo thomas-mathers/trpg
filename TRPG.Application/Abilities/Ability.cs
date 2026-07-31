@@ -21,4 +21,5 @@ public class Ability
     public int RequiredSkillLevel { get; init; }
     public Skill Skill { get; init; } = Skill.General;
     public GearRequirement GearRequirement { get; init; } = GearRequirement.None;
+    public List<string> Prerequisites { get; init; } = [];
 }

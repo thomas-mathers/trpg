@@ -2,10 +2,6 @@ using TRPG.Data.Models;
 
 namespace TRPG.Balance;
 
-// Runs real fights between a generated Profession and a generated monster CreatureType and
-// prints every round's HP plus a plain-English description of what happened - for when the
-// aggregate win-rate matrix and diagnose's static ability list aren't enough to explain a
-// surprising result and the actual turn-by-turn sequence is needed instead.
 internal static class TraceExperiment
 {
     public static void Run(

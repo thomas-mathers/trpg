@@ -8,7 +8,12 @@ namespace TRPG.Balance;
 
 internal static class SimulatedCombatantFactory
 {
-    public static Combatant Build(CombatantSpec spec, bool isPlayer, StatFormulas statFormulas)
+    public static Combatant Build(
+        CombatantSpec spec,
+        bool isPlayer,
+        StatFormulas statFormulas,
+        CombatOptions combatOptions
+    )
     {
         var attributes = spec.Attributes with
         {
@@ -33,14 +38,13 @@ internal static class SimulatedCombatantFactory
             CurrentMp = attributes.MaximumMp,
         };
 
-        var abilityDefinitions = AbilityDefinitions.Create();
         var abilities = spec
             .SkillLevels.SelectMany(sl =>
-                abilityDefinitions.Abilities.Where(a =>
+                AbilityCatalog.Abilities.Where(a =>
                     a.Skill == sl.Key && a.RequiredSkillLevel <= sl.Value
                 )
             )
-            .Append(abilityDefinitions.BasicAttack)
+            .Append(AbilityCatalog.Strike)
             .Distinct()
             .ToArray();
 
@@ -51,14 +55,11 @@ internal static class SimulatedCombatantFactory
             abilities,
             isPlayer,
             items,
-            weaponProficiencies: new Dictionary<WeaponType, int>()
+            weaponProficiencies: new Dictionary<WeaponType, int>(),
+            combatOptions
         );
     }
 
-    // A fixed-stat baseline weapon/shield, one per gear-gated skill tree the spec actually
-    // invests in (see AbilityGearRequirement) - no procedural quality variance, just enough
-    // for that tree's abilities to be usable. Melee takes priority over Archery if a spec
-    // somehow invests in both, since a real build would typically commit to one.
     private static List<Item> BuildBaselineGear(
         IReadOnlyDictionary<Skill, int> skillLevels,
         Guid worldId
@@ -95,7 +96,7 @@ internal static class SimulatedCombatantFactory
             MinDamage = 5,
             MaxDamage = 15,
             Range = 1,
-            AttackSpeed = 7,
+            AttacksPerTurn = 1,
             DurabilityMax = 100,
             DurabilityCurrent = 100,
             Ownership = new ItemOwnership { EquippedSlot = EquipmentSlot.RightHand },

@@ -9,10 +9,7 @@ internal class GetCreatureAbilitiesQuery
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetCreatureAbilitiesQueryHandler(
-    TrpgDbContext context,
-    AbilityDefinitions abilityDefinitions
-)
+internal class GetCreatureAbilitiesQueryHandler(TrpgDbContext context)
 {
     public async Task<IReadOnlyList<Ability>> Handle(
         GetCreatureAbilitiesQuery query,
@@ -25,8 +22,10 @@ internal class GetCreatureAbilitiesQueryHandler(
             .Select(a => a.AbilityName)
             .ToArrayAsync(cancellationToken);
 
-        var learnedAbilities = abilityNames.Select(abilityDefinitions.GetByName).OfType<Ability>();
+        var learnedAbilities = abilityNames.Select(name =>
+            AbilityCatalog.Abilities.FirstOrDefault(a => a.Name == name)
+        );
 
-        return [abilityDefinitions.BasicAttack, .. learnedAbilities];
+        return [AbilityCatalog.Strike, .. learnedAbilities.OfType<Ability>()];
     }
 }

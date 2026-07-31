@@ -1,19 +1,14 @@
 using System.Globalization;
 using TRPG.Application.Combat;
+using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data.Models;
 
 namespace TRPG.Balance;
 
-// Faces a CreatureGenerator-generated player for every playable (adventurer) Profession
-// against a CreatureGenerator-generated monster for every non-humanoid CreatureType, running
-// trialsPerMatchup 1v1 fights per pairing and reporting the player's win rate - one row per
-// profession, one column per monster type.
 internal static class ProfessionMatrixExperiment
 {
-    // The civilian professions (Baker, Merchant, Homemaker, ...) are generated for worldbuilding
-    // flavor but are never selectable by the player - only these six are actual playable classes.
     private static readonly IReadOnlyList<Profession> PlayableProfessions =
     [
         Profession.Knight,
@@ -91,7 +86,8 @@ internal static class ProfessionMatrixExperiment
     internal static Combatant GeneratePlayer(
         GeneratedCombatantContext context,
         Profession profession,
-        int level
+        int level,
+        CombatOptions? combatOptions = null
     )
     {
         var archetype = CreatureArchetype.For(profession);
@@ -103,28 +99,12 @@ internal static class ProfessionMatrixExperiment
             Guid.NewGuid(),
             level,
             level,
-            // A non-null allocation is what signals CreatureGenerator that this is the player -
-            // real character creation always sets it, and a real player gets a baseline of 1 in
-            // every skill regardless of class, unlike a generated monster/NPC. The allocation
-            // itself must actually spend the level's full point budget (see
-            // BuildRealisticAllocation) - an empty dict would leave every stat at the bare
-            // baseline forever, as if a level 100 character had never spent a single level-up
-            // point in their whole career.
             StartingAttributeAllocation: BuildRealisticAllocation(archetype, level)
         );
         var result = context.Generator.Generate(input);
-        return GeneratedCombatantFactory.ToCombatant(
-            result,
-            context.AbilityDefinitions,
-            isPlayer: true
-        );
+        return GeneratedCombatantFactory.ToCombatant(result, isPlayer: true, combatOptions);
     }
 
-    // Simulates a well-optimized player's lifetime of level-up choices: distributes the level's
-    // full point budget (level x PointsPerLevel, matching CreatureGeneratorOptions' default)
-    // proportionally to the profession archetype's own StatAffinities weights - the same
-    // priorities already encoded for monsters, applied deterministically instead of via random
-    // weighted lottery.
     internal static IReadOnlyDictionary<AllocatableAttributeName, int> BuildRealisticAllocation(
         CreatureArchetype archetype,
         int level
@@ -153,8 +133,6 @@ internal static class ProfessionMatrixExperiment
             w => totalPoints * w.Weight / totalWeight
         );
 
-        // Integer division leaves a few points unspent - dump the remainder into the
-        // heaviest-weighted stat rather than leaving it unallocated.
         var remainder = totalPoints - allocation.Values.Sum();
         if (remainder > 0)
         {
@@ -182,10 +160,6 @@ internal static class ProfessionMatrixExperiment
             level
         );
         var result = context.Generator.Generate(input);
-        return GeneratedCombatantFactory.ToCombatant(
-            result,
-            context.AbilityDefinitions,
-            isPlayer: false
-        );
+        return GeneratedCombatantFactory.ToCombatant(result, isPlayer: false);
     }
 }

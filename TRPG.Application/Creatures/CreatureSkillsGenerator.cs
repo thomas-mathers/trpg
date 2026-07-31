@@ -39,10 +39,6 @@ internal static class CreatureSkillsGenerator
         bool isPlayer
     )
     {
-        // The player can dabble in anything regardless of class, so every skill starts at 1. A
-        // monster only starts at 1 in the skills its archetype actually has affinity for -
-        // otherwise it'd end up knowing level-1 abilities (Fireball, Arrow Shot, ...) from trees
-        // it has no business in, since RequiredSkillLevel <= 1 would trivially pass for every skill.
         var skillLevels = isPlayer
             ? AllSkills.Select(_ => 1).ToArray()
             : weights.Select(weight => weight > 0 ? 1 : 0).ToArray();

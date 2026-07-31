@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
@@ -14,7 +16,8 @@ internal class GetCombatantQuery
 internal class GetCombatantQueryHandler(
     GetInventoryByCreatureIdQueryHandler getInventory,
     GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
-    GetCreatureAbilitiesQueryHandler getCreatureAbilities
+    GetCreatureAbilitiesQueryHandler getCreatureAbilities,
+    IOptionsSnapshot<CombatOptions> optionsSnapshot
 )
 {
     public async Task<Combatant> Handle(
@@ -46,7 +49,8 @@ internal class GetCombatantQueryHandler(
             abilities,
             query.IsPlayer,
             items,
-            weaponProficiencies
+            weaponProficiencies,
+            optionsSnapshot.Value
         );
     }
 }

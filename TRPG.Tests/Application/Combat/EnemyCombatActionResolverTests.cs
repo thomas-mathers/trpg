@@ -19,7 +19,7 @@ public class EnemyCombatActionResolverTests
         new DamageCalculator(DefaultOptions),
         new HitCalculator(DefaultOptions)
     );
-    private static readonly BuffAbility BlockStance = AbilityDefinitions.Create().BlockStance;
+    private static readonly BuffAbility BlockStance = AbilityCatalog.Block;
 
     private static EnemyCombatActionResolver MakeResolver(float openingBuffChancePercent)
     {

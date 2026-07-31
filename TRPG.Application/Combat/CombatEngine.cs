@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Extensions;
+using TRPG.Application.Common.Extensions;
 using TRPG.Application.Configuration;
 using TRPG.Data.Models;
 using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
@@ -22,7 +23,7 @@ public class CombatEngine(
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
 
-        var turnOrder = OrderByTurnOrder(combatants);
+        var turnOrder = combatants.OrderByTurnOrder();
 
         var combatEvents = turnOrder
             .SelectMany(combatant =>
@@ -38,20 +39,9 @@ public class CombatEngine(
             Outcome: outcome,
             Combatants: combatants.Select(c => c.ToCombatantState()).ToArray(),
             Events: combatEvents,
-            GoldLooted: outcome == CombatOutcome.Victory ? GetTotalGoldFromEnemies(enemies) : null,
             WeaponSwingCounts: player.WeaponSwingCounts,
             SkillUsageCounts: player.SkillUsageCounts
         );
-    }
-
-    // Shuffled before the (stable) sort so a Dexterity tie doesn't always resolve in favor of
-    // whichever combatant happened to be listed first - without this, ties are a structural,
-    // repeatable bias rather than a genuine coin flip.
-    private static IReadOnlyList<Combatant> OrderByTurnOrder(IEnumerable<Combatant> combatants)
-    {
-        var shuffled = combatants.ToArray();
-        Random.Shared.Shuffle(shuffled);
-        return shuffled.OrderByDescending(c => c.TurnOrder).ToArray();
     }
 
     private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedCombatAction action)
@@ -70,9 +60,6 @@ public class CombatEngine(
 
         var incapacitationEvent = GetIncapacitationEvent(actor, action);
 
-        // Ticked after the check above reads it, not before (unlike buffs/dots/hots, which apply
-        // their own effect as part of their own tick) - a condition set to Duration=1 needs to
-        // still be read as active for the one turn it's meant to block, then expire afterward.
         TickConditions(actor);
 
         if (incapacitationEvent is not null)
@@ -90,21 +77,6 @@ public class CombatEngine(
         return tickEvents.Concat(actionEvents).ToList();
     }
 
-    // A General-skill attack is the weaponless "Strike" template — its training goes to the
-    // wielded weapon's tree (or Unarmed), not to General itself. Named abilities keep their
-    // inherent skill.
-    private static Skill GetTrainedSkill(Combatant actor, Ability ability)
-    {
-        if (ability is not AttackAbility || ability.Skill != Skill.General)
-        {
-            return ability.Skill;
-        }
-
-        return actor.Weapon is { } weapon
-            ? AbilityGearRequirement.WeaponSkills.GetValueOrDefault(weapon.Type, Skill.General)
-            : Skill.Unarmed;
-    }
-
     private List<CombatEvent> ProcessAbility(
         Combatant actor,
         ResolvedUseAbilityAction resolvedUseAbilityAction
@@ -116,7 +88,8 @@ public class CombatEngine(
         actor.CurrentAp -= ability.ApCost;
         actor.CurrentMp -= ability.MpCost;
 
-        var trainedSkill = GetTrainedSkill(actor, ability);
+        var trainedSkill = TrainedSkillResolver.Resolve(actor, ability);
+
         actor.SkillUsageCounts[trainedSkill] =
             actor.SkillUsageCounts.GetValueOrDefault(trainedSkill) + 1;
 
@@ -313,23 +286,23 @@ public class CombatEngine(
         IReadOnlyList<Combatant> defenders
     )
     {
-        var attacksPerTurn = WeaponAttackSpeed.AttacksPerTurn(attacker.Weapon);
+        var attacksPerTurn = attacker.Weapon?.AttacksPerTurn ?? 1;
         var combatEvents = new List<CombatEvent>();
 
         foreach (var defender in defenders)
         {
-            combatEvents.Add(ResolvePrimarySwing(attacker, ability, defender));
+            combatEvents.Add(ResolveWeaponSwing(attacker, ability, defender));
 
             for (var swing = 1; swing < attacksPerTurn; swing++)
             {
-                combatEvents.Add(ResolveBonusSwing(attacker, defender));
+                combatEvents.Add(ResolveWeaponSwing(attacker, AbilityCatalog.Strike, defender));
             }
         }
 
         return combatEvents;
     }
 
-    private CombatEvent ResolvePrimarySwing(
+    private CombatEvent ResolveWeaponSwing(
         Combatant attacker,
         AttackAbility ability,
         Combatant defender
@@ -341,14 +314,14 @@ public class CombatEngine(
                 attacker.WeaponSwingCounts.GetValueOrDefault(weapon.Type) + 1;
         }
 
-        var didHit = hitCalculator.DidHit(attacker, ability, defender);
+        var didHit = hitCalculator.RollHit(attacker, ability, defender);
 
         if (!didHit)
         {
             return new Miss(attacker.Name, ability.Name, defender.Name);
         }
 
-        var didBlock = hitCalculator.DidBlock(ability, defender);
+        var didBlock = hitCalculator.RollBlock(ability, defender);
 
         if (didBlock)
         {
@@ -399,47 +372,6 @@ public class CombatEngine(
         );
     }
 
-    private CombatEvent ResolveBonusSwing(Combatant attacker, Combatant defender)
-    {
-        if (attacker.Weapon is { } weapon)
-        {
-            attacker.WeaponSwingCounts[weapon.Type] =
-                attacker.WeaponSwingCounts.GetValueOrDefault(weapon.Type) + 1;
-        }
-
-        var didHit = hitCalculator.DidHitWithWeapon(attacker, defender);
-
-        if (!didHit)
-        {
-            return new Miss(attacker.Name, WeaponAttackSpeed.BonusSwingAbilityName, defender.Name);
-        }
-
-        var didBlock = hitCalculator.DidBlockWeaponSwing(defender);
-
-        if (didBlock)
-        {
-            defender.SkillUsageCounts[Skill.Blocking] =
-                defender.SkillUsageCounts.GetValueOrDefault(Skill.Blocking) + 1;
-            return new Block(attacker.Name, WeaponAttackSpeed.BonusSwingAbilityName, defender.Name);
-        }
-
-        var damage = damageCalculator.CalculateBonusSwingDamage(attacker, defender);
-
-        defender.CurrentHp = Math.Max(defender.CurrentHp - damage, 0);
-
-        return new Hit(
-            attacker.Name,
-            WeaponAttackSpeed.BonusSwingAbilityName,
-            defender.Name,
-            defender.CurrentHp,
-            defender.MaximumHp,
-            !defender.IsAlive,
-            damage,
-            DamageType.Physical,
-            []
-        );
-    }
-
     private List<CombatEvent> ProcessTicks(Combatant actor)
     {
         var hotEvents = TickHots(actor);
@@ -458,8 +390,6 @@ public class CombatEngine(
         return tickEvents;
     }
 
-    // Every ConditionType key is always present (Combatant initializes all of them), so this
-    // just counts each one down without needing to add or remove keys.
     private static void TickConditions(Combatant actor)
     {
         foreach (var condition in actor.ActiveConditions.Keys.ToArray())
@@ -618,9 +548,6 @@ public class CombatEngine(
         return CombatOutcome.Ongoing;
     }
 
-    private static int GetTotalGoldFromEnemies(IReadOnlyList<Combatant> enemies) =>
-        enemies.Sum(e => e.Gold);
-
     public CombatState ResolveFlee(IReadOnlyList<Combatant> combatants)
     {
         var player = combatants.Single(c => c.IsPlayer);
@@ -636,7 +563,7 @@ public class CombatEngine(
 
         if (player.IsAlive)
         {
-            var enemyTurnOrder = OrderByTurnOrder(enemies.Where(e => e.IsAlive));
+            var enemyTurnOrder = enemies.Where(e => e.IsAlive).OrderByTurnOrder();
 
             foreach (var enemy in enemyTurnOrder)
             {
@@ -652,9 +579,16 @@ public class CombatEngine(
             Outcome: outcome,
             Combatants: combatants.Select(c => c.ToCombatantState()).ToArray(),
             Events: combatEvents,
-            GoldLooted: null,
             WeaponSwingCounts: player.WeaponSwingCounts,
             SkillUsageCounts: player.SkillUsageCounts
         );
+    }
+}
+
+internal static class CombatantExtensions
+{
+    public static IReadOnlyList<Combatant> OrderByTurnOrder(this IEnumerable<Combatant> combatants)
+    {
+        return combatants.Shuffled().OrderByDescending(c => c.TurnOrder).ToArray();
     }
 }

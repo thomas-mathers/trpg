@@ -21,7 +21,6 @@ public record CombatState(
     CombatOutcome Outcome,
     IReadOnlyList<CombatantState> Combatants,
     IReadOnlyList<CombatEvent> Events,
-    int? GoldLooted,
     IReadOnlyDictionary<WeaponType, int> WeaponSwingCounts,
     IReadOnlyDictionary<Skill, int> SkillUsageCounts
 );

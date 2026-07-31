@@ -1,4 +1,5 @@
 using TRPG.Application.Combat;
+using TRPG.Application.Configuration;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
@@ -20,7 +21,8 @@ public class CombatantTests
             [],
             isPlayer: true,
             [],
-            new Dictionary<WeaponType, int>()
+            new Dictionary<WeaponType, int>(),
+            new CombatOptions()
         );
 
         // Assert
@@ -47,7 +49,8 @@ public class CombatantTests
             [],
             isPlayer: true,
             items,
-            new Dictionary<WeaponType, int>()
+            new Dictionary<WeaponType, int>(),
+            new CombatOptions()
         );
 
         // Assert — the unequipped spare never reaches EquippedItems, so Weapon resolves to

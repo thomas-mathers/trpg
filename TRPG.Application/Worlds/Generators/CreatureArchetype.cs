@@ -2,10 +2,6 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
 
-// Only the attributes a player can actually allocate points into (see
-// AllocatableAttributeName) - Defense is deliberately excluded here too, matching
-// CreatureGenerator.GetPlayerAttributes: Defense always comes from gear, never from the
-// stat-pool draw, for players and monsters alike.
 public record StatAffinities(
     int Strength,
     int Dexterity,
@@ -27,11 +23,6 @@ public sealed record AmmoSpec(AmmoType AmmoType, int Quantity) : StartingGearSpe
 
 public sealed record ConsumableSpec(int Quantity) : StartingGearSpec;
 
-// Every creature gets a natural-weapon roll (used whenever it has no equipped Weapon - see
-// DamageCalculator.CalculatePhysicalRawDamage), scaled by level via the same Roll(level, low,
-// high) helper weapons themselves use. MinDamageLow/High and MaxDamageLow/High describe how
-// NaturalWeaponMinDamage/MaxDamage individually scale from level 1 to level 100, exactly
-// mirroring WeaponGenerator's WeaponTypeData shape.
 public sealed record NaturalWeaponDamageRange(
     int MinDamageLow,
     int MinDamageHigh,
@@ -41,9 +32,6 @@ public sealed record NaturalWeaponDamageRange(
 
 public sealed class CreatureArchetype
 {
-    // Roughly a level below the comparable weapon tier (e.g. Humanoid sits under a Sword's own
-    // ~8-35 scaled range) - a creature reaches for an actual weapon over its bare fists/claws
-    // precisely because the weapon hits harder.
     private static readonly NaturalWeaponDamageRange SmallNaturalWeapon = new(1, 5, 3, 14);
     private static readonly NaturalWeaponDamageRange HumanoidNaturalWeapon = new(1, 6, 4, 20);
     private static readonly NaturalWeaponDamageRange LargeNaturalWeapon = new(3, 15, 10, 45);
@@ -145,8 +133,6 @@ public sealed class CreatureArchetype
         ),
         skillAffinities: new Dictionary<Skill, int> { [Skill.Blocking] = 2, [Skill.General] = 1 },
         creatureType: Data.Models.CreatureType.Construct,
-        // No dedicated attack skill or weapon needed - a golem's fists (via NaturalWeaponDamage)
-        // are its real offense, same as Giant.
         naturalWeaponDamage: LargeNaturalWeapon,
         biography: "An artificial thing still obeying an order given long ago."
     );
@@ -215,8 +201,6 @@ public sealed class CreatureArchetype
             new AmmoSpec(AmmoType.Arrow, 20),
             new WeaponSpec(WeaponType.Dagger),
         ],
-        // Same Defense concern as Beast - a Goblin's scavenged scraps rather than any real
-        // craftsmanship, but zero Defense made it trivial for every profession.
         armorClass: Data.Models.ArmorClass.Leather,
         hasPotions: true,
         naturalWeaponDamage: SmallNaturalWeapon,
@@ -233,11 +217,6 @@ public sealed class CreatureArchetype
             Intelligence: 2,
             GoldMultiplier: 0.3f
         ),
-        // Sneak's attack list (Stab, Backstab, Garrote, Kidney Shot...) is all corporeal
-        // blade-and-hands rogue flavor, which doesn't fit an incorporeal spirit - dropped in
-        // favor of a split Destruction/Illusion focus (a hateful spirit that both terrifies and
-        // strikes with raw hostile magic), same split as Mage - pure Illusion left Wraith with
-        // too little damage to be any threat at all.
         skillAffinities: new Dictionary<Skill, int>
         {
             [Skill.Destruction] = 1,
@@ -260,8 +239,6 @@ public sealed class CreatureArchetype
         ),
         skillAffinities: new Dictionary<Skill, int> { [Skill.Melee] = 3, [Skill.General] = 1 },
         creatureType: Data.Models.CreatureType.Giant,
-        // WeaponType.Mace's name pool includes "Club"/"War Club" - no armor, matching a giant
-        // that relies on raw size and a crude bludgeon rather than any real armament.
         startingGear: [new WeaponSpec(WeaponType.Mace)],
         naturalWeaponDamage: LargeNaturalWeapon,
         biography: "A towering brute whose footsteps announce it long before it is seen."

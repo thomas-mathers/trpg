@@ -4,7 +4,7 @@ using static TRPG.Application.Worlds.Generators.ItemModifierHelpers;
 
 namespace TRPG.Application.Worlds.Generators;
 
-public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
+public class WeaponGenerator
 {
     private static readonly Dictionary<WeaponType, WeaponTypeData> Types = new()
     {
@@ -16,7 +16,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             8,
             27,
             1,
-            10
+            2
         ),
         [WeaponType.Sword] = new WeaponTypeData(
             [
@@ -35,7 +35,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             10,
             35,
             1,
-            7
+            1
         ),
         [WeaponType.Axe] = new WeaponTypeData(
             ["Hand Axe", "Battle Axe", "War Axe", "Hatchet", "Broad Axe"],
@@ -45,7 +45,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             12,
             40,
             1,
-            6
+            1
         ),
         [WeaponType.Mace] = new WeaponTypeData(
             ["Mace", "Morning Star", "Flail", "Club", "War Club"],
@@ -55,7 +55,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             10,
             35,
             1,
-            6
+            1
         ),
         [WeaponType.Hammer] = new WeaponTypeData(
             ["Warhammer", "Maul", "Great Hammer", "Sledgehammer"],
@@ -65,7 +65,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             15,
             45,
             1,
-            5
+            1
         ),
         [WeaponType.Staff] = new WeaponTypeData(
             [
@@ -82,7 +82,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             8,
             25,
             2,
-            7
+            1
         ),
         [WeaponType.Wand] = new WeaponTypeData(
             ["Wand", "Rod", "Scepter", "Bone Wand", "Grim Wand"],
@@ -92,7 +92,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             4,
             15,
             4,
-            9
+            1
         ),
         [WeaponType.Bow] = new WeaponTypeData(
             ["Short Bow", "Long Bow", "Composite Bow", "Hunting Bow", "War Bow", "Recurve Bow"],
@@ -102,7 +102,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             8,
             30,
             15,
-            6
+            1
         ),
         [WeaponType.Crossbow] = new WeaponTypeData(
             ["Light Crossbow", "Heavy Crossbow", "Repeating Crossbow"],
@@ -112,7 +112,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             12,
             40,
             18,
-            4
+            1
         ),
         [WeaponType.Javelin] = new WeaponTypeData(
             ["Javelin", "Pilum", "War Dart", "Throwing Spear"],
@@ -122,7 +122,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             10,
             35,
             6,
-            7
+            1
         ),
     };
 
@@ -252,7 +252,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             5,
             level => new ProcModifier
             {
-                AbilityName = abilityDefinitions.RandomAttackAbility(),
+                AbilityName = AbilityCatalog.Abilities.RandomAttackAbility(),
                 Chance = Roll(level, 5, 20) / 100f,
                 Trigger = ProcTrigger.OnStriking,
             }
@@ -263,7 +263,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
     {
         var data = Types.GetValueOrDefault(
             type,
-            new WeaponTypeData([type.ToString()], 6, 2, 6, 8, 25, 1, 7)
+            new WeaponTypeData([type.ToString()], 6, 2, 6, 8, 25, 1, 1)
         );
         var baseName = data.BaseNames[Random.Shared.Next(data.BaseNames.Length)];
         var eligible = _modifiers.Where(t => t.MinItemLevel <= level).ToList();
@@ -285,7 +285,7 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
             MinDamage = Roll(level, data.MinimumDamageLow, data.MinimumDamageHigh),
             MaxDamage = Roll(level, data.MaximumDamageLow, data.MaximumDamageHigh),
             Range = data.Range,
-            AttackSpeed = data.AttackSpeed,
+            AttacksPerTurn = data.AttacksPerTurn,
             DurabilityMax = durabilityMax,
             DurabilityCurrent = durabilityMax,
         };
@@ -299,6 +299,6 @@ public class WeaponGenerator(AbilityDefinitions abilityDefinitions)
         int MaximumDamageLow,
         int MaximumDamageHigh,
         int Range,
-        int AttackSpeed
+        int AttacksPerTurn
     );
 }

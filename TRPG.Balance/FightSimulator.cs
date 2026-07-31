@@ -18,24 +18,20 @@ public record RoundSnapshot(
     IReadOnlyList<string> EventDescriptions
 );
 
-// Runs 1v1 fights between two directly-specified combatants to completion, for empirical
-// balance testing. Both sides act through EnemyCombatActionResolver - one combatant is
-// flagged IsPlayer purely so CombatEngine.ProcessRound's API is satisfied, but both use
-// identical AI logic, so this measures the same decision-making real enemies already use.
 public class FightSimulator
 {
     private readonly CombatEngine _engine;
     private readonly EnemyCombatActionResolver _resolver;
     private readonly StatFormulas _statFormulas;
+    private readonly CombatOptions _combatOptions;
 
     public FightSimulator(
         CombatOptions? combatOptions = null,
         CreatureGeneratorOptions? creatureGeneratorOptions = null
     )
     {
-        var combatOptionsSnapshot = new FixedOptionsSnapshot<CombatOptions>(
-            combatOptions ?? new CombatOptions()
-        );
+        _combatOptions = combatOptions ?? new CombatOptions();
+        var combatOptionsSnapshot = new FixedOptionsSnapshot<CombatOptions>(_combatOptions);
         var hitCalculator = new HitCalculator(combatOptionsSnapshot);
         var damageCalculator = new DamageCalculator(combatOptionsSnapshot);
         _resolver = new EnemyCombatActionResolver(
@@ -56,8 +52,6 @@ public class FightSimulator
         );
     }
 
-    // Every row in the returned list carries the fight's final outcome (not just the last
-    // row), so trials can be filtered/grouped by winner without a separate lookup.
     public IReadOnlyList<RoundSnapshot> RunFight(
         int trial,
         CombatantSpec playerSpec,
@@ -65,13 +59,21 @@ public class FightSimulator
         int maxRounds = 300
     )
     {
-        var player = SimulatedCombatantFactory.Build(playerSpec, isPlayer: true, _statFormulas);
-        var enemy = SimulatedCombatantFactory.Build(enemySpec, isPlayer: false, _statFormulas);
+        var player = SimulatedCombatantFactory.Build(
+            playerSpec,
+            isPlayer: true,
+            _statFormulas,
+            _combatOptions
+        );
+        var enemy = SimulatedCombatantFactory.Build(
+            enemySpec,
+            isPlayer: false,
+            _statFormulas,
+            _combatOptions
+        );
         return RunFight(trial, player, enemy, maxRounds);
     }
 
-    // Overload for combatants already built elsewhere (e.g. through the real CreatureGenerator
-    // via GeneratedCombatantFactory) rather than a directly-specified CombatantSpec.
     public IReadOnlyList<RoundSnapshot> RunFight(
         int trial,
         Combatant player,

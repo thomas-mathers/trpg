@@ -1,5 +1,6 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Application.Inventory;
 using TRPG.Data.Models;
@@ -8,7 +9,7 @@ namespace TRPG.Tests.Helpers;
 
 internal sealed class CombatantBuilder
 {
-    private static readonly AttackAbility BasicAttack = AbilityDefinitions.Create().BasicAttack;
+    private static readonly AttackAbility BasicAttack = AbilityCatalog.Strike;
     private static readonly StatFormulas Formulas = Builders.MakeStatFormulas();
 
     private readonly List<Item> _items = [];
@@ -33,6 +34,7 @@ internal sealed class CombatantBuilder
     private int? _currentMp;
     private int? _naturalWeaponMinDamage;
     private int? _naturalWeaponMaxDamage;
+    private CombatOptions _combatOptions = new();
 
     public CombatantBuilder WithWorldId(Guid worldId)
     {
@@ -163,6 +165,12 @@ internal sealed class CombatantBuilder
         return this;
     }
 
+    public CombatantBuilder WithCombatOptions(CombatOptions combatOptions)
+    {
+        _combatOptions = combatOptions;
+        return this;
+    }
+
     public Combatant Build()
     {
         var creature = Builders.MakeCreature(
@@ -197,7 +205,8 @@ internal sealed class CombatantBuilder
             [BasicAttack, .. _abilities],
             _isPlayer,
             _items,
-            _weaponProficiencies
+            _weaponProficiencies,
+            _combatOptions
         );
     }
 }

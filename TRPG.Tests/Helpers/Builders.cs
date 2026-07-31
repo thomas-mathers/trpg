@@ -19,17 +19,15 @@ internal static class Builders
 
     public static CreatureGenerator MakeCreatureGenerator(CreatureGeneratorOptions? options = null)
     {
-        var abilityDefinitions = AbilityDefinitions.Create();
         var itemGenerator = new ItemGenerator(
-            new WeaponGenerator(abilityDefinitions),
-            new ArmorGenerator(abilityDefinitions),
+            new WeaponGenerator(),
+            new ArmorGenerator(),
             new AccessoryGenerator(),
             new ConsumableGenerator(),
             new AmmoGenerator()
         );
         return new CreatureGenerator(
             itemGenerator,
-            abilityDefinitions,
             new TestOptionsSnapshot<CreatureGeneratorOptions>(
                 options ?? new CreatureGeneratorOptions()
             ),
@@ -44,7 +42,8 @@ internal static class Builders
         CreatureType creatureType = CreatureType.Human,
         int currentHp = 100,
         int currentAp = 20,
-        int currentMp = 10
+        int currentMp = 10,
+        CombatOptions? combatOptions = null
     ) =>
         new()
         {
@@ -55,12 +54,12 @@ internal static class Builders
             Level = 1,
             Attributes = MakeAttributes(),
             Abilities = [],
-            Gold = 0,
             NaturalWeaponMinDamage = 3,
             NaturalWeaponMaxDamage = 3,
             CurrentHp = currentHp,
             CurrentAp = currentAp,
             CurrentMp = currentMp,
+            CombatOptions = combatOptions ?? new CombatOptions(),
         };
 
     public static CombatantBuilder NewCombatant() => new();
@@ -130,7 +129,6 @@ internal static class Builders
             Outcome: outcome,
             Combatants: combatants,
             Events: [],
-            GoldLooted: goldLooted,
             WeaponSwingCounts: weaponSwingCounts ?? new Dictionary<WeaponType, int>(),
             SkillUsageCounts: new Dictionary<Skill, int>()
         );
@@ -294,7 +292,7 @@ internal static class Builders
         WeaponType type = WeaponType.Sword,
         int minDamage = 5,
         int maxDamage = 15,
-        int attackSpeed = 7
+        int attacksPerTurn = 1
     )
     {
         return new Weapon
@@ -308,7 +306,7 @@ internal static class Builders
             MinDamage = minDamage,
             MaxDamage = maxDamage,
             Range = 1,
-            AttackSpeed = attackSpeed,
+            AttacksPerTurn = attacksPerTurn,
             DurabilityMax = 100,
             DurabilityCurrent = 100,
         };

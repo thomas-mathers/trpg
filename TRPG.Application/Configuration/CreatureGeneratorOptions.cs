@@ -12,9 +12,6 @@ public class CreatureGeneratorOptions
 
 public class StartingAttributes
 {
-    // Matches appsettings.json's "CreatureGenerator:BaseAttributes" section - kept in sync so
-    // that code relying on the C# default (e.g. TRPG.Balance's experiments, which never wire up
-    // configuration) matches actual production values instead of silently diverging from them.
     public int Strength { get; init; } = 5;
     public int Defense { get; init; } = 5;
     public int Dexterity { get; init; } = 5;

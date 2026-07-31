@@ -31,9 +31,6 @@ internal class GetSceneWithCatchUpQueryHandler(
         var locationId = query.RoomId ?? query.DistrictId ?? query.StateId;
         var cacheKey = $"catchup:{query.WorldId}:{locationId}:{query.CurrentDate.Hour}";
 
-        // Only the NPC-schedule catch-up simulation is cached (it's idempotent for a given
-        // location+hour and expensive to rerun) — the scene itself is always fetched live,
-        // since HP/combat state can change within the same in-game hour and must never be stale.
         if (cache.TryGetValue(cacheKey, out bool _))
         {
             logger.LogInformation("[perf] Catch-up cache hit for {CacheKey}", cacheKey);

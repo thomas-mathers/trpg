@@ -31,12 +31,7 @@ public class BuffAbility : SupportAbility
     public List<AttributeModifier> Modifiers { get; init; } = [];
 }
 
-// Block is the only ability whose effect depends on the caster's gear at cast time (parry with a
-// shield/melee weapon, brace without one) - this subclass exists so that quirk stays contained to
-// Block instead of every BuffAbility carrying a field only one of them ever populates.
 public class GuardStanceAbility : BuffAbility
 {
-    // Used instead of Modifiers when the caster is parry-capable at cast time - see
-    // AbilityGearRequirement.IsParryCapable.
     public List<AttributeModifier> ParryCapableModifiers { get; init; } = [];
 }
