@@ -30,7 +30,7 @@ public static class AbilityGearRequirement
         {
             GearRequirement.Shield => actor.Shield != null,
             GearRequirement.None => true,
-            _ => actor.Weapon is { } weapon
+            _ => actor.MainHandWeapon is { } weapon
                 && WeaponGearRequirements.GetValueOrDefault(weapon.Type) == ability.GearRequirement,
         };
 
@@ -45,6 +45,6 @@ public static class AbilityGearRequirement
         };
 
     private static bool HasMeleeWeaponEquipped(Combatant actor) =>
-        actor.Weapon is { } weapon
+        actor.MainHandWeapon is { } weapon
         && WeaponGearRequirements.GetValueOrDefault(weapon.Type) == GearRequirement.MeleeWeapon;
 }

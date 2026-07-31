@@ -90,9 +90,14 @@ internal static class DiagnosticExperiment
                 + $"Mana={combatant.Mana:F1}"
         );
         Console.WriteLine(
-            combatant.Weapon is { } weapon
-                ? $"  Weapon={weapon.Type} {weapon.MinDamage}-{weapon.MaxDamage} (proficiency={combatant.AttackRating:F1})"
-                : "  Weapon=none"
+            combatant.MainHandWeapon is { } weapon
+                ? $"  MainHand={weapon.Type} {weapon.MinDamage}-{weapon.MaxDamage} (proficiency={combatant.AttackRating:F1})"
+                : "  MainHand=none"
+        );
+        Console.WriteLine(
+            combatant.OffHandWeapon is { } offHandWeapon
+                ? $"  OffHand={offHandWeapon.Type} {offHandWeapon.MinDamage}-{offHandWeapon.MaxDamage}"
+                : "  OffHand=none"
         );
     }
 
