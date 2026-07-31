@@ -88,7 +88,7 @@ public class CombatEngine(
         actor.CurrentAp -= ability.ApCost;
         actor.CurrentMp -= ability.MpCost;
 
-        var trainedSkill = TrainedSkillResolver.Resolve(actor, ability);
+        var trainedSkill = ResolveTrainedSkill(actor, ability);
 
         actor.SkillUsageCounts[trainedSkill] =
             actor.SkillUsageCounts.GetValueOrDefault(trainedSkill) + 1;
@@ -100,6 +100,35 @@ public class CombatEngine(
             _ => [],
         };
     }
+
+    private static Skill ResolveTrainedSkill(Combatant actor, Ability ability)
+    {
+        if (ability == AbilityCatalog.Strike)
+        {
+            return actor.MainHandWeapon is { } weapon ? GetWeaponSkill(weapon.Type) : Skill.Unarmed;
+        }
+
+        return ability.Skill;
+    }
+
+    private static Skill GetWeaponSkill(WeaponType weaponType) =>
+        weaponType switch
+        {
+            WeaponType.Sword => Skill.Melee,
+            WeaponType.Dagger => Skill.Melee,
+            WeaponType.Axe => Skill.Melee,
+            WeaponType.Mace => Skill.Melee,
+            WeaponType.Hammer => Skill.Melee,
+            WeaponType.GreatSword => Skill.Melee,
+            WeaponType.GreatAxe => Skill.Melee,
+            WeaponType.GreatHammer => Skill.Melee,
+            WeaponType.Bow => Skill.Archery,
+            WeaponType.Crossbow => Skill.Archery,
+            WeaponType.Javelin => Skill.Archery,
+            WeaponType.Staff => Skill.Destruction,
+            WeaponType.Wand => Skill.Destruction,
+            _ => throw new ArgumentOutOfRangeException(nameof(weaponType), weaponType, null),
+        };
 
     private static List<CombatEvent> ProcessItem(Combatant actor, ConsumableItemSnapshot item)
     {
