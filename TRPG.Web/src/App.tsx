@@ -1,48 +1,24 @@
-import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
+
+import { Bubble, BubbleContent } from '@/components/ui/bubble';
+import { Message, MessageContent } from '@/components/ui/message';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from '@/components/ui/message-scroller';
+
+import { useGameHubConnection } from './hooks/useGameHubConnection';
 
 function App() {
-  return (
-    <div className="flex min-h-svh items-center justify-center">
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button>Open character</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Character</DialogTitle>
-          </DialogHeader>
-          <Tabs defaultValue="inventory">
-            <TabsList>
-              <TabsTrigger value="inventory">Inventory</TabsTrigger>
-              <TabsTrigger value="abilities">Abilities</TabsTrigger>
-            </TabsList>
-            <TabsContent value="inventory">
-              <ScrollArea className="h-48 rounded-md border p-2">
-                {Array.from({ length: 20 }, (_, i) => (
-                  <div key={i} className="py-1 text-sm">
-                    Item {i + 1}
-                  </div>
-                ))}
-              </ScrollArea>
-            </TabsContent>
-            <TabsContent value="abilities">
-              <Input placeholder="Filter abilities..." />
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+  const { isConnected, streamOpening } = useGameHubConnection();
+
+  console.log(isConnected);
+
+  return <div className="flex h-screen flex-col"></div>;
 }
 
 export default App;

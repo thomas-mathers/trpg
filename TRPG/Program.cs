@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using TickerQ.DependencyInjection;
 using TRPG;
 using TRPG.Abilities.Endpoints;
@@ -23,7 +23,23 @@ using TRPG.Players.Endpoints;
 using TRPG.Worlds.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls("http://localhost:5000");
+
+var allowedOrigins =
+    builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? Array.Empty<string>();
+
+const string localDevFrontendCorsPolicy = "LocalDevFrontend";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        localDevFrontendCorsPolicy,
+        policy =>
+        {
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        }
+    );
+});
 
 var loggingOptions =
     builder.Configuration.GetSection("Logging").Get<LoggingOptions>() ?? new LoggingOptions();
@@ -49,9 +65,9 @@ builder
     .AddTrpgJobs(builder.Configuration)
     .AddExceptionHandler<GlobalExceptionHandler>()
     .AddProblemDetails()
+    .AddOpenApi()
+    .AddResponseCompression(options => options.EnableForHttps = true)
     .AddSignalR(options => options.AddFilter<GameSessionNotFoundHubFilter>());
-
-builder.Services.AddResponseCompression(options => options.EnableForHttps = true);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -71,6 +87,11 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseCors(localDevFrontendCorsPolicy);
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/openapi"),
+    subApp => subApp.UseHttpsRedirection()
+);
 app.UseResponseCompression();
 app.UseTickerQ();
 
@@ -80,6 +101,13 @@ _ = Task.Run(async () =>
     var warmupContext = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
     await warmupContext.Database.CanConnectAsync();
 });
+
+Console.WriteLine($"Current Environment: {app.Environment.EnvironmentName}");
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi("/openapi/v1.json").RequireCors(localDevFrontendCorsPolicy);
+}
 
 app.MapWorldEndpoints();
 app.MapAbilityEndpoints();
