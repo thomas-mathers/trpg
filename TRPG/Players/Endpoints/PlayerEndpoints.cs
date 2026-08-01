@@ -57,7 +57,7 @@ internal static class PlayerEndpoints
         );
     }
 
-    private static FightState ToFightState(IReadOnlyList<Combatant> combatants) =>
+    internal static FightState ToFightState(IReadOnlyList<Combatant> combatants) =>
         new(
             combatants
                 .OrderByDescending(c => c.TurnOrder)

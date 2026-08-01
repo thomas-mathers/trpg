@@ -44,6 +44,7 @@ public static class ServiceCollectionExtensions
     {
         return serviceCollection
             .AddMemoryCache()
+            .AddScoped<GameTurnContext>()
             .AddTransient<AddBuildingOwnerCommandHandler>()
             .AddTransient<RemoveBuildingOwnerCommandHandler>()
             .AddTransient<SetWorkstationOccupantCommandHandler>()

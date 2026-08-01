@@ -76,6 +76,8 @@ internal class StartFightTool(
 
         var state = combatEngine.ProcessRound(combatants, resolverResult.Result!);
 
+        turnContext.PendingEvents.Add(new CombatStartedEvent(combatants));
+
         var result = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {

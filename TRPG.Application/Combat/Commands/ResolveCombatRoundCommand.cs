@@ -1,4 +1,5 @@
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.GameSessions;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data.Models;
@@ -19,7 +20,8 @@ internal class ResolveCombatRoundCommandHandler(
     AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
     AdjustCreatureSkillsCommandHandler adjustCreatureSkills,
     RemoveInventoryItemCommandHandler removeInventoryItem,
-    EndFightCommandHandler endFight
+    EndFightCommandHandler endFight,
+    GameTurnContext turnContext
 )
 {
     public async Task<CombatResult> Handle(
@@ -87,6 +89,7 @@ internal class ResolveCombatRoundCommandHandler(
                 },
                 cancellationToken
             );
+            turnContext.PendingEvents.Add(new CombatEndedEvent());
         }
 
         return state.ToCombatResult();

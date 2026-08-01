@@ -13,7 +13,6 @@ using TickerQ.Utilities.Enums;
 using TRPG.Application.Common;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
-using TRPG.Application.GameSessions;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Configuration;
 using TRPG.Data;
@@ -89,9 +88,7 @@ internal static class ServiceCollectionExtensions
 
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {
-        return serviceCollection
-            .AddScoped<GameTurnContext>()
-            .AddSingleton<WorldConnectionRegistry>();
+        return serviceCollection.AddSingleton<WorldConnectionRegistry>();
     }
 
     public static IServiceCollection AddTrpgJobs(
