@@ -2,6 +2,7 @@ using System.Text.Json;
 using TickerQ.Utilities.Base;
 using TickerQ.Utilities.Interfaces;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Contracts;
 using TRPG.Contracts.Worlds.Responses;
 using TRPG.Data;
 
@@ -21,7 +22,8 @@ public class CreateWorldJob(CreateWorldCommandHandler handler, TrpgTickerQDbCont
         if (ticker is not null)
         {
             ticker.ResultJson = JsonSerializer.Serialize(
-                new CreateWorldResponse(result.WorldId, result.PlayerId, result.WorldName)
+                new CreateWorldResponse(result.WorldId, result.PlayerId, result.WorldName),
+                TrpgJsonOptions.Default
             );
             await tickerContext.SaveChangesAsync(cancellationToken);
         }

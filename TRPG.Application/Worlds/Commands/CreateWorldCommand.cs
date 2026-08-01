@@ -13,7 +13,7 @@ public class CreateWorldCommand
     public required WorldGeneratorInput WorldInput { get; init; }
     public required string Name { get; init; }
     public required Gender Gender { get; init; }
-    public required Age Age { get; init; }
+    public required int Age { get; init; }
     public required Race Race { get; init; }
     public required PlayerClass PlayerClass { get; init; }
     public required IReadOnlyDictionary<
@@ -50,7 +50,7 @@ public class CreateWorldCommandHandler(
             d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter
         );
 
-        var birthYear = GameClock.EpochYear - (int)command.Age;
+        var birthYear = GameClock.EpochYear - command.Age;
 
         var playerResult = creatureGenerator.Generate(
             new CreatureGeneratorInput(

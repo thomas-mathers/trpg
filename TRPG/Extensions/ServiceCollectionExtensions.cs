@@ -167,7 +167,10 @@ internal static class ServiceCollectionExtensions
                     .GetRequiredService<IConfiguration>()
                     .GetConnectionString("Trpg");
                 options
-                    .UseNpgsql(connectionString)
+                    .UseNpgsql(
+                        connectionString,
+                        sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)
+                    )
                     .UseLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
             }
         );
@@ -195,6 +198,7 @@ internal static class ServiceCollectionExtensions
                         {
                             sql.MigrationsAssembly("TRPG.Data");
                             sql.MigrationsHistoryTable("__TickerQMigrationsHistory");
+                            sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
                         }
                     )
                 );

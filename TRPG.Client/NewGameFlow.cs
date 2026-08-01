@@ -66,15 +66,7 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
 
         AnsiConsole.MarkupLine($"[{Theme.Positive}]✓[/] Gender: {gender.ToDisplayName()}");
 
-        var age = await AnsiConsole.PromptAsync(
-            new SelectionPrompt<Age>()
-                .Title("Age")
-                .AddChoices(Enum.GetValues<Age>())
-                .UseConverter(value => value.ToDisplayName()),
-            cancellationToken
-        );
-
-        AnsiConsole.MarkupLine($"[{Theme.Positive}]✓[/] Age: {age.ToDisplayName()}");
+        var age = await AnsiConsole.AskAsync("Age", 30, cancellationToken);
 
         var race = await AnsiConsole.PromptAsync(
             new SelectionPrompt<Race>()
@@ -201,7 +193,7 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
             [
                 ["Name", name.EscapeMarkup()],
                 ["Gender", AnsiConsole.FormatNeutralChip(gender)],
-                ["Age", AnsiConsole.FormatNeutralChip(age)],
+                ["Age", age.ToString(CultureInfo.InvariantCulture)],
                 ["Race", AnsiConsole.FormatNeutralChip(race)],
                 ["Class", AnsiConsole.FormatNeutralChip(playerClass)],
                 ["Attributes", FormatStartingAttributeAllocation(startingAttributeAllocation)],
