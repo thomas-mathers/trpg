@@ -1,6 +1,15 @@
-import { useParams } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
+import { MenuIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { Button } from './components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './components/ui/dropdown-menu';
 import { Input } from './components/ui/input';
 import { Message, MessageContent, MessageHeader } from './components/ui/message';
 import {
@@ -20,6 +29,7 @@ interface ChatMessage {
 }
 
 function App() {
+  const navigate = useNavigate();
   const { sessionId } = useParams({ from: '/session/$sessionId' });
   const { isConnected, streamOpening, streamChat } = useGameHubConnection(sessionId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -75,7 +85,27 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="relative flex h-screen flex-col">
+      <div className="absolute top-2 right-2 z-10">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MenuIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled>Character</DropdownMenuItem>
+            <DropdownMenuItem disabled>Inventory</DropdownMenuItem>
+            <DropdownMenuItem disabled>Skills</DropdownMenuItem>
+            <DropdownMenuItem disabled>Abilities</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate({ to: '/' })}>
+              Exit to Main Menu
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <MessageScrollerProvider>
         <MessageScroller className="flex-1">
           <MessageScrollerViewport>
@@ -88,7 +118,7 @@ function App() {
                         <MessageHeader className="justify-end">You</MessageHeader>
                       )}
                       {message.role === 'narrator' ? (
-                        <div className="typeset typeset-chat">{message.content}</div>
+                        <div className="typeset typeset-chat italic">{message.content}</div>
                       ) : (
                         <p className="text-right">{message.content}</p>
                       )}

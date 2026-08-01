@@ -11,7 +11,7 @@ import {
   postSessionsMutation,
   postWorldsMutation,
 } from './api/client';
-import type { Age, Gender, PlayerClass, Race } from './api/client';
+import type { BaseAttributesResponse, Gender, PlayerClass, Race } from './api/client';
 import { NumberStepper } from './components/NumberStepper';
 import { Button } from './components/ui/button';
 import {
@@ -24,7 +24,6 @@ import {
 } from './components/ui/dialog';
 import { Field, FieldError, FieldGroup, FieldLabel } from './components/ui/field';
 import { Input } from './components/ui/input';
-import { Progress } from './components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -33,11 +32,14 @@ import {
   SelectValue,
 } from './components/ui/select';
 import { Slider } from './components/ui/slider';
+import { Spinner } from './components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from './components/ui/tooltip';
 import { WorldGenerationDefaults } from './lib/world-generation-defaults';
 
 const GENDERS: Gender[] = ['Male', 'Female'];
-const AGES: Age[] = ['Teenager', 'MiddleAged', 'Old'];
+const MIN_AGE = 18;
+const MAX_AGE = 75;
 const RACES: Race[] = ['Human', 'Elf', 'Dwarf', 'Orc', 'Halfling', 'Gnome'];
 const PLAYER_CLASSES: PlayerClass[] = ['Knight', 'Rogue', 'Ranger', 'Mage', 'Cleric'];
 const ALLOCATABLE_ATTRIBUTES = [
@@ -48,6 +50,27 @@ const ALLOCATABLE_ATTRIBUTES = [
   'Mana',
   'Intelligence',
 ] as const;
+
+const BASE_ATTRIBUTE_KEYS: Record<
+  (typeof ALLOCATABLE_ATTRIBUTES)[number],
+  keyof BaseAttributesResponse
+> = {
+  Strength: 'strength',
+  Dexterity: 'dexterity',
+  Endurance: 'endurance',
+  Stamina: 'stamina',
+  Mana: 'mana',
+  Intelligence: 'intelligence',
+};
+
+const ATTRIBUTE_DESCRIPTIONS: Record<(typeof ALLOCATABLE_ATTRIBUTES)[number], string> = {
+  Strength: 'Increases physical attack damage.',
+  Dexterity: 'Increases evasion and critical hit chance.',
+  Endurance: 'Increases maximum HP.',
+  Stamina: 'Increases maximum AP, spent on physical abilities.',
+  Mana: 'Increases maximum MP, spent on magic abilities.',
+  Intelligence: 'Increases magic attack damage.',
+};
 
 type Status = 'idle' | 'generating' | 'error';
 
@@ -65,7 +88,7 @@ interface CreateWorldResponse {
 const newWorldFormSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   gender: z.custom<Gender>(),
-  age: z.custom<Age>(),
+  age: z.number(),
   race: z.custom<Race>(),
   playerClass: z.custom<PlayerClass>(),
   attributes: z.record(z.string(), z.number()),
@@ -82,7 +105,7 @@ const newWorldFormSchema = z.object({
 const defaultValues = {
   name: '',
   gender: 'Male' as Gender,
-  age: 'Teenager' as Age,
+  age: 30,
   race: 'Human' as Race,
   playerClass: 'Knight' as PlayerClass,
   attributes: {} as Record<string, number>,
@@ -233,14 +256,23 @@ export function NewWorldDialog() {
       <DialogTrigger asChild>
         <Button>New World</Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent
+        className="max-h-[85vh] overflow-y-auto sm:max-w-xl"
+        closeButtonDisabled={status === 'generating'}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => {
+          if (status === 'generating') {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>New World</DialogTitle>
         </DialogHeader>
 
         {status === 'generating' && (
           <div className="flex flex-col items-center gap-4 py-8">
-            <Progress value={undefined} className="w-full" />
+            <Spinner className="size-8" />
             <p className="text-muted-foreground text-sm">Generating world...</p>
           </div>
         )}
@@ -290,6 +322,27 @@ export function NewWorldDialog() {
                       }}
                     </form.Field>
 
+                    <form.Field name="age">
+                      {(field) => (
+                        <Field>
+                          <div className="flex items-center justify-between">
+                            <FieldLabel htmlFor={field.name}>Age</FieldLabel>
+                            <span className="text-muted-foreground text-sm">
+                              {field.state.value}
+                            </span>
+                          </div>
+                          <Slider
+                            id={field.name}
+                            value={[field.state.value]}
+                            onValueChange={([next]) => field.handleChange(next)}
+                            min={MIN_AGE}
+                            max={MAX_AGE}
+                            step={1}
+                          />
+                        </Field>
+                      )}
+                    </form.Field>
+
                     <div className="grid grid-cols-2 gap-4">
                       <form.Field name="gender">
                         {(field) => (
@@ -306,29 +359,6 @@ export function NewWorldDialog() {
                                 {GENDERS.map((g) => (
                                   <SelectItem key={g} value={g}>
                                     {g}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </Field>
-                        )}
-                      </form.Field>
-
-                      <form.Field name="age">
-                        {(field) => (
-                          <Field>
-                            <FieldLabel htmlFor={field.name}>Age</FieldLabel>
-                            <Select
-                              value={field.state.value}
-                              onValueChange={(v) => field.handleChange(v as Age)}
-                            >
-                              <SelectTrigger id={field.name}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {AGES.map((a) => (
-                                  <SelectItem key={a} value={a}>
-                                    {a}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -391,6 +421,7 @@ export function NewWorldDialog() {
                           0,
                         );
                         const remaining = pointsPerLevel - spent;
+                        const baseAttributes = generationOptions.data?.baseAttributes;
 
                         return (
                           <Field>
@@ -400,21 +431,39 @@ export function NewWorldDialog() {
                                 {remaining} of {pointsPerLevel} points remaining
                               </span>
                             </div>
-                            {ALLOCATABLE_ATTRIBUTES.map((attribute) => (
-                              <div key={attribute} className="flex items-center justify-between">
-                                <span className="text-sm">{attribute}</span>
-                                <NumberStepper
-                                  value={field.state.value[attribute] ?? 0}
-                                  max={remaining + (field.state.value[attribute] ?? 0)}
-                                  onChange={(value) =>
-                                    field.handleChange({
-                                      ...field.state.value,
-                                      [attribute]: value,
-                                    })
-                                  }
-                                />
-                              </div>
-                            ))}
+                            {ALLOCATABLE_ATTRIBUTES.map((attribute) => {
+                              const base = Number(
+                                baseAttributes?.[BASE_ATTRIBUTE_KEYS[attribute]] ?? 0,
+                              );
+                              const delta = field.state.value[attribute] ?? 0;
+                              const netValue = base + delta;
+
+                              return (
+                                <div key={attribute} className="flex items-center justify-between">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-sm underline decoration-dotted underline-offset-4">
+                                        {attribute}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {ATTRIBUTE_DESCRIPTIONS[attribute]}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <NumberStepper
+                                    value={netValue}
+                                    min={1}
+                                    max={netValue + remaining}
+                                    onChange={(value) =>
+                                      field.handleChange({
+                                        ...field.state.value,
+                                        [attribute]: value - base,
+                                      })
+                                    }
+                                  />
+                                </div>
+                              );
+                            })}
                           </Field>
                         );
                       }}

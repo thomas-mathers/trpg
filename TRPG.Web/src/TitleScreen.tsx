@@ -42,41 +42,50 @@ function TitleScreen() {
   };
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-4">
+    <div className="flex h-screen flex-col items-center justify-center gap-6">
       <h1 className="font-cinzel text-2xl font-semibold">TRPG</h1>
 
-      <NewWorldDialog />
+      <div className="flex w-80 flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-muted-foreground text-sm font-medium">Worlds</h2>
+          <NewWorldDialog />
+        </div>
 
-      {worldsQuery.isLoading && <p>Loading worlds...</p>}
-      {!worldsQuery.isLoading && worlds.length === 0 && <p>No worlds found.</p>}
+        {worldsQuery.isLoading && (
+          <p className="text-muted-foreground text-sm">Loading worlds...</p>
+        )}
+        {!worldsQuery.isLoading && worlds.length === 0 && (
+          <p className="text-muted-foreground text-sm">You haven't created a world yet.</p>
+        )}
 
-      <ul className="flex w-80 flex-col gap-2">
-        {worlds.map((world) => (
-          <li
-            key={world.worldId}
-            className="flex items-center justify-between gap-2 rounded-md border p-2"
-          >
-            <span>{world.name}</span>
-            <div className="flex gap-2">
-              {world.hasPlayer && (
+        <ul className="flex flex-col gap-2">
+          {worlds.map((world) => (
+            <li
+              key={world.worldId}
+              className="flex items-center justify-between gap-2 rounded-md border p-2"
+            >
+              <span>{world.name}</span>
+              <div className="flex gap-2">
+                {world.hasPlayer && (
+                  <Button
+                    onClick={() => handleContinue(world.worldId)}
+                    disabled={startSession.isPending}
+                  >
+                    Continue
+                  </Button>
+                )}
                 <Button
-                  onClick={() => handleContinue(world.worldId)}
-                  disabled={startSession.isPending}
+                  variant="destructive"
+                  onClick={() => handleDrop(world.worldId)}
+                  disabled={dropWorld.isPending}
                 >
-                  Continue
+                  Drop
                 </Button>
-              )}
-              <Button
-                variant="destructive"
-                onClick={() => handleDrop(world.worldId)}
-                disabled={dropWorld.isPending}
-              >
-                Drop
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
