@@ -1,5 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Anthropic;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -15,8 +18,10 @@ using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Configuration;
+using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.GameSessions.ChatClients;
+using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
 using TRPG.Worlds.Jobs;
 using ZLogger;
@@ -27,11 +32,93 @@ namespace TRPG.Extensions;
 
 internal static class ServiceCollectionExtensions
 {
+    public const string LocalDevFrontendCorsPolicy = "LocalDevFrontend";
+
+    public static IServiceCollection AddTrpgHostServices(
+        this IServiceCollection serviceCollection,
+        IConfiguration configuration
+    )
+    {
+        var loggingOptions =
+            configuration.GetSection("Logging").Get<LoggingOptions>() ?? new LoggingOptions();
+
+        var signalRBuilder = serviceCollection
+            .AddTrpgCors(configuration)
+            .AddTrpgLogging(loggingOptions.LogDirectory)
+            .AddTrpgDbContext()
+            .AddLlmChatClients()
+            .AddTrpgOptions(configuration)
+            .AddTrpgSessionState()
+            .AddTrpgJobs(configuration)
+            .AddExceptionHandler<GlobalExceptionHandler>()
+            .AddProblemDetails()
+            .AddOpenApi()
+            .AddResponseCompression(options => options.EnableForHttps = true)
+            .AddTrpgJsonOptions()
+            .AddSignalR(options => options.AddFilter<GameSessionNotFoundHubFilter>());
+
+        return signalRBuilder.Services;
+    }
+
+    public static IServiceCollection AddTrpgCors(
+        this IServiceCollection serviceCollection,
+        IConfiguration configuration
+    )
+    {
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+        return serviceCollection.AddCors(options =>
+        {
+            options.AddPolicy(
+                LocalDevFrontendCorsPolicy,
+                policy =>
+                {
+                    policy
+                        .WithOrigins(allowedOrigins)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                }
+            );
+        });
+    }
+
+    public static IServiceCollection AddTrpgJsonOptions(
+        this IServiceCollection serviceCollection
+    ) =>
+        serviceCollection.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.PropertyNamingPolicy = TrpgJsonOptions
+                .Default
+                .PropertyNamingPolicy;
+            options.SerializerOptions.PropertyNameCaseInsensitive = TrpgJsonOptions
+                .Default
+                .PropertyNameCaseInsensitive;
+            options.SerializerOptions.DefaultIgnoreCondition = TrpgJsonOptions
+                .Default
+                .DefaultIgnoreCondition;
+            foreach (var converter in TrpgJsonOptions.Default.Converters)
+            {
+                options.SerializerOptions.Converters.Add(converter);
+            }
+        });
+
     public static IServiceCollection AddTrpgLogging(
         this IServiceCollection serviceCollection,
         string logDirectory
     )
     {
+        Directory.CreateDirectory(logDirectory);
+
+        foreach (
+            var old in Directory
+                .GetFiles(logDirectory, "trpg_*.log")
+                .Where(f => File.GetLastWriteTime(f) < DateTime.Now.AddDays(-7))
+        )
+        {
+            File.Delete(old);
+        }
+
         return serviceCollection.AddLogging(builder =>
         {
             builder.AddZLoggerRollingFile(options =>
