@@ -25,14 +25,18 @@ const reconnectPolicy: IRetryPolicy = {
   },
 };
 
-export function useGameHubConnection() {
+export function useGameHubConnection(sessionId: string | null) {
   const hubConnection = useRef<HubConnection | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<boolean>(false);
 
   useEffect(() => {
+    if (!sessionId) {
+      return;
+    }
+
     const connection = new HubConnectionBuilder()
-      .withUrl(`${apiBaseUrl}/hubs/chat`)
+      .withUrl(`${apiBaseUrl}/hubs/chat?sessionId=${encodeURIComponent(sessionId)}`)
       .withAutomaticReconnect(reconnectPolicy)
       .configureLogging(LogLevel.Information)
       .build();
@@ -40,7 +44,10 @@ export function useGameHubConnection() {
     hubConnection.current = connection;
 
     connection.onreconnecting(() => setIsConnected(false));
-    connection.onreconnected(() => setIsConnected(true));
+    connection.onreconnected(() => {
+      setIsConnected(true);
+      setError(false);
+    });
     connection.onclose((e) => {
       setIsConnected(false);
       if (e) {
@@ -51,7 +58,10 @@ export function useGameHubConnection() {
 
     connection
       .start()
-      .then(() => setIsConnected(true))
+      .then(() => {
+        setIsConnected(true);
+        setError(false);
+      })
       .catch((e) => {
         console.error('Error connecting to game hub', e);
         setError(true);
@@ -62,10 +72,15 @@ export function useGameHubConnection() {
       setIsConnected(false);
       hubConnection.current = null;
     };
-  }, []);
+  }, [sessionId]);
 
   const streamTokens = useCallback(
-    (methodName: string, onReceiveToken: (token: string) => void, ...args: any[]) => {
+    (
+      methodName: string,
+      onReceiveToken: (token: string) => void,
+      onComplete: (() => void) | undefined,
+      ...args: any[]
+    ) => {
       const connection = hubConnection.current;
 
       if (!connection || !isConnected) {
@@ -77,11 +92,13 @@ export function useGameHubConnection() {
       const subscriber: IStreamSubscriber<string> = {
         complete() {
           subscription?.dispose();
+          onComplete?.();
         },
-        error(error: any) {
-          console.error(`Error receiving response from ${methodName}`, error);
+        error(err: any) {
+          console.error(`Error receiving response from ${methodName}`, err);
           setError(true);
           subscription?.dispose();
+          onComplete?.();
         },
         next: onReceiveToken,
       };
@@ -92,19 +109,20 @@ export function useGameHubConnection() {
   );
 
   const streamOpening = useCallback(
-    (onReceiveToken: (token: string) => void) => streamTokens('ReceiveOpening', onReceiveToken),
+    (onReceiveToken: (token: string) => void, onComplete?: () => void) =>
+      streamTokens('ReceiveOpening', onReceiveToken, onComplete),
     [streamTokens],
   );
 
   const streamChat = useCallback(
-    (message: string, onReceiveToken: (token: string) => void) =>
-      streamTokens('SendChat', onReceiveToken, message),
+    (message: string, onReceiveToken: (token: string) => void, onComplete?: () => void) =>
+      streamTokens('SendChat', onReceiveToken, onComplete, message),
     [streamTokens],
   );
 
   const streamWait = useCallback(
-    (hours: number, onReceiveToken: (token: string) => void) =>
-      streamTokens('SendWait', onReceiveToken, hours),
+    (hours: number, onReceiveToken: (token: string) => void, onComplete?: () => void) =>
+      streamTokens('SendWait', onReceiveToken, onComplete, hours),
     [streamTokens],
   );
 

@@ -4,6 +4,45 @@ export type ClientOptions = {
     baseUrl: 'http://localhost:5000/' | (string & {});
 };
 
+export type AbilityAvailability = {
+    name: string;
+    isUsable: boolean;
+    reason: null | string;
+};
+
+export type AbilityCategory = 'Offensive' | 'Support';
+
+export type AbilitySummary = {
+    name: string;
+    skill: Skill;
+    description: string;
+    apCost: number | string;
+    mpCost: number | string;
+    cooldown: number | string;
+    category: AbilityCategory;
+};
+
+export type ActiveBuff = {
+    abilityName: string;
+    attribute: AttributeName;
+    amount: number | string;
+    amountType: AmountType;
+    remainingTurns: number | string;
+};
+
+export type ActiveDot = {
+    abilityName: string;
+    amount: number | string;
+    damageType: DamageType;
+    remainingTurns: number | string;
+};
+
+export type ActiveHot = {
+    abilityName: string;
+    amount: number | string;
+    remainingTurns: number | string;
+};
+
 export type Age = 'Teenager' | 'MiddleAged' | 'Old';
 
 export type AllocateAttributePointsRequest = {
@@ -12,8 +51,66 @@ export type AllocateAttributePointsRequest = {
     };
 };
 
+export type AmountType = 'Flat' | 'Percent';
+
+export type AttributeName = 'MaximumHp' | 'MaximumAp' | 'MaximumMp' | 'Strength' | 'Defense' | 'Dexterity' | 'Endurance' | 'Stamina' | 'Mana' | 'Intelligence' | 'PhysicalResistance' | 'FireResistance' | 'IceResistance' | 'LightningResistance' | 'PoisonResistance' | 'MagicResistance' | 'MovementSpeed';
+
+export type AttributePointsResponse = {
+    unallocatedPoints: number | string;
+};
+
+export type BaseAttributesResponse = {
+    strength: number | string;
+    defense: number | string;
+    dexterity: number | string;
+    endurance: number | string;
+    stamina: number | string;
+    mana: number | string;
+    intelligence: number | string;
+};
+
+export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
+
 export type ChatRequest = {
     message: string;
+};
+
+export type ChatResponse = {
+    response: string;
+    metrics: null | TurnMetricsDto;
+};
+
+export type CombatantState = {
+    id: string;
+    name: string;
+    level: number | string;
+    isPlayer: boolean;
+    isAlive: boolean;
+    currentHp: number | string;
+    maximumHp: number | string;
+    currentAp: number | string;
+    maximumAp: number | string;
+    currentMp: number | string;
+    maximumMp: number | string;
+    activeConditions: {
+        [key: string]: number | string;
+    };
+    activeDots: Array<ActiveDot>;
+    activeHots: Array<ActiveHot>;
+    activeBuffs: Array<ActiveBuff>;
+};
+
+export type ConsumableSummary = {
+    itemId: string;
+    name: string;
+    quantity: number | string;
+    resource: ResourceType;
+    restoreAmount: number | string;
+};
+
+export type CreateSessionResponse = {
+    sessionId: string;
+    playerId: string;
 };
 
 export type CreateWorldRequest = {
@@ -40,10 +137,102 @@ export type CreateWorldRequest = {
     factionCount?: number | string;
 };
 
+export type CreatureGenerationOptionsResponse = {
+    pointsPerLevel: number | string;
+    baseAttributes: BaseAttributesResponse;
+};
+
+export type CreatureLevelResponse = {
+    level: number | string;
+};
+
+export type CreatureState = 'Sleeping' | 'Idle' | 'Busy' | 'Studying' | 'Praying' | 'Training' | 'Sitting' | 'Dead';
+
+export type CreatureStatusSnapshot = {
+    name: string;
+    creatureType: CreatureType;
+    gender: Gender;
+    profession: null | Profession;
+    level: number | string;
+    age: number | string;
+    state: null | CreatureState;
+    gold: number | string;
+    currentHp: number | string;
+    maximumHp: number | string;
+    currentAp: number | string;
+    maximumAp: number | string;
+    currentMp: number | string;
+    maximumMp: number | string;
+    experienceCurrent: number | string;
+    experienceToNextLevel: number | string;
+    factionNames: null | Array<string>;
+    reputation: null | number | string;
+    strength: number | string;
+    dexterity: number | string;
+    intelligence: number | string;
+    endurance: number | string;
+    stamina: number | string;
+    mana: number | string;
+    defense: number | string;
+    movementSpeed: number | string;
+    physicalResistance: number | string;
+    fireResistance: number | string;
+    iceResistance: number | string;
+    lightningResistance: number | string;
+    poisonResistance: number | string;
+    magicResistance: number | string;
+};
+
+export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
+
+export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 'Magic';
+
+export type DistrictType = 'Residential' | 'Scientific' | 'CityCenter' | 'Governmental' | 'HolySite' | 'Encampment';
+
+export type EnqueueJobResponse = {
+    jobId: string;
+};
+
+export type EntityType = 'Creature' | 'Building' | 'District' | 'World' | 'Country' | 'State' | 'City';
+
+export type EquipmentSlot = 'Helm' | 'Chest' | 'LeftHand' | 'RightHand' | 'Boots' | 'Necklace' | 'Gloves' | 'LeftRing' | 'RightRing' | 'Belt';
+
+export type FightState = {
+    combatants: Array<CombatantState>;
+};
+
 export type Gender = 'Male' | 'Female';
+
+export type InventorySummary = {
+    gold: number | string;
+    items: Array<ItemSummary>;
+};
 
 export type InventoryTransferRequest = {
     items: Array<LootItemSelection>;
+};
+
+export type ItemRarity = 'Low' | 'Normal' | 'Magic' | 'Rare' | 'Unique';
+
+export type ItemSummary = {
+    itemId: string;
+    name: string;
+    weight: number | string;
+    quantity: number | string;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+};
+
+export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold';
+
+export type JobStatus = 'Idle' | 'Queued' | 'InProgress' | 'Done' | 'Failed' | 'Cancelled';
+
+export type JobStatusResponse = {
+    jobId: string;
+    status: JobStatus;
+    resultJson: null | string;
+    errorMessage: null | string;
 };
 
 export type LootItemSelection = {
@@ -51,14 +240,94 @@ export type LootItemSelection = {
     quantity: number | string;
 };
 
+export type NamedEntity = {
+    id: string;
+    name: string;
+    type: EntityType;
+};
+
+export type NearbyBuildingSnapshot = {
+    name: string;
+    type: BuildingType;
+};
+
+export type NearbyCorpseSummary = {
+    id: string;
+    name: string;
+    itemCount: number | string;
+};
+
+export type NearbyDistrictSnapshot = {
+    name: string;
+    type: DistrictType;
+};
+
+export type NearbyExitSnapshot = {
+    description: string;
+    destinationRoomName: string;
+};
+
+export type NearbyPropSnapshot = {
+    name: string;
+    type: string;
+};
+
 export type PlayerClass = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric';
+
+export type Profession = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric' | 'Mercenary' | 'Alchemist' | 'Blacksmith' | 'Scholar' | 'Merchant' | 'Politician' | 'StableMaster' | 'Bartender' | 'Guard' | 'Baker' | 'Innkeeper' | 'Tailor' | 'Carpenter' | 'Jeweler' | 'Homemaker' | 'Unemployed';
 
 export type Race = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome';
 
+export type ResourceType = 'Hp' | 'Ap' | 'Mp';
+
+export type SceneSnapshot = {
+    stateName: string;
+    cityName: null | string;
+    districtName: null | string;
+    buildingName: null | string;
+    roomName: null | string;
+    year: number | string;
+    monthName: string;
+    day: number | string;
+    weekdayName: string;
+    hour: number | string;
+    playerStatus: CreatureStatusSnapshot;
+    nearbyCreatures: Array<CreatureStatusSnapshot>;
+    nearbyDistricts: Array<NearbyDistrictSnapshot>;
+    nearbyBuildings: Array<NearbyBuildingSnapshot>;
+    nearbyDungeons: Array<NearbyBuildingSnapshot>;
+    nearbyProps: Array<NearbyPropSnapshot>;
+    exits: Array<NearbyExitSnapshot>;
+};
+
 export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Destruction' | 'Illusion' | 'Archery' | 'Restoration' | 'Alteration' | 'General' | 'Blocking';
+
+export type SkillProgressSummary = {
+    skill: Skill;
+    level: number | string;
+    experienceCurrent: number | string;
+    experienceToNextLevel: number | string;
+};
+
+export type TurnMetricsDto = {
+    firstTokenMs: number | string;
+    totalMs: number | string;
+    tokenCount: number | string;
+    tokensPerSecond: number | string;
+};
 
 export type WaitRequest = {
     hours: number | string;
+};
+
+export type WaitResponse = {
+    message: string;
+};
+
+export type WorldSummary = {
+    worldId: string;
+    name: string;
+    hasPlayer: boolean;
 };
 
 export type GetWorldsData = {
@@ -72,8 +341,10 @@ export type GetWorldsResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: Array<WorldSummary>;
 };
+
+export type GetWorldsResponse = GetWorldsResponses[keyof GetWorldsResponses];
 
 export type PostWorldsData = {
     body: CreateWorldRequest;
@@ -84,10 +355,12 @@ export type PostWorldsData = {
 
 export type PostWorldsResponses = {
     /**
-     * OK
+     * Accepted
      */
-    200: unknown;
+    202: EnqueueJobResponse;
 };
+
+export type PostWorldsResponse = PostWorldsResponses[keyof PostWorldsResponses];
 
 export type DeleteWorldsByWorldIdData = {
     body?: never;
@@ -100,10 +373,12 @@ export type DeleteWorldsByWorldIdData = {
 
 export type DeleteWorldsByWorldIdResponses = {
     /**
-     * OK
+     * No Content
      */
-    200: unknown;
+    204: void;
 };
+
+export type DeleteWorldsByWorldIdResponse = DeleteWorldsByWorldIdResponses[keyof DeleteWorldsByWorldIdResponses];
 
 export type GetAbilitiesBySkillData = {
     body?: never;
@@ -118,8 +393,10 @@ export type GetAbilitiesBySkillResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: Array<AbilitySummary>;
 };
+
+export type GetAbilitiesBySkillResponse = GetAbilitiesBySkillResponses[keyof GetAbilitiesBySkillResponses];
 
 export type GetCreaturesByCreatureIdAbilitiesData = {
     body?: never;
@@ -134,8 +411,10 @@ export type GetCreaturesByCreatureIdAbilitiesResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: Array<AbilitySummary>;
 };
+
+export type GetCreaturesByCreatureIdAbilitiesResponse = GetCreaturesByCreatureIdAbilitiesResponses[keyof GetCreaturesByCreatureIdAbilitiesResponses];
 
 export type GetCreaturesByCreatureIdInventoryData = {
     body?: never;
@@ -150,8 +429,10 @@ export type GetCreaturesByCreatureIdInventoryResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: InventorySummary;
 };
+
+export type GetCreaturesByCreatureIdInventoryResponse = GetCreaturesByCreatureIdInventoryResponses[keyof GetCreaturesByCreatureIdInventoryResponses];
 
 export type GetCreaturesByCreatureIdConsumablesData = {
     body?: never;
@@ -166,8 +447,10 @@ export type GetCreaturesByCreatureIdConsumablesResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: Array<ConsumableSummary>;
 };
+
+export type GetCreaturesByCreatureIdConsumablesResponse = GetCreaturesByCreatureIdConsumablesResponses[keyof GetCreaturesByCreatureIdConsumablesResponses];
 
 export type GetCreaturesByCreatureIdAttributePointsData = {
     body?: never;
@@ -182,8 +465,10 @@ export type GetCreaturesByCreatureIdAttributePointsResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: AttributePointsResponse;
 };
+
+export type GetCreaturesByCreatureIdAttributePointsResponse = GetCreaturesByCreatureIdAttributePointsResponses[keyof GetCreaturesByCreatureIdAttributePointsResponses];
 
 export type PostCreaturesByCreatureIdAttributePointsAllocateData = {
     body: AllocateAttributePointsRequest;
@@ -196,10 +481,12 @@ export type PostCreaturesByCreatureIdAttributePointsAllocateData = {
 
 export type PostCreaturesByCreatureIdAttributePointsAllocateResponses = {
     /**
-     * OK
+     * No Content
      */
-    200: unknown;
+    204: void;
 };
+
+export type PostCreaturesByCreatureIdAttributePointsAllocateResponse = PostCreaturesByCreatureIdAttributePointsAllocateResponses[keyof PostCreaturesByCreatureIdAttributePointsAllocateResponses];
 
 export type GetCreaturesByCreatureIdAttributesData = {
     body?: never;
@@ -214,8 +501,10 @@ export type GetCreaturesByCreatureIdAttributesResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: BaseAttributesResponse;
 };
+
+export type GetCreaturesByCreatureIdAttributesResponse = GetCreaturesByCreatureIdAttributesResponses[keyof GetCreaturesByCreatureIdAttributesResponses];
 
 export type GetCreaturesByCreatureIdSkillsData = {
     body?: never;
@@ -230,8 +519,10 @@ export type GetCreaturesByCreatureIdSkillsResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: Array<SkillProgressSummary>;
 };
+
+export type GetCreaturesByCreatureIdSkillsResponse = GetCreaturesByCreatureIdSkillsResponses[keyof GetCreaturesByCreatureIdSkillsResponses];
 
 export type GetCreaturesByCreatureIdLevelData = {
     body?: never;
@@ -246,8 +537,10 @@ export type GetCreaturesByCreatureIdLevelResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: CreatureLevelResponse;
 };
+
+export type GetCreaturesByCreatureIdLevelResponse = GetCreaturesByCreatureIdLevelResponses[keyof GetCreaturesByCreatureIdLevelResponses];
 
 export type GetCorpsesData = {
     body?: never;
@@ -262,8 +555,10 @@ export type GetCorpsesResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: Array<NearbyCorpseSummary>;
 };
+
+export type GetCorpsesResponse = GetCorpsesResponses[keyof GetCorpsesResponses];
 
 export type GetPlayersByPlayerIdFightData = {
     body?: never;
@@ -274,12 +569,21 @@ export type GetPlayersByPlayerIdFightData = {
     url: '/players/{playerId}/fight';
 };
 
+export type GetPlayersByPlayerIdFightErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
 export type GetPlayersByPlayerIdFightResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: FightState;
 };
+
+export type GetPlayersByPlayerIdFightResponse = GetPlayersByPlayerIdFightResponses[keyof GetPlayersByPlayerIdFightResponses];
 
 export type GetPlayersByPlayerIdFightAbilitiesData = {
     body?: never;
@@ -294,8 +598,10 @@ export type GetPlayersByPlayerIdFightAbilitiesResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: Array<AbilityAvailability>;
 };
+
+export type GetPlayersByPlayerIdFightAbilitiesResponse = GetPlayersByPlayerIdFightAbilitiesResponses[keyof GetPlayersByPlayerIdFightAbilitiesResponses];
 
 export type GetCreatureGenerationOptionsData = {
     body?: never;
@@ -308,8 +614,10 @@ export type GetCreatureGenerationOptionsResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: CreatureGenerationOptionsResponse;
 };
+
+export type GetCreatureGenerationOptionsResponse = GetCreatureGenerationOptionsResponses[keyof GetCreatureGenerationOptionsResponses];
 
 export type PostSessionsData = {
     body?: never;
@@ -320,12 +628,21 @@ export type PostSessionsData = {
     url: '/sessions';
 };
 
+export type PostSessionsErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
 export type PostSessionsResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: CreateSessionResponse;
 };
+
+export type PostSessionsResponse = PostSessionsResponses[keyof PostSessionsResponses];
 
 export type GetSessionsBySessionIdSceneData = {
     body?: never;
@@ -336,12 +653,21 @@ export type GetSessionsBySessionIdSceneData = {
     url: '/sessions/{sessionId}/scene';
 };
 
+export type GetSessionsBySessionIdSceneErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
 export type GetSessionsBySessionIdSceneResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: SceneSnapshot;
 };
+
+export type GetSessionsBySessionIdSceneResponse = GetSessionsBySessionIdSceneResponses[keyof GetSessionsBySessionIdSceneResponses];
 
 export type GetSessionsBySessionIdNamedEntitiesData = {
     body?: never;
@@ -356,8 +682,10 @@ export type GetSessionsBySessionIdNamedEntitiesResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: Array<NamedEntity>;
 };
+
+export type GetSessionsBySessionIdNamedEntitiesResponse = GetSessionsBySessionIdNamedEntitiesResponses[keyof GetSessionsBySessionIdNamedEntitiesResponses];
 
 export type GetJobsByIdData = {
     body?: never;
@@ -368,12 +696,21 @@ export type GetJobsByIdData = {
     url: '/jobs/{id}';
 };
 
+export type GetJobsByIdErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
 export type GetJobsByIdResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: JobStatusResponse;
 };
+
+export type GetJobsByIdResponse = GetJobsByIdResponses[keyof GetJobsByIdResponses];
 
 export type PostAdminSessionsBySessionIdChatData = {
     body: ChatRequest;
@@ -390,8 +727,10 @@ export type PostAdminSessionsBySessionIdChatResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: ChatResponse;
 };
+
+export type PostAdminSessionsBySessionIdChatResponse = PostAdminSessionsBySessionIdChatResponses[keyof PostAdminSessionsBySessionIdChatResponses];
 
 export type PostAdminSessionsBySessionIdWaitData = {
     body: WaitRequest;
@@ -402,12 +741,21 @@ export type PostAdminSessionsBySessionIdWaitData = {
     url: '/admin/sessions/{sessionId}/wait';
 };
 
+export type PostAdminSessionsBySessionIdWaitErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
 export type PostAdminSessionsBySessionIdWaitResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: WaitResponse;
 };
+
+export type PostAdminSessionsBySessionIdWaitResponse = PostAdminSessionsBySessionIdWaitResponses[keyof PostAdminSessionsBySessionIdWaitResponses];
 
 export type DeleteAdminSessionsBySessionIdData = {
     body?: never;
@@ -420,10 +768,12 @@ export type DeleteAdminSessionsBySessionIdData = {
 
 export type DeleteAdminSessionsBySessionIdResponses = {
     /**
-     * OK
+     * No Content
      */
-    200: unknown;
+    204: void;
 };
+
+export type DeleteAdminSessionsBySessionIdResponse = DeleteAdminSessionsBySessionIdResponses[keyof DeleteAdminSessionsBySessionIdResponses];
 
 export type PostTransfersData = {
     body: InventoryTransferRequest;
@@ -437,7 +787,9 @@ export type PostTransfersData = {
 
 export type PostTransfersResponses = {
     /**
-     * OK
+     * No Content
      */
-    200: unknown;
+    204: void;
 };
+
+export type PostTransfersResponse = PostTransfersResponses[keyof PostTransfersResponses];

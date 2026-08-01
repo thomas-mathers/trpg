@@ -4,7 +4,7 @@ import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanst
 
 import { client } from '../client.gen';
 import { deleteAdminSessionsBySessionId, deleteWorldsByWorldId, getAbilitiesBySkill, getCorpses, getCreatureGenerationOptions, getCreaturesByCreatureIdAbilities, getCreaturesByCreatureIdAttributePoints, getCreaturesByCreatureIdAttributes, getCreaturesByCreatureIdConsumables, getCreaturesByCreatureIdInventory, getCreaturesByCreatureIdLevel, getCreaturesByCreatureIdSkills, getJobsById, getPlayersByPlayerIdFight, getPlayersByPlayerIdFightAbilities, getSessionsBySessionIdNamedEntities, getSessionsBySessionIdScene, getWorlds, type Options, postAdminSessionsBySessionIdChat, postAdminSessionsBySessionIdWait, postCreaturesByCreatureIdAttributePointsAllocate, postSessions, postTransfers, postWorlds } from '../sdk.gen';
-import type { DeleteAdminSessionsBySessionIdData, DeleteWorldsByWorldIdData, GetAbilitiesBySkillData, GetCorpsesData, GetCreatureGenerationOptionsData, GetCreaturesByCreatureIdAbilitiesData, GetCreaturesByCreatureIdAttributePointsData, GetCreaturesByCreatureIdAttributesData, GetCreaturesByCreatureIdConsumablesData, GetCreaturesByCreatureIdInventoryData, GetCreaturesByCreatureIdLevelData, GetCreaturesByCreatureIdSkillsData, GetJobsByIdData, GetPlayersByPlayerIdFightAbilitiesData, GetPlayersByPlayerIdFightData, GetSessionsBySessionIdNamedEntitiesData, GetSessionsBySessionIdSceneData, GetWorldsData, PostAdminSessionsBySessionIdChatData, PostAdminSessionsBySessionIdWaitData, PostCreaturesByCreatureIdAttributePointsAllocateData, PostSessionsData, PostTransfersData, PostWorldsData } from '../types.gen';
+import type { DeleteAdminSessionsBySessionIdData, DeleteAdminSessionsBySessionIdResponse, DeleteWorldsByWorldIdData, DeleteWorldsByWorldIdResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetCorpsesData, GetCorpsesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreaturesByCreatureIdAbilitiesData, GetCreaturesByCreatureIdAbilitiesResponse, GetCreaturesByCreatureIdAttributePointsData, GetCreaturesByCreatureIdAttributePointsResponse, GetCreaturesByCreatureIdAttributesData, GetCreaturesByCreatureIdAttributesResponse, GetCreaturesByCreatureIdConsumablesData, GetCreaturesByCreatureIdConsumablesResponse, GetCreaturesByCreatureIdInventoryData, GetCreaturesByCreatureIdInventoryResponse, GetCreaturesByCreatureIdLevelData, GetCreaturesByCreatureIdLevelResponse, GetCreaturesByCreatureIdSkillsData, GetCreaturesByCreatureIdSkillsResponse, GetJobsByIdData, GetJobsByIdResponse, GetPlayersByPlayerIdFightAbilitiesData, GetPlayersByPlayerIdFightAbilitiesResponse, GetPlayersByPlayerIdFightData, GetPlayersByPlayerIdFightResponse, GetSessionsBySessionIdNamedEntitiesData, GetSessionsBySessionIdNamedEntitiesResponse, GetSessionsBySessionIdSceneData, GetSessionsBySessionIdSceneResponse, GetWorldsData, GetWorldsResponse, PostAdminSessionsBySessionIdChatData, PostAdminSessionsBySessionIdChatResponse, PostAdminSessionsBySessionIdWaitData, PostAdminSessionsBySessionIdWaitResponse, PostCreaturesByCreatureIdAttributePointsAllocateData, PostCreaturesByCreatureIdAttributePointsAllocateResponse, PostSessionsData, PostSessionsResponse, PostTransfersData, PostTransfersResponse, PostWorldsData, PostWorldsResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -41,7 +41,7 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
 
 export const getWorldsQueryKey = (options?: Options<GetWorldsData>) => createQueryKey('getWorlds', options);
 
-export const getWorldsOptions = (options?: Options<GetWorldsData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getWorldsQueryKey>>({
+export const getWorldsOptions = (options?: Options<GetWorldsData>) => queryOptions<GetWorldsResponse, DefaultError, GetWorldsResponse, ReturnType<typeof getWorldsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getWorlds({
             ...options,
@@ -54,8 +54,8 @@ export const getWorldsOptions = (options?: Options<GetWorldsData>) => queryOptio
     queryKey: getWorldsQueryKey(options)
 });
 
-export const postWorldsMutation = (options?: Partial<Options<PostWorldsData>>): UseMutationOptions<unknown, DefaultError, Options<PostWorldsData>> => {
-    const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<PostWorldsData>> = {
+export const postWorldsMutation = (options?: Partial<Options<PostWorldsData>>): UseMutationOptions<PostWorldsResponse, DefaultError, Options<PostWorldsData>> => {
+    const mutationOptions: UseMutationOptions<PostWorldsResponse, DefaultError, Options<PostWorldsData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await postWorlds({
                 ...options,
@@ -68,8 +68,8 @@ export const postWorldsMutation = (options?: Partial<Options<PostWorldsData>>): 
     return mutationOptions;
 };
 
-export const deleteWorldsByWorldIdMutation = (options?: Partial<Options<DeleteWorldsByWorldIdData>>): UseMutationOptions<unknown, DefaultError, Options<DeleteWorldsByWorldIdData>> => {
-    const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<DeleteWorldsByWorldIdData>> = {
+export const deleteWorldsByWorldIdMutation = (options?: Partial<Options<DeleteWorldsByWorldIdData>>): UseMutationOptions<DeleteWorldsByWorldIdResponse, DefaultError, Options<DeleteWorldsByWorldIdData>> => {
+    const mutationOptions: UseMutationOptions<DeleteWorldsByWorldIdResponse, DefaultError, Options<DeleteWorldsByWorldIdData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await deleteWorldsByWorldId({
                 ...options,
@@ -84,7 +84,7 @@ export const deleteWorldsByWorldIdMutation = (options?: Partial<Options<DeleteWo
 
 export const getAbilitiesBySkillQueryKey = (options: Options<GetAbilitiesBySkillData>) => createQueryKey('getAbilitiesBySkill', options);
 
-export const getAbilitiesBySkillOptions = (options: Options<GetAbilitiesBySkillData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getAbilitiesBySkillQueryKey>>({
+export const getAbilitiesBySkillOptions = (options: Options<GetAbilitiesBySkillData>) => queryOptions<GetAbilitiesBySkillResponse, DefaultError, GetAbilitiesBySkillResponse, ReturnType<typeof getAbilitiesBySkillQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getAbilitiesBySkill({
             ...options,
@@ -99,7 +99,7 @@ export const getAbilitiesBySkillOptions = (options: Options<GetAbilitiesBySkillD
 
 export const getCreaturesByCreatureIdAbilitiesQueryKey = (options: Options<GetCreaturesByCreatureIdAbilitiesData>) => createQueryKey('getCreaturesByCreatureIdAbilities', options);
 
-export const getCreaturesByCreatureIdAbilitiesOptions = (options: Options<GetCreaturesByCreatureIdAbilitiesData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getCreaturesByCreatureIdAbilitiesQueryKey>>({
+export const getCreaturesByCreatureIdAbilitiesOptions = (options: Options<GetCreaturesByCreatureIdAbilitiesData>) => queryOptions<GetCreaturesByCreatureIdAbilitiesResponse, DefaultError, GetCreaturesByCreatureIdAbilitiesResponse, ReturnType<typeof getCreaturesByCreatureIdAbilitiesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getCreaturesByCreatureIdAbilities({
             ...options,
@@ -114,7 +114,7 @@ export const getCreaturesByCreatureIdAbilitiesOptions = (options: Options<GetCre
 
 export const getCreaturesByCreatureIdInventoryQueryKey = (options: Options<GetCreaturesByCreatureIdInventoryData>) => createQueryKey('getCreaturesByCreatureIdInventory', options);
 
-export const getCreaturesByCreatureIdInventoryOptions = (options: Options<GetCreaturesByCreatureIdInventoryData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getCreaturesByCreatureIdInventoryQueryKey>>({
+export const getCreaturesByCreatureIdInventoryOptions = (options: Options<GetCreaturesByCreatureIdInventoryData>) => queryOptions<GetCreaturesByCreatureIdInventoryResponse, DefaultError, GetCreaturesByCreatureIdInventoryResponse, ReturnType<typeof getCreaturesByCreatureIdInventoryQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getCreaturesByCreatureIdInventory({
             ...options,
@@ -129,7 +129,7 @@ export const getCreaturesByCreatureIdInventoryOptions = (options: Options<GetCre
 
 export const getCreaturesByCreatureIdConsumablesQueryKey = (options: Options<GetCreaturesByCreatureIdConsumablesData>) => createQueryKey('getCreaturesByCreatureIdConsumables', options);
 
-export const getCreaturesByCreatureIdConsumablesOptions = (options: Options<GetCreaturesByCreatureIdConsumablesData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getCreaturesByCreatureIdConsumablesQueryKey>>({
+export const getCreaturesByCreatureIdConsumablesOptions = (options: Options<GetCreaturesByCreatureIdConsumablesData>) => queryOptions<GetCreaturesByCreatureIdConsumablesResponse, DefaultError, GetCreaturesByCreatureIdConsumablesResponse, ReturnType<typeof getCreaturesByCreatureIdConsumablesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getCreaturesByCreatureIdConsumables({
             ...options,
@@ -144,7 +144,7 @@ export const getCreaturesByCreatureIdConsumablesOptions = (options: Options<GetC
 
 export const getCreaturesByCreatureIdAttributePointsQueryKey = (options: Options<GetCreaturesByCreatureIdAttributePointsData>) => createQueryKey('getCreaturesByCreatureIdAttributePoints', options);
 
-export const getCreaturesByCreatureIdAttributePointsOptions = (options: Options<GetCreaturesByCreatureIdAttributePointsData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getCreaturesByCreatureIdAttributePointsQueryKey>>({
+export const getCreaturesByCreatureIdAttributePointsOptions = (options: Options<GetCreaturesByCreatureIdAttributePointsData>) => queryOptions<GetCreaturesByCreatureIdAttributePointsResponse, DefaultError, GetCreaturesByCreatureIdAttributePointsResponse, ReturnType<typeof getCreaturesByCreatureIdAttributePointsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getCreaturesByCreatureIdAttributePoints({
             ...options,
@@ -157,8 +157,8 @@ export const getCreaturesByCreatureIdAttributePointsOptions = (options: Options<
     queryKey: getCreaturesByCreatureIdAttributePointsQueryKey(options)
 });
 
-export const postCreaturesByCreatureIdAttributePointsAllocateMutation = (options?: Partial<Options<PostCreaturesByCreatureIdAttributePointsAllocateData>>): UseMutationOptions<unknown, DefaultError, Options<PostCreaturesByCreatureIdAttributePointsAllocateData>> => {
-    const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<PostCreaturesByCreatureIdAttributePointsAllocateData>> = {
+export const postCreaturesByCreatureIdAttributePointsAllocateMutation = (options?: Partial<Options<PostCreaturesByCreatureIdAttributePointsAllocateData>>): UseMutationOptions<PostCreaturesByCreatureIdAttributePointsAllocateResponse, DefaultError, Options<PostCreaturesByCreatureIdAttributePointsAllocateData>> => {
+    const mutationOptions: UseMutationOptions<PostCreaturesByCreatureIdAttributePointsAllocateResponse, DefaultError, Options<PostCreaturesByCreatureIdAttributePointsAllocateData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await postCreaturesByCreatureIdAttributePointsAllocate({
                 ...options,
@@ -173,7 +173,7 @@ export const postCreaturesByCreatureIdAttributePointsAllocateMutation = (options
 
 export const getCreaturesByCreatureIdAttributesQueryKey = (options: Options<GetCreaturesByCreatureIdAttributesData>) => createQueryKey('getCreaturesByCreatureIdAttributes', options);
 
-export const getCreaturesByCreatureIdAttributesOptions = (options: Options<GetCreaturesByCreatureIdAttributesData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getCreaturesByCreatureIdAttributesQueryKey>>({
+export const getCreaturesByCreatureIdAttributesOptions = (options: Options<GetCreaturesByCreatureIdAttributesData>) => queryOptions<GetCreaturesByCreatureIdAttributesResponse, DefaultError, GetCreaturesByCreatureIdAttributesResponse, ReturnType<typeof getCreaturesByCreatureIdAttributesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getCreaturesByCreatureIdAttributes({
             ...options,
@@ -188,7 +188,7 @@ export const getCreaturesByCreatureIdAttributesOptions = (options: Options<GetCr
 
 export const getCreaturesByCreatureIdSkillsQueryKey = (options: Options<GetCreaturesByCreatureIdSkillsData>) => createQueryKey('getCreaturesByCreatureIdSkills', options);
 
-export const getCreaturesByCreatureIdSkillsOptions = (options: Options<GetCreaturesByCreatureIdSkillsData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getCreaturesByCreatureIdSkillsQueryKey>>({
+export const getCreaturesByCreatureIdSkillsOptions = (options: Options<GetCreaturesByCreatureIdSkillsData>) => queryOptions<GetCreaturesByCreatureIdSkillsResponse, DefaultError, GetCreaturesByCreatureIdSkillsResponse, ReturnType<typeof getCreaturesByCreatureIdSkillsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getCreaturesByCreatureIdSkills({
             ...options,
@@ -203,7 +203,7 @@ export const getCreaturesByCreatureIdSkillsOptions = (options: Options<GetCreatu
 
 export const getCreaturesByCreatureIdLevelQueryKey = (options: Options<GetCreaturesByCreatureIdLevelData>) => createQueryKey('getCreaturesByCreatureIdLevel', options);
 
-export const getCreaturesByCreatureIdLevelOptions = (options: Options<GetCreaturesByCreatureIdLevelData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getCreaturesByCreatureIdLevelQueryKey>>({
+export const getCreaturesByCreatureIdLevelOptions = (options: Options<GetCreaturesByCreatureIdLevelData>) => queryOptions<GetCreaturesByCreatureIdLevelResponse, DefaultError, GetCreaturesByCreatureIdLevelResponse, ReturnType<typeof getCreaturesByCreatureIdLevelQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getCreaturesByCreatureIdLevel({
             ...options,
@@ -218,7 +218,7 @@ export const getCreaturesByCreatureIdLevelOptions = (options: Options<GetCreatur
 
 export const getCorpsesQueryKey = (options: Options<GetCorpsesData>) => createQueryKey('getCorpses', options);
 
-export const getCorpsesOptions = (options: Options<GetCorpsesData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getCorpsesQueryKey>>({
+export const getCorpsesOptions = (options: Options<GetCorpsesData>) => queryOptions<GetCorpsesResponse, DefaultError, GetCorpsesResponse, ReturnType<typeof getCorpsesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getCorpses({
             ...options,
@@ -233,7 +233,7 @@ export const getCorpsesOptions = (options: Options<GetCorpsesData>) => queryOpti
 
 export const getPlayersByPlayerIdFightQueryKey = (options: Options<GetPlayersByPlayerIdFightData>) => createQueryKey('getPlayersByPlayerIdFight', options);
 
-export const getPlayersByPlayerIdFightOptions = (options: Options<GetPlayersByPlayerIdFightData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getPlayersByPlayerIdFightQueryKey>>({
+export const getPlayersByPlayerIdFightOptions = (options: Options<GetPlayersByPlayerIdFightData>) => queryOptions<GetPlayersByPlayerIdFightResponse, DefaultError, GetPlayersByPlayerIdFightResponse, ReturnType<typeof getPlayersByPlayerIdFightQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getPlayersByPlayerIdFight({
             ...options,
@@ -248,7 +248,7 @@ export const getPlayersByPlayerIdFightOptions = (options: Options<GetPlayersByPl
 
 export const getPlayersByPlayerIdFightAbilitiesQueryKey = (options: Options<GetPlayersByPlayerIdFightAbilitiesData>) => createQueryKey('getPlayersByPlayerIdFightAbilities', options);
 
-export const getPlayersByPlayerIdFightAbilitiesOptions = (options: Options<GetPlayersByPlayerIdFightAbilitiesData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getPlayersByPlayerIdFightAbilitiesQueryKey>>({
+export const getPlayersByPlayerIdFightAbilitiesOptions = (options: Options<GetPlayersByPlayerIdFightAbilitiesData>) => queryOptions<GetPlayersByPlayerIdFightAbilitiesResponse, DefaultError, GetPlayersByPlayerIdFightAbilitiesResponse, ReturnType<typeof getPlayersByPlayerIdFightAbilitiesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getPlayersByPlayerIdFightAbilities({
             ...options,
@@ -263,7 +263,7 @@ export const getPlayersByPlayerIdFightAbilitiesOptions = (options: Options<GetPl
 
 export const getCreatureGenerationOptionsQueryKey = (options?: Options<GetCreatureGenerationOptionsData>) => createQueryKey('getCreatureGenerationOptions', options);
 
-export const getCreatureGenerationOptionsOptions = (options?: Options<GetCreatureGenerationOptionsData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getCreatureGenerationOptionsQueryKey>>({
+export const getCreatureGenerationOptionsOptions = (options?: Options<GetCreatureGenerationOptionsData>) => queryOptions<GetCreatureGenerationOptionsResponse, DefaultError, GetCreatureGenerationOptionsResponse, ReturnType<typeof getCreatureGenerationOptionsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getCreatureGenerationOptions({
             ...options,
@@ -276,8 +276,8 @@ export const getCreatureGenerationOptionsOptions = (options?: Options<GetCreatur
     queryKey: getCreatureGenerationOptionsQueryKey(options)
 });
 
-export const postSessionsMutation = (options?: Partial<Options<PostSessionsData>>): UseMutationOptions<unknown, DefaultError, Options<PostSessionsData>> => {
-    const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<PostSessionsData>> = {
+export const postSessionsMutation = (options?: Partial<Options<PostSessionsData>>): UseMutationOptions<PostSessionsResponse, DefaultError, Options<PostSessionsData>> => {
+    const mutationOptions: UseMutationOptions<PostSessionsResponse, DefaultError, Options<PostSessionsData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await postSessions({
                 ...options,
@@ -292,7 +292,7 @@ export const postSessionsMutation = (options?: Partial<Options<PostSessionsData>
 
 export const getSessionsBySessionIdSceneQueryKey = (options: Options<GetSessionsBySessionIdSceneData>) => createQueryKey('getSessionsBySessionIdScene', options);
 
-export const getSessionsBySessionIdSceneOptions = (options: Options<GetSessionsBySessionIdSceneData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getSessionsBySessionIdSceneQueryKey>>({
+export const getSessionsBySessionIdSceneOptions = (options: Options<GetSessionsBySessionIdSceneData>) => queryOptions<GetSessionsBySessionIdSceneResponse, DefaultError, GetSessionsBySessionIdSceneResponse, ReturnType<typeof getSessionsBySessionIdSceneQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getSessionsBySessionIdScene({
             ...options,
@@ -307,7 +307,7 @@ export const getSessionsBySessionIdSceneOptions = (options: Options<GetSessionsB
 
 export const getSessionsBySessionIdNamedEntitiesQueryKey = (options: Options<GetSessionsBySessionIdNamedEntitiesData>) => createQueryKey('getSessionsBySessionIdNamedEntities', options);
 
-export const getSessionsBySessionIdNamedEntitiesOptions = (options: Options<GetSessionsBySessionIdNamedEntitiesData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getSessionsBySessionIdNamedEntitiesQueryKey>>({
+export const getSessionsBySessionIdNamedEntitiesOptions = (options: Options<GetSessionsBySessionIdNamedEntitiesData>) => queryOptions<GetSessionsBySessionIdNamedEntitiesResponse, DefaultError, GetSessionsBySessionIdNamedEntitiesResponse, ReturnType<typeof getSessionsBySessionIdNamedEntitiesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getSessionsBySessionIdNamedEntities({
             ...options,
@@ -322,7 +322,7 @@ export const getSessionsBySessionIdNamedEntitiesOptions = (options: Options<GetS
 
 export const getJobsByIdQueryKey = (options: Options<GetJobsByIdData>) => createQueryKey('getJobsById', options);
 
-export const getJobsByIdOptions = (options: Options<GetJobsByIdData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getJobsByIdQueryKey>>({
+export const getJobsByIdOptions = (options: Options<GetJobsByIdData>) => queryOptions<GetJobsByIdResponse, DefaultError, GetJobsByIdResponse, ReturnType<typeof getJobsByIdQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getJobsById({
             ...options,
@@ -335,8 +335,8 @@ export const getJobsByIdOptions = (options: Options<GetJobsByIdData>) => queryOp
     queryKey: getJobsByIdQueryKey(options)
 });
 
-export const postAdminSessionsBySessionIdChatMutation = (options?: Partial<Options<PostAdminSessionsBySessionIdChatData>>): UseMutationOptions<unknown, DefaultError, Options<PostAdminSessionsBySessionIdChatData>> => {
-    const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<PostAdminSessionsBySessionIdChatData>> = {
+export const postAdminSessionsBySessionIdChatMutation = (options?: Partial<Options<PostAdminSessionsBySessionIdChatData>>): UseMutationOptions<PostAdminSessionsBySessionIdChatResponse, DefaultError, Options<PostAdminSessionsBySessionIdChatData>> => {
+    const mutationOptions: UseMutationOptions<PostAdminSessionsBySessionIdChatResponse, DefaultError, Options<PostAdminSessionsBySessionIdChatData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await postAdminSessionsBySessionIdChat({
                 ...options,
@@ -349,8 +349,8 @@ export const postAdminSessionsBySessionIdChatMutation = (options?: Partial<Optio
     return mutationOptions;
 };
 
-export const postAdminSessionsBySessionIdWaitMutation = (options?: Partial<Options<PostAdminSessionsBySessionIdWaitData>>): UseMutationOptions<unknown, DefaultError, Options<PostAdminSessionsBySessionIdWaitData>> => {
-    const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<PostAdminSessionsBySessionIdWaitData>> = {
+export const postAdminSessionsBySessionIdWaitMutation = (options?: Partial<Options<PostAdminSessionsBySessionIdWaitData>>): UseMutationOptions<PostAdminSessionsBySessionIdWaitResponse, DefaultError, Options<PostAdminSessionsBySessionIdWaitData>> => {
+    const mutationOptions: UseMutationOptions<PostAdminSessionsBySessionIdWaitResponse, DefaultError, Options<PostAdminSessionsBySessionIdWaitData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await postAdminSessionsBySessionIdWait({
                 ...options,
@@ -363,8 +363,8 @@ export const postAdminSessionsBySessionIdWaitMutation = (options?: Partial<Optio
     return mutationOptions;
 };
 
-export const deleteAdminSessionsBySessionIdMutation = (options?: Partial<Options<DeleteAdminSessionsBySessionIdData>>): UseMutationOptions<unknown, DefaultError, Options<DeleteAdminSessionsBySessionIdData>> => {
-    const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<DeleteAdminSessionsBySessionIdData>> = {
+export const deleteAdminSessionsBySessionIdMutation = (options?: Partial<Options<DeleteAdminSessionsBySessionIdData>>): UseMutationOptions<DeleteAdminSessionsBySessionIdResponse, DefaultError, Options<DeleteAdminSessionsBySessionIdData>> => {
+    const mutationOptions: UseMutationOptions<DeleteAdminSessionsBySessionIdResponse, DefaultError, Options<DeleteAdminSessionsBySessionIdData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await deleteAdminSessionsBySessionId({
                 ...options,
@@ -377,8 +377,8 @@ export const deleteAdminSessionsBySessionIdMutation = (options?: Partial<Options
     return mutationOptions;
 };
 
-export const postTransfersMutation = (options?: Partial<Options<PostTransfersData>>): UseMutationOptions<unknown, DefaultError, Options<PostTransfersData>> => {
-    const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<PostTransfersData>> = {
+export const postTransfersMutation = (options?: Partial<Options<PostTransfersData>>): UseMutationOptions<PostTransfersResponse, DefaultError, Options<PostTransfersData>> => {
+    const mutationOptions: UseMutationOptions<PostTransfersResponse, DefaultError, Options<PostTransfersData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await postTransfers({
                 ...options,
