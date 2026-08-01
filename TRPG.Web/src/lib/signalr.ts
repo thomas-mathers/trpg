@@ -1,4 +1,4 @@
-import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string;
 
