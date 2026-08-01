@@ -1,11 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TRPG.Data.Models;
 
 namespace TRPG.Data;
 
-public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options)
+file static class JsonColumnConversion
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -13,6 +15,35 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         AllowOutOfOrderMetadataProperties = true,
     };
 
+    public static PropertyBuilder<T> HasJsonConversion<T>(
+        this PropertyBuilder<T> propertyBuilder,
+        Func<T> defaultValue
+    ) =>
+        propertyBuilder
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonOptions),
+                v => JsonSerializer.Deserialize<T>(v, JsonOptions) ?? defaultValue(),
+                CreateValueComparer<T>()
+            )
+            .HasColumnType("jsonb");
+
+    private static ValueComparer<T> CreateValueComparer<T>() =>
+        new(
+            (left, right) =>
+                JsonSerializer.Serialize(left, JsonOptions)
+                == JsonSerializer.Serialize(right, JsonOptions),
+            value =>
+                JsonSerializer.Serialize(value, JsonOptions).GetHashCode(StringComparison.Ordinal),
+            value =>
+                JsonSerializer.Deserialize<T>(
+                    JsonSerializer.Serialize(value, JsonOptions),
+                    JsonOptions
+                )!
+        );
+}
+
+public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options)
+{
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
     public DbSet<Building> Buildings => Set<Building>();
     public DbSet<City> Cities => Set<City>();
@@ -77,51 +108,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => new { p.StateId, p.RoomId });
             entity.OwnsOne(p => p.BaseAttributes, s => s.ToJson());
-            entity
-                .Property(c => c.ActiveConditions)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
-                        ?? new Dictionary<string, int>()
-                )
-                .HasColumnType("jsonb");
-            entity
-                .Property(c => c.CooldownRemainingByAbility)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<Dictionary<string, int>>(v, JsonOptions)
-                        ?? new Dictionary<string, int>()
-                )
-                .HasColumnType("jsonb");
-            entity
-                .Property(c => c.ActiveDots)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<List<ActiveDot>>(v, JsonOptions)
-                        ?? new List<ActiveDot>()
-                )
-                .HasColumnType("jsonb");
-            entity
-                .Property(c => c.ActiveHots)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<List<ActiveHot>>(v, JsonOptions)
-                        ?? new List<ActiveHot>()
-                )
-                .HasColumnType("jsonb");
-            entity
-                .Property(c => c.ActiveBuffs)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<List<ActiveBuff>>(v, JsonOptions)
-                        ?? new List<ActiveBuff>()
-                )
-                .HasColumnType("jsonb");
+            entity.Property(c => c.ActiveConditions).HasJsonConversion(() => []);
+            entity.Property(c => c.CooldownRemainingByAbility).HasJsonConversion(() => []);
+            entity.Property(c => c.ActiveDots).HasJsonConversion(() => []);
+            entity.Property(c => c.ActiveHots).HasJsonConversion(() => []);
+            entity.Property(c => c.ActiveBuffs).HasJsonConversion(() => []);
         });
 
         modelBuilder.Entity<Fight>(entity =>
@@ -143,15 +134,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<Ammunition>("ammunition")
                 .HasValue<Accessory>("accessory")
                 .HasValue<Gold>("gold");
-            entity
-                .Property(i => i.Modifiers)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<List<ItemModifier>>(v, JsonOptions)
-                        ?? new List<ItemModifier>()
-                )
-                .HasColumnType("jsonb");
+            entity.Property(i => i.Modifiers).HasJsonConversion(() => []);
             entity.HasIndex(i => i.WorldId);
             entity.OwnsOne(
                 i => i.Ownership,
@@ -395,15 +378,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<GameSession>(entity =>
         {
             entity.HasIndex(s => s.WorldId);
-            entity
-                .Property(s => s.OpenConversationCreatureIdsByName)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonOptions),
-                    v =>
-                        JsonSerializer.Deserialize<Dictionary<string, Guid>>(v, JsonOptions)
-                        ?? new Dictionary<string, Guid>()
-                )
-                .HasColumnType("jsonb");
+            entity.Property(s => s.OpenConversationCreatureIdsByName).HasJsonConversion(() => []);
         });
 
         modelBuilder.Entity<ChatMessage>(entity =>
