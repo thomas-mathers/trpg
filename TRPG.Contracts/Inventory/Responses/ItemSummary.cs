@@ -57,6 +57,15 @@ public enum ItemType
     Bow,
     Crossbow,
     Javelin,
+
+    [Description("Great Sword")]
+    GreatSword,
+
+    [Description("Great Axe")]
+    GreatAxe,
+
+    [Description("Great Hammer")]
+    GreatHammer,
     Helm,
     Chest,
     Boots,

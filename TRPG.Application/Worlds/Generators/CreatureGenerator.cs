@@ -1425,6 +1425,10 @@ public class CreatureGenerator(
             if (resolvedSlot != null && occupiedSlots.Add(resolvedSlot.Value))
             {
                 item.Ownership.EquippedSlot = resolvedSlot;
+                if (item is Weapon { IsTwoHanded: true })
+                {
+                    occupiedSlots.Add(EquipmentSlot.LeftHand);
+                }
             }
 
             items.Add(item);

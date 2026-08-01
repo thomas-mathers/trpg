@@ -198,6 +198,9 @@ internal static class CreatureEndpoints
                 WeaponType.Bow => ItemType.Bow,
                 WeaponType.Crossbow => ItemType.Crossbow,
                 WeaponType.Javelin => ItemType.Javelin,
+                WeaponType.GreatSword => ItemType.GreatSword,
+                WeaponType.GreatAxe => ItemType.GreatAxe,
+                WeaponType.GreatHammer => ItemType.GreatHammer,
                 _ => throw new ArgumentOutOfRangeException(nameof(item)),
             },
             Armor a => a.Type switch
