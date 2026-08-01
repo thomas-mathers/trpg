@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Contracts.Creatures.Responses;
@@ -13,10 +14,12 @@ internal static class CreatureGenerationEndpoints
         app.MapGet("/creature-generation/options", GetOptions);
     }
 
-    private static IResult GetOptions(IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot)
+    private static Ok<CreatureGenerationOptionsResponse> GetOptions(
+        IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
+    )
     {
         var options = optionsSnapshot.Value;
-        return Results.Ok(
+        return TypedResults.Ok(
             new CreatureGenerationOptionsResponse(
                 options.PointsPerLevel,
                 new BaseAttributesResponse(

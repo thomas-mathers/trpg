@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
@@ -21,7 +22,7 @@ internal static class GameSessionEndpoints
         app.MapGet("/sessions/{sessionId:guid}/named-entities", GetNamedEntities);
     }
 
-    private static async Task<IResult> StartSession(
+    private static async Task<Results<NotFound, Ok<CreateSessionResponse>>> StartSession(
         Guid worldId,
         GetWorldQueryHandler getWorld,
         CreateGameSessionCommandHandler createGameSession,
@@ -34,7 +35,7 @@ internal static class GameSessionEndpoints
         );
         if (world?.PlayerId == null)
         {
-            return Results.NotFound();
+            return TypedResults.NotFound();
         }
 
         var sessionId = await createGameSession.Handle(
@@ -47,10 +48,10 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        return Results.Ok(new CreateSessionResponse(sessionId, world.PlayerId.Value));
+        return TypedResults.Ok(new CreateSessionResponse(sessionId, world.PlayerId.Value));
     }
 
-    private static async Task<IResult> GetScene(
+    private static async Task<Results<NotFound, Ok<SceneSnapshot>>> GetScene(
         Guid sessionId,
         GetGameSessionQueryHandler getGameSession,
         GetCreatureByIdQueryHandler getCreatureById,
@@ -69,7 +70,7 @@ internal static class GameSessionEndpoints
         );
         if (player == null)
         {
-            return Results.NotFound();
+            return TypedResults.NotFound();
         }
 
         var currentDate = GameClock.GetCurrentInGameDate(session.Playtime);
@@ -86,10 +87,10 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        return Results.Ok(ToSnapshot(scene));
+        return TypedResults.Ok(ToSnapshot(scene));
     }
 
-    private static async Task<IResult> GetNamedEntities(
+    private static async Task<Ok<NamedEntity[]>> GetNamedEntities(
         Guid sessionId,
         GetGameSessionQueryHandler getGameSession,
         GetNamedEntitiesByWorldQueryHandler getNamedEntitiesByWorld,
@@ -106,7 +107,7 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        return Results.Ok(entities.Select(ToNamedEntity).ToArray());
+        return TypedResults.Ok(entities.Select(ToNamedEntity).ToArray());
     }
 
     private static NamedEntity ToNamedEntity(NamedEntitySummary entity) =>

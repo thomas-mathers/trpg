@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
@@ -17,7 +18,7 @@ internal static class AdminEndpoints
         app.MapDelete("/admin/sessions/{sessionId:guid}", EndSession);
     }
 
-    private static async Task<IResult> SendChat(
+    private static async Task<Ok<ChatResponse>> SendChat(
         Guid sessionId,
         ChatRequest request,
         bool? includeMetrics,
@@ -29,12 +30,12 @@ internal static class AdminEndpoints
         var turnRunner = httpContext.RequestServices.GetRequiredService<GameTurnRunner>();
 
         var metrics = await turnRunner.GetResponseWithMetrics(request.Message, cancellationToken);
-        return Results.Ok(
+        return TypedResults.Ok(
             new ChatResponse(metrics.Response, includeMetrics == true ? ToDto(metrics) : null)
         );
     }
 
-    private static async Task<IResult> Wait(
+    private static async Task<Results<BadRequest, Ok<WaitResponse>>> Wait(
         Guid sessionId,
         WaitRequest request,
         AdvanceTimeCommandHandler advanceTime,
@@ -43,7 +44,7 @@ internal static class AdminEndpoints
     {
         if (request.Hours <= 0)
         {
-            return Results.BadRequest();
+            return TypedResults.BadRequest();
         }
 
         var bankedPlaytime = await advanceTime.Handle(
@@ -58,10 +59,10 @@ internal static class AdminEndpoints
         var currentDate = GameClock.GetCurrentInGameDate(bankedPlaytime);
         var message =
             $"Time passes... it is now {currentDate.WeekdayName}, hour {currentDate.Hour}.";
-        return Results.Ok(new WaitResponse(message));
+        return TypedResults.Ok(new WaitResponse(message));
     }
 
-    private static async Task<IResult> EndSession(
+    private static async Task<NoContent> EndSession(
         Guid sessionId,
         EndGameSessionCommandHandler endGameSession,
         CancellationToken cancellationToken
@@ -71,7 +72,7 @@ internal static class AdminEndpoints
             new EndGameSessionCommand { SessionId = sessionId },
             cancellationToken
         );
-        return Results.NoContent();
+        return TypedResults.NoContent();
     }
 
     private static TurnMetricsDto ToDto(TurnMetrics metrics) =>

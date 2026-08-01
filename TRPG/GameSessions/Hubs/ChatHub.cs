@@ -1,12 +1,15 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
+using TRPG.Application.Combat;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Data.Models;
+using TRPG.Players.Endpoints;
 
 namespace TRPG.GameSessions.Hubs;
 
@@ -16,7 +19,8 @@ internal sealed class ChatHub(
     EndGameSessionCommandHandler endGameSession,
     GetGameSessionQueryHandler getGameSession,
     WorldConnectionRegistry worldConnections,
-    GetCreatureByIdQueryHandler getCreatureById
+    GetCreatureByIdQueryHandler getCreatureById,
+    GetActiveFightCombatantsQueryHandler getActiveFightCombatants
 ) : Hub
 {
     private const string SessionIdKey = "SessionId";
@@ -27,15 +31,34 @@ internal sealed class ChatHub(
         var sessionId = GetSessionIdFromQuery();
         Context.Items[SessionIdKey] = sessionId;
 
-        var worldId = await ResolveWorldId(sessionId);
-        Context.Items[WorldIdKey] = worldId;
+        var snapshot = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = sessionId }
+        );
+        Context.Items[WorldIdKey] = snapshot.WorldId;
 
-        if (!worldConnections.TryAdd(worldId, Context.ConnectionId))
+        if (!worldConnections.TryAdd(snapshot.WorldId, Context.ConnectionId))
         {
             throw new HubException("Another connection is already active for this world.");
         }
 
         await base.OnConnectedAsync();
+
+        await PushActiveCombatState(snapshot.PlayerId);
+    }
+
+    private async Task PushActiveCombatState(Guid playerId)
+    {
+        var combatants = await getActiveFightCombatants.Handle(
+            new GetActiveFightCombatantsQuery { PlayerId = playerId }
+        );
+
+        if (combatants.Count > 0)
+        {
+            await Clients.Caller.SendAsync(
+                "CombatStarted",
+                PlayerEndpoints.ToFightState(combatants)
+            );
+        }
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -51,14 +74,6 @@ internal sealed class ChatHub(
         }
 
         await base.OnDisconnectedAsync(exception);
-    }
-
-    private async Task<Guid> ResolveWorldId(Guid sessionId)
-    {
-        var snapshot = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = sessionId }
-        );
-        return snapshot.WorldId;
     }
 
     private async Task<bool> IsPlayerDead(CancellationToken cancellationToken)
@@ -119,6 +134,29 @@ internal sealed class ChatHub(
         {
             yield return token;
         }
+
+        await PushPendingEvents();
+    }
+
+    private async Task PushPendingEvents()
+    {
+        foreach (var turnEvent in turnContext.PendingEvents)
+        {
+            switch (turnEvent)
+            {
+                case CombatStartedEvent combatStarted:
+                    await Clients.Caller.SendAsync(
+                        "CombatStarted",
+                        PlayerEndpoints.ToFightState(combatStarted.Combatants)
+                    );
+                    break;
+                case CombatEndedEvent:
+                    await Clients.Caller.SendAsync("CombatEnded");
+                    break;
+            }
+        }
+
+        turnContext.PendingEvents.Clear();
     }
 
     private Guid GetSessionIdFromQuery()
