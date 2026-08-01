@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Mappers;
@@ -20,7 +21,7 @@ internal static class PlayerEndpoints
         app.MapGet("/players/{playerId:guid}/fight/abilities", GetAbilityAvailability);
     }
 
-    private static async Task<IResult> GetFight(
+    private static async Task<Results<NotFound, Ok<FightState>>> GetFight(
         Guid playerId,
         GetActiveFightCombatantsQueryHandler getCombatants,
         CancellationToken cancellationToken
@@ -32,13 +33,13 @@ internal static class PlayerEndpoints
         );
         if (combatants.Count == 0)
         {
-            return Results.NotFound();
+            return TypedResults.NotFound();
         }
 
-        return Results.Ok(ToFightState(combatants));
+        return TypedResults.Ok(ToFightState(combatants));
     }
 
-    private static async Task<IResult> GetAbilityAvailability(
+    private static async Task<Ok<AbilityAvailability[]>> GetAbilityAvailability(
         Guid playerId,
         GetAbilityAvailabilityQueryHandler getAbilityAvailability,
         CancellationToken cancellationToken
@@ -49,7 +50,7 @@ internal static class PlayerEndpoints
             cancellationToken
         );
 
-        return Results.Ok(
+        return TypedResults.Ok(
             availability
                 .Select(a => new AbilityAvailability(a.Name, a.IsUsable, a.Reason))
                 .ToArray()

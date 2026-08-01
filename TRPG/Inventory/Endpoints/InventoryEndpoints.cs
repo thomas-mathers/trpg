@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Contracts.Inventory.Requests;
 
@@ -12,7 +13,7 @@ internal static class InventoryEndpoints
         app.MapPost("/transfers", InventoryTransfer);
     }
 
-    private static async Task<IResult> InventoryTransfer(
+    private static async Task<NoContent> InventoryTransfer(
         Guid fromId,
         Guid toId,
         InventoryTransferRequest request,
@@ -30,6 +31,6 @@ internal static class InventoryEndpoints
             cancellationToken
         );
 
-        return Results.NoContent();
+        return TypedResults.NoContent();
     }
 }

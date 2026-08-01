@@ -89,7 +89,8 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseCors(localDevFrontendCorsPolicy);
 app.UseWhen(
-    context => !context.Request.Path.StartsWithSegments("/openapi"),
+    context =>
+        !context.Request.Path.StartsWithSegments("/openapi", StringComparison.OrdinalIgnoreCase),
     subApp => subApp.UseHttpsRedirection()
 );
 app.UseResponseCompression();

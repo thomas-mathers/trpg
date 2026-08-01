@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
@@ -17,7 +18,7 @@ internal static class AdminEndpoints
         app.MapDelete("/admin/sessions/{sessionId:guid}", EndSession);
     }
 
-    private static async Task<IResult> SendChat(
+    private static async Task<Ok<ChatResponse>> SendChat(
         Guid sessionId,
         ChatRequest request,
         bool? includeMetrics,
@@ -34,7 +35,7 @@ internal static class AdminEndpoints
         );
     }
 
-    private static async Task<IResult> Wait(
+    private static async Task<Results<BadRequest, Ok<WaitResponse>>> Wait(
         Guid sessionId,
         WaitRequest request,
         AdvanceTimeCommandHandler advanceTime,
@@ -61,7 +62,7 @@ internal static class AdminEndpoints
         return TypedResults.Ok(new WaitResponse(message));
     }
 
-    private static async Task<IResult> EndSession(
+    private static async Task<NoContent> EndSession(
         Guid sessionId,
         EndGameSessionCommandHandler endGameSession,
         CancellationToken cancellationToken

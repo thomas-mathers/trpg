@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Application.Abilities;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
@@ -31,7 +32,7 @@ internal static class CreatureEndpoints
         app.MapGet("/corpses", GetNearbyCorpses);
     }
 
-    private static async Task<IResult> GetAbilities(
+    private static async Task<Ok<AbilitySummary[]>> GetAbilities(
         Guid creatureId,
         GetCreatureAbilitiesQueryHandler getCreatureAbilities,
         CancellationToken cancellationToken
@@ -45,7 +46,7 @@ internal static class CreatureEndpoints
         return TypedResults.Ok(abilities.Select(ToAbilitySummary).ToArray());
     }
 
-    private static async Task<IResult> GetInventory(
+    private static async Task<Ok<InventorySummary>> GetInventory(
         Guid creatureId,
         GetInventorySummaryQueryHandler getInventorySummary,
         CancellationToken cancellationToken
@@ -61,7 +62,7 @@ internal static class CreatureEndpoints
         );
     }
 
-    private static async Task<IResult> GetConsumables(
+    private static async Task<Ok<ConsumableSummary[]>> GetConsumables(
         Guid creatureId,
         GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
         CancellationToken cancellationToken
@@ -75,7 +76,7 @@ internal static class CreatureEndpoints
         return TypedResults.Ok(items.OfType<Consumable>().Select(ToConsumableSummary).ToArray());
     }
 
-    private static async Task<IResult> GetNearbyCorpses(
+    private static async Task<Ok<NearbyCorpseSummary[]>> GetNearbyCorpses(
         Guid nearPlayerId,
         GetNearbyCorpsesQueryHandler getNearbyCorpses,
         CancellationToken cancellationToken
@@ -91,7 +92,7 @@ internal static class CreatureEndpoints
         );
     }
 
-    private static async Task<IResult> GetAttributePoints(
+    private static async Task<Ok<AttributePointsResponse>> GetAttributePoints(
         Guid creatureId,
         GetUnallocatedAttributePointsQueryHandler getUnallocatedAttributePoints,
         CancellationToken cancellationToken
@@ -105,7 +106,7 @@ internal static class CreatureEndpoints
         return TypedResults.Ok(new AttributePointsResponse(points));
     }
 
-    private static async Task<IResult> AllocateAttributePoints(
+    private static async Task<NoContent> AllocateAttributePoints(
         Guid creatureId,
         AllocateAttributePointsRequest request,
         AllocateAttributePointsCommandHandler allocateAttributePoints,
@@ -120,7 +121,7 @@ internal static class CreatureEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<IResult> GetBaseAttributes(
+    private static async Task<Ok<BaseAttributesResponse>> GetBaseAttributes(
         Guid creatureId,
         GetCreatureBaseAttributesQueryHandler getCreatureBaseAttributes,
         CancellationToken cancellationToken
@@ -131,7 +132,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.Ok(
+        return TypedResults.Ok(
             new BaseAttributesResponse(
                 attributes.Strength,
                 attributes.Defense,
@@ -144,7 +145,7 @@ internal static class CreatureEndpoints
         );
     }
 
-    private static async Task<IResult> GetSkills(
+    private static async Task<Ok<SkillProgressSummary[]>> GetSkills(
         Guid creatureId,
         GetCreatureSkillsQueryHandler getCreatureSkills,
         CancellationToken cancellationToken
@@ -155,10 +156,10 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.Ok(skills.Select(ToSkillProgressSummary).ToArray());
+        return TypedResults.Ok(skills.Select(ToSkillProgressSummary).ToArray());
     }
 
-    private static async Task<IResult> GetLevel(
+    private static async Task<Ok<CreatureLevelResponse>> GetLevel(
         Guid creatureId,
         GetCreatureLevelQueryHandler getCreatureLevel,
         CancellationToken cancellationToken
@@ -169,7 +170,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.Ok(new CreatureLevelResponse(level));
+        return TypedResults.Ok(new CreatureLevelResponse(level));
     }
 
     private static ItemSummary ToItemSummary(Item item) =>

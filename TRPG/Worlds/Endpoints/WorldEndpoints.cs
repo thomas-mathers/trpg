@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using TickerQ.Utilities;
 using TickerQ.Utilities.Interfaces.Managers;
 using TRPG.Application.Common.Mappers;
@@ -23,7 +24,7 @@ internal static class WorldEndpoints
         app.MapDelete("/worlds/{worldId:guid}", DropWorld);
     }
 
-    private static async Task<IResult> CreateWorld(
+    private static async Task<Accepted<EnqueueJobResponse>> CreateWorld(
         CreateWorldRequest request,
         ITimeTickerManager<TrpgTimeTicker> timeTicker,
         CancellationToken cancellationToken
@@ -68,27 +69,27 @@ internal static class WorldEndpoints
         );
 
         var jobId = result.Result.Id;
-        return Results.Accepted($"/jobs/{jobId}", new EnqueueJobResponse(jobId));
+        return TypedResults.Accepted($"/jobs/{jobId}", new EnqueueJobResponse(jobId));
     }
 
-    private static async Task<IResult> ListWorlds(
+    private static async Task<Ok<WorldSummary[]>> ListWorlds(
         GetAllWorldsQueryHandler getAllWorlds,
         CancellationToken cancellationToken
     )
     {
         var worlds = await getAllWorlds.Handle(new GetAllWorldsQuery(), cancellationToken);
-        return Results.Ok(
+        return TypedResults.Ok(
             worlds.Select(w => new WorldSummary(w.Id, w.Name, w.PlayerId != null)).ToArray()
         );
     }
 
-    private static async Task<IResult> DropWorld(
+    private static async Task<NoContent> DropWorld(
         Guid worldId,
         DropWorldCommandHandler dropHandler,
         CancellationToken cancellationToken
     )
     {
         await dropHandler.Handle(new DropWorldCommand { WorldId = worldId }, cancellationToken);
-        return Results.NoContent();
+        return TypedResults.NoContent();
     }
 }
