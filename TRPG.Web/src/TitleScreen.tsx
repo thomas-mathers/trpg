@@ -7,6 +7,7 @@ import {
   postSessionsMutation,
 } from './api/client';
 import { Button } from './components/ui/button';
+import { NewWorldDialog } from './NewWorldDialog';
 
 function TitleScreen() {
   const navigate = useNavigate();
@@ -43,6 +44,8 @@ function TitleScreen() {
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-4">
       <h1 className="font-cinzel text-2xl font-semibold">TRPG</h1>
+
+      <NewWorldDialog />
 
       {worldsQuery.isLoading && <p>Loading worlds...</p>}
       {!worldsQuery.isLoading && worlds.length === 0 && <p>No worlds found.</p>}
