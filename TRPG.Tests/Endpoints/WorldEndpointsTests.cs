@@ -40,7 +40,7 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         {
             PlayerName = "Test Player",
             Gender = Gender.Male,
-            Age = Age.Teenager,
+            Age = 18,
             Race = Race.Human,
             PlayerClass = PlayerClass.Knight,
             MinCityStates = 1,
@@ -95,7 +95,7 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         {
             PlayerName = "Test Player",
             Gender = Gender.Male,
-            Age = Age.Teenager,
+            Age = 18,
             Race = Race.Human,
             PlayerClass = PlayerClass.Knight,
             MinCityStates = 1,
