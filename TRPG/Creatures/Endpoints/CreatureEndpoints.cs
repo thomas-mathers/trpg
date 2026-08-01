@@ -42,7 +42,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.Ok(abilities.Select(ToAbilitySummary).ToArray());
+        return TypedResults.Ok(abilities.Select(ToAbilitySummary).ToArray());
     }
 
     private static async Task<IResult> GetInventory(
@@ -56,7 +56,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.Ok(
+        return TypedResults.Ok(
             new InventorySummary(snapshot.Gold, snapshot.Items.Select(ToItemSummary).ToArray())
         );
     }
@@ -72,7 +72,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.Ok(items.OfType<Consumable>().Select(ToConsumableSummary).ToArray());
+        return TypedResults.Ok(items.OfType<Consumable>().Select(ToConsumableSummary).ToArray());
     }
 
     private static async Task<IResult> GetNearbyCorpses(
@@ -86,7 +86,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.Ok(
+        return TypedResults.Ok(
             corpses.Select(c => new NearbyCorpseSummary(c.Id, c.Name, c.ItemCount)).ToArray()
         );
     }
@@ -102,7 +102,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.Ok(new AttributePointsResponse(points));
+        return TypedResults.Ok(new AttributePointsResponse(points));
     }
 
     private static async Task<IResult> AllocateAttributePoints(
@@ -117,7 +117,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return Results.NoContent();
+        return TypedResults.NoContent();
     }
 
     private static async Task<IResult> GetBaseAttributes(

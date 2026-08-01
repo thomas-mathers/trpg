@@ -26,7 +26,7 @@ internal static class AbilityEndpoints
             cancellationToken
         );
 
-        return Results.Ok(abilities.Select(ToAbilitySummary).ToArray());
+        return TypedResults.Ok(abilities.Select(ToAbilitySummary).ToArray());
     }
 
     private static DataSkill ToDomain(Skill skill) =>

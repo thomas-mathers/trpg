@@ -4,7 +4,7 @@ import { postSessionsMutation } from './api/client';
 import { Button } from './components/ui/button';
 import { useGameHubConnection } from './hooks/useGameHubConnection';
 
-function App() {
+function Login() {
   const mutation = useMutation(postSessionsMutation());
 
   const login = (worldId: string) => {
@@ -14,21 +14,17 @@ function App() {
       },
       {
         onSuccess(data, variables, onMutateResult, context) {
-          console.log(data, variables);
+          const sessionId = data.sessionId;
         },
       },
     );
   };
 
-  const { isConnected, streamOpening } = useGameHubConnection();
-
-  console.log(isConnected);
-
   return (
     <div className="flex h-screen flex-col">
-      <Button onClick={(e) => login('7d441547-5a62-4b39-85b2-4ef69835229a')}></Button>
+      <Button onClick={() => login('7d441547-5a62-4b39-85b2-4ef69835229a')}>Login</Button>
     </div>
   );
 }
 
-export default App;
+export default Login;

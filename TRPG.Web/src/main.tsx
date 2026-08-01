@@ -13,7 +13,14 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import { queryClient } from '@/lib/query-client';
 
+import { client } from './api/client/client.gen.ts';
 import App from './App.tsx';
+
+const baseUrl = import.meta.env.VITE_API_BASE_URL as string;
+
+client.setConfig({
+  baseUrl,
+});
 
 const rootRoute = createRootRoute({
   component: () => (

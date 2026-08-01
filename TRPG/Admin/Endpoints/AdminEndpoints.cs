@@ -29,7 +29,7 @@ internal static class AdminEndpoints
         var turnRunner = httpContext.RequestServices.GetRequiredService<GameTurnRunner>();
 
         var metrics = await turnRunner.GetResponseWithMetrics(request.Message, cancellationToken);
-        return Results.Ok(
+        return TypedResults.Ok(
             new ChatResponse(metrics.Response, includeMetrics == true ? ToDto(metrics) : null)
         );
     }
@@ -43,7 +43,7 @@ internal static class AdminEndpoints
     {
         if (request.Hours <= 0)
         {
-            return Results.BadRequest();
+            return TypedResults.BadRequest();
         }
 
         var bankedPlaytime = await advanceTime.Handle(
@@ -58,7 +58,7 @@ internal static class AdminEndpoints
         var currentDate = GameClock.GetCurrentInGameDate(bankedPlaytime);
         var message =
             $"Time passes... it is now {currentDate.WeekdayName}, hour {currentDate.Hour}.";
-        return Results.Ok(new WaitResponse(message));
+        return TypedResults.Ok(new WaitResponse(message));
     }
 
     private static async Task<IResult> EndSession(
@@ -71,7 +71,7 @@ internal static class AdminEndpoints
             new EndGameSessionCommand { SessionId = sessionId },
             cancellationToken
         );
-        return Results.NoContent();
+        return TypedResults.NoContent();
     }
 
     private static TurnMetricsDto ToDto(TurnMetrics metrics) =>
