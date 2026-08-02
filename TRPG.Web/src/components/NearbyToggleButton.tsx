@@ -1,14 +1,21 @@
 import { Compass } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
+import { Toggle } from '@/components/ui/toggle';
 
 export function NearbyToggleButton() {
-  const { toggleSidebar } = useSidebar();
+  const { isMobile, open, openMobile, toggleSidebar } = useSidebar();
+  const isOpen = isMobile ? openMobile : open;
 
   return (
-    <Button variant="ghost" size="icon" aria-label="What's nearby" onClick={toggleSidebar}>
+    <Toggle
+      size="default"
+      className="size-8 p-0"
+      pressed={isOpen}
+      onPressedChange={toggleSidebar}
+      aria-label="What's nearby"
+    >
       <Compass />
-    </Button>
+    </Toggle>
   );
 }

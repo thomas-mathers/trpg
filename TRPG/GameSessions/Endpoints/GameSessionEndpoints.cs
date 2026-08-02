@@ -8,6 +8,7 @@ using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Contracts;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
 
@@ -169,23 +170,29 @@ internal static class GameSessionEndpoints
             PlayerStatus: ToCreatureStatusSnapshot(scene.Player),
             NearbyCreatures: scene.NearbyCreatures.Select(ToCreatureStatusSnapshot).ToArray(),
             NearbyDistricts: scene
-                .City?.Districts.Select(d => new NearbyDistrictSnapshot(
-                    d.Name,
-                    d.Type.ToContract()
-                ))
+                .City?.Districts.Select(d =>
+                {
+                    var type = d.Type.ToContract();
+                    return new NearbyDistrictSnapshot(d.Id, d.Name, type, type.ToDisplayName());
+                })
                 .ToArray()
                 ?? [],
             NearbyBuildings: scene
-                .NearbyBuildings.Select(b => new NearbyBuildingSnapshot(
-                    b.Name,
-                    b.Type.ToContract()
-                ))
+                .NearbyBuildings.Select(b =>
+                {
+                    var type = b.Type.ToContract();
+                    return new NearbyBuildingSnapshot(b.Id, b.Name, type, type.ToDisplayName());
+                })
                 .ToArray(),
             NearbyDungeons: scene
-                .NearbyDungeons.Select(b => new NearbyBuildingSnapshot(b.Name, b.Type.ToContract()))
+                .NearbyDungeons.Select(b =>
+                {
+                    var type = b.Type.ToContract();
+                    return new NearbyBuildingSnapshot(b.Id, b.Name, type, type.ToDisplayName());
+                })
                 .ToArray(),
             NearbyProps: scene
-                .NearbyProps.Select(p => new NearbyPropSnapshot(p.Name, p.Type))
+                .NearbyProps.Select(p => new NearbyPropSnapshot(p.Id, p.Name, p.Type))
                 .ToArray(),
             Exits: scene
                 .Room?.Exits.Select(e => new NearbyExitSnapshot(
@@ -199,6 +206,7 @@ internal static class GameSessionEndpoints
 
     private static CreatureStatusSnapshot ToCreatureStatusSnapshot(SceneCreatureInfo creature) =>
         new(
+            Id: creature.Id,
             Name: creature.Name,
             CreatureType: creature.CreatureType.ToContract(),
             Gender: creature.Gender.ToContract(),

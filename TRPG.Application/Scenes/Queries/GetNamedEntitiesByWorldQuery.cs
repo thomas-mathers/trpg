@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Common.Mappers;
+using TRPG.Contracts;
 using TRPG.Data;
 
 namespace TRPG.Application.Scenes.Queries;
@@ -61,29 +63,50 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
             ))
             .ToArrayAsync(cancellationToken);
 
-        var buildings = await context
+        // BuildingType/DistrictType display names come from [Description] attributes read via
+        // reflection (ToDisplayName), which EF Core can't translate to SQL - fetch the raw rows
+        // first, then humanize in memory.
+        var buildingRows = await context
             .Buildings.AsNoTracking()
             .Where(b => b.WorldId == worldId)
+            .Select(b => new
+            {
+                b.Id,
+                b.Name,
+                b.BuildingType,
+                b.Description,
+            })
+            .ToArrayAsync(cancellationToken);
+        var buildings = buildingRows
             .Select(b => new NamedEntitySummary(
                 b.Id,
                 b.Name,
                 NamedEntityType.Building,
-                b.BuildingType.ToString(),
+                b.BuildingType.ToContract().ToDisplayName(),
                 b.Description
             ))
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
 
-        var districts = await context
+        var districtRows = await context
             .Districts.AsNoTracking()
             .Where(d => d.WorldId == worldId)
+            .Select(d => new
+            {
+                d.Id,
+                d.Name,
+                d.DistrictType,
+                d.Description,
+            })
+            .ToArrayAsync(cancellationToken);
+        var districts = districtRows
             .Select(d => new NamedEntitySummary(
                 d.Id,
                 d.Name,
                 NamedEntityType.District,
-                d.DistrictType.ToString(),
+                d.DistrictType.ToContract().ToDisplayName(),
                 d.Description
             ))
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
 
         var world = await context
             .Worlds.AsNoTracking()

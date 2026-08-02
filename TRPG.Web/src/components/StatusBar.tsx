@@ -1,9 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
 import { Droplet, Heart, Zap } from 'lucide-react';
-import { useEffect, useRef } from 'react';
 
-import { getSessionsBySessionIdSceneOptions } from '@/api/client';
 import type { SceneSnapshot } from '@/api/client';
+import { useSceneQuery } from '@/hooks/useSceneQuery';
 
 interface StatusBarProps {
   sessionId: string;
@@ -11,15 +9,7 @@ interface StatusBarProps {
 }
 
 export function StatusBar({ sessionId, turnCount }: StatusBarProps) {
-  const query = useQuery(getSessionsBySessionIdSceneOptions({ path: { sessionId } }));
-
-  const previousTurnCount = useRef(turnCount);
-  useEffect(() => {
-    if (turnCount !== previousTurnCount.current) {
-      previousTurnCount.current = turnCount;
-      query.refetch();
-    }
-  }, [turnCount, query]);
+  const query = useSceneQuery(sessionId, turnCount);
 
   if (!query.data) {
     return null;
@@ -29,24 +19,24 @@ export function StatusBar({ sessionId, turnCount }: StatusBarProps) {
 
   return (
     <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-      <span className="font-bold">{playerStatus.name}</span>
-      <div className="flex items-center gap-4 max-sm:order-10 max-sm:basis-full">
-        <span className="flex items-center gap-1">
-          <Heart className="h-4 w-4 text-red-500" />
+      <span className="shrink-0 font-bold">{playerStatus.name}</span>
+      <div className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-2 text-xs max-sm:basis-full sm:gap-4 sm:text-sm">
+        <span className="min-w-0 truncate">{formatLocation(query.data)}</span>
+        <span className="shrink-0">{formatTime(query.data)}</span>
+      </div>
+      <div className="ml-auto hidden shrink-0 items-center gap-4 lg:flex">
+        <span className="flex items-center gap-1 text-red-500">
+          <Heart className="h-4 w-4" />
           {playerStatus.currentHp}/{playerStatus.maximumHp}
         </span>
-        <span className="flex items-center gap-1">
-          <Zap className="h-4 w-4 text-amber-500" />
+        <span className="flex items-center gap-1 text-amber-500">
+          <Zap className="h-4 w-4" />
           {playerStatus.currentAp}/{playerStatus.maximumAp}
         </span>
-        <span className="flex items-center gap-1">
-          <Droplet className="h-4 w-4 text-blue-500" />
+        <span className="flex items-center gap-1 text-blue-500">
+          <Droplet className="h-4 w-4" />
           {playerStatus.currentMp}/{playerStatus.maximumMp}
         </span>
-      </div>
-      <div className="text-muted-foreground ml-auto hidden items-center gap-4 sm:flex">
-        <span>{formatLocation(query.data)}</span>
-        <span>{formatTime(query.data)}</span>
       </div>
     </div>
   );

@@ -1,35 +1,40 @@
 import { NearbyPanel } from '@/components/NearbyPanel';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sidebar, SidebarContent, useSidebar } from '@/components/ui/sidebar';
 import { useSceneQuery } from '@/hooks/useSceneQuery';
+import { cn } from '@/lib/utils';
 
 interface NearbySidebarProps {
   sessionId: string;
   turnCount: number;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
 }
 
-export function NearbySidebar({ sessionId, turnCount, open, onOpenChange }: NearbySidebarProps) {
+export function NearbySidebar({ sessionId, turnCount }: NearbySidebarProps) {
   const query = useSceneQuery(sessionId, turnCount);
+  const { open, isMobile } = useSidebar();
 
-  if (!query.data) {
-    return null;
+  const panel = query.data && <NearbyPanel sessionId={sessionId} scene={query.data} />;
+
+  // Sidebar's desktop rendering path always reserves layout space for the docked panel via a
+  // sibling gap-spacer, with no way to reach that specific element through the component's own
+  // className prop. Since we want the panel to float over the content rather than push it, the
+  // Sheet-based mobile branch (which already behaves correctly) is reused as-is, but desktop gets
+  // its own minimal fixed-position panel instead of going through Sidebar's docked machinery.
+  if (isMobile) {
+    return (
+      <Sidebar side="right">
+        <SidebarContent>{panel}</SidebarContent>
+      </Sidebar>
+    );
   }
 
   return (
-    <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-80 gap-0 overflow-y-auto p-0 lg:hidden">
-          <SheetHeader>
-            <SheetTitle>Nearby</SheetTitle>
-          </SheetHeader>
-          <NearbyPanel sessionId={sessionId} scene={query.data} />
-        </SheetContent>
-      </Sheet>
-
-      <aside className="hidden w-80 shrink-0 overflow-y-auto border-l lg:block">
-        <NearbyPanel sessionId={sessionId} scene={query.data} />
-      </aside>
-    </>
+    <div
+      className={cn(
+        'bg-sidebar text-sidebar-foreground fixed inset-y-0 right-0 z-10 flex w-(--sidebar-width) flex-col shadow-lg transition-transform duration-200 ease-linear',
+        open ? 'translate-x-0' : 'translate-x-full',
+      )}
+    >
+      <SidebarContent>{panel}</SidebarContent>
+    </div>
   );
 }
