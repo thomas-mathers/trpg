@@ -25,18 +25,16 @@ internal sealed class ChatHub(
     GetActiveFightCombatantsQueryHandler getActiveFightCombatants
 ) : Hub
 {
-    private const string SessionIdKey = "SessionId";
-    private const string WorldIdKey = "WorldId";
+    private const string GameSessionKey = "GameSession";
 
     public override async Task OnConnectedAsync()
     {
         var sessionId = GetSessionIdFromQuery();
-        Context.Items[SessionIdKey] = sessionId;
 
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = sessionId }
         );
-        Context.Items[WorldIdKey] = snapshot.WorldId;
+        Context.Items[GameSessionKey] = snapshot;
 
         if (!worldConnections.TryAdd(snapshot.WorldId, Context.ConnectionId))
         {
@@ -65,14 +63,10 @@ internal sealed class ChatHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        if (Context.Items[WorldIdKey] is Guid worldId)
+        if (Context.Items[GameSessionKey] is GameSession gameSession)
         {
-            worldConnections.Remove(worldId, Context.ConnectionId);
-        }
-
-        if (Context.Items[SessionIdKey] is Guid sessionId)
-        {
-            await endGameSession.Handle(new EndGameSessionCommand { SessionId = sessionId });
+            worldConnections.Remove(gameSession.WorldId, Context.ConnectionId);
+            await endGameSession.Handle(new EndGameSessionCommand { SessionId = gameSession.Id });
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -113,20 +107,17 @@ internal sealed class ChatHub(
         CancellationToken cancellationToken
     )
     {
-        turnContext.SessionId = (Guid)Context.Items[SessionIdKey]!;
-        return StreamTurn(tokens, cancellationToken);
+        var gameSession = (GameSession)Context.Items[GameSessionKey]!;
+        turnContext.SessionId = gameSession.Id;
+        return StreamTurn(gameSession, tokens, cancellationToken);
     }
 
     private async IAsyncEnumerable<string> StreamTurn(
+        GameSession gameSession,
         IAsyncEnumerable<string> tokens,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
-        var gameSession = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = turnContext.SessionId },
-            cancellationToken
-        );
-
         if (await IsPlayerDead(gameSession.PlayerId, cancellationToken))
         {
             yield return "You have died. This adventure has come to an end.";
