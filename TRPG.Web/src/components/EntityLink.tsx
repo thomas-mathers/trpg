@@ -52,7 +52,7 @@ export function EntityLink({ sessionId, id, name, entityType }: EntityLinkProps)
               {entityType}
               {query.data.subtype ? ` · ${query.data.subtype}` : ''}
             </span>
-            {query.data.description && <span className="italic">{query.data.description}</span>}
+            {query.data.description && <span>{query.data.description}</span>}
           </>
         ) : (
           <span className="text-background/70 text-[10px] italic">Loading…</span>

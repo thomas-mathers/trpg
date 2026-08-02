@@ -122,7 +122,7 @@ function App() {
                         <MessageHeader className="justify-end">You</MessageHeader>
                       )}
                       {message.role === 'narrator' ? (
-                        <div className="typeset typeset-chat italic">
+                        <div className="typeset typeset-chat whitespace-pre-line">
                           <NarrationText sessionId={sessionId} segments={message.segments} />
                         </div>
                       ) : (
