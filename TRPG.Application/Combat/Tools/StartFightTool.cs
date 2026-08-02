@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Mappers;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
 using TRPG.Contracts.Combat.Requests;
@@ -76,7 +77,9 @@ internal class StartFightTool(
 
         var state = combatEngine.ProcessRound(combatants, resolverResult.Result!);
 
-        turnContext.PendingEvents.Add(new CombatStartedEvent(combatants));
+        turnContext.PendingEvents.Enqueue(
+            new CombatStartedEvent(FightStateMapper.ToFightState(combatants))
+        );
 
         var result = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand

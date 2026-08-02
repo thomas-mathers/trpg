@@ -8,6 +8,9 @@ import {
 } from '@microsoft/signalr';
 import { useRef, useEffect, useState, useCallback } from 'react';
 
+import type { FightState, SceneSnapshot } from '@/api/client';
+import { gameEventBus } from '@/lib/gameEventBus';
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string;
 
 const RECONNECTION_MAX_ATTEMPTS = 3;
@@ -27,6 +30,7 @@ const reconnectPolicy: IRetryPolicy = {
 
 export function useGameHubConnection(sessionId: string | null) {
   const hubConnection = useRef<HubConnection | null>(null);
+  const isIntentionalStop = useRef(false);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<boolean>(false);
 
@@ -34,6 +38,8 @@ export function useGameHubConnection(sessionId: string | null) {
     if (!sessionId) {
       return;
     }
+
+    isIntentionalStop.current = false;
 
     const connection = new HubConnectionBuilder()
       .withUrl(`${apiBaseUrl}/hubs/chat?sessionId=${encodeURIComponent(sessionId)}`)
@@ -43,18 +49,31 @@ export function useGameHubConnection(sessionId: string | null) {
 
     hubConnection.current = connection;
 
-    connection.onreconnecting(() => setIsConnected(false));
+    connection.onreconnecting(() => {
+      setIsConnected(false);
+      gameEventBus.emit('ConnectionStatusChanged', 'reconnecting');
+    });
     connection.onreconnected(() => {
       setIsConnected(true);
       setError(false);
+      gameEventBus.emit('ConnectionStatusChanged', 'reconnected');
     });
     connection.onclose((e) => {
       setIsConnected(false);
-      if (e) {
-        console.error('SignalR connection lost');
+      if (!isIntentionalStop.current) {
+        console.error('SignalR connection lost', e);
         setError(true);
+        gameEventBus.emit('ConnectionStatusChanged', 'disconnected');
       }
     });
+
+    connection.on('SceneChanged', (payload: SceneSnapshot) =>
+      gameEventBus.emit('SceneChanged', payload),
+    );
+    connection.on('CombatStarted', (payload: FightState) =>
+      gameEventBus.emit('CombatStarted', payload),
+    );
+    connection.on('CombatEnded', () => gameEventBus.emit('CombatEnded'));
 
     connection
       .start()
@@ -68,6 +87,7 @@ export function useGameHubConnection(sessionId: string | null) {
       });
 
     return () => {
+      isIntentionalStop.current = true;
       connection.stop();
       setIsConnected(false);
       hubConnection.current = null;
@@ -126,5 +146,18 @@ export function useGameHubConnection(sessionId: string | null) {
     [streamTokens],
   );
 
-  return { isConnected, error, streamOpening, streamChat, streamWait };
+  const endSession = useCallback(async () => {
+    const connection = hubConnection.current;
+    if (!connection || !isConnected) {
+      return;
+    }
+
+    try {
+      await connection.invoke('EndSession');
+    } catch (e) {
+      console.error('Error ending session', e);
+    }
+  }, [isConnected]);
+
+  return { isConnected, error, streamOpening, streamChat, streamWait, endSession };
 }

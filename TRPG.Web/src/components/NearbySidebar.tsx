@@ -5,11 +5,10 @@ import { cn } from '@/lib/utils';
 
 interface NearbySidebarProps {
   sessionId: string;
-  turnCount: number;
 }
 
-export function NearbySidebar({ sessionId, turnCount }: NearbySidebarProps) {
-  const query = useSceneQuery(sessionId, turnCount);
+export function NearbySidebar({ sessionId }: NearbySidebarProps) {
+  const query = useSceneQuery(sessionId);
   const { open, isMobile } = useSidebar();
 
   const panel = query.data && <NearbyPanel sessionId={sessionId} scene={query.data} />;

@@ -1,7 +1,15 @@
+using TRPG.Application.GameSessions;
+using TRPG.Contracts.Combat.Responses;
+
 namespace TRPG.Application.Combat;
 
-public abstract record GameTurnEvent;
+public record CombatStartedEvent(FightState FightState) : GameTurnEvent
+{
+    public override string MethodName => "CombatStarted";
+    public override object? Payload => FightState;
+}
 
-public record CombatStartedEvent(IReadOnlyList<Combatant> Combatants) : GameTurnEvent;
-
-public record CombatEndedEvent : GameTurnEvent;
+public record CombatEndedEvent : GameTurnEvent
+{
+    public override string MethodName => "CombatEnded";
+}

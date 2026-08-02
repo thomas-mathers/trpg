@@ -6,6 +6,7 @@ using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 
 namespace TRPG.Application.Tools;
@@ -70,7 +71,9 @@ internal class MoveTool(
             cancellationToken
         );
 
-        turnContext.DidMoveThisTurn = true;
+        turnContext.PendingEvents.Enqueue(
+            new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(result), SceneUpdateReason.Moved)
+        );
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,

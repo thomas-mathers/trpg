@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Anthropic;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -55,9 +56,21 @@ internal static class ServiceCollectionExtensions
             .AddOpenApi()
             .AddResponseCompression(options => options.EnableForHttps = true)
             .AddTrpgJsonOptions()
-            .AddSignalR(options => options.AddFilter<GameSessionNotFoundHubFilter>());
+            .AddSignalR(options => options.AddFilter<GameSessionNotFoundHubFilter>())
+            .AddJsonProtocol(options => ApplyTrpgJsonOptions(options.PayloadSerializerOptions));
 
         return signalRBuilder.Services;
+    }
+
+    private static void ApplyTrpgJsonOptions(JsonSerializerOptions options)
+    {
+        options.PropertyNamingPolicy = TrpgJsonOptions.Default.PropertyNamingPolicy;
+        options.PropertyNameCaseInsensitive = TrpgJsonOptions.Default.PropertyNameCaseInsensitive;
+        options.DefaultIgnoreCondition = TrpgJsonOptions.Default.DefaultIgnoreCondition;
+        foreach (var converter in TrpgJsonOptions.Default.Converters)
+        {
+            options.Converters.Add(converter);
+        }
     }
 
     public static IServiceCollection AddTrpgCors(
@@ -87,21 +100,8 @@ internal static class ServiceCollectionExtensions
         this IServiceCollection serviceCollection
     ) =>
         serviceCollection.ConfigureHttpJsonOptions(options =>
-        {
-            options.SerializerOptions.PropertyNamingPolicy = TrpgJsonOptions
-                .Default
-                .PropertyNamingPolicy;
-            options.SerializerOptions.PropertyNameCaseInsensitive = TrpgJsonOptions
-                .Default
-                .PropertyNameCaseInsensitive;
-            options.SerializerOptions.DefaultIgnoreCondition = TrpgJsonOptions
-                .Default
-                .DefaultIgnoreCondition;
-            foreach (var converter in TrpgJsonOptions.Default.Converters)
-            {
-                options.SerializerOptions.Converters.Add(converter);
-            }
-        });
+            ApplyTrpgJsonOptions(options.SerializerOptions)
+        );
 
     public static IServiceCollection AddTrpgLogging(
         this IServiceCollection serviceCollection,
@@ -178,7 +178,9 @@ internal static class ServiceCollectionExtensions
 
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {
-        return serviceCollection.AddSingleton<WorldConnectionRegistry>();
+        return serviceCollection
+            .AddSingleton<WorldConnectionRegistry>()
+            .AddSingleton<PendingSessionEndRegistry>();
     }
 
     public static IServiceCollection AddTrpgJobs(
@@ -298,7 +300,8 @@ internal static class ServiceCollectionExtensions
             .Configure<CombatOptions>(configuration.GetSection("Combat"))
             .Configure<CreatureGeneratorOptions>(configuration.GetSection("CreatureGenerator"))
             .Configure<CreatureRegenOptions>(configuration.GetSection("CreatureRegen"))
-            .Configure<GameClockOptions>(configuration.GetSection("GameClock"));
+            .Configure<GameClockOptions>(configuration.GetSection("GameClock"))
+            .Configure<GameSessionOptions>(configuration.GetSection("GameSession"));
     }
 
     [SuppressMessage(

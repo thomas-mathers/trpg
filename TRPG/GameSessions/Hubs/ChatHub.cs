@@ -1,25 +1,30 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
-using TRPG.Application.Combat;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Mappers;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
+using TRPG.Application.GameSessions.Exceptions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Data.Models;
-using TRPG.Players.Endpoints;
 
 namespace TRPG.GameSessions.Hubs;
 
 internal sealed class ChatHub(
     GameTurnRunner turnRunner,
     GameTurnContext turnContext,
-    EndGameSessionCommandHandler endGameSession,
     GetGameSessionQueryHandler getGameSession,
+    EndGameSessionCommandHandler endGameSession,
     GetEntityNameAutomatonByWorldQueryHandler getEntityNameAutomatonByWorld,
     WorldConnectionRegistry worldConnections,
+    PendingSessionEndRegistry pendingSessionEnds,
     GetCreatureByIdQueryHandler getCreatureById,
     GetActiveFightCombatantsQueryHandler getActiveFightCombatants
 ) : Hub
@@ -29,6 +34,7 @@ internal sealed class ChatHub(
     public override async Task OnConnectedAsync()
     {
         var sessionId = GetSessionIdFromQuery();
+        pendingSessionEnds.Cancel(sessionId);
 
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = sessionId }
@@ -55,7 +61,7 @@ internal sealed class ChatHub(
         {
             await Clients.Caller.SendAsync(
                 "CombatStarted",
-                PlayerEndpoints.ToFightState(combatants)
+                FightStateMapper.ToFightState(combatants)
             );
         }
     }
@@ -65,10 +71,29 @@ internal sealed class ChatHub(
         if (Context.Items[GameSessionKey] is GameSession gameSession)
         {
             worldConnections.Remove(gameSession.WorldId, Context.ConnectionId);
-            await endGameSession.Handle(new EndGameSessionCommand { SessionId = gameSession.Id });
+            pendingSessionEnds.Schedule(gameSession.Id);
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    // Called by the client before deliberately leaving (e.g. "Exit to Main Menu"), so the
+    // session ends immediately rather than racing the disconnect grace period — otherwise
+    // starting a new session too soon after exiting would read a stale World.Playtime, since
+    // that only gets flushed once the old session actually ends.
+    public async Task EndSession()
+    {
+        var gameSession = (GameSession)Context.Items[GameSessionKey]!;
+        pendingSessionEnds.Cancel(gameSession.Id);
+
+        try
+        {
+            await endGameSession.Handle(new EndGameSessionCommand { SessionId = gameSession.Id });
+        }
+        catch (GameSessionNotFoundException)
+        {
+            // Already ended some other way; nothing left to clean up.
+        }
     }
 
     private async Task<bool> IsPlayerDead(Guid playerId, CancellationToken cancellationToken)
@@ -132,6 +157,11 @@ internal sealed class ChatHub(
 
         await foreach (var token in linkedTokens)
         {
+            if (turnContext.PendingEvents.Count > 0)
+            {
+                await PushPendingEvents();
+            }
+
             yield return token;
         }
 
@@ -140,23 +170,23 @@ internal sealed class ChatHub(
 
     private async Task PushPendingEvents()
     {
-        foreach (var turnEvent in turnContext.PendingEvents)
+        var sentMethodNames = new HashSet<string>();
+        while (turnContext.PendingEvents.TryDequeue(out var turnEvent))
         {
-            switch (turnEvent)
+            if (!sentMethodNames.Add(turnEvent.MethodName))
             {
-                case CombatStartedEvent combatStarted:
-                    await Clients.Caller.SendAsync(
-                        "CombatStarted",
-                        PlayerEndpoints.ToFightState(combatStarted.Combatants)
-                    );
-                    break;
-                case CombatEndedEvent:
-                    await Clients.Caller.SendAsync("CombatEnded");
-                    break;
+                continue;
+            }
+
+            if (turnEvent.Payload != null)
+            {
+                await Clients.Caller.SendAsync(turnEvent.MethodName, turnEvent.Payload);
+            }
+            else
+            {
+                await Clients.Caller.SendAsync(turnEvent.MethodName);
             }
         }
-
-        turnContext.PendingEvents.Clear();
     }
 
     private Guid GetSessionIdFromQuery()
@@ -180,4 +210,68 @@ internal sealed class WorldConnectionRegistry
 
     public void Remove(Guid worldId, string connectionId) =>
         _connectionIdsByWorldId.TryRemove(new KeyValuePair<Guid, string>(worldId, connectionId));
+}
+
+internal sealed class PendingSessionEndRegistry(
+    IServiceScopeFactory serviceScopeFactory,
+    IOptionsMonitor<GameSessionOptions> options,
+    ILogger<PendingSessionEndRegistry> logger
+)
+{
+    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _pendingEnds = new();
+
+    public void Schedule(Guid sessionId)
+    {
+        Cancel(sessionId);
+
+        var cts = new CancellationTokenSource();
+        _pendingEnds[sessionId] = cts;
+        _ = RunAfterDelay(sessionId, options.CurrentValue.SessionEndGracePeriod, cts);
+    }
+
+    public void Cancel(Guid sessionId)
+    {
+        if (_pendingEnds.TryRemove(sessionId, out var cts))
+        {
+            cts.Cancel();
+            cts.Dispose();
+        }
+    }
+
+    private async Task RunAfterDelay(Guid sessionId, TimeSpan delay, CancellationTokenSource cts)
+    {
+        try
+        {
+            await Task.Delay(delay, cts.Token);
+
+            await using var scope = serviceScopeFactory.CreateAsyncScope();
+            var endGameSession =
+                scope.ServiceProvider.GetRequiredService<EndGameSessionCommandHandler>();
+            await endGameSession.Handle(
+                new EndGameSessionCommand { SessionId = sessionId },
+                cts.Token
+            );
+        }
+        catch (OperationCanceledException)
+        {
+            // The player reconnected within the grace period; nothing to end.
+        }
+        catch (GameSessionNotFoundException)
+        {
+            // Already ended some other way; nothing left to clean up.
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to end session {SessionId} after disconnect", sessionId);
+        }
+        finally
+        {
+            if (_pendingEnds.TryGetValue(sessionId, out var current) && current == cts)
+            {
+                _pendingEnds.TryRemove(sessionId, out _);
+            }
+
+            cts.Dispose();
+        }
+    }
 }
