@@ -28,9 +28,17 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
     public async Task Handle_ReturnsCreaturesBuildingsAndDistricts_InTheWorld()
     {
         // Arrange
-        var creature = Builders.MakeCreature(WorldId);
-        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: WorldId);
-        var district = Builders.MakeDistrict(Guid.NewGuid(), worldId: WorldId);
+        var creature = Builders.MakeCreature(WorldId, creatureType: CreatureType.Orc);
+        var building = Builders.MakeBuilding(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            buildingType: BuildingType.Tavern
+        );
+        var district = Builders.MakeDistrict(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            districtType: DistrictType.Residential
+        );
         _context.Creatures.Add(creature);
         _context.Buildings.Add(building);
         _context.Districts.Add(district);
@@ -43,9 +51,30 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
         );
 
         // Assert
-        Assert.Contains(result, e => e.Name == creature.Name && e.Type == NamedEntityType.Creature);
-        Assert.Contains(result, e => e.Name == building.Name && e.Type == NamedEntityType.Building);
-        Assert.Contains(result, e => e.Name == district.Name && e.Type == NamedEntityType.District);
+        Assert.Contains(
+            result,
+            e =>
+                e.Name == creature.Name
+                && e.Type == NamedEntityType.Creature
+                && e.Subtype == "Orc"
+                && e.Description == creature.Biography
+        );
+        Assert.Contains(
+            result,
+            e =>
+                e.Name == building.Name
+                && e.Type == NamedEntityType.Building
+                && e.Subtype == "Tavern"
+                && e.Description == building.Description
+        );
+        Assert.Contains(
+            result,
+            e =>
+                e.Name == district.Name
+                && e.Type == NamedEntityType.District
+                && e.Subtype == "Residential"
+                && e.Description == district.Description
+        );
     }
 
     [Fact]
@@ -77,7 +106,7 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
     {
         // Arrange
         var world = Builders.MakeWorld();
-        var country = Builders.MakeCountry(world.Id);
+        var country = Builders.MakeCountry(world.Id, focus: CountryFocus.Militaristic);
         var state = Builders.MakeState(country.Id, world.Id);
         var city = Builders.MakeCity(state.Id, country.Id, worldId: world.Id);
         _context.Worlds.Add(world);
@@ -93,9 +122,37 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
         );
 
         // Assert
-        Assert.Contains(result, e => e.Name == world.Name && e.Type == NamedEntityType.World);
-        Assert.Contains(result, e => e.Name == country.Name && e.Type == NamedEntityType.Country);
-        Assert.Contains(result, e => e.Name == state.Name && e.Type == NamedEntityType.State);
-        Assert.Contains(result, e => e.Name == city.Name && e.Type == NamedEntityType.City);
+        Assert.Contains(
+            result,
+            e =>
+                e.Name == world.Name
+                && e.Type == NamedEntityType.World
+                && e.Subtype == null
+                && e.Description == world.Description
+        );
+        Assert.Contains(
+            result,
+            e =>
+                e.Name == country.Name
+                && e.Type == NamedEntityType.Country
+                && e.Subtype == "Militaristic"
+                && e.Description == country.Description
+        );
+        Assert.Contains(
+            result,
+            e =>
+                e.Name == state.Name
+                && e.Type == NamedEntityType.State
+                && e.Subtype == null
+                && e.Description == state.Description
+        );
+        Assert.Contains(
+            result,
+            e =>
+                e.Name == city.Name
+                && e.Type == NamedEntityType.City
+                && e.Subtype == null
+                && e.Description == city.Description
+        );
     }
 }

@@ -448,13 +448,14 @@ internal static class Builders
         };
     }
 
-    public static Country MakeCountry(Guid worldId)
+    public static Country MakeCountry(Guid worldId, CountryFocus focus = CountryFocus.Scientific)
     {
         return new Country
         {
             WorldId = worldId,
             Name = $"Country-{Guid.NewGuid():N}",
             Description = "A test country",
+            Focus = focus,
             Boundary = new Polygon
             {
                 Points =

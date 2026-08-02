@@ -7,6 +7,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Data.Models;
 using TRPG.Players.Endpoints;
@@ -18,23 +19,22 @@ internal sealed class ChatHub(
     GameTurnContext turnContext,
     EndGameSessionCommandHandler endGameSession,
     GetGameSessionQueryHandler getGameSession,
+    GetNamedEntitiesByWorldQueryHandler getNamedEntitiesByWorld,
     WorldConnectionRegistry worldConnections,
     GetCreatureByIdQueryHandler getCreatureById,
     GetActiveFightCombatantsQueryHandler getActiveFightCombatants
 ) : Hub
 {
-    private const string SessionIdKey = "SessionId";
-    private const string WorldIdKey = "WorldId";
+    private const string GameSessionKey = "GameSession";
 
     public override async Task OnConnectedAsync()
     {
         var sessionId = GetSessionIdFromQuery();
-        Context.Items[SessionIdKey] = sessionId;
 
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = sessionId }
         );
-        Context.Items[WorldIdKey] = snapshot.WorldId;
+        Context.Items[GameSessionKey] = snapshot;
 
         if (!worldConnections.TryAdd(snapshot.WorldId, Context.ConnectionId))
         {
@@ -63,27 +63,19 @@ internal sealed class ChatHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        if (Context.Items[WorldIdKey] is Guid worldId)
+        if (Context.Items[GameSessionKey] is GameSession gameSession)
         {
-            worldConnections.Remove(worldId, Context.ConnectionId);
-        }
-
-        if (Context.Items[SessionIdKey] is Guid sessionId)
-        {
-            await endGameSession.Handle(new EndGameSessionCommand { SessionId = sessionId });
+            worldConnections.Remove(gameSession.WorldId, Context.ConnectionId);
+            await endGameSession.Handle(new EndGameSessionCommand { SessionId = gameSession.Id });
         }
 
         await base.OnDisconnectedAsync(exception);
     }
 
-    private async Task<bool> IsPlayerDead(CancellationToken cancellationToken)
+    private async Task<bool> IsPlayerDead(Guid playerId, CancellationToken cancellationToken)
     {
-        var gameSession = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = turnContext.SessionId },
-            cancellationToken
-        );
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = gameSession.PlayerId },
+            new GetCreatureByIdQuery { Id = playerId },
             cancellationToken
         );
         return player?.State == CreatureState.Dead;
@@ -115,22 +107,31 @@ internal sealed class ChatHub(
         CancellationToken cancellationToken
     )
     {
-        turnContext.SessionId = (Guid)Context.Items[SessionIdKey]!;
-        return StreamTurn(tokens, cancellationToken);
+        var gameSession = (GameSession)Context.Items[GameSessionKey]!;
+        turnContext.SessionId = gameSession.Id;
+        return StreamTurn(gameSession, tokens, cancellationToken);
     }
 
     private async IAsyncEnumerable<string> StreamTurn(
+        GameSession gameSession,
         IAsyncEnumerable<string> tokens,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
-        if (await IsPlayerDead(cancellationToken))
+        if (await IsPlayerDead(gameSession.PlayerId, cancellationToken))
         {
             yield return "You have died. This adventure has come to an end.";
             yield break;
         }
 
-        await foreach (var token in tokens.WithCancellation(cancellationToken))
+        var namedEntities = await getNamedEntitiesByWorld.Handle(
+            new GetNamedEntitiesByWorldQuery { WorldId = gameSession.WorldId },
+            cancellationToken
+        );
+        var matcher = new LinearEntityNameMatcher(namedEntities);
+
+        var linkedTokens = NarrationEntityLinker.Link(tokens, matcher, cancellationToken);
+        await foreach (var token in linkedTokens.WithCancellation(cancellationToken))
         {
             yield return token;
         }

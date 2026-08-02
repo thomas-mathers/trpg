@@ -20,6 +20,7 @@ internal static class GameSessionEndpoints
         app.MapPost("/sessions", StartSession);
         app.MapGet("/sessions/{sessionId:guid}/scene", GetScene);
         app.MapGet("/sessions/{sessionId:guid}/named-entities", GetNamedEntities);
+        app.MapGet("/sessions/{sessionId:guid}/named-entities/{entityId:guid}", GetNamedEntityById);
     }
 
     private static async Task<Results<NotFound, Ok<CreateSessionResponse>>> StartSession(
@@ -110,6 +111,28 @@ internal static class GameSessionEndpoints
         return TypedResults.Ok(entities.Select(ToNamedEntity).ToArray());
     }
 
+    private static async Task<Results<NotFound, Ok<NamedEntity>>> GetNamedEntityById(
+        Guid sessionId,
+        Guid entityId,
+        GetGameSessionQueryHandler getGameSession,
+        GetNamedEntitiesByWorldQueryHandler getNamedEntitiesByWorld,
+        CancellationToken cancellationToken
+    )
+    {
+        var session = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = sessionId },
+            cancellationToken
+        );
+
+        var entities = await getNamedEntitiesByWorld.Handle(
+            new GetNamedEntitiesByWorldQuery { WorldId = session.WorldId },
+            cancellationToken
+        );
+
+        var entity = entities.FirstOrDefault(e => e.Id == entityId);
+        return entity == null ? TypedResults.NotFound() : TypedResults.Ok(ToNamedEntity(entity));
+    }
+
     private static NamedEntity ToNamedEntity(NamedEntitySummary entity) =>
         new(
             entity.Id,
@@ -124,7 +147,9 @@ internal static class GameSessionEndpoints
                 NamedEntityType.State => EntityType.State,
                 NamedEntityType.City => EntityType.City,
                 _ => throw new ArgumentOutOfRangeException(nameof(entity)),
-            }
+            },
+            entity.Subtype,
+            entity.Description
         );
 
     private static SceneSnapshot ToSnapshot(SceneResult scene)

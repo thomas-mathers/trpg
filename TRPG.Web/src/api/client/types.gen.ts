@@ -242,6 +242,8 @@ export type NamedEntity = {
     id: string;
     name: string;
     type: EntityType;
+    subtype: null | string;
+    description: string;
 };
 
 export type NearbyBuildingSnapshot = {
@@ -684,6 +686,32 @@ export type GetSessionsBySessionIdNamedEntitiesResponses = {
 };
 
 export type GetSessionsBySessionIdNamedEntitiesResponse = GetSessionsBySessionIdNamedEntitiesResponses[keyof GetSessionsBySessionIdNamedEntitiesResponses];
+
+export type GetSessionsBySessionIdNamedEntitiesByEntityIdData = {
+    body?: never;
+    path: {
+        sessionId: string;
+        entityId: string;
+    };
+    query?: never;
+    url: '/sessions/{sessionId}/named-entities/{entityId}';
+};
+
+export type GetSessionsBySessionIdNamedEntitiesByEntityIdErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type GetSessionsBySessionIdNamedEntitiesByEntityIdResponses = {
+    /**
+     * OK
+     */
+    200: NamedEntity;
+};
+
+export type GetSessionsBySessionIdNamedEntitiesByEntityIdResponse = GetSessionsBySessionIdNamedEntitiesByEntityIdResponses[keyof GetSessionsBySessionIdNamedEntitiesByEntityIdResponses];
 
 export type GetJobsByIdData = {
     body?: never;

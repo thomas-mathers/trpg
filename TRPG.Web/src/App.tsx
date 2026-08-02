@@ -2,6 +2,7 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { MenuIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { NarrationText } from './components/NarrationText';
 import { Button } from './components/ui/button';
 import {
   DropdownMenu,
@@ -21,12 +22,11 @@ import {
   MessageScrollerViewport,
 } from './components/ui/message-scroller';
 import { useGameHubConnection } from './hooks/useGameHubConnection';
+import { appendNarrationToken, type NarrationSegment } from './lib/narration-markup';
 
-interface ChatMessage {
-  id: string;
-  role: 'narrator' | 'player';
-  content: string;
-}
+type ChatMessage =
+  | { id: string; role: 'narrator'; segments: NarrationSegment[] }
+  | { id: string; role: 'player'; content: string };
 
 function App() {
   const navigate = useNavigate();
@@ -39,7 +39,11 @@ function App() {
 
   const appendToken = (id: string, token: string) => {
     setMessages((current) =>
-      current.map((m) => (m.id === id ? { ...m, content: m.content + token } : m)),
+      current.map((m) =>
+        m.id === id && m.role === 'narrator'
+          ? { ...m, segments: appendNarrationToken(m.segments, token) }
+          : m,
+      ),
     );
   };
 
@@ -52,7 +56,7 @@ function App() {
     setMessages([]);
 
     const narratorId = crypto.randomUUID();
-    setMessages([{ id: narratorId, role: 'narrator', content: '' }]);
+    setMessages([{ id: narratorId, role: 'narrator', segments: [] }]);
     setIsStreaming(true);
     streamOpening(
       (token) => appendToken(narratorId, token),
@@ -73,7 +77,7 @@ function App() {
     setMessages((current) => [
       ...current,
       { id: playerId, role: 'player', content: text },
-      { id: narratorId, role: 'narrator', content: '' },
+      { id: narratorId, role: 'narrator', segments: [] },
     ]);
 
     setIsStreaming(true);
@@ -118,7 +122,9 @@ function App() {
                         <MessageHeader className="justify-end">You</MessageHeader>
                       )}
                       {message.role === 'narrator' ? (
-                        <div className="typeset typeset-chat italic">{message.content}</div>
+                        <div className="typeset typeset-chat italic">
+                          <NarrationText sessionId={sessionId} segments={message.segments} />
+                        </div>
                       ) : (
                         <p className="text-right">{message.content}</p>
                       )}

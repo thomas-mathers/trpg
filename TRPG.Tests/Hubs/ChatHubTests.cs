@@ -246,6 +246,27 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SendChat_LinksASeededEntityMentionedInTheReply_AsEntityMarkup()
+    {
+        // Arrange
+        var creature = await SeedHostileCreature();
+        fixture.ChatClient.ChatResponseText = $"A {creature.Name} lurks in the shadows.";
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        // Act
+        var narration = await Drain(
+            gameHub.StreamChat("I look around.", TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal(
+            $"A [{creature.Name}](entity://Creature/{creature.Id}) lurks in the shadows.",
+            narration
+        );
+    }
+
+    [Fact]
     public async Task SendCombatAction_ResolvesTheAttack_AndNarratesTheOutcome()
     {
         // Arrange

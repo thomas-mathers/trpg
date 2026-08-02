@@ -18,10 +18,7 @@ internal sealed class ResumeGameFlow(
         var session = await client.StartSession(worldId, cancellationToken);
         await using var gameHub = await hubConnector.Connect(session.SessionId, cancellationToken);
 
-        var narrationRenderer = new NarrationRenderer(
-            logger,
-            await client.GetNamedEntities(session.SessionId, cancellationToken)
-        );
+        var narrationRenderer = new NarrationRenderer(logger);
 
         AnsiConsole.Clear();
         AnsiConsole.Write(
