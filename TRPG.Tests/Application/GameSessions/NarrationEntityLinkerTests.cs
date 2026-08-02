@@ -439,11 +439,74 @@ public class NarrationEntityLinkerTests
         Assert.Contains(ToMarkup(entity), result);
     }
 
+    [Fact]
+    public async Task Link_MatchesEntity_WhenAnUnrelatedEntitySharesAPrefixThenDiverges()
+    {
+        // Arrange
+        var decoy = MakeEntity("The Gilded Anvil", NamedEntityType.Building);
+        var target = MakeEntity("Gideon", NamedEntityType.Creature);
+        var tokens = ToAsyncEnumerable("You spot the Gideon nearby.");
+
+        // Act
+        var result = await Collect(
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(decoy, target),
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Equal($"You spot the {ToMarkup(target)} nearby.", string.Concat(result));
+    }
+
+    [Fact]
+    public async Task Link_MatchesMultiWordEntity_WhenAnUnrelatedEntitySharesAPrefixThenDiverges()
+    {
+        // Arrange
+        var decoy = MakeEntity("The Gilded Anvil", NamedEntityType.Building);
+        var target = MakeEntity("Gideon Ashwood", NamedEntityType.Creature);
+        var tokens = ToAsyncEnumerable("You spot the Gideon Ashwood nearby.");
+
+        // Act
+        var result = await Collect(
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(decoy, target),
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Equal($"You spot the {ToMarkup(target)} nearby.", string.Concat(result));
+    }
+
+    [Fact]
+    public async Task Link_MatchesEntity_WhenAnInterveningWordBreaksAFalseLeadFromAnUnrelatedEntity()
+    {
+        // Arrange
+        var decoy = MakeEntity("The Gilded Anvil", NamedEntityType.Building);
+        var target = MakeEntity("Gideon", NamedEntityType.Creature);
+        var tokens = ToAsyncEnumerable("You spot the lone Gideon nearby.");
+
+        // Act
+        var result = await Collect(
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(decoy, target),
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Equal($"You spot the lone {ToMarkup(target)} nearby.", string.Concat(result));
+    }
+
     private static NamedEntitySummary MakeEntity(string name, NamedEntityType type) =>
         new(Guid.NewGuid(), name, type, Subtype: null, Description: "");
 
-    private static IEntityNameMatcher MakeMatcher(params NamedEntitySummary[] entities) =>
-        new LinearEntityNameMatcher(entities);
+    private static EntityNameAutomaton MakeMatcher(params NamedEntitySummary[] entities) =>
+        EntityNameAutomaton.Build(entities);
 
     private static string ToMarkup(NamedEntitySummary entity) =>
         $"[{entity.Name}](entity://{entity.Type}/{entity.Id})";

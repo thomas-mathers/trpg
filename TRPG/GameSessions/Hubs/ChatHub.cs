@@ -7,7 +7,6 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Data.Models;
 using TRPG.Players.Endpoints;
@@ -19,7 +18,7 @@ internal sealed class ChatHub(
     GameTurnContext turnContext,
     EndGameSessionCommandHandler endGameSession,
     GetGameSessionQueryHandler getGameSession,
-    GetNamedEntitiesByWorldQueryHandler getNamedEntitiesByWorld,
+    GetEntityNameAutomatonByWorldQueryHandler getEntityNameAutomatonByWorld,
     WorldConnectionRegistry worldConnections,
     GetCreatureByIdQueryHandler getCreatureById,
     GetActiveFightCombatantsQueryHandler getActiveFightCombatants
@@ -124,14 +123,14 @@ internal sealed class ChatHub(
             yield break;
         }
 
-        var namedEntities = await getNamedEntitiesByWorld.Handle(
-            new GetNamedEntitiesByWorldQuery { WorldId = gameSession.WorldId },
+        var automaton = await getEntityNameAutomatonByWorld.Handle(
+            new GetEntityNameAutomatonByWorldQuery { WorldId = gameSession.WorldId },
             cancellationToken
         );
-        var matcher = new LinearEntityNameMatcher(namedEntities);
 
-        var linkedTokens = NarrationEntityLinker.Link(tokens, matcher, cancellationToken);
-        await foreach (var token in linkedTokens.WithCancellation(cancellationToken))
+        var linkedTokens = NarrationEntityLinker.Link(tokens, automaton, cancellationToken);
+
+        await foreach (var token in linkedTokens)
         {
             yield return token;
         }

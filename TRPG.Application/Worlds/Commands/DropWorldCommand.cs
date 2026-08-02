@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Data;
 
 namespace TRPG.Application.Worlds.Commands;
@@ -8,7 +11,7 @@ public class DropWorldCommand
     public required Guid WorldId { get; init; }
 }
 
-public class DropWorldCommandHandler(TrpgDbContext context)
+public class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache)
 {
     public async Task Handle(
         DropWorldCommand command,
@@ -91,5 +94,8 @@ public class DropWorldCommandHandler(TrpgDbContext context)
         await context.Worlds.Where(x => x.Id == worldId).ExecuteDeleteAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
+
+        cache.Remove(GetNamedEntitiesByWorldQueryHandler.CacheKey(worldId));
+        cache.Remove(GetEntityNameAutomatonByWorldQueryHandler.CacheKey(worldId));
     }
 }

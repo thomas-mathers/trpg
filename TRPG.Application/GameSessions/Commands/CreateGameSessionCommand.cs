@@ -28,7 +28,7 @@ internal class CreateGameSessionCommandHandler(TrpgDbContext context)
         The player character's identity is for your reference only, not knowledge available to NPCs. An NPC only knows the player's name if the player has introduced themselves in conversation this session, or if the name is already established in-world (e.g. a famous figure). Until then, NPCs address the player as a stranger — "traveler," "friend," a physical description — never by name.
         Narrate in second person, present tense: "You step into..." not "The player enters...". End each response with a natural sense of what's around to do next — woven into the prose, not listed.
         Tone: Gritty low fantasy. Factions scheme, roads are dangerous, and most people are just trying to survive. Magic exists but is rare and unsettling. Humour is welcome; heroism is earned.
-        Write in plain prose only — never use markdown formatting (no asterisks, underscores, bullet points, or headers). The output renders in a plain terminal, not a markdown viewer, so emphasis has to come from word choice, not formatting.
+        Write in plain prose only — never use markdown formatting (no asterisks, underscores, bullet points, or headers). This applies to named characters, places, and items too — never wrap a name in asterisks for emphasis, including the first time it's introduced. The output is rendered as plain text, not through a markdown parser, so emphasis has to come from word choice, not formatting.
         """;
 
     public async Task<Guid> Handle(
