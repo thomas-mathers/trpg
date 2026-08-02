@@ -128,6 +128,7 @@ public record SceneSnapshot(
 );
 
 public record CreatureStatusSnapshot(
+    Guid Id,
     string Name,
     CreatureType CreatureType,
     Gender Gender,
@@ -162,10 +163,20 @@ public record CreatureStatusSnapshot(
     float MagicResistance
 );
 
-public record NearbyDistrictSnapshot(string Name, DistrictType Type);
+public record NearbyDistrictSnapshot(
+    Guid Id,
+    string Name,
+    DistrictType Type,
+    string TypeDescription
+);
 
-public record NearbyBuildingSnapshot(string Name, BuildingType Type);
+public record NearbyBuildingSnapshot(
+    Guid Id,
+    string Name,
+    BuildingType Type,
+    string TypeDescription
+);
 
-public record NearbyPropSnapshot(string Name, string Type);
+public record NearbyPropSnapshot(Guid Id, string Name, string Type);
 
 public record NearbyExitSnapshot(string Description, string DestinationRoomName);

@@ -4,25 +4,25 @@ import { useState } from 'react';
 import { getSessionsBySessionIdNamedEntitiesByEntityIdOptions } from '@/api/client';
 import type { EntityType } from '@/api/client';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ENTITY_TYPE_COLORS } from '@/lib/entity-colors';
 
-const ENTITY_TYPE_COLORS: Record<EntityType, string> = {
-  Creature: '#E8A33D',
-  Building: '#C9A66B',
-  District: '#6BBF59',
-  World: '#4DD0C4',
-  Country: '#5B9BD9',
-  State: '#A67BD9',
-  City: '#D97BB0',
-};
-
-interface EntityLinkProps {
+interface EntityTooltipProps {
   sessionId: string;
   id: string;
   name: string;
   entityType: EntityType;
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  children: React.ReactNode;
 }
 
-export function EntityLink({ sessionId, id, name, entityType }: EntityLinkProps) {
+export function EntityTooltip({
+  sessionId,
+  id,
+  name,
+  entityType,
+  side,
+  children,
+}: EntityTooltipProps) {
   const [open, setOpen] = useState(false);
   const query = useQuery({
     ...getSessionsBySessionIdNamedEntitiesByEntityIdOptions({
@@ -34,15 +34,11 @@ export function EntityLink({ sessionId, id, name, entityType }: EntityLinkProps)
 
   return (
     <Tooltip onOpenChange={setOpen}>
-      <TooltipTrigger asChild>
-        <span
-          className="cursor-help font-bold whitespace-nowrap"
-          style={{ color: ENTITY_TYPE_COLORS[entityType] }}
-        >
-          [{name}]
-        </span>
-      </TooltipTrigger>
-      <TooltipContent className="flex-col items-start gap-1 text-left whitespace-normal">
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent
+        side={side}
+        className="flex-col items-start gap-1 text-left whitespace-normal"
+      >
         <span className="font-bold" style={{ color: ENTITY_TYPE_COLORS[entityType] }}>
           {name}
         </span>
@@ -59,5 +55,25 @@ export function EntityLink({ sessionId, id, name, entityType }: EntityLinkProps)
         )}
       </TooltipContent>
     </Tooltip>
+  );
+}
+
+interface EntityLinkProps {
+  sessionId: string;
+  id: string;
+  name: string;
+  entityType: EntityType;
+}
+
+export function EntityLink({ sessionId, id, name, entityType }: EntityLinkProps) {
+  return (
+    <EntityTooltip sessionId={sessionId} id={id} name={name} entityType={entityType}>
+      <span
+        className="cursor-help font-bold whitespace-nowrap not-italic"
+        style={{ color: ENTITY_TYPE_COLORS[entityType] }}
+      >
+        [{name}]
+      </span>
+    </EntityTooltip>
   );
 }

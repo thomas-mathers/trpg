@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "generate-client": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 openapi-ts",
+    "generate-client": "dotnet build ../TRPG/TRPG.csproj -v minimal && dotnet build ../TRPG/TRPG.csproj -v minimal --no-restore -t:GenerateOpenApiDocuments && openapi-ts",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -43,7 +43,6 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
-    "cross-env": "^10.1.0",
     "oxfmt": "^0.61.0",
     "oxlint": "^1.75.0",
     "typescript": "~6.0.2",

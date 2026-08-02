@@ -22,7 +22,7 @@ public record SceneDateInfo(int Year, string MonthName, int Day, string WeekdayN
 
 public record SceneStateInfo(string Name, string? Description);
 
-public record SceneDistrictInfo(string Name, DistrictType Type, bool IsCurrent);
+public record SceneDistrictInfo(Guid Id, string Name, DistrictType Type, bool IsCurrent);
 
 public record SceneCityInfo(
     string Name,
@@ -47,9 +47,10 @@ public record SceneRoomInfo(
     IReadOnlyCollection<SceneExitInfo> Exits
 );
 
-public record ScenePropInfo(string Name, string Description, string Type);
+public record ScenePropInfo(Guid Id, string Name, string Description, string Type);
 
 public record SceneCreatureInfo(
+    Guid Id,
     string Name,
     CreatureType CreatureType,
     Gender Gender,
@@ -84,7 +85,7 @@ public record SceneCreatureInfo(
     float MagicResistance
 );
 
-public record SceneNearbyBuildingInfo(string Name, BuildingType Type);
+public record SceneNearbyBuildingInfo(Guid Id, string Name, BuildingType Type);
 
 public record SceneResult(
     SceneDateInfo CurrentDate,
@@ -223,6 +224,7 @@ internal class GetSceneQueryHandler(
         );
 
         return new SceneCreatureInfo(
+            Id: query.PlayerId,
             bootstrap.PlayerName,
             bootstrap.CreatureType,
             bootstrap.Gender,
@@ -333,6 +335,7 @@ internal class GetSceneQueryHandler(
         );
         var districtInfos = districts
             .Select(d => new SceneDistrictInfo(
+                d.Id,
                 d.Name,
                 d.DistrictType,
                 d.Id == bootstrap.DistrictId
@@ -378,7 +381,7 @@ internal class GetSceneQueryHandler(
             exitInfos
         );
         var nearbyProps = props
-            .Select(p => new ScenePropInfo(p.Name, p.Description, GetPropType(p)))
+            .Select(p => new ScenePropInfo(p.Id, p.Name, p.Description, GetPropType(p)))
             .ToArray();
 
         return new SceneLocationDetails(
@@ -425,11 +428,11 @@ internal class GetSceneQueryHandler(
         var allBuildings = buildings.Concat(wildBuildings).ToArray();
         var nearbyBuildings = allBuildings
             .Where(b => !BuildingTypes.Dungeon.Contains(b.BuildingType))
-            .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType))
+            .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
             .ToArray();
         var nearbyDungeons = allBuildings
             .Where(b => BuildingTypes.Dungeon.Contains(b.BuildingType))
-            .Select(b => new SceneNearbyBuildingInfo(b.Name, b.BuildingType))
+            .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
             .ToArray();
 
         var nearbyPeople = await BuildNearbyPeople(query, bootstrap, cancellationToken);
@@ -521,6 +524,7 @@ internal class GetSceneQueryHandler(
                     characterXpByCreature.GetValueOrDefault(x.Id, 0)
                 );
                 return new SceneCreatureInfo(
+                    x.Id,
                     x.Name,
                     x.CreatureType,
                     x.Gender,
