@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -6,8 +7,13 @@ using TRPG.Contracts.Scenes.Responses;
 
 namespace TRPG.Client;
 
-internal sealed class NarrationRenderer(ILogger logger, IReadOnlyList<NamedEntity> namedEntities)
+internal sealed class NarrationRenderer(ILogger logger)
 {
+    private static readonly Regex EntityMarkupPattern = new(
+        @"^\[(?<name>[^\]]+)\]\(entity://(?<type>\w+)/[^)]+\)$",
+        RegexOptions.Compiled
+    );
+
     private static readonly IReadOnlyDictionary<EntityType, string> EntityTypeChipStyles =
         new Dictionary<EntityType, string>
         {
@@ -24,26 +30,10 @@ internal sealed class NarrationRenderer(ILogger logger, IReadOnlyList<NamedEntit
     {
         try
         {
-            var prefix = "";
-
             await foreach (var token in tokens)
             {
-                foreach (var c in token)
-                {
-                    var isPrefix = namedEntities.Any(entity =>
-                        entity.Name.StartsWith(prefix + c, StringComparison.OrdinalIgnoreCase)
-                    );
-                    if (!isPrefix)
-                    {
-                        PrintPrefix(prefix);
-                        prefix = "";
-                    }
-
-                    prefix += c;
-                }
+                PrintToken(token);
             }
-
-            PrintPrefix(prefix);
 
             return true;
         }
@@ -55,18 +45,16 @@ internal sealed class NarrationRenderer(ILogger logger, IReadOnlyList<NamedEntit
         }
     }
 
-    private void PrintPrefix(string prefix)
+    private static void PrintToken(string token)
     {
-        var match = namedEntities.FirstOrDefault(entity =>
-            entity.Name.Equals(prefix, StringComparison.OrdinalIgnoreCase)
-        );
-        if (match != null)
+        var match = EntityMarkupPattern.Match(token);
+        if (match.Success && Enum.TryParse<EntityType>(match.Groups["type"].Value, out var type))
         {
-            PrintEntityChip(match.Name, match.Type);
+            PrintEntityChip(match.Groups["name"].Value, type);
         }
         else
         {
-            PrintNarration(prefix);
+            PrintNarration(token);
         }
     }
 

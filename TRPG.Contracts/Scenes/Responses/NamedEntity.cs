@@ -11,4 +11,10 @@ public enum EntityType
     City,
 }
 
-public record NamedEntity(Guid Id, string Name, EntityType Type);
+public record NamedEntity(
+    Guid Id,
+    string Name,
+    EntityType Type,
+    string? Subtype,
+    string Description
+);

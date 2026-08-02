@@ -2,6 +2,7 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { MenuIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { NarrationText } from './components/NarrationText';
 import { Button } from './components/ui/button';
 import {
   DropdownMenu,
@@ -118,7 +119,9 @@ function App() {
                         <MessageHeader className="justify-end">You</MessageHeader>
                       )}
                       {message.role === 'narrator' ? (
-                        <div className="typeset typeset-chat italic">{message.content}</div>
+                        <div className="typeset typeset-chat italic">
+                          <NarrationText sessionId={sessionId} content={message.content} />
+                        </div>
                       ) : (
                         <p className="text-right">{message.content}</p>
                       )}

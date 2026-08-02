@@ -7,6 +7,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Data.Models;
 using TRPG.Players.Endpoints;
@@ -18,6 +19,7 @@ internal sealed class ChatHub(
     GameTurnContext turnContext,
     EndGameSessionCommandHandler endGameSession,
     GetGameSessionQueryHandler getGameSession,
+    GetNamedEntitiesByWorldQueryHandler getNamedEntitiesByWorld,
     WorldConnectionRegistry worldConnections,
     GetCreatureByIdQueryHandler getCreatureById,
     GetActiveFightCombatantsQueryHandler getActiveFightCombatants
@@ -76,14 +78,10 @@ internal sealed class ChatHub(
         await base.OnDisconnectedAsync(exception);
     }
 
-    private async Task<bool> IsPlayerDead(CancellationToken cancellationToken)
+    private async Task<bool> IsPlayerDead(Guid playerId, CancellationToken cancellationToken)
     {
-        var gameSession = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = turnContext.SessionId },
-            cancellationToken
-        );
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = gameSession.PlayerId },
+            new GetCreatureByIdQuery { Id = playerId },
             cancellationToken
         );
         return player?.State == CreatureState.Dead;
@@ -124,13 +122,24 @@ internal sealed class ChatHub(
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
-        if (await IsPlayerDead(cancellationToken))
+        var gameSession = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+
+        if (await IsPlayerDead(gameSession.PlayerId, cancellationToken))
         {
             yield return "You have died. This adventure has come to an end.";
             yield break;
         }
 
-        await foreach (var token in tokens.WithCancellation(cancellationToken))
+        var namedEntities = await getNamedEntitiesByWorld.Handle(
+            new GetNamedEntitiesByWorldQuery { WorldId = gameSession.WorldId },
+            cancellationToken
+        );
+
+        var linkedTokens = NarrationEntityLinker.Link(tokens, namedEntities, cancellationToken);
+        await foreach (var token in linkedTokens.WithCancellation(cancellationToken))
         {
             yield return token;
         }

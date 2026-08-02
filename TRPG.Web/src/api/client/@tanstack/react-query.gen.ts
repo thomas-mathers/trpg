@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteAdminSessionsBySessionId, deleteWorldsByWorldId, getAbilitiesBySkill, getCorpses, getCreatureGenerationOptions, getCreaturesByCreatureIdAbilities, getCreaturesByCreatureIdAttributePoints, getCreaturesByCreatureIdAttributes, getCreaturesByCreatureIdConsumables, getCreaturesByCreatureIdInventory, getCreaturesByCreatureIdLevel, getCreaturesByCreatureIdSkills, getJobsById, getPlayersByPlayerIdFight, getPlayersByPlayerIdFightAbilities, getSessionsBySessionIdNamedEntities, getSessionsBySessionIdScene, getWorlds, type Options, postAdminSessionsBySessionIdChat, postAdminSessionsBySessionIdWait, postCreaturesByCreatureIdAttributePointsAllocate, postSessions, postTransfers, postWorlds } from '../sdk.gen';
-import type { DeleteAdminSessionsBySessionIdData, DeleteAdminSessionsBySessionIdResponse, DeleteWorldsByWorldIdData, DeleteWorldsByWorldIdResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetCorpsesData, GetCorpsesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreaturesByCreatureIdAbilitiesData, GetCreaturesByCreatureIdAbilitiesResponse, GetCreaturesByCreatureIdAttributePointsData, GetCreaturesByCreatureIdAttributePointsResponse, GetCreaturesByCreatureIdAttributesData, GetCreaturesByCreatureIdAttributesResponse, GetCreaturesByCreatureIdConsumablesData, GetCreaturesByCreatureIdConsumablesResponse, GetCreaturesByCreatureIdInventoryData, GetCreaturesByCreatureIdInventoryResponse, GetCreaturesByCreatureIdLevelData, GetCreaturesByCreatureIdLevelResponse, GetCreaturesByCreatureIdSkillsData, GetCreaturesByCreatureIdSkillsResponse, GetJobsByIdData, GetJobsByIdResponse, GetPlayersByPlayerIdFightAbilitiesData, GetPlayersByPlayerIdFightAbilitiesResponse, GetPlayersByPlayerIdFightData, GetPlayersByPlayerIdFightResponse, GetSessionsBySessionIdNamedEntitiesData, GetSessionsBySessionIdNamedEntitiesResponse, GetSessionsBySessionIdSceneData, GetSessionsBySessionIdSceneResponse, GetWorldsData, GetWorldsResponse, PostAdminSessionsBySessionIdChatData, PostAdminSessionsBySessionIdChatResponse, PostAdminSessionsBySessionIdWaitData, PostAdminSessionsBySessionIdWaitResponse, PostCreaturesByCreatureIdAttributePointsAllocateData, PostCreaturesByCreatureIdAttributePointsAllocateResponse, PostSessionsData, PostSessionsResponse, PostTransfersData, PostTransfersResponse, PostWorldsData, PostWorldsResponse } from '../types.gen';
+import { deleteAdminSessionsBySessionId, deleteWorldsByWorldId, getAbilitiesBySkill, getCorpses, getCreatureGenerationOptions, getCreaturesByCreatureIdAbilities, getCreaturesByCreatureIdAttributePoints, getCreaturesByCreatureIdAttributes, getCreaturesByCreatureIdConsumables, getCreaturesByCreatureIdInventory, getCreaturesByCreatureIdLevel, getCreaturesByCreatureIdSkills, getJobsById, getPlayersByPlayerIdFight, getPlayersByPlayerIdFightAbilities, getSessionsBySessionIdNamedEntities, getSessionsBySessionIdNamedEntitiesByEntityId, getSessionsBySessionIdScene, getWorlds, type Options, postAdminSessionsBySessionIdChat, postAdminSessionsBySessionIdWait, postCreaturesByCreatureIdAttributePointsAllocate, postSessions, postTransfers, postWorlds } from '../sdk.gen';
+import type { DeleteAdminSessionsBySessionIdData, DeleteAdminSessionsBySessionIdResponse, DeleteWorldsByWorldIdData, DeleteWorldsByWorldIdResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetCorpsesData, GetCorpsesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreaturesByCreatureIdAbilitiesData, GetCreaturesByCreatureIdAbilitiesResponse, GetCreaturesByCreatureIdAttributePointsData, GetCreaturesByCreatureIdAttributePointsResponse, GetCreaturesByCreatureIdAttributesData, GetCreaturesByCreatureIdAttributesResponse, GetCreaturesByCreatureIdConsumablesData, GetCreaturesByCreatureIdConsumablesResponse, GetCreaturesByCreatureIdInventoryData, GetCreaturesByCreatureIdInventoryResponse, GetCreaturesByCreatureIdLevelData, GetCreaturesByCreatureIdLevelResponse, GetCreaturesByCreatureIdSkillsData, GetCreaturesByCreatureIdSkillsResponse, GetJobsByIdData, GetJobsByIdResponse, GetPlayersByPlayerIdFightAbilitiesData, GetPlayersByPlayerIdFightAbilitiesResponse, GetPlayersByPlayerIdFightData, GetPlayersByPlayerIdFightResponse, GetSessionsBySessionIdNamedEntitiesByEntityIdData, GetSessionsBySessionIdNamedEntitiesByEntityIdResponse, GetSessionsBySessionIdNamedEntitiesData, GetSessionsBySessionIdNamedEntitiesResponse, GetSessionsBySessionIdSceneData, GetSessionsBySessionIdSceneResponse, GetWorldsData, GetWorldsResponse, PostAdminSessionsBySessionIdChatData, PostAdminSessionsBySessionIdChatResponse, PostAdminSessionsBySessionIdWaitData, PostAdminSessionsBySessionIdWaitResponse, PostCreaturesByCreatureIdAttributePointsAllocateData, PostCreaturesByCreatureIdAttributePointsAllocateResponse, PostSessionsData, PostSessionsResponse, PostTransfersData, PostTransfersResponse, PostWorldsData, PostWorldsResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -318,6 +318,21 @@ export const getSessionsBySessionIdNamedEntitiesOptions = (options: Options<GetS
         return data;
     },
     queryKey: getSessionsBySessionIdNamedEntitiesQueryKey(options)
+});
+
+export const getSessionsBySessionIdNamedEntitiesByEntityIdQueryKey = (options: Options<GetSessionsBySessionIdNamedEntitiesByEntityIdData>) => createQueryKey('getSessionsBySessionIdNamedEntitiesByEntityId', options);
+
+export const getSessionsBySessionIdNamedEntitiesByEntityIdOptions = (options: Options<GetSessionsBySessionIdNamedEntitiesByEntityIdData>) => queryOptions<GetSessionsBySessionIdNamedEntitiesByEntityIdResponse, DefaultError, GetSessionsBySessionIdNamedEntitiesByEntityIdResponse, ReturnType<typeof getSessionsBySessionIdNamedEntitiesByEntityIdQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getSessionsBySessionIdNamedEntitiesByEntityId({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getSessionsBySessionIdNamedEntitiesByEntityIdQueryKey(options)
 });
 
 export const getJobsByIdQueryKey = (options: Options<GetJobsByIdData>) => createQueryKey('getJobsById', options);
