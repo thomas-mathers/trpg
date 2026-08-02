@@ -29,6 +29,7 @@ export function EntityLink({ sessionId, id, name, entityType }: EntityLinkProps)
       path: { sessionId, entityId: id },
     }),
     enabled: open,
+    staleTime: Infinity,
   });
 
   return (
