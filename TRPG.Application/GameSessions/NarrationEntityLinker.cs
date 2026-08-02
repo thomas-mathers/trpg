@@ -28,11 +28,11 @@ internal static class NarrationEntityLinker
 {
     public static async IAsyncEnumerable<string> Link(
         IAsyncEnumerable<string> tokens,
-        IReadOnlyCollection<NamedEntitySummary> namedEntities,
+        IEntityNameMatcher matcher,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
-        var state = new MatchState(new LinearEntityNameMatcher(namedEntities));
+        var state = new MatchState(matcher);
 
         await foreach (var token in tokens.WithCancellation(cancellationToken))
         {

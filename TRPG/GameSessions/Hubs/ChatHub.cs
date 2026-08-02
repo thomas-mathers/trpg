@@ -128,8 +128,9 @@ internal sealed class ChatHub(
             new GetNamedEntitiesByWorldQuery { WorldId = gameSession.WorldId },
             cancellationToken
         );
+        var matcher = new LinearEntityNameMatcher(namedEntities);
 
-        var linkedTokens = NarrationEntityLinker.Link(tokens, namedEntities, cancellationToken);
+        var linkedTokens = NarrationEntityLinker.Link(tokens, matcher, cancellationToken);
         await foreach (var token in linkedTokens.WithCancellation(cancellationToken))
         {
             yield return token;

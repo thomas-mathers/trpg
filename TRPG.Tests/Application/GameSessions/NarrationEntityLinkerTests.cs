@@ -13,7 +13,7 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(tokens, MakeMatcher(), TestContext.Current.CancellationToken)
         );
 
         // Assert
@@ -29,7 +29,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -45,7 +49,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -64,7 +72,7 @@ public class NarrationEntityLinkerTests
         var result = await Collect(
             NarrationEntityLinker.Link(
                 tokens,
-                [creature, city],
+                MakeMatcher(creature, city),
                 TestContext.Current.CancellationToken
             )
         );
@@ -82,7 +90,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -98,7 +110,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -114,7 +130,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -130,7 +150,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -146,7 +170,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -161,7 +189,7 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(tokens, MakeMatcher(), TestContext.Current.CancellationToken)
         );
 
         // Assert
@@ -180,7 +208,7 @@ public class NarrationEntityLinkerTests
         var result = await Collect(
             NarrationEntityLinker.Link(
                 tokens,
-                [shortEntity, longEntity],
+                MakeMatcher(shortEntity, longEntity),
                 TestContext.Current.CancellationToken
             )
         );
@@ -201,7 +229,7 @@ public class NarrationEntityLinkerTests
         var result = await Collect(
             NarrationEntityLinker.Link(
                 tokens,
-                [shortEntity, longEntity],
+                MakeMatcher(shortEntity, longEntity),
                 TestContext.Current.CancellationToken
             )
         );
@@ -226,7 +254,7 @@ public class NarrationEntityLinkerTests
         var result = await Collect(
             NarrationEntityLinker.Link(
                 tokens,
-                [creature, city],
+                MakeMatcher(creature, city),
                 TestContext.Current.CancellationToken
             )
         );
@@ -251,7 +279,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -268,7 +300,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -285,7 +321,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -304,7 +344,7 @@ public class NarrationEntityLinkerTests
         var result = await Collect(
             NarrationEntityLinker.Link(
                 tokens,
-                [shortEntity, longEntity],
+                MakeMatcher(shortEntity, longEntity),
                 TestContext.Current.CancellationToken
             )
         );
@@ -325,7 +365,7 @@ public class NarrationEntityLinkerTests
         var result = await Collect(
             NarrationEntityLinker.Link(
                 tokens,
-                [shortEntity, longEntity],
+                MakeMatcher(shortEntity, longEntity),
                 TestContext.Current.CancellationToken
             )
         );
@@ -347,7 +387,7 @@ public class NarrationEntityLinkerTests
         var result = await Collect(
             NarrationEntityLinker.Link(
                 tokens,
-                [shortEntity, mediumEntity, longEntity],
+                MakeMatcher(shortEntity, mediumEntity, longEntity),
                 TestContext.Current.CancellationToken
             )
         );
@@ -369,7 +409,7 @@ public class NarrationEntityLinkerTests
         var result = await Collect(
             NarrationEntityLinker.Link(
                 tokens,
-                [firstEntity, secondEntity, longEntity],
+                MakeMatcher(firstEntity, secondEntity, longEntity),
                 TestContext.Current.CancellationToken
             )
         );
@@ -387,7 +427,11 @@ public class NarrationEntityLinkerTests
 
         // Act
         var result = await Collect(
-            NarrationEntityLinker.Link(tokens, [entity], TestContext.Current.CancellationToken)
+            NarrationEntityLinker.Link(
+                tokens,
+                MakeMatcher(entity),
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -397,6 +441,9 @@ public class NarrationEntityLinkerTests
 
     private static NamedEntitySummary MakeEntity(string name, NamedEntityType type) =>
         new(Guid.NewGuid(), name, type, Subtype: null, Description: "");
+
+    private static IEntityNameMatcher MakeMatcher(params NamedEntitySummary[] entities) =>
+        new LinearEntityNameMatcher(entities);
 
     private static string ToMarkup(NamedEntitySummary entity) =>
         $"[{entity.Name}](entity://{entity.Type}/{entity.Id})";
