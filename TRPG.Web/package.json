@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "generate-client": "dotnet build ../TRPG/TRPG.csproj -v minimal && openapi-ts",
+    "generate-client": "dotnet build ../TRPG/TRPG.csproj -v minimal && dotnet build ../TRPG/TRPG.csproj -v minimal --no-restore -t:GenerateOpenApiDocuments && openapi-ts",
     "preview": "vite preview"
   },
   "dependencies": {

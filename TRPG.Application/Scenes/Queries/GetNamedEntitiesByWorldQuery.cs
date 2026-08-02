@@ -63,9 +63,6 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
             ))
             .ToArrayAsync(cancellationToken);
 
-        // BuildingType/DistrictType display names come from [Description] attributes read via
-        // reflection (ToDisplayName), which EF Core can't translate to SQL - fetch the raw rows
-        // first, then humanize in memory.
         var buildingRows = await context
             .Buildings.AsNoTracking()
             .Where(b => b.WorldId == worldId)

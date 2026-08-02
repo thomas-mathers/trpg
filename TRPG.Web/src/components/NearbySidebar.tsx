@@ -14,11 +14,6 @@ export function NearbySidebar({ sessionId, turnCount }: NearbySidebarProps) {
 
   const panel = query.data && <NearbyPanel sessionId={sessionId} scene={query.data} />;
 
-  // Sidebar's desktop rendering path always reserves layout space for the docked panel via a
-  // sibling gap-spacer, with no way to reach that specific element through the component's own
-  // className prop. Since we want the panel to float over the content rather than push it, the
-  // Sheet-based mobile branch (which already behaves correctly) is reused as-is, but desktop gets
-  // its own minimal fixed-position panel instead of going through Sidebar's docked machinery.
   if (isMobile) {
     return (
       <Sidebar side="right">

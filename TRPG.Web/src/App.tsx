@@ -128,10 +128,6 @@ function App() {
         </DropdownMenu>
       </div>
 
-      {/* will-change-transform makes this the containing block for the sidebar's fixed
-          positioning, scoping it below the topbar instead of the full viewport. overflow-hidden
-          keeps the collapsed sidebar (which still sits just off the right edge) from expanding
-          this container's scrollable area and producing a horizontal scrollbar. */}
       <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
         <SidebarInset>
           <MessageScrollerProvider>

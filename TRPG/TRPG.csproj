@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <WarningsNotAsErrors>CS9057</WarningsNotAsErrors>
     <LangVersion>latest</LangVersion>
+    <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
