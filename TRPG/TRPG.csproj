@@ -26,6 +26,10 @@
     <PackageReference Include="Anthropic" Version="12.35.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.7.0" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.OpenApi" Version="2.7.6" />
     <PackageReference Include="OllamaSharp" Version="5.4.25" />
     <PackageReference Include="TickerQ" Version="10.4.0" />
