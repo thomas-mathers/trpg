@@ -14,27 +14,23 @@ export interface EntitySegment {
 
 export type NarrationSegment = TextSegment | EntitySegment;
 
-const ENTITY_MARKUP_PATTERN = /\[([^\]]+)\]\(entity:\/\/(\w+)\/([^)]+)\)/g;
+const ENTITY_MARKUP_PATTERN = /^\[([^\]]+)\]\(entity:\/\/(\w+)\/([^)]+)\)$/;
 
-export function parseNarration(content: string): NarrationSegment[] {
-  const segments: NarrationSegment[] = [];
-  let lastIndex = 0;
-
-  for (const match of content.matchAll(ENTITY_MARKUP_PATTERN)) {
-    const [fullMatch, name, entityType, id] = match;
-    const index = match.index;
-
-    if (index > lastIndex) {
-      segments.push({ type: 'text', text: content.slice(lastIndex, index) });
-    }
-
-    segments.push({ type: 'entity', id, name, entityType: entityType as EntityType });
-    lastIndex = index + fullMatch.length;
+export function appendNarrationToken(
+  segments: NarrationSegment[],
+  token: string,
+): NarrationSegment[] {
+  const match = token.match(ENTITY_MARKUP_PATTERN);
+  if (match) {
+    const [, name, entityType, id] = match;
+    return [...segments, { type: 'entity', id, name, entityType: entityType as EntityType }];
   }
 
-  if (lastIndex < content.length) {
-    segments.push({ type: 'text', text: content.slice(lastIndex) });
+  // Merge into the previous segment if it's also text, instead of accumulating one segment per token.
+  const last = segments[segments.length - 1];
+  if (last?.type === 'text') {
+    return [...segments.slice(0, -1), { type: 'text', text: last.text + token }];
   }
 
-  return segments;
+  return [...segments, { type: 'text', text: token }];
 }

@@ -1,14 +1,12 @@
 import { EntityLink } from '@/components/EntityLink';
-import { parseNarration } from '@/lib/narration-markup';
+import type { NarrationSegment } from '@/lib/narration-markup';
 
 interface NarrationTextProps {
   sessionId: string;
-  content: string;
+  segments: NarrationSegment[];
 }
 
-export function NarrationText({ sessionId, content }: NarrationTextProps) {
-  const segments = parseNarration(content);
-
+export function NarrationText({ sessionId, segments }: NarrationTextProps) {
   return (
     <>
       {segments.map((segment, index) =>
