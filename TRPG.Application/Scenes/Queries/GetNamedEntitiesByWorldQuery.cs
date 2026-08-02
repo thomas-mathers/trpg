@@ -30,13 +30,15 @@ internal class GetNamedEntitiesByWorldQuery
 
 internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
 {
+    public static string CacheKey(Guid worldId) => $"namedEntities:{worldId}";
+
     public async Task<IReadOnlyCollection<NamedEntitySummary>> Handle(
         GetNamedEntitiesByWorldQuery query,
         CancellationToken cancellationToken = default
     )
     {
         var entities = await cache.GetOrCreateAsync(
-            $"namedEntities:{query.WorldId}",
+            CacheKey(query.WorldId),
             async _ => await BuildEntities(query.WorldId, cancellationToken)
         );
         return entities ?? [];

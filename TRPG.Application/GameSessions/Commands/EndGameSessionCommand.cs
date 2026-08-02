@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Commands;
 
 namespace TRPG.Application.GameSessions.Commands;
@@ -11,7 +13,8 @@ internal class EndGameSessionCommand
 internal class EndGameSessionCommandHandler(
     SetWorldPlaytimeCommandHandler setWorldPlaytime,
     GetGameSessionQueryHandler getGameSession,
-    DeleteGameSessionCommandHandler deleteGameSession
+    DeleteGameSessionCommandHandler deleteGameSession,
+    IMemoryCache cache
 )
 {
     public async Task Handle(
@@ -37,5 +40,11 @@ internal class EndGameSessionCommandHandler(
             new DeleteGameSessionCommand { SessionId = command.SessionId },
             cancellationToken
         );
+
+        // The world isn't gone - this just frees the cached entity list/automaton while no
+        // session is active against it. The next session that resumes this world rebuilds
+        // them lazily on its first turn.
+        cache.Remove(GetNamedEntitiesByWorldQueryHandler.CacheKey(snapshot.WorldId));
+        cache.Remove(GetEntityNameAutomatonByWorldQueryHandler.CacheKey(snapshot.WorldId));
     }
 }

@@ -47,7 +47,6 @@ internal sealed class EntityNameAutomaton
                 }
 
                 child.Fail = fail.Children.GetValueOrDefault(key, Root);
-                child.Match ??= child.Fail.Match;
                 queue.Enqueue(child);
             }
         }

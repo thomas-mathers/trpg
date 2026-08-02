@@ -4,35 +4,15 @@ using TRPG.Application.Scenes.Queries;
 
 namespace TRPG.Application.GameSessions;
 
-internal interface IEntityNameMatcher
-{
-    bool IsPrefixOfAny(string candidate);
-    NamedEntitySummary? FindExactMatch(string text);
-}
-
-internal sealed class LinearEntityNameMatcher(IReadOnlyCollection<NamedEntitySummary> namedEntities)
-    : IEntityNameMatcher
-{
-    public bool IsPrefixOfAny(string candidate) =>
-        namedEntities.Any(entity =>
-            entity.Name.StartsWith(candidate, StringComparison.OrdinalIgnoreCase)
-        );
-
-    public NamedEntitySummary? FindExactMatch(string text) =>
-        namedEntities.FirstOrDefault(entity =>
-            entity.Name.Equals(text, StringComparison.OrdinalIgnoreCase)
-        );
-}
-
 internal static class NarrationEntityLinker
 {
     public static async IAsyncEnumerable<string> Link(
         IAsyncEnumerable<string> tokens,
-        IEntityNameMatcher matcher,
+        EntityNameAutomaton automaton,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
-        var state = new MatchState(matcher);
+        var state = new MatchState(automaton);
 
         await foreach (var token in tokens.WithCancellation(cancellationToken))
         {
@@ -53,12 +33,13 @@ internal static class NarrationEntityLinker
 
     private sealed record Checkpoint(int Length, NamedEntitySummary Entity);
 
-    private sealed class MatchState(IEntityNameMatcher matcher)
+    private sealed class MatchState(EntityNameAutomaton automaton)
     {
         private readonly StringBuilder _pendingText = new();
+        private readonly StringBuilder _activeSpan = new();
         private readonly Queue<char> _requeue = new();
+        private EntityNameAutomaton.Node _node = automaton.Root;
         private Checkpoint? _checkpoint;
-        private string _prefix = "";
 
         public IEnumerable<string> Advance(char c)
         {
@@ -95,10 +76,10 @@ internal static class NarrationEntityLinker
                 }
             }
 
-            if (_prefix.Length > 0)
+            if (_activeSpan.Length > 0)
             {
-                _pendingText.Append(_prefix);
-                _prefix = "";
+                _pendingText.Append(_activeSpan);
+                _activeSpan.Clear();
             }
 
             foreach (var flushed in DrainPendingText())
@@ -109,13 +90,16 @@ internal static class NarrationEntityLinker
 
         private IEnumerable<string> AdvanceOne(char c)
         {
-            var candidate = _prefix + c;
-            if (matcher.IsPrefixOfAny(candidate))
+            var next = _node.Step(c);
+
+            if (next.Depth == _node.Depth + 1)
             {
-                _prefix = candidate;
-                if (matcher.FindExactMatch(_prefix) is { } match)
+                // Direct child of the current node: the run extends cleanly, no recovery needed.
+                _activeSpan.Append(c);
+                _node = next;
+                if (next.Match is { } match)
                 {
-                    _checkpoint = new Checkpoint(_prefix.Length, match);
+                    _checkpoint = new Checkpoint(_activeSpan.Length, match);
                 }
                 yield break;
             }
@@ -130,19 +114,28 @@ internal static class NarrationEntityLinker
                 yield break;
             }
 
-            if (_prefix.Length > 0)
+            // No checkpoint to fall back on. `next` already reflects everything the automaton's
+            // failure links could recover from the failed span, so only the leading characters
+            // that fell off along the way are unrecoverable plain text - never the whole span.
+            var combined = _activeSpan.ToString() + c;
+            var discardLength = combined.Length - next.Depth;
+
+            _pendingText.Append(combined, 0, discardLength);
+            if (char.IsWhiteSpace(combined[discardLength - 1]))
             {
-                _pendingText.Append(_prefix);
-                if (char.IsWhiteSpace(_prefix[^1]))
+                foreach (var flushed in DrainPendingText())
                 {
-                    foreach (var flushed in DrainPendingText())
-                    {
-                        yield return flushed;
-                    }
+                    yield return flushed;
                 }
             }
 
-            _prefix = c.ToString();
+            _activeSpan.Clear();
+            _activeSpan.Append(combined, discardLength, next.Depth);
+            _node = next;
+            if (next.Match is { } recoveredMatch)
+            {
+                _checkpoint = new Checkpoint(_activeSpan.Length, recoveredMatch);
+            }
         }
 
         private IEnumerable<string> ResolveCheckpoint()
@@ -156,8 +149,10 @@ internal static class NarrationEntityLinker
             }
             yield return ToMarkup(checkpoint.Entity);
 
-            var leftover = _prefix[checkpoint.Length..];
-            _prefix = "";
+            var leftoverLength = _activeSpan.Length - checkpoint.Length;
+            var leftover = _activeSpan.ToString(checkpoint.Length, leftoverLength);
+            _activeSpan.Clear();
+            _node = automaton.Root;
 
             foreach (var leftoverChar in leftover)
             {

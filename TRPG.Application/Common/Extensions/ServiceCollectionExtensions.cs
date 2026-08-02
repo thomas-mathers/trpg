@@ -123,6 +123,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetSceneQueryHandler>()
             .AddTransient<GetSceneWithCatchUpQueryHandler>()
             .AddTransient<GetNamedEntitiesByWorldQueryHandler>()
+            .AddTransient<GetEntityNameAutomatonByWorldQueryHandler>()
             .AddTransient<GetWorldQueryHandler>()
             .AddTransient<GetAllWorldsQueryHandler>()
             .AddTransient<SetWorldPlaytimeCommandHandler>()
