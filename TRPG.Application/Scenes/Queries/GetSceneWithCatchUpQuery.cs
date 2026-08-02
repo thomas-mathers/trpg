@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.GameSessions;
+using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Data.Models;
 
@@ -20,6 +21,7 @@ internal class GetSceneWithCatchUpQueryHandler(
     SyncCommandHandler sync,
     GetSceneQueryHandler getScene,
     IMemoryCache cache,
+    GameTurnContext turnContext,
     ILogger<GetSceneWithCatchUpQueryHandler> logger
 )
 {
@@ -31,6 +33,7 @@ internal class GetSceneWithCatchUpQueryHandler(
         var locationId = query.RoomId ?? query.DistrictId ?? query.StateId;
         var cacheKey = $"catchup:{query.WorldId}:{locationId}:{query.CurrentDate.Hour}";
 
+        var catchUpRan = false;
         if (cache.TryGetValue(cacheKey, out bool _))
         {
             logger.LogInformation("[perf] Catch-up cache hit for {CacheKey}", cacheKey);
@@ -61,9 +64,11 @@ internal class GetSceneWithCatchUpQueryHandler(
                     AbsoluteExpirationRelativeToNow = GameClock.RealTimePerInGameHour,
                 }
             );
+
+            catchUpRan = true;
         }
 
-        return await getScene.Handle(
+        var scene = await getScene.Handle(
             new GetSceneQuery
             {
                 WorldId = query.WorldId,
@@ -72,5 +77,17 @@ internal class GetSceneWithCatchUpQueryHandler(
             },
             cancellationToken
         );
+
+        if (catchUpRan)
+        {
+            turnContext.PendingEvents.Enqueue(
+                new SceneUpdatedEvent(
+                    SceneSnapshotMapper.ToSnapshot(scene),
+                    SceneUpdateReason.CatchUp
+                )
+            );
+        }
+
+        return scene;
     }
 }

@@ -2,14 +2,14 @@ import { Droplet, Heart, Zap } from 'lucide-react';
 
 import type { SceneSnapshot } from '@/api/client';
 import { useSceneQuery } from '@/hooks/useSceneQuery';
+import { formatLocation } from '@/lib/scene-format';
 
 interface StatusBarProps {
   sessionId: string;
-  turnCount: number;
 }
 
-export function StatusBar({ sessionId, turnCount }: StatusBarProps) {
-  const query = useSceneQuery(sessionId, turnCount);
+export function StatusBar({ sessionId }: StatusBarProps) {
+  const query = useSceneQuery(sessionId);
 
   if (!query.data) {
     return null;
@@ -40,13 +40,6 @@ export function StatusBar({ sessionId, turnCount }: StatusBarProps) {
       </div>
     </div>
   );
-}
-
-function formatLocation(scene: SceneSnapshot): string {
-  const levels = [scene.buildingName, scene.districtName, scene.cityName, scene.stateName].filter(
-    (level): level is string => Boolean(level),
-  );
-  return levels.slice(0, 2).join(', ');
 }
 
 function formatTime(scene: SceneSnapshot): string {

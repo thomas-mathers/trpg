@@ -14,6 +14,7 @@ using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Scenes;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Data;
 
@@ -282,8 +283,6 @@ internal class GameTurnRunner(
 
     private async Task BeginTurn(CancellationToken cancellationToken)
     {
-        turnContext.DidMoveThisTurn = false;
-
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = turnContext.SessionId },
             cancellationToken
@@ -295,7 +294,10 @@ internal class GameTurnRunner(
     private async Task FinishTurn(int currentTurnStart, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
-        if (turnContext.DidMoveThisTurn)
+        var playerMoved = turnContext
+            .PendingEvents.OfType<SceneUpdatedEvent>()
+            .Any(e => e.Reason == SceneUpdateReason.Moved);
+        if (playerMoved)
         {
             await CloseLingeringConversations(currentTurnStart, cancellationToken);
         }
