@@ -49,7 +49,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(10, damage);
+        Assert.Equal(10, damage.Amount);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(15, damage);
+        Assert.Equal(15, damage.Amount);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(3, damage);
+        Assert.Equal(3, damage.Amount);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(3, damage);
+        Assert.Equal(3, damage.Amount);
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(15, damage);
+        Assert.Equal(15, damage.Amount);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(20, damage);
+        Assert.Equal(20, damage.Amount);
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(33, damage);
+        Assert.Equal(33, damage.Amount);
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(15, damage);
+        Assert.Equal(15, damage.Amount);
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public class DamageCalculatorTests
         );
 
         // Assert
-        Assert.Equal(5, damage);
+        Assert.Equal(5, damage.Amount);
     }
 
     [Fact]
@@ -273,6 +273,65 @@ public class DamageCalculatorTests
 
         // Assert
         Assert.Equal(5, damage);
+    }
+
+    [Fact]
+    public void CalculateDamage_ReportsIsCriticalFalse_WhenCritChanceIsZero()
+    {
+        // Arrange — Settings zeroes CritChancePerDexterityPoint, so the roll can never succeed
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithCombatOptions(Settings.Value)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var calculator = new DamageCalculator(Settings);
+
+        // Act
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageAmount: 100),
+            defender
+        );
+
+        // Assert
+        Assert.False(damage.IsCritical);
+    }
+
+    [Fact]
+    public void CalculateDamage_AppliesCritDamageMultiplier_WhenCritChanceRollAlwaysSucceeds()
+    {
+        // Arrange — 100 Dexterity x 1 = 100% crit chance, guaranteeing the roll succeeds;
+        // 10 base x 2x crit multiplier = 20
+        var settings = new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions
+            {
+                CritChancePerDexterityPoint = 1f,
+                MaxCritChance = 1f,
+                CritDamageMultiplier = 2f,
+            }
+        );
+        var weapon = MakeFixedRangeWeapon(10);
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithDexterity(100)
+            .WithItem(weapon)
+            .WithCombatOptions(settings.Value)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var calculator = new DamageCalculator(settings);
+
+        // Act
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageAmount: 100),
+            defender
+        );
+
+        // Assert
+        Assert.True(damage.IsCritical);
+        Assert.Equal(20, damage.Amount);
     }
 
     [Fact]

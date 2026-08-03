@@ -1,5 +1,3 @@
-// Mirrors TRPG.Client/WorldGenerationDefaults.cs — kept in sync by hand since
-// the console client's defaults live in a project the web app can't reference.
 export const WorldGenerationDefaults = {
   description: 'Medieval',
   minCityStates: 20,

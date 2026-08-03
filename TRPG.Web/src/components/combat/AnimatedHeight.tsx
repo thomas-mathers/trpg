@@ -7,11 +7,6 @@ interface AnimatedHeightProps {
   children: ReactNode;
 }
 
-// Animates the wrapped content's container growing/shrinking to fit whenever
-// its children change (e.g. the action bar swapping for the ability list) —
-// clamp to the outgoing height in a layout effect (before paint, so there's
-// no flash of the unclamped new content), then let it grow/shrink to its own
-// natural height on the next frame.
 export function AnimatedHeight({ children }: AnimatedHeightProps) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -37,7 +32,7 @@ export function AnimatedHeight({ children }: AnimatedHeightProps) {
 
     outer.style.height = `${previousHeight.current}px`;
     outer.style.overflow = 'hidden';
-    void outer.offsetHeight; // force the browser to commit the clamped height as a real frame
+    void outer.offsetHeight;
 
     const raf = requestAnimationFrame(() => {
       requestAnimationFrame(() => {

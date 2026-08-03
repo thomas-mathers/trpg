@@ -306,6 +306,63 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     }
 
     [Fact]
+    public async Task Handle_EnqueuesCombatUpdatedEvent_WithRoundEventsMappedFromCombatState()
+    {
+        // Arrange
+        await SeedFight();
+        var hit = new Hit(
+            AttackerId: _player.Id,
+            AttackerName: _player.Name,
+            AbilityName: "Slash",
+            TargetId: _enemy.Id,
+            TargetName: _enemy.Name,
+            TargetRemainingHp: 12,
+            TargetMaximumHp: 30,
+            Killed: false,
+            IsCritical: true,
+            Damage: 18,
+            DamageType: TRPG.Data.Models.DamageType.Physical,
+            AppliedConditions: []
+        );
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Ongoing,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
+            ],
+            events: [hit]
+        );
+
+        // Act
+        await _handler.Handle(
+            new ResolveCombatRoundCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                Combatants =
+                [
+                    MakePlayerCombatant(currentHp: 33),
+                    MakeEnemyCombatant(currentHp: 12),
+                ],
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var turnContext = _serviceProvider.GetRequiredService<GameTurnContext>();
+        var turnEvent = Assert.Single(turnContext.PendingEvents);
+        var combatUpdated = Assert.IsType<CombatUpdatedEvent>(turnEvent);
+        var mappedHit = Assert.IsType<TRPG.Contracts.Combat.Responses.CombatHitEvent>(
+            Assert.Single(combatUpdated.Events)
+        );
+        Assert.Equal(_player.Id, mappedHit.AttackerId);
+        Assert.Equal(_enemy.Id, mappedHit.TargetId);
+        Assert.True(mappedHit.IsCritical);
+    }
+
+    [Fact]
     public async Task Handle_DepletesInventoryItem_WhenACombatantUsedOne()
     {
         // Arrange

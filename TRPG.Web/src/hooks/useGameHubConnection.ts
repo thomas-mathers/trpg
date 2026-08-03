@@ -10,6 +10,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 
 import type { FightState, SceneSnapshot } from '@/api/client';
 import type { PlayerCombatAction } from '@/lib/combat-action';
+import type { CombatUpdatePayload } from '@/lib/combat-round-event';
 import { gameEventBus } from '@/lib/gameEventBus';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string;
@@ -74,7 +75,7 @@ export function useGameHubConnection(sessionId: string | null) {
     connection.on('CombatStarted', (payload: FightState) =>
       gameEventBus.emit('CombatStarted', payload),
     );
-    connection.on('CombatUpdated', (payload: FightState) =>
+    connection.on('CombatUpdated', (payload: CombatUpdatePayload) =>
       gameEventBus.emit('CombatUpdated', payload),
     );
     connection.on('CombatEnded', () => gameEventBus.emit('CombatEnded'));

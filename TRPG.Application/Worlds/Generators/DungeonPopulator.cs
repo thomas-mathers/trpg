@@ -15,8 +15,8 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
 {
     private const int MinimumMonsters = 1;
     private const int MaximumMonsters = 3;
-    private const int MinimumLevel = 3;
-    private const int MaximumLevel = 12;
+    private const int MinimumLevel = 1;
+    private const int MaximumLevel = 3;
 
     private static readonly Dictionary<BuildingType, CreatureArchetype[]> ArchetypesByDungeonType =
         new()

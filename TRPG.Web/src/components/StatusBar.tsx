@@ -18,9 +18,6 @@ export function StatusBar({ sessionId, isInCombat = false }: StatusBarProps) {
 
   const { playerStatus } = query.data;
 
-  // location/time/HP-AP-MP are redundant with the combat console's own player
-  // card once a fight starts, and just add noise — collapse to name + a status
-  // chip instead of duplicating numbers the player is already looking at below
   if (isInCombat) {
     return (
       <div className="flex flex-1 items-center gap-2 text-sm">

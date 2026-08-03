@@ -17,21 +17,35 @@ namespace TRPG.Application.Combat;
 public abstract record CombatEvent;
 
 public sealed record Hit(
+    [property: JsonIgnore] Guid AttackerId,
     string AttackerName,
     string AbilityName,
+    [property: JsonIgnore] Guid TargetId,
     string TargetName,
     int TargetRemainingHp,
     int TargetMaximumHp,
     bool Killed,
+    bool IsCritical,
     int Damage,
     DamageType DamageType,
     IReadOnlyList<ConditionType> AppliedConditions
 ) : CombatEvent;
 
-public sealed record Miss(string AttackerName, string AbilityName, string TargetName) : CombatEvent;
+public sealed record Miss(
+    [property: JsonIgnore] Guid AttackerId,
+    string AttackerName,
+    string AbilityName,
+    [property: JsonIgnore] Guid TargetId,
+    string TargetName
+) : CombatEvent;
 
-public sealed record Block(string AttackerName, string AbilityName, string TargetName)
-    : CombatEvent;
+public sealed record Block(
+    [property: JsonIgnore] Guid AttackerId,
+    string AttackerName,
+    string AbilityName,
+    [property: JsonIgnore] Guid TargetId,
+    string TargetName
+) : CombatEvent;
 
 public sealed record NoAction(string CreatureName, ConditionType Condition) : CombatEvent;
 

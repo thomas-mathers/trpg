@@ -73,6 +73,7 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+  --crit: oklch(0.72 0.19 55);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -108,6 +109,7 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+  --crit: oklch(0.78 0.18 60);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -176,17 +178,139 @@
   }
 }
 
+@keyframes combat-flash-crit {
+  0% {
+    box-shadow: 0 0 0 3px var(--crit);
+    transform: scale(1.03);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    transform: scale(1);
+  }
+}
+
+@keyframes combat-dodge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(3px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
+}
+
+@keyframes combat-windup {
+  0%,
+  100% {
+    box-shadow: none;
+    transform: translateY(0);
+  }
+  20%,
+  80% {
+    box-shadow: 0 0 0 2px var(--destructive);
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes combat-turn-indicator-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(2px) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes combat-float-up-miss {
+  0% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes combat-float-up-crit {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.5);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0) scale(1.25);
+  }
+  40% {
+    transform: translateY(-2px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scale(1);
+  }
+}
+
 .combat-float-up {
   animation: combat-float-up 0.9s ease-out forwards;
+}
+
+.combat-float-up-miss {
+  animation: combat-float-up-miss 0.9s ease-out forwards;
+}
+
+.combat-float-up-crit {
+  animation: combat-float-up-crit 1s ease-out forwards;
 }
 
 .combat-flash-hit {
   animation: combat-flash-hit 0.5s ease;
 }
 
+.combat-flash-crit {
+  animation: combat-flash-crit 0.6s ease;
+}
+
+.combat-dodge {
+  animation: combat-dodge 0.4s ease;
+}
+
+.combat-windup {
+  animation: combat-windup 0.9s ease;
+}
+
+.combat-turn-indicator {
+  animation: combat-turn-indicator-pop 0.9s ease forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .combat-float-up,
-  .combat-flash-hit {
+  .combat-float-up-miss,
+  .combat-float-up-crit,
+  .combat-flash-hit,
+  .combat-flash-crit,
+  .combat-dodge,
+  .combat-windup,
+  .combat-turn-indicator {
     animation: none;
   }
 }
