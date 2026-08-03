@@ -36,11 +36,6 @@ public sealed class EndpointTestFixture : IAsyncLifetime
                     options.Transports = HttpTransportType.LongPolling;
                 }
             )
-            // Must match the server's own hub JSON protocol configuration (ApplyTrpgJsonOptions in
-            // TRPG/Extensions/ServiceCollectionExtensions.cs) - without this, pushed events strongly
-            // typed on the client (e.g. connection.On<SceneSnapshot>(...)) silently fail to
-            // deserialize (property naming policy/converters mismatch) and the handler is never
-            // invoked, with no visible error.
             .AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.PropertyNamingPolicy = TrpgJsonOptions
