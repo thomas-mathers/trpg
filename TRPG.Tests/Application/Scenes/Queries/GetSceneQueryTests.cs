@@ -83,6 +83,29 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Handle_ReturnsNoNearbyCreatures_WhenNooneElseIsAtTheSameLocation()
+    {
+        // Arrange - a distinct district isolates the player from _nearbyCreature (both otherwise
+        // outdoors in the same state), exercising BuildNearbyPeopleInfos's early return when
+        // nobody's nearby instead of running the faction/reputation queries for nothing
+        _player.DistrictId = Guid.NewGuid();
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Empty(result.NearbyCreatures);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsCurrentDate_FromQuery()
     {
         // Arrange

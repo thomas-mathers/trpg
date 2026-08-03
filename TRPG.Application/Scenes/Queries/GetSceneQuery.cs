@@ -379,6 +379,11 @@ internal class GetSceneQueryHandler(
         CancellationToken cancellationToken
     )
     {
+        if (nearby.Count == 0)
+        {
+            return [];
+        }
+
         var nearbyCreatureIds = nearby.Select(x => x.Id).ToArray();
         var factionMembershipsByCreature = await (
             from fm in context.FactionMembers
