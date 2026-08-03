@@ -148,6 +148,7 @@ public class CityGenerator(
                 ShopOwnerAssignments = workspace.ShopOwnerAssignments,
                 HouseholdByMemberId = workspace.HouseholdByMemberId,
                 HomeRoomIdByMemberId = workspace.HomeRoomIdByMemberId,
+                ResidentialDistrictId = districtsByType[DistrictType.Residential].Id,
                 FatherIds = workspace.FatherIds,
                 CityIdleCandidates = workspace.IdleCandidates,
                 StateId = input.State.Id,
@@ -251,11 +252,12 @@ public class CityGenerator(
             RegisterGuildFaction(
                 workspace,
                 buildingResult,
-                new GuildHallOccupants(owner, memberCreatures)
+                new GuildHallOccupants(owner, memberCreatures),
+                district.Id
             );
         }
 
-        RegisterShopStaffing(workspace, buildingResult, owner.Id);
+        RegisterShopStaffing(workspace, buildingResult, owner.Id, district.Id);
 
         workspace.Buildings.Add(buildingResult.Building);
         workspace.BuildingOwners.Add(
@@ -346,7 +348,8 @@ public class CityGenerator(
     private void RegisterGuildFaction(
         CityWorkspace workspace,
         BuildingGeneratorResult buildingResult,
-        GuildHallOccupants occupants
+        GuildHallOccupants occupants,
+        Guid districtId
     )
     {
         var input = workspace.Input;
@@ -409,6 +412,7 @@ public class CityGenerator(
                     memberBedRoomId,
                     null,
                     groundFloorRoomId,
+                    districtId,
                     input.WorldId
                 )
             );
@@ -418,7 +422,8 @@ public class CityGenerator(
     private static void RegisterShopStaffing(
         CityWorkspace workspace,
         BuildingGeneratorResult buildingResult,
-        Guid ownerId
+        Guid ownerId,
+        Guid districtId
     )
     {
         var input = workspace.Input;
@@ -432,6 +437,7 @@ public class CityGenerator(
                 input.WorldId,
                 ownerId,
                 groundFloorRoomId,
+                districtId,
                 workspace.Jobs,
                 workspace.ShopOwnerAssignments,
                 workspace.OpenShopSlots
@@ -446,6 +452,7 @@ public class CityGenerator(
                     input.State.Id,
                     ownerId,
                     groundFloorRoomId,
+                    districtId,
                     input.WorldId
                 )
             );
@@ -459,6 +466,7 @@ public class CityGenerator(
                 input.State.Id,
                 ownerId,
                 groundFloorRoomId,
+                districtId,
                 input.WorldId,
                 workHours
             )
@@ -490,6 +498,7 @@ public class CityGenerator(
             workspace.OpenShopSlots.Add(
                 new ShopEmploymentSlot(
                     groundFloorRoomId,
+                    districtId,
                     ShopStaffingPolicy.GetEmployeeProfessionForBuilding(type),
                     ShopStaffingPolicy.NonOverlappingDayOffPatterns[1],
                     workHours,
@@ -508,6 +517,7 @@ public class CityGenerator(
             workspace.OpenShopSlots.Add(
                 new ShopEmploymentSlot(
                     groundFloorRoomId,
+                    districtId,
                     ShopStaffingPolicy.GetEmployeeProfessionForBuilding(type),
                     ShopStaffingPolicy.StaffDayOffPatterns[position],
                     workHours,

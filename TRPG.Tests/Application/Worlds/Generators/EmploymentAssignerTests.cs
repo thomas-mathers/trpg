@@ -7,6 +7,7 @@ namespace TRPG.Tests.Application.Worlds.Generators;
 public class EmploymentAssignerTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
+    private readonly Guid _districtId = Guid.NewGuid();
     private static readonly HourWindow WorkHours = new(8, 18);
 
     [Fact]
@@ -21,6 +22,7 @@ public class EmploymentAssignerTests
             [
                 new ShopEmploymentSlot(
                     shopRoomId,
+                    _districtId,
                     Profession.Baker,
                     ShopStaffingPolicy.StaffDayOffPatterns[1],
                     WorkHours
@@ -79,7 +81,16 @@ public class EmploymentAssignerTests
 
         var context = MakeContext(
             eligible: [father],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Baker, daysOff, WorkHours)],
+            slots:
+            [
+                new ShopEmploymentSlot(
+                    shopRoomId,
+                    _districtId,
+                    Profession.Baker,
+                    daysOff,
+                    WorkHours
+                ),
+            ],
             homeRooms: household.ToDictionary(c => c.Id, _ => homeRoomId),
             households: household.ToDictionary(c => c.Id, _ => household),
             fatherIds: [father.Id]
@@ -123,7 +134,16 @@ public class EmploymentAssignerTests
         // Flagged as a father, but no Homemaker exists in the household — must fall back to a solo day off.
         var context = MakeContext(
             eligible: [adult],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Tailor, daysOff, WorkHours)],
+            slots:
+            [
+                new ShopEmploymentSlot(
+                    shopRoomId,
+                    _districtId,
+                    Profession.Tailor,
+                    daysOff,
+                    WorkHours
+                ),
+            ],
             homeRooms: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() },
             fatherIds: [adult.Id]
         );
@@ -155,7 +175,16 @@ public class EmploymentAssignerTests
 
         var context = MakeContext(
             eligible: [father],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Baker, daysOff, WorkHours)],
+            slots:
+            [
+                new ShopEmploymentSlot(
+                    shopRoomId,
+                    _districtId,
+                    Profession.Baker,
+                    daysOff,
+                    WorkHours
+                ),
+            ],
             homeRooms: household.ToDictionary(c => c.Id, _ => homeRoomId),
             households: household.ToDictionary(c => c.Id, _ => household),
             fatherIds: [father.Id],
@@ -192,7 +221,16 @@ public class EmploymentAssignerTests
 
         var context = MakeContext(
             eligible: [father],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Baker, daysOff, WorkHours)],
+            slots:
+            [
+                new ShopEmploymentSlot(
+                    shopRoomId,
+                    _districtId,
+                    Profession.Baker,
+                    daysOff,
+                    WorkHours
+                ),
+            ],
             homeRooms: household.ToDictionary(c => c.Id, _ => homeRoomId),
             households: household.ToDictionary(c => c.Id, _ => household),
             fatherIds: [father.Id],
@@ -226,7 +264,16 @@ public class EmploymentAssignerTests
 
         var context = MakeContext(
             eligible: [adult],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Tailor, daysOff, WorkHours)],
+            slots:
+            [
+                new ShopEmploymentSlot(
+                    shopRoomId,
+                    _districtId,
+                    Profession.Tailor,
+                    daysOff,
+                    WorkHours
+                ),
+            ],
             homeRooms: new Dictionary<Guid, Guid> { [adult.Id] = homeRoomId },
             cityIdleCandidates:
             [
@@ -348,6 +395,7 @@ public class EmploymentAssignerTests
             HomeRoomIdByMemberId =
                 homeRooms?.ToDictionary(kv => kv.Key, kv => kv.Value)
                 ?? new Dictionary<Guid, Guid>(),
+            ResidentialDistrictId = _districtId,
             FatherIds = fatherIds?.ToHashSet() ?? [],
             CityIdleCandidates = cityIdleCandidates?.ToList() ?? [],
             StateId = Guid.NewGuid(),

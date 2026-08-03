@@ -11,6 +11,7 @@ internal class ExecuteCreatureJobCommand
     public required CreatureState CurrentState { get; init; }
     public required CreatureJobAction CreatureJobAction { get; init; }
     public required Guid? JobRoomId { get; init; }
+    public required Guid? JobDistrictId { get; init; }
 }
 
 internal class ExecuteCreatureJobCommandHandler(UpdateCreaturesCommandHandler updateCreature)
@@ -52,6 +53,7 @@ internal class ExecuteCreatureJobCommandHandler(UpdateCreaturesCommandHandler up
             {
                 CreatureIds = [command.CreatureId],
                 RoomId = Optional<Guid?>.Of(command.JobRoomId),
+                DistrictId = Optional<Guid?>.Of(command.JobDistrictId),
                 State = targetState.Value,
             },
             cancellationToken

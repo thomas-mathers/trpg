@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.CreatureJobs.Commands;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -12,6 +13,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private ExecuteCreatureJobCommandHandler _handler = null!;
+    private GetCreaturesAtLocationQueryHandler _getCreaturesAtLocation = null!;
     private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
@@ -21,6 +23,8 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ExecuteCreatureJobCommandHandler>();
+        _getCreaturesAtLocation =
+            _serviceProvider.GetRequiredService<GetCreaturesAtLocationQueryHandler>();
 
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -75,6 +79,49 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
+    public async Task Handle_KeepsCreatureDiscoverableByDistrict_AfterAJobMovesItAcrossDistricts()
+    {
+        // Arrange — the bug this fixes: a scheduled job used to move a creature's RoomId
+        // without touching DistrictId, leaving GetCreaturesAtLocationQuery unable to find it
+        // by its new district (or, prior to that fix, forcing a room/district branch to work
+        // around the mismatch)
+        var oldDistrictId = Guid.NewGuid();
+        var newDistrictId = Guid.NewGuid();
+        var newRoomId = Guid.NewGuid();
+        _creature.DistrictId = oldDistrictId;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ExecuteCreatureJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentRoomId = _creature.RoomId,
+                CurrentState = _creature.State,
+                CreatureJobAction = CreatureJobAction.Work,
+                JobRoomId = newRoomId,
+                JobDistrictId = newDistrictId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var atNewLocation = await _getCreaturesAtLocation.Handle(
+            new GetCreaturesAtLocationQuery
+            {
+                Location = CreatureLocation.Indoor(
+                    _creature.WorldId,
+                    _creature.StateId,
+                    newRoomId,
+                    newDistrictId
+                ),
+            },
+            TestContext.Current.CancellationToken
+        );
+        Assert.Contains(atNewLocation, c => c.Id == _creature.Id);
+    }
+
+    [Fact]
     public async Task Handle_LeavesCreatureUnchanged_ForPatrolJob()
     {
         await AssertRoomIdUnchanged(CreatureJobAction.Patrol);
@@ -90,6 +137,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
     {
         // Arrange
         var roomId = Guid.NewGuid();
+        var districtId = Guid.NewGuid();
 
         // Act
         await _handler.Handle(
@@ -100,6 +148,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
                 CurrentState = _creature.State,
                 CreatureJobAction = action,
                 JobRoomId = roomId,
+                JobDistrictId = districtId,
             },
             TestContext.Current.CancellationToken
         );
@@ -111,6 +160,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
             TestContext.Current.CancellationToken
         );
         Assert.Equal(roomId, updated!.RoomId);
+        Assert.Equal(districtId, updated.DistrictId);
         Assert.Equal(expectedState, updated.State);
     }
 
@@ -118,6 +168,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
     {
         // Arrange
         var originalRoomId = _creature.RoomId;
+        var originalDistrictId = _creature.DistrictId;
         var originalState = _creature.State;
 
         // Act
@@ -129,6 +180,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
                 CurrentState = _creature.State,
                 CreatureJobAction = action,
                 JobRoomId = Guid.NewGuid(),
+                JobDistrictId = Guid.NewGuid(),
             },
             TestContext.Current.CancellationToken
         );
@@ -140,6 +192,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
             TestContext.Current.CancellationToken
         );
         Assert.Equal(originalRoomId, updated!.RoomId);
+        Assert.Equal(originalDistrictId, updated.DistrictId);
         Assert.Equal(originalState, updated.State);
     }
 }

@@ -16,6 +16,7 @@ internal static class CreatureJobGenerator
         Guid stateId,
         Guid creatureId,
         Guid roomId,
+        Guid? districtId,
         Guid worldId,
         HourWindow? hours = null
     )
@@ -30,6 +31,7 @@ internal static class CreatureJobGenerator
             EndHour = window.End,
             Priority = 100,
             RoomId = roomId,
+            DistrictId = districtId,
             WorldId = worldId,
         };
     }
@@ -38,6 +40,7 @@ internal static class CreatureJobGenerator
         Guid stateId,
         Guid creatureId,
         Guid? roomId,
+        Guid? districtId,
         Guid worldId
     )
     {
@@ -50,6 +53,7 @@ internal static class CreatureJobGenerator
             EndHour = IdleHours.End,
             Priority = 0,
             RoomId = roomId,
+            DistrictId = districtId,
             WorldId = worldId,
         };
     }
@@ -58,6 +62,7 @@ internal static class CreatureJobGenerator
         Guid stateId,
         Guid creatureId,
         Guid roomId,
+        Guid? districtId,
         Guid worldId,
         HourWindow? hours = null
     )
@@ -72,6 +77,7 @@ internal static class CreatureJobGenerator
             EndHour = window.End,
             Priority = 50,
             RoomId = roomId,
+            DistrictId = districtId,
             WorldId = worldId,
         };
     }
@@ -81,6 +87,7 @@ internal static class CreatureJobGenerator
         Guid creatureId,
         CreatureJobAction action,
         Guid? roomId,
+        Guid? districtId,
         DayOfWeek day,
         Guid worldId,
         HourWindow? hours = null
@@ -96,6 +103,7 @@ internal static class CreatureJobGenerator
             EndHour = window.End,
             Priority = DayOffPriority,
             RoomId = roomId,
+            DistrictId = districtId,
             SpecificDay = day,
             WorldId = worldId,
         };
@@ -106,6 +114,7 @@ internal static class CreatureJobGenerator
         Guid creatureId,
         CreatureJobAction action,
         Guid? roomId,
+        Guid? districtId,
         DayOfWeek day,
         Guid worldId,
         HourWindow? hours = null
@@ -121,6 +130,7 @@ internal static class CreatureJobGenerator
             EndHour = window.End,
             Priority = UnemployedActivityPriority,
             RoomId = roomId,
+            DistrictId = districtId,
             SpecificDay = day,
             WorldId = worldId,
         };
@@ -144,7 +154,14 @@ internal static class CreatureJobGenerator
         );
         jobs.Remove(existingSleep);
         jobs.Add(
-            GenerateSleep(stateId, creatureId, existingSleep.RoomId!.Value, worldId, sleepHours)
+            GenerateSleep(
+                stateId,
+                creatureId,
+                existingSleep.RoomId!.Value,
+                existingSleep.DistrictId,
+                worldId,
+                sleepHours
+            )
         );
     }
 
@@ -154,18 +171,19 @@ internal static class CreatureJobGenerator
         Guid sleepRoomId,
         Guid? workRoomId,
         Guid? idleRoomId,
+        Guid? districtId,
         Guid worldId
     )
     {
         var jobs = new List<CreatureJob>
         {
-            GenerateSleep(stateId, creatureId, sleepRoomId, worldId),
-            GenerateIdle(stateId, creatureId, idleRoomId, worldId),
+            GenerateSleep(stateId, creatureId, sleepRoomId, districtId, worldId),
+            GenerateIdle(stateId, creatureId, idleRoomId, districtId, worldId),
         };
 
         if (workRoomId != null)
         {
-            jobs.Add(GenerateWork(stateId, creatureId, workRoomId.Value, worldId));
+            jobs.Add(GenerateWork(stateId, creatureId, workRoomId.Value, districtId, worldId));
         }
 
         return jobs;

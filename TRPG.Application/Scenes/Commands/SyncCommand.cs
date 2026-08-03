@@ -120,6 +120,7 @@ internal class SyncCommandHandler(
                         CurrentState = creature.State,
                         CreatureJobAction = dueJob.Action,
                         JobRoomId = dueJob.RoomId,
+                        JobDistrictId = dueJob.DistrictId,
                     },
                     cancellationToken
                 );

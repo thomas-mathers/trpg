@@ -26,10 +26,8 @@ internal class GetNearbyCreaturesQueryHandler(TrpgDbContext context)
                     p.Id == query.PlayerId
                     && p.WorldId == c.WorldId
                     && p.StateId == c.StateId
-                    && (
-                        (p.RoomId != null && p.RoomId == c.RoomId)
-                        || (p.RoomId == null && c.RoomId == null && p.DistrictId == c.DistrictId)
-                    )
+                    && p.RoomId == c.RoomId
+                    && p.DistrictId == c.DistrictId
                 )
             );
 

@@ -571,6 +571,7 @@ internal static class Builders
         int startHour = 8,
         int endHour = 17,
         Guid? roomId = null,
+        Guid? districtId = null,
         Guid? worldId = null,
         DayOfWeek? specificDay = null
     )
@@ -585,6 +586,7 @@ internal static class Builders
             Priority = priority,
             StateId = Guid.NewGuid(),
             RoomId = roomId,
+            DistrictId = districtId,
             WorldId = worldId ?? Guid.NewGuid(),
         };
     }

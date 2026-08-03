@@ -99,7 +99,7 @@ internal class MovePlayerCommandHandler(
         var nearby = await getCreaturesAtLocation.Handle(
             new GetCreaturesAtLocationQuery
             {
-                Location = new CreatureLocation(worldId, oldRoomId, stateId, oldDistrictId),
+                Location = CreatureLocation.Of(worldId, stateId, oldRoomId, oldDistrictId),
             },
             cancellationToken
         );

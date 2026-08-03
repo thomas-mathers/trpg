@@ -17,6 +17,7 @@ public class CreatureJob
 {
     public CreatureJobAction Action { get; init; }
     public Guid CreatureId { get; init; }
+    public Guid? DistrictId { get; init; }
     public int EndHour { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public int Priority { get; init; }

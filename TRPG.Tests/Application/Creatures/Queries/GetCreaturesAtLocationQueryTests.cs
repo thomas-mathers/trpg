@@ -35,7 +35,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
         var outdoors = Builders.MakeCreature(WorldId, stateId: stateId);
         _context.Creatures.AddRange(inRoom, outdoors);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var location = new CreatureLocation(WorldId, roomId, stateId, null);
+        var location = CreatureLocation.Indoor(WorldId, stateId, roomId);
 
         // Act
         var result = await _handler.Handle(
@@ -63,7 +63,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
         );
         _context.Creatures.AddRange(outdoors, indoors);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var location = new CreatureLocation(WorldId, null, stateId, districtId);
+        var location = CreatureLocation.Outdoor(WorldId, stateId, districtId);
 
         // Act
         var result = await _handler.Handle(
@@ -86,7 +86,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
         var other = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
         _context.Creatures.AddRange(player, other);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var location = new CreatureLocation(WorldId, roomId, stateId, null);
+        var location = CreatureLocation.Indoor(WorldId, stateId, roomId);
 
         // Act
         var result = await _handler.Handle(
@@ -117,7 +117,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
         );
         _context.Creatures.Add(corpse);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var location = new CreatureLocation(WorldId, roomId, stateId, null);
+        var location = CreatureLocation.Indoor(WorldId, stateId, roomId);
 
         // Act
         var result = await _handler.Handle(
@@ -146,7 +146,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
         creature.MaximumHp += 50;
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var location = new CreatureLocation(WorldId, roomId, stateId, null);
+        var location = CreatureLocation.Indoor(WorldId, stateId, roomId);
 
         // Act
         var result = await _handler.Handle(
@@ -175,7 +175,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
         );
         _context.Creatures.Add(minor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var location = new CreatureLocation(WorldId, roomId, stateId, null);
+        var location = CreatureLocation.Indoor(WorldId, stateId, roomId);
 
         // Act
         var result = await _handler.Handle(
@@ -203,7 +203,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
         var alive = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
         _context.Creatures.AddRange(corpse, alive);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var location = new CreatureLocation(WorldId, roomId, stateId, null);
+        var location = CreatureLocation.Indoor(WorldId, stateId, roomId);
 
         // Act
         var result = await _handler.Handle(

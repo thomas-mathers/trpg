@@ -149,6 +149,7 @@ public class HouseholdGenerator(
                     input.StateId,
                     member.Creature.Id,
                     memberBedRoomId,
+                    input.ResidentialDistrict.Id,
                     input.WorldId
                 )
             );
@@ -157,6 +158,7 @@ public class HouseholdGenerator(
                     input.StateId,
                     member.Creature.Id,
                     homeRoomId,
+                    input.ResidentialDistrict.Id,
                     input.WorldId
                 )
             );

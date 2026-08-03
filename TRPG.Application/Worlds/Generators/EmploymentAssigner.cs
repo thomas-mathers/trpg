@@ -19,6 +19,7 @@ internal class CityEmploymentContext
     public required List<StaffDayOff> ShopOwnerAssignments { get; init; }
     public required Dictionary<Guid, List<Creature>> HouseholdByMemberId { get; init; }
     public required Dictionary<Guid, Guid> HomeRoomIdByMemberId { get; init; }
+    public required Guid ResidentialDistrictId { get; init; }
     public required HashSet<Guid> FatherIds { get; init; }
     public required List<IdleCandidate> CityIdleCandidates { get; init; }
     public required Guid StateId { get; init; }
@@ -42,6 +43,7 @@ internal static class EmploymentAssigner
     private record DayOffNeed(
         IReadOnlyList<Guid> ParticipantIds,
         Guid HomeRoomId,
+        Guid HomeDistrictId,
         CreatureJobAction Action,
         HourWindow Hours,
         bool ExcludeTavern,
@@ -69,6 +71,7 @@ internal static class EmploymentAssigner
                     context.StateId,
                     adult.Id,
                     slot.RoomId,
+                    slot.DistrictId,
                     context.WorldId,
                     slot.WorkHours
                 )
@@ -124,6 +127,7 @@ internal static class EmploymentAssigner
         RegisterSoloDayOff(
             adultId,
             context.HomeRoomIdByMemberId[adultId],
+            context.ResidentialDistrictId,
             daysOff,
             workHours,
             needsByDay
@@ -148,6 +152,7 @@ internal static class EmploymentAssigner
         var need = new DayOffNeed(
             participantIds,
             homeRoomId,
+            context.ResidentialDistrictId,
             action,
             workHours,
             excludeTavern,
@@ -163,13 +168,22 @@ internal static class EmploymentAssigner
     private static void RegisterSoloDayOff(
         Guid creatureId,
         Guid homeRoomId,
+        Guid homeDistrictId,
         IReadOnlyList<DayOfWeek> daysOff,
         HourWindow workHours,
         Dictionary<DayOfWeek, List<DayOffNeed>> needsByDay
     )
     {
         var action = DayOffActivities[Random.Shared.Next(DayOffActivities.Length)];
-        var need = new DayOffNeed([creatureId], homeRoomId, action, workHours, false, false);
+        var need = new DayOffNeed(
+            [creatureId],
+            homeRoomId,
+            homeDistrictId,
+            action,
+            workHours,
+            false,
+            false
+        );
 
         foreach (var day in daysOff)
         {
@@ -193,6 +207,7 @@ internal static class EmploymentAssigner
                     new DayOffNeed(
                         [adult.Id],
                         homeRoomId,
+                        context.ResidentialDistrictId,
                         action,
                         new HourWindow(6, 22),
                         false,
@@ -228,6 +243,7 @@ internal static class EmploymentAssigner
                                 participantId,
                                 need.Action,
                                 destination.RoomId,
+                                destination.DistrictId,
                                 day,
                                 context.WorldId,
                                 destination.Hours
@@ -237,6 +253,7 @@ internal static class EmploymentAssigner
                                 participantId,
                                 need.Action,
                                 destination.RoomId,
+                                destination.DistrictId,
                                 day,
                                 context.WorldId,
                                 destination.Hours
@@ -247,7 +264,7 @@ internal static class EmploymentAssigner
         }
     }
 
-    private sealed record DayOffDestination(Guid? RoomId, HourWindow Hours);
+    private sealed record DayOffDestination(Guid? RoomId, Guid? DistrictId, HourWindow Hours);
 
     private static DayOffDestination PickDayOffDestination(
         DayOffNeed need,
@@ -275,13 +292,14 @@ internal static class EmploymentAssigner
         var pickedIndex = WeightedSampler.SampleIndex(weights);
         if (pickedIndex == eligibleIndices.Length)
         {
-            return new DayOffDestination(need.HomeRoomId, need.Hours);
+            return new DayOffDestination(need.HomeRoomId, need.HomeDistrictId, need.Hours);
         }
 
         var candidateIndex = eligibleIndices[pickedIndex];
         remainingCapacity[candidateIndex] -= need.ParticipantIds.Count;
         return new DayOffDestination(
             cityIdleCandidates[candidateIndex].RoomId,
+            cityIdleCandidates[candidateIndex].DistrictId,
             clampedByIndex[candidateIndex]!
         );
     }

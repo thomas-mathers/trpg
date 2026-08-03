@@ -4,6 +4,7 @@ namespace TRPG.Application.Worlds.Generators;
 
 internal record ShopEmploymentSlot(
     Guid RoomId,
+    Guid? DistrictId,
     Profession EmployeeProfession,
     IReadOnlyList<DayOfWeek> DaysOff,
     HourWindow WorkHours,
@@ -115,6 +116,7 @@ internal static class ShopStaffingPolicy
         Guid worldId,
         Guid ownerId,
         Guid groundFloorRoomId,
+        Guid districtId,
         List<CreatureJob> jobs,
         List<StaffDayOff> shopOwnerAssignments,
         List<ShopEmploymentSlot> openShopSlots
@@ -129,6 +131,7 @@ internal static class ShopStaffingPolicy
                 stateId,
                 ownerId,
                 groundFloorRoomId,
+                districtId,
                 worldId,
                 dayShiftHours
             )
@@ -141,6 +144,7 @@ internal static class ShopStaffingPolicy
         openShopSlots.Add(
             new ShopEmploymentSlot(
                 groundFloorRoomId,
+                districtId,
                 Profession.Innkeeper,
                 NonOverlappingDayOffPatterns[1],
                 dayShiftHours
@@ -149,6 +153,7 @@ internal static class ShopStaffingPolicy
         openShopSlots.Add(
             new ShopEmploymentSlot(
                 groundFloorRoomId,
+                districtId,
                 Profession.Innkeeper,
                 NonOverlappingDayOffPatterns[0],
                 nightShiftHours,
@@ -158,6 +163,7 @@ internal static class ShopStaffingPolicy
         openShopSlots.Add(
             new ShopEmploymentSlot(
                 groundFloorRoomId,
+                districtId,
                 Profession.Innkeeper,
                 NonOverlappingDayOffPatterns[1],
                 nightShiftHours,

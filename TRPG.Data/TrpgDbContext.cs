@@ -299,6 +299,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(j => new { j.StateId, j.RoomId });
             entity.HasIndex(j => j.CreatureId);
             entity.HasIndex(j => j.RoomId);
+            entity.HasIndex(j => j.DistrictId);
             entity.HasIndex(j => j.WorldId);
         });
 

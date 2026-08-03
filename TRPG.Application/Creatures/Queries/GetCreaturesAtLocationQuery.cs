@@ -40,7 +40,42 @@ internal record CreatureSummary(
     float MagicResistance
 );
 
-internal record CreatureLocation(Guid WorldId, Guid? RoomId, Guid StateId, Guid? DistrictId);
+internal record CreatureLocation
+{
+    public Guid WorldId { get; }
+    public Guid StateId { get; }
+    public Guid? RoomId { get; }
+    public Guid? DistrictId { get; }
+
+    private CreatureLocation(Guid worldId, Guid stateId, Guid? roomId, Guid? districtId)
+    {
+        WorldId = worldId;
+        StateId = stateId;
+        RoomId = roomId;
+        DistrictId = districtId;
+    }
+
+    // Indoors: room is required (dungeons never assign a district, so it's optional here).
+    public static CreatureLocation Indoor(
+        Guid worldId,
+        Guid stateId,
+        Guid roomId,
+        Guid? districtId = null
+    ) => new(worldId, stateId, roomId, districtId);
+
+    // Outdoors: no room by definition. District is optional — not every outdoor spot in this
+    // world is scoped to a tracked district.
+    public static CreatureLocation Outdoor(Guid worldId, Guid stateId, Guid? districtId = null) =>
+        new(worldId, stateId, null, districtId);
+
+    // For callers that already hold a creature's raw RoomId/DistrictId and don't know in
+    // advance whether it's indoors or outdoors — dispatches to whichever factory applies
+    // instead of leaving that branch to the call site.
+    public static CreatureLocation Of(Guid worldId, Guid stateId, Guid? roomId, Guid? districtId) =>
+        roomId is { } room
+            ? Indoor(worldId, stateId, room, districtId)
+            : Outdoor(worldId, stateId, districtId);
+}
 
 internal static class CreatureLocationFiltering
 {
@@ -144,22 +179,14 @@ internal class GetCreaturesAtLocationQueryHandler(TrpgDbContext context)
     )
     {
         var location = query.Location;
-        var creatureQuery = location.RoomId is { } roomId
-            ? context
-                .Creatures.AsNoTracking()
-                .Where(p =>
-                    p.WorldId == location.WorldId
-                    && p.StateId == location.StateId
-                    && p.RoomId == roomId
-                )
-            : context
-                .Creatures.AsNoTracking()
-                .Where(p =>
-                    p.WorldId == location.WorldId
-                    && p.StateId == location.StateId
-                    && p.DistrictId == location.DistrictId
-                    && p.RoomId == null
-                );
+        var creatureQuery = context
+            .Creatures.AsNoTracking()
+            .Where(p =>
+                p.WorldId == location.WorldId
+                && p.StateId == location.StateId
+                && p.RoomId == location.RoomId
+                && p.DistrictId == location.DistrictId
+            );
 
         creatureQuery = CreatureLocationFiltering.ApplyFilters(
             creatureQuery,
