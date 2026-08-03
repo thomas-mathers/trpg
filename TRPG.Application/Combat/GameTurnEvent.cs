@@ -9,10 +9,11 @@ public record CombatStartedEvent(FightState FightState) : GameTurnEvent
     public override object? Payload => FightState;
 }
 
-public record CombatUpdatedEvent(FightState FightState) : GameTurnEvent
+public record CombatUpdatedEvent(FightState FightState, IReadOnlyList<CombatRoundEvent> Events)
+    : GameTurnEvent
 {
     public override string MethodName => "CombatUpdated";
-    public override object? Payload => FightState;
+    public override object? Payload => new CombatUpdatePayload(FightState, Events);
 }
 
 public record CombatEndedEvent : GameTurnEvent

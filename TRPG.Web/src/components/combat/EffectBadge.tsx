@@ -16,9 +16,6 @@ import type { ActiveBuff, ActiveDot, ActiveHot, AttributeName, AmountType } from
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-// activeConditions keys aren't a generated union (Dictionary<ConditionType,int>
-// serializes as a plain string-keyed object) — default to Sparkles for anything
-// not in this map rather than failing on an unrecognized status.
 const CONDITION_ICON: Record<string, LucideIcon> = {
   Blinded: EyeOff,
   Bleeding: Droplet,

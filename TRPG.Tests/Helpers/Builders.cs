@@ -123,12 +123,13 @@ internal static class Builders
         CombatOutcome outcome,
         IReadOnlyList<CombatantState> combatants,
         int? goldLooted = null,
-        IReadOnlyDictionary<WeaponType, int>? weaponSwingCounts = null
+        IReadOnlyDictionary<WeaponType, int>? weaponSwingCounts = null,
+        IReadOnlyList<CombatEvent>? events = null
     ) =>
         new(
             Outcome: outcome,
             Combatants: combatants,
-            Events: [],
+            Events: events ?? [],
             WeaponSwingCounts: weaponSwingCounts ?? new Dictionary<WeaponType, int>(),
             SkillUsageCounts: new Dictionary<Skill, int>()
         );

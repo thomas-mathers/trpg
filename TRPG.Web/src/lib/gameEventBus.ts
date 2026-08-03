@@ -1,11 +1,12 @@
 import type { FightState, SceneSnapshot } from '@/api/client';
+import type { CombatUpdatePayload } from '@/lib/combat-round-event';
 
 export type ConnectionStatus = 'reconnecting' | 'reconnected' | 'disconnected';
 
 interface GameEventMap {
   SceneChanged: SceneSnapshot;
   CombatStarted: FightState;
-  CombatUpdated: FightState;
+  CombatUpdated: CombatUpdatePayload;
   CombatEnded: undefined;
   ConnectionStatusChanged: ConnectionStatus;
 }

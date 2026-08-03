@@ -94,7 +94,6 @@ internal static class NarrationEntityLinker
 
             if (next.Depth == _node.Depth + 1)
             {
-                // Direct child of the current node: the run extends cleanly, no recovery needed.
                 _activeSpan.Append(c);
                 _node = next;
                 if (next.Match is { } match)
@@ -114,9 +113,6 @@ internal static class NarrationEntityLinker
                 yield break;
             }
 
-            // No checkpoint to fall back on. `next` already reflects everything the automaton's
-            // failure links could recover from the failed span, so only the leading characters
-            // that fell off along the way are unrecoverable plain text - never the whole span.
             var combined = _activeSpan.ToString() + c;
             var discardLength = combined.Length - next.Depth;
 

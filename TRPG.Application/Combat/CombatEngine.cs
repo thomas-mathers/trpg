@@ -369,7 +369,13 @@ public class CombatEngine(
 
         if (!didHit)
         {
-            return new Miss(attacker.Name, ability.Name, defender.Name);
+            return new Miss(
+                AttackerId: attacker.CreatureId,
+                AttackerName: attacker.Name,
+                AbilityName: ability.Name,
+                TargetId: defender.CreatureId,
+                TargetName: defender.Name
+            );
         }
 
         var didBlock = hitCalculator.RollBlock(ability, defender);
@@ -378,10 +384,17 @@ public class CombatEngine(
         {
             defender.SkillUsageCounts[Skill.Blocking] =
                 defender.SkillUsageCounts.GetValueOrDefault(Skill.Blocking) + 1;
-            return new Block(attacker.Name, ability.Name, defender.Name);
+            return new Block(
+                AttackerId: attacker.CreatureId,
+                AttackerName: attacker.Name,
+                AbilityName: ability.Name,
+                TargetId: defender.CreatureId,
+                TargetName: defender.Name
+            );
         }
 
-        var damage = damageCalculator.CalculateDamage(attacker, ability, defender, weapon);
+        var damageResult = damageCalculator.CalculateDamage(attacker, ability, defender, weapon);
+        var damage = damageResult.Amount;
 
         defender.CurrentHp = Math.Max(defender.CurrentHp - damage, 0);
 
@@ -428,15 +441,18 @@ public class CombatEngine(
         }
 
         return new Hit(
-            attacker.Name,
-            ability.Name,
-            defender.Name,
-            defender.CurrentHp,
-            defender.MaximumHp,
-            !defender.IsAlive,
-            damage,
-            ability.DamageType,
-            appliedConditions
+            AttackerId: attacker.CreatureId,
+            AttackerName: attacker.Name,
+            AbilityName: ability.Name,
+            TargetId: defender.CreatureId,
+            TargetName: defender.Name,
+            TargetRemainingHp: defender.CurrentHp,
+            TargetMaximumHp: defender.MaximumHp,
+            Killed: !defender.IsAlive,
+            IsCritical: damageResult.IsCritical,
+            Damage: damage,
+            DamageType: ability.DamageType,
+            AppliedConditions: appliedConditions
         );
     }
 

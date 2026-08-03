@@ -38,7 +38,10 @@ internal class ResolveCombatRoundCommandHandler(
         );
 
         turnContext.PendingEvents.Enqueue(
-            new CombatUpdatedEvent(FightStateMapper.ToFightState(command.Combatants))
+            new CombatUpdatedEvent(
+                FightStateMapper.ToFightState(command.Combatants),
+                CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
+            )
         );
 
         if (state.WeaponSwingCounts.Count > 0)

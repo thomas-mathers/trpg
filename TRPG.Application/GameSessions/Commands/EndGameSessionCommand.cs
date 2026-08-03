@@ -53,9 +53,6 @@ internal class EndGameSessionCommandHandler(
             cancellationToken
         );
 
-        // The world isn't gone - this just frees the cached entity list/automaton while no
-        // session is active against it. The next session that resumes this world rebuilds
-        // them lazily on its first turn.
         cache.Remove(GetNamedEntitiesByWorldQueryHandler.CacheKey(snapshot.WorldId));
         cache.Remove(GetEntityNameAutomatonByWorldQueryHandler.CacheKey(snapshot.WorldId));
     }

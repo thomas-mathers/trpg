@@ -12,9 +12,6 @@ import { PickerHeader } from '@/components/combat/PickerHeader';
 import { SearchInput } from '@/components/combat/SearchInput';
 import { gameEventBus } from '@/lib/gameEventBus';
 
-// Grouping abilities by skill tree and letting players search only pay off
-// once a build has actually grown — SEARCH_THRESHOLD keeps an early-game
-// character's short list plain, no search box or section headers to skim past.
 const SEARCH_THRESHOLD = 6;
 
 const SKILL_ORDER: Skill[] = [
@@ -135,7 +132,6 @@ function groupBySkill(list: AbilitySummary[]): Array<[Skill | null, AbilitySumma
     bySkill.set(entry.skill, bucket);
   }
 
-  // ungrouped when everything shares one skill — a lone header would just be noise
   if (bySkill.size <= 1) {
     return [[null, list]];
   }

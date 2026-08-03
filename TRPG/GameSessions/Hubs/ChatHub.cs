@@ -77,10 +77,6 @@ internal sealed class ChatHub(
         await base.OnDisconnectedAsync(exception);
     }
 
-    // Called by the client before deliberately leaving (e.g. "Exit to Main Menu"), so the
-    // session ends immediately rather than racing the disconnect grace period — otherwise
-    // starting a new session too soon after exiting would read a stale World.Playtime, since
-    // that only gets flushed once the old session actually ends.
     public async Task EndSession()
     {
         var gameSession = (GameSession)Context.Items[GameSessionKey]!;

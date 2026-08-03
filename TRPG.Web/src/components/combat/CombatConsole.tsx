@@ -8,6 +8,7 @@ import { CombatantCard } from '@/components/combat/CombatantCard';
 import { EnemyRow } from '@/components/combat/EnemyRow';
 import { ItemPicker } from '@/components/combat/ItemPicker';
 import { PickerHeader } from '@/components/combat/PickerHeader';
+import type { CombatCardEffect } from '@/hooks/useCombatState';
 import type { UseAbilityAction, UseItemAction } from '@/lib/combat-action';
 
 type Mode = 'topmenu' | 'ability' | 'target' | 'item';
@@ -19,6 +20,8 @@ interface CombatConsoleProps {
   onUseAbility: (action: UseAbilityAction) => void;
   onUseItem: (action: UseItemAction) => void;
   onFlee: () => void;
+  activeAttackerId?: string | null;
+  cardEffects?: Record<string, CombatCardEffect>;
 }
 
 export function CombatConsole({
@@ -28,6 +31,8 @@ export function CombatConsole({
   onUseAbility,
   onUseItem,
   onFlee,
+  activeAttackerId = null,
+  cardEffects = {},
 }: CombatConsoleProps) {
   const [mode, setMode] = useState<Mode>('topmenu');
   const [abilityCategory, setAbilityCategory] = useState<AbilityCategory | null>(null);
@@ -36,9 +41,7 @@ export function CombatConsole({
   const player = fight.combatants.find((c) => c.isPlayer);
   const enemies = fight.combatants.filter((c) => !c.isPlayer);
   const playerLevel = player ? Number(player.level) : 1;
-
-  // once a round resolves, land back on the top-level action bar rather than
-  // wherever the player happened to be mid-pick last round
+  
   useEffect(() => {
     if (!disabled) {
       setMode('topmenu');
@@ -51,8 +54,6 @@ export function CombatConsole({
 
   function chooseAbility(ability: AbilitySummary) {
     if (abilityCategory === 'Support') {
-      // player is guaranteed defined here — checked above, TS just can't see
-      // that narrowing through this closure
       onUseAbility({ type: 'UseAbilityAction', targetId: player!.id, abilityName: ability.name });
       return;
     }
@@ -72,10 +73,6 @@ export function CombatConsole({
   }
 
   return (
-    // bg-muted, not bg-card — bg-card is identical to the page background in
-    // light mode (standard shadcn tokens), so the console would otherwise
-    // blend straight into the transcript. Cards/buttons inside step back up
-    // to bg-card so they read as distinct surfaces against this backdrop.
     <div className="bg-muted overflow-hidden rounded-lg border shadow-md">
       <div className="border-border bg-card flex items-center border-b px-3 py-2">
         <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
@@ -89,9 +86,17 @@ export function CombatConsole({
         playerLevel={playerLevel}
         targetable={mode === 'target'}
         onSelectTarget={chooseTarget}
+        activeAttackerId={activeAttackerId}
+        cardEffects={cardEffects}
       />
       <div className="px-2.5">
-        <CombatantCard combatant={player} isSelf playerLevel={playerLevel} />
+        <CombatantCard
+          combatant={player}
+          isSelf
+          playerLevel={playerLevel}
+          effect={cardEffects[player.id]}
+          isActing={activeAttackerId === player.id}
+        />
       </div>
 
       <AnimatedHeight>

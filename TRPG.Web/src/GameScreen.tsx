@@ -61,7 +61,7 @@ function GameScreen() {
   const { isConnected, streamOpening, streamChat, streamCombatAction, streamFlee, endSession } =
     useGameHubConnection(sessionId);
   const sceneQuery = useSceneQuery(sessionId);
-  const { fight, isInCombat } = useCombatState();
+  const { fight, isInCombat, activeAttackerId, cardEffects, isPlayingBack } = useCombatState();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
@@ -113,20 +113,26 @@ function GameScreen() {
   );
 
   useEffect(() => {
-    // the compass toggle is hidden in combat — if the sidebar was already open
-    // when a fight starts, there'd be no way to close it without this
     if (isInCombat) {
       setIsNearbyOpen(false);
     }
   }, [isInCombat]);
 
   useEffect(
-    () => gameEventBus.on('CombatStarted', () => appendMarker('Combat started', 'combat-start')),
+    () =>
+      gameEventBus.on('CombatStarted', () => {
+        appendMarker('Combat started', 'combat-start');
+        setIsNearbyOpen(false);
+      }),
     [],
   );
 
   useEffect(
-    () => gameEventBus.on('CombatEnded', () => appendMarker('Combat ended', 'combat-end')),
+    () =>
+      gameEventBus.on('CombatEnded', () => {
+        appendMarker('Combat ended', 'combat-end');
+        setIsNearbyOpen(true);
+      }),
     [],
   );
 
@@ -312,10 +318,12 @@ function GameScreen() {
               <CombatConsole
                 playerId={sceneQuery.data.playerStatus.id}
                 fight={fight}
-                disabled={isStreaming}
+                disabled={isStreaming || isPlayingBack}
                 onUseAbility={handleCombatAction}
                 onUseItem={handleCombatAction}
                 onFlee={handleFlee}
+                activeAttackerId={activeAttackerId}
+                cardEffects={cardEffects}
               />
             ) : (
               <Input

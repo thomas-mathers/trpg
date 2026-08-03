@@ -74,17 +74,12 @@ const ATTRIBUTE_DESCRIPTIONS: Record<(typeof ALLOCATABLE_ATTRIBUTES)[number], st
 
 type Status = 'idle' | 'generating' | 'error';
 
-// CreateWorldResponse is never returned directly by any endpoint — it only ever
-// appears embedded as JSON inside JobStatusResponse.resultJson, an opaque string
-// field — so it's invisible to OpenAPI codegen and has to be hand-declared here.
 interface CreateWorldResponse {
   worldId: string;
   playerId: string;
   worldName: string;
 }
 
-// Only `name` has a real constraint; the rest are structurally bounded by their
-// NumberStepper/Slider min/max props, so they're typed here without extra rules.
 const newWorldFormSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   gender: z.custom<Gender>(),

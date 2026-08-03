@@ -5,9 +5,11 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat;
 
+public record DamageResult(int Amount, bool IsCritical);
+
 public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 {
-    public int CalculateDamage(
+    public DamageResult CalculateDamage(
         Combatant attacker,
         AttackAbility ability,
         Combatant defender,
@@ -26,7 +28,12 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
                 : CalculateMagicRawDamage(attacker, ability);
 
         var withBonus = ApplyCreatureTypeBonus(rawDamage, ability, defender);
-        return CalculateDamage(ApplyCrit(withBonus, attacker), ability.DamageType, defender);
+        var isCritical = Random.Shared.NextDouble() < attacker.CritChance;
+        var critedDamage = isCritical ? withBonus * attacker.CritDamageMultiplier : withBonus;
+        return new DamageResult(
+            CalculateDamage(critedDamage, ability.DamageType, defender),
+            isCritical
+        );
     }
 
     public int EstimateDamage(
@@ -106,11 +113,6 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
     ) =>
         ability.BonusTargetCreatureType == defender.CreatureType
             ? rawDamage * ability.BonusDamageMultiplier
-            : rawDamage;
-
-    private static float ApplyCrit(float rawDamage, Combatant attacker) =>
-        Random.Shared.NextDouble() < attacker.CritChance
-            ? rawDamage * attacker.CritDamageMultiplier
             : rawDamage;
 
     private static float ApplyExpectedCrit(float rawDamage, Combatant attacker) =>

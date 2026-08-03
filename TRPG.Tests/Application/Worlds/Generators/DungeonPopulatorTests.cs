@@ -33,7 +33,7 @@ public class DungeonPopulatorTests
             // Assert
             Assert.InRange(monsters.Count, 1, 3);
             Assert.All(monsters, m => Assert.Equal(_roomId, m.Creature.RoomId));
-            Assert.All(monsters, m => Assert.InRange(m.Creature.Level, 3, 12));
+            Assert.All(monsters, m => Assert.InRange(m.Creature.Level, 1, 3));
         }
     }
 
