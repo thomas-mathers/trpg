@@ -30,9 +30,8 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     {
         // Arrange - GetSceneQueryHandler relies on this to fold the player's own row into the
         // same result set instead of fetching it separately
-        var stateId = Guid.NewGuid();
-        var roomId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
+        var locationId = Guid.NewGuid();
+        var player = Builders.MakeCreature(WorldId, locationId: locationId);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -47,15 +46,14 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     }
 
     [Fact]
-    public async Task Handle_ReturnsCreaturesInTheSameRoom_WhenAnchorIsIndoors()
+    public async Task Handle_ReturnsCreaturesAtTheSameLocation()
     {
         // Arrange
-        var stateId = Guid.NewGuid();
-        var roomId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
-        var inRoom = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
-        var outdoors = Builders.MakeCreature(WorldId, stateId: stateId);
-        _context.Creatures.AddRange(player, inRoom, outdoors);
+        var locationId = Guid.NewGuid();
+        var player = Builders.MakeCreature(WorldId, locationId: locationId);
+        var atLocation = Builders.MakeCreature(WorldId, locationId: locationId);
+        var elsewhere = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
+        _context.Creatures.AddRange(player, atLocation, elsewhere);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -65,46 +63,17 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
         );
 
         // Assert
-        Assert.Contains(result, x => x.Id == inRoom.Id);
-        Assert.DoesNotContain(result, x => x.Id == outdoors.Id);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsCreaturesInTheSameDistrict_WhenAnchorIsOutdoors()
-    {
-        // Arrange
-        var stateId = Guid.NewGuid();
-        var districtId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, stateId: stateId, districtId: districtId);
-        var outdoors = Builders.MakeCreature(WorldId, stateId: stateId, districtId: districtId);
-        var indoors = Builders.MakeCreature(
-            WorldId,
-            stateId: stateId,
-            districtId: districtId,
-            roomId: Guid.NewGuid()
-        );
-        _context.Creatures.AddRange(player, outdoors, indoors);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var result = await _handler.Handle(
-            new GetNearbyCreaturesQuery { PlayerId = player.Id },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Contains(result, x => x.Id == outdoors.Id);
-        Assert.DoesNotContain(result, x => x.Id == indoors.Id);
+        Assert.Contains(result, x => x.Id == atLocation.Id);
+        Assert.DoesNotContain(result, x => x.Id == elsewhere.Id);
     }
 
     [Fact]
     public async Task Handle_ExcludesGivenCreature()
     {
         // Arrange
-        var stateId = Guid.NewGuid();
-        var roomId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
-        var other = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
+        var locationId = Guid.NewGuid();
+        var player = Builders.MakeCreature(WorldId, locationId: locationId);
+        var other = Builders.MakeCreature(WorldId, locationId: locationId);
         _context.Creatures.AddRange(player, other);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -123,13 +92,11 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_ExcludesDeadCreatures_WhenIncludeDeadIsFalse()
     {
         // Arrange
-        var stateId = Guid.NewGuid();
-        var roomId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
+        var locationId = Guid.NewGuid();
+        var player = Builders.MakeCreature(WorldId, locationId: locationId);
         var corpse = Builders.MakeCreature(
             WorldId,
-            stateId: stateId,
-            roomId: roomId,
+            locationId: locationId,
             state: CreatureState.Dead
         );
         _context.Creatures.AddRange(player, corpse);
@@ -150,13 +117,11 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_FiltersByCreatureTypes_WhenProvided()
     {
         // Arrange
-        var stateId = Guid.NewGuid();
-        var roomId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, stateId: stateId, roomId: roomId);
+        var locationId = Guid.NewGuid();
+        var player = Builders.MakeCreature(WorldId, locationId: locationId);
         var goblin = Builders.MakeCreature(
             WorldId,
-            stateId: stateId,
-            roomId: roomId,
+            locationId: locationId,
             creatureType: CreatureType.Goblin
         );
         _context.Creatures.AddRange(player, goblin);

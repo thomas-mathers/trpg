@@ -143,7 +143,7 @@ internal static class BiographyGenerator
                 )
             );
 
-        var buildingIdByRoomId = input.Rooms.ToDictionary(r => r.Id, r => r.BuildingId);
+        var buildingIdByLocationId = input.Rooms.ToDictionary(r => r.LocationId, r => r.BuildingId);
         var buildingById = input.Buildings.ToDictionary(b => b.Id);
         var workJobByCreatureId = input
             .Jobs.Where(j => j.Action == CreatureJobAction.Work)
@@ -174,8 +174,8 @@ internal static class BiographyGenerator
             workJobByCreatureId.TryGetValue(creature.Id, out var workJob);
             sleepJobByCreatureId.TryGetValue(creature.Id, out var sleepJob);
             ownedBuildingIdsByCreatureId.TryGetValue(creature.Id, out var ownedBuildingIds);
-            var workplace = ResolveBuilding(workJob, buildingIdByRoomId, buildingById);
-            var homeName = ResolveBuilding(sleepJob, buildingIdByRoomId, buildingById)?.Name;
+            var workplace = ResolveBuilding(workJob, buildingIdByLocationId, buildingById);
+            var homeName = ResolveBuilding(sleepJob, buildingIdByLocationId, buildingById)?.Name;
             var ownsWorkplace =
                 workplace != null
                 && ownedBuildingIds != null
@@ -324,16 +324,16 @@ internal static class BiographyGenerator
 
     private static (Guid BuildingId, string Name)? ResolveBuilding(
         CreatureJob? job,
-        IReadOnlyDictionary<Guid, Guid> buildingIdByRoomId,
+        IReadOnlyDictionary<Guid, Guid> buildingIdByLocationId,
         IReadOnlyDictionary<Guid, Building> buildingById
     )
     {
-        if (job?.RoomId == null)
+        if (job?.LocationId == null)
         {
             return null;
         }
 
-        if (!buildingIdByRoomId.TryGetValue(job.RoomId.Value, out var buildingId))
+        if (!buildingIdByLocationId.TryGetValue(job.LocationId.Value, out var buildingId))
         {
             return null;
         }

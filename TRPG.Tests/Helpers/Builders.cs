@@ -200,9 +200,7 @@ internal static class Builders
         Profession? profession = Profession.Knight,
         Guid? birthStateId = null,
         Guid? stateId = null,
-        Guid? cityId = null,
-        Guid? districtId = null,
-        Guid? roomId = null,
+        Guid? locationId = null,
         int birthYear = 1000,
         string name = "Test Creature",
         int level = 1,
@@ -226,9 +224,7 @@ internal static class Builders
             BirthYear = birthYear,
             Profession = profession,
             StateId = stateId ?? Guid.NewGuid(),
-            CityId = cityId,
-            DistrictId = districtId,
-            RoomId = roomId,
+            LocationId = locationId,
             Level = level,
             State = state,
             BaseAttributes = attributes,
@@ -517,7 +513,8 @@ internal static class Builders
         Guid cityId,
         DistrictType districtType = DistrictType.CityCenter,
         Guid? worldId = null,
-        string? name = null
+        string? name = null,
+        Guid? locationId = null
     )
     {
         return new District
@@ -527,19 +524,46 @@ internal static class Builders
             Name = name ?? $"District-{Guid.NewGuid():N}",
             Description = "A test district",
             WorldId = worldId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
         };
     }
 
-    public static Room MakeRoom(Guid buildingId, int capacity = 4, Guid? worldId = null)
+    public static Room MakeRoom(
+        Guid buildingId,
+        int capacity = 4,
+        Guid? worldId = null,
+        Guid? id = null,
+        Guid? locationId = null
+    )
     {
         return new Room
         {
+            Id = id ?? Guid.NewGuid(),
             BuildingId = buildingId,
             Capacity = capacity,
             Name = $"Room-{Guid.NewGuid():N}",
             Description = "A test room",
             FloorNumber = 0,
             WorldId = worldId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
+        };
+    }
+
+    public static Location MakeLocation(
+        Guid? worldId = null,
+        Guid? stateId = null,
+        Guid? cityId = null,
+        Guid? districtId = null,
+        Guid? roomId = null
+    )
+    {
+        return new Location
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            StateId = stateId ?? Guid.NewGuid(),
+            CityId = cityId,
+            DistrictId = districtId,
+            RoomId = roomId,
         };
     }
 
@@ -570,7 +594,7 @@ internal static class Builders
         CreatureJobAction action = CreatureJobAction.Idle,
         int startHour = 8,
         int endHour = 17,
-        Guid? roomId = null,
+        Guid? locationId = null,
         Guid? worldId = null,
         DayOfWeek? specificDay = null
     )
@@ -584,7 +608,7 @@ internal static class Builders
             SpecificDay = specificDay,
             Priority = priority,
             StateId = Guid.NewGuid(),
-            RoomId = roomId,
+            LocationId = locationId,
             WorldId = worldId ?? Guid.NewGuid(),
         };
     }

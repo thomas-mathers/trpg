@@ -13,20 +13,20 @@ public class EmploymentAssignerTests
     public void AssignEmployment_AssignsMatchingProfessionAndWorkJob_WhenSlotAvailable()
     {
         // Arrange
-        var shopRoomId = Guid.NewGuid();
+        var shopLocationId = Guid.NewGuid();
         var adult = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
         var context = MakeContext(
             eligible: [adult],
             slots:
             [
                 new ShopEmploymentSlot(
-                    shopRoomId,
+                    shopLocationId,
                     Profession.Baker,
                     ShopStaffingPolicy.StaffDayOffPatterns[1],
                     WorkHours
                 ),
             ],
-            homeRooms: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() }
+            homeLocations: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() }
         );
 
         // Act
@@ -39,7 +39,7 @@ public class EmploymentAssignerTests
             j =>
                 j.Action == CreatureJobAction.Work
                 && j.CreatureId == adult.Id
-                && j.RoomId == shopRoomId
+                && j.LocationId == shopLocationId
         );
     }
 
@@ -51,7 +51,7 @@ public class EmploymentAssignerTests
         var context = MakeContext(
             eligible: [adult],
             slots: [],
-            homeRooms: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() }
+            homeLocations: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() }
         );
 
         // Act
@@ -69,8 +69,8 @@ public class EmploymentAssignerTests
     public void AssignEmployment_SharesFamilyDayOff_WithHomemakerAndKids()
     {
         // Arrange
-        var shopRoomId = Guid.NewGuid();
-        var homeRoomId = Guid.NewGuid();
+        var shopLocationId = Guid.NewGuid();
+        var homeLocationId = Guid.NewGuid();
         var father = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
         var homemaker = Builders.MakeCreature(_worldId, profession: Profession.Homemaker);
         var kid = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
@@ -79,8 +79,8 @@ public class EmploymentAssignerTests
 
         var context = MakeContext(
             eligible: [father],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Baker, daysOff, WorkHours)],
-            homeRooms: household.ToDictionary(c => c.Id, _ => homeRoomId),
+            slots: [new ShopEmploymentSlot(shopLocationId, Profession.Baker, daysOff, WorkHours)],
+            homeLocations: household.ToDictionary(c => c.Id, _ => homeLocationId),
             households: household.ToDictionary(c => c.Id, _ => household),
             fatherIds: [father.Id]
         );
@@ -104,10 +104,10 @@ public class EmploymentAssignerTests
                 j => j.CreatureId == kid.Id && j.SpecificDay == day
             );
 
-            Assert.Equal(homeRoomId, fatherJob.RoomId);
-            Assert.Equal(fatherJob.RoomId, homemakerJob.RoomId);
+            Assert.Equal(homeLocationId, fatherJob.LocationId);
+            Assert.Equal(fatherJob.LocationId, homemakerJob.LocationId);
             Assert.Equal(fatherJob.Action, homemakerJob.Action);
-            Assert.Equal(fatherJob.RoomId, kidJob.RoomId);
+            Assert.Equal(fatherJob.LocationId, kidJob.LocationId);
             Assert.Equal(fatherJob.Action, kidJob.Action);
         }
     }
@@ -116,15 +116,15 @@ public class EmploymentAssignerTests
     public void AssignEmployment_GivesSoloDayOff_WhenHouseholdHasNoHomemaker()
     {
         // Arrange
-        var shopRoomId = Guid.NewGuid();
+        var shopLocationId = Guid.NewGuid();
         var adult = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
         var daysOff = ShopStaffingPolicy.StaffDayOffPatterns[1];
 
         // Flagged as a father, but no Homemaker exists in the household — must fall back to a solo day off.
         var context = MakeContext(
             eligible: [adult],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Tailor, daysOff, WorkHours)],
-            homeRooms: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() },
+            slots: [new ShopEmploymentSlot(shopLocationId, Profession.Tailor, daysOff, WorkHours)],
+            homeLocations: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() },
             fatherIds: [adult.Id]
         );
 
@@ -143,9 +143,9 @@ public class EmploymentAssignerTests
     public void AssignEmployment_ExcludesTavernFromFamilyDay_WhenAMinorIsInTheGroup()
     {
         // Arrange
-        var shopRoomId = Guid.NewGuid();
-        var homeRoomId = Guid.NewGuid();
-        var tavernRoomId = Guid.NewGuid();
+        var shopLocationId = Guid.NewGuid();
+        var homeLocationId = Guid.NewGuid();
+        var tavernLocationId = Guid.NewGuid();
         var father = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
         var homemaker = Builders.MakeCreature(_worldId, profession: Profession.Homemaker);
         var minorKid = Builders.MakeCreature(_worldId);
@@ -155,14 +155,11 @@ public class EmploymentAssignerTests
 
         var context = MakeContext(
             eligible: [father],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Baker, daysOff, WorkHours)],
-            homeRooms: household.ToDictionary(c => c.Id, _ => homeRoomId),
+            slots: [new ShopEmploymentSlot(shopLocationId, Profession.Baker, daysOff, WorkHours)],
+            homeLocations: household.ToDictionary(c => c.Id, _ => homeLocationId),
             households: household.ToDictionary(c => c.Id, _ => household),
             fatherIds: [father.Id],
-            cityIdleCandidates:
-            [
-                new IdleCandidate(tavernRoomId, Guid.NewGuid(), 10, 1000, BuildingType.Tavern),
-            ]
+            cityIdleCandidates: [new IdleCandidate(tavernLocationId, 10, 1000, BuildingType.Tavern)]
         );
 
         // Act
@@ -174,16 +171,16 @@ public class EmploymentAssignerTests
             .Jobs.Where(j => j.CreatureId == father.Id && j.SpecificDay != null)
             .ToArray();
         Assert.NotEmpty(fatherJobs);
-        Assert.All(fatherJobs, j => Assert.Equal(homeRoomId, j.RoomId));
+        Assert.All(fatherJobs, j => Assert.Equal(homeLocationId, j.LocationId));
     }
 
     [Fact]
     public void AssignEmployment_SkipsCandidate_WhenCapacityIsBelowGroupHeadcount()
     {
         // Arrange
-        var shopRoomId = Guid.NewGuid();
-        var homeRoomId = Guid.NewGuid();
-        var marketRoomId = Guid.NewGuid();
+        var shopLocationId = Guid.NewGuid();
+        var homeLocationId = Guid.NewGuid();
+        var marketLocationId = Guid.NewGuid();
         var father = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
         var homemaker = Builders.MakeCreature(_worldId, profession: Profession.Homemaker);
         var kid = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
@@ -192,13 +189,13 @@ public class EmploymentAssignerTests
 
         var context = MakeContext(
             eligible: [father],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Baker, daysOff, WorkHours)],
-            homeRooms: household.ToDictionary(c => c.Id, _ => homeRoomId),
+            slots: [new ShopEmploymentSlot(shopLocationId, Profession.Baker, daysOff, WorkHours)],
+            homeLocations: household.ToDictionary(c => c.Id, _ => homeLocationId),
             households: household.ToDictionary(c => c.Id, _ => household),
             fatherIds: [father.Id],
             cityIdleCandidates:
             [
-                new IdleCandidate(marketRoomId, Guid.NewGuid(), 2, 1000, BuildingType.GeneralGoods),
+                new IdleCandidate(marketLocationId, 2, 1000, BuildingType.GeneralGoods),
             ]
         );
 
@@ -210,7 +207,7 @@ public class EmploymentAssignerTests
             .Jobs.Where(j => j.CreatureId == father.Id && j.SpecificDay != null)
             .ToArray();
         Assert.NotEmpty(fatherJobs);
-        Assert.All(fatherJobs, j => Assert.Equal(homeRoomId, j.RoomId));
+        Assert.All(fatherJobs, j => Assert.Equal(homeLocationId, j.LocationId));
     }
 
     [Fact]
@@ -218,21 +215,20 @@ public class EmploymentAssignerTests
     {
         // Arrange — the shop is only open 6-10, overlapping the 8-18 day off by a mere 2 hours,
         // below the minimum worthwhile stay
-        var shopRoomId = Guid.NewGuid();
-        var homeRoomId = Guid.NewGuid();
-        var earlyShopRoomId = Guid.NewGuid();
+        var shopLocationId = Guid.NewGuid();
+        var homeLocationId = Guid.NewGuid();
+        var earlyShopLocationId = Guid.NewGuid();
         var adult = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
         var daysOff = ShopStaffingPolicy.StaffDayOffPatterns[1];
 
         var context = MakeContext(
             eligible: [adult],
-            slots: [new ShopEmploymentSlot(shopRoomId, Profession.Tailor, daysOff, WorkHours)],
-            homeRooms: new Dictionary<Guid, Guid> { [adult.Id] = homeRoomId },
+            slots: [new ShopEmploymentSlot(shopLocationId, Profession.Tailor, daysOff, WorkHours)],
+            homeLocations: new Dictionary<Guid, Guid> { [adult.Id] = homeLocationId },
             cityIdleCandidates:
             [
                 new IdleCandidate(
-                    earlyShopRoomId,
-                    Guid.NewGuid(),
+                    earlyShopLocationId,
                     10,
                     1000,
                     BuildingType.Bakery,
@@ -250,7 +246,7 @@ public class EmploymentAssignerTests
             .Jobs.Where(j => j.CreatureId == adult.Id && j.SpecificDay != null)
             .ToArray();
         Assert.NotEmpty(dayOffJobs);
-        Assert.All(dayOffJobs, j => Assert.Equal(homeRoomId, j.RoomId));
+        Assert.All(dayOffJobs, j => Assert.Equal(homeLocationId, j.LocationId));
     }
 
     [Fact]
@@ -259,7 +255,7 @@ public class EmploymentAssignerTests
         // Arrange — an unemployed adult's 6-22 day, with an evening-only venue (16-4) as the only
         // public candidate. The venue pick is weighted, so retry until it comes up, then verify the
         // visit is clamped to the open window rather than spanning the whole day.
-        var tavernRoomId = Guid.NewGuid();
+        var tavernLocationId = Guid.NewGuid();
 
         for (var attempt = 0; attempt < 30; attempt++)
         {
@@ -267,12 +263,11 @@ public class EmploymentAssignerTests
             var context = MakeContext(
                 eligible: [adult],
                 slots: [],
-                homeRooms: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() },
+                homeLocations: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() },
                 cityIdleCandidates:
                 [
                     new IdleCandidate(
-                        tavernRoomId,
-                        Guid.NewGuid(),
+                        tavernLocationId,
                         100,
                         1000,
                         BuildingType.Tavern,
@@ -284,7 +279,7 @@ public class EmploymentAssignerTests
             EmploymentAssigner.AssignEmployment(context);
 
             var tavernJob = context.Jobs.FirstOrDefault(j =>
-                j.CreatureId == adult.Id && j.RoomId == tavernRoomId
+                j.CreatureId == adult.Id && j.LocationId == tavernLocationId
             );
             if (tavernJob == null)
             {
@@ -308,12 +303,12 @@ public class EmploymentAssignerTests
         // Arrange
         var owner = Builders.MakeCreature(_worldId, profession: Profession.Baker);
         var ownerId = owner.Id;
-        var ownerHomeRoomId = Guid.NewGuid();
+        var ownerHomeLocationId = Guid.NewGuid();
         var daysOff = ShopStaffingPolicy.StaffDayOffPatterns[0];
         var context = MakeContext(
             eligible: [],
             slots: [],
-            homeRooms: new Dictionary<Guid, Guid> { [ownerId] = ownerHomeRoomId },
+            homeLocations: new Dictionary<Guid, Guid> { [ownerId] = ownerHomeLocationId },
             households: new Dictionary<Guid, List<Creature>> { [ownerId] = [owner] },
             ownerAssignments: [new StaffDayOff(ownerId, daysOff, WorkHours)]
         );
@@ -330,7 +325,7 @@ public class EmploymentAssignerTests
     private CityEmploymentContext MakeContext(
         IReadOnlyList<Creature> eligible,
         IReadOnlyList<ShopEmploymentSlot> slots,
-        IReadOnlyDictionary<Guid, Guid>? homeRooms = null,
+        IReadOnlyDictionary<Guid, Guid>? homeLocations = null,
         IReadOnlyDictionary<Guid, List<Creature>>? households = null,
         IReadOnlyList<Guid>? fatherIds = null,
         IReadOnlyList<StaffDayOff>? ownerAssignments = null,
@@ -345,8 +340,8 @@ public class EmploymentAssignerTests
             HouseholdByMemberId =
                 households?.ToDictionary(kv => kv.Key, kv => kv.Value)
                 ?? eligible.ToDictionary(c => c.Id, c => new List<Creature> { c }),
-            HomeRoomIdByMemberId =
-                homeRooms?.ToDictionary(kv => kv.Key, kv => kv.Value)
+            HomeLocationIdByMemberId =
+                homeLocations?.ToDictionary(kv => kv.Key, kv => kv.Value)
                 ?? new Dictionary<Guid, Guid>(),
             FatherIds = fatherIds?.ToHashSet() ?? [],
             CityIdleCandidates = cityIdleCandidates?.ToList() ?? [],

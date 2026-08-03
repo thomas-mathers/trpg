@@ -20,7 +20,7 @@ public class HouseholdGeneratorResult
     public required IReadOnlyList<Relationship> Relationships { get; init; }
     public required BuildingGeneratorResult House { get; init; }
     public required Guid HouseOwnerId { get; init; }
-    public required Guid HomeRoomId { get; init; }
+    public required Guid HomeLocationId { get; init; }
     public required IReadOnlyList<Item> KeyItems { get; init; }
     public required IReadOnlyList<RoomConnectorKey> KeyConnectorKeys { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
@@ -62,11 +62,6 @@ public class HouseholdGenerator(
                 )
                 : GenerateSingleHousehold(input.DominantRace, input.WorldId, input.StateId);
         var household = householdResult.Members;
-
-        foreach (var member in household)
-        {
-            member.Creature.CityId = input.City.Id;
-        }
 
         var fatherId = household.Count >= 2 ? household[1].Creature.Id : (Guid?)null;
 
@@ -134,8 +129,9 @@ public class HouseholdGenerator(
             );
         }
 
+        var roomsById = houseResult.Rooms.ToDictionary(r => r.Id);
         var homeRoom = houseResult.Rooms.First(r => r.FloorNumber == 0);
-        var homeRoomId = homeRoom.Id;
+        var homeLocationId = homeRoom.LocationId;
 
         var jobs = new List<CreatureJob>();
         foreach (var member in household)
@@ -144,11 +140,12 @@ public class HouseholdGenerator(
                 .Props.OfType<Bed>()
                 .First(b => b.AssignedCreatureId == member.Creature.Id)
                 .RoomId;
+            var memberBedLocationId = roomsById[memberBedRoomId].LocationId;
             jobs.Add(
                 CreatureJobGenerator.GenerateSleep(
                     input.StateId,
                     member.Creature.Id,
-                    memberBedRoomId,
+                    memberBedLocationId,
                     input.WorldId
                 )
             );
@@ -156,12 +153,11 @@ public class HouseholdGenerator(
                 CreatureJobGenerator.GenerateIdle(
                     input.StateId,
                     member.Creature.Id,
-                    homeRoomId,
+                    homeLocationId,
                     input.WorldId
                 )
             );
-            member.Creature.RoomId = homeRoomId;
-            member.Creature.DistrictId = input.ResidentialDistrict.Id;
+            member.Creature.LocationId = homeLocationId;
         }
 
         return new HouseholdGeneratorResult
@@ -170,7 +166,7 @@ public class HouseholdGenerator(
             Relationships = householdResult.Relationships,
             House = houseResult,
             HouseOwnerId = houseOwner.Creature.Id,
-            HomeRoomId = homeRoomId,
+            HomeLocationId = homeLocationId,
             KeyItems = keyItems.ToArray(),
             KeyConnectorKeys = keyConnectorKeys.ToArray(),
             Jobs = jobs.ToArray(),

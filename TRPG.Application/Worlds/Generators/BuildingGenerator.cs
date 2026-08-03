@@ -20,7 +20,8 @@ public record BuildingGeneratorInput(
 public record BuildingGeneratorResult(
     Building Building,
     IReadOnlyList<Room> Rooms,
-    IReadOnlyList<Prop> Props
+    IReadOnlyList<Prop> Props,
+    IReadOnlyList<Location> Locations
 );
 
 public class BuildingGenerator
@@ -356,15 +357,30 @@ public class BuildingGenerator
         };
         var specs = GetSpecs(input.Type, input.OwnerId, input.MemberIds, input.BedroomGroups);
 
+        var locations = new List<Location>();
         var rooms = specs
-            .Select(s => new Room
+            .Select(s =>
             {
-                BuildingId = building.Id,
-                Capacity = s.Capacity,
-                Description = s.Description,
-                FloorNumber = s.FloorNumber,
-                Name = s.Name,
-                WorldId = input.WorldId,
+                var roomId = Guid.NewGuid();
+                var location = LocationGenerator.Generate(
+                    input.WorldId,
+                    input.StateId,
+                    input.CityId,
+                    input.DistrictId,
+                    roomId
+                );
+                locations.Add(location);
+                return new Room
+                {
+                    Id = roomId,
+                    BuildingId = building.Id,
+                    LocationId = location.Id,
+                    Capacity = s.Capacity,
+                    Description = s.Description,
+                    FloorNumber = s.FloorNumber,
+                    Name = s.Name,
+                    WorldId = input.WorldId,
+                };
             })
             .ToArray();
 
@@ -418,7 +434,7 @@ public class BuildingGenerator
             }
         );
 
-        return new BuildingGeneratorResult(building, rooms, props);
+        return new BuildingGeneratorResult(building, rooms, props, locations);
     }
 
     private static RoomSpec[] GetSpecs(

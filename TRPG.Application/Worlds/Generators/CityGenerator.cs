@@ -23,6 +23,7 @@ public class CityGeneratorResult
     public required IReadOnlyList<FactionMember> FactionMembers { get; init; }
     public required IReadOnlyList<Item> Items { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
+    public required IReadOnlyList<Location> Locations { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<CreatureSkill> Skills { get; init; }
     public required IReadOnlyList<CreatureAbility> Abilities { get; init; }
@@ -55,6 +56,7 @@ public class CityGenerator(
         public List<FactionMember> FactionMembers { get; } = [];
         public List<Item> Items { get; } = [];
         public List<Room> Rooms { get; } = [];
+        public List<Location> Locations { get; } = [];
         public List<Prop> Props { get; } = [];
         public List<CreatureSkill> Skills { get; } = [];
         public List<CreatureAbility> Abilities { get; } = [];
@@ -65,7 +67,7 @@ public class CityGenerator(
         public List<StaffDayOff> ShopOwnerAssignments { get; } = [];
         public List<Creature> EligibleForEmployment { get; } = [];
         public Dictionary<Guid, List<Creature>> HouseholdByMemberId { get; } = [];
-        public Dictionary<Guid, Guid> HomeRoomIdByMemberId { get; } = [];
+        public Dictionary<Guid, Guid> HomeLocationIdByMemberId { get; } = [];
         public HashSet<Guid> FatherIds { get; } = [];
     }
 
@@ -103,8 +105,7 @@ public class CityGenerator(
             },
             IdleCandidates = input
                 .Districts.Select(d => new IdleCandidate(
-                    null,
-                    d.Id,
+                    d.LocationId,
                     int.MaxValue,
                     DistrictGenerator.Popularity[d.DistrictType],
                     null
@@ -147,7 +148,7 @@ public class CityGenerator(
                 EligibleForEmployment = workspace.EligibleForEmployment,
                 ShopOwnerAssignments = workspace.ShopOwnerAssignments,
                 HouseholdByMemberId = workspace.HouseholdByMemberId,
-                HomeRoomIdByMemberId = workspace.HomeRoomIdByMemberId,
+                HomeLocationIdByMemberId = workspace.HomeLocationIdByMemberId,
                 FatherIds = workspace.FatherIds,
                 CityIdleCandidates = workspace.IdleCandidates,
                 StateId = input.State.Id,
@@ -165,6 +166,7 @@ public class CityGenerator(
             FactionMembers = workspace.FactionMembers.ToArray(),
             Items = workspace.Items.ToArray(),
             Rooms = workspace.Rooms.ToArray(),
+            Locations = workspace.Locations.ToArray(),
             Props = workspace.Props.ToArray(),
             Skills = workspace.Skills.ToArray(),
             Abilities = workspace.Abilities.ToArray(),
@@ -234,8 +236,7 @@ public class CityGenerator(
         {
             workspace.IdleCandidates.Add(
                 new IdleCandidate(
-                    groundFloorRoom.Id,
-                    district.Id,
+                    groundFloorRoom.LocationId,
                     groundFloorRoom.Capacity,
                     BuildingGenerator.Popularity[type],
                     type,
@@ -267,6 +268,7 @@ public class CityGenerator(
             }
         );
         workspace.Rooms.AddRange(buildingResult.Rooms);
+        workspace.Locations.AddRange(buildingResult.Locations);
         workspace.Props.AddRange(buildingResult.Props);
     }
 
@@ -299,8 +301,7 @@ public class CityGenerator(
                     MaxBirthYear = MaxAdultBirthYear,
                 }
             );
-            memberCreature.Creature.CityId = input.City.Id;
-            memberCreature.Creature.DistrictId = district.Id;
+            memberCreature.Creature.LocationId = district.LocationId;
             members.Add(memberCreature);
         }
 
@@ -350,7 +351,8 @@ public class CityGenerator(
     )
     {
         var input = workspace.Input;
-        var groundFloorRoomId = buildingResult.Rooms.First(r => r.FloorNumber == 0).Id;
+        var roomsById = buildingResult.Rooms.ToDictionary(r => r.Id);
+        var groundFloorRoom = buildingResult.Rooms.First(r => r.FloorNumber == 0);
         var guildFactionId =
             input.NamedFactions.Count > 0 ? input.NamedFactions[_guildHallIndex++].Id : (Guid?)null;
 
@@ -392,7 +394,7 @@ public class CityGenerator(
                     WorldId = input.WorldId,
                 }
             );
-            memberCreature.Creature.RoomId = groundFloorRoomId;
+            memberCreature.Creature.LocationId = groundFloorRoom.LocationId;
             workspace.Creatures.Add(memberCreature.Creature);
             workspace.Items.AddRange(memberCreature.Items);
             workspace.Skills.AddRange(memberCreature.Skills);
@@ -402,13 +404,14 @@ public class CityGenerator(
                 .Props.OfType<Bed>()
                 .First(b => b.AssignedCreatureId == memberCreature.Creature.Id)
                 .RoomId;
+            var memberBedLocationId = roomsById[memberBedRoomId].LocationId;
             workspace.Jobs.AddRange(
                 CreatureJobGenerator.Generate(
                     input.State.Id,
                     memberCreature.Creature.Id,
-                    memberBedRoomId,
+                    memberBedLocationId,
                     null,
-                    groundFloorRoomId,
+                    groundFloorRoom.LocationId,
                     input.WorldId
                 )
             );
@@ -423,7 +426,7 @@ public class CityGenerator(
     {
         var input = workspace.Input;
         var type = buildingResult.Building.BuildingType;
-        var groundFloorRoomId = buildingResult.Rooms.First(r => r.FloorNumber == 0).Id;
+        var groundFloorLocationId = buildingResult.Rooms.First(r => r.FloorNumber == 0).LocationId;
 
         if (type == BuildingType.Inn)
         {
@@ -431,7 +434,7 @@ public class CityGenerator(
                 input.State.Id,
                 input.WorldId,
                 ownerId,
-                groundFloorRoomId,
+                groundFloorLocationId,
                 workspace.Jobs,
                 workspace.ShopOwnerAssignments,
                 workspace.OpenShopSlots
@@ -445,7 +448,7 @@ public class CityGenerator(
                 CreatureJobGenerator.GenerateWork(
                     input.State.Id,
                     ownerId,
-                    groundFloorRoomId,
+                    groundFloorLocationId,
                     input.WorldId
                 )
             );
@@ -458,7 +461,7 @@ public class CityGenerator(
             CreatureJobGenerator.GenerateWork(
                 input.State.Id,
                 ownerId,
-                groundFloorRoomId,
+                groundFloorLocationId,
                 input.WorldId,
                 workHours
             )
@@ -489,7 +492,7 @@ public class CityGenerator(
             );
             workspace.OpenShopSlots.Add(
                 new ShopEmploymentSlot(
-                    groundFloorRoomId,
+                    groundFloorLocationId,
                     ShopStaffingPolicy.GetEmployeeProfessionForBuilding(type),
                     ShopStaffingPolicy.NonOverlappingDayOffPatterns[1],
                     workHours,
@@ -507,7 +510,7 @@ public class CityGenerator(
         {
             workspace.OpenShopSlots.Add(
                 new ShopEmploymentSlot(
-                    groundFloorRoomId,
+                    groundFloorLocationId,
                     ShopStaffingPolicy.GetEmployeeProfessionForBuilding(type),
                     ShopStaffingPolicy.StaffDayOffPatterns[position],
                     workHours,
@@ -554,7 +557,7 @@ public class CityGenerator(
             workspace.Items.AddRange(member.Items);
             workspace.Skills.AddRange(member.Skills);
             workspace.Abilities.AddRange(member.Abilities);
-            workspace.HomeRoomIdByMemberId[member.Creature.Id] = household.HomeRoomId;
+            workspace.HomeLocationIdByMemberId[member.Creature.Id] = household.HomeLocationId;
         }
 
         workspace.EligibleForEmployment.AddRange(household.EligibleForEmployment);
@@ -569,6 +572,7 @@ public class CityGenerator(
             }
         );
         workspace.Rooms.AddRange(household.House.Rooms);
+        workspace.Locations.AddRange(household.House.Locations);
         workspace.Props.AddRange(household.House.Props);
     }
 }

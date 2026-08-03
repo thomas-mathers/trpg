@@ -17,7 +17,12 @@ internal class GetCreatureIdsByDistrictQueryHandler(TrpgDbContext context)
     )
     {
         var ids = await context
-            .Creatures.Where(p => p.WorldId == query.WorldId && p.DistrictId == query.DistrictId)
+            .Creatures.Where(p =>
+                p.WorldId == query.WorldId
+                && context.Locations.Any(l =>
+                    l.Id == p.LocationId && l.DistrictId == query.DistrictId
+                )
+            )
             .Select(p => p.Id)
             .ToArrayAsync(cancellationToken);
         return ids;

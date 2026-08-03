@@ -16,6 +16,7 @@ public class District
     public string Description { get; init; } = "";
     public DistrictType DistrictType { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid LocationId { get; init; }
     public string Name { get; init; } = "";
     public Guid WorldId { get; init; }
 }

@@ -15,7 +15,7 @@ internal static class CreatureJobGenerator
     public static CreatureJob GenerateSleep(
         Guid stateId,
         Guid creatureId,
-        Guid roomId,
+        Guid locationId,
         Guid worldId,
         HourWindow? hours = null
     )
@@ -29,7 +29,7 @@ internal static class CreatureJobGenerator
             StartHour = window.Start,
             EndHour = window.End,
             Priority = 100,
-            RoomId = roomId,
+            LocationId = locationId,
             WorldId = worldId,
         };
     }
@@ -37,7 +37,7 @@ internal static class CreatureJobGenerator
     public static CreatureJob GenerateIdle(
         Guid stateId,
         Guid creatureId,
-        Guid? roomId,
+        Guid? locationId,
         Guid worldId
     )
     {
@@ -49,7 +49,7 @@ internal static class CreatureJobGenerator
             StartHour = IdleHours.Start,
             EndHour = IdleHours.End,
             Priority = 0,
-            RoomId = roomId,
+            LocationId = locationId,
             WorldId = worldId,
         };
     }
@@ -57,7 +57,7 @@ internal static class CreatureJobGenerator
     public static CreatureJob GenerateWork(
         Guid stateId,
         Guid creatureId,
-        Guid roomId,
+        Guid locationId,
         Guid worldId,
         HourWindow? hours = null
     )
@@ -71,7 +71,7 @@ internal static class CreatureJobGenerator
             StartHour = window.Start,
             EndHour = window.End,
             Priority = 50,
-            RoomId = roomId,
+            LocationId = locationId,
             WorldId = worldId,
         };
     }
@@ -80,7 +80,7 @@ internal static class CreatureJobGenerator
         Guid stateId,
         Guid creatureId,
         CreatureJobAction action,
-        Guid? roomId,
+        Guid? locationId,
         DayOfWeek day,
         Guid worldId,
         HourWindow? hours = null
@@ -95,7 +95,7 @@ internal static class CreatureJobGenerator
             StartHour = window.Start,
             EndHour = window.End,
             Priority = DayOffPriority,
-            RoomId = roomId,
+            LocationId = locationId,
             SpecificDay = day,
             WorldId = worldId,
         };
@@ -105,7 +105,7 @@ internal static class CreatureJobGenerator
         Guid stateId,
         Guid creatureId,
         CreatureJobAction action,
-        Guid? roomId,
+        Guid? locationId,
         DayOfWeek day,
         Guid worldId,
         HourWindow? hours = null
@@ -120,7 +120,7 @@ internal static class CreatureJobGenerator
             StartHour = window.Start,
             EndHour = window.End,
             Priority = UnemployedActivityPriority,
-            RoomId = roomId,
+            LocationId = locationId,
             SpecificDay = day,
             WorldId = worldId,
         };
@@ -144,28 +144,28 @@ internal static class CreatureJobGenerator
         );
         jobs.Remove(existingSleep);
         jobs.Add(
-            GenerateSleep(stateId, creatureId, existingSleep.RoomId!.Value, worldId, sleepHours)
+            GenerateSleep(stateId, creatureId, existingSleep.LocationId!.Value, worldId, sleepHours)
         );
     }
 
     public static IReadOnlyList<CreatureJob> Generate(
         Guid stateId,
         Guid creatureId,
-        Guid sleepRoomId,
-        Guid? workRoomId,
-        Guid? idleRoomId,
+        Guid sleepLocationId,
+        Guid? workLocationId,
+        Guid? idleLocationId,
         Guid worldId
     )
     {
         var jobs = new List<CreatureJob>
         {
-            GenerateSleep(stateId, creatureId, sleepRoomId, worldId),
-            GenerateIdle(stateId, creatureId, idleRoomId, worldId),
+            GenerateSleep(stateId, creatureId, sleepLocationId, worldId),
+            GenerateIdle(stateId, creatureId, idleLocationId, worldId),
         };
 
-        if (workRoomId != null)
+        if (workLocationId != null)
         {
-            jobs.Add(GenerateWork(stateId, creatureId, workRoomId.Value, worldId));
+            jobs.Add(GenerateWork(stateId, creatureId, workLocationId.Value, worldId));
         }
 
         return jobs;

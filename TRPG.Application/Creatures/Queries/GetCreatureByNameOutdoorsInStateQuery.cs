@@ -24,7 +24,7 @@ internal class GetCreatureByNameOutdoorsInStateQueryHandler(TrpgDbContext contex
                 p =>
                     p.WorldId == query.WorldId
                     && p.StateId == query.StateId
-                    && p.RoomId == null
+                    && p.LocationId == null
                     && p.Name == query.Name,
                 cancellationToken
             );

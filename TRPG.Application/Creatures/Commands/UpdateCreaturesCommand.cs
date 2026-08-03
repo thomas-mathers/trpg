@@ -8,9 +8,7 @@ namespace TRPG.Application.Creatures.Commands;
 internal class UpdateCreaturesCommand
 {
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
-    public Optional<Guid?> CityId { get; init; }
-    public Optional<Guid?> DistrictId { get; init; }
-    public Optional<Guid?> RoomId { get; init; }
+    public Optional<Guid?> LocationId { get; init; }
     public CreatureState? State { get; init; }
     public TimeSpan? LastRegenPlaytime { get; init; }
 }
@@ -23,11 +21,7 @@ internal class UpdateCreaturesCommandHandler(TrpgDbContext context)
     )
     {
         var hasFieldToUpdate =
-            command.CityId.IsSet
-            || command.DistrictId.IsSet
-            || command.RoomId.IsSet
-            || command.State != null
-            || command.LastRegenPlaytime != null;
+            command.LocationId.IsSet || command.State != null || command.LastRegenPlaytime != null;
 
         if (command.CreatureIds.Count == 0 || !hasFieldToUpdate)
         {
@@ -39,17 +33,9 @@ internal class UpdateCreaturesCommandHandler(TrpgDbContext context)
             .ExecuteUpdateAsync(
                 s =>
                 {
-                    if (command.CityId.IsSet)
+                    if (command.LocationId.IsSet)
                     {
-                        s.SetProperty(c => c.CityId, command.CityId.Value);
-                    }
-                    if (command.DistrictId.IsSet)
-                    {
-                        s.SetProperty(c => c.DistrictId, command.DistrictId.Value);
-                    }
-                    if (command.RoomId.IsSet)
-                    {
-                        s.SetProperty(c => c.RoomId, command.RoomId.Value);
+                        s.SetProperty(c => c.LocationId, command.LocationId.Value);
                     }
                     if (command.State != null)
                     {

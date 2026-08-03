@@ -43,8 +43,7 @@ internal class LookTool(
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                RoomId = player!.RoomId,
-                DistrictId = player.DistrictId,
+                LocationId = player!.LocationId,
                 StateId = player.StateId,
                 CurrentDate = currentDate,
             },

@@ -8,7 +8,7 @@ public class DungeonPopulatorTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _stateId = Guid.NewGuid();
-    private readonly Guid _roomId = Guid.NewGuid();
+    private readonly Guid _locationId = Guid.NewGuid();
     private readonly DungeonPopulator _dungeonPopulator = new(Builders.MakeCreatureGenerator());
 
     private DungeonPopulatorInput MakeInput(BuildingType dungeonType)
@@ -16,7 +16,7 @@ public class DungeonPopulatorTests
         return new DungeonPopulatorInput
         {
             StateId = _stateId,
-            RoomId = _roomId,
+            LocationId = _locationId,
             WorldId = _worldId,
             DungeonType = dungeonType,
         };
@@ -32,7 +32,7 @@ public class DungeonPopulatorTests
 
             // Assert
             Assert.InRange(monsters.Count, 1, 3);
-            Assert.All(monsters, m => Assert.Equal(_roomId, m.Creature.RoomId));
+            Assert.All(monsters, m => Assert.Equal(_locationId, m.Creature.LocationId));
             Assert.All(monsters, m => Assert.InRange(m.Creature.Level, 1, 3));
         }
     }
@@ -97,9 +97,8 @@ public class DungeonPopulatorTests
         // Act
         var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Tower));
 
-        // Assert — no profession, no city, and a fixed description instead of a generated life story
+        // Assert — no profession, and a fixed description instead of a generated life story
         Assert.All(monsters, m => Assert.Null(m.Creature.Profession));
-        Assert.All(monsters, m => Assert.Null(m.Creature.CityId));
         Assert.All(monsters, m => Assert.False(string.IsNullOrWhiteSpace(m.Creature.Biography)));
     }
 

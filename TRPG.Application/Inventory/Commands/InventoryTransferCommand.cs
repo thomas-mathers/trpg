@@ -33,10 +33,7 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
                 cancellationToken
             ) ?? throw new InvalidOperationException($"Creature {command.ToCreatureId} not found.");
 
-        var sameLocation =
-            fromCreature.RoomId != null
-                ? fromCreature.RoomId == toCreature.RoomId
-                : fromCreature.DistrictId == toCreature.DistrictId;
+        var sameLocation = fromCreature.LocationId == toCreature.LocationId;
         if (!sameLocation)
         {
             throw new InvalidOperationException(

@@ -15,6 +15,7 @@ internal record CreatureSummary(
     CreatureState State,
     int Gold,
     Guid StateId,
+    Guid? LocationId,
     Guid? DistrictId,
     Guid? RoomId,
     Guid? CityId,
@@ -39,8 +40,6 @@ internal record CreatureSummary(
     float PoisonResistance,
     float MagicResistance
 );
-
-internal record CreatureLocation(Guid WorldId, Guid? RoomId, Guid StateId, Guid? DistrictId);
 
 internal static class CreatureLocationFiltering
 {
@@ -84,13 +83,37 @@ internal static class CreatureLocationFiltering
                     .Where(g => g.Ownership.OwnerId == p.Id)
                     .Select(g => (int?)g.Quantity)
                     .FirstOrDefault(),
+                Location = context
+                    .Locations.Where(l => p.LocationId == l.Id)
+                    .Select(l => new
+                    {
+                        l.CityId,
+                        l.DistrictId,
+                        l.RoomId,
+                    })
+                    .FirstOrDefault(),
             })
             .ToArrayAsync(cancellationToken);
 
-        return rows.Select(r => ToCreatureSummary(r.Creature, r.Gold ?? 0)).ToArray();
+        return rows.Select(r =>
+                ToCreatureSummary(
+                    r.Creature,
+                    r.Gold ?? 0,
+                    r.Location?.CityId,
+                    r.Location?.DistrictId,
+                    r.Location?.RoomId
+                )
+            )
+            .ToArray();
     }
 
-    private static CreatureSummary ToCreatureSummary(Creature p, int gold) =>
+    private static CreatureSummary ToCreatureSummary(
+        Creature p,
+        int gold,
+        Guid? cityId,
+        Guid? districtId,
+        Guid? roomId
+    ) =>
         new(
             p.Id,
             p.Name,
@@ -102,9 +125,10 @@ internal static class CreatureLocationFiltering
             p.State,
             gold,
             p.StateId,
-            p.DistrictId,
-            p.RoomId,
-            p.CityId,
+            p.LocationId,
+            districtId,
+            roomId,
+            cityId,
             p.CurrentHp,
             p.MaximumHp,
             p.CurrentAp,
@@ -130,7 +154,8 @@ internal static class CreatureLocationFiltering
 
 internal class GetCreaturesAtLocationQuery
 {
-    public required CreatureLocation Location { get; init; }
+    public required Guid WorldId { get; init; }
+    public required Guid LocationId { get; init; }
     public Guid? ExcludingCreatureId { get; init; }
     public IReadOnlyCollection<CreatureType>? CreatureTypes { get; init; }
     public bool IncludeDead { get; init; } = true;
@@ -143,23 +168,9 @@ internal class GetCreaturesAtLocationQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var location = query.Location;
-        var creatureQuery = location.RoomId is { } roomId
-            ? context
-                .Creatures.AsNoTracking()
-                .Where(p =>
-                    p.WorldId == location.WorldId
-                    && p.StateId == location.StateId
-                    && p.RoomId == roomId
-                )
-            : context
-                .Creatures.AsNoTracking()
-                .Where(p =>
-                    p.WorldId == location.WorldId
-                    && p.StateId == location.StateId
-                    && p.DistrictId == location.DistrictId
-                    && p.RoomId == null
-                );
+        var creatureQuery = context
+            .Creatures.AsNoTracking()
+            .Where(p => p.WorldId == query.WorldId && p.LocationId == query.LocationId);
 
         creatureQuery = CreatureLocationFiltering.ApplyFilters(
             creatureQuery,

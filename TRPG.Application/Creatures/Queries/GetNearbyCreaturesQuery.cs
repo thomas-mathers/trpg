@@ -22,14 +22,12 @@ internal class GetNearbyCreaturesQueryHandler(TrpgDbContext context)
         var creatureQuery = context
             .Creatures.AsNoTracking()
             .Where(c =>
-                context.Creatures.Any(p =>
+                c.Id == query.PlayerId
+                || context.Creatures.Any(p =>
                     p.Id == query.PlayerId
                     && p.WorldId == c.WorldId
-                    && p.StateId == c.StateId
-                    && (
-                        (p.RoomId != null && p.RoomId == c.RoomId)
-                        || (p.RoomId == null && c.RoomId == null && p.DistrictId == c.DistrictId)
-                    )
+                    && p.LocationId != null
+                    && p.LocationId == c.LocationId
                 )
             );
 

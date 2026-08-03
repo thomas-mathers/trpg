@@ -8,7 +8,12 @@ internal record DungeonGeneratorInput(
     Guid WorldId
 );
 
-internal record DungeonGeneratorResult(Building Building, Room Room, IReadOnlyList<Prop> Props);
+internal record DungeonGeneratorResult(
+    Building Building,
+    Room Room,
+    Location Location,
+    IReadOnlyList<Prop> Props
+);
 
 internal static class DungeonGenerator
 {
@@ -121,9 +126,13 @@ internal static class DungeonGenerator
             Name = name,
             WorldId = input.WorldId,
         };
+        var roomId = Guid.NewGuid();
+        var location = LocationGenerator.Generate(input.WorldId, input.StateId, roomId: roomId);
         var room = new Room
         {
+            Id = roomId,
             BuildingId = building.Id,
+            LocationId = location.Id,
             Name = RoomNames[type],
             Description = "",
             FloorNumber = 0,
@@ -137,6 +146,6 @@ internal static class DungeonGenerator
             DestinationRoomId = null,
             WorldId = input.WorldId,
         };
-        return new DungeonGeneratorResult(building, room, [frontDoor]);
+        return new DungeonGeneratorResult(building, room, location, [frontDoor]);
     }
 }

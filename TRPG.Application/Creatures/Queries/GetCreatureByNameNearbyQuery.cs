@@ -10,8 +10,7 @@ internal class GetCreatureByNameNearbyQuery
 }
 
 internal class GetCreatureByNameNearbyQueryHandler(
-    GetCreatureByNameInRoomQueryHandler getByNameInRoom,
-    GetCreatureByNameOutdoorsInDistrictQueryHandler getByNameOutdoorsInDistrict,
+    GetCreatureByNameAtLocationQueryHandler getByNameAtLocation,
     GetCreatureByNameOutdoorsInStateQueryHandler getByNameOutdoorsInState
 )
 {
@@ -22,25 +21,12 @@ internal class GetCreatureByNameNearbyQueryHandler(
     {
         var player = query.Player;
 
-        if (player.RoomId is { } roomId)
-        {
-            return await getByNameInRoom.Handle(
-                new GetCreatureByNameInRoomQuery
+        return player.LocationId is { } locationId
+            ? await getByNameAtLocation.Handle(
+                new GetCreatureByNameAtLocationQuery
                 {
                     WorldId = query.WorldId,
-                    RoomId = roomId,
-                    Name = query.Name,
-                },
-                cancellationToken
-            );
-        }
-
-        return player.DistrictId is { } districtId
-            ? await getByNameOutdoorsInDistrict.Handle(
-                new GetCreatureByNameOutdoorsInDistrictQuery
-                {
-                    WorldId = query.WorldId,
-                    DistrictId = districtId,
+                    LocationId = locationId,
                     Name = query.Name,
                 },
                 cancellationToken

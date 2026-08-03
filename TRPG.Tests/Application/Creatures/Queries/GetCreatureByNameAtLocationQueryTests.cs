@@ -5,18 +5,17 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Creatures.Queries;
 
 [Collection("Database")]
-public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixture db)
-    : IAsyncLifetime
+public sealed class GetCreatureByNameAtLocationQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
-    private GetCreatureByNameOutdoorsInDistrictQueryHandler _handler = null!;
+    private GetCreatureByNameAtLocationQueryHandler _handler = null!;
 
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetCreatureByNameOutdoorsInDistrictQueryHandler(_context);
+        _handler = new GetCreatureByNameAtLocationQueryHandler(_context);
         return ValueTask.CompletedTask;
     }
 
@@ -26,20 +25,20 @@ public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixtur
     }
 
     [Fact]
-    public async Task Handle_ReturnsCreature_WhenInDistrict()
+    public async Task Handle_ReturnsCreature_WhenAtLocation()
     {
         // Arrange
-        var districtId = Guid.NewGuid();
-        var creature = Builders.MakeCreature(WorldId, districtId: districtId);
+        var locationId = Guid.NewGuid();
+        var creature = Builders.MakeCreature(WorldId, locationId: locationId);
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new GetCreatureByNameOutdoorsInDistrictQuery
+            new GetCreatureByNameAtLocationQuery
             {
                 WorldId = WorldId,
-                DistrictId = districtId,
+                LocationId = locationId,
                 Name = creature.Name,
             },
             TestContext.Current.CancellationToken
@@ -51,19 +50,19 @@ public sealed class GetCreatureByNameOutdoorsInDistrictQueryTests(DatabaseFixtur
     }
 
     [Fact]
-    public async Task Handle_ReturnsNull_WhenInDifferentDistrict()
+    public async Task Handle_ReturnsNull_WhenAtDifferentLocation()
     {
         // Arrange
-        var creature = Builders.MakeCreature(WorldId, districtId: Guid.NewGuid());
+        var creature = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new GetCreatureByNameOutdoorsInDistrictQuery
+            new GetCreatureByNameAtLocationQuery
             {
                 WorldId = WorldId,
-                DistrictId = Guid.NewGuid(),
+                LocationId = Guid.NewGuid(),
                 Name = creature.Name,
             },
             TestContext.Current.CancellationToken

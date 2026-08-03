@@ -30,6 +30,7 @@ internal record MovePlayerResult(MovePlayerOutcome Outcome, Creature Player);
 
 internal class MovePlayerCommandHandler(
     GetCreatureByIdQueryHandler getCreatureById,
+    GetLocationByIdQueryHandler getLocationById,
     GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
     UpdateCreaturesCommandHandler updateCreatures,
     DeleteCreaturesCommandHandler deleteCreatures,
@@ -53,34 +54,37 @@ internal class MovePlayerCommandHandler(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
         );
-        var oldRoomId = player!.RoomId;
-        var oldDistrictId = player.DistrictId;
+        var oldLocationId = player!.LocationId;
+        var currentLocation =
+            player.LocationId != null
+                ? await getLocationById.Handle(
+                    new GetLocationByIdQuery { Id = player.LocationId.Value },
+                    cancellationToken
+                )
+                : null;
 
         var outcome =
-            player.RoomId == null
-                ? await MoveOutdoors(player, command, cancellationToken)
-                : await MoveIndoors(player, command.DestinationName, cancellationToken);
+            currentLocation?.RoomId == null
+                ? await MoveOutdoors(player, currentLocation, command, cancellationToken)
+                : await MoveIndoors(
+                    player,
+                    currentLocation.RoomId.Value,
+                    command.DestinationName,
+                    cancellationToken
+                );
 
         if (outcome != MovePlayerOutcome.Moved)
         {
             return new MovePlayerResult(outcome, player);
         }
 
-        await CleanUpDeadCreatures(
-            player.WorldId,
-            player.StateId,
-            oldRoomId,
-            oldDistrictId,
-            cancellationToken
-        );
+        await CleanUpDeadCreatures(player.WorldId, oldLocationId, cancellationToken);
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
             {
                 CreatureIds = [player.Id],
-                CityId = Optional<Guid?>.Of(player.CityId),
-                DistrictId = Optional<Guid?>.Of(player.DistrictId),
-                RoomId = Optional<Guid?>.Of(player.RoomId),
+                LocationId = Optional<Guid?>.Of(player.LocationId),
             },
             cancellationToken
         );
@@ -90,17 +94,17 @@ internal class MovePlayerCommandHandler(
 
     private async Task CleanUpDeadCreatures(
         Guid worldId,
-        Guid stateId,
-        Guid? oldRoomId,
-        Guid? oldDistrictId,
+        Guid? oldLocationId,
         CancellationToken cancellationToken
     )
     {
+        if (oldLocationId == null)
+        {
+            return;
+        }
+
         var nearby = await getCreaturesAtLocation.Handle(
-            new GetCreaturesAtLocationQuery
-            {
-                Location = new CreatureLocation(worldId, oldRoomId, stateId, oldDistrictId),
-            },
+            new GetCreaturesAtLocationQuery { WorldId = worldId, LocationId = oldLocationId.Value },
             cancellationToken
         );
 
@@ -128,6 +132,7 @@ internal class MovePlayerCommandHandler(
 
     private async Task<MovePlayerOutcome> MoveOutdoors(
         Creature player,
+        Location? currentLocation,
         MovePlayerCommand command,
         CancellationToken cancellationToken
     )
@@ -178,14 +183,12 @@ internal class MovePlayerCommandHandler(
                 return MovePlayerOutcome.DoorLocked;
             }
 
-            player.CityId = building.CityId;
-            player.DistrictId = building.DistrictId;
-            player.RoomId = entranceRoom.Id;
+            player.LocationId = entranceRoom.LocationId;
             return MovePlayerOutcome.Moved;
         }
 
         var cityId =
-            player.CityId
+            currentLocation?.CityId
             ?? (
                 await getCityByStateId.Handle(
                     new GetCityByStateIdQuery { StateId = player.StateId },
@@ -205,8 +208,7 @@ internal class MovePlayerCommandHandler(
                 : null;
         if (district != null)
         {
-            player.CityId = cityId;
-            player.DistrictId = district.Id;
+            player.LocationId = district.LocationId;
             return MovePlayerOutcome.Moved;
         }
 
@@ -215,6 +217,7 @@ internal class MovePlayerCommandHandler(
 
     private async Task<MovePlayerOutcome> MoveIndoors(
         Creature player,
+        Guid currentRoomId,
         string destinationName,
         CancellationToken cancellationToken
     )
@@ -222,7 +225,7 @@ internal class MovePlayerCommandHandler(
         var exitMatch = await getExitByDestinationName.Handle(
             new GetExitByDestinationNameQuery
             {
-                RoomId = player.RoomId!.Value,
+                RoomId = currentRoomId,
                 DestinationName = destinationName,
             },
             cancellationToken
@@ -232,7 +235,7 @@ internal class MovePlayerCommandHandler(
             return MovePlayerOutcome.ExitNotFound;
         }
 
-        player.RoomId = exitMatch.DestinationRoomId;
+        player.LocationId = exitMatch.DestinationLocationId;
         return MovePlayerOutcome.Moved;
     }
 }

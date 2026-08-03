@@ -61,7 +61,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Equal(entranceRoom.Id, result.Player.RoomId);
+        Assert.Equal(entranceRoom.LocationId, result.Player.LocationId);
     }
 
     [Fact]
@@ -131,11 +131,12 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_MovesToTheDistrict_WhenOutdoorsAndNoBuildingMatchesButADistrictDoes()
     {
-        // Arrange
+        // Arrange — no location on the player at all; MoveOutdoors falls back to the state's
+        // single city when there's no current location to read a CityId from
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: WorldId);
         var district = Builders.MakeDistrict(city.Id, worldId: WorldId, name: "Market Row");
-        var player = Builders.MakeCreature(WorldId, stateId: stateId, cityId: city.Id);
+        var player = Builders.MakeCreature(WorldId, stateId: stateId);
         _context.Cities.Add(city);
         _context.Districts.Add(district);
         _context.Creatures.Add(player);
@@ -153,7 +154,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Equal(district.Id, result.Player.DistrictId);
+        Assert.Equal(district.LocationId, result.Player.LocationId);
     }
 
     [Fact]
@@ -184,7 +185,13 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     {
         // Arrange
         var building = Builders.MakeBuilding(StateId);
-        var currentRoom = Builders.MakeRoom(building.Id);
+        var currentRoomId = Guid.NewGuid();
+        var currentLocation = Builders.MakeLocation(WorldId, StateId, roomId: currentRoomId);
+        var currentRoom = Builders.MakeRoom(
+            building.Id,
+            id: currentRoomId,
+            locationId: currentLocation.Id
+        );
         var nextRoom = Builders.MakeRoom(building.Id, capacity: 4);
         var connector = Builders.MakeRoomConnector(
             currentRoom.Id,
@@ -192,9 +199,14 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             name: "Hallway",
             description: "A hallway."
         );
-        var player = Builders.MakeCreature(WorldId, stateId: StateId, roomId: currentRoom.Id);
+        var player = Builders.MakeCreature(
+            WorldId,
+            stateId: StateId,
+            locationId: currentRoom.LocationId
+        );
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(currentRoom, nextRoom);
+        _context.Locations.Add(currentLocation);
         _context.Props.Add(connector);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -211,7 +223,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Equal(nextRoom.Id, result.Player.RoomId);
+        Assert.Equal(nextRoom.LocationId, result.Player.LocationId);
     }
 
     [Fact]
@@ -219,10 +231,21 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     {
         // Arrange
         var building = Builders.MakeBuilding(StateId);
-        var currentRoom = Builders.MakeRoom(building.Id);
-        var player = Builders.MakeCreature(WorldId, stateId: StateId, roomId: currentRoom.Id);
+        var currentRoomId = Guid.NewGuid();
+        var currentLocation = Builders.MakeLocation(WorldId, StateId, roomId: currentRoomId);
+        var currentRoom = Builders.MakeRoom(
+            building.Id,
+            id: currentRoomId,
+            locationId: currentLocation.Id
+        );
+        var player = Builders.MakeCreature(
+            WorldId,
+            stateId: StateId,
+            locationId: currentRoom.LocationId
+        );
         _context.Buildings.Add(building);
         _context.Rooms.Add(currentRoom);
+        _context.Locations.Add(currentLocation);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -248,7 +271,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: WorldId);
         var district = Builders.MakeDistrict(city.Id, worldId: WorldId, name: "Market Row");
-        var player = Builders.MakeCreature(WorldId, stateId: stateId, cityId: city.Id);
+        var player = Builders.MakeCreature(WorldId, stateId: stateId);
         _context.Cities.Add(city);
         _context.Districts.Add(district);
         _context.Creatures.Add(player);
@@ -271,7 +294,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             [player.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(district.Id, updated!.DistrictId);
+        Assert.Equal(district.LocationId, updated!.LocationId);
     }
 
     [Fact]
@@ -290,14 +313,12 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         var player = Builders.MakeCreature(
             WorldId,
             stateId: stateId,
-            cityId: city.Id,
-            districtId: oldDistrict.Id
+            locationId: oldDistrict.LocationId
         );
         var corpse = Builders.MakeCreature(
             WorldId,
             stateId: stateId,
-            cityId: city.Id,
-            districtId: oldDistrict.Id,
+            locationId: oldDistrict.LocationId,
             state: CreatureState.Dead
         );
         _context.Cities.Add(city);

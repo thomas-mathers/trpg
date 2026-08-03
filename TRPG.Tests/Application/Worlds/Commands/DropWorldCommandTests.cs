@@ -44,6 +44,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         var faction = Builders.MakeFaction(worldId);
         var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: worldId);
         var room = Builders.MakeRoom(building.Id, worldId: worldId);
+        var location = Builders.MakeLocation(worldId, roomId: room.Id);
         var bed = new Bed
         {
             RoomId = room.Id,
@@ -71,6 +72,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         _context.Factions.Add(faction);
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);
+        _context.Locations.Add(location);
         _context.Props.Add(bed);
         _context.Items.Add(item);
         _context.FactionMembers.Add(factionMember);
@@ -133,6 +135,10 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         Assert.Equal(
             expected,
             await verifyContext.Rooms.AnyAsync(x => x.WorldId == worldId, cancellationToken)
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.Locations.AnyAsync(x => x.WorldId == worldId, cancellationToken)
         );
         Assert.Equal(
             expected,

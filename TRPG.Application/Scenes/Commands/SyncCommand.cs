@@ -6,6 +6,7 @@ using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Scenes.Commands;
@@ -13,13 +14,13 @@ namespace TRPG.Application.Scenes.Commands;
 internal class SyncCommand
 {
     public required Guid WorldId { get; init; }
-    public required Guid? RoomId { get; init; }
-    public required Guid? DistrictId { get; init; }
+    public required Guid LocationId { get; init; }
     public required InGameDate CurrentDate { get; init; }
 }
 
 internal class SyncCommandHandler(
-    GetCreatureIdsWithCreatureJobInRoomQueryHandler getCreatureIdsWithJobInRoom,
+    GetLocationByIdQueryHandler getLocationById,
+    GetCreatureIdsWithCreatureJobInLocationQueryHandler getCreatureIdsWithJobInLocation,
     GetAllCreatureJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
     GetCreatureIdsByDistrictQueryHandler getCreatureIdsByDistrict,
     GetCreatureByIdQueryHandler getCreatureById,
@@ -33,16 +34,25 @@ internal class SyncCommandHandler(
 {
     public async Task Handle(SyncCommand command, CancellationToken cancellationToken = default)
     {
-        if (command.RoomId != null)
+        var location = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = command.LocationId },
+            cancellationToken
+        );
+        if (location == null)
         {
-            await CatchUpRoom(command.RoomId.Value, command.CurrentDate, cancellationToken);
-            await SyncFrontDoorLock(command.RoomId.Value, command.CurrentDate, cancellationToken);
+            return;
         }
-        else if (command.DistrictId != null)
+
+        if (location.RoomId != null)
+        {
+            await CatchUpRoom(command.LocationId, command.CurrentDate, cancellationToken);
+            await SyncFrontDoorLock(location.RoomId.Value, command.CurrentDate, cancellationToken);
+        }
+        else if (location.DistrictId != null)
         {
             await CatchUpDistrict(
                 command.WorldId,
-                command.DistrictId.Value,
+                location.DistrictId.Value,
                 command.CurrentDate,
                 cancellationToken
             );
@@ -50,13 +60,13 @@ internal class SyncCommandHandler(
     }
 
     private async Task CatchUpRoom(
-        Guid roomId,
+        Guid locationId,
         InGameDate currentDate,
         CancellationToken cancellationToken
     )
     {
-        var creatureIds = await getCreatureIdsWithJobInRoom.Handle(
-            new GetCreatureIdsWithCreatureJobInRoomQuery { RoomId = roomId },
+        var creatureIds = await getCreatureIdsWithJobInLocation.Handle(
+            new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = locationId },
             cancellationToken
         );
         await CatchUp("Room", creatureIds, currentDate, cancellationToken);
@@ -84,7 +94,7 @@ internal class SyncCommandHandler(
     )
     {
         var stopwatch = Stopwatch.StartNew();
-        var workingCreaturesByRoomId = new Dictionary<Guid, List<Guid>>();
+        var workingCreaturesByLocationId = new Dictionary<Guid, List<Guid>>();
 
         foreach (var creatureId in creatureIds)
         {
@@ -116,25 +126,25 @@ internal class SyncCommandHandler(
                     new ExecuteCreatureJobCommand
                     {
                         CreatureId = creature.Id,
-                        CurrentRoomId = creature.RoomId,
+                        CurrentLocationId = creature.LocationId,
                         CurrentState = creature.State,
                         CreatureJobAction = dueJob.Action,
-                        JobRoomId = dueJob.RoomId,
+                        JobLocationId = dueJob.LocationId,
                     },
                     cancellationToken
                 );
             }
 
-            if (dueJob.Action == CreatureJobAction.Work && dueJob.RoomId != null)
+            if (dueJob.Action == CreatureJobAction.Work && dueJob.LocationId != null)
             {
-                workingCreaturesByRoomId.TryAdd(dueJob.RoomId.Value, []);
-                workingCreaturesByRoomId[dueJob.RoomId.Value].Add(creatureId);
+                workingCreaturesByLocationId.TryAdd(dueJob.LocationId.Value, []);
+                workingCreaturesByLocationId[dueJob.LocationId.Value].Add(creatureId);
             }
         }
 
-        foreach (var (roomId, presentCreatureIds) in workingCreaturesByRoomId)
+        foreach (var (locationId, presentCreatureIds) in workingCreaturesByLocationId)
         {
-            await AssignWorkstations(roomId, presentCreatureIds, cancellationToken);
+            await AssignWorkstations(locationId, presentCreatureIds, cancellationToken);
         }
 
         stopwatch.Stop();
@@ -148,13 +158,22 @@ internal class SyncCommandHandler(
     }
 
     private async Task AssignWorkstations(
-        Guid roomId,
+        Guid locationId,
         IReadOnlyList<Guid> presentCreatureIds,
         CancellationToken cancellationToken
     )
     {
+        var location = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = locationId },
+            cancellationToken
+        );
+        if (location?.RoomId == null)
+        {
+            return;
+        }
+
         var workstations = await getWorkstationsByRoomId.Handle(
-            new GetWorkstationsByRoomIdQuery { RoomId = roomId },
+            new GetWorkstationsByRoomIdQuery { RoomId = location.RoomId.Value },
             cancellationToken
         );
         var counter = workstations.Where(w => w.WorkstationType == WorkstationType.Trade);

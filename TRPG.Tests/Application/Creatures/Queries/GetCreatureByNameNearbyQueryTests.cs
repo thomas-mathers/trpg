@@ -38,9 +38,7 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
         var target = Builders.MakeCreature(
             WorldId,
             stateId: player.StateId,
-            cityId: player.CityId,
-            districtId: player.DistrictId,
-            roomId: player.RoomId
+            locationId: player.LocationId
         );
         _context.Creatures.Add(target);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -48,10 +46,10 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
     }
 
     [Fact]
-    public async Task Handle_ReturnsCreature_WhenIndoors()
+    public async Task Handle_ReturnsCreature_WhenAtSameLocation()
     {
         // Arrange
-        var player = Builders.MakeCreature(WorldId, roomId: Guid.NewGuid());
+        var player = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
         var target = await SeedTargetNear(player);
 
         // Act
@@ -71,30 +69,7 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
     }
 
     [Fact]
-    public async Task Handle_ScopesToDistrict_WhenOutdoorsInCity()
-    {
-        // Arrange
-        var player = Builders.MakeCreature(WorldId, districtId: Guid.NewGuid());
-        var target = await SeedTargetNear(player);
-
-        // Act
-        var result = await _handler.Handle(
-            new GetCreatureByNameNearbyQuery
-            {
-                WorldId = WorldId,
-                Player = player,
-                Name = target.Name,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(target.Id, result.Id);
-    }
-
-    [Fact]
-    public async Task Handle_ScopesToState_WhenOutdoorsWithNoCity()
+    public async Task Handle_ScopesToState_WhenPlayerHasNoLocation()
     {
         // Arrange
         var player = Builders.MakeCreature(WorldId, stateId: Guid.NewGuid());

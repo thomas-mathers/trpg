@@ -30,6 +30,9 @@ public class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache)
         await context.Props.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Rooms.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context
+            .Locations.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
             .BuildingOwners.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
         await context

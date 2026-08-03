@@ -6,7 +6,7 @@ namespace TRPG.Application.Worlds.Generators;
 public class DungeonPopulatorInput
 {
     public required Guid StateId { get; init; }
-    public required Guid RoomId { get; init; }
+    public required Guid LocationId { get; init; }
     public required Guid WorldId { get; init; }
     public required BuildingType DungeonType { get; init; }
 }
@@ -88,7 +88,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             result = creatureGenerator.AddStartingPotions(result);
         }
 
-        result.Creature.RoomId = input.RoomId;
+        result.Creature.LocationId = input.LocationId;
 
         return result;
     }

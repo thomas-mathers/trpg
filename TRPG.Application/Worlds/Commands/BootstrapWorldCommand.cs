@@ -35,6 +35,7 @@ public class BootstrapWorldCommandHandler(
         context.BuildingOwners.AddRange(world.BuildingOwners);
         context.Items.AddRange(world.Items);
         context.Rooms.AddRange(world.Rooms);
+        context.Locations.AddRange(world.Locations);
         context.Props.AddRange(world.Props);
         context.CreatureSkills.AddRange(world.Skills);
         context.CreatureAbilities.AddRange(world.Abilities);

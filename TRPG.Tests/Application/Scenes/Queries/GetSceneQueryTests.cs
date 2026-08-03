@@ -29,12 +29,24 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         var country = Builders.MakeCountry(WorldId);
         _state = Builders.MakeState(country.Id);
+        var sharedLocation = Builders.MakeLocation(WorldId, _state.Id);
 
-        _player = Builders.MakeCreature(WorldId, stateId: _state.Id, birthYear: 950);
-        _nearbyCreature = Builders.MakeCreature(WorldId, stateId: _state.Id, birthYear: 900);
+        _player = Builders.MakeCreature(
+            WorldId,
+            stateId: _state.Id,
+            birthYear: 950,
+            locationId: sharedLocation.Id
+        );
+        _nearbyCreature = Builders.MakeCreature(
+            WorldId,
+            stateId: _state.Id,
+            birthYear: 900,
+            locationId: sharedLocation.Id
+        );
 
         _context.Countries.Add(country);
         _context.States.Add(_state);
+        _context.Locations.Add(sharedLocation);
         _context.Creatures.AddRange(_player, _nearbyCreature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -85,10 +97,10 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_ReturnsNoNearbyCreatures_WhenNooneElseIsAtTheSameLocation()
     {
-        // Arrange - a distinct district isolates the player from _nearbyCreature (both otherwise
-        // outdoors in the same state), exercising BuildNearbyPeopleInfos's early return when
-        // nobody's nearby instead of running the faction/reputation queries for nothing
-        _player.DistrictId = Guid.NewGuid();
+        // Arrange - moving the player off the shared Location isolates them from _nearbyCreature,
+        // exercising BuildNearbyPeopleInfos's early return when nobody's nearby instead of running
+        // the faction/reputation queries for nothing
+        _player.LocationId = Guid.NewGuid();
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -129,7 +141,14 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var building = Builders.MakeBuilding(_state.Id);
-        var room = Builders.MakeRoom(building.Id, worldId: WorldId);
+        var roomId = Guid.NewGuid();
+        var location = Builders.MakeLocation(WorldId, _state.Id, roomId: roomId);
+        var room = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            id: roomId,
+            locationId: location.Id
+        );
         var destinationRoom = Builders.MakeRoom(building.Id, worldId: WorldId);
         var connector = Builders.MakeRoomConnector(
             room.Id,
@@ -140,8 +159,9 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         );
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(room, destinationRoom);
+        _context.Locations.Add(location);
         _context.Props.Add(connector);
-        _player.RoomId = room.Id;
+        _player.LocationId = room.LocationId;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery

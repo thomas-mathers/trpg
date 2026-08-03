@@ -38,12 +38,8 @@ internal class StartFightCommandHandler(
         var nearby = await getCreaturesAtLocation.Handle(
             new GetCreaturesAtLocationQuery
             {
-                Location = new CreatureLocation(
-                    player!.WorldId,
-                    player.RoomId,
-                    player.StateId,
-                    player.DistrictId
-                ),
+                WorldId = player!.WorldId,
+                LocationId = player.LocationId!.Value,
                 ExcludingCreatureId = player.Id,
                 CreatureTypes = HostileCreatureTypes,
                 IncludeDead = false,

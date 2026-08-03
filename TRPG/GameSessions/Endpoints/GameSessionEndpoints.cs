@@ -81,8 +81,7 @@ internal static class GameSessionEndpoints
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                RoomId = player.RoomId,
-                DistrictId = player.DistrictId,
+                LocationId = player.LocationId,
                 StateId = player.StateId,
                 CurrentDate = currentDate,
             },

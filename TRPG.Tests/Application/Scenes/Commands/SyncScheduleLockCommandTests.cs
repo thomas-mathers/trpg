@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
@@ -54,6 +55,12 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             new GetFrontDoorQuery { RoomId = roomId },
             TestContext.Current.CancellationToken
         );
+
+    private Task<Guid> GetRoomLocationId(Guid roomId) =>
+        _context
+            .Rooms.Where(r => r.Id == roomId)
+            .Select(r => r.LocationId)
+            .FirstAsync(TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task Handle_Locks_DuringSleepHours()
@@ -188,6 +195,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
+        var workLocationId = await GetRoomLocationId(frontDoor.RoomId);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -195,7 +203,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
                 startHour: 6,
                 endHour: 14,
                 priority: 50,
-                roomId: frontDoor.RoomId
+                locationId: workLocationId
             )
         );
 
@@ -222,6 +230,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
+        var workLocationId = await GetRoomLocationId(frontDoor.RoomId);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -229,7 +238,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
                 startHour: 6,
                 endHour: 14,
                 priority: 50,
-                roomId: frontDoor.RoomId
+                locationId: workLocationId
             )
         );
         await _handler.Handle(
@@ -265,6 +274,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
+        var workLocationId = await GetRoomLocationId(frontDoor.RoomId);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -272,7 +282,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
                 startHour: 8,
                 endHour: 18,
                 priority: 50,
-                roomId: frontDoor.RoomId
+                locationId: workLocationId
             )
         );
         await AddJob(

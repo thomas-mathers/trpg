@@ -7,19 +7,19 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.CreatureJobs.Queries;
 
 [Collection("Database")]
-public sealed class GetCreatureIdsWithCreatureJobInRoomQueryTests(DatabaseFixture db)
+public sealed class GetCreatureIdsWithCreatureJobInLocationQueryTests(DatabaseFixture db)
     : IAsyncLifetime
 {
     private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
-    private GetCreatureIdsWithCreatureJobInRoomQueryHandler _handler = null!;
+    private GetCreatureIdsWithCreatureJobInLocationQueryHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _addJob = new AddCreatureJobCommandHandler(_context);
-        _handler = new GetCreatureIdsWithCreatureJobInRoomQueryHandler(_context);
+        _handler = new GetCreatureIdsWithCreatureJobInLocationQueryHandler(_context);
 
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -34,7 +34,7 @@ public sealed class GetCreatureIdsWithCreatureJobInRoomQueryTests(DatabaseFixtur
     public async Task Handle_ReturnsDistinctCreatureIds()
     {
         // Arrange
-        var roomId = Guid.NewGuid();
+        var locationId = Guid.NewGuid();
         var otherCreature = Builders.MakeCreature();
         _context.Creatures.Add(otherCreature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -45,7 +45,7 @@ public sealed class GetCreatureIdsWithCreatureJobInRoomQueryTests(DatabaseFixtur
                 CreatureJob = Builders.MakeCreatureJob(
                     _creature.Id,
                     action: CreatureJobAction.Sleep,
-                    roomId: roomId
+                    locationId: locationId
                 ),
             },
             TestContext.Current.CancellationToken
@@ -56,7 +56,7 @@ public sealed class GetCreatureIdsWithCreatureJobInRoomQueryTests(DatabaseFixtur
                 CreatureJob = Builders.MakeCreatureJob(
                     _creature.Id,
                     action: CreatureJobAction.Work,
-                    roomId: roomId
+                    locationId: locationId
                 ),
             },
             TestContext.Current.CancellationToken
@@ -67,7 +67,7 @@ public sealed class GetCreatureIdsWithCreatureJobInRoomQueryTests(DatabaseFixtur
                 CreatureJob = Builders.MakeCreatureJob(
                     otherCreature.Id,
                     action: CreatureJobAction.Sleep,
-                    roomId: Guid.NewGuid()
+                    locationId: Guid.NewGuid()
                 ),
             },
             TestContext.Current.CancellationToken
@@ -75,7 +75,7 @@ public sealed class GetCreatureIdsWithCreatureJobInRoomQueryTests(DatabaseFixtur
 
         // Act
         var creatureIds = await _handler.Handle(
-            new GetCreatureIdsWithCreatureJobInRoomQuery { RoomId = roomId },
+            new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = locationId },
             TestContext.Current.CancellationToken
         );
 

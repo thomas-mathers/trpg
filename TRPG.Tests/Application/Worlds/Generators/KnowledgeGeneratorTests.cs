@@ -14,6 +14,7 @@ public class KnowledgeGeneratorTests
         IReadOnlyList<FactionMember>? factionMembers = null,
         IReadOnlyList<Faction>? factions = null,
         IReadOnlyList<City>? cities = null,
+        IReadOnlyList<Location>? locations = null,
         IReadOnlyList<State>? states = null,
         IReadOnlyList<Country>? countries = null
     )
@@ -26,10 +27,14 @@ public class KnowledgeGeneratorTests
             FactionMembers = factionMembers ?? [],
             Factions = factions ?? [],
             Cities = cities ?? [],
+            Locations = locations ?? [],
             States = states ?? [],
             Countries = countries ?? [],
         };
     }
+
+    private Location MakeCityLocation(Guid cityId) =>
+        Builders.MakeLocation(_worldId, cityId: cityId);
 
     [Fact]
     public void Generate_AddsSelfKnowledge_ForEveryCreature()
@@ -54,14 +59,18 @@ public class KnowledgeGeneratorTests
     public void Generate_AddsMutualKnowledge_WhenCreaturesShareACity()
     {
         // Arrange
-        var cityId = Guid.NewGuid();
-        var resident1 = Builders.MakeCreature(_worldId, cityId: cityId);
-        var resident2 = Builders.MakeCreature(_worldId, cityId: cityId);
-        var outsider = Builders.MakeCreature(_worldId, cityId: Guid.NewGuid());
+        var cityLocation = MakeCityLocation(Guid.NewGuid());
+        var outsiderLocation = MakeCityLocation(Guid.NewGuid());
+        var resident1 = Builders.MakeCreature(_worldId, locationId: cityLocation.Id);
+        var resident2 = Builders.MakeCreature(_worldId, locationId: cityLocation.Id);
+        var outsider = Builders.MakeCreature(_worldId, locationId: outsiderLocation.Id);
 
         // Act
         var knowledge = KnowledgeGenerator.Generate(
-            MakeInput(creatures: [resident1, resident2, outsider])
+            MakeInput(
+                creatures: [resident1, resident2, outsider],
+                locations: [cityLocation, outsiderLocation]
+            )
         );
 
         // Assert
@@ -81,8 +90,8 @@ public class KnowledgeGeneratorTests
     public void Generate_AddsKnowledge_WhenCreaturesAreRelated()
     {
         // Arrange
-        var parent = Builders.MakeCreature(_worldId, cityId: Guid.NewGuid());
-        var child = Builders.MakeCreature(_worldId, cityId: Guid.NewGuid());
+        var parent = Builders.MakeCreature(_worldId);
+        var child = Builders.MakeCreature(_worldId);
         var relationship = new Relationship
         {
             SubjectId = child.Id,
@@ -110,8 +119,8 @@ public class KnowledgeGeneratorTests
     public void Generate_AddsFactionAndFellowMemberKnowledge_WhenCreaturesShareAFaction()
     {
         // Arrange
-        var member1 = Builders.MakeCreature(_worldId, cityId: Guid.NewGuid());
-        var member2 = Builders.MakeCreature(_worldId, cityId: Guid.NewGuid());
+        var member1 = Builders.MakeCreature(_worldId);
+        var member2 = Builders.MakeCreature(_worldId);
         var faction = new Faction
         {
             WorldId = _worldId,
@@ -237,9 +246,9 @@ public class KnowledgeGeneratorTests
     public void Generate_EmitsNoDuplicates_WhenRulesOverlap()
     {
         // Arrange — same city AND related AND same faction: every pair rule fires for this couple
-        var cityId = Guid.NewGuid();
-        var wife = Builders.MakeCreature(_worldId, cityId: cityId);
-        var husband = Builders.MakeCreature(_worldId, cityId: cityId);
+        var cityLocation = MakeCityLocation(Guid.NewGuid());
+        var wife = Builders.MakeCreature(_worldId, locationId: cityLocation.Id);
+        var husband = Builders.MakeCreature(_worldId, locationId: cityLocation.Id);
         var faction = new Faction
         {
             WorldId = _worldId,
@@ -277,7 +286,8 @@ public class KnowledgeGeneratorTests
                 creatures: [wife, husband],
                 relationships: [relationship],
                 factionMembers: members,
-                factions: [faction]
+                factions: [faction],
+                locations: [cityLocation]
             )
         );
 

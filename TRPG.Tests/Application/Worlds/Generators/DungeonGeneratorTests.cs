@@ -19,6 +19,9 @@ public class DungeonGeneratorTests
         Assert.Equal(_worldId, result.Building.WorldId);
         Assert.Equal(result.Building.Id, result.Room.BuildingId);
         Assert.Equal(0, result.Room.FloorNumber);
+        Assert.Equal(result.Location.Id, result.Room.LocationId);
+        Assert.Null(result.Location.CityId);
+        Assert.Null(result.Location.DistrictId);
     }
 
     [Fact]

@@ -13,16 +13,16 @@ public class CreatureJobGeneratorTests
     public void Generate_AlwaysIncludesSleepAndIdle()
     {
         // Arrange
-        var sleepRoomId = Guid.NewGuid();
-        var idleRoomId = Guid.NewGuid();
+        var sleepLocationId = Guid.NewGuid();
+        var idleLocationId = Guid.NewGuid();
 
         // Act
         var jobs = CreatureJobGenerator.Generate(
             _stateId,
             _personId,
-            sleepRoomId,
+            sleepLocationId,
             null,
-            idleRoomId,
+            idleLocationId,
             _worldId
         );
 
@@ -31,26 +31,26 @@ public class CreatureJobGeneratorTests
         Assert.Equal(22, sleep.StartHour);
         Assert.Equal(6, sleep.EndHour);
         Assert.Equal(100, sleep.Priority);
-        Assert.Equal(sleepRoomId, sleep.RoomId);
+        Assert.Equal(sleepLocationId, sleep.LocationId);
 
         var idle = Assert.Single(jobs, j => j.Action == CreatureJobAction.Idle);
         Assert.Equal(6, idle.StartHour);
         Assert.Equal(22, idle.EndHour);
         Assert.Equal(0, idle.Priority);
-        Assert.Equal(idleRoomId, idle.RoomId);
+        Assert.Equal(idleLocationId, idle.LocationId);
     }
 
     [Fact]
-    public void Generate_OmitsWorkJob_WhenWorkRoomIdIsNull()
+    public void Generate_OmitsWorkJob_WhenWorkLocationIdIsNull()
     {
         // Arrange
-        var sleepRoomId = Guid.NewGuid();
+        var sleepLocationId = Guid.NewGuid();
 
         // Act
         var jobs = CreatureJobGenerator.Generate(
             _stateId,
             _personId,
-            sleepRoomId,
+            sleepLocationId,
             null,
             null,
             _worldId
@@ -62,19 +62,19 @@ public class CreatureJobGeneratorTests
     }
 
     [Fact]
-    public void Generate_IncludesWorkJob_WhenWorkRoomIdProvided()
+    public void Generate_IncludesWorkJob_WhenWorkLocationIdProvided()
     {
         // Arrange
-        var sleepRoomId = Guid.NewGuid();
-        var workRoomId = Guid.NewGuid();
+        var sleepLocationId = Guid.NewGuid();
+        var workLocationId = Guid.NewGuid();
 
         // Act
         var jobs = CreatureJobGenerator.Generate(
             _stateId,
             _personId,
-            sleepRoomId,
-            workRoomId,
-            workRoomId,
+            sleepLocationId,
+            workLocationId,
+            workLocationId,
             _worldId
         );
 
@@ -83,7 +83,7 @@ public class CreatureJobGeneratorTests
         Assert.Equal(8, work.StartHour);
         Assert.Equal(20, work.EndHour);
         Assert.Equal(50, work.Priority);
-        Assert.Equal(workRoomId, work.RoomId);
+        Assert.Equal(workLocationId, work.LocationId);
         Assert.Equal(3, jobs.Count);
     }
 
@@ -91,14 +91,14 @@ public class CreatureJobGeneratorTests
     public void GenerateDayOff_MatchesWorkHoursAndOutranksWork()
     {
         // Arrange
-        var roomId = Guid.NewGuid();
+        var locationId = Guid.NewGuid();
 
         // Act
         var job = CreatureJobGenerator.GenerateDayOff(
             _stateId,
             _personId,
             CreatureJobAction.Sit,
-            roomId,
+            locationId,
             DayOfWeek.Saturday,
             _worldId
         );
@@ -108,7 +108,7 @@ public class CreatureJobGeneratorTests
         Assert.Equal(8, job.StartHour);
         Assert.Equal(20, job.EndHour);
         Assert.Equal(DayOfWeek.Saturday, job.SpecificDay);
-        Assert.Equal(roomId, job.RoomId);
+        Assert.Equal(locationId, job.LocationId);
         Assert.True(
             job.Priority > 50,
             "Day-off jobs must outrank Work (50) to actually override it."
@@ -119,14 +119,14 @@ public class CreatureJobGeneratorTests
     public void GenerateUnemployedDayActivity_MatchesIdleHoursAndOutranksIdle()
     {
         // Arrange
-        var roomId = Guid.NewGuid();
+        var locationId = Guid.NewGuid();
 
         // Act
         var job = CreatureJobGenerator.GenerateUnemployedDayActivity(
             _stateId,
             _personId,
             CreatureJobAction.Study,
-            roomId,
+            locationId,
             DayOfWeek.Tuesday,
             _worldId
         );
@@ -136,7 +136,7 @@ public class CreatureJobGeneratorTests
         Assert.Equal(6, job.StartHour);
         Assert.Equal(22, job.EndHour);
         Assert.Equal(DayOfWeek.Tuesday, job.SpecificDay);
-        Assert.Equal(roomId, job.RoomId);
+        Assert.Equal(locationId, job.LocationId);
         Assert.True(
             job.Priority > 0,
             "Unemployed day activities must outrank the default Idle (0) to apply."

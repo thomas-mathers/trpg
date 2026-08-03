@@ -35,6 +35,7 @@ public class WorldGeneratorResult
     public required IReadOnlyList<Item> Items { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required IReadOnlyList<CreatureKnowledge> Knowledge { get; init; }
+    public required IReadOnlyList<Location> Locations { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
@@ -118,6 +119,7 @@ public class WorldGenerator(
         var factionMembers = new List<FactionMember>();
         var items = new List<Item>();
         var rooms = new List<Room>();
+        var locations = new List<Location>(geography.Locations);
         var props = new List<Prop>();
         var skills = new List<CreatureSkill>();
         var abilities = new List<CreatureAbility>();
@@ -152,6 +154,7 @@ public class WorldGenerator(
             factionMembers.AddRange(cityResult.FactionMembers);
             items.AddRange(cityResult.Items);
             rooms.AddRange(cityResult.Rooms);
+            locations.AddRange(cityResult.Locations);
             props.AddRange(cityResult.Props);
             skills.AddRange(cityResult.Skills);
             abilities.AddRange(cityResult.Abilities);
@@ -176,13 +179,14 @@ public class WorldGenerator(
                 usedNames.Add(result.Building.Name);
                 buildings.Add(result.Building);
                 rooms.Add(result.Room);
+                locations.Add(result.Location);
                 props.AddRange(result.Props);
 
                 var dungeonMonsters = dungeonPopulator.Generate(
                     new DungeonPopulatorInput
                     {
                         StateId = state.Id,
-                        RoomId = result.Room.Id,
+                        LocationId = result.Location.Id,
                         WorldId = worldId,
                         DungeonType = result.Building.BuildingType,
                     }
@@ -217,6 +221,7 @@ public class WorldGenerator(
                 FactionMembers = factionMembers,
                 Factions = factions,
                 Cities = geography.Cities,
+                Locations = locations,
                 States = geography.States,
                 Countries = geography.Countries,
             }
@@ -241,6 +246,7 @@ public class WorldGenerator(
             FactionMembers = factionMembers,
             Items = items,
             Rooms = rooms,
+            Locations = locations,
             Props = props,
             Skills = skills,
             Abilities = abilities,

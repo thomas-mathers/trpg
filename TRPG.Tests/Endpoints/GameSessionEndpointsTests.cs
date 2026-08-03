@@ -127,8 +127,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         var player = Builders.MakeCreature(
             world.Id,
             stateId: state.Id,
-            cityId: city.Id,
-            districtId: origin.Id
+            locationId: origin.LocationId
         );
         world.PlayerId = player.Id;
 
@@ -169,7 +168,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         var movedPlayer = await verifyContext
             .Creatures.AsNoTracking()
             .FirstAsync(c => c.Id == player.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(destination.Id, movedPlayer.DistrictId);
+        Assert.Equal(destination.LocationId, movedPlayer.LocationId);
     }
 
     [Fact]

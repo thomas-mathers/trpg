@@ -20,7 +20,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     private Guid _worldId;
     private Guid _playerId;
     private Guid _stateId;
-    private Guid _districtId;
+    private Guid _locationId;
 
     public async ValueTask InitializeAsync()
     {
@@ -34,12 +34,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var state = Builders.MakeState(country.Id, world.Id);
         var city = Builders.MakeCity(state.Id, country.Id, worldId: world.Id);
         var district = Builders.MakeDistrict(city.Id, worldId: world.Id);
-        var player = Builders.MakeCreature(
+        var location = Builders.MakeLocation(
             world.Id,
-            stateId: state.Id,
+            state.Id,
             cityId: city.Id,
             districtId: district.Id
         );
+        var player = Builders.MakeCreature(world.Id, stateId: state.Id, locationId: location.Id);
         world.PlayerId = player.Id;
 
         context.Worlds.Add(world);
@@ -47,13 +48,14 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         context.States.Add(state);
         context.Cities.Add(city);
         context.Districts.Add(district);
+        context.Locations.Add(location);
         context.Creatures.Add(player);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _worldId = world.Id;
         _playerId = player.Id;
         _stateId = state.Id;
-        _districtId = district.Id;
+        _locationId = location.Id;
     }
 
     public ValueTask DisposeAsync()
@@ -95,7 +97,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             name: "Wraith",
             creatureType: CreatureType.Beast,
             stateId: _stateId,
-            districtId: _districtId
+            locationId: _locationId
         );
         context.Creatures.Add(creature);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);

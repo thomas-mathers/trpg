@@ -26,6 +26,7 @@ public class GeographyGeneratorResult
     public required IReadOnlyList<Country> Countries { get; init; }
     public required IReadOnlyList<District> Districts { get; init; }
     public required IReadOnlyDictionary<Guid, CreatureType> DominantRaceByCountryId { get; init; }
+    public required IReadOnlyList<Location> Locations { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
     public required IReadOnlyList<State> States { get; init; }
     public required World World { get; init; }
@@ -92,6 +93,7 @@ public class GeographyGenerator(
             States = states.States,
             Cities = states.Cities,
             Districts = states.Districts,
+            Locations = states.Locations,
             Roads = roads,
             DominantRaceByCountryId = countries.DominantRaceByCountryId,
         };
@@ -258,6 +260,7 @@ public class GeographyGenerator(
         var states = new List<State>();
         var cities = new List<City>();
         var districts = new List<District>();
+        var locations = new List<Location>();
         var stateById = new Dictionary<Guid, State>();
 
         foreach (var (countryLayoutId, country) in countries.CountryById)
@@ -367,9 +370,14 @@ public class GeographyGenerator(
 
                         foreach (var districtType in chunkDistrictTypes[j])
                         {
-                            districts.Add(
-                                DistrictGenerator.Generate(districtType, city.Id, world.Id)
+                            var districtResult = DistrictGenerator.Generate(
+                                districtType,
+                                city.Id,
+                                state.Id,
+                                world.Id
                             );
+                            districts.Add(districtResult.District);
+                            locations.Add(districtResult.Location);
                         }
                     }
                 }
@@ -397,7 +405,7 @@ public class GeographyGenerator(
             }
         }
 
-        return new GeneratedStates(states, cities, districts, stateById);
+        return new GeneratedStates(states, cities, districts, locations, stateById);
     }
 
     private static List<Road> GenerateRoadEntities(GenerateRoadsInput input)
@@ -454,6 +462,7 @@ internal record GeneratedStates(
     List<State> States,
     List<City> Cities,
     List<District> Districts,
+    List<Location> Locations,
     Dictionary<Guid, State> StateById
 );
 
