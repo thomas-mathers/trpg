@@ -148,10 +148,6 @@ internal sealed class ChatHub(
             yield break;
         }
 
-        // Captured before any turn logic runs, so it can be diffed against the same snapshot
-        // recomputed after the turn completes - this is what notices a nearby creature dying (or
-        // any other scene-affecting change) regardless of which command handler caused it, instead
-        // of requiring every mutation site to remember to enqueue a SceneUpdatedEvent itself.
         var before = await GetCurrentScene(gameSession, cancellationToken);
 
         var automaton = await getEntityNameAutomatonByWorld.Handle(
@@ -173,10 +169,6 @@ internal sealed class ChatHub(
 
         var after = await GetCurrentScene(gameSession, cancellationToken);
 
-        // Record-generated equality doesn't deep-compare collection-typed properties (SceneResult
-        // is full of them), so a JSON string comparison is used instead - it reflects collection
-        // contents, unlike Equals()/==, which would fall back to reference equality on those
-        // properties and report "changed" on every turn regardless of any real difference.
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
             turnContext.PendingEvents.Enqueue(

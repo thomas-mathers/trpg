@@ -4,9 +4,6 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Creatures.Queries;
 
-// Anchors the location lookup on another creature (typically the player) instead of an explicit
-// CreatureLocation, resolving "where is the anchor" and "who's there" in one round trip via a
-// self-referencing correlated subquery, rather than fetching the anchor's row first.
 internal class GetNearbyCreaturesQuery
 {
     public required Guid PlayerId { get; init; }
@@ -22,10 +19,6 @@ internal class GetNearbyCreaturesQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        // Mirrors GetCreaturesAtLocationQueryHandler's room-vs-outdoor branch, just expressed
-        // against the anchor's own row instead of explicit scalars - matching by RoomId alone when
-        // the anchor is indoors (never additionally checking DistrictId, see
-        // CreatureLocationFiltering's comment), or by DistrictId with RoomId null when outdoors.
         var creatureQuery = context
             .Creatures.AsNoTracking()
             .Where(c =>

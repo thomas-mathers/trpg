@@ -42,12 +42,6 @@ internal record CreatureSummary(
 
 internal record CreatureLocation(Guid WorldId, Guid? RoomId, Guid StateId, Guid? DistrictId);
 
-// Room-matched creatures are never additionally filtered by DistrictId - Creature.DistrictId isn't
-// reliably kept in sync with RoomId for NPCs (schedule-driven moves update RoomId but not
-// DistrictId; see memory project_creature_district_id_staleness_bug.md), so RoomId alone is the
-// only trustworthy indoor key. Shared by GetCreaturesAtLocationQuery (explicit location) and
-// GetNearbyCreaturesQuery (anchored on another creature's current location) so this rule exists in
-// exactly one place.
 internal static class CreatureLocationFiltering
 {
     public static IQueryable<Creature> ApplyFilters(

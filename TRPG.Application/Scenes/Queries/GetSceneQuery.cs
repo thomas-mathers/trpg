@@ -448,8 +448,6 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
 
-        // Nearby creatures never accumulate tracked skill XP the way the player does, so their
-        // experience progress is always a flat 0 - not worth a query for every turn's nearby roster.
         return nearby
             .Select(x =>
                 BuildSceneCreatureInfo(
