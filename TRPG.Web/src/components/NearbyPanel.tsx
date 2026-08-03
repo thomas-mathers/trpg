@@ -1,4 +1,4 @@
-import { DoorOpen, Skull } from 'lucide-react';
+import { DoorOpen, Ghost, Skull } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { CreatureStatusSnapshot, SceneSnapshot } from '@/api/client';
@@ -108,15 +108,22 @@ function CreatureRow({
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
 }) {
-  const dangerous = isDangerous(Number(creature.level), Number(playerLevel));
+  const dead = creature.state === 'Dead';
+  // Dead takes precedence over dangerous - a corpse is no longer a threat, and the two can
+  // otherwise co-occur (isDangerous doesn't consider alive state).
+  const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
   const reputation = creature.reputation == null ? null : Number(creature.reputation);
 
   return (
-    <div className="flex items-center justify-between gap-2 py-1.5">
+    <div className={cn('flex items-center justify-between gap-2 py-1.5', dead && 'opacity-45')}>
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="flex h-[15px] w-[15px] shrink-0 items-center justify-center">
-          {dangerous && (
-            <Skull className="h-[15px] w-[15px]" aria-label="Much more powerful than you" />
+          {dead ? (
+            <Ghost className="h-[15px] w-[15px]" aria-label="Dead" />
+          ) : (
+            dangerous && (
+              <Skull className="h-[15px] w-[15px]" aria-label="Much more powerful than you" />
+            )
           )}
         </span>
         <EntityTooltip

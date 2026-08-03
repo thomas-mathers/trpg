@@ -61,7 +61,15 @@ function GameScreen() {
   const { isConnected, streamOpening, streamChat, streamCombatAction, streamFlee, endSession } =
     useGameHubConnection(sessionId);
   const sceneQuery = useSceneQuery(sessionId);
-  const { fight, isInCombat, activeAttackerId, cardEffects, isPlayingBack } = useCombatState();
+  const {
+    fight,
+    isInCombat,
+    activeAttackerId,
+    cardEffects,
+    isPlayingBack,
+    combatOutcome,
+    dismissOutcome,
+  } = useCombatState();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
@@ -150,6 +158,12 @@ function GameScreen() {
   const handleReturnToMenu = () => {
     clearStoredMessages(sessionId);
     setShowDisconnectedDialog(false);
+    navigate({ to: '/' });
+  };
+
+  const handleExitToMenu = async () => {
+    clearStoredMessages(sessionId);
+    await endSession();
     navigate({ to: '/' });
   };
 
@@ -260,15 +274,7 @@ function GameScreen() {
             <DropdownMenuItem disabled>Skills</DropdownMenuItem>
             <DropdownMenuItem disabled>Abilities</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={async () => {
-                clearStoredMessages(sessionId);
-                await endSession();
-                navigate({ to: '/' });
-              }}
-            >
-              Exit to Main Menu
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExitToMenu}>Exit to Main Menu</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -324,6 +330,9 @@ function GameScreen() {
                 onFlee={handleFlee}
                 activeAttackerId={activeAttackerId}
                 cardEffects={cardEffects}
+                outcome={combatOutcome}
+                onDismissOutcome={dismissOutcome}
+                onExitToMenu={handleExitToMenu}
               />
             ) : (
               <Input

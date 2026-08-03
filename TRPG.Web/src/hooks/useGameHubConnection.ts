@@ -10,6 +10,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 
 import type { FightState, SceneSnapshot } from '@/api/client';
 import type { PlayerCombatAction } from '@/lib/combat-action';
+import type { CombatOutcome } from '@/lib/combat-outcome';
 import type { CombatUpdatePayload } from '@/lib/combat-round-event';
 import { gameEventBus } from '@/lib/gameEventBus';
 
@@ -78,7 +79,9 @@ export function useGameHubConnection(sessionId: string | null) {
     connection.on('CombatUpdated', (payload: CombatUpdatePayload) =>
       gameEventBus.emit('CombatUpdated', payload),
     );
-    connection.on('CombatEnded', () => gameEventBus.emit('CombatEnded'));
+    connection.on('CombatEnded', (outcome: CombatOutcome) =>
+      gameEventBus.emit('CombatEnded', outcome),
+    );
 
     connection
       .start()

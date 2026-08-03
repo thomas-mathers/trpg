@@ -5,11 +5,13 @@ import type { AbilityCategory, AbilitySummary, ConsumableSummary, FightState } f
 import { AbilityPicker } from '@/components/combat/AbilityPicker';
 import { AnimatedHeight } from '@/components/combat/AnimatedHeight';
 import { CombatantCard } from '@/components/combat/CombatantCard';
+import { CombatOutcomeScreen } from '@/components/combat/CombatOutcomeScreen';
 import { EnemyRow } from '@/components/combat/EnemyRow';
 import { ItemPicker } from '@/components/combat/ItemPicker';
 import { PickerHeader } from '@/components/combat/PickerHeader';
 import type { CombatCardEffect } from '@/hooks/useCombatState';
 import type { UseAbilityAction, UseItemAction } from '@/lib/combat-action';
+import type { CombatOutcome } from '@/lib/combat-outcome';
 
 type Mode = 'topmenu' | 'ability' | 'target' | 'item';
 
@@ -22,6 +24,9 @@ interface CombatConsoleProps {
   onFlee: () => void;
   activeAttackerId?: string | null;
   cardEffects?: Record<string, CombatCardEffect>;
+  outcome?: CombatOutcome | null;
+  onDismissOutcome?: () => void;
+  onExitToMenu?: () => void;
 }
 
 export function CombatConsole({
@@ -33,6 +38,9 @@ export function CombatConsole({
   onFlee,
   activeAttackerId = null,
   cardEffects = {},
+  outcome = null,
+  onDismissOutcome = () => {},
+  onExitToMenu = () => {},
 }: CombatConsoleProps) {
   const [mode, setMode] = useState<Mode>('topmenu');
   const [abilityCategory, setAbilityCategory] = useState<AbilityCategory | null>(null);
@@ -41,7 +49,7 @@ export function CombatConsole({
   const player = fight.combatants.find((c) => c.isPlayer);
   const enemies = fight.combatants.filter((c) => !c.isPlayer);
   const playerLevel = player ? Number(player.level) : 1;
-  
+
   useEffect(() => {
     if (!disabled) {
       setMode('topmenu');
@@ -100,7 +108,13 @@ export function CombatConsole({
       </div>
 
       <AnimatedHeight>
-        {disabled ? (
+        {outcome ? (
+          <CombatOutcomeScreen
+            outcome={outcome}
+            onContinue={onDismissOutcome}
+            onExitToMenu={onExitToMenu}
+          />
+        ) : disabled ? (
           <ResolvingIndicator />
         ) : mode === 'topmenu' ? (
           <div className="grid grid-cols-4 gap-1.5 p-2.5">
