@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
+using TRPG.Application.GameSessions;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -265,6 +266,43 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         // Assert
         Assert.Equal(33, result.Player.CurrentHp);
         Assert.Single(result.Enemies);
+    }
+
+    [Fact]
+    public async Task Handle_EnqueuesCombatUpdatedEvent_WithCurrentCombatantState()
+    {
+        // Arrange
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Ongoing,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new ResolveCombatRoundCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                Combatants =
+                [
+                    MakePlayerCombatant(currentHp: 33),
+                    MakeEnemyCombatant(currentHp: 12),
+                ],
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var turnContext = _serviceProvider.GetRequiredService<GameTurnContext>();
+        var turnEvent = Assert.Single(turnContext.PendingEvents);
+        var combatUpdated = Assert.IsType<CombatUpdatedEvent>(turnEvent);
+        Assert.Equal(33, combatUpdated.FightState.Combatants.Single(c => c.IsPlayer).CurrentHp);
     }
 
     [Fact]

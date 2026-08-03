@@ -1,4 +1,4 @@
-import { Droplet, Heart, Zap } from 'lucide-react';
+import { Droplet, Heart, Swords, Zap } from 'lucide-react';
 
 import type { SceneSnapshot } from '@/api/client';
 import { useSceneQuery } from '@/hooks/useSceneQuery';
@@ -6,9 +6,10 @@ import { formatLocation } from '@/lib/scene-format';
 
 interface StatusBarProps {
   sessionId: string;
+  isInCombat?: boolean;
 }
 
-export function StatusBar({ sessionId }: StatusBarProps) {
+export function StatusBar({ sessionId, isInCombat = false }: StatusBarProps) {
   const query = useSceneQuery(sessionId);
 
   if (!query.data) {
@@ -16,6 +17,21 @@ export function StatusBar({ sessionId }: StatusBarProps) {
   }
 
   const { playerStatus } = query.data;
+
+  // location/time/HP-AP-MP are redundant with the combat console's own player
+  // card once a fight starts, and just add noise — collapse to name + a status
+  // chip instead of duplicating numbers the player is already looking at below
+  if (isInCombat) {
+    return (
+      <div className="flex flex-1 items-center gap-2 text-sm">
+        <span className="shrink-0 font-bold">{playerStatus.name}</span>
+        <span className="bg-destructive/15 text-destructive flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+          <Swords className="h-2.5 w-2.5" />
+          In combat
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-sm">

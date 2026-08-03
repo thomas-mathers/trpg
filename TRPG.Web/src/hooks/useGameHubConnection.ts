@@ -9,6 +9,7 @@ import {
 import { useRef, useEffect, useState, useCallback } from 'react';
 
 import type { FightState, SceneSnapshot } from '@/api/client';
+import type { PlayerCombatAction } from '@/lib/combat-action';
 import { gameEventBus } from '@/lib/gameEventBus';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string;
@@ -72,6 +73,9 @@ export function useGameHubConnection(sessionId: string | null) {
     );
     connection.on('CombatStarted', (payload: FightState) =>
       gameEventBus.emit('CombatStarted', payload),
+    );
+    connection.on('CombatUpdated', (payload: FightState) =>
+      gameEventBus.emit('CombatUpdated', payload),
     );
     connection.on('CombatEnded', () => gameEventBus.emit('CombatEnded'));
 
@@ -146,6 +150,21 @@ export function useGameHubConnection(sessionId: string | null) {
     [streamTokens],
   );
 
+  const streamCombatAction = useCallback(
+    (
+      action: PlayerCombatAction,
+      onReceiveToken: (token: string) => void,
+      onComplete?: () => void,
+    ) => streamTokens('SendCombatAction', onReceiveToken, onComplete, action),
+    [streamTokens],
+  );
+
+  const streamFlee = useCallback(
+    (onReceiveToken: (token: string) => void, onComplete?: () => void) =>
+      streamTokens('SendFlee', onReceiveToken, onComplete),
+    [streamTokens],
+  );
+
   const endSession = useCallback(async () => {
     const connection = hubConnection.current;
     if (!connection || !isConnected) {
@@ -159,5 +178,14 @@ export function useGameHubConnection(sessionId: string | null) {
     }
   }, [isConnected]);
 
-  return { isConnected, error, streamOpening, streamChat, streamWait, endSession };
+  return {
+    isConnected,
+    error,
+    streamOpening,
+    streamChat,
+    streamWait,
+    streamCombatAction,
+    streamFlee,
+    endSession,
+  };
 }

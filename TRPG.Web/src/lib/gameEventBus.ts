@@ -5,6 +5,7 @@ export type ConnectionStatus = 'reconnecting' | 'reconnected' | 'disconnected';
 interface GameEventMap {
   SceneChanged: SceneSnapshot;
   CombatStarted: FightState;
+  CombatUpdated: FightState;
   CombatEnded: undefined;
   ConnectionStatusChanged: ConnectionStatus;
 }
