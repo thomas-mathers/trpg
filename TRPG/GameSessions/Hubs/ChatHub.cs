@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,8 @@ using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Exceptions;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Data.Models;
 
@@ -26,7 +29,8 @@ internal sealed class ChatHub(
     WorldConnectionRegistry worldConnections,
     PendingSessionEndRegistry pendingSessionEnds,
     GetCreatureByIdQueryHandler getCreatureById,
-    GetActiveFightCombatantsQueryHandler getActiveFightCombatants
+    GetActiveFightCombatantsQueryHandler getActiveFightCombatants,
+    GetSceneQueryHandler getScene
 ) : Hub
 {
     private const string GameSessionKey = "GameSession";
@@ -144,6 +148,12 @@ internal sealed class ChatHub(
             yield break;
         }
 
+        // Captured before any turn logic runs, so it can be diffed against the same snapshot
+        // recomputed after the turn completes - this is what notices a nearby creature dying (or
+        // any other scene-affecting change) regardless of which command handler caused it, instead
+        // of requiring every mutation site to remember to enqueue a SceneUpdatedEvent itself.
+        var before = await GetCurrentScene(gameSession, cancellationToken);
+
         var automaton = await getEntityNameAutomatonByWorld.Handle(
             new GetEntityNameAutomatonByWorldQuery { WorldId = gameSession.WorldId },
             cancellationToken
@@ -161,7 +171,45 @@ internal sealed class ChatHub(
             yield return token;
         }
 
+        var after = await GetCurrentScene(gameSession, cancellationToken);
+
+        // Record-generated equality doesn't deep-compare collection-typed properties (SceneResult
+        // is full of them), so a JSON string comparison is used instead - it reflects collection
+        // contents, unlike Equals()/==, which would fall back to reference equality on those
+        // properties and report "changed" on every turn regardless of any real difference.
+        if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
+        {
+            turnContext.PendingEvents.Enqueue(
+                new SceneUpdatedEvent(
+                    SceneSnapshotMapper.ToSnapshot(after),
+                    SceneUpdateReason.Synced
+                )
+            );
+        }
+
         await PushPendingEvents();
+    }
+
+    private async Task<SceneResult> GetCurrentScene(
+        GameSession gameSession,
+        CancellationToken cancellationToken
+    )
+    {
+        var session = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = gameSession.Id },
+            cancellationToken
+        );
+        var currentDate = GameClock.GetCurrentInGameDate(session.Playtime);
+
+        return await getScene.Handle(
+            new GetSceneQuery
+            {
+                WorldId = gameSession.WorldId,
+                PlayerId = gameSession.PlayerId,
+                CurrentDate = currentDate,
+            },
+            cancellationToken
+        );
     }
 
     private async Task PushPendingEvents()

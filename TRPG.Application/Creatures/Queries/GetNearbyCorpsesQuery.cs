@@ -13,7 +13,7 @@ internal record CorpseSummary(Guid Id, string Name, int ItemCount);
 
 internal class GetNearbyCorpsesQueryHandler(
     TrpgDbContext context,
-    GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures
+    GetNearbyCreaturesQueryHandler getNearbyCreatures
 )
 {
     public async Task<IReadOnlyList<CorpseSummary>> Handle(
@@ -21,19 +21,10 @@ internal class GetNearbyCorpsesQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var player = await context
-            .Creatures.AsNoTracking()
-            .FirstAsync(c => c.Id == query.PlayerId, cancellationToken);
-
-        var nearby = await getAllNearbyCreatures.Handle(
-            new GetAllNearbyCreaturesQuery
+        var nearby = await getNearbyCreatures.Handle(
+            new GetNearbyCreaturesQuery
             {
-                Location = new CreatureLocation(
-                    player.WorldId,
-                    player.RoomId,
-                    player.StateId,
-                    player.DistrictId
-                ),
+                PlayerId = query.PlayerId,
                 ExcludingCreatureId = query.PlayerId,
             },
             cancellationToken

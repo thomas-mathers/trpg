@@ -3,6 +3,7 @@ using ContractAbilitySkill = TRPG.Contracts.Abilities.Responses.Skill;
 using ContractAmountType = TRPG.Contracts.Combat.Responses.AmountType;
 using ContractAttributeName = TRPG.Contracts.Combat.Responses.AttributeName;
 using ContractBuildingType = TRPG.Contracts.Scenes.Responses.BuildingType;
+using ContractCombatOutcome = TRPG.Contracts.Combat.Responses.CombatOutcome;
 using ContractConditionType = TRPG.Contracts.Combat.Responses.ConditionType;
 using ContractCreatureState = TRPG.Contracts.Scenes.Responses.CreatureState;
 using ContractCreatureType = TRPG.Contracts.Scenes.Responses.CreatureType;
@@ -16,6 +17,7 @@ using ContractResourceType = TRPG.Contracts.Inventory.Responses.ResourceType;
 using DataAmountType = TRPG.Data.Models.AmountType;
 using DataAttributeName = TRPG.Data.Models.AttributeName;
 using DataBuildingType = TRPG.Data.Models.BuildingType;
+using DataCombatOutcome = TRPG.Data.Models.CombatOutcome;
 using DataCreatureState = TRPG.Data.Models.CreatureState;
 using DataCreatureType = TRPG.Data.Models.CreatureType;
 using DataDamageType = TRPG.Data.Models.DamageType;
@@ -223,6 +225,15 @@ internal static class ResponseEnumMappers
             AbilitiesConditionType.Snared => ContractConditionType.Snared,
             AbilitiesConditionType.Stunned => ContractConditionType.Stunned,
             _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null),
+        };
+
+    public static ContractCombatOutcome ToContract(this DataCombatOutcome outcome) =>
+        outcome switch
+        {
+            DataCombatOutcome.Victory => ContractCombatOutcome.Victory,
+            DataCombatOutcome.Defeat => ContractCombatOutcome.Defeat,
+            DataCombatOutcome.Fled => ContractCombatOutcome.Fled,
+            _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
         };
 
     public static ContractItemRarity ToContract(this DataItemRarity rarity) =>

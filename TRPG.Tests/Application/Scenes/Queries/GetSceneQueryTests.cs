@@ -196,14 +196,13 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Handle_ComputesExperienceProgress_ForPlayerAndNearbyPeople()
+    public async Task Handle_ComputesExperienceProgress_ForThePlayer()
     {
         // Arrange — a single skill at level 2 contributes CalculateExperienceFromSkillLevel(2) = 2
         // toward character level. Level 1 floor is CalculateExperienceFromLevel(1) = 0, next level
         // floor is CalculateExperienceFromLevel(2) = 2, so this sits at Current = 2, ToNextLevel = 2.
         _player.Level = 1;
-        _nearbyCreature.Level = 1;
-        _context.CreatureSkills.AddRange(
+        _context.CreatureSkills.Add(
             new CreatureSkill
             {
                 WorldId = WorldId,
@@ -211,7 +210,32 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
                 Skill = Skill.General,
                 Level = 2,
                 Experience = 0,
-            },
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(2, result.Player.ExperienceCurrent);
+        Assert.Equal(2, result.Player.ExperienceToNextLevel);
+    }
+
+    [Fact]
+    public async Task Handle_UsesZeroExperienceProgress_ForNearbyCreatures_RegardlessOfSkillLevels()
+    {
+        // Arrange — nearby creatures never accumulate tracked skill XP the way the player does, so
+        // GetSceneQueryHandler doesn't query for it at all; a skill row here should have no effect.
+        _nearbyCreature.Level = 1;
+        _context.CreatureSkills.Add(
             new CreatureSkill
             {
                 WorldId = WorldId,
@@ -234,11 +258,8 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(2, result.Player.ExperienceCurrent);
-        Assert.Equal(2, result.Player.ExperienceToNextLevel);
         var nearby = Assert.Single(result.NearbyCreatures, p => p.Name == _nearbyCreature.Name);
-        Assert.Equal(2, nearby.ExperienceCurrent);
-        Assert.Equal(2, nearby.ExperienceToNextLevel);
+        Assert.Equal(0, nearby.ExperienceCurrent);
     }
 
     [Fact]

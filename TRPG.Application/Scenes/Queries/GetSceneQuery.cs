@@ -100,40 +100,6 @@ public record SceneResult(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyDungeons
 );
 
-internal record SceneBootstrap(
-    string PlayerName,
-    Profession? Profession,
-    int Level,
-    int Gold,
-    int BirthYear,
-    Guid StateId,
-    Guid? CityId,
-    Guid? DistrictId,
-    Guid? RoomId,
-    CreatureType CreatureType,
-    Gender Gender,
-    int CurrentHp,
-    int MaximumHp,
-    int CurrentAp,
-    int MaximumAp,
-    int CurrentMp,
-    int MaximumMp,
-    int Strength,
-    int Dexterity,
-    int Intelligence,
-    int Endurance,
-    int Stamina,
-    int Mana,
-    int Defense,
-    float MovementSpeed,
-    float PhysicalResistance,
-    float FireResistance,
-    float IceResistance,
-    float LightningResistance,
-    float PoisonResistance,
-    float MagicResistance
-);
-
 internal record SceneLocationDetails(
     SceneBuildingInfo? Building,
     SceneRoomInfo? Room,
@@ -155,7 +121,7 @@ internal class GetSceneQueryHandler(
     GetConnectorsByRoomIdQueryHandler getConnectorsByRoomId,
     GetAllBuildingsByLocationQueryHandler getAllBuildingsByLocation,
     GetRoomsByIdsQueryHandler getRoomsByIds,
-    GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
+    GetNearbyCreaturesQueryHandler getNearbyCreatures,
     GetEffectiveReputationsQueryHandler getEffectiveReputations,
     GetTotalCharacterXpFromSkillsQueryHandler getTotalCharacterXpFromSkills,
     ILogger<GetSceneQueryHandler> logger
@@ -168,26 +134,32 @@ internal class GetSceneQueryHandler(
     {
         var stopwatch = Stopwatch.StartNew();
 
-        var bootstrap = await GetBootstrap(query.PlayerId, cancellationToken);
+        var creaturesHere = await getNearbyCreatures.Handle(
+            new GetNearbyCreaturesQuery { PlayerId = query.PlayerId },
+            cancellationToken
+        );
+        var player = creaturesHere.Single(c => c.Id == query.PlayerId);
+        var nearby = creaturesHere.Where(c => c.Id != query.PlayerId).ToArray();
+
         var playerXpTotals = await getTotalCharacterXpFromSkills.Handle(
             new GetTotalCharacterXpFromSkillsQuery { CreatureIds = [query.PlayerId] },
             cancellationToken
         );
         var playerTotalCharacterXp = playerXpTotals.GetValueOrDefault(query.PlayerId, 0);
         var state = await getStateById.Handle(
-            new GetStateByIdQuery { Id = bootstrap.StateId },
+            new GetStateByIdQuery { Id = player.StateId },
             cancellationToken
         );
-        var cityInfo = await BuildCityInfo(bootstrap, cancellationToken);
+        var cityInfo = await BuildCityInfo(player, cancellationToken);
 
         var details =
-            bootstrap.RoomId != null
-                ? await BuildIndoorScene(query, bootstrap, cancellationToken)
-                : await BuildOutdoorScene(query, bootstrap, state, cancellationToken);
+            player.RoomId != null
+                ? await BuildIndoorScene(query, player, nearby, cancellationToken)
+                : await BuildOutdoorScene(query, player, nearby, state, cancellationToken);
 
         logger.LogInformation(
             "[perf] GetScene ({Branch}) took {ElapsedMs}ms, {CreatureCount} nearby people",
-            bootstrap.RoomId != null ? "indoor" : "outdoor",
+            player.RoomId != null ? "indoor" : "outdoor",
             stopwatch.ElapsedMilliseconds,
             details.NearbyPeople.Count
         );
@@ -204,7 +176,7 @@ internal class GetSceneQueryHandler(
             cityInfo,
             details.Building,
             details.Room,
-            BuildPlayerCreatureInfo(query, bootstrap, playerTotalCharacterXp),
+            BuildPlayerCreatureInfo(query, player, playerTotalCharacterXp),
             details.NearbyProps,
             details.NearbyPeople,
             details.NearbyBuildings,
@@ -214,114 +186,65 @@ internal class GetSceneQueryHandler(
 
     private static SceneCreatureInfo BuildPlayerCreatureInfo(
         GetSceneQuery query,
-        SceneBootstrap bootstrap,
+        CreatureSummary player,
         int totalCharacterXp
     )
     {
         var experienceProgress = SkillFormulas.GetExperienceProgress(
-            bootstrap.Level,
+            player.Level,
             totalCharacterXp
         );
 
         return new SceneCreatureInfo(
             Id: query.PlayerId,
-            bootstrap.PlayerName,
-            bootstrap.CreatureType,
-            bootstrap.Gender,
-            bootstrap.Profession,
-            bootstrap.Level,
-            query.CurrentDate.Year - bootstrap.BirthYear,
+            player.Name,
+            player.CreatureType,
+            player.Gender,
+            player.Profession,
+            player.Level,
+            query.CurrentDate.Year - player.BirthYear,
             [],
             State: null,
             Reputation: null,
-            bootstrap.Gold,
-            bootstrap.CurrentHp,
-            bootstrap.MaximumHp,
-            bootstrap.CurrentAp,
-            bootstrap.MaximumAp,
-            bootstrap.CurrentMp,
-            bootstrap.MaximumMp,
+            player.Gold,
+            player.CurrentHp,
+            player.MaximumHp,
+            player.CurrentAp,
+            player.MaximumAp,
+            player.CurrentMp,
+            player.MaximumMp,
             experienceProgress.Current,
             experienceProgress.ToNextLevel,
-            bootstrap.Strength,
-            bootstrap.Dexterity,
-            bootstrap.Intelligence,
-            bootstrap.Endurance,
-            bootstrap.Stamina,
-            bootstrap.Mana,
-            bootstrap.Defense,
-            bootstrap.MovementSpeed,
-            bootstrap.PhysicalResistance,
-            bootstrap.FireResistance,
-            bootstrap.IceResistance,
-            bootstrap.LightningResistance,
-            bootstrap.PoisonResistance,
-            bootstrap.MagicResistance
+            player.Strength,
+            player.Dexterity,
+            player.Intelligence,
+            player.Endurance,
+            player.Stamina,
+            player.Mana,
+            player.Defense,
+            player.MovementSpeed,
+            player.PhysicalResistance,
+            player.FireResistance,
+            player.IceResistance,
+            player.LightningResistance,
+            player.PoisonResistance,
+            player.MagicResistance
         );
     }
 
-    private async Task<SceneBootstrap> GetBootstrap(
-        Guid playerId,
-        CancellationToken cancellationToken
-    )
-    {
-        return await context
-            .Creatures.AsNoTracking()
-            .Where(p => p.Id == playerId)
-            .Select(p => new SceneBootstrap(
-                p.Name,
-                p.Profession,
-                p.Level,
-                context
-                    .Items.OfType<Gold>()
-                    .Where(g => g.Ownership.OwnerId == p.Id)
-                    .Select(g => (int?)g.Quantity)
-                    .FirstOrDefault()
-                    ?? 0,
-                p.BirthYear,
-                p.StateId,
-                p.CityId,
-                p.DistrictId,
-                p.RoomId,
-                p.CreatureType,
-                p.Gender,
-                p.CurrentHp,
-                p.MaximumHp,
-                p.CurrentAp,
-                p.MaximumAp,
-                p.CurrentMp,
-                p.MaximumMp,
-                p.Strength,
-                p.Dexterity,
-                p.Intelligence,
-                p.Endurance,
-                p.Stamina,
-                p.Mana,
-                p.Defense,
-                p.MovementSpeed,
-                p.PhysicalResistance,
-                p.FireResistance,
-                p.IceResistance,
-                p.LightningResistance,
-                p.PoisonResistance,
-                p.MagicResistance
-            ))
-            .FirstAsync(cancellationToken);
-    }
-
     private async Task<SceneCityInfo?> BuildCityInfo(
-        SceneBootstrap bootstrap,
+        CreatureSummary player,
         CancellationToken cancellationToken
     )
     {
         var city =
-            bootstrap.CityId != null
+            player.CityId != null
                 ? await getCityById.Handle(
-                    new GetCityByIdQuery { Id = bootstrap.CityId.Value },
+                    new GetCityByIdQuery { Id = player.CityId.Value },
                     cancellationToken
                 )
                 : await getCityByStateId.Handle(
-                    new GetCityByStateIdQuery { StateId = bootstrap.StateId },
+                    new GetCityByStateIdQuery { StateId = player.StateId },
                     cancellationToken
                 );
         if (city == null)
@@ -338,7 +261,7 @@ internal class GetSceneQueryHandler(
                 d.Id,
                 d.Name,
                 d.DistrictType,
-                d.Id == bootstrap.DistrictId
+                d.Id == player.DistrictId
             ))
             .ToArray();
         return new SceneCityInfo(city.Name, city.Description, districtInfos);
@@ -346,26 +269,27 @@ internal class GetSceneQueryHandler(
 
     private async Task<SceneLocationDetails> BuildIndoorScene(
         GetSceneQuery query,
-        SceneBootstrap bootstrap,
+        CreatureSummary player,
+        IReadOnlyCollection<CreatureSummary> nearby,
         CancellationToken cancellationToken
     )
     {
         var roomSummary = await getRoomSummary.Handle(
-            new GetRoomSummaryQuery { RoomId = bootstrap.RoomId!.Value },
+            new GetRoomSummaryQuery { RoomId = player.RoomId!.Value },
             cancellationToken
         );
 
         var props = await getStaticPropsByRoomId.Handle(
-            new GetStaticPropsByRoomIdQuery { RoomId = bootstrap.RoomId.Value },
+            new GetStaticPropsByRoomIdQuery { RoomId = player.RoomId.Value },
             cancellationToken
         );
         var connectors = await getConnectorsByRoomId.Handle(
-            new GetConnectorsByRoomIdQuery { RoomId = bootstrap.RoomId.Value },
+            new GetConnectorsByRoomIdQuery { RoomId = player.RoomId.Value },
             cancellationToken
         );
         var exitInfos = await BuildExitInfos(connectors, cancellationToken);
 
-        var nearbyPeople = await BuildNearbyPeople(query, bootstrap, cancellationToken);
+        var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
 
         var buildingInfo = new SceneBuildingInfo(
             roomSummary!.BuildingName,
@@ -397,7 +321,8 @@ internal class GetSceneQueryHandler(
 
     private async Task<SceneLocationDetails> BuildOutdoorScene(
         GetSceneQuery query,
-        SceneBootstrap bootstrap,
+        CreatureSummary player,
+        IReadOnlyCollection<CreatureSummary> nearby,
         State? state,
         CancellationToken cancellationToken
     )
@@ -405,19 +330,19 @@ internal class GetSceneQueryHandler(
         var buildings = await getAllBuildingsByLocation.Handle(
             new GetAllBuildingsByLocationQuery
             {
-                StateId = bootstrap.StateId,
-                CityId = bootstrap.CityId,
-                DistrictId = bootstrap.DistrictId,
+                StateId = player.StateId,
+                CityId = player.CityId,
+                DistrictId = player.DistrictId,
             },
             cancellationToken
         );
 
         var wildBuildings =
-            bootstrap.CityId != null
+            player.CityId != null
                 ? await getAllBuildingsByLocation.Handle(
                     new GetAllBuildingsByLocationQuery
                     {
-                        StateId = bootstrap.StateId,
+                        StateId = player.StateId,
                         CityId = null,
                         DistrictId = null,
                     },
@@ -435,7 +360,7 @@ internal class GetSceneQueryHandler(
             .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
             .ToArray();
 
-        var nearbyPeople = await BuildNearbyPeople(query, bootstrap, cancellationToken);
+        var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
 
         return new SceneLocationDetails(
             null,
@@ -448,28 +373,13 @@ internal class GetSceneQueryHandler(
         );
     }
 
-    private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeople(
+    private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
         GetSceneQuery query,
-        SceneBootstrap bootstrap,
+        IReadOnlyCollection<CreatureSummary> nearby,
         CancellationToken cancellationToken
     )
     {
-        var creatureLocation = new CreatureLocation(
-            query.WorldId,
-            bootstrap.RoomId,
-            bootstrap.StateId,
-            bootstrap.DistrictId
-        );
-        var nearbyPeopleRaw = await getAllNearbyCreatures.Handle(
-            new GetAllNearbyCreaturesQuery
-            {
-                Location = creatureLocation,
-                ExcludingCreatureId = query.PlayerId,
-            },
-            cancellationToken
-        );
-
-        var nearbyCreatureIds = nearbyPeopleRaw.Select(x => x.Id).ToArray();
+        var nearbyCreatureIds = nearby.Select(x => x.Id).ToArray();
         var factionMembershipsByCreature = await (
             from fm in context.FactionMembers
             where nearbyCreatureIds.Contains(fm.CreatureId)
@@ -511,18 +421,13 @@ internal class GetSceneQueryHandler(
             },
             cancellationToken
         );
-        var characterXpByCreature = await getTotalCharacterXpFromSkills.Handle(
-            new GetTotalCharacterXpFromSkillsQuery { CreatureIds = nearbyCreatureIds },
-            cancellationToken
-        );
 
-        return nearbyPeopleRaw
+        // Nearby creatures never accumulate tracked skill XP the way the player does, so their
+        // experience progress is always a flat 0 - not worth a query for every turn's nearby roster.
+        return nearby
             .Select(x =>
             {
-                var experienceProgress = SkillFormulas.GetExperienceProgress(
-                    x.Level,
-                    characterXpByCreature.GetValueOrDefault(x.Id, 0)
-                );
+                var experienceProgress = SkillFormulas.GetExperienceProgress(x.Level, 0);
                 return new SceneCreatureInfo(
                     x.Id,
                     x.Name,

@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Mappers;
 using TRPG.Application.GameSessions;
 using TRPG.Contracts.Combat.Responses;
 
@@ -16,7 +17,8 @@ public record CombatUpdatedEvent(FightState FightState, IReadOnlyList<CombatRoun
     public override object? Payload => new CombatUpdatePayload(FightState, Events);
 }
 
-public record CombatEndedEvent : GameTurnEvent
+public record CombatEndedEvent(TRPG.Data.Models.CombatOutcome Outcome) : GameTurnEvent
 {
     public override string MethodName => "CombatEnded";
+    public override object? Payload => Outcome.ToContract();
 }

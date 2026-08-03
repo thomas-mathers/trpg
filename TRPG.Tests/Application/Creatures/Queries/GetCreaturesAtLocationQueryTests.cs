@@ -6,17 +6,17 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Creatures.Queries;
 
 [Collection("Database")]
-public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
-    private GetAllNearbyCreaturesQueryHandler _handler = null!;
+    private GetCreaturesAtLocationQueryHandler _handler = null!;
 
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetAllNearbyCreaturesQueryHandler(_context);
+        _handler = new GetCreaturesAtLocationQueryHandler(_context);
         return ValueTask.CompletedTask;
     }
 
@@ -39,7 +39,7 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
 
         // Act
         var result = await _handler.Handle(
-            new GetAllNearbyCreaturesQuery { Location = location },
+            new GetCreaturesAtLocationQuery { Location = location },
             TestContext.Current.CancellationToken
         );
 
@@ -67,7 +67,7 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
 
         // Act
         var result = await _handler.Handle(
-            new GetAllNearbyCreaturesQuery { Location = location },
+            new GetCreaturesAtLocationQuery { Location = location },
             TestContext.Current.CancellationToken
         );
 
@@ -90,7 +90,11 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
 
         // Act
         var result = await _handler.Handle(
-            new GetAllNearbyCreaturesQuery { Location = location, ExcludingCreatureId = player.Id },
+            new GetCreaturesAtLocationQuery
+            {
+                Location = location,
+                ExcludingCreatureId = player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -117,7 +121,7 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
 
         // Act
         var result = await _handler.Handle(
-            new GetAllNearbyCreaturesQuery { Location = location },
+            new GetCreaturesAtLocationQuery { Location = location },
             TestContext.Current.CancellationToken
         );
 
@@ -146,7 +150,7 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
 
         // Act
         var result = await _handler.Handle(
-            new GetAllNearbyCreaturesQuery { Location = location },
+            new GetCreaturesAtLocationQuery { Location = location },
             TestContext.Current.CancellationToken
         );
 
@@ -175,7 +179,7 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
 
         // Act
         var result = await _handler.Handle(
-            new GetAllNearbyCreaturesQuery { Location = location },
+            new GetCreaturesAtLocationQuery { Location = location },
             TestContext.Current.CancellationToken
         );
 
@@ -203,7 +207,7 @@ public sealed class GetAllNearbyCreaturesQueryTests(DatabaseFixture db) : IAsync
 
         // Act
         var result = await _handler.Handle(
-            new GetAllNearbyCreaturesQuery { Location = location, IncludeDead = false },
+            new GetCreaturesAtLocationQuery { Location = location, IncludeDead = false },
             TestContext.Current.CancellationToken
         );
 

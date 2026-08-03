@@ -97,7 +97,7 @@ internal class ResolveCombatRoundCommandHandler(
                 },
                 cancellationToken
             );
-            turnContext.PendingEvents.Enqueue(new CombatEndedEvent());
+            turnContext.PendingEvents.Enqueue(new CombatEndedEvent(state.Outcome));
         }
 
         return state.ToCombatResult();

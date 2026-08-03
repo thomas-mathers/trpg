@@ -267,6 +267,74 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SendCombatAction_PushesSceneChanged_WhenTheAttackChangesNearbyCreatureState()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+
+        var connection = fixture.CreateHubConnection(sessionId);
+        var sceneChanges = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            "SceneChanged",
+            scene => sceneChanges.Add(scene)
+        );
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await using var gameHub = new GameHub(connection);
+
+        // Act - hit/miss is random each round (see
+        // SendCombatAction_ResolvesTheAttack_AndNarratesTheOutcome), so the attack is repeated a
+        // fixed number of times; what's being exercised is that the before/after diff in
+        // ChatHub.StreamTurn notices whichever round(s) actually land a hit on either side, not a
+        // specific round's outcome. All eight independent rolls across four rounds missing is
+        // negligible. Each round that changes something pushes its own SceneChanged, so this may
+        // push more than once - only the most recent push needs to reflect the truth.
+        for (var i = 0; i < 4; i++)
+        {
+            await Drain(
+                gameHub.StreamCombatAction(
+                    new UseAbilityAction(enemy.Id, "Strike"),
+                    TestContext.Current.CancellationToken
+                )
+            );
+        }
+
+        // Assert
+        Assert.NotEmpty(sceneChanges);
+        var nearbyEnemy = Assert.Single(sceneChanges[^1].NearbyCreatures, c => c.Id == enemy.Id);
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var freshEnemy = await context.Creatures.SingleAsync(
+            c => c.Id == enemy.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(freshEnemy.CurrentHp, nearbyEnemy.CurrentHp);
+    }
+
+    [Fact]
+    public async Task SendChat_DoesNotPushSceneChanged_WhenNothingChangedDuringTheTurn()
+    {
+        // Arrange
+        await SeedHostileCreature();
+        var sessionId = await StartSession();
+        var connection = fixture.CreateHubConnection(sessionId);
+        var sceneChanges = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            "SceneChanged",
+            scene => sceneChanges.Add(scene)
+        );
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await using var gameHub = new GameHub(connection);
+
+        // Act
+        await Drain(gameHub.StreamChat("I look around.", TestContext.Current.CancellationToken));
+
+        // Assert
+        Assert.Empty(sceneChanges);
+    }
+
+    [Fact]
     public async Task SendCombatAction_ResolvesTheAttack_AndNarratesTheOutcome()
     {
         // Arrange

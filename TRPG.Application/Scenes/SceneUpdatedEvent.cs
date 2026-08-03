@@ -7,6 +7,7 @@ public enum SceneUpdateReason
 {
     Moved,
     CatchUp,
+    Synced,
 }
 
 public record SceneUpdatedEvent(SceneSnapshot Scene, SceneUpdateReason Reason) : GameTurnEvent

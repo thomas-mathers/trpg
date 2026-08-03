@@ -71,6 +71,13 @@ public enum ConditionType
     Stunned,
 }
 
+public enum CombatOutcome
+{
+    Victory,
+    Defeat,
+    Fled,
+}
+
 public record FightState(IReadOnlyCollection<CombatantState> Combatants);
 
 public record CombatantState(
