@@ -8,9 +8,6 @@ interface CombatOutcomeScreenProps {
   onExitToMenu: () => void;
 }
 
-// Defeat means the player's Creature is now permanently dead (see ChatHub.IsPlayerDead) - there's
-// nothing to "continue" back into the way there is for Victory/Fled, so it gets its own terminal
-// treatment instead of just different copy on the same continue-and-resume flow.
 export function CombatOutcomeScreen({
   outcome,
   onContinue,

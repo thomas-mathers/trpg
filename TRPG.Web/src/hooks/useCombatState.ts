@@ -97,9 +97,6 @@ export function useCombatState() {
           return;
         }
       }
-
-      // Catches up anything not carried by a discrete event - AP/MP costs, buffs, dots, hots,
-      // conditions - so the display converges on the server's authoritative post-round state.
       setFight(payload.fightState);
       setIsPlayingBack(false);
     }
@@ -117,9 +114,6 @@ export function useCombatState() {
       playbackTokenRef.current += 1;
       setIsPlayingBack(false);
       setActiveAttackerId(null);
-      // fight is deliberately left in place (not cleared to null) here - the outcome screen needs
-      // the final FightState to keep rendering the combat console underneath it until the player
-      // dismisses the outcome, at which point dismissOutcome clears both together.
       setCombatOutcome(outcome);
     });
 

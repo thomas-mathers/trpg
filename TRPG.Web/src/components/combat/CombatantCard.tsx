@@ -57,10 +57,6 @@ export function CombatantCard({
   ];
 
   return (
-    // A plain div, not a <button> — EffectBadge renders a real <button> (Radix
-    // Popover trigger) inside this card, and a <button> can't legally nest
-    // another one. role="button" gives the same click/keyboard affordance
-    // during target selection without that conflict.
     <div
       role={canTarget ? 'button' : undefined}
       tabIndex={canTarget ? 0 : undefined}

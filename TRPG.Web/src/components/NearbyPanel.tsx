@@ -109,8 +109,6 @@ function CreatureRow({
   playerLevel: number | string;
 }) {
   const dead = creature.state === 'Dead';
-  // Dead takes precedence over dangerous - a corpse is no longer a threat, and the two can
-  // otherwise co-occur (isDangerous doesn't consider alive state).
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
   const reputation = creature.reputation == null ? null : Number(creature.reputation);
 
