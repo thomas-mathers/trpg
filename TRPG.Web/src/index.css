@@ -152,3 +152,41 @@
     @apply font-sans;
   }
 }
+
+@keyframes combat-float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes combat-flash-hit {
+  0% {
+    box-shadow: 0 0 0 2px var(--destructive);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.combat-float-up {
+  animation: combat-float-up 0.9s ease-out forwards;
+}
+
+.combat-flash-hit {
+  animation: combat-flash-hit 0.5s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combat-float-up,
+  .combat-flash-hit {
+    animation: none;
+  }
+}

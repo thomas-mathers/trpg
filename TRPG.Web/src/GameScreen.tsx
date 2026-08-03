@@ -3,6 +3,7 @@ import { MenuIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { ChatMarker, type ChatMarkerVariant } from './components/ChatMarker';
+import { CombatConsole } from './components/combat/CombatConsole';
 import { NarrationText } from './components/NarrationText';
 import { NearbySidebar } from './components/NearbySidebar';
 import { NearbyToggleButton } from './components/NearbyToggleButton';
@@ -34,8 +35,10 @@ import {
   MessageScrollerViewport,
 } from './components/ui/message-scroller';
 import { SidebarInset, SidebarProvider } from './components/ui/sidebar';
+import { useCombatState } from './hooks/useCombatState';
 import { useGameHubConnection } from './hooks/useGameHubConnection';
 import { useSceneQuery } from './hooks/useSceneQuery';
+import { describeCombatAction, type PlayerCombatAction } from './lib/combat-action';
 import { gameEventBus, type ConnectionStatus } from './lib/gameEventBus';
 import { appendNarrationToken, type NarrationSegment } from './lib/narration-markup';
 import { formatLocation, locationKey } from './lib/scene-format';
@@ -55,8 +58,10 @@ const CONNECTION_STATUS_TEXT: Record<ConnectionStatus, string> = {
 function GameScreen() {
   const navigate = useNavigate();
   const { sessionId } = useParams({ from: '/session/$sessionId' });
-  const { isConnected, streamOpening, streamChat, endSession } = useGameHubConnection(sessionId);
+  const { isConnected, streamOpening, streamChat, streamCombatAction, streamFlee, endSession } =
+    useGameHubConnection(sessionId);
   const sceneQuery = useSceneQuery(sessionId);
+  const { fight, isInCombat } = useCombatState();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
@@ -104,6 +109,24 @@ function GameScreen() {
         }
         lastLocationKey.current = key;
       }),
+    [],
+  );
+
+  useEffect(() => {
+    // the compass toggle is hidden in combat — if the sidebar was already open
+    // when a fight starts, there'd be no way to close it without this
+    if (isInCombat) {
+      setIsNearbyOpen(false);
+    }
+  }, [isInCombat]);
+
+  useEffect(
+    () => gameEventBus.on('CombatStarted', () => appendMarker('Combat started', 'combat-start')),
+    [],
+  );
+
+  useEffect(
+    () => gameEventBus.on('CombatEnded', () => appendMarker('Combat ended', 'combat-end')),
     [],
   );
 
@@ -159,6 +182,29 @@ function GameScreen() {
     }
   }, [messages, sessionId]);
 
+  const runTurn = (
+    playerLineText: string,
+    stream: (onToken: (token: string) => void, onComplete: () => void) => void,
+  ) => {
+    const playerMessageId = crypto.randomUUID();
+    const narratorId = crypto.randomUUID();
+    setMessages((current) => [
+      ...current,
+      { id: playerMessageId, role: 'player', content: playerLineText },
+      { id: narratorId, role: 'narrator', segments: [] },
+    ]);
+    currentNarratorId.current = narratorId;
+
+    setIsStreaming(true);
+    stream(
+      (token) => appendToken(narratorId, token),
+      () => {
+        currentNarratorId.current = null;
+        setIsStreaming(false);
+      },
+    );
+  };
+
   const handleSend = () => {
     const text = input.trim();
     if (!text || isStreaming) {
@@ -166,25 +212,25 @@ function GameScreen() {
     }
 
     setInput('');
+    runTurn(text, (onToken, onComplete) => streamChat(text, onToken, onComplete));
+  };
 
-    const playerId = crypto.randomUUID();
-    const narratorId = crypto.randomUUID();
-    setMessages((current) => [
-      ...current,
-      { id: playerId, role: 'player', content: text },
-      { id: narratorId, role: 'narrator', segments: [] },
-    ]);
-    currentNarratorId.current = narratorId;
+  const handleCombatAction = (action: PlayerCombatAction) => {
+    if (isStreaming) {
+      return;
+    }
 
-    setIsStreaming(true);
-    streamChat(
-      text,
-      (token) => appendToken(narratorId, token),
-      () => {
-        currentNarratorId.current = null;
-        setIsStreaming(false);
-      },
+    runTurn(describeCombatAction(action, fight), (onToken, onComplete) =>
+      streamCombatAction(action, onToken, onComplete),
     );
+  };
+
+  const handleFlee = () => {
+    if (isStreaming) {
+      return;
+    }
+
+    runTurn('Attempts to flee', (onToken, onComplete) => streamFlee(onToken, onComplete));
   };
 
   return (
@@ -194,8 +240,8 @@ function GameScreen() {
       className="h-screen flex-col"
     >
       <div className="flex items-center gap-4 border-b px-4 py-2">
-        <StatusBar sessionId={sessionId} />
-        <NearbyToggleButton />
+        <StatusBar sessionId={sessionId} isInCombat={isInCombat} />
+        {!isInCombat && <NearbyToggleButton />}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="ml-auto">
@@ -223,17 +269,21 @@ function GameScreen() {
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
         <SidebarInset>
-          <MessageScrollerProvider>
+          <MessageScrollerProvider autoScroll scrollPreviousItemPeek={64}>
             <MessageScroller className="flex-1">
               <MessageScrollerViewport>
                 <MessageScrollerContent className="mx-auto w-full max-w-2xl p-4">
                   {messages.map((message) =>
                     message.role === 'marker' ? (
-                      <MessageScrollerItem key={message.id}>
+                      <MessageScrollerItem key={message.id} messageId={message.id}>
                         <ChatMarker text={message.text} variant={message.variant} />
                       </MessageScrollerItem>
                     ) : (
-                      <MessageScrollerItem key={message.id}>
+                      <MessageScrollerItem
+                        key={message.id}
+                        messageId={message.id}
+                        scrollAnchor={message.role === 'player'}
+                      >
                         <Message align={message.role === 'player' ? 'end' : 'start'}>
                           <MessageContent>
                             {message.role === 'player' && (
@@ -258,17 +308,28 @@ function GameScreen() {
           </MessageScrollerProvider>
 
           <div className="mx-auto w-full max-w-2xl p-4">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSend();
-                }
-              }}
-              disabled={!isConnected || isStreaming}
-              placeholder="What do you do?"
-            />
+            {isInCombat && fight && sceneQuery.data ? (
+              <CombatConsole
+                playerId={sceneQuery.data.playerStatus.id}
+                fight={fight}
+                disabled={isStreaming}
+                onUseAbility={handleCombatAction}
+                onUseItem={handleCombatAction}
+                onFlee={handleFlee}
+              />
+            ) : (
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSend();
+                  }
+                }}
+                disabled={!isConnected || isStreaming}
+                placeholder="What do you do?"
+              />
+            )}
           </div>
         </SidebarInset>
 

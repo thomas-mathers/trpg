@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Combat.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Commands;
@@ -14,6 +15,7 @@ internal class EndGameSessionCommandHandler(
     SetWorldPlaytimeCommandHandler setWorldPlaytime,
     GetGameSessionQueryHandler getGameSession,
     DeleteGameSessionCommandHandler deleteGameSession,
+    AbandonActiveFightCommandHandler abandonActiveFight,
     IMemoryCache cache
 )
 {
@@ -31,6 +33,16 @@ internal class EndGameSessionCommandHandler(
             new SetWorldPlaytimeCommand
             {
                 WorldId = snapshot.WorldId,
+                Playtime = snapshot.Playtime,
+            },
+            cancellationToken
+        );
+
+        await abandonActiveFight.Handle(
+            new AbandonActiveFightCommand
+            {
+                WorldId = snapshot.WorldId,
+                PlayerId = snapshot.PlayerId,
                 Playtime = snapshot.Playtime,
             },
             cancellationToken

@@ -9,6 +9,12 @@ public record CombatStartedEvent(FightState FightState) : GameTurnEvent
     public override object? Payload => FightState;
 }
 
+public record CombatUpdatedEvent(FightState FightState) : GameTurnEvent
+{
+    public override string MethodName => "CombatUpdated";
+    public override object? Payload => FightState;
+}
+
 public record CombatEndedEvent : GameTurnEvent
 {
     public override string MethodName => "CombatEnded";

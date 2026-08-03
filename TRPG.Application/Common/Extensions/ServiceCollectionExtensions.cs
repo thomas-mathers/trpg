@@ -163,6 +163,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<PersistCombatantsCommandHandler>()
             .AddTransient<StartFightCommandHandler>()
             .AddTransient<EndFightCommandHandler>()
+            .AddTransient<AbandonActiveFightCommandHandler>()
             .AddTransient<ResolveCombatRoundCommandHandler>()
             .AddTransient<GetAllWeaponProficienciesQueryHandler>()
             .AddTransient<AdjustWeaponProficienciesCommandHandler>()

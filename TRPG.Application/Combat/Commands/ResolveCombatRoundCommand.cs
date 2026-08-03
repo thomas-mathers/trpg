@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Inventory.Commands;
@@ -34,6 +35,10 @@ internal class ResolveCombatRoundCommandHandler(
         await persistCombatants.Handle(
             new PersistCombatantsCommand { Combatants = command.Combatants },
             cancellationToken
+        );
+
+        turnContext.PendingEvents.Enqueue(
+            new CombatUpdatedEvent(FightStateMapper.ToFightState(command.Combatants))
         );
 
         if (state.WeaponSwingCounts.Count > 0)

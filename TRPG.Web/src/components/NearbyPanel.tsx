@@ -4,9 +4,8 @@ import type { ReactNode } from 'react';
 import type { CreatureStatusSnapshot, SceneSnapshot } from '@/api/client';
 import { EntityTooltip } from '@/components/EntityLink';
 import { BUILDING_TYPE_ICONS, DISTRICT_TYPE_ICONS } from '@/lib/place-type-icons';
+import { isDangerous } from '@/lib/threat-level';
 import { cn } from '@/lib/utils';
-
-const THREAT_LEVEL_GAP = 5;
 
 interface NearbyPanelProps {
   sessionId: string;
@@ -109,14 +108,14 @@ function CreatureRow({
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
 }) {
-  const isDangerous = Number(creature.level) >= Number(playerLevel) + THREAT_LEVEL_GAP;
+  const dangerous = isDangerous(Number(creature.level), Number(playerLevel));
   const reputation = creature.reputation == null ? null : Number(creature.reputation);
 
   return (
     <div className="flex items-center justify-between gap-2 py-1.5">
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="flex h-[15px] w-[15px] shrink-0 items-center justify-center">
-          {isDangerous && (
+          {dangerous && (
             <Skull className="h-[15px] w-[15px]" aria-label="Much more powerful than you" />
           )}
         </span>

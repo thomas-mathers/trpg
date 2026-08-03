@@ -1,7 +1,13 @@
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-export type ChatMarkerVariant = 'location' | 'reconnecting' | 'reconnected' | 'disconnected';
+export type ChatMarkerVariant =
+  | 'location'
+  | 'reconnecting'
+  | 'reconnected'
+  | 'disconnected'
+  | 'combat-start'
+  | 'combat-end';
 
 interface ChatMarkerProps {
   text: string;
@@ -13,6 +19,8 @@ const VARIANT_CLASSES: Record<ChatMarkerVariant, string> = {
   reconnecting: 'text-amber-500',
   reconnected: 'text-green-500',
   disconnected: 'text-destructive',
+  'combat-start': 'text-destructive',
+  'combat-end': 'text-muted-foreground',
 };
 
 export function ChatMarker({ text, variant = 'location' }: ChatMarkerProps) {
