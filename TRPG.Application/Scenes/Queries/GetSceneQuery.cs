@@ -141,11 +141,6 @@ internal class GetSceneQueryHandler(
         var player = creaturesHere.Single(c => c.Id == query.PlayerId);
         var nearby = creaturesHere.Where(c => c.Id != query.PlayerId).ToArray();
 
-        var playerXpTotals = await getTotalCharacterXpFromSkills.Handle(
-            new GetTotalCharacterXpFromSkillsQuery { CreatureIds = [query.PlayerId] },
-            cancellationToken
-        );
-        var playerTotalCharacterXp = playerXpTotals.GetValueOrDefault(query.PlayerId, 0);
         var state = await getStateById.Handle(
             new GetStateByIdQuery { Id = player.StateId },
             cancellationToken
@@ -156,6 +151,7 @@ internal class GetSceneQueryHandler(
             player.RoomId != null
                 ? await BuildIndoorScene(query, player, nearby, cancellationToken)
                 : await BuildOutdoorScene(query, player, nearby, state, cancellationToken);
+        var playerCreatureInfo = await BuildPlayerCreatureInfo(query, player, cancellationToken);
 
         logger.LogInformation(
             "[perf] GetScene ({Branch}) took {ElapsedMs}ms, {CreatureCount} nearby people",
@@ -176,7 +172,7 @@ internal class GetSceneQueryHandler(
             cityInfo,
             details.Building,
             details.Room,
-            BuildPlayerCreatureInfo(query, player, playerTotalCharacterXp),
+            playerCreatureInfo,
             details.NearbyProps,
             details.NearbyPeople,
             details.NearbyBuildings,
@@ -184,51 +180,76 @@ internal class GetSceneQueryHandler(
         );
     }
 
-    private static SceneCreatureInfo BuildPlayerCreatureInfo(
+    private async Task<SceneCreatureInfo> BuildPlayerCreatureInfo(
         GetSceneQuery query,
         CreatureSummary player,
+        CancellationToken cancellationToken
+    )
+    {
+        var playerXpTotals = await getTotalCharacterXpFromSkills.Handle(
+            new GetTotalCharacterXpFromSkillsQuery { CreatureIds = [query.PlayerId] },
+            cancellationToken
+        );
+        var totalCharacterXp = playerXpTotals.GetValueOrDefault(query.PlayerId, 0);
+
+        return BuildSceneCreatureInfo(
+            player,
+            query.CurrentDate.Year,
+            factionNames: [],
+            state: null,
+            reputation: null,
+            totalCharacterXp
+        );
+    }
+
+    private static SceneCreatureInfo BuildSceneCreatureInfo(
+        CreatureSummary creature,
+        int currentYear,
+        IReadOnlyCollection<string> factionNames,
+        CreatureState? state,
+        int? reputation,
         int totalCharacterXp
     )
     {
         var experienceProgress = SkillFormulas.GetExperienceProgress(
-            player.Level,
+            creature.Level,
             totalCharacterXp
         );
 
         return new SceneCreatureInfo(
-            Id: query.PlayerId,
-            player.Name,
-            player.CreatureType,
-            player.Gender,
-            player.Profession,
-            player.Level,
-            query.CurrentDate.Year - player.BirthYear,
-            [],
-            State: null,
-            Reputation: null,
-            player.Gold,
-            player.CurrentHp,
-            player.MaximumHp,
-            player.CurrentAp,
-            player.MaximumAp,
-            player.CurrentMp,
-            player.MaximumMp,
+            creature.Id,
+            creature.Name,
+            creature.CreatureType,
+            creature.Gender,
+            creature.Profession,
+            creature.Level,
+            currentYear - creature.BirthYear,
+            factionNames,
+            state,
+            reputation,
+            creature.Gold,
+            creature.CurrentHp,
+            creature.MaximumHp,
+            creature.CurrentAp,
+            creature.MaximumAp,
+            creature.CurrentMp,
+            creature.MaximumMp,
             experienceProgress.Current,
             experienceProgress.ToNextLevel,
-            player.Strength,
-            player.Dexterity,
-            player.Intelligence,
-            player.Endurance,
-            player.Stamina,
-            player.Mana,
-            player.Defense,
-            player.MovementSpeed,
-            player.PhysicalResistance,
-            player.FireResistance,
-            player.IceResistance,
-            player.LightningResistance,
-            player.PoisonResistance,
-            player.MagicResistance
+            creature.Strength,
+            creature.Dexterity,
+            creature.Intelligence,
+            creature.Endurance,
+            creature.Stamina,
+            creature.Mana,
+            creature.Defense,
+            creature.MovementSpeed,
+            creature.PhysicalResistance,
+            creature.FireResistance,
+            creature.IceResistance,
+            creature.LightningResistance,
+            creature.PoisonResistance,
+            creature.MagicResistance
         );
     }
 
@@ -431,44 +452,15 @@ internal class GetSceneQueryHandler(
         // experience progress is always a flat 0 - not worth a query for every turn's nearby roster.
         return nearby
             .Select(x =>
-            {
-                var experienceProgress = SkillFormulas.GetExperienceProgress(x.Level, 0);
-                return new SceneCreatureInfo(
-                    x.Id,
-                    x.Name,
-                    x.CreatureType,
-                    x.Gender,
-                    x.Profession,
-                    x.Level,
-                    query.CurrentDate.Year - x.BirthYear,
-                    factionNamesByCreature.GetValueOrDefault(x.Id, []),
-                    x.State,
-                    reputationByCreature.GetValueOrDefault(x.Id, 0),
-                    x.Gold,
-                    x.CurrentHp,
-                    x.MaximumHp,
-                    x.CurrentAp,
-                    x.MaximumAp,
-                    x.CurrentMp,
-                    x.MaximumMp,
-                    experienceProgress.Current,
-                    experienceProgress.ToNextLevel,
-                    x.Strength,
-                    x.Dexterity,
-                    x.Intelligence,
-                    x.Endurance,
-                    x.Stamina,
-                    x.Mana,
-                    x.Defense,
-                    x.MovementSpeed,
-                    x.PhysicalResistance,
-                    x.FireResistance,
-                    x.IceResistance,
-                    x.LightningResistance,
-                    x.PoisonResistance,
-                    x.MagicResistance
-                );
-            })
+                BuildSceneCreatureInfo(
+                    x,
+                    query.CurrentDate.Year,
+                    factionNames: factionNamesByCreature.GetValueOrDefault(x.Id, []),
+                    state: x.State,
+                    reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
+                    totalCharacterXp: 0
+                )
+            )
             .ToArray();
     }
 
