@@ -198,6 +198,38 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     }
 
     [Fact]
+    public async Task Handle_EnqueuesCombatEndedEvent_WithTheOutcome()
+    {
+        // Arrange
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Victory,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new ResolveCombatRoundCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                Combatants = [MakePlayerCombatant(), MakeEnemyCombatant()],
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var turnContext = _serviceProvider.GetRequiredService<GameTurnContext>();
+        var combatEnded = Assert.Single(turnContext.PendingEvents.OfType<CombatEndedEvent>());
+        Assert.Equal(CombatOutcome.Victory, combatEnded.Outcome);
+    }
+
+    [Fact]
     public async Task Handle_LeavesFightOngoing_WhenOutcomeIsOngoing()
     {
         // Arrange

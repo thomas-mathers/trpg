@@ -17,7 +17,7 @@ internal class StartFightCommand
 internal class StartFightCommandHandler(
     TrpgDbContext context,
     GetCreatureByIdQueryHandler getCreatureById,
-    GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
+    GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
     GetCombatantQueryHandler getCombatant,
     ApplyPassiveRegenCommandHandler applyPassiveRegen
 )
@@ -35,8 +35,8 @@ internal class StartFightCommandHandler(
             cancellationToken
         );
 
-        var nearby = await getAllNearbyCreatures.Handle(
-            new GetAllNearbyCreaturesQuery
+        var nearby = await getCreaturesAtLocation.Handle(
+            new GetCreaturesAtLocationQuery
             {
                 Location = new CreatureLocation(
                     player!.WorldId,

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { FightState } from '@/api/client';
+import type { CombatOutcome } from '@/lib/combat-outcome';
 import type { CombatRoundEvent, CombatUpdatePayload } from '@/lib/combat-round-event';
 import { gameEventBus } from '@/lib/gameEventBus';
 
@@ -53,6 +54,7 @@ export function useCombatState() {
   const [activeAttackerId, setActiveAttackerId] = useState<string | null>(null);
   const [cardEffects, setCardEffects] = useState<Record<string, CombatCardEffect>>({});
   const [isPlayingBack, setIsPlayingBack] = useState(false);
+  const [combatOutcome, setCombatOutcome] = useState<CombatOutcome | null>(null);
 
   const fightRef = useRef<FightState | null>(null);
   const playbackTokenRef = useRef(0);
@@ -95,9 +97,6 @@ export function useCombatState() {
           return;
         }
       }
-
-      // Catches up anything not carried by a discrete event - AP/MP costs, buffs, dots, hots,
-      // conditions - so the display converges on the server's authoritative post-round state.
       setFight(payload.fightState);
       setIsPlayingBack(false);
     }
@@ -111,11 +110,11 @@ export function useCombatState() {
     const offUpdated = gameEventBus.on('CombatUpdated', (payload) => {
       void playRound(payload);
     });
-    const offEnded = gameEventBus.on('CombatEnded', () => {
+    const offEnded = gameEventBus.on('CombatEnded', (outcome) => {
       playbackTokenRef.current += 1;
       setIsPlayingBack(false);
       setActiveAttackerId(null);
-      setFight(null);
+      setCombatOutcome(outcome);
     });
 
     return () => {
@@ -125,11 +124,18 @@ export function useCombatState() {
     };
   }, []);
 
+  const dismissOutcome = useCallback(() => {
+    setCombatOutcome(null);
+    setFight(null);
+  }, []);
+
   return {
     fight,
     isInCombat: fight !== null,
     activeAttackerId,
     cardEffects,
     isPlayingBack,
+    combatOutcome,
+    dismissOutcome,
   };
 }

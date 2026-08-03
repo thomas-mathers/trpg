@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TRPG.Application.Common;
+using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
 
@@ -35,6 +36,22 @@ public sealed class EndpointTestFixture : IAsyncLifetime
                     options.Transports = HttpTransportType.LongPolling;
                 }
             )
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.PropertyNamingPolicy = TrpgJsonOptions
+                    .Default
+                    .PropertyNamingPolicy;
+                options.PayloadSerializerOptions.PropertyNameCaseInsensitive = TrpgJsonOptions
+                    .Default
+                    .PropertyNameCaseInsensitive;
+                options.PayloadSerializerOptions.DefaultIgnoreCondition = TrpgJsonOptions
+                    .Default
+                    .DefaultIgnoreCondition;
+                foreach (var converter in TrpgJsonOptions.Default.Converters)
+                {
+                    options.PayloadSerializerOptions.Converters.Add(converter);
+                }
+            })
             .Build();
     }
 

@@ -73,7 +73,9 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 
 ### Comments
 - Explain *why*, never *how* — well-named identifiers make the what and how obvious
-- Use a comment only when a future reader would be genuinely confused without it; if removing it wouldn't confuse anyone, don't write it
+- One line, maximum. If the justification needs more than that, fix the code (better name, extracted helper) instead of writing a paragraph
+- Only when truly necessary — a future reader must be left genuinely confused without it. Default to no comment; most code needs zero
+- Justify the code locally and stay context-free: no references to other files, past decisions, tickets, memory docs, or session history. A comment tied to an external fact goes stale the moment that fact changes; one that only depends on the adjacent line(s) can't
 - No XML doc comments
 - Never comment out code — delete it; git history has it if it's needed again
 - No closing-brace comments (`} // end if`) — if a block is long enough to seem to need one, extract a named helper instead

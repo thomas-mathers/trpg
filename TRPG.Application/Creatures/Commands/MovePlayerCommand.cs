@@ -30,7 +30,7 @@ internal record MovePlayerResult(MovePlayerOutcome Outcome, Creature Player);
 
 internal class MovePlayerCommandHandler(
     GetCreatureByIdQueryHandler getCreatureById,
-    GetAllNearbyCreaturesQueryHandler getAllNearbyCreatures,
+    GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
     UpdateCreaturesCommandHandler updateCreatures,
     DeleteCreaturesCommandHandler deleteCreatures,
     GetBuildingByNameInStateQueryHandler getBuildingByNameInState,
@@ -96,8 +96,8 @@ internal class MovePlayerCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var nearby = await getAllNearbyCreatures.Handle(
-            new GetAllNearbyCreaturesQuery
+        var nearby = await getCreaturesAtLocation.Handle(
+            new GetCreaturesAtLocationQuery
             {
                 Location = new CreatureLocation(worldId, oldRoomId, stateId, oldDistrictId),
             },
