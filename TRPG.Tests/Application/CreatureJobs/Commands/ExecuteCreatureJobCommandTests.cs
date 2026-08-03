@@ -81,10 +81,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
     [Fact]
     public async Task Handle_KeepsCreatureDiscoverableByDistrict_AfterAJobMovesItAcrossDistricts()
     {
-        // Arrange — the bug this fixes: a scheduled job used to move a creature's RoomId
-        // without touching DistrictId, leaving GetCreaturesAtLocationQuery unable to find it
-        // by its new district (or, prior to that fix, forcing a room/district branch to work
-        // around the mismatch)
+        // Arrange
         var oldDistrictId = Guid.NewGuid();
         var newDistrictId = Guid.NewGuid();
         var newRoomId = Guid.NewGuid();
