@@ -3,9 +3,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Tools;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Queries;
 
 namespace TRPG.Application.Tools;
@@ -13,8 +11,6 @@ namespace TRPG.Application.Tools;
 internal class LookTool(
     GameTurnContext turnContext,
     GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetPlaytimeQueryHandler getPlaytime,
     ILogger<LookTool> logger
 ) : IGameTool
 {
@@ -29,22 +25,12 @@ internal class LookTool(
         logger.LogInformation("[look] tool invoked");
         var stopwatch = Stopwatch.StartNew();
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
-            cancellationToken
-        );
-        var currentDate = GameClock.GetCurrentInGameDate(playtime);
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
-            cancellationToken
-        );
         var result = await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                LocationId = player!.LocationId,
-                CurrentDate = currentDate,
+                SessionId = turnContext.SessionId,
             },
             cancellationToken
         );

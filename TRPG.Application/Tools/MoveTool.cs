@@ -6,7 +6,6 @@ using TRPG.Application.Common;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 
@@ -16,7 +15,6 @@ internal class MoveTool(
     GameTurnContext turnContext,
     GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
     MovePlayerCommandHandler movePlayer,
-    GetPlaytimeQueryHandler getPlaytime,
     ILogger<MoveTool> logger
 ) : IGameTool
 {
@@ -53,25 +51,18 @@ internal class MoveTool(
             return error;
         }
 
-        var player = moveResult.Player;
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
-            cancellationToken
-        );
-        var currentDate = GameClock.GetCurrentInGameDate(playtime);
         var result = await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                LocationId = player.LocationId,
-                CurrentDate = currentDate,
+                SessionId = turnContext.SessionId,
             },
             cancellationToken
         );
 
         turnContext.PendingEvents.Enqueue(
-            new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(result), SceneUpdateReason.Moved)
+            new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(result!), SceneUpdateReason.Moved)
         );
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
