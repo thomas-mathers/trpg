@@ -1,6 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Scenes.Commands;
@@ -20,7 +20,6 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
     private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private GetFrontDoorQueryHandler _getFrontDoor = null!;
     private SyncScheduleLockCommandHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
@@ -33,7 +32,6 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         _addJob = _serviceProvider.GetRequiredService<AddCreatureJobCommandHandler>();
         _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
         _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
-        _getFrontDoor = _serviceProvider.GetRequiredService<GetFrontDoorQueryHandler>();
         _handler = _serviceProvider.GetRequiredService<SyncScheduleLockCommandHandler>();
     }
 
@@ -49,11 +47,11 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             TestContext.Current.CancellationToken
         );
 
-    private Task<RoomConnector?> GetFrontDoor(Guid locationId) =>
-        _getFrontDoor.Handle(
-            new GetFrontDoorQuery { LocationId = locationId },
-            TestContext.Current.CancellationToken
-        );
+    private Task<RoomConnector> GetFrontDoor(Guid roomConnectorId) =>
+        _context
+            .Props.AsNoTracking()
+            .OfType<RoomConnector>()
+            .FirstAsync(c => c.Id == roomConnectorId, TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task Handle_Locks_DuringSleepHours()
@@ -93,8 +91,8 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         );
 
         // Assert
-        var door = await GetFrontDoor(frontDoor.LocationId);
-        Assert.True(door!.IsLocked);
+        var door = await GetFrontDoor(frontDoor.Id);
+        Assert.True(door.IsLocked);
     }
 
     [Fact]
@@ -144,8 +142,8 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         );
 
         // Assert
-        var door = await GetFrontDoor(frontDoor.LocationId);
-        Assert.False(door!.IsLocked);
+        var door = await GetFrontDoor(frontDoor.Id);
+        Assert.False(door.IsLocked);
     }
 
     [Fact]
@@ -177,8 +175,8 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         );
 
         // Assert
-        var door = await GetFrontDoor(frontDoor.LocationId);
-        Assert.False(door!.IsLocked);
+        var door = await GetFrontDoor(frontDoor.Id);
+        Assert.False(door.IsLocked);
     }
 
     [Fact]
@@ -212,8 +210,8 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         );
 
         // Assert
-        var door = await GetFrontDoor(frontDoor.LocationId);
-        Assert.True(door!.IsLocked);
+        var door = await GetFrontDoor(frontDoor.Id);
+        Assert.True(door.IsLocked);
     }
 
     [Fact]
@@ -256,8 +254,8 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         );
 
         // Assert
-        var door = await GetFrontDoor(frontDoor.LocationId);
-        Assert.False(door!.IsLocked);
+        var door = await GetFrontDoor(frontDoor.Id);
+        Assert.False(door.IsLocked);
     }
 
     [Fact]
@@ -301,8 +299,8 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         );
 
         // Assert
-        var door = await GetFrontDoor(frontDoor.LocationId);
-        Assert.True(door!.IsLocked);
+        var door = await GetFrontDoor(frontDoor.Id);
+        Assert.True(door.IsLocked);
     }
 
     private async Task<Creature> SeedOwner()

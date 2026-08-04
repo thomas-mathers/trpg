@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Common;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
@@ -9,15 +10,6 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Creatures.Commands;
 
-internal enum MovePlayerOutcome
-{
-    Moved,
-    BuildingHasNoEntrance,
-    DoorLocked,
-    DestinationNotFound,
-    ExitNotFound,
-}
-
 internal class MovePlayerCommand
 {
     public required Guid PlayerId { get; init; }
@@ -25,7 +17,7 @@ internal class MovePlayerCommand
     public required string DestinationName { get; init; }
 }
 
-internal record MovePlayerResult(MovePlayerOutcome Outcome, Creature Player);
+internal record MovePlayerResult(EntryOutcome Outcome, Creature Player);
 
 internal class MovePlayerCommandHandler(
     GetCreatureByIdQueryHandler getCreatureById,
@@ -33,8 +25,7 @@ internal class MovePlayerCommandHandler(
     GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
     UpdateCreaturesCommandHandler updateCreatures,
     DeleteCreaturesCommandHandler deleteCreatures,
-    GetBuildingByNameInStateQueryHandler getBuildingByNameInState,
-    GetEntranceRoomQueryHandler getEntranceRoom,
+    GetBuildingByNameAtLocationQueryHandler getBuildingByNameAtLocation,
     GetExitByDestinationNameQueryHandler getExitByDestinationName,
     CanEnterBuildingQueryHandler canEnterBuilding,
     SyncScheduleLockCommandHandler syncScheduleLock,
@@ -51,7 +42,9 @@ internal class MovePlayerCommandHandler(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
         );
+
         var oldLocationId = player!.LocationId;
+
         var currentLocation = await getLocationById.Handle(
             new GetLocationByIdQuery { Id = player.LocationId },
             cancellationToken
@@ -59,7 +52,7 @@ internal class MovePlayerCommandHandler(
 
         var outcome = await MoveFromLocation(player, currentLocation!, command, cancellationToken);
 
-        if (outcome != MovePlayerOutcome.Moved)
+        if (outcome != EntryOutcome.Entered)
         {
             return new MovePlayerResult(outcome, player);
         }
@@ -75,7 +68,7 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        return new MovePlayerResult(MovePlayerOutcome.Moved, player);
+        return new MovePlayerResult(EntryOutcome.Entered, player);
     }
 
     private async Task CleanUpDeadCreatures(
@@ -111,7 +104,7 @@ internal class MovePlayerCommandHandler(
         );
     }
 
-    private async Task<MovePlayerOutcome> MoveFromLocation(
+    private async Task<EntryOutcome> MoveFromLocation(
         Creature player,
         Location currentLocation,
         MovePlayerCommand command,
@@ -120,7 +113,12 @@ internal class MovePlayerCommandHandler(
     {
         if (currentLocation.RoomId == null)
         {
-            var buildingOutcome = await TryEnterBuildingByName(player, command, cancellationToken);
+            var buildingOutcome = await TryEnterBuildingByName(
+                player,
+                currentLocation,
+                command,
+                cancellationToken
+            );
             if (buildingOutcome != null)
             {
                 return buildingOutcome.Value;
@@ -135,50 +133,47 @@ internal class MovePlayerCommandHandler(
             },
             cancellationToken
         );
+
         if (!exitMatch.Matched)
         {
             return currentLocation.RoomId == null
-                ? MovePlayerOutcome.DestinationNotFound
-                : MovePlayerOutcome.ExitNotFound;
+                ? EntryOutcome.DestinationNotFound
+                : EntryOutcome.ExitNotFound;
         }
 
         player.LocationId = exitMatch.DestinationLocationId!.Value;
-        return MovePlayerOutcome.Moved;
+
+        return EntryOutcome.Entered;
     }
 
-    private async Task<MovePlayerOutcome?> TryEnterBuildingByName(
+    private async Task<EntryOutcome?> TryEnterBuildingByName(
         Creature player,
+        Location currentLocation,
         MovePlayerCommand command,
         CancellationToken cancellationToken
     )
     {
-        var building = await getBuildingByNameInState.Handle(
-            new GetBuildingByNameInStateQuery
+        var building = await getBuildingByNameAtLocation.Handle(
+            new GetBuildingByNameAtLocationQuery
             {
-                StateId = player.StateId,
+                Location = currentLocation,
                 Name = command.DestinationName,
             },
             cancellationToken
         );
+
         if (building == null)
         {
             return null;
-        }
-
-        var entranceRoom = await getEntranceRoom.Handle(
-            new GetEntranceRoomQuery { BuildingId = building.Id },
-            cancellationToken
-        );
-        if (entranceRoom == null)
-        {
-            return MovePlayerOutcome.BuildingHasNoEntrance;
         }
 
         var schedulePlaytime = await getPlaytime.Handle(
             new GetPlaytimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
+
         var currentDate = GameClock.GetCurrentInGameDate(schedulePlaytime);
+
         await syncScheduleLock.Handle(
             new SyncScheduleLockCommand
             {
@@ -188,20 +183,19 @@ internal class MovePlayerCommandHandler(
             },
             cancellationToken
         );
-        var canEnter = await canEnterBuilding.Handle(
-            new CanEnterBuildingQuery
-            {
-                EntranceLocationId = entranceRoom.LocationId,
-                EnteringCreatureId = player.Id,
-            },
+
+        var entry = await canEnterBuilding.Handle(
+            new CanEnterBuildingQuery { BuildingId = building.Id, EnteringCreatureId = player.Id },
             cancellationToken
         );
-        if (!canEnter)
+
+        if (entry.Outcome != EntryOutcome.Entered)
         {
-            return MovePlayerOutcome.DoorLocked;
+            return entry.Outcome;
         }
 
-        player.LocationId = entranceRoom.LocationId;
-        return MovePlayerOutcome.Moved;
+        player.LocationId = entry.EntranceLocationId!.Value;
+
+        return EntryOutcome.Entered;
     }
 }

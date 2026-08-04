@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
@@ -80,20 +81,18 @@ internal class MoveTool(
         return result;
     }
 
-    private static ToolError? ToToolError(MovePlayerOutcome outcome, string destinationName) =>
+    private static ToolError? ToToolError(EntryOutcome outcome, string destinationName) =>
         outcome switch
         {
-            MovePlayerOutcome.Moved => null,
-            MovePlayerOutcome.BuildingHasNoEntrance => new ToolError(
+            EntryOutcome.Entered => null,
+            EntryOutcome.NoEntrance => new ToolError(
                 $"'{destinationName}' has no entrance. Call look to see what's around."
             ),
-            MovePlayerOutcome.DoorLocked => new ToolError(
-                $"The door to '{destinationName}' is locked."
-            ),
-            MovePlayerOutcome.DestinationNotFound => new ToolError(
+            EntryOutcome.Locked => new ToolError($"The door to '{destinationName}' is locked."),
+            EntryOutcome.DestinationNotFound => new ToolError(
                 $"No building or district named '{destinationName}' found nearby. Call look to see what's around."
             ),
-            MovePlayerOutcome.ExitNotFound => new ToolError(
+            EntryOutcome.ExitNotFound => new ToolError(
                 $"No exit named '{destinationName}' found here. Call look to see the available exits."
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(outcome)),

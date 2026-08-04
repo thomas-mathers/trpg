@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -72,6 +73,37 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
+    public async Task Handle_ReturnsDestinationNotFound_WhenTheBuildingIsInAnotherDistrict()
+    {
+        // Arrange — the building exists in the state but in a district the player isn't standing in
+        var district = Builders.MakeLocation(WorldId, StateId, districtId: Guid.NewGuid());
+        var player = Builders.MakeCreature(WorldId, stateId: StateId, locationId: district.Id);
+        var farBuilding = Builders.MakeBuilding(
+            StateId,
+            districtId: Guid.NewGuid(),
+            name: "The Distant Lighthouse"
+        );
+        _context.Locations.Add(district);
+        _context.Creatures.Add(player);
+        _context.Buildings.Add(farBuilding);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = "The Distant Lighthouse",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(EntryOutcome.DestinationNotFound, result.Outcome);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsBuildingHasNoEntrance_WhenTheBuildingHasNoRoomAtFloorZero()
     {
         // Arrange
@@ -97,7 +129,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Equal(MovePlayerOutcome.BuildingHasNoEntrance, result.Outcome);
+        Assert.Equal(EntryOutcome.NoEntrance, result.Outcome);
     }
 
     [Fact]
@@ -143,7 +175,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Equal(MovePlayerOutcome.DoorLocked, result.Outcome);
+        Assert.Equal(EntryOutcome.Locked, result.Outcome);
     }
 
     [Fact]
@@ -170,7 +202,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Equal(MovePlayerOutcome.DestinationNotFound, result.Outcome);
+        Assert.Equal(EntryOutcome.DestinationNotFound, result.Outcome);
     }
 
     [Fact]
@@ -261,7 +293,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Equal(MovePlayerOutcome.ExitNotFound, result.Outcome);
+        Assert.Equal(EntryOutcome.ExitNotFound, result.Outcome);
     }
 
     [Fact]
@@ -330,7 +362,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Equal(MovePlayerOutcome.Moved, result.Outcome);
+        Assert.Equal(EntryOutcome.Entered, result.Outcome);
         Assert.Equal(cityCenter.LocationId, result.Player.LocationId);
 
         await using var verifyContext = db.CreateContext();
