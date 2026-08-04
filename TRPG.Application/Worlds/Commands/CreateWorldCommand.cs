@@ -69,8 +69,7 @@ public class CreateWorldCommandHandler(
             )
         );
         playerResult = creatureGenerator.AddStartingPotions(playerResult);
-        playerResult.Creature.CityId = startingCity.Id;
-        playerResult.Creature.DistrictId = startingDistrict.Id;
+        playerResult.Creature.LocationId = startingDistrict.LocationId;
 
         var bootstrapResult = await bootstrapWorld.Handle(
             worldResult,

@@ -30,7 +30,7 @@ public class BiographyGeneratorTests
             action: CreatureJobAction.Work,
             startHour: 6,
             endHour: 14,
-            roomId: room.Id,
+            locationId: room.LocationId,
             worldId: _worldId
         );
 
@@ -73,7 +73,7 @@ public class BiographyGeneratorTests
             action: CreatureJobAction.Work,
             startHour: 8,
             endHour: 18,
-            roomId: room.Id,
+            locationId: room.LocationId,
             worldId: _worldId
         );
         var ownership = new BuildingOwner
@@ -123,7 +123,7 @@ public class BiographyGeneratorTests
             action: CreatureJobAction.Work,
             startHour: 6,
             endHour: 14,
-            roomId: room.Id,
+            locationId: room.LocationId,
             worldId: _worldId
         );
         var mondayOff = Builders.MakeCreatureJob(
@@ -219,7 +219,7 @@ public class BiographyGeneratorTests
             action: CreatureJobAction.Sleep,
             startHour: 22,
             endHour: 6,
-            roomId: room.Id,
+            locationId: room.LocationId,
             worldId: _worldId
         );
 

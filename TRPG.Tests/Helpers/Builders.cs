@@ -79,21 +79,23 @@ internal static class Builders
             WorldId = worldId ?? Guid.NewGuid(),
         };
 
-    public static RoomConnector MakeRoomConnector(
-        Guid roomId,
-        Guid? destinationRoomId = null,
+    public static LocationConnector MakeLocationConnector(
+        Guid locationId,
+        Guid? destinationLocationId = null,
         bool isLocked = false,
         Guid? worldId = null,
         string name = "Door",
-        string description = "A door."
+        string description = "A door.",
+        string destinationLabel = "Outside"
     ) =>
         new()
         {
-            RoomId = roomId,
+            LocationId = locationId,
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
             Description = description,
-            DestinationRoomId = destinationRoomId,
+            DestinationLocationId = destinationLocationId ?? Guid.NewGuid(),
+            DestinationLabel = destinationLabel,
             IsLocked = isLocked,
         };
 
@@ -200,9 +202,7 @@ internal static class Builders
         Profession? profession = Profession.Knight,
         Guid? birthStateId = null,
         Guid? stateId = null,
-        Guid? cityId = null,
-        Guid? districtId = null,
-        Guid? roomId = null,
+        Guid? locationId = null,
         int birthYear = 1000,
         string name = "Test Creature",
         int level = 1,
@@ -226,9 +226,7 @@ internal static class Builders
             BirthYear = birthYear,
             Profession = profession,
             StateId = stateId ?? Guid.NewGuid(),
-            CityId = cityId,
-            DistrictId = districtId,
-            RoomId = roomId,
+            LocationId = locationId ?? Guid.NewGuid(),
             Level = level,
             State = state,
             BaseAttributes = attributes,
@@ -517,29 +515,59 @@ internal static class Builders
         Guid cityId,
         DistrictType districtType = DistrictType.CityCenter,
         Guid? worldId = null,
-        string? name = null
+        string? name = null,
+        Guid? id = null,
+        Guid? locationId = null
     )
     {
         return new District
         {
+            Id = id ?? Guid.NewGuid(),
             CityId = cityId,
             DistrictType = districtType,
             Name = name ?? $"District-{Guid.NewGuid():N}",
             Description = "A test district",
             WorldId = worldId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
         };
     }
 
-    public static Room MakeRoom(Guid buildingId, int capacity = 4, Guid? worldId = null)
+    public static Room MakeRoom(
+        Guid buildingId,
+        int capacity = 4,
+        Guid? worldId = null,
+        Guid? id = null,
+        Guid? locationId = null
+    )
     {
         return new Room
         {
+            Id = id ?? Guid.NewGuid(),
             BuildingId = buildingId,
             Capacity = capacity,
             Name = $"Room-{Guid.NewGuid():N}",
             Description = "A test room",
             FloorNumber = 0,
             WorldId = worldId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
+        };
+    }
+
+    public static Location MakeLocation(
+        Guid? worldId = null,
+        Guid? stateId = null,
+        Guid? cityId = null,
+        Guid? districtId = null,
+        Guid? roomId = null
+    )
+    {
+        return new Location
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            StateId = stateId ?? Guid.NewGuid(),
+            CityId = cityId,
+            DistrictId = districtId,
+            RoomId = roomId,
         };
     }
 
@@ -570,7 +598,7 @@ internal static class Builders
         CreatureJobAction action = CreatureJobAction.Idle,
         int startHour = 8,
         int endHour = 17,
-        Guid? roomId = null,
+        Guid? locationId = null,
         Guid? worldId = null,
         DayOfWeek? specificDay = null
     )
@@ -584,7 +612,7 @@ internal static class Builders
             SpecificDay = specificDay,
             Priority = priority,
             StateId = Guid.NewGuid(),
-            RoomId = roomId,
+            LocationId = locationId ?? Guid.NewGuid(),
             WorldId = worldId ?? Guid.NewGuid(),
         };
     }

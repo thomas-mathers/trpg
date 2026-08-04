@@ -4,17 +4,17 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Creatures.Queries;
 
-internal class GetCreatureByNameOutdoorsInStateQuery
+internal class GetCreatureByNameAtLocationQuery
 {
     public required Guid WorldId { get; init; }
-    public required Guid StateId { get; init; }
+    public required Guid LocationId { get; init; }
     public required string Name { get; init; }
 }
 
-internal class GetCreatureByNameOutdoorsInStateQueryHandler(TrpgDbContext context)
+internal class GetCreatureByNameAtLocationQueryHandler(TrpgDbContext context)
 {
     public async Task<Creature?> Handle(
-        GetCreatureByNameOutdoorsInStateQuery query,
+        GetCreatureByNameAtLocationQuery query,
         CancellationToken cancellationToken = default
     )
     {
@@ -23,8 +23,7 @@ internal class GetCreatureByNameOutdoorsInStateQueryHandler(TrpgDbContext contex
             .FirstOrDefaultAsync(
                 p =>
                     p.WorldId == query.WorldId
-                    && p.StateId == query.StateId
-                    && p.RoomId == null
+                    && p.LocationId == query.LocationId
                     && p.Name == query.Name,
                 cancellationToken
             );

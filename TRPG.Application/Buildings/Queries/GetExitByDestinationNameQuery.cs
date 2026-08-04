@@ -6,11 +6,11 @@ namespace TRPG.Application.Buildings.Queries;
 
 internal class GetExitByDestinationNameQuery
 {
-    public required Guid RoomId { get; init; }
+    public required Guid LocationId { get; init; }
     public required string DestinationName { get; init; }
 }
 
-internal record ExitMatch(bool Matched, Guid? DestinationRoomId);
+internal record ExitMatch(bool Matched, Guid? DestinationLocationId);
 
 internal class GetExitByDestinationNameQueryHandler(TrpgDbContext context)
 {
@@ -19,33 +19,17 @@ internal class GetExitByDestinationNameQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var connectors = await context
+        var match = await context
             .Props.AsNoTracking()
-            .Where(p => p.RoomId == query.RoomId)
-            .OfType<RoomConnector>()
-            .ToArrayAsync(cancellationToken);
+            .Where(p => p.LocationId == query.LocationId)
+            .OfType<LocationConnector>()
+            .FirstOrDefaultAsync(
+                c => EF.Functions.ILike(c.DestinationLabel, query.DestinationName),
+                cancellationToken
+            );
 
-        if (query.DestinationName.Equals("Outside", StringComparison.OrdinalIgnoreCase))
-        {
-            return connectors.Any(c => c.DestinationRoomId == null)
-                ? new ExitMatch(true, null)
-                : new ExitMatch(false, null);
-        }
-
-        var destinationIds = connectors
-            .Where(c => c.DestinationRoomId != null)
-            .Select(c => c.DestinationRoomId!.Value)
-            .ToHashSet();
-
-        var destinationRoomId = await context
-            .Rooms.Where(r =>
-                destinationIds.Contains(r.Id) && EF.Functions.ILike(r.Name, query.DestinationName)
-            )
-            .Select(r => (Guid?)r.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return destinationRoomId != null
-            ? new ExitMatch(true, destinationRoomId)
+        return match != null
+            ? new ExitMatch(true, match.DestinationLocationId)
             : new ExitMatch(false, null);
     }
 }

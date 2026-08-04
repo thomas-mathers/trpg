@@ -72,6 +72,8 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
             )
         );
 
+        var location = Builders.MakeLocation(worldId, stateId);
+        playerResult.Creature.LocationId = location.Id;
         _context.Creatures.Add(playerResult.Creature);
         _context.Items.AddRange(playerResult.Items);
         _context.CreatureSkills.AddRange(playerResult.Skills);
@@ -80,9 +82,11 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         var enemy = Builders.MakeCreature(
             worldId,
             creatureType: CreatureType.Beast,
-            stateId: stateId
+            stateId: stateId,
+            locationId: location.Id
         );
         var session = Builders.MakeGameSession(worldId, playerResult.Creature.Id);
+        _context.Locations.Add(location);
         _context.Creatures.Add(enemy);
         _context.GameSessions.Add(session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

@@ -21,7 +21,7 @@ internal record InventoryResult(
 internal class InventoryTool(
     GameTurnContext turnContext,
     GetCreatureByIdQueryHandler getCreatureById,
-    GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
+    GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
     GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
     ILogger<InventoryTool> logger
 ) : IGameTool
@@ -55,11 +55,11 @@ internal class InventoryTool(
         }
         else
         {
-            target = await getCreatureByNameNearby.Handle(
-                new GetCreatureByNameNearbyQuery
+            target = await getCreatureByNameAtLocation.Handle(
+                new GetCreatureByNameAtLocationQuery
                 {
                     WorldId = turnContext.WorldId,
-                    Player = player!,
+                    LocationId = player!.LocationId,
                     Name = targetName,
                 },
                 cancellationToken

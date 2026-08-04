@@ -23,17 +23,29 @@ public sealed class GetCreatureIdsByDistrictQueryTests(DatabaseFixture db) : IAs
     }
 
     [Fact]
-    public async Task Handle_ReturnsOnlyCreaturesInDistrict()
+    public async Task Handle_ReturnsCreaturesInDistrict_RegardlessOfWhichRoomOrOutdoorSpot()
     {
         // Arrange
         var worldId = Guid.NewGuid();
         var districtId = Guid.NewGuid();
+        var outdoorLocation = Builders.MakeLocation(worldId, districtId: districtId);
+        var indoorLocation = Builders.MakeLocation(
+            worldId,
+            districtId: districtId,
+            roomId: Guid.NewGuid()
+        );
+        var differentDistrictLocation = Builders.MakeLocation(worldId, districtId: Guid.NewGuid());
+        _context.Locations.AddRange(outdoorLocation, indoorLocation, differentDistrictLocation);
 
-        var inDistrict = Builders.MakeCreature(worldId, districtId: districtId);
-        var differentDistrict = Builders.MakeCreature(worldId, districtId: Guid.NewGuid());
-        var otherWorld = Builders.MakeCreature(districtId: districtId);
+        var outdoors = Builders.MakeCreature(worldId, locationId: outdoorLocation.Id);
+        var indoors = Builders.MakeCreature(worldId, locationId: indoorLocation.Id);
+        var differentDistrict = Builders.MakeCreature(
+            worldId,
+            locationId: differentDistrictLocation.Id
+        );
+        var otherWorld = Builders.MakeCreature(locationId: outdoorLocation.Id);
 
-        _context.Creatures.AddRange(inDistrict, differentDistrict, otherWorld);
+        _context.Creatures.AddRange(outdoors, indoors, differentDistrict, otherWorld);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -43,7 +55,8 @@ public sealed class GetCreatureIdsByDistrictQueryTests(DatabaseFixture db) : IAs
         );
 
         // Assert
-        Assert.Contains(inDistrict.Id, results);
+        Assert.Contains(outdoors.Id, results);
+        Assert.Contains(indoors.Id, results);
         Assert.DoesNotContain(differentDistrict.Id, results);
         Assert.DoesNotContain(otherWorld.Id, results);
     }

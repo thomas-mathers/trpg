@@ -61,6 +61,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<Faction> Factions => Set<Faction>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<CreatureJob> CreatureJobs => Set<CreatureJob>();
+    public DbSet<Location> Locations => Set<Location>();
     public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
@@ -68,7 +69,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<Relationship> Relationships => Set<Relationship>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<Road> Roads => Set<Road>();
-    public DbSet<RoomConnectorKey> RoomConnectorKeys => Set<RoomConnectorKey>();
+    public DbSet<LocationConnectorKey> LocationConnectorKeys => Set<LocationConnectorKey>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<State> States => Set<State>();
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
@@ -106,7 +107,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<Creature>(entity =>
         {
             entity.HasIndex(p => p.WorldId);
-            entity.HasIndex(p => new { p.StateId, p.RoomId });
+            entity.HasIndex(p => p.LocationId);
             entity.OwnsOne(p => p.BaseAttributes, s => s.ToJson());
             entity.Property(c => c.ActiveConditions).HasJsonConversion(() => []);
             entity.Property(c => c.CooldownRemainingByAbility).HasJsonConversion(() => []);
@@ -178,9 +179,9 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<Ammunition>().Property(a => a.Type).HasColumnName("ammo_type");
         modelBuilder.Entity<Accessory>().Property(a => a.Type).HasColumnName("accessory_type");
 
-        modelBuilder.Entity<RoomConnectorKey>(entity =>
+        modelBuilder.Entity<LocationConnectorKey>(entity =>
         {
-            entity.HasIndex(k => k.RoomConnectorId);
+            entity.HasIndex(k => k.LocationConnectorId);
             entity.HasIndex(k => k.ItemId);
             entity.HasIndex(k => k.WorldId);
         });
@@ -232,12 +233,21 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(d => d.CityId);
             entity.HasIndex(d => new { d.CityId, d.DistrictType }).IsUnique();
             entity.HasIndex(d => d.WorldId);
+            entity.HasIndex(d => d.LocationId).IsUnique();
         });
 
         modelBuilder.Entity<Room>(entity =>
         {
             entity.HasIndex(r => r.BuildingId);
             entity.HasIndex(r => r.WorldId);
+            entity.HasIndex(r => r.LocationId).IsUnique();
+        });
+
+        modelBuilder.Entity<Location>(entity =>
+        {
+            entity.HasIndex(l => l.WorldId);
+            entity.HasIndex(l => l.RoomId).IsUnique();
+            entity.HasIndex(l => l.DistrictId).IsUnique().HasFilter("room_id IS NULL");
         });
 
         modelBuilder.Entity<Prop>(entity =>
@@ -248,9 +258,9 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<Workstation>("Workstation")
                 .HasValue<Bed>("Bed")
                 .HasValue<Container>("Container")
-                .HasValue<RoomConnector>("RoomConnector")
+                .HasValue<LocationConnector>("LocationConnector")
                 .HasValue<Trigger>("Trigger");
-            entity.HasIndex(p => p.RoomId);
+            entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.WorldId);
         });
 
@@ -296,9 +306,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
 
         modelBuilder.Entity<CreatureJob>(entity =>
         {
-            entity.HasIndex(j => new { j.StateId, j.RoomId });
             entity.HasIndex(j => j.CreatureId);
-            entity.HasIndex(j => j.RoomId);
+            entity.HasIndex(j => j.LocationId);
             entity.HasIndex(j => j.WorldId);
         });
 

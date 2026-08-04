@@ -12,13 +12,16 @@ namespace TRPG.Tests.Application.Inventory.Commands;
 public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
-    private static readonly Guid RoomId = Guid.NewGuid();
+    private static readonly Guid LocationId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private InventoryTransferCommandHandler _handler = null!;
-    private readonly Creature _fromCreature = Builders.MakeCreature(WorldId, roomId: RoomId);
-    private readonly Creature _player = Builders.MakeCreature(WorldId, roomId: RoomId);
+    private readonly Creature _fromCreature = Builders.MakeCreature(
+        WorldId,
+        locationId: LocationId
+    );
+    private readonly Creature _player = Builders.MakeCreature(WorldId, locationId: LocationId);
 
     public async ValueTask InitializeAsync()
     {
@@ -257,10 +260,10 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
-    public async Task Handle_Throws_WhenPlayerIsNotInTheSameRoom()
+    public async Task Handle_Throws_WhenPlayerIsNotInTheSameLocation()
     {
         // Arrange
-        var farPlayer = Builders.MakeCreature(WorldId, roomId: Guid.NewGuid());
+        var farPlayer = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
         _context.Creatures.Add(farPlayer);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

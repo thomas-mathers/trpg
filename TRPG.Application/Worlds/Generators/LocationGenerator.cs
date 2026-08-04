@@ -1,0 +1,22 @@
+using TRPG.Data.Models;
+
+namespace TRPG.Application.Worlds.Generators;
+
+internal static class LocationGenerator
+{
+    public static Location Generate(
+        Guid worldId,
+        Guid stateId,
+        Guid? cityId = null,
+        Guid? districtId = null,
+        Guid? roomId = null
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            StateId = stateId,
+            CityId = cityId,
+            DistrictId = districtId,
+            RoomId = roomId,
+        };
+}

@@ -110,34 +110,12 @@ internal sealed class SlashCommandRegistry(
             }
         );
 
-        var districtsCommand = new Command("districts", "List districts nearby");
-        districtsCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await client.GetScene(sessionId, cancellationToken);
-                PrintDistricts(scene.NearbyDistricts);
-
-                return 0;
-            }
-        );
-
         var buildingsCommand = new Command("buildings", "List buildings nearby");
         buildingsCommand.SetAction(
             async (_, cancellationToken) =>
             {
                 var scene = await client.GetScene(sessionId, cancellationToken);
                 PrintBuildings(scene.NearbyBuildings);
-
-                return 0;
-            }
-        );
-
-        var dungeonsCommand = new Command("dungeons", "List dungeons nearby");
-        dungeonsCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await client.GetScene(sessionId, cancellationToken);
-                PrintDungeons(scene.NearbyDungeons);
 
                 return 0;
             }
@@ -276,9 +254,7 @@ internal sealed class SlashCommandRegistry(
         [
             waitCommand,
             creaturesCommand,
-            districtsCommand,
             buildingsCommand,
-            dungeonsCommand,
             propsCommand,
             exitsCommand,
             characterCommand,
@@ -330,22 +306,6 @@ internal sealed class SlashCommandRegistry(
         );
     }
 
-    private static void PrintDistricts(
-        IReadOnlyCollection<NearbyDistrictSnapshot> districtSnapshots
-    )
-    {
-        if (districtSnapshots.Count == 0)
-        {
-            Announce("No districts nearby.");
-            return;
-        }
-
-        AnsiConsole.PrintTable(
-            ["Name", "Type"],
-            districtSnapshots.Select(d => new[] { d.Name, AnsiConsole.FormatDistrictChip(d.Type) })
-        );
-    }
-
     private static void PrintBuildings(IReadOnlyCollection<NearbyBuildingSnapshot> buidings)
     {
         if (buidings.Count == 0)
@@ -357,20 +317,6 @@ internal sealed class SlashCommandRegistry(
         AnsiConsole.PrintTable(
             ["Name", "Type"],
             buidings.Select(b => new[] { b.Name, AnsiConsole.FormatBuildingChip(b.Type) })
-        );
-    }
-
-    private static void PrintDungeons(IReadOnlyCollection<NearbyBuildingSnapshot> dungeons)
-    {
-        if (dungeons.Count == 0)
-        {
-            Announce("No dungeons nearby.");
-            return;
-        }
-
-        AnsiConsole.PrintTable(
-            ["Name", "Type"],
-            dungeons.Select(d => new[] { d.Name, AnsiConsole.FormatBuildingChip(d.Type) })
         );
     }
 

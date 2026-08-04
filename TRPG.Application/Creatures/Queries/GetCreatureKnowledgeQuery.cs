@@ -253,7 +253,9 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
             .Where(d => d.CityId == city.Id)
             .ToArrayAsync(cancellationToken);
         var populationCount = await context.Creatures.CountAsync(
-            p => p.WorldId == worldId && p.CityId == city.Id,
+            p =>
+                p.WorldId == worldId
+                && context.Locations.Any(l => l.Id == p.LocationId && l.CityId == city.Id),
             cancellationToken
         );
 
@@ -298,12 +300,15 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
         var state = await context
             .States.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == creature.StateId, cancellationToken);
-        var city = creature.CityId is { } cityId
+        var location = await context
+            .Locations.AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == creature.LocationId, cancellationToken);
+        var city = location?.CityId is { } cityId
             ? await context
                 .Cities.AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == cityId, cancellationToken)
             : null;
-        var district = creature.DistrictId is { } districtId
+        var district = location?.DistrictId is { } districtId
             ? await context
                 .Districts.AsNoTracking()
                 .FirstOrDefaultAsync(d => d.Id == districtId, cancellationToken)

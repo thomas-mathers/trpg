@@ -5,10 +5,16 @@ namespace TRPG.Application.Worlds.Generators;
 internal record DungeonGeneratorInput(
     Guid StateId,
     IReadOnlyCollection<string> ExcludedNames,
+    Guid WildernessLocationId,
     Guid WorldId
 );
 
-internal record DungeonGeneratorResult(Building Building, Room Room, IReadOnlyList<Prop> Props);
+internal record DungeonGeneratorResult(
+    Building Building,
+    Room Room,
+    Location Location,
+    IReadOnlyList<Prop> Props
+);
 
 internal static class DungeonGenerator
 {
@@ -121,22 +127,27 @@ internal static class DungeonGenerator
             Name = name,
             WorldId = input.WorldId,
         };
+        var roomId = Guid.NewGuid();
+        var location = LocationGenerator.Generate(input.WorldId, input.StateId, roomId: roomId);
         var room = new Room
         {
+            Id = roomId,
             BuildingId = building.Id,
+            LocationId = location.Id,
             Name = RoomNames[type],
             Description = "",
             FloorNumber = 0,
             WorldId = input.WorldId,
         };
-        var frontDoor = new RoomConnector
+        var frontDoor = new LocationConnector
         {
-            RoomId = room.Id,
+            LocationId = room.LocationId,
             Name = "Front Door",
             Description = "The way back outside.",
-            DestinationRoomId = null,
+            DestinationLocationId = input.WildernessLocationId,
+            DestinationLabel = "Outside",
             WorldId = input.WorldId,
         };
-        return new DungeonGeneratorResult(building, room, [frontDoor]);
+        return new DungeonGeneratorResult(building, room, location, [frontDoor]);
     }
 }

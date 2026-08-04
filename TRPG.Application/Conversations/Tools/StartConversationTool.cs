@@ -15,7 +15,7 @@ internal record StartConversationResult(string Summary, string Biography);
 internal class StartConversationTool(
     GameTurnContext turnContext,
     GetCreatureByIdQueryHandler getCreatureById,
-    GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
+    GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
     GetConversationSummaryQueryHandler getConversationSummary,
     OpenConversationCommandHandler openConversation,
     ILogger<StartConversationTool> logger
@@ -42,11 +42,11 @@ internal class StartConversationTool(
             new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
-        var npc = await getCreatureByNameNearby.Handle(
-            new GetCreatureByNameNearbyQuery
+        var npc = await getCreatureByNameAtLocation.Handle(
+            new GetCreatureByNameAtLocationQuery
             {
                 WorldId = turnContext.WorldId,
-                Player = player!,
+                LocationId = player!.LocationId,
                 Name = npcName,
             },
             cancellationToken

@@ -3,7 +3,7 @@ using TRPG.Data.Models;
 namespace TRPG.Application.Worlds.Generators;
 
 internal record ShopEmploymentSlot(
-    Guid RoomId,
+    Guid LocationId,
     Profession EmployeeProfession,
     IReadOnlyList<DayOfWeek> DaysOff,
     HourWindow WorkHours,
@@ -114,7 +114,7 @@ internal static class ShopStaffingPolicy
         Guid stateId,
         Guid worldId,
         Guid ownerId,
-        Guid groundFloorRoomId,
+        Guid groundFloorLocationId,
         List<CreatureJob> jobs,
         List<StaffDayOff> shopOwnerAssignments,
         List<ShopEmploymentSlot> openShopSlots
@@ -128,7 +128,7 @@ internal static class ShopStaffingPolicy
             CreatureJobGenerator.GenerateWork(
                 stateId,
                 ownerId,
-                groundFloorRoomId,
+                groundFloorLocationId,
                 worldId,
                 dayShiftHours
             )
@@ -140,7 +140,7 @@ internal static class ShopStaffingPolicy
 
         openShopSlots.Add(
             new ShopEmploymentSlot(
-                groundFloorRoomId,
+                groundFloorLocationId,
                 Profession.Innkeeper,
                 NonOverlappingDayOffPatterns[1],
                 dayShiftHours
@@ -148,7 +148,7 @@ internal static class ShopStaffingPolicy
         );
         openShopSlots.Add(
             new ShopEmploymentSlot(
-                groundFloorRoomId,
+                groundFloorLocationId,
                 Profession.Innkeeper,
                 NonOverlappingDayOffPatterns[0],
                 nightShiftHours,
@@ -157,7 +157,7 @@ internal static class ShopStaffingPolicy
         );
         openShopSlots.Add(
             new ShopEmploymentSlot(
-                groundFloorRoomId,
+                groundFloorLocationId,
                 Profession.Innkeeper,
                 NonOverlappingDayOffPatterns[1],
                 nightShiftHours,

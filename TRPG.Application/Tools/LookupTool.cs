@@ -12,7 +12,7 @@ namespace TRPG.Application.Tools;
 internal class LookupTool(
     GameTurnContext turnContext,
     GetCreatureByIdQueryHandler getCreatureById,
-    GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
+    GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
     GetCreatureKnowledgeQueryHandler getCreatureKnowledge,
     GetPlaytimeQueryHandler getPlaytime,
     ILogger<LookupTool> logger
@@ -47,11 +47,11 @@ internal class LookupTool(
             new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
-        var askingPerson = await getCreatureByNameNearby.Handle(
-            new GetCreatureByNameNearbyQuery
+        var askingPerson = await getCreatureByNameAtLocation.Handle(
+            new GetCreatureByNameAtLocationQuery
             {
                 WorldId = turnContext.WorldId,
-                Player = player!,
+                LocationId = player!.LocationId,
                 Name = askingPersonName,
             },
             cancellationToken

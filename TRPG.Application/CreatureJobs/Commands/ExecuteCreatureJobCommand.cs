@@ -1,4 +1,3 @@
-using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data.Models;
 
@@ -7,10 +6,10 @@ namespace TRPG.Application.CreatureJobs.Commands;
 internal class ExecuteCreatureJobCommand
 {
     public required Guid CreatureId { get; init; }
-    public required Guid? CurrentRoomId { get; init; }
+    public required Guid CurrentLocationId { get; init; }
     public required CreatureState CurrentState { get; init; }
     public required CreatureJobAction CreatureJobAction { get; init; }
-    public required Guid? JobRoomId { get; init; }
+    public required Guid JobLocationId { get; init; }
 }
 
 internal class ExecuteCreatureJobCommandHandler(UpdateCreaturesCommandHandler updateCreature)
@@ -42,7 +41,10 @@ internal class ExecuteCreatureJobCommandHandler(UpdateCreaturesCommandHandler up
             return;
         }
 
-        if (command.CurrentRoomId == command.JobRoomId && command.CurrentState == targetState)
+        if (
+            command.CurrentLocationId == command.JobLocationId
+            && command.CurrentState == targetState
+        )
         {
             return;
         }
@@ -51,7 +53,7 @@ internal class ExecuteCreatureJobCommandHandler(UpdateCreaturesCommandHandler up
             new UpdateCreaturesCommand
             {
                 CreatureIds = [command.CreatureId],
-                RoomId = Optional<Guid?>.Of(command.JobRoomId),
+                LocationId = command.JobLocationId,
                 State = targetState.Value,
             },
             cancellationToken

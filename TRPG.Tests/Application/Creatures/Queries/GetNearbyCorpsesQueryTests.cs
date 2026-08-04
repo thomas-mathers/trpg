@@ -10,14 +10,12 @@ namespace TRPG.Tests.Application.Creatures.Queries;
 public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     // Instance (not static) fields: each [Fact] gets its own xUnit class instance, so fresh
-    // Guids here keep every test's room/district isolated from every other test's seeded
+    // Guids here keep every test's location isolated from every other test's seeded
     // creatures — there's no transaction rollback between tests on the shared Postgres container.
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _stateId = Guid.NewGuid();
-    private readonly Guid _roomId = Guid.NewGuid();
-    private readonly Guid _otherRoomId = Guid.NewGuid();
-    private readonly Guid _districtId = Guid.NewGuid();
-    private readonly Guid _otherDistrictId = Guid.NewGuid();
+    private readonly Guid _locationId = Guid.NewGuid();
+    private readonly Guid _otherLocationId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
@@ -39,21 +37,21 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifet
     }
 
     [Fact]
-    public async Task Handle_ReturnsOnlyDeadCreatures_InThePlayersRoom()
+    public async Task Handle_ReturnsOnlyDeadCreatures_AtThePlayersLocation()
     {
         // Arrange
-        var player = Builders.MakeCreature(_worldId, stateId: _stateId, roomId: _roomId);
+        var player = Builders.MakeCreature(_worldId, stateId: _stateId, locationId: _locationId);
         var corpse = Builders.MakeCreature(
             _worldId,
             stateId: _stateId,
-            roomId: _roomId,
+            locationId: _locationId,
             state: CreatureState.Dead,
             name: "Corpse"
         );
         var livingCreature = Builders.MakeCreature(
             _worldId,
             stateId: _stateId,
-            roomId: _roomId,
+            locationId: _locationId,
             name: "Living"
         );
         _context.Creatures.AddRange(player, corpse, livingCreature);
@@ -77,7 +75,7 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifet
         var player = Builders.MakeCreature(
             _worldId,
             stateId: _stateId,
-            roomId: _roomId,
+            locationId: _locationId,
             state: CreatureState.Dead
         );
         _context.Creatures.Add(player);
@@ -94,14 +92,14 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifet
     }
 
     [Fact]
-    public async Task Handle_ExcludesCorpsesInADifferentRoom()
+    public async Task Handle_ExcludesCorpsesAtADifferentLocation()
     {
         // Arrange
-        var player = Builders.MakeCreature(_worldId, stateId: _stateId, roomId: _roomId);
+        var player = Builders.MakeCreature(_worldId, stateId: _stateId, locationId: _locationId);
         var farCorpse = Builders.MakeCreature(
             _worldId,
             stateId: _stateId,
-            roomId: _otherRoomId,
+            locationId: _otherLocationId,
             state: CreatureState.Dead
         );
         _context.Creatures.AddRange(player, farCorpse);
@@ -115,36 +113,5 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifet
 
         // Assert
         Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task Handle_ScopesByDistrict_WhenOutdoors()
-    {
-        // Arrange
-        var player = Builders.MakeCreature(_worldId, stateId: _stateId, districtId: _districtId);
-        var nearbyCorpse = Builders.MakeCreature(
-            _worldId,
-            stateId: _stateId,
-            districtId: _districtId,
-            state: CreatureState.Dead
-        );
-        var farCorpse = Builders.MakeCreature(
-            _worldId,
-            stateId: _stateId,
-            districtId: _otherDistrictId,
-            state: CreatureState.Dead
-        );
-        _context.Creatures.AddRange(player, nearbyCorpse, farCorpse);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var result = await _handler.Handle(
-            new GetNearbyCorpsesQuery { PlayerId = player.Id },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var found = Assert.Single(result);
-        Assert.Equal(nearbyCorpse.Id, found.Id);
     }
 }

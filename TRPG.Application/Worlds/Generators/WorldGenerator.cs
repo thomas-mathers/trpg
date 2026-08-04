@@ -35,10 +35,11 @@ public class WorldGeneratorResult
     public required IReadOnlyList<Item> Items { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required IReadOnlyList<CreatureKnowledge> Knowledge { get; init; }
+    public required IReadOnlyList<Location> Locations { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
-    public required IReadOnlyList<RoomConnectorKey> RoomConnectorKeys { get; init; }
+    public required IReadOnlyList<LocationConnectorKey> LocationConnectorKeys { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
     public required IReadOnlyCollection<CreatureSkill> Skills { get; init; }
     public required IReadOnlyList<State> States { get; init; }
@@ -118,16 +119,20 @@ public class WorldGenerator(
         var factionMembers = new List<FactionMember>();
         var items = new List<Item>();
         var rooms = new List<Room>();
-        var props = new List<Prop>();
+        var locations = new List<Location>(geography.Locations);
+        var props = new List<Prop>(geography.Props);
         var skills = new List<CreatureSkill>();
         var abilities = new List<CreatureAbility>();
         var jobs = new List<CreatureJob>();
-        var roomConnectorKeys = new List<RoomConnectorKey>();
+        var locationConnectorKeys = new List<LocationConnectorKey>();
         var relationships = new List<Relationship>();
 
         var stateById = geography.States.ToDictionary(s => s.Id);
         var districtsByCityId = geography
             .Districts.GroupBy(d => d.CityId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        var citiesByStateId = geography
+            .Cities.GroupBy(c => c.StateId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
         foreach (var city in geography.Cities)
@@ -152,11 +157,12 @@ public class WorldGenerator(
             factionMembers.AddRange(cityResult.FactionMembers);
             items.AddRange(cityResult.Items);
             rooms.AddRange(cityResult.Rooms);
+            locations.AddRange(cityResult.Locations);
             props.AddRange(cityResult.Props);
             skills.AddRange(cityResult.Skills);
             abilities.AddRange(cityResult.Abilities);
             jobs.AddRange(cityResult.Jobs);
-            roomConnectorKeys.AddRange(cityResult.RoomConnectorKeys);
+            locationConnectorKeys.AddRange(cityResult.LocationConnectorKeys);
             relationships.AddRange(cityResult.Relationships);
         }
 
@@ -167,22 +173,47 @@ public class WorldGenerator(
                 generatorInput.MinBuildingsPerState,
                 generatorInput.MaxBuildingsPerState + 1
             );
+            if (count == 0)
+            {
+                continue;
+            }
+
+            var wildernessLocation = LocationGenerator.Generate(worldId, state.Id);
+            locations.Add(wildernessLocation);
+
+            if (citiesByStateId.TryGetValue(state.Id, out var citiesInState))
+            {
+                foreach (var city in citiesInState)
+                {
+                    var cityCenterDistrict = districtsByCityId[city.Id]
+                        .First(d => d.DistrictType == DistrictType.CityCenter);
+                    props.AddRange(
+                        WildernessConnectorGenerator.Generate(
+                            cityCenterDistrict,
+                            wildernessLocation,
+                            worldId
+                        )
+                    );
+                }
+            }
+
             var usedNames = new HashSet<string>();
             for (var i = 0; i < count; i++)
             {
                 var result = DungeonGenerator.Generate(
-                    new DungeonGeneratorInput(state.Id, usedNames, worldId)
+                    new DungeonGeneratorInput(state.Id, usedNames, wildernessLocation.Id, worldId)
                 );
                 usedNames.Add(result.Building.Name);
                 buildings.Add(result.Building);
                 rooms.Add(result.Room);
+                locations.Add(result.Location);
                 props.AddRange(result.Props);
 
                 var dungeonMonsters = dungeonPopulator.Generate(
                     new DungeonPopulatorInput
                     {
                         StateId = state.Id,
-                        RoomId = result.Room.Id,
+                        LocationId = result.Location.Id,
                         WorldId = worldId,
                         DungeonType = result.Building.BuildingType,
                     }
@@ -217,6 +248,7 @@ public class WorldGenerator(
                 FactionMembers = factionMembers,
                 Factions = factions,
                 Cities = geography.Cities,
+                Locations = locations,
                 States = geography.States,
                 Countries = geography.Countries,
             }
@@ -241,12 +273,13 @@ public class WorldGenerator(
             FactionMembers = factionMembers,
             Items = items,
             Rooms = rooms,
+            Locations = locations,
             Props = props,
             Skills = skills,
             Abilities = abilities,
             Jobs = jobs,
             Knowledge = knowledge,
-            RoomConnectorKeys = roomConnectorKeys,
+            LocationConnectorKeys = locationConnectorKeys,
             Relationships = relationships,
         };
     }

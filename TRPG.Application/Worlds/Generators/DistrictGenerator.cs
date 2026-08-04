@@ -88,15 +88,27 @@ internal static class DistrictGenerator
         ],
     };
 
-    public static District Generate(DistrictType type, Guid cityId, Guid worldId)
+    public static DistrictGeneratorResult Generate(
+        DistrictType type,
+        Guid cityId,
+        Guid stateId,
+        Guid worldId
+    )
     {
         var names = Names[type];
-        return new District
+        var districtId = Guid.NewGuid();
+        var location = LocationGenerator.Generate(worldId, stateId, cityId, districtId);
+        var district = new District
         {
+            Id = districtId,
             CityId = cityId,
             DistrictType = type,
+            LocationId = location.Id,
             Name = names[Random.Shared.Next(names.Length)],
             WorldId = worldId,
         };
+        return new DistrictGeneratorResult(district, location);
     }
 }
+
+internal record DistrictGeneratorResult(District District, Location Location);

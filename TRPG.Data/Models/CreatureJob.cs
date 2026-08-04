@@ -19,8 +19,8 @@ public class CreatureJob
     public Guid CreatureId { get; init; }
     public int EndHour { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid LocationId { get; init; }
     public int Priority { get; init; }
-    public Guid? RoomId { get; init; }
     public DayOfWeek? SpecificDay { get; init; }
     public int StartHour { get; init; }
     public Guid StateId { get; init; }

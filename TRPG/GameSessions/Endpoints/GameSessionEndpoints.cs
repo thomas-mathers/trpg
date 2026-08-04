@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
@@ -56,7 +55,6 @@ internal static class GameSessionEndpoints
     private static async Task<Results<NotFound, Ok<SceneSnapshot>>> GetScene(
         Guid sessionId,
         GetGameSessionQueryHandler getGameSession,
-        GetCreatureByIdQueryHandler getCreatureById,
         GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
         CancellationToken cancellationToken
     )
@@ -66,28 +64,19 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = session.PlayerId },
-            cancellationToken
-        );
-        if (player == null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var currentDate = GameClock.GetCurrentInGameDate(session.Playtime);
         var scene = await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                RoomId = player.RoomId,
-                DistrictId = player.DistrictId,
-                StateId = player.StateId,
-                CurrentDate = currentDate,
+                SessionId = sessionId,
             },
             cancellationToken
         );
+        if (scene == null)
+        {
+            return TypedResults.NotFound();
+        }
 
         return TypedResults.Ok(SceneSnapshotMapper.ToSnapshot(scene));
     }

@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
-using TRPG.Data.Models;
 
 namespace TRPG.Application.Scenes.Queries;
 
@@ -11,13 +12,12 @@ internal class GetSceneWithCatchUpQuery
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required Guid? RoomId { get; init; }
-    public required Guid? DistrictId { get; init; }
-    public required Guid StateId { get; init; }
-    public required InGameDate CurrentDate { get; init; }
+    public required Guid SessionId { get; init; }
 }
 
 internal class GetSceneWithCatchUpQueryHandler(
+    GetCreatureByIdQueryHandler getCreatureById,
+    GetPlaytimeQueryHandler getPlaytime,
     SyncCommandHandler sync,
     GetSceneQueryHandler getScene,
     IMemoryCache cache,
@@ -25,15 +25,32 @@ internal class GetSceneWithCatchUpQueryHandler(
     ILogger<GetSceneWithCatchUpQueryHandler> logger
 )
 {
-    public async Task<SceneResult> Handle(
+    public async Task<SceneResult?> Handle(
         GetSceneWithCatchUpQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var locationId = query.RoomId ?? query.DistrictId ?? query.StateId;
-        var cacheKey = $"catchup:{query.WorldId}:{locationId}:{query.CurrentDate.Hour}";
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = query.PlayerId },
+            cancellationToken
+        );
+
+        if (player == null)
+        {
+            return null;
+        }
+
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = query.SessionId },
+            cancellationToken
+        );
+
+        var currentDate = GameClock.GetCurrentInGameDate(playtime);
+
+        var cacheKey = $"catchup:{query.WorldId}:{player.LocationId}:{currentDate.Hour}";
 
         var catchUpRan = false;
+
         if (cache.TryGetValue(cacheKey, out bool _))
         {
             logger.LogInformation("[perf] Catch-up cache hit for {CacheKey}", cacheKey);
@@ -49,9 +66,8 @@ internal class GetSceneWithCatchUpQueryHandler(
                 new SyncCommand
                 {
                     WorldId = query.WorldId,
-                    RoomId = query.RoomId,
-                    DistrictId = query.DistrictId,
-                    CurrentDate = query.CurrentDate,
+                    LocationId = player.LocationId,
+                    CurrentDate = currentDate,
                 },
                 cancellationToken
             );
@@ -73,7 +89,7 @@ internal class GetSceneWithCatchUpQueryHandler(
             {
                 WorldId = query.WorldId,
                 PlayerId = query.PlayerId,
-                CurrentDate = query.CurrentDate,
+                CurrentDate = currentDate,
             },
             cancellationToken
         );

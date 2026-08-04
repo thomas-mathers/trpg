@@ -41,7 +41,7 @@ internal record CreatureInspectResult(
 internal class CreatureInspectTool(
     GameTurnContext turnContext,
     GetCreatureByIdQueryHandler getCreatureById,
-    GetCreatureByNameNearbyQueryHandler getCreatureByNameNearby,
+    GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
     ILogger<CreatureInspectTool> logger
 ) : IGameTool
 {
@@ -74,11 +74,11 @@ internal class CreatureInspectTool(
         }
         else
         {
-            target = await getCreatureByNameNearby.Handle(
-                new GetCreatureByNameNearbyQuery
+            target = await getCreatureByNameAtLocation.Handle(
+                new GetCreatureByNameAtLocationQuery
                 {
                     WorldId = turnContext.WorldId,
-                    Player = player!,
+                    LocationId = player!.LocationId,
                     Name = targetName,
                 },
                 cancellationToken

@@ -283,10 +283,6 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("birth_year");
 
-                    b.Property<Guid?>("CityId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("city_id");
-
                     b.Property<string>("CooldownRemainingByAbility")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -316,10 +312,6 @@ namespace TRPG.Migrations
                     b.Property<int>("Dexterity")
                         .HasColumnType("integer")
                         .HasColumnName("dexterity");
-
-                    b.Property<Guid?>("DistrictId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("district_id");
 
                     b.Property<int>("Endurance")
                         .HasColumnType("integer")
@@ -353,6 +345,10 @@ namespace TRPG.Migrations
                     b.Property<float>("LightningResistance")
                         .HasColumnType("real")
                         .HasColumnName("lightning_resistance");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
 
                     b.Property<float>("MagicResistance")
                         .HasColumnType("real")
@@ -403,10 +399,6 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("profession");
 
-                    b.Property<Guid?>("RoomId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("room_id");
-
                     b.Property<int>("Stamina")
                         .HasColumnType("integer")
                         .HasColumnName("stamina");
@@ -431,11 +423,11 @@ namespace TRPG.Migrations
                     b.HasKey("Id")
                         .HasName("pk_creatures");
 
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_creatures_location_id");
+
                     b.HasIndex("WorldId")
                         .HasDatabaseName("ix_creatures_world_id");
-
-                    b.HasIndex("StateId", "RoomId")
-                        .HasDatabaseName("ix_creatures_state_id_room_id");
 
                     b.ToTable("creatures", (string)null);
                 });
@@ -493,13 +485,13 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("end_hour");
 
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
                     b.Property<int>("Priority")
                         .HasColumnType("integer")
                         .HasColumnName("priority");
-
-                    b.Property<Guid?>("RoomId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("room_id");
 
                     b.Property<string>("SpecificDay")
                         .HasColumnType("text")
@@ -523,14 +515,11 @@ namespace TRPG.Migrations
                     b.HasIndex("CreatureId")
                         .HasDatabaseName("ix_creature_jobs_creature_id");
 
-                    b.HasIndex("RoomId")
-                        .HasDatabaseName("ix_creature_jobs_room_id");
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_creature_jobs_location_id");
 
                     b.HasIndex("WorldId")
                         .HasDatabaseName("ix_creature_jobs_world_id");
-
-                    b.HasIndex("StateId", "RoomId")
-                        .HasDatabaseName("ix_creature_jobs_state_id_room_id");
 
                     b.ToTable("creature_jobs", (string)null);
                 });
@@ -739,6 +728,10 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("district_type");
 
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -753,6 +746,10 @@ namespace TRPG.Migrations
 
                     b.HasIndex("CityId")
                         .HasDatabaseName("ix_districts_city_id");
+
+                    b.HasIndex("LocationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_districts_location_id");
 
                     b.HasIndex("WorldId")
                         .HasDatabaseName("ix_districts_world_id");
@@ -970,6 +967,85 @@ namespace TRPG.Migrations
                     b.UseTphMappingStrategy();
                 });
 
+            modelBuilder.Entity("TRPG.Data.Models.Location", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("CityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("city_id");
+
+                    b.Property<Guid?>("DistrictId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("district_id");
+
+                    b.Property<Guid?>("RoomId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("room_id");
+
+                    b.Property<Guid>("StateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("state_id");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_locations");
+
+                    b.HasIndex("DistrictId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_locations_district_id")
+                        .HasFilter("room_id IS NULL");
+
+                    b.HasIndex("RoomId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_locations_room_id");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_locations_world_id");
+
+                    b.ToTable("locations", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.LocationConnectorKey", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<Guid>("LocationConnectorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_connector_id");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_location_connector_keys");
+
+                    b.HasIndex("ItemId")
+                        .HasDatabaseName("ix_location_connector_keys_item_id");
+
+                    b.HasIndex("LocationConnectorId")
+                        .HasDatabaseName("ix_location_connector_keys_location_connector_id");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_location_connector_keys_world_id");
+
+                    b.ToTable("location_connector_keys", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Data.Models.NpcConversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1019,14 +1095,14 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
-
-                    b.Property<Guid>("RoomId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("room_id");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -1034,15 +1110,15 @@ namespace TRPG.Migrations
 
                     b.Property<string>("behavior_type")
                         .IsRequired()
-                        .HasMaxLength(13)
-                        .HasColumnType("character varying(13)")
+                        .HasMaxLength(21)
+                        .HasColumnType("character varying(21)")
                         .HasColumnName("behavior_type");
 
                     b.HasKey("Id")
                         .HasName("pk_props");
 
-                    b.HasIndex("RoomId")
-                        .HasDatabaseName("ix_props_room_id");
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_props_location_id");
 
                     b.HasIndex("WorldId")
                         .HasDatabaseName("ix_props_world_id");
@@ -1322,6 +1398,10 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("floor_number");
 
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1337,44 +1417,14 @@ namespace TRPG.Migrations
                     b.HasIndex("BuildingId")
                         .HasDatabaseName("ix_rooms_building_id");
 
+                    b.HasIndex("LocationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_rooms_location_id");
+
                     b.HasIndex("WorldId")
                         .HasDatabaseName("ix_rooms_world_id");
 
                     b.ToTable("rooms", (string)null);
-                });
-
-            modelBuilder.Entity("TRPG.Data.Models.RoomConnectorKey", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("ItemId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("item_id");
-
-                    b.Property<Guid>("RoomConnectorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("room_connector_id");
-
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_room_connector_keys");
-
-                    b.HasIndex("ItemId")
-                        .HasDatabaseName("ix_room_connector_keys_item_id");
-
-                    b.HasIndex("RoomConnectorId")
-                        .HasDatabaseName("ix_room_connector_keys_room_connector_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_room_connector_keys_world_id");
-
-                    b.ToTable("room_connector_keys", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Data.Models.State", b =>
@@ -1820,13 +1870,18 @@ namespace TRPG.Migrations
                     b.HasDiscriminator().HasValue("Container");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.RoomConnector", b =>
+            modelBuilder.Entity("TRPG.Data.Models.LocationConnector", b =>
                 {
                     b.HasBaseType("TRPG.Data.Models.Prop");
 
-                    b.Property<Guid?>("DestinationRoomId")
+                    b.Property<string>("DestinationLabel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("destination_label");
+
+                    b.Property<Guid>("DestinationLocationId")
                         .HasColumnType("uuid")
-                        .HasColumnName("destination_room_id");
+                        .HasColumnName("destination_location_id");
 
                     b.Property<bool>("IsLocked")
                         .HasColumnType("boolean")
@@ -1834,7 +1889,7 @@ namespace TRPG.Migrations
 
                     b.ToTable("props", (string)null);
 
-                    b.HasDiscriminator().HasValue("RoomConnector");
+                    b.HasDiscriminator().HasValue("LocationConnector");
                 });
 
             modelBuilder.Entity("TRPG.Data.Models.Seat", b =>

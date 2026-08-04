@@ -21,7 +21,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private GetWorkstationsByRoomIdQueryHandler _getWorkstationsByRoomId = null!;
+    private GetWorkstationsByLocationIdQueryHandler _getWorkstationsByLocationId = null!;
     private SyncCommandHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
@@ -34,8 +34,8 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         _addJob = _serviceProvider.GetRequiredService<AddCreatureJobCommandHandler>();
         _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
         _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
-        _getWorkstationsByRoomId =
-            _serviceProvider.GetRequiredService<GetWorkstationsByRoomIdQueryHandler>();
+        _getWorkstationsByLocationId =
+            _serviceProvider.GetRequiredService<GetWorkstationsByLocationIdQueryHandler>();
         _handler = _serviceProvider.GetRequiredService<SyncCommandHandler>();
     }
 
@@ -45,9 +45,17 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _context.DisposeAsync();
     }
 
-    private async Task<Creature> SeedCreature(Guid? roomId = null, Guid? districtId = null)
+    private async Task<Location> SeedLocation(Guid? roomId = null, Guid? districtId = null)
     {
-        var creature = Builders.MakeCreature(WorldId, roomId: roomId, districtId: districtId);
+        var location = Builders.MakeLocation(WorldId, roomId: roomId, districtId: districtId);
+        _context.Locations.Add(location);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return location;
+    }
+
+    private async Task<Creature> SeedCreature(Guid? locationId = null)
+    {
+        var creature = Builders.MakeCreature(WorldId, locationId: locationId);
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = creature },
             TestContext.Current.CancellationToken
@@ -65,7 +73,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_MovesCreatureIntoRoom_WhenSleepJobActive()
     {
         // Arrange
-        var sleepRoomId = Guid.NewGuid();
+        var sleepLocation = await SeedLocation(roomId: Guid.NewGuid());
         var creature = await SeedCreature();
         await AddJob(
             Builders.MakeCreatureJob(
@@ -73,7 +81,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 action: CreatureJobAction.Sleep,
                 startHour: 22,
                 endHour: 6,
-                roomId: sleepRoomId,
+                locationId: sleepLocation.Id,
                 priority: 100
             )
         );
@@ -83,8 +91,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             new SyncCommand
             {
                 WorldId = WorldId,
-                RoomId = sleepRoomId,
-                DistrictId = null,
+                LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
@@ -96,23 +103,23 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(sleepRoomId, updated!.RoomId);
+        Assert.Equal(sleepLocation.Id, updated!.LocationId);
     }
 
     [Fact]
     public async Task Handle_MovesCreatureOut_WhenHigherPriorityWorkJobActiveElsewhere()
     {
         // Arrange
-        var sleepRoomId = Guid.NewGuid();
-        var workRoomId = Guid.NewGuid();
-        var creature = await SeedCreature(roomId: sleepRoomId);
+        var sleepLocation = await SeedLocation(roomId: Guid.NewGuid());
+        var workLocation = await SeedLocation(roomId: Guid.NewGuid());
+        var creature = await SeedCreature(sleepLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
                 action: CreatureJobAction.Sleep,
                 startHour: 22,
                 endHour: 6,
-                roomId: sleepRoomId,
+                locationId: sleepLocation.Id,
                 priority: 100
             )
         );
@@ -122,18 +129,17 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 action: CreatureJobAction.Work,
                 startHour: 8,
                 endHour: 20,
-                roomId: workRoomId,
+                locationId: workLocation.Id,
                 priority: 50
             )
         );
 
-        // Act — hour 10 is inside Work, and the creature is discovered via their stale Sleep-room assignment
+        // Act — hour 10 is inside Work, and the creature is discovered via their stale Sleep-location assignment
         await _handler.Handle(
             new SyncCommand
             {
                 WorldId = WorldId,
-                RoomId = sleepRoomId,
-                DistrictId = null,
+                LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeDate(10),
             },
             TestContext.Current.CancellationToken
@@ -145,23 +151,23 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(workRoomId, updated!.RoomId);
+        Assert.Equal(workLocation.Id, updated!.LocationId);
     }
 
     [Fact]
-    public async Task Handle_DoesNothing_WhenNoJobsTargetRoom()
+    public async Task Handle_DoesNothing_WhenNoJobsTargetLocation()
     {
         // Arrange
         var creature = await SeedCreature();
-        var originalRoomId = creature.RoomId;
+        var originalLocationId = creature.LocationId;
+        var emptyLocation = await SeedLocation(roomId: Guid.NewGuid());
 
         // Act
         await _handler.Handle(
             new SyncCommand
             {
                 WorldId = WorldId,
-                RoomId = Guid.NewGuid(),
-                DistrictId = null,
+                LocationId = emptyLocation.Id,
                 CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
@@ -173,7 +179,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(originalRoomId, updated!.RoomId);
+        Assert.Equal(originalLocationId, updated!.LocationId);
     }
 
     [Fact]
@@ -181,15 +187,16 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var districtId = Guid.NewGuid();
-        var sleepRoomId = Guid.NewGuid();
-        var creature = await SeedCreature(roomId: sleepRoomId, districtId: districtId);
+        var sleepLocation = await SeedLocation(roomId: Guid.NewGuid(), districtId: districtId);
+        var idleLocation = await SeedLocation(districtId: districtId);
+        var creature = await SeedCreature(sleepLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
                 action: CreatureJobAction.Sleep,
                 startHour: 22,
                 endHour: 6,
-                roomId: sleepRoomId,
+                locationId: sleepLocation.Id,
                 priority: 100
             )
         );
@@ -199,18 +206,18 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 action: CreatureJobAction.Idle,
                 startHour: 6,
                 endHour: 22,
-                roomId: null,
+                locationId: idleLocation.Id,
                 priority: 0
             )
         );
 
-        // Act — hour 12 is inside Idle
+        // Act — hour 12 is inside Idle; the district catch-up discovers the creature via its
+        // current (indoor) location, which shares the same district as the outdoor idle spot
         await _handler.Handle(
             new SyncCommand
             {
                 WorldId = WorldId,
-                RoomId = null,
-                DistrictId = districtId,
+                LocationId = idleLocation.Id,
                 CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
@@ -222,7 +229,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Null(updated!.RoomId);
+        Assert.Equal(idleLocation.Id, updated!.LocationId);
     }
 
     [Fact]
@@ -230,9 +237,10 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var shopRoomId = Guid.NewGuid();
+        var shopLocation = await SeedLocation(roomId: shopRoomId);
         var counter = new Workstation
         {
-            RoomId = shopRoomId,
+            LocationId = shopLocation.Id,
             WorldId = WorldId,
             Name = "Counter",
             Description = "A counter.",
@@ -240,7 +248,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         };
         var oven = new Workstation
         {
-            RoomId = shopRoomId,
+            LocationId = shopLocation.Id,
             WorldId = WorldId,
             Name = "Oven",
             Description = "An oven.",
@@ -257,7 +265,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 action: CreatureJobAction.Work,
                 startHour: 8,
                 endHour: 20,
-                roomId: shopRoomId,
+                locationId: shopLocation.Id,
                 priority: 50
             )
         );
@@ -267,7 +275,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 action: CreatureJobAction.Work,
                 startHour: 8,
                 endHour: 20,
-                roomId: shopRoomId,
+                locationId: shopLocation.Id,
                 priority: 50
             )
         );
@@ -277,16 +285,15 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             new SyncCommand
             {
                 WorldId = WorldId,
-                RoomId = shopRoomId,
-                DistrictId = null,
+                LocationId = shopLocation.Id,
                 CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert — both workstations get staffed, by two different people
-        var workstations = await _getWorkstationsByRoomId.Handle(
-            new GetWorkstationsByRoomIdQuery { RoomId = shopRoomId },
+        var workstations = await _getWorkstationsByLocationId.Handle(
+            new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
         );
         var updatedCounter = workstations.First(w => w.Id == counter.Id);
@@ -303,9 +310,10 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var shopRoomId = Guid.NewGuid();
+        var shopLocation = await SeedLocation(roomId: shopRoomId);
         var counter = new Workstation
         {
-            RoomId = shopRoomId,
+            LocationId = shopLocation.Id,
             WorldId = WorldId,
             Name = "Counter",
             Description = "A counter.",
@@ -313,7 +321,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         };
         var oven = new Workstation
         {
-            RoomId = shopRoomId,
+            LocationId = shopLocation.Id,
             WorldId = WorldId,
             Name = "Oven",
             Description = "An oven.",
@@ -330,7 +338,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
                 action: CreatureJobAction.Work,
                 startHour: 8,
                 endHour: 20,
-                roomId: shopRoomId,
+                locationId: shopLocation.Id,
                 priority: 50
             )
         );
@@ -340,16 +348,15 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             new SyncCommand
             {
                 WorldId = WorldId,
-                RoomId = shopRoomId,
-                DistrictId = null,
+                LocationId = shopLocation.Id,
                 CurrentDate = Builders.MakeDate(12),
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert — the lone worker always gets the counter, and the unstaffed production station is cleared
-        var workstations = await _getWorkstationsByRoomId.Handle(
-            new GetWorkstationsByRoomIdQuery { RoomId = shopRoomId },
+        var workstations = await _getWorkstationsByLocationId.Handle(
+            new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
         );
         var updatedCounter = workstations.First(w => w.Id == counter.Id);
@@ -364,7 +371,9 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var owner = await SeedCreature();
         var building = await SeedBuilding(owner.Id);
-        var frontDoor = await SeedFrontDoor(building.Id);
+        var entranceRoom = await SeedEntranceRoom(building.Id);
+        var frontDoor = await SeedFrontDoor(entranceRoom);
+        var doorLocation = await SeedLocation(roomId: entranceRoom.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 owner.Id,
@@ -380,8 +389,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             new SyncCommand
             {
                 WorldId = WorldId,
-                RoomId = frontDoor.RoomId,
-                DistrictId = null,
+                LocationId = doorLocation.Id,
                 CurrentDate = Builders.MakeDate(23),
             },
             TestContext.Current.CancellationToken
@@ -390,7 +398,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Assert
         var updatedDoor = await _context
             .Props.AsNoTracking()
-            .OfType<RoomConnector>()
+            .OfType<LocationConnector>()
             .FirstAsync(c => c.Id == frontDoor.Id, TestContext.Current.CancellationToken);
         Assert.True(updatedDoor.IsLocked);
     }
@@ -407,16 +415,25 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         return building;
     }
 
-    private async Task<RoomConnector> SeedFrontDoor(Guid buildingId)
+    private async Task<Room> SeedEntranceRoom(Guid buildingId)
     {
         var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
-        var frontDoor = Builders.MakeRoomConnector(
-            entranceRoom.Id,
+        _context.Rooms.Add(entranceRoom);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return entranceRoom;
+    }
+
+    private async Task<LocationConnector> SeedFrontDoor(Room entranceRoom)
+    {
+        var outsideLocation = Builders.MakeLocation(WorldId);
+        var frontDoor = Builders.MakeLocationConnector(
+            entranceRoom.LocationId,
+            destinationLocationId: outsideLocation.Id,
             worldId: WorldId,
             name: "Front Door",
             description: "The door leading outside."
         );
-        _context.Rooms.Add(entranceRoom);
+        _context.Locations.Add(outsideLocation);
         _context.Props.Add(frontDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return frontDoor;

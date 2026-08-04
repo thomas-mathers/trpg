@@ -1,4 +1,3 @@
-using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -11,10 +10,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
 {
     private TrpgDbContext _context = null!;
     private UpdateCreaturesCommandHandler _handler = null!;
-    private readonly Creature _creature = Builders.MakeCreature(
-        cityId: Guid.NewGuid(),
-        districtId: Guid.NewGuid()
-    );
+    private readonly Creature _creature = Builders.MakeCreature(locationId: Guid.NewGuid());
 
     public async ValueTask InitializeAsync()
     {
@@ -31,22 +27,14 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
     }
 
     [Fact]
-    public async Task Handle_UpdatesLocationFields_WhenSet()
+    public async Task Handle_UpdatesLocation_WhenSet()
     {
         // Arrange
-        var cityId = Guid.NewGuid();
-        var districtId = Guid.NewGuid();
-        var roomId = Guid.NewGuid();
+        var locationId = Guid.NewGuid();
 
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                CityId = Optional<Guid?>.Of(cityId),
-                DistrictId = Optional<Guid?>.Of(districtId),
-                RoomId = Optional<Guid?>.Of(roomId),
-            },
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], LocationId = locationId },
             TestContext.Current.CancellationToken
         );
 
@@ -56,9 +44,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(cityId, updated!.CityId);
-        Assert.Equal(districtId, updated.DistrictId);
-        Assert.Equal(roomId, updated.RoomId);
+        Assert.Equal(locationId, updated!.LocationId);
     }
 
     [Fact]
@@ -98,9 +84,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_creature.CityId, updated!.CityId);
-        Assert.Equal(_creature.DistrictId, updated.DistrictId);
-        Assert.Equal(_creature.RoomId, updated.RoomId);
+        Assert.Equal(_creature.LocationId, updated!.LocationId);
     }
 
     [Fact]
@@ -157,7 +141,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id],
-                RoomId = Optional<Guid?>.Of(Guid.NewGuid()),
+                LocationId = Guid.NewGuid(),
             },
             TestContext.Current.CancellationToken
         );
@@ -186,9 +170,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_creature.CityId, updated!.CityId);
-        Assert.Equal(_creature.DistrictId, updated.DistrictId);
-        Assert.Equal(_creature.RoomId, updated.RoomId);
+        Assert.Equal(_creature.LocationId, updated!.LocationId);
         Assert.Equal(_creature.State, updated.State);
         Assert.Equal(_creature.LastRegenPlaytime, updated.LastRegenPlaytime);
     }
@@ -223,37 +205,5 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         );
         Assert.Equal(CreatureState.Sitting, updatedCreature!.State);
         Assert.Equal(CreatureState.Sitting, updatedOther!.State);
-    }
-
-    [Fact]
-    public async Task Handle_CanSetRoomIdToNull_WhenExplicitlySet()
-    {
-        // Arrange
-        await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                RoomId = Optional<Guid?>.Of(Guid.NewGuid()),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Act
-        await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                RoomId = Optional<Guid?>.Of(null),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Null(updated!.RoomId);
     }
 }

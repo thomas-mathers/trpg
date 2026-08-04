@@ -29,12 +29,24 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         var country = Builders.MakeCountry(WorldId);
         _state = Builders.MakeState(country.Id);
+        var sharedLocation = Builders.MakeLocation(WorldId, _state.Id);
 
-        _player = Builders.MakeCreature(WorldId, stateId: _state.Id, birthYear: 950);
-        _nearbyCreature = Builders.MakeCreature(WorldId, stateId: _state.Id, birthYear: 900);
+        _player = Builders.MakeCreature(
+            WorldId,
+            stateId: _state.Id,
+            birthYear: 950,
+            locationId: sharedLocation.Id
+        );
+        _nearbyCreature = Builders.MakeCreature(
+            WorldId,
+            stateId: _state.Id,
+            birthYear: 900,
+            locationId: sharedLocation.Id
+        );
 
         _context.Countries.Add(country);
         _context.States.Add(_state);
+        _context.Locations.Add(sharedLocation);
         _context.Creatures.AddRange(_player, _nearbyCreature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -85,10 +97,10 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_ReturnsNoNearbyCreatures_WhenNooneElseIsAtTheSameLocation()
     {
-        // Arrange - a distinct district isolates the player from _nearbyCreature (both otherwise
-        // outdoors in the same state), exercising BuildNearbyPeopleInfos's early return when
-        // nobody's nearby instead of running the faction/reputation queries for nothing
-        _player.DistrictId = Guid.NewGuid();
+        // Arrange - moving the player off the shared Location isolates them from _nearbyCreature,
+        // exercising BuildNearbyPeopleInfos's early return when nobody's nearby instead of running
+        // the faction/reputation queries for nothing
+        _player.LocationId = Guid.NewGuid();
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -129,19 +141,39 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var building = Builders.MakeBuilding(_state.Id);
-        var room = Builders.MakeRoom(building.Id, worldId: WorldId);
-        var destinationRoom = Builders.MakeRoom(building.Id, worldId: WorldId);
-        var connector = Builders.MakeRoomConnector(
-            room.Id,
-            destinationRoomId: destinationRoom.Id,
+        var roomId = Guid.NewGuid();
+        var location = Builders.MakeLocation(WorldId, _state.Id, roomId: roomId);
+        var room = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            id: roomId,
+            locationId: location.Id
+        );
+        var destinationRoomId = Guid.NewGuid();
+        var destinationLocation = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            roomId: destinationRoomId
+        );
+        var destinationRoom = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            id: destinationRoomId,
+            locationId: destinationLocation.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            room.LocationId,
+            destinationLocationId: destinationRoom.LocationId,
             worldId: WorldId,
             name: "Wooden Door",
-            description: "A creaking wooden door."
+            description: "A creaking wooden door.",
+            destinationLabel: destinationRoom.Name
         );
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(room, destinationRoom);
+        _context.Locations.AddRange(location, destinationLocation);
         _context.Props.Add(connector);
-        _player.RoomId = room.Id;
+        _player.LocationId = room.LocationId;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -157,9 +189,54 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Assert
         Assert.Equal(building.Name, result.Building!.Name);
         Assert.Equal(room.Name, result.Room!.Name);
-        var exit = Assert.Single(result.Room.Exits);
+        var exit = Assert.Single(result.Exits);
         Assert.Equal(destinationRoom.Name, exit.DestinationRoomName);
         Assert.False(exit.IsLocked);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsExitToAdjacentDistrict_WhenOutdoors()
+    {
+        // Arrange
+        var cityCenterId = Guid.NewGuid();
+        var cityCenterLocation = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            districtId: cityCenterId
+        );
+        var cityCenter = Builders.MakeDistrict(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            name: "City Center",
+            id: cityCenterId,
+            locationId: cityCenterLocation.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            _player.LocationId,
+            destinationLocationId: cityCenter.LocationId,
+            worldId: WorldId,
+            name: "Path",
+            description: "A path leading to City Center.",
+            destinationLabel: cityCenter.Name
+        );
+        _context.Districts.Add(cityCenter);
+        _context.Locations.Add(cityCenterLocation);
+        _context.Props.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var exit = Assert.Single(result.Exits);
+        Assert.Equal("City Center", exit.DestinationRoomName);
     }
 
     [Fact]
@@ -286,7 +363,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Handle_SeparatesDungeonsFromOrdinaryBuildings_WhenOutdoors()
+    public async Task Handle_IncludesDungeonsAlongsideOrdinaryBuildings_WhenOutdoors()
     {
         // Arrange
         var shop = Builders.MakeBuilding(
@@ -313,9 +390,9 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        var building = Assert.Single(result.NearbyBuildings);
-        Assert.Equal(shop.Name, building.Name);
-        var dungeon = Assert.Single(result.NearbyDungeons);
-        Assert.Equal(cave.Name, dungeon.Name);
+        Assert.Equal(
+            new[] { shop.Name, cave.Name }.OrderBy(name => name),
+            result.NearbyBuildings.Select(b => b.Name).OrderBy(name => name)
+        );
     }
 }
