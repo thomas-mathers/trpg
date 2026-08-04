@@ -23,11 +23,11 @@ internal class MoveTool(
 
     [DisplayName("move")]
     [Description(
-        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings or a dungeon from NearbyDungeons to enter it, or the exact Name of a district from City.Districts to travel there. When indoors, pass the exact DestinationRoomName of an exit from Room.Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session."
+        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings or a dungeon from NearbyDungeons to enter it, or the exact DestinationRoomName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationRoomName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of a nearby building or dungeon, the exact Name of a district, or the exact DestinationRoomName of an exit (the literal value \"Outside\" for exits leading outdoors), copied verbatim from the most recent look or move result."
+            "The exact Name of a nearby building or dungeon, or the exact DestinationRoomName of an exit (the literal value \"Outside\" for exits leading outdoors, or an adjacent district's name), copied verbatim from the most recent look or move result."
         )]
             string destinationName,
         CancellationToken cancellationToken
@@ -64,7 +64,6 @@ internal class MoveTool(
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
                 LocationId = player.LocationId,
-                StateId = player.StateId,
                 CurrentDate = currentDate,
             },
             cancellationToken

@@ -15,7 +15,7 @@ internal record CreatureSummary(
     CreatureState State,
     int Gold,
     Guid StateId,
-    Guid? LocationId,
+    Guid LocationId,
     Guid? DistrictId,
     Guid? RoomId,
     Guid? CityId,

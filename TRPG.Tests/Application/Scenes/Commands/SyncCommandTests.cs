@@ -21,7 +21,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
     private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private GetWorkstationsByRoomIdQueryHandler _getWorkstationsByRoomId = null!;
+    private GetWorkstationsByLocationIdQueryHandler _getWorkstationsByLocationId = null!;
     private SyncCommandHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
@@ -34,8 +34,8 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         _addJob = _serviceProvider.GetRequiredService<AddCreatureJobCommandHandler>();
         _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
         _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
-        _getWorkstationsByRoomId =
-            _serviceProvider.GetRequiredService<GetWorkstationsByRoomIdQueryHandler>();
+        _getWorkstationsByLocationId =
+            _serviceProvider.GetRequiredService<GetWorkstationsByLocationIdQueryHandler>();
         _handler = _serviceProvider.GetRequiredService<SyncCommandHandler>();
     }
 
@@ -240,7 +240,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         var shopLocation = await SeedLocation(roomId: shopRoomId);
         var counter = new Workstation
         {
-            RoomId = shopRoomId,
+            LocationId = shopLocation.Id,
             WorldId = WorldId,
             Name = "Counter",
             Description = "A counter.",
@@ -248,7 +248,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         };
         var oven = new Workstation
         {
-            RoomId = shopRoomId,
+            LocationId = shopLocation.Id,
             WorldId = WorldId,
             Name = "Oven",
             Description = "An oven.",
@@ -292,8 +292,8 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
 
         // Assert — both workstations get staffed, by two different people
-        var workstations = await _getWorkstationsByRoomId.Handle(
-            new GetWorkstationsByRoomIdQuery { RoomId = shopRoomId },
+        var workstations = await _getWorkstationsByLocationId.Handle(
+            new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
         );
         var updatedCounter = workstations.First(w => w.Id == counter.Id);
@@ -313,7 +313,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         var shopLocation = await SeedLocation(roomId: shopRoomId);
         var counter = new Workstation
         {
-            RoomId = shopRoomId,
+            LocationId = shopLocation.Id,
             WorldId = WorldId,
             Name = "Counter",
             Description = "A counter.",
@@ -321,7 +321,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         };
         var oven = new Workstation
         {
-            RoomId = shopRoomId,
+            LocationId = shopLocation.Id,
             WorldId = WorldId,
             Name = "Oven",
             Description = "An oven.",
@@ -355,8 +355,8 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
 
         // Assert — the lone worker always gets the counter, and the unstaffed production station is cleared
-        var workstations = await _getWorkstationsByRoomId.Handle(
-            new GetWorkstationsByRoomIdQuery { RoomId = shopRoomId },
+        var workstations = await _getWorkstationsByLocationId.Handle(
+            new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
         );
         var updatedCounter = workstations.First(w => w.Id == counter.Id);
@@ -371,8 +371,9 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var owner = await SeedCreature();
         var building = await SeedBuilding(owner.Id);
-        var frontDoor = await SeedFrontDoor(building.Id);
-        var doorLocation = await SeedLocation(roomId: frontDoor.RoomId);
+        var entranceRoom = await SeedEntranceRoom(building.Id);
+        var frontDoor = await SeedFrontDoor(entranceRoom);
+        var doorLocation = await SeedLocation(roomId: entranceRoom.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 owner.Id,
@@ -414,16 +415,25 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         return building;
     }
 
-    private async Task<RoomConnector> SeedFrontDoor(Guid buildingId)
+    private async Task<Room> SeedEntranceRoom(Guid buildingId)
     {
         var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
+        _context.Rooms.Add(entranceRoom);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return entranceRoom;
+    }
+
+    private async Task<RoomConnector> SeedFrontDoor(Room entranceRoom)
+    {
+        var outsideLocation = Builders.MakeLocation(WorldId);
         var frontDoor = Builders.MakeRoomConnector(
-            entranceRoom.Id,
+            entranceRoom.LocationId,
+            destinationLocationId: outsideLocation.Id,
             worldId: WorldId,
             name: "Front Door",
             description: "The door leading outside."
         );
-        _context.Rooms.Add(entranceRoom);
+        _context.Locations.Add(outsideLocation);
         _context.Props.Add(frontDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return frontDoor;

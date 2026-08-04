@@ -6,65 +6,50 @@ namespace TRPG.Application.Buildings.Queries;
 
 internal class GetExitByDestinationNameQuery
 {
-    public required Guid RoomId { get; init; }
+    public required Guid LocationId { get; init; }
     public required string DestinationName { get; init; }
 }
 
-internal record ExitMatch(bool Matched, Guid? DestinationRoomId, Guid? DestinationLocationId);
+internal record ExitMatch(bool Matched, Guid? DestinationLocationId);
 
-internal class GetExitByDestinationNameQueryHandler(TrpgDbContext context)
+internal class GetExitByDestinationNameQueryHandler(
+    TrpgDbContext context,
+    ExitLabelResolver exitLabelResolver
+)
 {
     public async Task<ExitMatch> Handle(
         GetExitByDestinationNameQuery query,
         CancellationToken cancellationToken = default
     )
     {
+        var sourceRoomId = await context
+            .Locations.AsNoTracking()
+            .Where(l => l.Id == query.LocationId)
+            .Select(l => l.RoomId)
+            .FirstOrDefaultAsync(cancellationToken);
+
         var connectors = await context
             .Props.AsNoTracking()
-            .Where(p => p.RoomId == query.RoomId)
+            .Where(p => p.LocationId == query.LocationId)
             .OfType<RoomConnector>()
             .ToArrayAsync(cancellationToken);
 
-        if (query.DestinationName.Equals("Outside", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!connectors.Any(c => c.DestinationRoomId == null))
-            {
-                return new ExitMatch(false, null, null);
-            }
+        var resolved = await exitLabelResolver.Resolve(
+            connectors,
+            sourceIsIndoors: sourceRoomId != null,
+            cancellationToken
+        );
 
-            var roomLocationId = await context
-                .Rooms.Where(r => r.Id == query.RoomId)
-                .Select(r => r.LocationId)
-                .FirstOrDefaultAsync(cancellationToken);
-            var districtId = await context
-                .Locations.Where(l => l.Id == roomLocationId)
-                .Select(l => l.DistrictId)
-                .FirstOrDefaultAsync(cancellationToken);
-            var outdoorLocationId =
-                districtId != null
-                    ? await context
-                        .Districts.Where(d => d.Id == districtId)
-                        .Select(d => (Guid?)d.LocationId)
-                        .FirstOrDefaultAsync(cancellationToken)
-                    : null;
-
-            return new ExitMatch(true, null, outdoorLocationId);
-        }
-
-        var destinationIds = connectors
-            .Where(c => c.DestinationRoomId != null)
-            .Select(c => c.DestinationRoomId!.Value)
-            .ToHashSet();
-
-        var destinationRoom = await context
-            .Rooms.Where(r =>
-                destinationIds.Contains(r.Id) && EF.Functions.ILike(r.Name, query.DestinationName)
+        var match = resolved.FirstOrDefault(e =>
+            string.Equals(
+                e.DestinationLabel,
+                query.DestinationName,
+                StringComparison.OrdinalIgnoreCase
             )
-            .Select(r => new { r.Id, r.LocationId })
-            .FirstOrDefaultAsync(cancellationToken);
+        );
 
-        return destinationRoom != null
-            ? new ExitMatch(true, destinationRoom.Id, destinationRoom.LocationId)
-            : new ExitMatch(false, null, null);
+        return match != null
+            ? new ExitMatch(true, match.Connector.DestinationLocationId)
+            : new ExitMatch(false, null);
     }
 }

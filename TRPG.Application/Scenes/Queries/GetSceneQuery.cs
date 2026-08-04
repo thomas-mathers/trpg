@@ -22,13 +22,9 @@ public record SceneDateInfo(int Year, string MonthName, int Day, string WeekdayN
 
 public record SceneStateInfo(string Name, string? Description);
 
-public record SceneDistrictInfo(Guid Id, string Name, DistrictType Type, bool IsCurrent);
+public record SceneDistrictInfo(Guid Id, string Name, DistrictType Type);
 
-public record SceneCityInfo(
-    string Name,
-    string? Description,
-    IReadOnlyCollection<SceneDistrictInfo> Districts
-);
+public record SceneCityInfo(string Name, string? Description);
 
 public record SceneBuildingInfo(
     string Name,
@@ -40,12 +36,7 @@ public record SceneBuildingInfo(
 
 public record SceneExitInfo(string Description, string DestinationRoomName, bool IsLocked);
 
-public record SceneRoomInfo(
-    string Name,
-    string Description,
-    int FloorNumber,
-    IReadOnlyCollection<SceneExitInfo> Exits
-);
+public record SceneRoomInfo(string Name, string Description, int FloorNumber);
 
 public record ScenePropInfo(Guid Id, string Name, string Description, string Type);
 
@@ -91,9 +82,11 @@ public record SceneResult(
     SceneDateInfo CurrentDate,
     SceneStateInfo? State,
     SceneCityInfo? City,
+    SceneDistrictInfo? District,
     SceneBuildingInfo? Building,
     SceneRoomInfo? Room,
     SceneCreatureInfo Player,
+    IReadOnlyCollection<SceneExitInfo> Exits,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<SceneCreatureInfo> NearbyCreatures,
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
@@ -104,6 +97,7 @@ internal record SceneLocationDetails(
     SceneBuildingInfo? Building,
     SceneRoomInfo? Room,
     string? RegionDescription,
+    IReadOnlyCollection<SceneExitInfo> Exits,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<SceneCreatureInfo> NearbyPeople,
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
@@ -115,12 +109,12 @@ internal class GetSceneQueryHandler(
     GetStateByIdQueryHandler getStateById,
     GetCityByIdQueryHandler getCityById,
     GetCityByStateIdQueryHandler getCityByStateId,
-    GetAllDistrictsByCityIdQueryHandler getAllDistrictsByCityId,
+    GetDistrictByIdQueryHandler getDistrictById,
     GetRoomSummaryQueryHandler getRoomSummary,
-    GetStaticPropsByRoomIdQueryHandler getStaticPropsByRoomId,
-    GetConnectorsByRoomIdQueryHandler getConnectorsByRoomId,
+    GetStaticPropsByLocationIdQueryHandler getStaticPropsByLocationId,
+    GetConnectorsByLocationIdQueryHandler getConnectorsByLocationId,
+    ExitLabelResolver exitLabelResolver,
     GetAllBuildingsByLocationQueryHandler getAllBuildingsByLocation,
-    GetRoomsByIdsQueryHandler getRoomsByIds,
     GetNearbyCreaturesQueryHandler getNearbyCreatures,
     GetEffectiveReputationsQueryHandler getEffectiveReputations,
     GetTotalCharacterXpFromSkillsQueryHandler getTotalCharacterXpFromSkills,
@@ -146,6 +140,7 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
         var cityInfo = await BuildCityInfo(player, cancellationToken);
+        var districtInfo = await BuildDistrictInfo(player, cancellationToken);
 
         var details =
             player.RoomId != null
@@ -170,9 +165,11 @@ internal class GetSceneQueryHandler(
             ),
             new SceneStateInfo(state!.Name, details.RegionDescription),
             cityInfo,
+            districtInfo,
             details.Building,
             details.Room,
             playerCreatureInfo,
+            details.Exits,
             details.NearbyProps,
             details.NearbyPeople,
             details.NearbyBuildings,
@@ -268,24 +265,26 @@ internal class GetSceneQueryHandler(
                     new GetCityByStateIdQuery { StateId = player.StateId },
                     cancellationToken
                 );
-        if (city == null)
+        return city != null ? new SceneCityInfo(city.Name, city.Description) : null;
+    }
+
+    private async Task<SceneDistrictInfo?> BuildDistrictInfo(
+        CreatureSummary player,
+        CancellationToken cancellationToken
+    )
+    {
+        if (player.DistrictId == null)
         {
             return null;
         }
 
-        var districts = await getAllDistrictsByCityId.Handle(
-            new GetAllDistrictsByCityIdQuery { CityId = city.Id },
+        var district = await getDistrictById.Handle(
+            new GetDistrictByIdQuery { Id = player.DistrictId.Value },
             cancellationToken
         );
-        var districtInfos = districts
-            .Select(d => new SceneDistrictInfo(
-                d.Id,
-                d.Name,
-                d.DistrictType,
-                d.Id == player.DistrictId
-            ))
-            .ToArray();
-        return new SceneCityInfo(city.Name, city.Description, districtInfos);
+        return district != null
+            ? new SceneDistrictInfo(district.Id, district.Name, district.DistrictType)
+            : null;
     }
 
     private async Task<SceneLocationDetails> BuildIndoorScene(
@@ -300,15 +299,15 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
 
-        var props = await getStaticPropsByRoomId.Handle(
-            new GetStaticPropsByRoomIdQuery { RoomId = player.RoomId.Value },
+        var props = await getStaticPropsByLocationId.Handle(
+            new GetStaticPropsByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
         );
-        var connectors = await getConnectorsByRoomId.Handle(
-            new GetConnectorsByRoomIdQuery { RoomId = player.RoomId.Value },
+        var connectors = await getConnectorsByLocationId.Handle(
+            new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
         );
-        var exitInfos = await BuildExitInfos(connectors, cancellationToken);
+        var exitInfos = await BuildExitInfos(connectors, sourceIsIndoors: true, cancellationToken);
 
         var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
 
@@ -322,8 +321,7 @@ internal class GetSceneQueryHandler(
         var roomInfo = new SceneRoomInfo(
             roomSummary.RoomName,
             roomSummary.RoomDescription,
-            roomSummary.RoomFloorNumber,
-            exitInfos
+            roomSummary.RoomFloorNumber
         );
         var nearbyProps = props
             .Select(p => new ScenePropInfo(p.Id, p.Name, p.Description, GetPropType(p)))
@@ -333,6 +331,7 @@ internal class GetSceneQueryHandler(
             buildingInfo,
             roomInfo,
             null,
+            exitInfos,
             nearbyProps,
             nearbyPeople,
             [],
@@ -381,12 +380,22 @@ internal class GetSceneQueryHandler(
             .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
             .ToArray();
 
+        var exitInfos = await BuildExitInfos(
+            await getConnectorsByLocationId.Handle(
+                new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
+                cancellationToken
+            ),
+            sourceIsIndoors: false,
+            cancellationToken
+        );
+
         var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
 
         return new SceneLocationDetails(
             null,
             null,
             state?.Description,
+            exitInfos,
             [],
             nearbyPeople,
             nearbyBuildings,
@@ -464,31 +473,21 @@ internal class GetSceneQueryHandler(
 
     private async Task<IReadOnlyCollection<SceneExitInfo>> BuildExitInfos(
         IReadOnlyCollection<RoomConnector> connectors,
+        bool sourceIsIndoors,
         CancellationToken cancellationToken
     )
     {
-        var destinationIds = connectors
-            .Where(c => c.DestinationRoomId != null)
-            .Select(c => c.DestinationRoomId!.Value)
-            .ToArray();
-        var destinationRoomsById = await getRoomsByIds.Handle(
-            new GetRoomsByIdsQuery { RoomIds = destinationIds },
+        var resolved = await exitLabelResolver.Resolve(
+            connectors,
+            sourceIsIndoors,
             cancellationToken
         );
-
-        return connectors
-            .Select(c =>
-            {
-                var destinationName =
-                    c.DestinationRoomId != null
-                    && destinationRoomsById.TryGetValue(
-                        c.DestinationRoomId.Value,
-                        out var destinationRoom
-                    )
-                        ? destinationRoom.Name
-                        : "Outside";
-                return new SceneExitInfo(c.Description, destinationName, c.IsLocked);
-            })
+        return resolved
+            .Select(r => new SceneExitInfo(
+                r.Connector.Description,
+                r.DestinationLabel,
+                r.Connector.IsLocked
+            ))
             .ToArray();
     }
 

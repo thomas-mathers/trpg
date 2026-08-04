@@ -87,6 +87,7 @@ public class HouseholdGenerator(
                 input.StateId,
                 input.City.Id,
                 input.ResidentialDistrict.Id,
+                input.ResidentialDistrict.LocationId,
                 houseOwner.Creature.Id,
                 BuildingType.House,
                 input.WorldId
@@ -101,9 +102,7 @@ public class HouseholdGenerator(
 
         var keyItems = new List<Item>();
         var keyConnectorKeys = new List<RoomConnectorKey>();
-        var houseFrontDoor = houseResult
-            .Props.OfType<RoomConnector>()
-            .First(c => c.DestinationRoomId == null);
+        var houseFrontDoor = houseResult.FrontDoor;
         foreach (var resident in household)
         {
             var houseKeyItem = new Item
@@ -129,18 +128,16 @@ public class HouseholdGenerator(
             );
         }
 
-        var roomsById = houseResult.Rooms.ToDictionary(r => r.Id);
         var homeRoom = houseResult.Rooms.First(r => r.FloorNumber == 0);
         var homeLocationId = homeRoom.LocationId;
 
         var jobs = new List<CreatureJob>();
         foreach (var member in household)
         {
-            var memberBedRoomId = houseResult
+            var memberBedLocationId = houseResult
                 .Props.OfType<Bed>()
                 .First(b => b.AssignedCreatureId == member.Creature.Id)
-                .RoomId;
-            var memberBedLocationId = roomsById[memberBedRoomId].LocationId;
+                .LocationId;
             jobs.Add(
                 CreatureJobGenerator.GenerateSleep(
                     input.StateId,

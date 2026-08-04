@@ -25,7 +25,7 @@ internal class SyncCommandHandler(
     GetCreatureIdsByDistrictQueryHandler getCreatureIdsByDistrict,
     GetCreatureByIdQueryHandler getCreatureById,
     ExecuteCreatureJobCommandHandler executeJob,
-    GetWorkstationsByRoomIdQueryHandler getWorkstationsByRoomId,
+    GetWorkstationsByLocationIdQueryHandler getWorkstationsByLocationId,
     SetWorkstationOccupantCommandHandler setWorkstationOccupant,
     GetRoomSummaryQueryHandler getRoomSummary,
     SyncScheduleLockCommandHandler syncScheduleLock,
@@ -135,10 +135,10 @@ internal class SyncCommandHandler(
                 );
             }
 
-            if (dueJob.Action == CreatureJobAction.Work && dueJob.LocationId != null)
+            if (dueJob.Action == CreatureJobAction.Work)
             {
-                workingCreaturesByLocationId.TryAdd(dueJob.LocationId.Value, []);
-                workingCreaturesByLocationId[dueJob.LocationId.Value].Add(creatureId);
+                workingCreaturesByLocationId.TryAdd(dueJob.LocationId, []);
+                workingCreaturesByLocationId[dueJob.LocationId].Add(creatureId);
             }
         }
 
@@ -172,8 +172,8 @@ internal class SyncCommandHandler(
             return;
         }
 
-        var workstations = await getWorkstationsByRoomId.Handle(
-            new GetWorkstationsByRoomIdQuery { RoomId = location.RoomId.Value },
+        var workstations = await getWorkstationsByLocationId.Handle(
+            new GetWorkstationsByLocationIdQuery { LocationId = locationId },
             cancellationToken
         );
         var counter = workstations.Where(w => w.WorkstationType == WorkstationType.Trade);

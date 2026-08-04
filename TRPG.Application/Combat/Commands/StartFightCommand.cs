@@ -39,7 +39,7 @@ internal class StartFightCommandHandler(
             new GetCreaturesAtLocationQuery
             {
                 WorldId = player!.WorldId,
-                LocationId = player.LocationId!.Value,
+                LocationId = player.LocationId,
                 ExcludingCreatureId = player.Id,
                 CreatureTypes = HostileCreatureTypes,
                 IncludeDead = false,

@@ -47,7 +47,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         var location = Builders.MakeLocation(worldId, roomId: room.Id);
         var bed = new Bed
         {
-            RoomId = room.Id,
+            LocationId = room.LocationId,
             Name = "Bed",
             Description = "A test bed.",
             WorldId = worldId,

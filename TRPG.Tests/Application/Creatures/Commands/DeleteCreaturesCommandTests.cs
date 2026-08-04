@@ -57,7 +57,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
 
         var bed = new Bed
         {
-            RoomId = room.Id,
+            LocationId = room.LocationId,
             Name = "Bed",
             Description = "A test bed",
             WorldId = worldId,
@@ -66,7 +66,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         };
         var workstation = new Workstation
         {
-            RoomId = room.Id,
+            LocationId = room.LocationId,
             Name = "Workstation",
             Description = "A test workstation",
             WorldId = worldId,
@@ -83,7 +83,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             quest.Id,
             questObjective.Id,
             building.Id,
-            room.Id
+            room.LocationId
         );
         await SeedCreatureData(
             worldId,
@@ -91,7 +91,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             quest.Id,
             questObjective.Id,
             building.Id,
-            room.Id
+            room.LocationId
         );
 
         // Act
@@ -311,7 +311,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         Guid questId,
         Guid questObjectiveId,
         Guid buildingId,
-        Guid roomId
+        Guid locationId
     )
     {
         var faction = Builders.MakeFaction(worldId);
@@ -399,7 +399,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         _context.Props.Add(
             new Seat
             {
-                RoomId = roomId,
+                LocationId = locationId,
                 Name = "Seat",
                 Description = "A test seat",
                 WorldId = worldId,

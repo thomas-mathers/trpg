@@ -5,25 +5,25 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-internal class GetStaticPropsByRoomIdQuery
+internal class GetStaticPropsByLocationIdQuery
 {
-    public required Guid RoomId { get; init; }
+    public required Guid LocationId { get; init; }
 }
 
-internal class GetStaticPropsByRoomIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetStaticPropsByLocationIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
 {
     public async Task<IReadOnlyCollection<Prop>> Handle(
-        GetStaticPropsByRoomIdQuery query,
+        GetStaticPropsByLocationIdQuery query,
         CancellationToken cancellationToken = default
     )
     {
         var props = await cache.GetOrCreateAsync<Prop[]>(
-            $"staticProps:{query.RoomId}",
+            $"staticProps:{query.LocationId}",
             async _ =>
                 (
                     await context
                         .Props.AsNoTracking()
-                        .Where(p => p.RoomId == query.RoomId)
+                        .Where(p => p.LocationId == query.LocationId)
                         .ToArrayAsync(cancellationToken)
                 )
                     .Where(p => p is not RoomConnector)

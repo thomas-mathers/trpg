@@ -6,6 +6,7 @@ public record BuildingGeneratorInput(
     Guid StateId,
     Guid CityId,
     Guid DistrictId,
+    Guid DistrictLocationId,
     Guid? OwnerId,
     BuildingType Type,
     Guid WorldId
@@ -21,7 +22,8 @@ public record BuildingGeneratorResult(
     Building Building,
     IReadOnlyList<Room> Rooms,
     IReadOnlyList<Prop> Props,
-    IReadOnlyList<Location> Locations
+    IReadOnlyList<Location> Locations,
+    RoomConnector FrontDoor
 );
 
 public class BuildingGenerator
@@ -387,7 +389,7 @@ public class BuildingGenerator
         var props = specs
             .Zip(rooms)
             .SelectMany(pair =>
-                pair.First.Props.Select(p => p.Factory(pair.Second.Id, input.WorldId))
+                pair.First.Props.Select(p => p.Factory(pair.Second.LocationId, input.WorldId))
             )
             .ToList();
 
@@ -401,10 +403,10 @@ public class BuildingGenerator
             props.Add(
                 new RoomConnector
                 {
-                    RoomId = roomBelow.Id,
+                    LocationId = roomBelow.LocationId,
                     Name = "Staircase",
                     Description = "A staircase leading up.",
-                    DestinationRoomId = roomAbove.Id,
+                    DestinationLocationId = roomAbove.LocationId,
                     WorldId = input.WorldId,
                 }
             );
@@ -412,29 +414,28 @@ public class BuildingGenerator
             props.Add(
                 new RoomConnector
                 {
-                    RoomId = roomAbove.Id,
+                    LocationId = roomAbove.LocationId,
                     Name = "Staircase",
                     Description = "A staircase leading down.",
-                    DestinationRoomId = roomBelow.Id,
+                    DestinationLocationId = roomBelow.LocationId,
                     WorldId = input.WorldId,
                 }
             );
         }
 
         var entranceRoom = rooms.First(r => r.FloorNumber == 0);
-        props.Add(
-            new RoomConnector
-            {
-                RoomId = entranceRoom.Id,
-                Name = "Front Door",
-                Description = "The door leading outside.",
-                DestinationRoomId = null,
-                IsLocked = input.IsLockable,
-                WorldId = input.WorldId,
-            }
-        );
+        var frontDoor = new RoomConnector
+        {
+            LocationId = entranceRoom.LocationId,
+            Name = "Front Door",
+            Description = "The door leading outside.",
+            DestinationLocationId = input.DistrictLocationId,
+            IsLocked = input.IsLockable,
+            WorldId = input.WorldId,
+        };
+        props.Add(frontDoor);
 
-        return new BuildingGeneratorResult(building, rooms, props, locations);
+        return new BuildingGeneratorResult(building, rooms, props, locations, frontDoor);
     }
 
     private static RoomSpec[] GetSpecs(
@@ -485,7 +486,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Forge",
                                 Description = "A roaring forge for shaping metal.",
@@ -497,7 +498,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Anvil",
                                 Description = "A heavy anvil for hammering armour.",
@@ -509,7 +510,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A wooden counter for trading.",
@@ -530,7 +531,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A modest bed.",
@@ -542,7 +543,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A sturdy chest for personal belongings.",
@@ -568,7 +569,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Alchemy Table",
                                 Description = "A table covered in alchemical equipment.",
@@ -580,7 +581,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for selling remedies.",
@@ -601,7 +602,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A modest bed.",
@@ -613,7 +614,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -639,7 +640,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Oven",
                                 Description = "A large stone oven for baking.",
@@ -651,7 +652,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for selling baked goods.",
@@ -672,7 +673,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A modest bed.",
@@ -684,7 +685,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -710,7 +711,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Enchanting Table",
                                 Description = "A table humming with magical energy.",
@@ -722,7 +723,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for selling arcane wares.",
@@ -743,7 +744,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A modest bed.",
@@ -755,7 +756,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -781,7 +782,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for general trading.",
@@ -794,7 +795,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Crate",
                                 Description = "A large crate of goods.",
@@ -805,7 +806,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Barrel",
                                 Description = "A barrel of supplies.",
@@ -824,7 +825,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A modest bed.",
@@ -836,7 +837,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -862,7 +863,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Cutting Table",
                                 Description = "A table for cutting and measuring fabric.",
@@ -874,7 +875,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for selling garments.",
@@ -895,7 +896,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A modest bed.",
@@ -907,7 +908,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -933,7 +934,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Workbench",
                                 Description = "A sturdy workbench for joining and carving wood.",
@@ -945,7 +946,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for selling furniture and woodwork.",
@@ -966,7 +967,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A modest bed.",
@@ -978,7 +979,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -1004,7 +1005,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Jeweler's Bench",
                                 Description = "A precise bench for cutting and setting gemstones.",
@@ -1016,7 +1017,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for selling jewelry.",
@@ -1037,7 +1038,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A modest bed.",
@@ -1049,7 +1050,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -1075,7 +1076,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bookcase",
                                 Description = "A tall bookcase filled with tomes.",
@@ -1087,7 +1088,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bookcase",
                                 Description = "A tall bookcase filled with manuscripts.",
@@ -1099,7 +1100,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A comfortable reading chair.",
@@ -1110,7 +1111,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A comfortable reading chair.",
@@ -1121,7 +1122,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for lending books.",
@@ -1142,7 +1143,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A modest bed.",
@@ -1154,7 +1155,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bookcase",
                                 Description = "A personal bookcase.",
@@ -1166,7 +1167,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -1192,7 +1193,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Altar",
                                 Description = "A sacred altar for prayer.",
@@ -1204,7 +1205,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Pew",
                                 Description = "A wooden pew.",
@@ -1215,7 +1216,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Pew",
                                 Description = "A wooden pew.",
@@ -1226,7 +1227,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Pew",
                                 Description = "A wooden pew.",
@@ -1237,7 +1238,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for donations and offerings.",
@@ -1258,7 +1259,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A simple bed.",
@@ -1270,7 +1271,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -1296,7 +1297,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A wooden chair.",
@@ -1307,7 +1308,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A wooden chair.",
@@ -1318,7 +1319,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A wooden chair.",
@@ -1329,7 +1330,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A wooden chair.",
@@ -1340,7 +1341,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Fireplace",
                                 Description = "A large fireplace used for cooking.",
@@ -1352,7 +1353,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bar Counter",
                                 Description = "A long counter for serving drinks.",
@@ -1373,7 +1374,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "The owner's bed.",
@@ -1385,7 +1386,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for the owner's belongings.",
@@ -1410,7 +1411,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A comfortable bed for guests.",
@@ -1421,7 +1422,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for guest belongings.",
@@ -1444,7 +1445,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A cushioned chair.",
@@ -1455,7 +1456,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A cushioned chair.",
@@ -1466,7 +1467,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Innkeeper's Counter",
                                 Description = "A counter for booking rooms.",
@@ -1488,7 +1489,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "The innkeeper's bed.",
@@ -1500,7 +1501,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for personal belongings.",
@@ -1529,7 +1530,7 @@ public class BuildingGenerator
                                 (id, worldId) =>
                                     new Bed
                                     {
-                                        RoomId = id,
+                                        LocationId = id,
                                         WorldId = worldId,
                                         Name = "Bed",
                                         Description = "A modest bed.",
@@ -1541,7 +1542,7 @@ public class BuildingGenerator
                                 (id, worldId) =>
                                     new Container
                                     {
-                                        RoomId = id,
+                                        LocationId = id,
                                         WorldId = worldId,
                                         Name = "Chest",
                                         Description = "A chest for personal belongings.",
@@ -1565,7 +1566,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A sturdy chair.",
@@ -1576,7 +1577,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A sturdy chair.",
@@ -1587,7 +1588,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A sturdy chair.",
@@ -1598,7 +1599,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A sturdy chair.",
@@ -1609,7 +1610,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for guild business.",
@@ -1639,7 +1640,7 @@ public class BuildingGenerator
                                 (id, worldId) =>
                                     new Bed
                                     {
-                                        RoomId = id,
+                                        LocationId = id,
                                         WorldId = worldId,
                                         Name = "Bed",
                                         Description = "A modest bed.",
@@ -1651,7 +1652,7 @@ public class BuildingGenerator
                                 (id, worldId) =>
                                     new Container
                                     {
-                                        RoomId = id,
+                                        LocationId = id,
                                         WorldId = worldId,
                                         Name = "Chest",
                                         Description = "A chest for personal belongings.",
@@ -1675,7 +1676,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A worn chair.",
@@ -1686,7 +1687,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A worn chair.",
@@ -1713,7 +1714,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for selling horses and supplies.",
@@ -1726,7 +1727,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Barrel",
                                 Description = "A barrel of feed.",
@@ -1745,7 +1746,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A simple bed.",
@@ -1772,7 +1773,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Weapon Rack",
                                 Description = "A rack holding practice weapons.",
@@ -1783,7 +1784,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for issuing orders and supplies.",
@@ -1804,7 +1805,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A simple cot.",
@@ -1816,7 +1817,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A footlocker for personal effects.",
@@ -1842,7 +1843,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Throne",
                                 Description = "An imposing throne.",
@@ -1853,7 +1854,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A chair for guests.",
@@ -1864,7 +1865,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A chair for guests.",
@@ -1875,7 +1876,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A chair for guests.",
@@ -1886,7 +1887,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Workstation
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Counter",
                                 Description = "A counter for receiving tribute and trade.",
@@ -1907,7 +1908,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Bed
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A grand four-poster bed.",
@@ -1919,7 +1920,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "An ornate chest.",
@@ -1945,7 +1946,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Seat
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A chair for the guard on duty.",
@@ -1964,7 +1965,7 @@ public class BuildingGenerator
                         (id, worldId) =>
                             new Container
                             {
-                                RoomId = id,
+                                LocationId = id,
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A chest for confiscated belongings.",

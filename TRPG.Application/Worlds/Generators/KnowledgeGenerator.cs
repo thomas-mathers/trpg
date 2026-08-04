@@ -90,10 +90,7 @@ internal static class KnowledgeGenerator
 
         var creatureCityIds = input.Creatures.ToDictionary(
             c => c.Id,
-            c =>
-                c.LocationId is { } locationId && locationsById.TryGetValue(locationId, out var l)
-                    ? l.CityId
-                    : null
+            c => locationsById.TryGetValue(c.LocationId, out var l) ? l.CityId : null
         );
 
         foreach (

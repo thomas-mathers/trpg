@@ -37,7 +37,7 @@ internal static class CreatureJobGenerator
     public static CreatureJob GenerateIdle(
         Guid stateId,
         Guid creatureId,
-        Guid? locationId,
+        Guid locationId,
         Guid worldId
     )
     {
@@ -80,7 +80,7 @@ internal static class CreatureJobGenerator
         Guid stateId,
         Guid creatureId,
         CreatureJobAction action,
-        Guid? locationId,
+        Guid locationId,
         DayOfWeek day,
         Guid worldId,
         HourWindow? hours = null
@@ -105,7 +105,7 @@ internal static class CreatureJobGenerator
         Guid stateId,
         Guid creatureId,
         CreatureJobAction action,
-        Guid? locationId,
+        Guid locationId,
         DayOfWeek day,
         Guid worldId,
         HourWindow? hours = null
@@ -143,9 +143,7 @@ internal static class CreatureJobGenerator
             j.CreatureId == creatureId && j.Action == CreatureJobAction.Sleep
         );
         jobs.Remove(existingSleep);
-        jobs.Add(
-            GenerateSleep(stateId, creatureId, existingSleep.LocationId!.Value, worldId, sleepHours)
-        );
+        jobs.Add(GenerateSleep(stateId, creatureId, existingSleep.LocationId, worldId, sleepHours));
     }
 
     public static IReadOnlyList<CreatureJob> Generate(
@@ -153,7 +151,7 @@ internal static class CreatureJobGenerator
         Guid creatureId,
         Guid sleepLocationId,
         Guid? workLocationId,
-        Guid? idleLocationId,
+        Guid idleLocationId,
         Guid worldId
     )
     {

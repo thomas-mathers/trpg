@@ -27,6 +27,7 @@ public class GeographyGeneratorResult
     public required IReadOnlyList<District> Districts { get; init; }
     public required IReadOnlyDictionary<Guid, CreatureType> DominantRaceByCountryId { get; init; }
     public required IReadOnlyList<Location> Locations { get; init; }
+    public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
     public required IReadOnlyList<State> States { get; init; }
     public required World World { get; init; }
@@ -94,6 +95,7 @@ public class GeographyGenerator(
             Cities = states.Cities,
             Districts = states.Districts,
             Locations = states.Locations,
+            Props = states.Props,
             Roads = roads,
             DominantRaceByCountryId = countries.DominantRaceByCountryId,
         };
@@ -261,6 +263,7 @@ public class GeographyGenerator(
         var cities = new List<City>();
         var districts = new List<District>();
         var locations = new List<Location>();
+        var props = new List<Prop>();
         var stateById = new Dictionary<Guid, State>();
 
         foreach (var (countryLayoutId, country) in countries.CountryById)
@@ -368,6 +371,7 @@ public class GeographyGenerator(
                         cities.Add(city);
                         stateById[mapState.Id] = state;
 
+                        var cityDistricts = new List<District>();
                         foreach (var districtType in chunkDistrictTypes[j])
                         {
                             var districtResult = DistrictGenerator.Generate(
@@ -378,7 +382,21 @@ public class GeographyGenerator(
                             );
                             districts.Add(districtResult.District);
                             locations.Add(districtResult.Location);
+                            cityDistricts.Add(districtResult.District);
                         }
+
+                        var cityCenterDistrict = cityDistricts.First(d =>
+                            d.DistrictType == DistrictType.CityCenter
+                        );
+                        props.AddRange(
+                            DistrictConnectorGenerator.Generate(
+                                cityCenterDistrict,
+                                cityDistricts
+                                    .Where(d => d.DistrictType != DistrictType.CityCenter)
+                                    .ToArray(),
+                                world.Id
+                            )
+                        );
                     }
                 }
             }
@@ -405,7 +423,7 @@ public class GeographyGenerator(
             }
         }
 
-        return new GeneratedStates(states, cities, districts, locations, stateById);
+        return new GeneratedStates(states, cities, districts, locations, props, stateById);
     }
 
     private static List<Road> GenerateRoadEntities(GenerateRoadsInput input)
@@ -463,6 +481,7 @@ internal record GeneratedStates(
     List<City> Cities,
     List<District> Districts,
     List<Location> Locations,
+    List<Prop> Props,
     Dictionary<Guid, State> StateById
 );
 

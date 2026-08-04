@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import type { CreatureStatusSnapshot, SceneSnapshot } from '@/api/client';
 import { EntityTooltip } from '@/components/EntityLink';
-import { BUILDING_TYPE_ICONS, DISTRICT_TYPE_ICONS } from '@/lib/place-type-icons';
+import { BUILDING_TYPE_ICONS } from '@/lib/place-type-icons';
 import { isDangerous } from '@/lib/threat-level';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +16,6 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
   const pointsOfInterest = [
     ...scene.nearbyBuildings.map((b) => ({ ...b, entityType: 'Building' as const })),
     ...scene.nearbyDungeons.map((b) => ({ ...b, entityType: 'Building' as const })),
-    ...scene.nearbyDistricts.map((d) => ({ ...d, entityType: 'District' as const })),
   ];
 
   return (
@@ -57,10 +56,7 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
           <EmptyState />
         ) : (
           pointsOfInterest.map((poi) => {
-            const Icon =
-              poi.entityType === 'Building'
-                ? BUILDING_TYPE_ICONS[poi.type]
-                : DISTRICT_TYPE_ICONS[poi.type];
+            const Icon = BUILDING_TYPE_ICONS[poi.type];
             return (
               <div key={poi.id} className="flex items-center justify-between gap-2 py-1.5">
                 <span className="flex min-w-0 items-center gap-1.5">

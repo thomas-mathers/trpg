@@ -328,12 +328,12 @@ internal static class BiographyGenerator
         IReadOnlyDictionary<Guid, Building> buildingById
     )
     {
-        if (job?.LocationId == null)
+        if (job == null)
         {
             return null;
         }
 
-        if (!buildingIdByLocationId.TryGetValue(job.LocationId.Value, out var buildingId))
+        if (!buildingIdByLocationId.TryGetValue(job.LocationId, out var buildingId))
         {
             return null;
         }

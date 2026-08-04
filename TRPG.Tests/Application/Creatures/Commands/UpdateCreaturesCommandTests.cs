@@ -38,7 +38,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id],
-                LocationId = Optional<Guid?>.Of(locationId),
+                LocationId = Optional<Guid>.Of(locationId),
             },
             TestContext.Current.CancellationToken
         );
@@ -146,7 +146,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id],
-                LocationId = Optional<Guid?>.Of(Guid.NewGuid()),
+                LocationId = Optional<Guid>.Of(Guid.NewGuid()),
             },
             TestContext.Current.CancellationToken
         );
@@ -210,37 +210,5 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         );
         Assert.Equal(CreatureState.Sitting, updatedCreature!.State);
         Assert.Equal(CreatureState.Sitting, updatedOther!.State);
-    }
-
-    [Fact]
-    public async Task Handle_CanSetLocationIdToNull_WhenExplicitlySet()
-    {
-        // Arrange
-        await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                LocationId = Optional<Guid?>.Of(Guid.NewGuid()),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Act
-        await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                LocationId = Optional<Guid?>.Of(null),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Null(updated!.LocationId);
     }
 }

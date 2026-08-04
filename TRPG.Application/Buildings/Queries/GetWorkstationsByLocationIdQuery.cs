@@ -4,21 +4,21 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-internal class GetWorkstationsByRoomIdQuery
+internal class GetWorkstationsByLocationIdQuery
 {
-    public required Guid RoomId { get; init; }
+    public required Guid LocationId { get; init; }
 }
 
-internal class GetWorkstationsByRoomIdQueryHandler(TrpgDbContext context)
+internal class GetWorkstationsByLocationIdQueryHandler(TrpgDbContext context)
 {
     public async Task<IReadOnlyCollection<Workstation>> Handle(
-        GetWorkstationsByRoomIdQuery query,
+        GetWorkstationsByLocationIdQuery query,
         CancellationToken cancellationToken = default
     )
     {
         return await context
             .Props.AsNoTracking()
-            .Where(p => p.RoomId == query.RoomId)
+            .Where(p => p.LocationId == query.LocationId)
             .OfType<Workstation>()
             .ToArrayAsync(cancellationToken);
     }

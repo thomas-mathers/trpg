@@ -120,7 +120,7 @@ public class WorldGenerator(
         var items = new List<Item>();
         var rooms = new List<Room>();
         var locations = new List<Location>(geography.Locations);
-        var props = new List<Prop>();
+        var props = new List<Prop>(geography.Props);
         var skills = new List<CreatureSkill>();
         var abilities = new List<CreatureAbility>();
         var jobs = new List<CreatureJob>();
@@ -170,11 +170,19 @@ public class WorldGenerator(
                 generatorInput.MinBuildingsPerState,
                 generatorInput.MaxBuildingsPerState + 1
             );
+            if (count == 0)
+            {
+                continue;
+            }
+
+            var wildernessLocation = LocationGenerator.Generate(worldId, state.Id);
+            locations.Add(wildernessLocation);
+
             var usedNames = new HashSet<string>();
             for (var i = 0; i < count; i++)
             {
                 var result = DungeonGenerator.Generate(
-                    new DungeonGeneratorInput(state.Id, usedNames, worldId)
+                    new DungeonGeneratorInput(state.Id, usedNames, wildernessLocation.Id, worldId)
                 );
                 usedNames.Add(result.Building.Name);
                 buildings.Add(result.Building);

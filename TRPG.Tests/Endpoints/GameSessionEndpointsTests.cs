@@ -118,11 +118,33 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         var country = Builders.MakeCountry(world.Id);
         var state = Builders.MakeState(country.Id, world.Id);
         var city = Builders.MakeCity(state.Id, country.Id, worldId: world.Id);
-        var origin = Builders.MakeDistrict(city.Id, worldId: world.Id);
+        var originId = Guid.NewGuid();
+        var originLocation = Builders.MakeLocation(world.Id, state.Id, districtId: originId);
+        var origin = Builders.MakeDistrict(
+            city.Id,
+            worldId: world.Id,
+            id: originId,
+            locationId: originLocation.Id
+        );
+        var destinationId = Guid.NewGuid();
+        var destinationLocation = Builders.MakeLocation(
+            world.Id,
+            state.Id,
+            districtId: destinationId
+        );
         var destination = Builders.MakeDistrict(
             city.Id,
             Data.Models.DistrictType.Residential,
-            worldId: world.Id
+            worldId: world.Id,
+            id: destinationId,
+            locationId: destinationLocation.Id
+        );
+        var connector = Builders.MakeRoomConnector(
+            origin.LocationId,
+            destinationLocationId: destination.LocationId,
+            worldId: world.Id,
+            name: "Path",
+            description: $"A path leading to {destination.Name}."
         );
         var player = Builders.MakeCreature(
             world.Id,
@@ -136,6 +158,8 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         context.States.Add(state);
         context.Cities.Add(city);
         context.Districts.AddRange(origin, destination);
+        context.Locations.AddRange(originLocation, destinationLocation);
+        context.Props.Add(connector);
         context.Creatures.Add(player);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

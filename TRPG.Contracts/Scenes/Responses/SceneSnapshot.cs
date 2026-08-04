@@ -120,7 +120,6 @@ public record SceneSnapshot(
     int Hour,
     CreatureStatusSnapshot PlayerStatus,
     IReadOnlyCollection<CreatureStatusSnapshot> NearbyCreatures,
-    IReadOnlyCollection<NearbyDistrictSnapshot> NearbyDistricts,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyBuildings,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyDungeons,
     IReadOnlyCollection<NearbyPropSnapshot> NearbyProps,
@@ -161,13 +160,6 @@ public record CreatureStatusSnapshot(
     float LightningResistance,
     float PoisonResistance,
     float MagicResistance
-);
-
-public record NearbyDistrictSnapshot(
-    Guid Id,
-    string Name,
-    DistrictType Type,
-    string TypeDescription
 );
 
 public record NearbyBuildingSnapshot(

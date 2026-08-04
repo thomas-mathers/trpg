@@ -22,12 +22,8 @@ internal class GetNearbyCreaturesQueryHandler(TrpgDbContext context)
         var creatureQuery = context
             .Creatures.AsNoTracking()
             .Where(c =>
-                c.Id == query.PlayerId
-                || context.Creatures.Any(p =>
-                    p.Id == query.PlayerId
-                    && p.WorldId == c.WorldId
-                    && p.LocationId != null
-                    && p.LocationId == c.LocationId
+                context.Creatures.Any(p =>
+                    p.Id == query.PlayerId && p.WorldId == c.WorldId && p.LocationId == c.LocationId
                 )
             );
 

@@ -11,8 +11,7 @@ internal class GetSceneWithCatchUpQuery
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required Guid? LocationId { get; init; }
-    public required Guid StateId { get; init; }
+    public required Guid LocationId { get; init; }
     public required InGameDate CurrentDate { get; init; }
 }
 
@@ -29,20 +28,12 @@ internal class GetSceneWithCatchUpQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var cacheKeyId = query.LocationId ?? query.StateId;
-        var cacheKey = $"catchup:{query.WorldId}:{cacheKeyId}:{query.CurrentDate.Hour}";
+        var cacheKey = $"catchup:{query.WorldId}:{query.LocationId}:{query.CurrentDate.Hour}";
 
         var catchUpRan = false;
         if (cache.TryGetValue(cacheKey, out bool _))
         {
             logger.LogInformation("[perf] Catch-up cache hit for {CacheKey}", cacheKey);
-        }
-        else if (query.LocationId == null)
-        {
-            logger.LogInformation(
-                "[perf] Catch-up skipped for {CacheKey} — player has no location yet",
-                cacheKey
-            );
         }
         else
         {
@@ -55,7 +46,7 @@ internal class GetSceneWithCatchUpQueryHandler(
                 new SyncCommand
                 {
                     WorldId = query.WorldId,
-                    LocationId = query.LocationId.Value,
+                    LocationId = query.LocationId,
                     CurrentDate = query.CurrentDate,
                 },
                 cancellationToken

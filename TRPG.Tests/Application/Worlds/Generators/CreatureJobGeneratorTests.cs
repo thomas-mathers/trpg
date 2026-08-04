@@ -45,6 +45,7 @@ public class CreatureJobGeneratorTests
     {
         // Arrange
         var sleepLocationId = Guid.NewGuid();
+        var idleLocationId = Guid.NewGuid();
 
         // Act
         var jobs = CreatureJobGenerator.Generate(
@@ -52,7 +53,7 @@ public class CreatureJobGeneratorTests
             _personId,
             sleepLocationId,
             null,
-            null,
+            idleLocationId,
             _worldId
         );
 

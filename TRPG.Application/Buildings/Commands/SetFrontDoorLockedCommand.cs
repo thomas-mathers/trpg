@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Buildings.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -18,12 +19,9 @@ internal class SetFrontDoorLockedCommandHandler(TrpgDbContext context)
     )
     {
         var updatedCount = await (
-            from c in context.Props.OfType<RoomConnector>()
-            join r in context.Rooms on c.RoomId equals r.Id
-            where
-                r.BuildingId == command.BuildingId
-                && r.FloorNumber == 0
-                && c.DestinationRoomId == null
+            from c in context.Props.OfType<RoomConnector>().WhereLeadsOutside(context)
+            join r in context.Rooms on c.LocationId equals r.LocationId
+            where r.BuildingId == command.BuildingId && r.FloorNumber == 0
             select c
         ).ExecuteUpdateAsync(
             s => s.SetProperty(c => c.IsLocked, command.IsLocked),

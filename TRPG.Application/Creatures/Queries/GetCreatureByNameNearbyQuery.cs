@@ -10,8 +10,7 @@ internal class GetCreatureByNameNearbyQuery
 }
 
 internal class GetCreatureByNameNearbyQueryHandler(
-    GetCreatureByNameAtLocationQueryHandler getByNameAtLocation,
-    GetCreatureByNameOutdoorsInStateQueryHandler getByNameOutdoorsInState
+    GetCreatureByNameAtLocationQueryHandler getByNameAtLocation
 )
 {
     public async Task<Creature?> Handle(
@@ -21,24 +20,14 @@ internal class GetCreatureByNameNearbyQueryHandler(
     {
         var player = query.Player;
 
-        return player.LocationId is { } locationId
-            ? await getByNameAtLocation.Handle(
-                new GetCreatureByNameAtLocationQuery
-                {
-                    WorldId = query.WorldId,
-                    LocationId = locationId,
-                    Name = query.Name,
-                },
-                cancellationToken
-            )
-            : await getByNameOutdoorsInState.Handle(
-                new GetCreatureByNameOutdoorsInStateQuery
-                {
-                    WorldId = query.WorldId,
-                    StateId = player.StateId,
-                    Name = query.Name,
-                },
-                cancellationToken
-            );
+        return await getByNameAtLocation.Handle(
+            new GetCreatureByNameAtLocationQuery
+            {
+                WorldId = query.WorldId,
+                LocationId = player.LocationId,
+                Name = query.Name,
+            },
+            cancellationToken
+        );
     }
 }

@@ -82,7 +82,6 @@ internal static class GameSessionEndpoints
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 LocationId = player.LocationId,
-                StateId = player.StateId,
                 CurrentDate = currentDate,
             },
             cancellationToken

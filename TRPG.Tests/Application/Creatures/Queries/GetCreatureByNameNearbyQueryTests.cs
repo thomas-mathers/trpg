@@ -67,27 +67,4 @@ public sealed class GetCreatureByNameNearbyQueryTests(DatabaseFixture db) : IAsy
         Assert.NotNull(result);
         Assert.Equal(target.Id, result.Id);
     }
-
-    [Fact]
-    public async Task Handle_ScopesToState_WhenPlayerHasNoLocation()
-    {
-        // Arrange
-        var player = Builders.MakeCreature(WorldId, stateId: Guid.NewGuid());
-        var target = await SeedTargetNear(player);
-
-        // Act
-        var result = await _handler.Handle(
-            new GetCreatureByNameNearbyQuery
-            {
-                WorldId = WorldId,
-                Player = player,
-                Name = target.Name,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(target.Id, result.Id);
-    }
 }

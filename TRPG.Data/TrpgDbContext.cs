@@ -260,7 +260,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<Container>("Container")
                 .HasValue<RoomConnector>("RoomConnector")
                 .HasValue<Trigger>("Trigger");
-            entity.HasIndex(p => p.RoomId);
+            entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.WorldId);
         });
 

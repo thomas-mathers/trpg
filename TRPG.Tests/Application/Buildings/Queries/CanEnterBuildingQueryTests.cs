@@ -33,14 +33,17 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         _stateId = Guid.NewGuid();
         _building = Builders.MakeBuilding(_stateId);
         _entranceRoom = Builders.MakeRoom(_building.Id);
+        var outsideLocation = Builders.MakeLocation(stateId: _stateId);
         _frontDoor = Builders.MakeRoomConnector(
-            _entranceRoom.Id,
+            _entranceRoom.LocationId,
+            destinationLocationId: outsideLocation.Id,
             name: "Front Door",
             description: "The door leading outside."
         );
 
         _context.Buildings.Add(_building);
         _context.Rooms.Add(_entranceRoom);
+        _context.Locations.Add(outsideLocation);
         _context.Props.Add(_frontDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -95,7 +98,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         var canEnter = await _handler.Handle(
             new CanEnterBuildingQuery
             {
-                EntranceRoomId = _entranceRoom.Id,
+                EntranceLocationId = _entranceRoom.LocationId,
                 EnteringCreatureId = Guid.NewGuid(),
             },
             TestContext.Current.CancellationToken
@@ -116,7 +119,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         var canEnter = await _handler.Handle(
             new CanEnterBuildingQuery
             {
-                EntranceRoomId = _entranceRoom.Id,
+                EntranceLocationId = _entranceRoom.LocationId,
                 EnteringCreatureId = Guid.NewGuid(),
             },
             TestContext.Current.CancellationToken
@@ -139,7 +142,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         var canEnter = await _handler.Handle(
             new CanEnterBuildingQuery
             {
-                EntranceRoomId = _entranceRoom.Id,
+                EntranceLocationId = _entranceRoom.LocationId,
                 EnteringCreatureId = player.Id,
             },
             TestContext.Current.CancellationToken
@@ -163,7 +166,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         var canEnter = await _handler.Handle(
             new CanEnterBuildingQuery
             {
-                EntranceRoomId = _entranceRoom.Id,
+                EntranceLocationId = _entranceRoom.LocationId,
                 EnteringCreatureId = resident.Id,
             },
             TestContext.Current.CancellationToken
@@ -187,7 +190,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         var canEnter = await _handler.Handle(
             new CanEnterBuildingQuery
             {
-                EntranceRoomId = _entranceRoom.Id,
+                EntranceLocationId = _entranceRoom.LocationId,
                 EnteringCreatureId = resident.Id,
             },
             TestContext.Current.CancellationToken
@@ -202,13 +205,16 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     {
         // Arrange
         var keylessDoorRoom = Builders.MakeRoom(_building.Id);
+        var keylessDoorOutsideLocation = Builders.MakeLocation(stateId: _stateId);
         var keylessDoor = Builders.MakeRoomConnector(
-            keylessDoorRoom.Id,
+            keylessDoorRoom.LocationId,
+            destinationLocationId: keylessDoorOutsideLocation.Id,
             isLocked: true,
             name: "Front Door",
             description: "The door leading outside."
         );
         _context.Rooms.Add(keylessDoorRoom);
+        _context.Locations.Add(keylessDoorOutsideLocation);
         _context.Props.Add(keylessDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -216,7 +222,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         var canEnter = await _handler.Handle(
             new CanEnterBuildingQuery
             {
-                EntranceRoomId = keylessDoorRoom.Id,
+                EntranceLocationId = keylessDoorRoom.LocationId,
                 EnteringCreatureId = Guid.NewGuid(),
             },
             TestContext.Current.CancellationToken

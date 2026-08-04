@@ -207,6 +207,7 @@ public class CityGenerator(
                 input.State.Id,
                 input.City.Id,
                 district.Id,
+                district.LocationId,
                 owner.Id,
                 type,
                 input.WorldId
@@ -315,9 +316,7 @@ public class CityGenerator(
     )
     {
         var worldId = workspace.Input.WorldId;
-        var frontDoor = buildingResult
-            .Props.OfType<RoomConnector>()
-            .First(c => c.DestinationRoomId == null);
+        var frontDoor = buildingResult.FrontDoor;
         foreach (var residentId in memberIds)
         {
             var keyItem = new Item
@@ -351,7 +350,6 @@ public class CityGenerator(
     )
     {
         var input = workspace.Input;
-        var roomsById = buildingResult.Rooms.ToDictionary(r => r.Id);
         var groundFloorRoom = buildingResult.Rooms.First(r => r.FloorNumber == 0);
         var guildFactionId =
             input.NamedFactions.Count > 0 ? input.NamedFactions[_guildHallIndex++].Id : (Guid?)null;
@@ -400,11 +398,10 @@ public class CityGenerator(
             workspace.Skills.AddRange(memberCreature.Skills);
             workspace.Abilities.AddRange(memberCreature.Abilities);
 
-            var memberBedRoomId = buildingResult
+            var memberBedLocationId = buildingResult
                 .Props.OfType<Bed>()
                 .First(b => b.AssignedCreatureId == memberCreature.Creature.Id)
-                .RoomId;
-            var memberBedLocationId = roomsById[memberBedRoomId].LocationId;
+                .LocationId;
             workspace.Jobs.AddRange(
                 CreatureJobGenerator.Generate(
                     input.State.Id,

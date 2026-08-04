@@ -9,11 +9,10 @@ public static class SceneSnapshotMapper
 {
     public static SceneSnapshot ToSnapshot(SceneResult scene)
     {
-        var currentDistrict = scene.City?.Districts.FirstOrDefault(d => d.IsCurrent);
         return new SceneSnapshot(
             StateName: scene.State?.Name ?? "",
             CityName: scene.City?.Name,
-            DistrictName: currentDistrict?.Name,
+            DistrictName: scene.District?.Name,
             BuildingName: scene.Building?.Name,
             RoomName: scene.Room?.Name,
             Year: scene.CurrentDate.Year,
@@ -23,14 +22,6 @@ public static class SceneSnapshotMapper
             Hour: scene.CurrentDate.Hour,
             PlayerStatus: ToCreatureStatusSnapshot(scene.Player),
             NearbyCreatures: scene.NearbyCreatures.Select(ToCreatureStatusSnapshot).ToArray(),
-            NearbyDistricts: scene
-                .City?.Districts.Select(d =>
-                {
-                    var type = d.Type.ToContract();
-                    return new NearbyDistrictSnapshot(d.Id, d.Name, type, type.ToDisplayName());
-                })
-                .ToArray()
-                ?? [],
             NearbyBuildings: scene
                 .NearbyBuildings.Select(b =>
                 {
@@ -49,12 +40,8 @@ public static class SceneSnapshotMapper
                 .NearbyProps.Select(p => new NearbyPropSnapshot(p.Id, p.Name, p.Type))
                 .ToArray(),
             Exits: scene
-                .Room?.Exits.Select(e => new NearbyExitSnapshot(
-                    e.Description,
-                    e.DestinationRoomName
-                ))
+                .Exits.Select(e => new NearbyExitSnapshot(e.Description, e.DestinationRoomName))
                 .ToArray()
-                ?? []
         );
     }
 

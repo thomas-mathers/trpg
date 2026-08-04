@@ -80,8 +80,8 @@ internal static class Builders
         };
 
     public static RoomConnector MakeRoomConnector(
-        Guid roomId,
-        Guid? destinationRoomId = null,
+        Guid locationId,
+        Guid? destinationLocationId = null,
         bool isLocked = false,
         Guid? worldId = null,
         string name = "Door",
@@ -89,11 +89,11 @@ internal static class Builders
     ) =>
         new()
         {
-            RoomId = roomId,
+            LocationId = locationId,
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
             Description = description,
-            DestinationRoomId = destinationRoomId,
+            DestinationLocationId = destinationLocationId ?? Guid.NewGuid(),
             IsLocked = isLocked,
         };
 
@@ -224,7 +224,7 @@ internal static class Builders
             BirthYear = birthYear,
             Profession = profession,
             StateId = stateId ?? Guid.NewGuid(),
-            LocationId = locationId,
+            LocationId = locationId ?? Guid.NewGuid(),
             Level = level,
             State = state,
             BaseAttributes = attributes,
@@ -514,11 +514,13 @@ internal static class Builders
         DistrictType districtType = DistrictType.CityCenter,
         Guid? worldId = null,
         string? name = null,
+        Guid? id = null,
         Guid? locationId = null
     )
     {
         return new District
         {
+            Id = id ?? Guid.NewGuid(),
             CityId = cityId,
             DistrictType = districtType,
             Name = name ?? $"District-{Guid.NewGuid():N}",
@@ -608,7 +610,7 @@ internal static class Builders
             SpecificDay = specificDay,
             Priority = priority,
             StateId = Guid.NewGuid(),
-            LocationId = locationId,
+            LocationId = locationId ?? Guid.NewGuid(),
             WorldId = worldId ?? Guid.NewGuid(),
         };
     }

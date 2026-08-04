@@ -16,6 +16,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     private ServiceProvider _serviceProvider = null!;
     private MovePlayerCommandHandler _handler = null!;
     private GameSession _session = null!;
+    private Location _outdoorLocation = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -27,7 +28,9 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         _handler = _serviceProvider.GetRequiredService<MovePlayerCommandHandler>();
 
         _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
+        _outdoorLocation = Builders.MakeLocation(WorldId, StateId);
         _context.GameSessions.Add(_session);
+        _context.Locations.Add(_outdoorLocation);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -41,7 +44,11 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_EntersTheBuilding_WhenOutdoorsAndDestinationIsABuilding()
     {
         // Arrange
-        var player = Builders.MakeCreature(WorldId, stateId: StateId);
+        var player = Builders.MakeCreature(
+            WorldId,
+            stateId: StateId,
+            locationId: _outdoorLocation.Id
+        );
         var building = Builders.MakeBuilding(StateId, name: "The Rusty Anchor");
         var entranceRoom = Builders.MakeRoom(building.Id);
         _context.Creatures.Add(player);
@@ -68,7 +75,11 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_ReturnsBuildingHasNoEntrance_WhenTheBuildingHasNoRoomAtFloorZero()
     {
         // Arrange
-        var player = Builders.MakeCreature(WorldId, stateId: StateId);
+        var player = Builders.MakeCreature(
+            WorldId,
+            stateId: StateId,
+            locationId: _outdoorLocation.Id
+        );
         var building = Builders.MakeBuilding(StateId, name: "The Empty Shell");
         _context.Creatures.Add(player);
         _context.Buildings.Add(building);
@@ -93,11 +104,17 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_ReturnsDoorLocked_WhenTheEntranceDoorIsLockedAndPlayerHasNoKey()
     {
         // Arrange
-        var player = Builders.MakeCreature(WorldId, stateId: StateId);
+        var player = Builders.MakeCreature(
+            WorldId,
+            stateId: StateId,
+            locationId: _outdoorLocation.Id
+        );
         var building = Builders.MakeBuilding(StateId, name: "The Locked Vault");
         var entranceRoom = Builders.MakeRoom(building.Id);
+        var outsideLocation = Builders.MakeLocation(stateId: StateId);
         var frontDoor = Builders.MakeRoomConnector(
-            entranceRoom.Id,
+            entranceRoom.LocationId,
+            destinationLocationId: outsideLocation.Id,
             isLocked: true,
             name: "Front Door",
             description: "The door leading outside."
@@ -106,6 +123,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         _context.Creatures.Add(player);
         _context.Buildings.Add(building);
         _context.Rooms.Add(entranceRoom);
+        _context.Locations.Add(outsideLocation);
         _context.Props.Add(frontDoor);
         _context.Items.Add(keyItem);
         _context.RoomConnectorKeys.Add(
@@ -129,39 +147,14 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
-    public async Task Handle_MovesToTheDistrict_WhenOutdoorsAndNoBuildingMatchesButADistrictDoes()
-    {
-        // Arrange — no location on the player at all; MoveOutdoors falls back to the state's
-        // single city when there's no current location to read a CityId from
-        var stateId = Guid.NewGuid();
-        var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: WorldId);
-        var district = Builders.MakeDistrict(city.Id, worldId: WorldId, name: "Market Row");
-        var player = Builders.MakeCreature(WorldId, stateId: stateId);
-        _context.Cities.Add(city);
-        _context.Districts.Add(district);
-        _context.Creatures.Add(player);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var result = await _handler.Handle(
-            new MovePlayerCommand
-            {
-                PlayerId = player.Id,
-                SessionId = _session.Id,
-                DestinationName = "Market Row",
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(district.LocationId, result.Player.LocationId);
-    }
-
-    [Fact]
     public async Task Handle_ReturnsDestinationNotFound_WhenOutdoorsAndNothingMatches()
     {
         // Arrange
-        var player = Builders.MakeCreature(WorldId, stateId: StateId);
+        var player = Builders.MakeCreature(
+            WorldId,
+            stateId: StateId,
+            locationId: _outdoorLocation.Id
+        );
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -192,10 +185,17 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             id: currentRoomId,
             locationId: currentLocation.Id
         );
-        var nextRoom = Builders.MakeRoom(building.Id, capacity: 4);
+        var nextRoomId = Guid.NewGuid();
+        var nextLocation = Builders.MakeLocation(WorldId, StateId, roomId: nextRoomId);
+        var nextRoom = Builders.MakeRoom(
+            building.Id,
+            capacity: 4,
+            id: nextRoomId,
+            locationId: nextLocation.Id
+        );
         var connector = Builders.MakeRoomConnector(
-            currentRoom.Id,
-            destinationRoomId: nextRoom.Id,
+            currentRoom.LocationId,
+            destinationLocationId: nextRoom.LocationId,
             name: "Hallway",
             description: "A hallway."
         );
@@ -206,7 +206,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(currentRoom, nextRoom);
-        _context.Locations.Add(currentLocation);
+        _context.Locations.AddRange(currentLocation, nextLocation);
         _context.Props.Add(connector);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -265,51 +265,124 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
-    public async Task Handle_PersistsTheNewLocation()
+    public async Task Handle_MovesThroughAHubConnector_WhenAlreadyPlacedInAConnectedDistrict()
     {
-        // Arrange
+        // Arrange — a placed (non-unplaced) player travels via a real hub RoomConnector, not the
+        // unplaced-bootstrap GetDistrictByNameInCityQuery fallback the other district-move tests use
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: WorldId);
-        var district = Builders.MakeDistrict(city.Id, worldId: WorldId, name: "Market Row");
-        var player = Builders.MakeCreature(WorldId, stateId: stateId);
+        var cityCenterId = Guid.NewGuid();
+        var cityCenterLocation = Builders.MakeLocation(
+            WorldId,
+            stateId,
+            cityId: city.Id,
+            districtId: cityCenterId
+        );
+        var cityCenter = Builders.MakeDistrict(
+            city.Id,
+            worldId: WorldId,
+            name: "City Center",
+            id: cityCenterId,
+            locationId: cityCenterLocation.Id
+        );
+        var residentialId = Guid.NewGuid();
+        var residentialLocation = Builders.MakeLocation(
+            WorldId,
+            stateId,
+            cityId: city.Id,
+            districtId: residentialId
+        );
+        var residential = Builders.MakeDistrict(
+            city.Id,
+            DistrictType.Residential,
+            worldId: WorldId,
+            name: "Docks",
+            id: residentialId,
+            locationId: residentialLocation.Id
+        );
+        var connector = Builders.MakeRoomConnector(
+            residential.LocationId,
+            destinationLocationId: cityCenter.LocationId,
+            name: "Path",
+            description: "A path leading to City Center."
+        );
+        var player = Builders.MakeCreature(
+            WorldId,
+            stateId: stateId,
+            locationId: residential.LocationId
+        );
         _context.Cities.Add(city);
-        _context.Districts.Add(district);
+        _context.Districts.AddRange(cityCenter, residential);
+        _context.Locations.AddRange(cityCenterLocation, residentialLocation);
+        _context.Props.Add(connector);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await _handler.Handle(
+        var result = await _handler.Handle(
             new MovePlayerCommand
             {
                 PlayerId = player.Id,
                 SessionId = _session.Id,
-                DestinationName = "Market Row",
+                DestinationName = "City Center",
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
+        Assert.Equal(MovePlayerOutcome.Moved, result.Outcome);
+        Assert.Equal(cityCenter.LocationId, result.Player.LocationId);
+
         await using var verifyContext = db.CreateContext();
         var updated = await verifyContext.Creatures.FindAsync(
             [player.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(district.LocationId, updated!.LocationId);
+        Assert.Equal(cityCenter.LocationId, updated!.LocationId);
     }
 
     [Fact]
     public async Task Handle_DeletesDeadCreaturesLeftBehindInTheOldDistrict()
     {
-        // Arrange
+        // Arrange — the player is already placed in a real district connected to the destination
+        // by a hub connector, exercising the normal (non-bootstrap) district-to-district move
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: WorldId);
+        var oldDistrictId = Guid.NewGuid();
+        var oldLocation = Builders.MakeLocation(
+            WorldId,
+            stateId,
+            cityId: city.Id,
+            districtId: oldDistrictId
+        );
         var oldDistrict = Builders.MakeDistrict(
             city.Id,
             DistrictType.Residential,
             worldId: WorldId,
-            name: "Docks"
+            name: "Docks",
+            id: oldDistrictId,
+            locationId: oldLocation.Id
         );
-        var newDistrict = Builders.MakeDistrict(city.Id, worldId: WorldId, name: "Market Row");
+        var newDistrictId = Guid.NewGuid();
+        var newLocation = Builders.MakeLocation(
+            WorldId,
+            stateId,
+            cityId: city.Id,
+            districtId: newDistrictId
+        );
+        var newDistrict = Builders.MakeDistrict(
+            city.Id,
+            worldId: WorldId,
+            name: "Market Row",
+            id: newDistrictId,
+            locationId: newLocation.Id
+        );
+        var connector = Builders.MakeRoomConnector(
+            oldDistrict.LocationId,
+            destinationLocationId: newDistrict.LocationId,
+            name: "Path",
+            description: "A path leading to Market Row."
+        );
         var player = Builders.MakeCreature(
             WorldId,
             stateId: stateId,
@@ -323,6 +396,8 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
         _context.Cities.Add(city);
         _context.Districts.AddRange(oldDistrict, newDistrict);
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Props.Add(connector);
         _context.Creatures.AddRange(player, corpse);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

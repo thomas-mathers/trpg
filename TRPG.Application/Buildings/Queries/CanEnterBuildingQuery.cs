@@ -4,7 +4,7 @@ namespace TRPG.Application.Buildings.Queries;
 
 internal class CanEnterBuildingQuery
 {
-    public required Guid EntranceRoomId { get; init; }
+    public required Guid EntranceLocationId { get; init; }
     public required Guid EnteringCreatureId { get; init; }
 }
 
@@ -20,7 +20,7 @@ internal class CanEnterBuildingQueryHandler(
     )
     {
         var door = await getFrontDoor.Handle(
-            new GetFrontDoorQuery { RoomId = buildingQuery.EntranceRoomId },
+            new GetFrontDoorQuery { LocationId = buildingQuery.EntranceLocationId },
             cancellationToken
         );
         if (door is not { IsLocked: true })

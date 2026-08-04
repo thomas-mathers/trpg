@@ -113,7 +113,7 @@ public class Creature
     public Guid Id { get; init; } = Guid.NewGuid();
     public TimeSpan LastRegenPlaytime { get; set; }
     public int Level { get; set; }
-    public Guid? LocationId { get; set; }
+    public Guid LocationId { get; set; }
     public string Name { get; init; } = "";
     public Profession? Profession { get; set; }
     public CreatureState State { get; set; }

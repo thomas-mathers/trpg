@@ -110,17 +110,6 @@ internal sealed class SlashCommandRegistry(
             }
         );
 
-        var districtsCommand = new Command("districts", "List districts nearby");
-        districtsCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await client.GetScene(sessionId, cancellationToken);
-                PrintDistricts(scene.NearbyDistricts);
-
-                return 0;
-            }
-        );
-
         var buildingsCommand = new Command("buildings", "List buildings nearby");
         buildingsCommand.SetAction(
             async (_, cancellationToken) =>
@@ -276,7 +265,6 @@ internal sealed class SlashCommandRegistry(
         [
             waitCommand,
             creaturesCommand,
-            districtsCommand,
             buildingsCommand,
             dungeonsCommand,
             propsCommand,
@@ -327,22 +315,6 @@ internal sealed class SlashCommandRegistry(
                     ),
                 }
             )
-        );
-    }
-
-    private static void PrintDistricts(
-        IReadOnlyCollection<NearbyDistrictSnapshot> districtSnapshots
-    )
-    {
-        if (districtSnapshots.Count == 0)
-        {
-            Announce("No districts nearby.");
-            return;
-        }
-
-        AnsiConsole.PrintTable(
-            ["Name", "Type"],
-            districtSnapshots.Select(d => new[] { d.Name, AnsiConsole.FormatDistrictChip(d.Type) })
         );
     }
 

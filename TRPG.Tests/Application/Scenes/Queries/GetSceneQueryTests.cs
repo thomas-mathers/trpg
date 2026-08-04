@@ -149,17 +149,28 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
             id: roomId,
             locationId: location.Id
         );
-        var destinationRoom = Builders.MakeRoom(building.Id, worldId: WorldId);
+        var destinationRoomId = Guid.NewGuid();
+        var destinationLocation = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            roomId: destinationRoomId
+        );
+        var destinationRoom = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            id: destinationRoomId,
+            locationId: destinationLocation.Id
+        );
         var connector = Builders.MakeRoomConnector(
-            room.Id,
-            destinationRoomId: destinationRoom.Id,
+            room.LocationId,
+            destinationLocationId: destinationRoom.LocationId,
             worldId: WorldId,
             name: "Wooden Door",
             description: "A creaking wooden door."
         );
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(room, destinationRoom);
-        _context.Locations.Add(location);
+        _context.Locations.AddRange(location, destinationLocation);
         _context.Props.Add(connector);
         _player.LocationId = room.LocationId;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -177,9 +188,53 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Assert
         Assert.Equal(building.Name, result.Building!.Name);
         Assert.Equal(room.Name, result.Room!.Name);
-        var exit = Assert.Single(result.Room.Exits);
+        var exit = Assert.Single(result.Exits);
         Assert.Equal(destinationRoom.Name, exit.DestinationRoomName);
         Assert.False(exit.IsLocked);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsExitToAdjacentDistrict_WhenOutdoors()
+    {
+        // Arrange
+        var cityCenterId = Guid.NewGuid();
+        var cityCenterLocation = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            districtId: cityCenterId
+        );
+        var cityCenter = Builders.MakeDistrict(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            name: "City Center",
+            id: cityCenterId,
+            locationId: cityCenterLocation.Id
+        );
+        var connector = Builders.MakeRoomConnector(
+            _player.LocationId,
+            destinationLocationId: cityCenter.LocationId,
+            worldId: WorldId,
+            name: "Path",
+            description: "A path leading to City Center."
+        );
+        _context.Districts.Add(cityCenter);
+        _context.Locations.Add(cityCenterLocation);
+        _context.Props.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var exit = Assert.Single(result.Exits);
+        Assert.Equal("City Center", exit.DestinationRoomName);
     }
 
     [Fact]

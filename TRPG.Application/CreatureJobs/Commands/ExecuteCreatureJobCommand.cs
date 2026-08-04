@@ -7,10 +7,10 @@ namespace TRPG.Application.CreatureJobs.Commands;
 internal class ExecuteCreatureJobCommand
 {
     public required Guid CreatureId { get; init; }
-    public required Guid? CurrentLocationId { get; init; }
+    public required Guid CurrentLocationId { get; init; }
     public required CreatureState CurrentState { get; init; }
     public required CreatureJobAction CreatureJobAction { get; init; }
-    public required Guid? JobLocationId { get; init; }
+    public required Guid JobLocationId { get; init; }
 }
 
 internal class ExecuteCreatureJobCommandHandler(UpdateCreaturesCommandHandler updateCreature)
@@ -54,7 +54,7 @@ internal class ExecuteCreatureJobCommandHandler(UpdateCreaturesCommandHandler up
             new UpdateCreaturesCommand
             {
                 CreatureIds = [command.CreatureId],
-                LocationId = Optional<Guid?>.Of(command.JobLocationId),
+                LocationId = Optional<Guid>.Of(command.JobLocationId),
                 State = targetState.Value,
             },
             cancellationToken

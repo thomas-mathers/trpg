@@ -8,7 +8,7 @@ namespace TRPG.Application.Creatures.Commands;
 internal class UpdateCreaturesCommand
 {
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
-    public Optional<Guid?> LocationId { get; init; }
+    public Optional<Guid> LocationId { get; init; }
     public CreatureState? State { get; init; }
     public TimeSpan? LastRegenPlaytime { get; init; }
 }

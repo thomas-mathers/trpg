@@ -6,7 +6,7 @@ namespace TRPG.Application.Buildings.Queries;
 
 internal class GetFrontDoorQuery
 {
-    public required Guid RoomId { get; init; }
+    public required Guid LocationId { get; init; }
 }
 
 internal class GetFrontDoorQueryHandler(TrpgDbContext context)
@@ -18,8 +18,9 @@ internal class GetFrontDoorQueryHandler(TrpgDbContext context)
     {
         return await context
             .Props.AsNoTracking()
-            .Where(p => p.RoomId == query.RoomId)
+            .Where(p => p.LocationId == query.LocationId)
             .OfType<RoomConnector>()
-            .FirstOrDefaultAsync(c => c.DestinationRoomId == null, cancellationToken);
+            .WhereLeadsOutside(context)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

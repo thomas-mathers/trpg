@@ -44,7 +44,6 @@ internal class LookTool(
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
                 LocationId = player!.LocationId,
-                StateId = player.StateId,
                 CurrentDate = currentDate,
             },
             cancellationToken
