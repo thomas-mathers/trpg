@@ -58,6 +58,7 @@ export function useCombatState() {
 
   const fightRef = useRef<FightState | null>(null);
   const playbackTokenRef = useRef(0);
+  const playbackPromiseRef = useRef<Promise<void> | null>(null);
   const nonceRef = useRef(0);
 
   useEffect(() => {
@@ -103,18 +104,21 @@ export function useCombatState() {
 
     const offStarted = gameEventBus.on('CombatStarted', (payload) => {
       playbackTokenRef.current += 1;
+      playbackPromiseRef.current = null;
       setIsPlayingBack(false);
       setActiveAttackerId(null);
       setFight(payload);
     });
     const offUpdated = gameEventBus.on('CombatUpdated', (payload) => {
-      void playRound(payload);
+      playbackPromiseRef.current = playRound(payload);
     });
     const offEnded = gameEventBus.on('CombatEnded', (outcome) => {
-      playbackTokenRef.current += 1;
-      setIsPlayingBack(false);
-      setActiveAttackerId(null);
-      setCombatOutcome(outcome);
+      void (async () => {
+        await playbackPromiseRef.current;
+        setIsPlayingBack(false);
+        setActiveAttackerId(null);
+        setCombatOutcome(outcome);
+      })();
     });
 
     return () => {
