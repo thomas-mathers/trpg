@@ -121,7 +121,6 @@ public record SceneSnapshot(
     CreatureStatusSnapshot PlayerStatus,
     IReadOnlyCollection<CreatureStatusSnapshot> NearbyCreatures,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyBuildings,
-    IReadOnlyCollection<NearbyBuildingSnapshot> NearbyDungeons,
     IReadOnlyCollection<NearbyPropSnapshot> NearbyProps,
     IReadOnlyCollection<NearbyExitSnapshot> Exits
 );

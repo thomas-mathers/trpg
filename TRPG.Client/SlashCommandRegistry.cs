@@ -121,17 +121,6 @@ internal sealed class SlashCommandRegistry(
             }
         );
 
-        var dungeonsCommand = new Command("dungeons", "List dungeons nearby");
-        dungeonsCommand.SetAction(
-            async (_, cancellationToken) =>
-            {
-                var scene = await client.GetScene(sessionId, cancellationToken);
-                PrintDungeons(scene.NearbyDungeons);
-
-                return 0;
-            }
-        );
-
         var propsCommand = new Command("props", "List props nearby");
         propsCommand.SetAction(
             async (_, cancellationToken) =>
@@ -266,7 +255,6 @@ internal sealed class SlashCommandRegistry(
             waitCommand,
             creaturesCommand,
             buildingsCommand,
-            dungeonsCommand,
             propsCommand,
             exitsCommand,
             characterCommand,
@@ -329,20 +317,6 @@ internal sealed class SlashCommandRegistry(
         AnsiConsole.PrintTable(
             ["Name", "Type"],
             buidings.Select(b => new[] { b.Name, AnsiConsole.FormatBuildingChip(b.Type) })
-        );
-    }
-
-    private static void PrintDungeons(IReadOnlyCollection<NearbyBuildingSnapshot> dungeons)
-    {
-        if (dungeons.Count == 0)
-        {
-            Announce("No dungeons nearby.");
-            return;
-        }
-
-        AnsiConsole.PrintTable(
-            ["Name", "Type"],
-            dungeons.Select(d => new[] { d.Name, AnsiConsole.FormatBuildingChip(d.Type) })
         );
     }
 

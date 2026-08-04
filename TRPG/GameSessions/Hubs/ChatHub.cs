@@ -30,7 +30,8 @@ internal sealed class ChatHub(
     PendingSessionEndRegistry pendingSessionEnds,
     GetCreatureByIdQueryHandler getCreatureById,
     GetActiveFightCombatantsQueryHandler getActiveFightCombatants,
-    GetSceneQueryHandler getScene
+    GetSceneQueryHandler getScene,
+    GetPlaytimeQueryHandler getPlaytime
 ) : Hub
 {
     private const string GameSessionKey = "GameSession";
@@ -187,11 +188,11 @@ internal sealed class ChatHub(
         CancellationToken cancellationToken
     )
     {
-        var session = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = gameSession.Id },
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = gameSession.Id },
             cancellationToken
         );
-        var currentDate = GameClock.GetCurrentInGameDate(session.Playtime);
+        var currentDate = GameClock.GetCurrentInGameDate(playtime);
 
         return await getScene.Handle(
             new GetSceneQuery

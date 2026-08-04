@@ -29,13 +29,6 @@ public static class SceneSnapshotMapper
                     return new NearbyBuildingSnapshot(b.Id, b.Name, type, type.ToDisplayName());
                 })
                 .ToArray(),
-            NearbyDungeons: scene
-                .NearbyDungeons.Select(b =>
-                {
-                    var type = b.Type.ToContract();
-                    return new NearbyBuildingSnapshot(b.Id, b.Name, type, type.ToDisplayName());
-                })
-                .ToArray(),
             NearbyProps: scene
                 .NearbyProps.Select(p => new NearbyPropSnapshot(p.Id, p.Name, p.Type))
                 .ToArray(),

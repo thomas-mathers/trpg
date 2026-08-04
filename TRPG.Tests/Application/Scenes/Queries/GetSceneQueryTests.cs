@@ -363,7 +363,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Handle_SeparatesDungeonsFromOrdinaryBuildings_WhenOutdoors()
+    public async Task Handle_IncludesDungeonsAlongsideOrdinaryBuildings_WhenOutdoors()
     {
         // Arrange
         var shop = Builders.MakeBuilding(
@@ -390,9 +390,9 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        var building = Assert.Single(result.NearbyBuildings);
-        Assert.Equal(shop.Name, building.Name);
-        var dungeon = Assert.Single(result.NearbyDungeons);
-        Assert.Equal(cave.Name, dungeon.Name);
+        Assert.Equal(
+            new[] { shop.Name, cave.Name }.OrderBy(name => name),
+            result.NearbyBuildings.Select(b => b.Name).OrderBy(name => name)
+        );
     }
 }

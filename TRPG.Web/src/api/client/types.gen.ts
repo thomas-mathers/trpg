@@ -301,7 +301,6 @@ export type SceneSnapshot = {
     nearbyCreatures: Array<CreatureStatusSnapshot>;
     nearbyDistricts: Array<NearbyDistrictSnapshot>;
     nearbyBuildings: Array<NearbyBuildingSnapshot>;
-    nearbyDungeons: Array<NearbyBuildingSnapshot>;
     nearbyProps: Array<NearbyPropSnapshot>;
     exits: Array<NearbyExitSnapshot>;
 };

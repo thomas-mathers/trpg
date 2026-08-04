@@ -89,19 +89,15 @@ public record SceneResult(
     IReadOnlyCollection<SceneExitInfo> Exits,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<SceneCreatureInfo> NearbyCreatures,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyDungeons
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
 internal record SceneLocationDetails(
     SceneBuildingInfo? Building,
     SceneRoomInfo? Room,
     string? RegionDescription,
-    IReadOnlyCollection<SceneExitInfo> Exits,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
-    IReadOnlyCollection<SceneCreatureInfo> NearbyPeople,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyDungeons
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
 internal class GetSceneQueryHandler(
@@ -141,17 +137,25 @@ internal class GetSceneQueryHandler(
         var cityInfo = await BuildCityInfo(player, cancellationToken);
         var districtInfo = await BuildDistrictInfo(player, cancellationToken);
 
+        var exitInfos = BuildExitInfos(
+            await getConnectorsByLocationId.Handle(
+                new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
+                cancellationToken
+            )
+        );
+        var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
+
         var details =
             player.RoomId != null
-                ? await BuildIndoorScene(query, player, nearby, cancellationToken)
-                : await BuildOutdoorScene(query, player, nearby, state, cancellationToken);
+                ? await BuildIndoorScene(player, cancellationToken)
+                : await BuildOutdoorScene(player, state, cancellationToken);
         var playerCreatureInfo = await BuildPlayerCreatureInfo(query, player, cancellationToken);
 
         logger.LogInformation(
             "[perf] GetScene ({Branch}) took {ElapsedMs}ms, {CreatureCount} nearby people",
             player.RoomId != null ? "indoor" : "outdoor",
             stopwatch.ElapsedMilliseconds,
-            details.NearbyPeople.Count
+            nearbyPeople.Count
         );
 
         return new SceneResult(
@@ -168,11 +172,10 @@ internal class GetSceneQueryHandler(
             details.Building,
             details.Room,
             playerCreatureInfo,
-            details.Exits,
+            exitInfos,
             details.NearbyProps,
-            details.NearbyPeople,
-            details.NearbyBuildings,
-            details.NearbyDungeons
+            nearbyPeople,
+            details.NearbyBuildings
         );
     }
 
@@ -287,9 +290,7 @@ internal class GetSceneQueryHandler(
     }
 
     private async Task<SceneLocationDetails> BuildIndoorScene(
-        GetSceneQuery query,
         CreatureSummary player,
-        IReadOnlyCollection<CreatureSummary> nearby,
         CancellationToken cancellationToken
     )
     {
@@ -302,13 +303,6 @@ internal class GetSceneQueryHandler(
             new GetStaticPropsByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
         );
-        var connectors = await getConnectorsByLocationId.Handle(
-            new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
-            cancellationToken
-        );
-        var exitInfos = BuildExitInfos(connectors);
-
-        var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
 
         var buildingInfo = new SceneBuildingInfo(
             roomSummary!.BuildingName,
@@ -326,22 +320,11 @@ internal class GetSceneQueryHandler(
             .Select(p => new ScenePropInfo(p.Id, p.Name, p.Description, GetPropType(p)))
             .ToArray();
 
-        return new SceneLocationDetails(
-            buildingInfo,
-            roomInfo,
-            null,
-            exitInfos,
-            nearbyProps,
-            nearbyPeople,
-            [],
-            []
-        );
+        return new SceneLocationDetails(buildingInfo, roomInfo, null, nearbyProps, []);
     }
 
     private async Task<SceneLocationDetails> BuildOutdoorScene(
-        GetSceneQuery query,
         CreatureSummary player,
-        IReadOnlyCollection<CreatureSummary> nearby,
         State? state,
         CancellationToken cancellationToken
     )
@@ -356,48 +339,11 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
 
-        var wildBuildings =
-            player.CityId != null
-                ? await getAllBuildingsByLocation.Handle(
-                    new GetAllBuildingsByLocationQuery
-                    {
-                        StateId = player.StateId,
-                        CityId = null,
-                        DistrictId = null,
-                    },
-                    cancellationToken
-                )
-                : [];
-
-        var allBuildings = buildings.Concat(wildBuildings).ToArray();
-        var nearbyBuildings = allBuildings
-            .Where(b => !BuildingTypes.Dungeon.Contains(b.BuildingType))
-            .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
-            .ToArray();
-        var nearbyDungeons = allBuildings
-            .Where(b => BuildingTypes.Dungeon.Contains(b.BuildingType))
+        var nearbyBuildings = buildings
             .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
             .ToArray();
 
-        var exitInfos = BuildExitInfos(
-            await getConnectorsByLocationId.Handle(
-                new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
-                cancellationToken
-            )
-        );
-
-        var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
-
-        return new SceneLocationDetails(
-            null,
-            null,
-            state?.Description,
-            exitInfos,
-            [],
-            nearbyPeople,
-            nearbyBuildings,
-            nearbyDungeons
-        );
+        return new SceneLocationDetails(null, null, state?.Description, [], nearbyBuildings);
     }
 
     private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(

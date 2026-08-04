@@ -131,6 +131,9 @@ public class WorldGenerator(
         var districtsByCityId = geography
             .Districts.GroupBy(d => d.CityId)
             .ToDictionary(g => g.Key, g => g.ToList());
+        var citiesByStateId = geography
+            .Cities.GroupBy(c => c.StateId)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         foreach (var city in geography.Cities)
         {
@@ -177,6 +180,22 @@ public class WorldGenerator(
 
             var wildernessLocation = LocationGenerator.Generate(worldId, state.Id);
             locations.Add(wildernessLocation);
+
+            if (citiesByStateId.TryGetValue(state.Id, out var citiesInState))
+            {
+                foreach (var city in citiesInState)
+                {
+                    var cityCenterDistrict = districtsByCityId[city.Id]
+                        .First(d => d.DistrictType == DistrictType.CityCenter);
+                    props.AddRange(
+                        WildernessConnectorGenerator.Generate(
+                            cityCenterDistrict,
+                            wildernessLocation,
+                            worldId
+                        )
+                    );
+                }
+            }
 
             var usedNames = new HashSet<string>();
             for (var i = 0; i < count; i++)

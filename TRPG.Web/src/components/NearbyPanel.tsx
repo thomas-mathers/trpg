@@ -13,14 +13,14 @@ interface NearbyPanelProps {
 }
 
 export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
-  const pointsOfInterest = [
-    ...scene.nearbyBuildings.map((b) => ({ ...b, entityType: 'Building' as const })),
-    ...scene.nearbyDungeons.map((b) => ({ ...b, entityType: 'Building' as const })),
-  ];
+  const pointsOfInterest = scene.nearbyBuildings.map((b) => ({
+    ...b,
+    entityType: 'Building' as const,
+  }));
 
   return (
     <div className="flex flex-col gap-6 p-4 text-sm">
-      <Section title="Exits">
+      <Section title="Routes">
         {scene.exits.length === 0 ? (
           <EmptyState />
         ) : (
