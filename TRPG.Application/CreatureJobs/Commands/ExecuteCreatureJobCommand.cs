@@ -1,4 +1,3 @@
-using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data.Models;
 
@@ -54,7 +53,7 @@ internal class ExecuteCreatureJobCommandHandler(UpdateCreaturesCommandHandler up
             new UpdateCreaturesCommand
             {
                 CreatureIds = [command.CreatureId],
-                LocationId = Optional<Guid>.Of(command.JobLocationId),
+                LocationId = command.JobLocationId,
                 State = targetState.Value,
             },
             cancellationToken

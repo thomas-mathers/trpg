@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
-using TRPG.Application.Common;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
@@ -71,7 +70,7 @@ internal class MovePlayerCommandHandler(
             new UpdateCreaturesCommand
             {
                 CreatureIds = [player.Id],
-                LocationId = Optional<Guid>.Of(player.LocationId),
+                LocationId = player.LocationId,
             },
             cancellationToken
         );

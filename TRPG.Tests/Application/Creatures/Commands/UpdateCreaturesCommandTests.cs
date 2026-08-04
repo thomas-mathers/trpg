@@ -1,4 +1,3 @@
-using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -35,11 +34,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
 
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                LocationId = Optional<Guid>.Of(locationId),
-            },
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], LocationId = locationId },
             TestContext.Current.CancellationToken
         );
 
@@ -146,7 +141,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id],
-                LocationId = Optional<Guid>.Of(Guid.NewGuid()),
+                LocationId = Guid.NewGuid(),
             },
             TestContext.Current.CancellationToken
         );

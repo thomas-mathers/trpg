@@ -108,7 +108,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetAllCreaturesInStateQueryHandler>()
             .AddTransient<GetCreatureIdsByDistrictQueryHandler>()
             .AddTransient<GetCreatureByNameAtLocationQueryHandler>()
-            .AddTransient<GetCreatureByNameNearbyQueryHandler>()
             .AddTransient<GetCreaturesAtLocationQueryHandler>()
             .AddTransient<GetNearbyCreaturesQueryHandler>()
             .AddTransient<GetNearbyCorpsesQueryHandler>()
