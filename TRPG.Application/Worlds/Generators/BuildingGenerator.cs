@@ -23,7 +23,7 @@ public record BuildingGeneratorResult(
     IReadOnlyList<Room> Rooms,
     IReadOnlyList<Prop> Props,
     IReadOnlyList<Location> Locations,
-    RoomConnector FrontDoor
+    LocationConnector FrontDoor
 );
 
 public class BuildingGenerator
@@ -401,35 +401,38 @@ public class BuildingGenerator
             var roomBelow = roomsByFloor[i].First();
 
             props.Add(
-                new RoomConnector
+                new LocationConnector
                 {
                     LocationId = roomBelow.LocationId,
                     Name = "Staircase",
                     Description = "A staircase leading up.",
                     DestinationLocationId = roomAbove.LocationId,
+                    DestinationLabel = roomAbove.Name,
                     WorldId = input.WorldId,
                 }
             );
 
             props.Add(
-                new RoomConnector
+                new LocationConnector
                 {
                     LocationId = roomAbove.LocationId,
                     Name = "Staircase",
                     Description = "A staircase leading down.",
                     DestinationLocationId = roomBelow.LocationId,
+                    DestinationLabel = roomBelow.Name,
                     WorldId = input.WorldId,
                 }
             );
         }
 
         var entranceRoom = rooms.First(r => r.FloorNumber == 0);
-        var frontDoor = new RoomConnector
+        var frontDoor = new LocationConnector
         {
             LocationId = entranceRoom.LocationId,
             Name = "Front Door",
             Description = "The door leading outside.",
             DestinationLocationId = input.DistrictLocationId,
+            DestinationLabel = "Outside",
             IsLocked = input.IsLockable,
             WorldId = input.WorldId,
         };

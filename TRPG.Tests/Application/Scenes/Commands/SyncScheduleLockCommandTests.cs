@@ -47,11 +47,11 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             TestContext.Current.CancellationToken
         );
 
-    private Task<RoomConnector> GetFrontDoor(Guid roomConnectorId) =>
+    private Task<LocationConnector> GetFrontDoor(Guid locationConnectorId) =>
         _context
             .Props.AsNoTracking()
-            .OfType<RoomConnector>()
-            .FirstAsync(c => c.Id == roomConnectorId, TestContext.Current.CancellationToken);
+            .OfType<LocationConnector>()
+            .FirstAsync(c => c.Id == locationConnectorId, TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task Handle_Locks_DuringSleepHours()
@@ -332,11 +332,11 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         return building;
     }
 
-    private async Task<RoomConnector> SeedFrontDoor(Guid buildingId)
+    private async Task<LocationConnector> SeedFrontDoor(Guid buildingId)
     {
         var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
         var outsideLocation = Builders.MakeLocation(WorldId);
-        var frontDoor = Builders.MakeRoomConnector(
+        var frontDoor = Builders.MakeLocationConnector(
             entranceRoom.LocationId,
             destinationLocationId: outsideLocation.Id,
             worldId: WorldId,

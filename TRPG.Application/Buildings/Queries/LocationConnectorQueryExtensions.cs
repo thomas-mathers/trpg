@@ -3,10 +3,10 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-internal static class RoomConnectorQueryExtensions
+internal static class LocationConnectorQueryExtensions
 {
-    public static IQueryable<RoomConnector> WhereLeadsOutside(
-        this IQueryable<RoomConnector> connectors,
+    public static IQueryable<LocationConnector> WhereLeadsOutside(
+        this IQueryable<LocationConnector> connectors,
         TrpgDbContext context
     ) =>
         from c in connectors

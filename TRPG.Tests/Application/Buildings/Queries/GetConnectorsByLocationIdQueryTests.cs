@@ -41,7 +41,7 @@ public sealed class GetConnectorsByLocationIdQueryTests(DatabaseFixture db) : IA
             Name = $"Prop-{Guid.NewGuid():N}",
             Description = "A test prop",
         };
-        var connector = Builders.MakeRoomConnector(room.LocationId);
+        var connector = Builders.MakeLocationConnector(room.LocationId);
         _context.Props.AddRange(prop, connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

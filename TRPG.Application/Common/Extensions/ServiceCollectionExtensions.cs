@@ -53,8 +53,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetRoomSummaryQueryHandler>()
             .AddTransient<GetBuildingByNameAtLocationQueryHandler>()
             .AddTransient<GetExitByDestinationNameQueryHandler>()
-            .AddTransient<ExitLabelResolver>()
-            .AddTransient<GetRoomsByIdsQueryHandler>()
             .AddTransient<GetAllBuildingsByStateIdQueryHandler>()
             .AddTransient<GetStaticPropsByLocationIdQueryHandler>()
             .AddTransient<GetConnectorsByLocationIdQueryHandler>()

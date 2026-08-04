@@ -161,12 +161,13 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
             id: destinationRoomId,
             locationId: destinationLocation.Id
         );
-        var connector = Builders.MakeRoomConnector(
+        var connector = Builders.MakeLocationConnector(
             room.LocationId,
             destinationLocationId: destinationRoom.LocationId,
             worldId: WorldId,
             name: "Wooden Door",
-            description: "A creaking wooden door."
+            description: "A creaking wooden door.",
+            destinationLabel: destinationRoom.Name
         );
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(room, destinationRoom);
@@ -210,12 +211,13 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
             id: cityCenterId,
             locationId: cityCenterLocation.Id
         );
-        var connector = Builders.MakeRoomConnector(
+        var connector = Builders.MakeLocationConnector(
             _player.LocationId,
             destinationLocationId: cityCenter.LocationId,
             worldId: WorldId,
             name: "Path",
-            description: "A path leading to City Center."
+            description: "A path leading to City Center.",
+            destinationLabel: cityCenter.Name
         );
         _context.Districts.Add(cityCenter);
         _context.Locations.Add(cityCenterLocation);

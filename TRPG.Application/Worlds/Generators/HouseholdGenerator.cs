@@ -22,7 +22,7 @@ public class HouseholdGeneratorResult
     public required Guid HouseOwnerId { get; init; }
     public required Guid HomeLocationId { get; init; }
     public required IReadOnlyList<Item> KeyItems { get; init; }
-    public required IReadOnlyList<RoomConnectorKey> KeyConnectorKeys { get; init; }
+    public required IReadOnlyList<LocationConnectorKey> KeyConnectorKeys { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required Creature? DesignatedWorker { get; init; }
     public required Guid? FatherId { get; init; }
@@ -101,7 +101,7 @@ public class HouseholdGenerator(
         );
 
         var keyItems = new List<Item>();
-        var keyConnectorKeys = new List<RoomConnectorKey>();
+        var keyConnectorKeys = new List<LocationConnectorKey>();
         var houseFrontDoor = houseResult.FrontDoor;
         foreach (var resident in household)
         {
@@ -119,10 +119,10 @@ public class HouseholdGenerator(
             };
             keyItems.Add(houseKeyItem);
             keyConnectorKeys.Add(
-                new RoomConnectorKey
+                new LocationConnectorKey
                 {
                     ItemId = houseKeyItem.Id,
-                    RoomConnectorId = houseFrontDoor.Id,
+                    LocationConnectorId = houseFrontDoor.Id,
                     WorldId = input.WorldId,
                 }
             );

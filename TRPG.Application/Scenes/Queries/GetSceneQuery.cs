@@ -113,7 +113,6 @@ internal class GetSceneQueryHandler(
     GetRoomSummaryQueryHandler getRoomSummary,
     GetStaticPropsByLocationIdQueryHandler getStaticPropsByLocationId,
     GetConnectorsByLocationIdQueryHandler getConnectorsByLocationId,
-    ExitLabelResolver exitLabelResolver,
     GetAllBuildingsByLocationQueryHandler getAllBuildingsByLocation,
     GetNearbyCreaturesQueryHandler getNearbyCreatures,
     GetEffectiveReputationsQueryHandler getEffectiveReputations,
@@ -307,7 +306,7 @@ internal class GetSceneQueryHandler(
             new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
         );
-        var exitInfos = await BuildExitInfos(connectors, sourceIsIndoors: true, cancellationToken);
+        var exitInfos = BuildExitInfos(connectors);
 
         var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
 
@@ -380,13 +379,11 @@ internal class GetSceneQueryHandler(
             .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
             .ToArray();
 
-        var exitInfos = await BuildExitInfos(
+        var exitInfos = BuildExitInfos(
             await getConnectorsByLocationId.Handle(
                 new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
                 cancellationToken
-            ),
-            sourceIsIndoors: false,
-            cancellationToken
+            )
         );
 
         var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
@@ -471,25 +468,12 @@ internal class GetSceneQueryHandler(
             .ToArray();
     }
 
-    private async Task<IReadOnlyCollection<SceneExitInfo>> BuildExitInfos(
-        IReadOnlyCollection<RoomConnector> connectors,
-        bool sourceIsIndoors,
-        CancellationToken cancellationToken
-    )
-    {
-        var resolved = await exitLabelResolver.Resolve(
-            connectors,
-            sourceIsIndoors,
-            cancellationToken
-        );
-        return resolved
-            .Select(r => new SceneExitInfo(
-                r.Connector.Description,
-                r.DestinationLabel,
-                r.Connector.IsLocked
-            ))
+    private static IReadOnlyCollection<SceneExitInfo> BuildExitInfos(
+        IReadOnlyCollection<LocationConnector> connectors
+    ) =>
+        connectors
+            .Select(c => new SceneExitInfo(c.Description, c.DestinationLabel, c.IsLocked))
             .ToArray();
-    }
 
     private static string GetPropType(Prop prop)
     {

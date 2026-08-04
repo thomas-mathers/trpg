@@ -79,13 +79,14 @@ internal static class Builders
             WorldId = worldId ?? Guid.NewGuid(),
         };
 
-    public static RoomConnector MakeRoomConnector(
+    public static LocationConnector MakeLocationConnector(
         Guid locationId,
         Guid? destinationLocationId = null,
         bool isLocked = false,
         Guid? worldId = null,
         string name = "Door",
-        string description = "A door."
+        string description = "A door.",
+        string destinationLabel = "Outside"
     ) =>
         new()
         {
@@ -94,6 +95,7 @@ internal static class Builders
             Name = name,
             Description = description,
             DestinationLocationId = destinationLocationId ?? Guid.NewGuid(),
+            DestinationLabel = destinationLabel,
             IsLocked = isLocked,
         };
 

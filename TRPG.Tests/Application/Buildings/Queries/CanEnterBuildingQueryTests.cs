@@ -17,7 +17,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private Room _entranceRoom = null!;
-    private RoomConnector _frontDoor = null!;
+    private LocationConnector _frontDoor = null!;
     private CanEnterBuildingQueryHandler _handler = null!;
     private Guid _stateId;
 
@@ -35,7 +35,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         _building = Builders.MakeBuilding(_stateId);
         _entranceRoom = Builders.MakeRoom(_building.Id);
         var outsideLocation = Builders.MakeLocation(stateId: _stateId);
-        _frontDoor = Builders.MakeRoomConnector(
+        _frontDoor = Builders.MakeLocationConnector(
             _entranceRoom.LocationId,
             destinationLocationId: outsideLocation.Id,
             name: "Front Door",
@@ -69,12 +69,16 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         return creature;
     }
 
-    private async Task<Item> SeedKey(Guid roomConnectorId, string name = "Test Key")
+    private async Task<Item> SeedKey(Guid locationConnectorId, string name = "Test Key")
     {
         var keyItem = new Item { Name = name, Description = "A test key." };
         _context.Items.Add(keyItem);
-        _context.RoomConnectorKeys.Add(
-            new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = roomConnectorId }
+        _context.LocationConnectorKeys.Add(
+            new LocationConnectorKey
+            {
+                ItemId = keyItem.Id,
+                LocationConnectorId = locationConnectorId,
+            }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return keyItem;
@@ -207,7 +211,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         var keylessBuilding = Builders.MakeBuilding(_stateId);
         var keylessDoorRoom = Builders.MakeRoom(keylessBuilding.Id);
         var keylessDoorOutsideLocation = Builders.MakeLocation(stateId: _stateId);
-        var keylessDoor = Builders.MakeRoomConnector(
+        var keylessDoor = Builders.MakeLocationConnector(
             keylessDoorRoom.LocationId,
             destinationLocationId: keylessDoorOutsideLocation.Id,
             isLocked: true,

@@ -19,7 +19,7 @@ internal class SetFrontDoorLockedCommandHandler(TrpgDbContext context)
     )
     {
         var updatedCount = await (
-            from c in context.Props.OfType<RoomConnector>().WhereLeadsOutside(context)
+            from c in context.Props.OfType<LocationConnector>().WhereLeadsOutside(context)
             join r in context.Rooms on c.LocationId equals r.LocationId
             where r.BuildingId == command.BuildingId && r.FloorNumber == 0
             select c

@@ -69,7 +69,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<Relationship> Relationships => Set<Relationship>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<Road> Roads => Set<Road>();
-    public DbSet<RoomConnectorKey> RoomConnectorKeys => Set<RoomConnectorKey>();
+    public DbSet<LocationConnectorKey> LocationConnectorKeys => Set<LocationConnectorKey>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<State> States => Set<State>();
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
@@ -179,9 +179,9 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<Ammunition>().Property(a => a.Type).HasColumnName("ammo_type");
         modelBuilder.Entity<Accessory>().Property(a => a.Type).HasColumnName("accessory_type");
 
-        modelBuilder.Entity<RoomConnectorKey>(entity =>
+        modelBuilder.Entity<LocationConnectorKey>(entity =>
         {
-            entity.HasIndex(k => k.RoomConnectorId);
+            entity.HasIndex(k => k.LocationConnectorId);
             entity.HasIndex(k => k.ItemId);
             entity.HasIndex(k => k.WorldId);
         });
@@ -258,7 +258,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<Workstation>("Workstation")
                 .HasValue<Bed>("Bed")
                 .HasValue<Container>("Container")
-                .HasValue<RoomConnector>("RoomConnector")
+                .HasValue<LocationConnector>("LocationConnector")
                 .HasValue<Trigger>("Trigger");
             entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.WorldId);

@@ -39,7 +39,7 @@ public class WorldGeneratorResult
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
     public required IReadOnlyList<Road> Roads { get; init; }
-    public required IReadOnlyList<RoomConnectorKey> RoomConnectorKeys { get; init; }
+    public required IReadOnlyList<LocationConnectorKey> LocationConnectorKeys { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
     public required IReadOnlyCollection<CreatureSkill> Skills { get; init; }
     public required IReadOnlyList<State> States { get; init; }
@@ -124,7 +124,7 @@ public class WorldGenerator(
         var skills = new List<CreatureSkill>();
         var abilities = new List<CreatureAbility>();
         var jobs = new List<CreatureJob>();
-        var roomConnectorKeys = new List<RoomConnectorKey>();
+        var locationConnectorKeys = new List<LocationConnectorKey>();
         var relationships = new List<Relationship>();
 
         var stateById = geography.States.ToDictionary(s => s.Id);
@@ -159,7 +159,7 @@ public class WorldGenerator(
             skills.AddRange(cityResult.Skills);
             abilities.AddRange(cityResult.Abilities);
             jobs.AddRange(cityResult.Jobs);
-            roomConnectorKeys.AddRange(cityResult.RoomConnectorKeys);
+            locationConnectorKeys.AddRange(cityResult.LocationConnectorKeys);
             relationships.AddRange(cityResult.Relationships);
         }
 
@@ -260,7 +260,7 @@ public class WorldGenerator(
             Abilities = abilities,
             Jobs = jobs,
             Knowledge = knowledge,
-            RoomConnectorKeys = roomConnectorKeys,
+            LocationConnectorKeys = locationConnectorKeys,
             Relationships = relationships,
         };
     }

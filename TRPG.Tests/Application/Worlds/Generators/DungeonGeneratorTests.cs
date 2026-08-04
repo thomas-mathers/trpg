@@ -36,7 +36,7 @@ public class DungeonGeneratorTests
         );
 
         // Assert
-        var connector = Assert.IsType<RoomConnector>(Assert.Single(result.Props));
+        var connector = Assert.IsType<LocationConnector>(Assert.Single(result.Props));
         Assert.Equal(result.Room.LocationId, connector.LocationId);
         Assert.Equal(_wildernessLocationId, connector.DestinationLocationId);
     }

@@ -41,7 +41,7 @@ public class BootstrapWorldCommandHandler(
         context.CreatureAbilities.AddRange(world.Abilities);
         context.CreatureJobs.AddRange(world.Jobs);
         context.CreatureKnowledge.AddRange(world.Knowledge);
-        context.RoomConnectorKeys.AddRange(world.RoomConnectorKeys);
+        context.LocationConnectorKeys.AddRange(world.LocationConnectorKeys);
         context.Relationships.AddRange(world.Relationships);
 
         if (player != null)

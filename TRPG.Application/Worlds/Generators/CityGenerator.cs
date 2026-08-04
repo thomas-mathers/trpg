@@ -28,7 +28,7 @@ public class CityGeneratorResult
     public required IReadOnlyList<CreatureSkill> Skills { get; init; }
     public required IReadOnlyList<CreatureAbility> Abilities { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
-    public required IReadOnlyList<RoomConnectorKey> RoomConnectorKeys { get; init; }
+    public required IReadOnlyList<LocationConnectorKey> LocationConnectorKeys { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
 }
 
@@ -61,7 +61,7 @@ public class CityGenerator(
         public List<CreatureSkill> Skills { get; } = [];
         public List<CreatureAbility> Abilities { get; } = [];
         public List<CreatureJob> Jobs { get; } = [];
-        public List<RoomConnectorKey> RoomConnectorKeys { get; } = [];
+        public List<LocationConnectorKey> LocationConnectorKeys { get; } = [];
         public List<Relationship> Relationships { get; } = [];
         public List<ShopEmploymentSlot> OpenShopSlots { get; } = [];
         public List<StaffDayOff> ShopOwnerAssignments { get; } = [];
@@ -171,7 +171,7 @@ public class CityGenerator(
             Skills = workspace.Skills.ToArray(),
             Abilities = workspace.Abilities.ToArray(),
             Jobs = workspace.Jobs.ToArray(),
-            RoomConnectorKeys = workspace.RoomConnectorKeys.ToArray(),
+            LocationConnectorKeys = workspace.LocationConnectorKeys.ToArray(),
             Relationships = workspace.Relationships.ToArray(),
         };
     }
@@ -332,11 +332,11 @@ public class CityGenerator(
                 },
             };
             workspace.Items.Add(keyItem);
-            workspace.RoomConnectorKeys.Add(
-                new RoomConnectorKey
+            workspace.LocationConnectorKeys.Add(
+                new LocationConnectorKey
                 {
                     ItemId = keyItem.Id,
-                    RoomConnectorId = frontDoor.Id,
+                    LocationConnectorId = frontDoor.Id,
                     WorldId = worldId,
                 }
             );
@@ -536,7 +536,7 @@ public class CityGenerator(
         }
 
         workspace.Items.AddRange(household.KeyItems);
-        workspace.RoomConnectorKeys.AddRange(household.KeyConnectorKeys);
+        workspace.LocationConnectorKeys.AddRange(household.KeyConnectorKeys);
         workspace.Jobs.AddRange(household.Jobs);
 
         foreach (var member in household.Members)

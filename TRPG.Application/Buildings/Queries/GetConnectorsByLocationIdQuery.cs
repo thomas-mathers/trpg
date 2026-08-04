@@ -11,7 +11,7 @@ internal class GetConnectorsByLocationIdQuery
 
 internal class GetConnectorsByLocationIdQueryHandler(TrpgDbContext context)
 {
-    public async Task<IReadOnlyCollection<RoomConnector>> Handle(
+    public async Task<IReadOnlyCollection<LocationConnector>> Handle(
         GetConnectorsByLocationIdQuery query,
         CancellationToken cancellationToken = default
     )
@@ -19,7 +19,7 @@ internal class GetConnectorsByLocationIdQueryHandler(TrpgDbContext context)
         return await context
             .Props.AsNoTracking()
             .Where(p => p.LocationId == query.LocationId)
-            .OfType<RoomConnector>()
+            .OfType<LocationConnector>()
             .ToArrayAsync(cancellationToken);
     }
 }

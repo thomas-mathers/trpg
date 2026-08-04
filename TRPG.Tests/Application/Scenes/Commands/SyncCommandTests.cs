@@ -398,7 +398,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Assert
         var updatedDoor = await _context
             .Props.AsNoTracking()
-            .OfType<RoomConnector>()
+            .OfType<LocationConnector>()
             .FirstAsync(c => c.Id == frontDoor.Id, TestContext.Current.CancellationToken);
         Assert.True(updatedDoor.IsLocked);
     }
@@ -423,10 +423,10 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         return entranceRoom;
     }
 
-    private async Task<RoomConnector> SeedFrontDoor(Room entranceRoom)
+    private async Task<LocationConnector> SeedFrontDoor(Room entranceRoom)
     {
         var outsideLocation = Builders.MakeLocation(WorldId);
-        var frontDoor = Builders.MakeRoomConnector(
+        var frontDoor = Builders.MakeLocationConnector(
             entranceRoom.LocationId,
             destinationLocationId: outsideLocation.Id,
             worldId: WorldId,

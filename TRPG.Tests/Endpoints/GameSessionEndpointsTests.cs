@@ -139,12 +139,13 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
             id: destinationId,
             locationId: destinationLocation.Id
         );
-        var connector = Builders.MakeRoomConnector(
+        var connector = Builders.MakeLocationConnector(
             origin.LocationId,
             destinationLocationId: destination.LocationId,
             worldId: world.Id,
             name: "Path",
-            description: $"A path leading to {destination.Name}."
+            description: $"A path leading to {destination.Name}.",
+            destinationLabel: destination.Name
         );
         var player = Builders.MakeCreature(
             world.Id,

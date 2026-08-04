@@ -144,7 +144,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         var building = Builders.MakeBuilding(StateId, name: "The Locked Vault");
         var entranceRoom = Builders.MakeRoom(building.Id);
         var outsideLocation = Builders.MakeLocation(stateId: StateId);
-        var frontDoor = Builders.MakeRoomConnector(
+        var frontDoor = Builders.MakeLocationConnector(
             entranceRoom.LocationId,
             destinationLocationId: outsideLocation.Id,
             isLocked: true,
@@ -158,8 +158,8 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         _context.Locations.Add(outsideLocation);
         _context.Props.Add(frontDoor);
         _context.Items.Add(keyItem);
-        _context.RoomConnectorKeys.Add(
-            new RoomConnectorKey { ItemId = keyItem.Id, RoomConnectorId = frontDoor.Id }
+        _context.LocationConnectorKeys.Add(
+            new LocationConnectorKey { ItemId = keyItem.Id, LocationConnectorId = frontDoor.Id }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -225,11 +225,12 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             id: nextRoomId,
             locationId: nextLocation.Id
         );
-        var connector = Builders.MakeRoomConnector(
+        var connector = Builders.MakeLocationConnector(
             currentRoom.LocationId,
             destinationLocationId: nextRoom.LocationId,
             name: "Hallway",
-            description: "A hallway."
+            description: "A hallway.",
+            destinationLabel: nextRoom.Name
         );
         var player = Builders.MakeCreature(
             WorldId,
@@ -299,7 +300,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_MovesThroughAHubConnector_WhenAlreadyPlacedInAConnectedDistrict()
     {
-        // Arrange — a placed (non-unplaced) player travels via a real hub RoomConnector, not the
+        // Arrange — a placed (non-unplaced) player travels via a real hub LocationConnector, not the
         // unplaced-bootstrap GetDistrictByNameInCityQuery fallback the other district-move tests use
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: WorldId);
@@ -332,11 +333,12 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             id: residentialId,
             locationId: residentialLocation.Id
         );
-        var connector = Builders.MakeRoomConnector(
+        var connector = Builders.MakeLocationConnector(
             residential.LocationId,
             destinationLocationId: cityCenter.LocationId,
             name: "Path",
-            description: "A path leading to City Center."
+            description: "A path leading to City Center.",
+            destinationLabel: cityCenter.Name
         );
         var player = Builders.MakeCreature(
             WorldId,
@@ -409,11 +411,12 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             id: newDistrictId,
             locationId: newLocation.Id
         );
-        var connector = Builders.MakeRoomConnector(
+        var connector = Builders.MakeLocationConnector(
             oldDistrict.LocationId,
             destinationLocationId: newDistrict.LocationId,
             name: "Path",
-            description: "A path leading to Market Row."
+            description: "A path leading to Market Row.",
+            destinationLabel: newDistrict.Name
         );
         var player = Builders.MakeCreature(
             WorldId,

@@ -69,17 +69,18 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
     }
 
     [Fact]
-    public async Task Handle_MatchesByDestinationRoomName_ForARoomToRoomConnector()
+    public async Task Handle_MatchesByDestinationRoomName_ForARoomToLocationConnector()
     {
         // Arrange
         var room = await SeedRoom();
         var destinationRoom = await SeedRoom();
-        var connector = Builders.MakeRoomConnector(
+        var connector = Builders.MakeLocationConnector(
             room.LocationId,
             destinationLocationId: destinationRoom.LocationId,
             worldId: WorldId,
             name: "Hallway",
-            description: "A hallway."
+            description: "A hallway.",
+            destinationLabel: destinationRoom.Name
         );
         _context.Props.Add(connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -106,7 +107,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
         // player is indoors, so the label is the generic "Outside", not the district's own name
         var room = await SeedRoom();
         var district = await SeedDistrict("Market Row");
-        var frontDoor = Builders.MakeRoomConnector(
+        var frontDoor = Builders.MakeLocationConnector(
             room.LocationId,
             destinationLocationId: district.LocationId,
             worldId: WorldId,
@@ -138,7 +139,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
         // state-level wilderness Location (no city/district/room) rather than a district
         var room = await SeedRoom();
         var wilderness = Builders.MakeLocation(WorldId, StateId);
-        var frontDoor = Builders.MakeRoomConnector(
+        var frontDoor = Builders.MakeLocationConnector(
             room.LocationId,
             destinationLocationId: wilderness.Id,
             worldId: WorldId,
@@ -171,12 +172,13 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
         // district's real name, not "Outside"
         var origin = await SeedDistrict("Docks");
         var cityCenter = await SeedDistrict("City Center");
-        var connector = Builders.MakeRoomConnector(
+        var connector = Builders.MakeLocationConnector(
             origin.LocationId,
             destinationLocationId: cityCenter.LocationId,
             worldId: WorldId,
             name: "Path",
-            description: "A path leading to City Center."
+            description: "A path leading to City Center.",
+            destinationLabel: cityCenter.Name
         );
         _context.Props.Add(connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

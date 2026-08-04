@@ -12,44 +12,24 @@ internal class GetExitByDestinationNameQuery
 
 internal record ExitMatch(bool Matched, Guid? DestinationLocationId);
 
-internal class GetExitByDestinationNameQueryHandler(
-    TrpgDbContext context,
-    ExitLabelResolver exitLabelResolver
-)
+internal class GetExitByDestinationNameQueryHandler(TrpgDbContext context)
 {
     public async Task<ExitMatch> Handle(
         GetExitByDestinationNameQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var sourceRoomId = await context
-            .Locations.AsNoTracking()
-            .Where(l => l.Id == query.LocationId)
-            .Select(l => l.RoomId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var connectors = await context
+        var match = await context
             .Props.AsNoTracking()
             .Where(p => p.LocationId == query.LocationId)
-            .OfType<RoomConnector>()
-            .ToArrayAsync(cancellationToken);
-
-        var resolved = await exitLabelResolver.Resolve(
-            connectors,
-            sourceIsIndoors: sourceRoomId != null,
-            cancellationToken
-        );
-
-        var match = resolved.FirstOrDefault(e =>
-            string.Equals(
-                e.DestinationLabel,
-                query.DestinationName,
-                StringComparison.OrdinalIgnoreCase
-            )
-        );
+            .OfType<LocationConnector>()
+            .FirstOrDefaultAsync(
+                c => EF.Functions.ILike(c.DestinationLabel, query.DestinationName),
+                cancellationToken
+            );
 
         return match != null
-            ? new ExitMatch(true, match.Connector.DestinationLocationId)
+            ? new ExitMatch(true, match.DestinationLocationId)
             : new ExitMatch(false, null);
     }
 }

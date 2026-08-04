@@ -4,32 +4,34 @@ namespace TRPG.Application.Worlds.Generators;
 
 internal static class DistrictConnectorGenerator
 {
-    public static IReadOnlyList<RoomConnector> Generate(
+    public static IReadOnlyList<LocationConnector> Generate(
         District cityCenterDistrict,
         IReadOnlyList<District> otherDistricts,
         Guid worldId
     )
     {
-        var connectors = new List<RoomConnector>();
+        var connectors = new List<LocationConnector>();
         foreach (var district in otherDistricts)
         {
             connectors.Add(
-                new RoomConnector
+                new LocationConnector
                 {
                     LocationId = district.LocationId,
                     DestinationLocationId = cityCenterDistrict.LocationId,
                     Name = "Path",
                     Description = $"A path leading to {cityCenterDistrict.Name}.",
+                    DestinationLabel = cityCenterDistrict.Name,
                     WorldId = worldId,
                 }
             );
             connectors.Add(
-                new RoomConnector
+                new LocationConnector
                 {
                     LocationId = cityCenterDistrict.LocationId,
                     DestinationLocationId = district.LocationId,
                     Name = "Path",
                     Description = $"A path leading to {district.Name}.",
+                    DestinationLabel = district.Name,
                     WorldId = worldId,
                 }
             );

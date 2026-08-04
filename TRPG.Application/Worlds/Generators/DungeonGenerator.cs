@@ -139,12 +139,13 @@ internal static class DungeonGenerator
             FloorNumber = 0,
             WorldId = input.WorldId,
         };
-        var frontDoor = new RoomConnector
+        var frontDoor = new LocationConnector
         {
             LocationId = room.LocationId,
             Name = "Front Door",
             Description = "The way back outside.",
             DestinationLocationId = input.WildernessLocationId,
+            DestinationLabel = "Outside",
             WorldId = input.WorldId,
         };
         return new DungeonGeneratorResult(building, room, location, [frontDoor]);
