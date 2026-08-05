@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PackageOpen, Search } from 'lucide-react';
+import { Coins, PackageOpen, Search, Weight } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -401,9 +401,23 @@ function EquipmentRow({
           )}
         </div>
       </td>
-      <td className="px-2 py-1.5 text-right font-mono text-sm tabular-nums">{item.weight}</td>
       <td className="px-2 py-1.5 text-right font-mono text-sm tabular-nums">
-        {item.goldValue ?? '—'}
+        <div className="flex items-center justify-end gap-1">
+          {item.weight}
+          <Weight className="text-muted-foreground size-3 shrink-0" />
+        </div>
+      </td>
+      <td className="px-2 py-1.5 text-right font-mono text-sm tabular-nums">
+        <div className="flex items-center justify-end gap-1">
+          {item.goldValue !== null ? (
+            <>
+              {item.goldValue}
+              <Coins className="text-muted-foreground size-3 shrink-0" />
+            </>
+          ) : (
+            '—'
+          )}
+        </div>
       </td>
       <td className="px-2 py-1.5 text-right">
         {equippedSlot ? (
