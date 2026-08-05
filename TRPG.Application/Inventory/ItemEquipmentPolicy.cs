@@ -46,6 +46,22 @@ internal static class ItemEquipmentPolicy
     public static EquipmentSlot ResolveEquippedSlot(Item item, EquipmentSlot requestedSlot) =>
         item is Weapon { IsTwoHanded: true } ? EquipmentSlot.RightHand : requestedSlot;
 
+    public static IReadOnlyCollection<Item> GetConflictingItems(
+        Item toEquip,
+        EquipmentSlot slot,
+        IReadOnlyCollection<Item> currentlyEquippedItems
+    )
+    {
+        var newFootprint = GetFootprint(toEquip, slot);
+
+        return currentlyEquippedItems
+            .Where(i => i.Id != toEquip.Id)
+            .Where(i =>
+                GetFootprint(i, i.Ownership.EquippedSlot!.Value).Intersect(newFootprint).Any()
+            )
+            .ToArray();
+    }
+
     public static Item Split(Item item, int quantity, Guid ownerId, OwnerType ownerType)
     {
         var type = item.GetType();

@@ -9,6 +9,7 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Mappers;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Contracts.Abilities.Responses;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Contracts.Creatures.Responses;
 using TRPG.Contracts.Inventory.Requests;
@@ -30,10 +31,17 @@ internal static class CreatureEndpoints
             AllocateAttributePoints
         );
         app.MapGet("/creatures/{creatureId:guid}/attributes", GetBaseAttributes);
+        app.MapGet("/creatures/{creatureId:guid}/stats", GetEffectiveStats);
+        app.MapGet("/creatures/{creatureId:guid}/basic-attack-damage", GetBasicAttackDamage);
         app.MapGet("/creatures/{creatureId:guid}/skills", GetSkills);
         app.MapGet("/creatures/{creatureId:guid}/level", GetLevel);
         app.MapPost("/creatures/{creatureId:guid}/equipment/equip", EquipItem);
         app.MapPost("/creatures/{creatureId:guid}/equipment/unequip", UnequipItem);
+        app.MapGet("/creatures/{creatureId:guid}/equipment/preview", PreviewEquipItemStats);
+        app.MapGet(
+            "/creatures/{creatureId:guid}/equipment/preview/basic-attack-damage",
+            PreviewEquipItemBasicAttackDamage
+        );
         app.MapGet("/corpses", GetNearbyCorpses);
     }
 
@@ -188,6 +196,99 @@ internal static class CreatureEndpoints
             )
         );
     }
+
+    private static async Task<Ok<EffectiveAttributesResponse>> GetEffectiveStats(
+        Guid creatureId,
+        GetCreatureEffectiveStatsQueryHandler getCreatureEffectiveStats,
+        CancellationToken cancellationToken
+    )
+    {
+        var attributes = await getCreatureEffectiveStats.Handle(
+            new GetCreatureEffectiveStatsQuery { CreatureId = creatureId },
+            cancellationToken
+        );
+
+        return TypedResults.Ok(ToEffectiveAttributesResponse(attributes));
+    }
+
+    private static async Task<Ok<EffectiveAttributesResponse>> PreviewEquipItemStats(
+        Guid creatureId,
+        Guid itemId,
+        Contracts.Inventory.Responses.EquipmentSlot slot,
+        PreviewEquipItemStatsQueryHandler previewEquipItemStats,
+        CancellationToken cancellationToken
+    )
+    {
+        var attributes = await previewEquipItemStats.Handle(
+            new PreviewEquipItemStatsQuery
+            {
+                CreatureId = creatureId,
+                ItemId = itemId,
+                Slot = slot.ToDataModel(),
+            },
+            cancellationToken
+        );
+
+        return TypedResults.Ok(ToEffectiveAttributesResponse(attributes));
+    }
+
+    private static async Task<Ok<BasicAttackDamageResponse>> GetBasicAttackDamage(
+        Guid creatureId,
+        GetCreatureBasicAttackDamageQueryHandler getCreatureBasicAttackDamage,
+        CancellationToken cancellationToken
+    )
+    {
+        var damagePerTurn = await getCreatureBasicAttackDamage.Handle(
+            new GetCreatureBasicAttackDamageQuery { CreatureId = creatureId },
+            cancellationToken
+        );
+
+        return TypedResults.Ok(new BasicAttackDamageResponse(damagePerTurn));
+    }
+
+    private static async Task<Ok<BasicAttackDamageResponse>> PreviewEquipItemBasicAttackDamage(
+        Guid creatureId,
+        Guid itemId,
+        Contracts.Inventory.Responses.EquipmentSlot slot,
+        PreviewEquipItemBasicAttackDamageQueryHandler previewEquipItemBasicAttackDamage,
+        CancellationToken cancellationToken
+    )
+    {
+        var damagePerTurn = await previewEquipItemBasicAttackDamage.Handle(
+            new PreviewEquipItemBasicAttackDamageQuery
+            {
+                CreatureId = creatureId,
+                ItemId = itemId,
+                Slot = slot.ToDataModel(),
+            },
+            cancellationToken
+        );
+
+        return TypedResults.Ok(new BasicAttackDamageResponse(damagePerTurn));
+    }
+
+    private static EffectiveAttributesResponse ToEffectiveAttributesResponse(
+        Attributes attributes
+    ) =>
+        new(
+            attributes.Strength,
+            attributes.Dexterity,
+            attributes.Intelligence,
+            attributes.Endurance,
+            attributes.Stamina,
+            attributes.Mana,
+            attributes.Defense,
+            attributes.MaximumHp,
+            attributes.MaximumAp,
+            attributes.MaximumMp,
+            attributes.MovementSpeed,
+            attributes.PhysicalResistance,
+            attributes.FireResistance,
+            attributes.IceResistance,
+            attributes.LightningResistance,
+            attributes.PoisonResistance,
+            attributes.MagicResistance
+        );
 
     private static async Task<Ok<SkillProgressSummary[]>> GetSkills(
         Guid creatureId,

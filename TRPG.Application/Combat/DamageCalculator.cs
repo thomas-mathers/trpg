@@ -62,6 +62,33 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         );
     }
 
+    public float EstimateRawDamage(Combatant attacker, AttackAbility ability, Weapon? weapon = null)
+    {
+        var rawDamage =
+            ability.DamageType == DamageType.Physical
+                ? CalculatePhysicalRawDamage(
+                    attacker,
+                    weapon ?? attacker.MainHandWeapon,
+                    ability.DamageAmount,
+                    ability.DamageAmountType,
+                    (min, max) => (min + max) / 2
+                )
+                : CalculateMagicRawDamage(attacker, ability);
+
+        return ApplyExpectedCrit(rawDamage, attacker);
+    }
+
+    public float EstimateBasicAttackDamagePerTurn(Combatant attacker)
+    {
+        var mainHandWeapon = attacker.MainHandWeapon;
+        var offHandWeapon = attacker.OffHandWeapon;
+        var mainHandSwings = 1 + Math.Max(0, (mainHandWeapon?.AttacksPerTurn ?? 1) - 1);
+        var offHandSwings = offHandWeapon?.AttacksPerTurn ?? 0;
+
+        return mainHandSwings * EstimateRawDamage(attacker, AbilityCatalog.Strike, mainHandWeapon)
+            + offHandSwings * EstimateRawDamage(attacker, AbilityCatalog.Strike, offHandWeapon);
+    }
+
     public int CalculateDamage(float amount, DamageType type, Combatant defender)
     {
         var resistance = Math.Min(

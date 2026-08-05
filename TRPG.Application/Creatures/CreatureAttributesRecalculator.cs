@@ -6,15 +6,7 @@ internal static class CreatureAttributesRecalculator
 {
     public static void Recalculate(Creature creature, IReadOnlyCollection<Item> equippedItems)
     {
-        var buffs = creature
-            .ActiveBuffs.Select(b => new ActiveBuff
-            {
-                Amount = b.Amount,
-                Attribute = Enum.Parse<AttributeName>(b.Attribute),
-                RemainingTurns = b.RemainingTurns,
-                AmountType = Enum.Parse<AmountType>(b.AmountType),
-            })
-            .ToArray();
+        var buffs = ToActiveBuffs(creature);
 
         var effective = StatFormulas.CalculateEffectiveAttributes(
             creature.BaseAttributes,
@@ -44,4 +36,15 @@ internal static class CreatureAttributesRecalculator
         creature.CurrentAp = Math.Min(creature.CurrentAp, creature.MaximumAp);
         creature.CurrentMp = Math.Min(creature.CurrentMp, creature.MaximumMp);
     }
+
+    public static IReadOnlyCollection<ActiveBuff> ToActiveBuffs(Creature creature) =>
+        creature
+            .ActiveBuffs.Select(b => new ActiveBuff
+            {
+                Amount = b.Amount,
+                Attribute = Enum.Parse<AttributeName>(b.Attribute),
+                RemainingTurns = b.RemainingTurns,
+                AmountType = Enum.Parse<AmountType>(b.AmountType),
+            })
+            .ToArray();
 }

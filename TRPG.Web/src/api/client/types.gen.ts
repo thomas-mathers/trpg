@@ -69,6 +69,10 @@ export type BaseAttributesResponse = {
     intelligence: number | string;
 };
 
+export type BasicAttackDamageResponse = {
+    damagePerTurn: number | string;
+};
+
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
 
 export type ChatRequest = {
@@ -189,6 +193,26 @@ export type CreatureStatusSnapshot = {
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
 
 export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 'Magic';
+
+export type EffectiveAttributesResponse = {
+    strength: number | string;
+    dexterity: number | string;
+    intelligence: number | string;
+    endurance: number | string;
+    stamina: number | string;
+    mana: number | string;
+    defense: number | string;
+    maximumHp: number | string;
+    maximumAp: number | string;
+    maximumMp: number | string;
+    movementSpeed: number | string;
+    physicalResistance: number | string;
+    fireResistance: number | string;
+    iceResistance: number | string;
+    lightningResistance: number | string;
+    poisonResistance: number | string;
+    magicResistance: number | string;
+};
 
 export type EnqueueJobResponse = {
     jobId: string;
@@ -708,6 +732,42 @@ export type GetCreaturesByCreatureIdAttributesResponses = {
 
 export type GetCreaturesByCreatureIdAttributesResponse = GetCreaturesByCreatureIdAttributesResponses[keyof GetCreaturesByCreatureIdAttributesResponses];
 
+export type GetCreaturesByCreatureIdStatsData = {
+    body?: never;
+    path: {
+        creatureId: string;
+    };
+    query?: never;
+    url: '/creatures/{creatureId}/stats';
+};
+
+export type GetCreaturesByCreatureIdStatsResponses = {
+    /**
+     * OK
+     */
+    200: EffectiveAttributesResponse;
+};
+
+export type GetCreaturesByCreatureIdStatsResponse = GetCreaturesByCreatureIdStatsResponses[keyof GetCreaturesByCreatureIdStatsResponses];
+
+export type GetCreaturesByCreatureIdBasicAttackDamageData = {
+    body?: never;
+    path: {
+        creatureId: string;
+    };
+    query?: never;
+    url: '/creatures/{creatureId}/basic-attack-damage';
+};
+
+export type GetCreaturesByCreatureIdBasicAttackDamageResponses = {
+    /**
+     * OK
+     */
+    200: BasicAttackDamageResponse;
+};
+
+export type GetCreaturesByCreatureIdBasicAttackDamageResponse = GetCreaturesByCreatureIdBasicAttackDamageResponses[keyof GetCreaturesByCreatureIdBasicAttackDamageResponses];
+
 export type GetCreaturesByCreatureIdSkillsData = {
     body?: never;
     path: {
@@ -779,6 +839,48 @@ export type PostCreaturesByCreatureIdEquipmentUnequipResponses = {
 };
 
 export type PostCreaturesByCreatureIdEquipmentUnequipResponse = PostCreaturesByCreatureIdEquipmentUnequipResponses[keyof PostCreaturesByCreatureIdEquipmentUnequipResponses];
+
+export type GetCreaturesByCreatureIdEquipmentPreviewData = {
+    body?: never;
+    path: {
+        creatureId: string;
+    };
+    query: {
+        itemId: string;
+        slot: EquipmentSlot;
+    };
+    url: '/creatures/{creatureId}/equipment/preview';
+};
+
+export type GetCreaturesByCreatureIdEquipmentPreviewResponses = {
+    /**
+     * OK
+     */
+    200: EffectiveAttributesResponse;
+};
+
+export type GetCreaturesByCreatureIdEquipmentPreviewResponse = GetCreaturesByCreatureIdEquipmentPreviewResponses[keyof GetCreaturesByCreatureIdEquipmentPreviewResponses];
+
+export type GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageData = {
+    body?: never;
+    path: {
+        creatureId: string;
+    };
+    query: {
+        itemId: string;
+        slot: EquipmentSlot;
+    };
+    url: '/creatures/{creatureId}/equipment/preview/basic-attack-damage';
+};
+
+export type GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponses = {
+    /**
+     * OK
+     */
+    200: BasicAttackDamageResponse;
+};
+
+export type GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponse = GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponses[keyof GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponses];
 
 export type GetCorpsesData = {
     body?: never;

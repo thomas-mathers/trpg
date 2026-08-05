@@ -60,13 +60,15 @@ function HoverPopoverTrigger({ asChild, children }: HoverPopoverTriggerProps) {
 interface HoverPopoverTextTriggerProps {
   className?: string;
   children: React.ReactNode;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }
 
-function HoverPopoverTextTrigger({ className, children }: HoverPopoverTextTriggerProps) {
+function HoverPopoverTextTrigger({ className, children, onClick }: HoverPopoverTextTriggerProps) {
   return (
     <HoverPopoverTrigger asChild>
       <button
         type="button"
+        onClick={onClick}
         className={cn('cursor-help underline decoration-dotted underline-offset-2', className)}
       >
         {children}
