@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { ChatMarker, type ChatMarkerVariant } from './components/ChatMarker';
 import { CombatConsole } from './components/combat/CombatConsole';
+import { EquipmentModal } from './components/inventory/EquipmentModal';
 import { NarrationText } from './components/NarrationText';
 import { NearbySidebar } from './components/NearbySidebar';
 import { NearbyToggleButton } from './components/NearbyToggleButton';
@@ -73,6 +74,7 @@ function GameScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
+  const [isEquipmentOpen, setIsEquipmentOpen] = useState(false);
   const [input, setInput] = useState('');
   const [showDisconnectedDialog, setShowDisconnectedDialog] = useState(false);
   const startedSessionId = useRef<string | null>(null);
@@ -270,7 +272,9 @@ function GameScreen() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem disabled>Character</DropdownMenuItem>
-            <DropdownMenuItem disabled>Inventory</DropdownMenuItem>
+            <DropdownMenuItem disabled={!sceneQuery.data} onClick={() => setIsEquipmentOpen(true)}>
+              Inventory
+            </DropdownMenuItem>
             <DropdownMenuItem disabled>Skills</DropdownMenuItem>
             <DropdownMenuItem disabled>Abilities</DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -352,6 +356,14 @@ function GameScreen() {
 
         <NearbySidebar sessionId={sessionId} />
       </div>
+
+      {sceneQuery.data && (
+        <EquipmentModal
+          playerId={sceneQuery.data.playerStatus.id}
+          open={isEquipmentOpen}
+          onClose={() => setIsEquipmentOpen(false)}
+        />
+      )}
 
       <Dialog open={showDisconnectedDialog}>
         <DialogContent

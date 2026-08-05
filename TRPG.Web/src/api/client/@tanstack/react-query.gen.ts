@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteAdminSessionsBySessionId, deleteWorldsByWorldId, getAbilitiesBySkill, getCorpses, getCreatureGenerationOptions, getCreaturesByCreatureIdAbilities, getCreaturesByCreatureIdAttributePoints, getCreaturesByCreatureIdAttributes, getCreaturesByCreatureIdConsumables, getCreaturesByCreatureIdInventory, getCreaturesByCreatureIdLevel, getCreaturesByCreatureIdSkills, getJobsById, getPlayersByPlayerIdFight, getPlayersByPlayerIdFightAbilities, getSessionsBySessionIdNamedEntities, getSessionsBySessionIdNamedEntitiesByEntityId, getSessionsBySessionIdScene, getWorlds, type Options, postAdminSessionsBySessionIdChat, postAdminSessionsBySessionIdWait, postCreaturesByCreatureIdAttributePointsAllocate, postSessions, postTransfers, postWorlds } from '../sdk.gen';
-import type { DeleteAdminSessionsBySessionIdData, DeleteAdminSessionsBySessionIdResponse, DeleteWorldsByWorldIdData, DeleteWorldsByWorldIdResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetCorpsesData, GetCorpsesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreaturesByCreatureIdAbilitiesData, GetCreaturesByCreatureIdAbilitiesResponse, GetCreaturesByCreatureIdAttributePointsData, GetCreaturesByCreatureIdAttributePointsResponse, GetCreaturesByCreatureIdAttributesData, GetCreaturesByCreatureIdAttributesResponse, GetCreaturesByCreatureIdConsumablesData, GetCreaturesByCreatureIdConsumablesResponse, GetCreaturesByCreatureIdInventoryData, GetCreaturesByCreatureIdInventoryResponse, GetCreaturesByCreatureIdLevelData, GetCreaturesByCreatureIdLevelResponse, GetCreaturesByCreatureIdSkillsData, GetCreaturesByCreatureIdSkillsResponse, GetJobsByIdData, GetJobsByIdResponse, GetPlayersByPlayerIdFightAbilitiesData, GetPlayersByPlayerIdFightAbilitiesResponse, GetPlayersByPlayerIdFightData, GetPlayersByPlayerIdFightResponse, GetSessionsBySessionIdNamedEntitiesByEntityIdData, GetSessionsBySessionIdNamedEntitiesByEntityIdResponse, GetSessionsBySessionIdNamedEntitiesData, GetSessionsBySessionIdNamedEntitiesResponse, GetSessionsBySessionIdSceneData, GetSessionsBySessionIdSceneResponse, GetWorldsData, GetWorldsResponse, PostAdminSessionsBySessionIdChatData, PostAdminSessionsBySessionIdChatResponse, PostAdminSessionsBySessionIdWaitData, PostAdminSessionsBySessionIdWaitResponse, PostCreaturesByCreatureIdAttributePointsAllocateData, PostCreaturesByCreatureIdAttributePointsAllocateResponse, PostSessionsData, PostSessionsResponse, PostTransfersData, PostTransfersResponse, PostWorldsData, PostWorldsResponse } from '../types.gen';
+import { deleteAdminSessionsBySessionId, deleteWorldsByWorldId, getAbilitiesBySkill, getCorpses, getCreatureGenerationOptions, getCreaturesByCreatureIdAbilities, getCreaturesByCreatureIdAttributePoints, getCreaturesByCreatureIdAttributes, getCreaturesByCreatureIdConsumables, getCreaturesByCreatureIdInventory, getCreaturesByCreatureIdLevel, getCreaturesByCreatureIdSkills, getJobsById, getPlayersByPlayerIdFight, getPlayersByPlayerIdFightAbilities, getSessionsBySessionIdNamedEntities, getSessionsBySessionIdNamedEntitiesByEntityId, getSessionsBySessionIdScene, getWorlds, type Options, postAdminSessionsBySessionIdChat, postAdminSessionsBySessionIdWait, postCreaturesByCreatureIdAttributePointsAllocate, postCreaturesByCreatureIdEquipmentEquip, postCreaturesByCreatureIdEquipmentUnequip, postSessions, postTransfers, postWorlds } from '../sdk.gen';
+import type { DeleteAdminSessionsBySessionIdData, DeleteAdminSessionsBySessionIdResponse, DeleteWorldsByWorldIdData, DeleteWorldsByWorldIdResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetCorpsesData, GetCorpsesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreaturesByCreatureIdAbilitiesData, GetCreaturesByCreatureIdAbilitiesResponse, GetCreaturesByCreatureIdAttributePointsData, GetCreaturesByCreatureIdAttributePointsResponse, GetCreaturesByCreatureIdAttributesData, GetCreaturesByCreatureIdAttributesResponse, GetCreaturesByCreatureIdConsumablesData, GetCreaturesByCreatureIdConsumablesResponse, GetCreaturesByCreatureIdInventoryData, GetCreaturesByCreatureIdInventoryResponse, GetCreaturesByCreatureIdLevelData, GetCreaturesByCreatureIdLevelResponse, GetCreaturesByCreatureIdSkillsData, GetCreaturesByCreatureIdSkillsResponse, GetJobsByIdData, GetJobsByIdResponse, GetPlayersByPlayerIdFightAbilitiesData, GetPlayersByPlayerIdFightAbilitiesResponse, GetPlayersByPlayerIdFightData, GetPlayersByPlayerIdFightResponse, GetSessionsBySessionIdNamedEntitiesByEntityIdData, GetSessionsBySessionIdNamedEntitiesByEntityIdResponse, GetSessionsBySessionIdNamedEntitiesData, GetSessionsBySessionIdNamedEntitiesResponse, GetSessionsBySessionIdSceneData, GetSessionsBySessionIdSceneResponse, GetWorldsData, GetWorldsResponse, PostAdminSessionsBySessionIdChatData, PostAdminSessionsBySessionIdChatResponse, PostAdminSessionsBySessionIdWaitData, PostAdminSessionsBySessionIdWaitResponse, PostCreaturesByCreatureIdAttributePointsAllocateData, PostCreaturesByCreatureIdAttributePointsAllocateResponse, PostCreaturesByCreatureIdEquipmentEquipData, PostCreaturesByCreatureIdEquipmentEquipResponse, PostCreaturesByCreatureIdEquipmentUnequipData, PostCreaturesByCreatureIdEquipmentUnequipResponse, PostSessionsData, PostSessionsResponse, PostTransfersData, PostTransfersResponse, PostWorldsData, PostWorldsResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -215,6 +215,34 @@ export const getCreaturesByCreatureIdLevelOptions = (options: Options<GetCreatur
     },
     queryKey: getCreaturesByCreatureIdLevelQueryKey(options)
 });
+
+export const postCreaturesByCreatureIdEquipmentEquipMutation = (options?: Partial<Options<PostCreaturesByCreatureIdEquipmentEquipData>>): UseMutationOptions<PostCreaturesByCreatureIdEquipmentEquipResponse, DefaultError, Options<PostCreaturesByCreatureIdEquipmentEquipData>> => {
+    const mutationOptions: UseMutationOptions<PostCreaturesByCreatureIdEquipmentEquipResponse, DefaultError, Options<PostCreaturesByCreatureIdEquipmentEquipData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postCreaturesByCreatureIdEquipmentEquip({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const postCreaturesByCreatureIdEquipmentUnequipMutation = (options?: Partial<Options<PostCreaturesByCreatureIdEquipmentUnequipData>>): UseMutationOptions<PostCreaturesByCreatureIdEquipmentUnequipResponse, DefaultError, Options<PostCreaturesByCreatureIdEquipmentUnequipData>> => {
+    const mutationOptions: UseMutationOptions<PostCreaturesByCreatureIdEquipmentUnequipResponse, DefaultError, Options<PostCreaturesByCreatureIdEquipmentUnequipData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postCreaturesByCreatureIdEquipmentUnequip({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getCorpsesQueryKey = (options: Options<GetCorpsesData>) => createQueryKey('getCorpses', options);
 

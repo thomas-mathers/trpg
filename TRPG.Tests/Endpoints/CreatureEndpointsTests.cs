@@ -8,6 +8,7 @@ using TRPG.Contracts;
 using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Contracts.Creatures.Responses;
+using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Inventory.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -370,5 +371,78 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         );
         Assert.NotNull(result);
         Assert.Equal(7, result.Level);
+    }
+
+    [Fact]
+    public async Task EquipItem_SetsEquippedSlot()
+    {
+        // Arrange
+        Guid itemId;
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            var weapon = Builders.MakeWeaponItem(_worldId);
+            weapon.Quantity = 1;
+            weapon.Ownership.OwnerId = _creature.Id;
+            weapon.Ownership.OwnerType = OwnerType.Creature;
+            context.Items.Add(weapon);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            itemId = weapon.Id;
+        }
+
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            new Uri($"/creatures/{_creature.Id}/equipment/equip", UriKind.Relative),
+            new EquipItemRequest(itemId, Contracts.Inventory.Responses.EquipmentSlot.RightHand),
+            TrpgJsonOptions.Default,
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        await using var verifyScope = fixture.CreateScope();
+        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var equipped = await verifyContext.Items.SingleAsync(
+            i => i.Id == itemId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(Data.Models.EquipmentSlot.RightHand, equipped.Ownership.EquippedSlot);
+    }
+
+    [Fact]
+    public async Task UnequipItem_ClearsEquippedSlot()
+    {
+        // Arrange
+        Guid itemId;
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            var weapon = Builders.MakeWeaponItem(_worldId);
+            weapon.Quantity = 1;
+            weapon.Ownership.OwnerId = _creature.Id;
+            weapon.Ownership.OwnerType = OwnerType.Creature;
+            weapon.Ownership.EquippedSlot = Data.Models.EquipmentSlot.RightHand;
+            context.Items.Add(weapon);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            itemId = weapon.Id;
+        }
+
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            new Uri($"/creatures/{_creature.Id}/equipment/unequip", UriKind.Relative),
+            new UnequipItemRequest(Contracts.Inventory.Responses.EquipmentSlot.RightHand),
+            TrpgJsonOptions.Default,
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        await using var verifyScope = fixture.CreateScope();
+        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var unequipped = await verifyContext.Items.SingleAsync(
+            i => i.Id == itemId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Null(unequipped.Ownership.EquippedSlot);
     }
 }

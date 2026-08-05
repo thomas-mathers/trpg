@@ -2,6 +2,7 @@ import type {
   AmountType,
   AttributeName,
   CombatSpeedType,
+  EquipmentSlot,
   ItemType,
   ProcTrigger,
   ResourceType,
@@ -60,6 +61,19 @@ export const ITEM_TYPE_LABEL: Record<ItemType, string> = {
   Shield: 'Shield',
   Consumable: 'Consumable',
   Gold: 'Gold',
+};
+
+export const EQUIPMENT_SLOT_LABEL: Record<EquipmentSlot, string> = {
+  Helm: 'Helm',
+  Chest: 'Chest',
+  LeftHand: 'Left Hand',
+  RightHand: 'Right Hand',
+  Boots: 'Boots',
+  Necklace: 'Necklace',
+  Gloves: 'Gloves',
+  LeftRing: 'Left Ring',
+  RightRing: 'Right Ring',
+  Belt: 'Belt',
 };
 
 export const COMBAT_SPEED_LABEL: Record<CombatSpeedType, string> = {

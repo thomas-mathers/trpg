@@ -4,9 +4,8 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  ChevronDown,
-  ChevronUp,
   Coins,
+  PackageOpen,
   Search,
   Skull,
   User,
@@ -17,6 +16,7 @@ import { useEffect, useState } from 'react';
 import { getCreaturesByCreatureIdInventoryOptions, postTransfersMutation } from '@/api/client';
 import type { ItemDetail, ItemRarity, ItemType } from '@/api/client';
 import { ItemTooltip } from '@/components/inventory/ItemTooltip';
+import { SortableHeader, type SortState } from '@/components/inventory/SortableHeader';
 import { NumberStepper } from '@/components/NumberStepper';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,12 +26,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Empty, EmptyContent, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import {
   HoverPopover,
   HoverPopoverContent,
   HoverPopoverTextTrigger,
 } from '@/components/ui/hover-popover';
-import { RARITY_COLOR, TYPE_ICON } from '@/lib/item-visuals';
+import { Toggle } from '@/components/ui/toggle';
+import {
+  CATEGORY_LABEL,
+  CATEGORY_ORDER,
+  type ItemCategory,
+  RARITY_COLOR,
+  TYPE_ICON,
+} from '@/lib/item-visuals';
 import { cn } from '@/lib/utils';
 
 interface WorkingItem {
@@ -39,6 +47,7 @@ interface WorkingItem {
   itemId: string;
   name: string;
   type: ItemType;
+  category: ItemCategory;
   rarity: ItemRarity | null;
   equippedSlot: string | null;
   weight: number;
@@ -56,10 +65,6 @@ interface PendingMove {
 }
 
 type SortKey = 'name' | 'quantity' | 'weight' | 'value';
-interface SortState {
-  key: SortKey;
-  dir: 'asc' | 'desc';
-}
 
 const toWorkingItems = (items: ItemDetail[]): WorkingItem[] =>
   items.map((item) => ({
@@ -67,6 +72,7 @@ const toWorkingItems = (items: ItemDetail[]): WorkingItem[] =>
     itemId: item.itemId,
     name: item.name,
     type: item.type,
+    category: item.$type,
     rarity: item.rarity ?? null,
     equippedSlot: item.equippedSlot ?? null,
     weight: Number(item.weight),
@@ -75,9 +81,19 @@ const toWorkingItems = (items: ItemDetail[]): WorkingItem[] =>
     detail: item,
   }));
 
-const sortItems = (items: WorkingItem[], search: string, sort: SortState): WorkingItem[] => {
+const sortItems = (
+  items: WorkingItem[],
+  search: string,
+  categories: ReadonlySet<ItemCategory>,
+  sort: SortState<SortKey>,
+): WorkingItem[] => {
   const query = search.trim().toLowerCase();
-  const filtered = query ? items.filter((item) => item.name.toLowerCase().includes(query)) : items;
+  const filtered = items.filter((item) => {
+    if (query && !item.name.toLowerCase().includes(query)) {
+      return false;
+    }
+    return categories.size === 0 || categories.has(item.category);
+  });
   const dir = sort.dir === 'asc' ? 1 : -1;
   return [...filtered].sort((a, b) => {
     if (sort.key === 'name') {
@@ -155,7 +171,7 @@ export function TransferModal({ playerId, target, open, onClose }: TransferModal
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
-        className="flex max-h-[90vh] flex-col gap-4 md:max-w-6xl"
+        className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-7xl"
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         {target && (
@@ -196,8 +212,10 @@ function TransferModalBody({
   const [rightSelected, setRightSelected] = useState(new Map<string, number>());
   const [leftSearch, setLeftSearch] = useState('');
   const [rightSearch, setRightSearch] = useState('');
-  const [leftSort, setLeftSort] = useState<SortState>({ key: 'name', dir: 'asc' });
-  const [rightSort, setRightSort] = useState<SortState>({ key: 'name', dir: 'asc' });
+  const [leftCategories, setLeftCategories] = useState<ReadonlySet<ItemCategory>>(new Set());
+  const [rightCategories, setRightCategories] = useState<ReadonlySet<ItemCategory>>(new Set());
+  const [leftSort, setLeftSort] = useState<SortState<SortKey>>({ key: 'name', dir: 'asc' });
+  const [rightSort, setRightSort] = useState<SortState<SortKey>>({ key: 'name', dir: 'asc' });
 
   useEffect(() => {
     if (leftItems === null && playerInventory.data) {
@@ -296,6 +314,8 @@ function TransferModalBody({
           onSelectedChange={setLeftSelected}
           search={leftSearch}
           onSearchChange={setLeftSearch}
+          categories={leftCategories}
+          onCategoriesChange={setLeftCategories}
           sort={leftSort}
           onSortChange={setLeftSort}
         />
@@ -338,6 +358,8 @@ function TransferModalBody({
           onSelectedChange={setRightSelected}
           search={rightSearch}
           onSearchChange={setRightSearch}
+          categories={rightCategories}
+          onCategoriesChange={setRightCategories}
           sort={rightSort}
           onSortChange={setRightSort}
         />
@@ -402,8 +424,10 @@ interface InventorySidePanelProps {
   onSelectedChange: (selected: Map<string, number>) => void;
   search: string;
   onSearchChange: (value: string) => void;
-  sort: SortState;
-  onSortChange: (sort: SortState) => void;
+  categories: ReadonlySet<ItemCategory>;
+  onCategoriesChange: (categories: ReadonlySet<ItemCategory>) => void;
+  sort: SortState<SortKey>;
+  onSortChange: (sort: SortState<SortKey>) => void;
 }
 
 function InventorySidePanel({
@@ -413,10 +437,12 @@ function InventorySidePanel({
   onSelectedChange,
   search,
   onSearchChange,
+  categories,
+  onCategoriesChange,
   sort,
   onSortChange,
 }: InventorySidePanelProps) {
-  const visible = sortItems(items, search, sort);
+  const visible = sortItems(items, search, categories, sort);
   const selectableVisible = visible.filter((item) => item.equippedSlot === null);
   const totalWeight = items.reduce((sum, item) => sum + item.weight * item.quantity, 0);
   const allSelected =
@@ -429,6 +455,21 @@ function InventorySidePanel({
     } else {
       onSortChange({ key, dir: key === 'name' ? 'asc' : 'desc' });
     }
+  };
+
+  const toggleCategory = (category: ItemCategory) => {
+    const next = new Set(categories);
+    if (next.has(category)) {
+      next.delete(category);
+    } else {
+      next.add(category);
+    }
+    onCategoriesChange(next);
+  };
+
+  const clearFilters = () => {
+    onSearchChange('');
+    onCategoriesChange(new Set());
   };
 
   const toggleSelectAll = () => {
@@ -470,7 +511,7 @@ function InventorySidePanel({
         </p>
       </div>
 
-      <div className="px-3 pt-2">
+      <div className="space-y-2 px-3 pt-2">
         <div className="border-input bg-background flex h-[34px] items-center gap-2 rounded-md border px-2.5 shadow-sm">
           <Search className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
           <input
@@ -481,106 +522,107 @@ function InventorySidePanel({
             className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none"
           />
         </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {CATEGORY_ORDER.map((category) => (
+            <Toggle
+              key={category}
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              pressed={categories.has(category)}
+              onPressedChange={() => toggleCategory(category)}
+            >
+              {CATEGORY_LABEL[category]}
+            </Toggle>
+          ))}
+        </div>
       </div>
 
       <div className="flex-1 overflow-x-hidden overflow-y-auto px-3 pb-2">
-        <table className="w-full table-fixed">
-          <colgroup>
-            <col className="w-7" />
-            <col />
-            <col className="w-12" />
-            <col className="w-16" />
-            <col className="w-16" />
-          </colgroup>
-          <thead>
-            <tr className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-              <th className="px-2 py-2 text-left">
-                <input
-                  type="checkbox"
-                  className="accent-primary size-4"
-                  checked={allSelected}
-                  ref={(el) => {
-                    if (el) {
-                      el.indeterminate = !allSelected && someSelected;
-                    }
-                  }}
-                  disabled={selectableVisible.length === 0}
-                  onChange={toggleSelectAll}
-                  aria-label="Select all"
+        {visible.length === 0 ? (
+          <Empty className="h-full">
+            <EmptyMedia variant="icon">
+              <PackageOpen />
+            </EmptyMedia>
+            <EmptyTitle>
+              {items.length === 0 ? 'Nothing here.' : 'No items match your filters.'}
+            </EmptyTitle>
+            {items.length > 0 && (search || categories.size > 0) && (
+              <EmptyContent>
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              </EmptyContent>
+            )}
+          </Empty>
+        ) : (
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col className="w-7" />
+              <col />
+              <col className="w-12" />
+              <col className="w-16" />
+              <col className="w-16" />
+            </colgroup>
+            <thead>
+              <tr className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+                <th className="px-2 py-2 text-left">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="accent-primary size-4"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate = !allSelected && someSelected;
+                        }
+                      }}
+                      disabled={selectableVisible.length === 0}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </div>
+                </th>
+                <SortableHeader label="Item" sortKey="name" sort={sort} onToggle={toggleSort} />
+                <SortableHeader
+                  label="Qty"
+                  sortKey="quantity"
+                  sort={sort}
+                  onToggle={toggleSort}
+                  align="right"
                 />
-              </th>
-              <SortableHeader label="Item" sortKey="name" sort={sort} onToggle={toggleSort} />
-              <SortableHeader
-                label="Qty"
-                sortKey="quantity"
-                sort={sort}
-                onToggle={toggleSort}
-                align="right"
-              />
-              <SortableHeader
-                label="Weight"
-                sortKey="weight"
-                sort={sort}
-                onToggle={toggleSort}
-                align="right"
-              />
-              <SortableHeader
-                label="Value"
-                sortKey="value"
-                sort={sort}
-                onToggle={toggleSort}
-                align="right"
-              />
-            </tr>
-          </thead>
-          <tbody className="divide-border divide-y">
-            {visible.map((item) => (
-              <ItemRow
-                key={item.rowKey}
-                item={item}
-                selectedQuantity={selected.get(item.rowKey)}
-                onToggle={() => toggleRow(item)}
-                onQuantityChange={(quantity) => setRowQuantity(item.rowKey, quantity)}
-              />
-            ))}
-          </tbody>
-        </table>
+                <SortableHeader
+                  label="Weight"
+                  sortKey="weight"
+                  sort={sort}
+                  onToggle={toggleSort}
+                  align="right"
+                />
+                <SortableHeader
+                  label="Value"
+                  sortKey="value"
+                  sort={sort}
+                  onToggle={toggleSort}
+                  align="right"
+                />
+              </tr>
+            </thead>
+            <tbody className="divide-border divide-y">
+              {visible.map((item) => (
+                <ItemRow
+                  key={item.rowKey}
+                  item={item}
+                  selectedQuantity={selected.get(item.rowKey)}
+                  onToggle={() => toggleRow(item)}
+                  onQuantityChange={(quantity) => setRowQuantity(item.rowKey, quantity)}
+                />
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
-  );
-}
-
-function SortableHeader({
-  label,
-  sortKey,
-  sort,
-  onToggle,
-  align = 'left',
-}: {
-  label: string;
-  sortKey: SortKey;
-  sort: SortState;
-  onToggle: (key: SortKey) => void;
-  align?: 'left' | 'right';
-}) {
-  const active = sort.key === sortKey;
-  const Icon = sort.dir === 'desc' ? ChevronDown : ChevronUp;
-  return (
-    <th
-      className={cn(
-        'cursor-pointer px-2 py-2',
-        align === 'right' ? 'text-right' : 'text-left',
-        active ? 'text-foreground' : 'hover:text-foreground',
-      )}
-      onClick={() => onToggle(sortKey)}
-    >
-      <span
-        className={cn('inline-flex items-center gap-0.5', align === 'right' && 'flex-row-reverse')}
-      >
-        {label}
-        <Icon className={cn('size-2.5', !active && 'opacity-0 group-hover:opacity-100')} />
-      </span>
-    </th>
   );
 }
 
