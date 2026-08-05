@@ -49,7 +49,7 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
             throw new InvalidOperationException($"Item {command.ItemId} cannot be equipped.");
         }
 
-        await UnequipConflictingItems(command, toEquip, items, cancellationToken);
+        await UnequipConflictingItems(toEquip, command.Slot, items, cancellationToken);
 
         toEquip.Ownership.EquippedSlot = ItemEquipmentPolicy.ResolveEquippedSlot(
             toEquip,
@@ -63,25 +63,16 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
     }
 
     private async Task UnequipConflictingItems(
-        EquipInventoryItemCommand command,
         Item toEquip,
+        EquipmentSlot slot,
         IReadOnlyCollection<Item> items,
         CancellationToken cancellationToken
     )
     {
-        var newFootprint = ItemEquipmentPolicy.GetFootprint(toEquip, command.Slot);
+        var currentlyEquipped = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
+        var conflicting = ItemEquipmentPolicy.GetConflictingItems(toEquip, slot, currentlyEquipped);
 
-        var conflicting = items
-            .Where(i => i.Id != toEquip.Id && i.Ownership.EquippedSlot != null)
-            .Where(i =>
-                ItemEquipmentPolicy
-                    .GetFootprint(i, i.Ownership.EquippedSlot!.Value)
-                    .Intersect(newFootprint)
-                    .Any()
-            )
-            .ToArray();
-
-        if (conflicting.Length == 0)
+        if (conflicting.Count == 0)
         {
             return;
         }

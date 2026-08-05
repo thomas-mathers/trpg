@@ -403,4 +403,96 @@ public class DamageCalculatorTests
         // Assert
         Assert.Equal(26, damage);
     }
+
+    [Fact]
+    public void EstimateRawDamage_IgnoresDefenderEntirely_UnlikeEstimateDamage()
+    {
+        // Arrange — 20 fire damage; EstimateRawDamage has no defender to mitigate against
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithCombatOptions(Settings.Value)
+            .Build();
+        var calculator = new DamageCalculator(Settings);
+
+        // Act
+        var damage = calculator.EstimateRawDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageType: DamageType.Fire, damageAmount: 20)
+        );
+
+        // Assert
+        Assert.Equal(20, damage);
+    }
+
+    [Fact]
+    public void EstimateBasicAttackDamagePerTurn_MultipliesByMainHandAttacksPerTurn()
+    {
+        // Arrange — fixed 10-damage weapon, 3 attacks per turn = 30
+        var weapon = Builders.MakeWeaponItem(
+            worldId: _worldId,
+            minDamage: 10,
+            maxDamage: 10,
+            attacksPerTurn: 3
+        );
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon, slot: EquipmentSlot.RightHand)
+            .WithCombatOptions(Settings.Value)
+            .Build();
+        var calculator = new DamageCalculator(Settings);
+
+        // Act
+        var damagePerTurn = calculator.EstimateBasicAttackDamagePerTurn(attacker);
+
+        // Assert
+        Assert.Equal(30, damagePerTurn);
+    }
+
+    [Fact]
+    public void EstimateBasicAttackDamagePerTurn_AddsOffHandWeaponSwings()
+    {
+        // Arrange — main hand 10x1 + off hand 5x2 = 20
+        var mainHand = Builders.MakeWeaponItem(worldId: _worldId, minDamage: 10, maxDamage: 10);
+        var offHand = Builders.MakeWeaponItem(
+            worldId: _worldId,
+            minDamage: 5,
+            maxDamage: 5,
+            attacksPerTurn: 2
+        );
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(mainHand, slot: EquipmentSlot.RightHand)
+            .WithItem(offHand, slot: EquipmentSlot.LeftHand)
+            .WithCombatOptions(Settings.Value)
+            .Build();
+        var calculator = new DamageCalculator(Settings);
+
+        // Act
+        var damagePerTurn = calculator.EstimateBasicAttackDamagePerTurn(attacker);
+
+        // Assert
+        Assert.Equal(20, damagePerTurn);
+    }
+
+    [Fact]
+    public void EstimateBasicAttackDamagePerTurn_UsesNaturalWeaponDamage_WhenUnarmed()
+    {
+        // Arrange — no weapon equipped, natural weapon fixed at 4-4
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithNaturalWeaponDamage(4, 4)
+            .WithCombatOptions(Settings.Value)
+            .Build();
+        var calculator = new DamageCalculator(Settings);
+
+        // Act
+        var damagePerTurn = calculator.EstimateBasicAttackDamagePerTurn(attacker);
+
+        // Assert
+        Assert.Equal(4, damagePerTurn);
+    }
 }
