@@ -58,7 +58,7 @@ internal static class CreatureEndpoints
         );
 
         return TypedResults.Ok(
-            new InventorySummary(snapshot.Gold, snapshot.Items.Select(ToItemSummary).ToArray())
+            new InventorySummary(snapshot.Gold, snapshot.Items.Select(ToItemDetail).ToArray())
         );
     }
 
@@ -173,16 +173,153 @@ internal static class CreatureEndpoints
         return TypedResults.Ok(new CreatureLevelResponse(level));
     }
 
-    private static ItemSummary ToItemSummary(Item item) =>
-        new(
-            item.Id,
-            item.Name,
-            item.Weight,
-            item.Quantity,
-            item.Ownership.EquippedSlot?.ToContract(),
-            ToItemType(item),
-            ToRarity(item)
-        );
+    private static ItemDetail ToItemDetail(Item item)
+    {
+        var equippedSlot = item.Ownership.EquippedSlot?.ToContract();
+        var type = ToItemType(item);
+        var rarity = ToRarity(item);
+        var modifiers = item.Modifiers.Select(ToItemModifierSummary).ToArray();
+
+        return item switch
+        {
+            Weapon w => new WeaponDetail(
+                w.Id,
+                w.Name,
+                w.Description,
+                w.Weight,
+                w.Quantity,
+                equippedSlot,
+                type,
+                rarity,
+                w.GoldValue,
+                modifiers,
+                w.MinDamage,
+                w.MaxDamage,
+                w.Range,
+                w.AttacksPerTurn,
+                w.IsTwoHanded,
+                w.DurabilityCurrent,
+                w.DurabilityMax
+            ),
+            Armor a => new ArmorDetail(
+                a.Id,
+                a.Name,
+                a.Description,
+                a.Weight,
+                a.Quantity,
+                equippedSlot,
+                type,
+                rarity,
+                a.GoldValue,
+                modifiers,
+                a.Defense,
+                a.ArmorClass.ToContract(),
+                a.DurabilityCurrent,
+                a.DurabilityMax
+            ),
+            Shield s => new ShieldDetail(
+                s.Id,
+                s.Name,
+                s.Description,
+                s.Weight,
+                s.Quantity,
+                equippedSlot,
+                type,
+                rarity,
+                s.GoldValue,
+                modifiers,
+                s.BlockChance,
+                s.Defense,
+                s.MagicResistance,
+                s.FireResistance,
+                s.IceResistance,
+                s.LightningResistance,
+                s.PoisonResistance,
+                s.DurabilityCurrent,
+                s.DurabilityMax
+            ),
+            Accessory ac => new AccessoryDetail(
+                ac.Id,
+                ac.Name,
+                ac.Description,
+                ac.Weight,
+                ac.Quantity,
+                equippedSlot,
+                type,
+                rarity,
+                ac.GoldValue,
+                modifiers
+            ),
+            Ammunition am => new AmmunitionDetail(
+                am.Id,
+                am.Name,
+                am.Description,
+                am.Weight,
+                am.Quantity,
+                equippedSlot,
+                type,
+                rarity,
+                am.GoldValue,
+                modifiers
+            ),
+            Consumable c => new ConsumableItemDetail(
+                c.Id,
+                c.Name,
+                c.Description,
+                c.Weight,
+                c.Quantity,
+                equippedSlot,
+                type,
+                rarity,
+                c.GoldValue,
+                modifiers,
+                c.Resource.ToContract(),
+                c.RestoreAmount,
+                c.Duration
+            ),
+            Gold g => new GoldDetail(
+                g.Id,
+                g.Name,
+                g.Description,
+                g.Weight,
+                g.Quantity,
+                equippedSlot,
+                type,
+                rarity,
+                null,
+                modifiers
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(item)),
+        };
+    }
+
+    private static ItemModifierSummary ToItemModifierSummary(ItemModifier modifier) =>
+        modifier switch
+        {
+            AttributeModifier m => new AttributeModifierSummary(
+                m.Amount,
+                m.Attribute.ToContract(),
+                m.AmountType.ToContract()
+            ),
+            CombatSpeedModifier m => new CombatSpeedModifierSummary(
+                m.Amount,
+                m.SpeedType.ToContract()
+            ),
+            ElementalDamageModifier m => new ElementalDamageModifierSummary(
+                m.DamageType.ToContract(),
+                m.MinDamage,
+                m.MaxDamage
+            ),
+            LeechModifier m => new LeechModifierSummary(m.LeechType.ToContract(), m.Percent),
+            SpecialHitModifier m => new SpecialHitModifierSummary(m.Chance, m.HitType.ToContract()),
+            SkillBonusModifier m => new SkillBonusModifierSummary(m.Amount, m.Skill?.ToContract()),
+            ProcModifier m => new ProcModifierSummary(
+                m.AbilityName,
+                m.Chance,
+                m.Trigger.ToContract()
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(modifier)),
+        };
 
     private static ItemType ToItemType(Item item) =>
         item switch

@@ -524,7 +524,7 @@ internal sealed class SlashCommandRegistry(
         );
     }
 
-    private static void PrintInventory(IReadOnlyCollection<ItemSummary> items)
+    private static void PrintInventory(IReadOnlyCollection<ItemDetail> items)
     {
         if (items.Count == 0)
         {
