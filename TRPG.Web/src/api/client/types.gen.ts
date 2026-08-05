@@ -51,6 +51,8 @@ export type AllocateAttributePointsRequest = {
 
 export type AmountType = 'Flat' | 'Percent';
 
+export type ArmorClass = 'Cloth' | 'Leather' | 'Mail' | 'Plate';
+
 export type AttributeName = 'MaximumHp' | 'MaximumAp' | 'MaximumMp' | 'Strength' | 'Defense' | 'Dexterity' | 'Endurance' | 'Stamina' | 'Mana' | 'Intelligence' | 'PhysicalResistance' | 'FireResistance' | 'IceResistance' | 'LightningResistance' | 'PoisonResistance' | 'MagicResistance' | 'MovementSpeed';
 
 export type AttributePointsResponse = {
@@ -97,6 +99,8 @@ export type CombatantState = {
     activeHots: Array<ActiveHot>;
     activeBuffs: Array<ActiveBuff>;
 };
+
+export type CombatSpeedType = 'IncreasedAttackSpeed' | 'FasterCastRate' | 'FasterHitRecovery';
 
 export type ConsumableSummary = {
     itemId: string;
@@ -202,24 +206,212 @@ export type Gender = 'Male' | 'Female';
 
 export type InventorySummary = {
     gold: number | string;
-    items: Array<ItemSummary>;
+    items: Array<ItemDetail>;
 };
 
 export type InventoryTransferRequest = {
     items: Array<LootItemSelection>;
 };
 
-export type ItemRarity = 'Low' | 'Normal' | 'Magic' | 'Rare' | 'Unique';
+export type ItemDetail = ({
+    $type: 'Weapon';
+} & ItemDetailWeaponDetail) | ({
+    $type: 'Armor';
+} & ItemDetailArmorDetail) | ({
+    $type: 'Shield';
+} & ItemDetailShieldDetail) | ({
+    $type: 'Accessory';
+} & ItemDetailAccessoryDetail) | ({
+    $type: 'Ammunition';
+} & ItemDetailAmmunitionDetail) | ({
+    $type: 'Consumable';
+} & ItemDetailConsumableItemDetail) | ({
+    $type: 'Gold';
+} & ItemDetailGoldDetail);
 
-export type ItemSummary = {
+export type ItemDetailAccessoryDetail = {
+    $type?: 'Accessory';
     itemId: string;
     name: string;
+    description: string;
     weight: number | string;
     quantity: number | string;
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
+    goldValue: null | number | string;
+    modifiers: Array<ItemModifierSummary>;
 };
+
+export type ItemDetailAmmunitionDetail = {
+    $type?: 'Ammunition';
+    itemId: string;
+    name: string;
+    description: string;
+    weight: number | string;
+    quantity: number | string;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+    goldValue: null | number | string;
+    modifiers: Array<ItemModifierSummary>;
+};
+
+export type ItemDetailArmorDetail = {
+    $type?: 'Armor';
+    defense: number | string;
+    armorClass: ArmorClass;
+    durabilityCurrent: number | string;
+    durabilityMax: number | string;
+    itemId: string;
+    name: string;
+    description: string;
+    weight: number | string;
+    quantity: number | string;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+    goldValue: null | number | string;
+    modifiers: Array<ItemModifierSummary>;
+};
+
+export type ItemDetailConsumableItemDetail = {
+    $type?: 'Consumable';
+    resource: ResourceType;
+    restoreAmount: number | string;
+    duration: number | string;
+    itemId: string;
+    name: string;
+    description: string;
+    weight: number | string;
+    quantity: number | string;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+    goldValue: null | number | string;
+    modifiers: Array<ItemModifierSummary>;
+};
+
+export type ItemDetailGoldDetail = {
+    $type?: 'Gold';
+    itemId: string;
+    name: string;
+    description: string;
+    weight: number | string;
+    quantity: number | string;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+    goldValue: null | number | string;
+    modifiers: Array<ItemModifierSummary>;
+};
+
+export type ItemDetailShieldDetail = {
+    $type?: 'Shield';
+    blockChance: number | string;
+    defense: number | string;
+    magicResistance: number | string;
+    fireResistance: number | string;
+    iceResistance: number | string;
+    lightningResistance: number | string;
+    poisonResistance: number | string;
+    durabilityCurrent: number | string;
+    durabilityMax: number | string;
+    itemId: string;
+    name: string;
+    description: string;
+    weight: number | string;
+    quantity: number | string;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+    goldValue: null | number | string;
+    modifiers: Array<ItemModifierSummary>;
+};
+
+export type ItemDetailWeaponDetail = {
+    $type?: 'Weapon';
+    minDamage: number | string;
+    maxDamage: number | string;
+    range: number | string;
+    attacksPerTurn: number | string;
+    isTwoHanded: boolean;
+    durabilityCurrent: number | string;
+    durabilityMax: number | string;
+    itemId: string;
+    name: string;
+    description: string;
+    weight: number | string;
+    quantity: number | string;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+    goldValue: null | number | string;
+    modifiers: Array<ItemModifierSummary>;
+};
+
+export type ItemModifierSummary = ({
+    $type: 'Attribute';
+} & ItemModifierSummaryAttributeModifierSummary) | ({
+    $type: 'CombatSpeed';
+} & ItemModifierSummaryCombatSpeedModifierSummary) | ({
+    $type: 'ElementalDamage';
+} & ItemModifierSummaryElementalDamageModifierSummary) | ({
+    $type: 'Leech';
+} & ItemModifierSummaryLeechModifierSummary) | ({
+    $type: 'SpecialHit';
+} & ItemModifierSummarySpecialHitModifierSummary) | ({
+    $type: 'SkillBonus';
+} & ItemModifierSummarySkillBonusModifierSummary) | ({
+    $type: 'Proc';
+} & ItemModifierSummaryProcModifierSummary);
+
+export type ItemModifierSummaryAttributeModifierSummary = {
+    $type?: 'Attribute';
+    amount: number | string;
+    attribute: AttributeName;
+    amountType: AmountType;
+};
+
+export type ItemModifierSummaryCombatSpeedModifierSummary = {
+    $type?: 'CombatSpeed';
+    amount: number | string;
+    speedType: CombatSpeedType;
+};
+
+export type ItemModifierSummaryElementalDamageModifierSummary = {
+    $type?: 'ElementalDamage';
+    damageType: DamageType;
+    minDamage: number | string;
+    maxDamage: number | string;
+};
+
+export type ItemModifierSummaryLeechModifierSummary = {
+    $type?: 'Leech';
+    leechType: LeechType;
+    percent: number | string;
+};
+
+export type ItemModifierSummaryProcModifierSummary = {
+    $type?: 'Proc';
+    abilityName: string;
+    chance: number | string;
+    trigger: ProcTrigger;
+};
+
+export type ItemModifierSummarySkillBonusModifierSummary = {
+    $type?: 'SkillBonus';
+    amount: number | string;
+    skill: null | Skill;
+};
+
+export type ItemModifierSummarySpecialHitModifierSummary = {
+    $type?: 'SpecialHit';
+    chance: number | string;
+    hitType: SpecialHitType;
+};
+
+export type ItemRarity = 'Low' | 'Normal' | 'Magic' | 'Rare' | 'Unique';
 
 export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold';
 
@@ -231,6 +423,8 @@ export type JobStatusResponse = {
     resultJson: null | string;
     errorMessage: null | string;
 };
+
+export type LeechType = 'Life' | 'Mana';
 
 export type LootItemSelection = {
     itemId: string;
@@ -271,6 +465,8 @@ export type NearbyPropSnapshot = {
 
 export type PlayerClass = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric';
 
+export type ProcTrigger = 'OnStriking' | 'WhenStruck' | 'OnKill';
+
 export type Profession = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric' | 'Mercenary' | 'Alchemist' | 'Blacksmith' | 'Scholar' | 'Merchant' | 'Politician' | 'StableMaster' | 'Bartender' | 'Guard' | 'Baker' | 'Innkeeper' | 'Tailor' | 'Carpenter' | 'Jeweler' | 'Homemaker' | 'Unemployed';
 
 export type Race = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome';
@@ -303,6 +499,8 @@ export type SkillProgressSummary = {
     experienceCurrent: number | string;
     experienceToNextLevel: number | string;
 };
+
+export type SpecialHitType = 'CrushingBlow' | 'DeadlyStrike' | 'OpenWounds';
 
 export type TurnMetricsDto = {
     firstTokenMs: number | string;

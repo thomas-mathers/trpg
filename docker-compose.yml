@@ -27,6 +27,21 @@ services:
               count: all
               capabilities: [gpu]
 
+  comfyui:
+    image: yanwk/comfyui-boot:cu130-slim-v2
+    ports:
+      - "8188:8188"
+    volumes:
+      - comfyui_data:/root
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
 volumes:
   postgres_data:
   ollama_data:
+  comfyui_data:

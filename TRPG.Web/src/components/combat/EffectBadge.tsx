@@ -12,12 +12,13 @@ import {
   VolumeX,
 } from 'lucide-react';
 
-import type { ActiveBuff, ActiveDot, ActiveHot, AttributeName, AmountType } from '@/api/client';
+import type { ActiveBuff, ActiveDot, ActiveHot } from '@/api/client';
 import {
   HoverPopover,
   HoverPopoverContent,
   HoverPopoverTrigger,
 } from '@/components/ui/hover-popover';
+import { ATTRIBUTE_LABEL, formatAmount } from '@/lib/enum-labels';
 import { cn } from '@/lib/utils';
 
 const CONDITION_ICON: Record<string, LucideIcon> = {
@@ -32,34 +33,8 @@ const CONDITION_ICON: Record<string, LucideIcon> = {
   Stunned: Sparkles,
 };
 
-const ATTRIBUTE_LABEL: Record<AttributeName, string> = {
-  MaximumHp: 'Maximum HP',
-  MaximumAp: 'Maximum AP',
-  MaximumMp: 'Maximum MP',
-  Strength: 'Strength',
-  Defense: 'Defense',
-  Dexterity: 'Dexterity',
-  Endurance: 'Endurance',
-  Stamina: 'Stamina',
-  Mana: 'Mana',
-  Intelligence: 'Intelligence',
-  PhysicalResistance: 'Physical Resistance',
-  FireResistance: 'Fire Resistance',
-  IceResistance: 'Ice Resistance',
-  LightningResistance: 'Lightning Resistance',
-  PoisonResistance: 'Poison Resistance',
-  MagicResistance: 'Magic Resistance',
-  MovementSpeed: 'Movement Speed',
-};
-
 function turnLabel(turns: number): string {
   return `${turns} turn${turns === 1 ? '' : 's'} remaining`;
-}
-
-function formatAmount(amount: number, amountType: AmountType): string {
-  const sign = amount > 0 ? '+' : '';
-  const unit = amountType === 'Percent' ? '%' : '';
-  return `${sign}${amount}${unit}`;
 }
 
 type EffectBadgeProps =

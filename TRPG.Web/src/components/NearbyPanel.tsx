@@ -16,6 +16,7 @@ interface NearbyPanelProps {
 
 export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
   const [lootTarget, setLootTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
 
   const pointsOfInterest = scene.nearbyBuildings.map((b) => ({
     ...b,
@@ -50,7 +51,11 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
               sessionId={sessionId}
               creature={creature}
               playerLevel={scene.playerStatus.level}
-              onLoot={() => setLootTarget({ id: creature.id, name: creature.name })}
+              tooltipForceClosed={isTransferOpen}
+              onLoot={() => {
+                setLootTarget({ id: creature.id, name: creature.name });
+                setIsTransferOpen(true);
+              }}
             />
           ))
         )}
@@ -100,7 +105,8 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
       <TransferModal
         playerId={scene.playerStatus.id}
         target={lootTarget}
-        onClose={() => setLootTarget(null)}
+        open={isTransferOpen}
+        onClose={() => setIsTransferOpen(false)}
       />
     </div>
   );
@@ -110,11 +116,13 @@ function CreatureRow({
   sessionId,
   creature,
   playerLevel,
+  tooltipForceClosed,
   onLoot,
 }: {
   sessionId: string;
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
+  tooltipForceClosed: boolean;
   onLoot: () => void;
 }) {
   const dead = creature.state === 'Dead';
@@ -139,6 +147,7 @@ function CreatureRow({
           name={creature.name}
           entityType="Creature"
           side="left"
+          forceClosed={tooltipForceClosed}
         >
           {dead ? (
             <button

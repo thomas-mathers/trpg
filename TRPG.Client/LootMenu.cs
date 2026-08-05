@@ -91,7 +91,7 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
         }
 
         var chosen = await AnsiConsole.PromptAsync(
-            new MultiSelectionPrompt<ItemSummary>()
+            new MultiSelectionPrompt<ItemDetail>()
                 .Title("Choose what to take:")
                 .NotRequired()
                 .UseConverter(i => $"{i.Name} x{i.Quantity}")
@@ -113,7 +113,7 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
     }
 
     private static Task<int> PromptForQuantity(
-        ItemSummary item,
+        ItemDetail item,
         CancellationToken cancellationToken
     ) =>
         AnsiConsole.PromptAsync(
@@ -134,7 +134,7 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
 
     private static string DescribeLoot(
         IReadOnlyCollection<LootItemSelection> takenItems,
-        IReadOnlyList<ItemSummary> availableItems
+        IReadOnlyList<ItemDetail> availableItems
     )
     {
         var parts = takenItems.Select(taken =>

@@ -16,6 +16,7 @@ interface EntityTooltipProps {
   name: string;
   entityType: EntityType;
   side?: 'top' | 'right' | 'bottom' | 'left';
+  forceClosed?: boolean;
   children: React.ReactNode;
 }
 
@@ -25,19 +26,21 @@ export function EntityTooltip({
   name,
   entityType,
   side,
+  forceClosed = false,
   children,
 }: EntityTooltipProps) {
   const [open, setOpen] = useState(false);
+  const isOpen = open && !forceClosed;
   const query = useQuery({
     ...getSessionsBySessionIdNamedEntitiesByEntityIdOptions({
       path: { sessionId, entityId: id },
     }),
-    enabled: open,
+    enabled: isOpen,
     staleTime: Infinity,
   });
 
   return (
-    <HoverPopover onOpenChange={setOpen}>
+    <HoverPopover open={isOpen} onOpenChange={setOpen}>
       <HoverPopoverTrigger asChild>{children}</HoverPopoverTrigger>
       <HoverPopoverContent
         side={side}

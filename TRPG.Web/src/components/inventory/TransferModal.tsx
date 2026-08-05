@@ -4,22 +4,19 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  BowArrow,
   ChevronDown,
   ChevronUp,
   Coins,
-  FlaskConical,
-  Gem,
   Search,
-  Shield,
   Skull,
-  Sword,
   User,
+  Weight,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { getCreaturesByCreatureIdInventoryOptions, postTransfersMutation } from '@/api/client';
-import type { ItemRarity, ItemSummary, ItemType } from '@/api/client';
+import type { ItemDetail, ItemRarity, ItemType } from '@/api/client';
+import { ItemTooltip } from '@/components/inventory/ItemTooltip';
 import { NumberStepper } from '@/components/NumberStepper';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,41 +31,8 @@ import {
   HoverPopoverContent,
   HoverPopoverTextTrigger,
 } from '@/components/ui/hover-popover';
+import { RARITY_COLOR, TYPE_ICON } from '@/lib/item-visuals';
 import { cn } from '@/lib/utils';
-
-const TYPE_ICON: Record<ItemType, typeof Sword> = {
-  Dagger: Sword,
-  Sword: Sword,
-  Axe: Sword,
-  Mace: Sword,
-  Hammer: Sword,
-  Staff: Sword,
-  Wand: Sword,
-  Bow: BowArrow,
-  Crossbow: BowArrow,
-  Javelin: Sword,
-  GreatSword: Sword,
-  GreatAxe: Sword,
-  GreatHammer: Sword,
-  Helm: Shield,
-  Chest: Shield,
-  Boots: Shield,
-  Gloves: Shield,
-  Arrow: BowArrow,
-  Bolt: BowArrow,
-  Ring: Gem,
-  Necklace: Gem,
-  Belt: Gem,
-  Shield: Shield,
-  Consumable: FlaskConical,
-  Gold: Coins,
-};
-
-const RARITY_COLOR: Partial<Record<ItemRarity, string>> = {
-  Magic: 'var(--rarity-magic)',
-  Rare: 'var(--rarity-rare)',
-  Unique: 'var(--rarity-unique)',
-};
 
 interface WorkingItem {
   rowKey: string;
@@ -79,6 +43,8 @@ interface WorkingItem {
   equippedSlot: string | null;
   weight: number;
   quantity: number;
+  goldValue: number | null;
+  detail: ItemDetail;
 }
 
 type Direction = 'toOther' | 'toPlayer';
@@ -89,13 +55,13 @@ interface PendingMove {
   direction: Direction;
 }
 
-type SortKey = 'name' | 'quantity' | 'weight';
+type SortKey = 'name' | 'quantity' | 'weight' | 'value';
 interface SortState {
   key: SortKey;
   dir: 'asc' | 'desc';
 }
 
-const toWorkingItems = (items: ItemSummary[]): WorkingItem[] =>
+const toWorkingItems = (items: ItemDetail[]): WorkingItem[] =>
   items.map((item) => ({
     rowKey: item.itemId,
     itemId: item.itemId,
@@ -105,6 +71,8 @@ const toWorkingItems = (items: ItemSummary[]): WorkingItem[] =>
     equippedSlot: item.equippedSlot ?? null,
     weight: Number(item.weight),
     quantity: Number(item.quantity),
+    goldValue: item.goldValue != null ? Number(item.goldValue) : null,
+    detail: item,
   }));
 
 const sortItems = (items: WorkingItem[], search: string, sort: SortState): WorkingItem[] => {
@@ -117,6 +85,9 @@ const sortItems = (items: WorkingItem[], search: string, sort: SortState): Worki
     }
     if (sort.key === 'quantity') {
       return (a.quantity - b.quantity) * dir;
+    }
+    if (sort.key === 'value') {
+      return ((a.goldValue ?? 0) * a.quantity - (b.goldValue ?? 0) * b.quantity) * dir;
     }
     return (a.weight * a.quantity - b.weight * b.quantity) * dir;
   });
@@ -176,13 +147,17 @@ interface TransferTarget {
 interface TransferModalProps {
   playerId: string;
   target: TransferTarget | null;
+  open: boolean;
   onClose: () => void;
 }
 
-export function TransferModal({ playerId, target, onClose }: TransferModalProps) {
+export function TransferModal({ playerId, target, open, onClose }: TransferModalProps) {
   return (
-    <Dialog open={target !== null} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-4 md:max-w-6xl">
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent
+        className="flex max-h-[90vh] flex-col gap-4 md:max-w-6xl"
+        onPointerDownOutside={(event) => event.preventDefault()}
+      >
         {target && (
           <TransferModalBody
             key={target.id}
@@ -490,8 +465,8 @@ function InventorySidePanel({
     <div className="bg-muted/40 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border">
       <div className="border-b px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-semibold">{title}</div>
-        <p className="text-muted-foreground mt-0.5 text-xs">
-          {items.length} items · {totalWeight} lb total
+        <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
+          {items.length} items · {totalWeight} <Weight className="size-3 shrink-0" /> total
         </p>
       </div>
 
@@ -514,6 +489,7 @@ function InventorySidePanel({
             <col className="w-7" />
             <col />
             <col className="w-12" />
+            <col className="w-16" />
             <col className="w-16" />
           </colgroup>
           <thead>
@@ -544,6 +520,13 @@ function InventorySidePanel({
               <SortableHeader
                 label="Weight"
                 sortKey="weight"
+                sort={sort}
+                onToggle={toggleSort}
+                align="right"
+              />
+              <SortableHeader
+                label="Value"
+                sortKey="value"
                 sort={sort}
                 onToggle={toggleSort}
                 align="right"
@@ -646,8 +629,8 @@ function ItemRow({
             <HoverPopoverTextTrigger className="min-w-0 truncate text-left font-medium">
               {item.name}
             </HoverPopoverTextTrigger>
-            <HoverPopoverContent className="w-auto max-w-64 p-2 text-sm">
-              {item.name}
+            <HoverPopoverContent side="bottom" className="w-auto max-w-64 p-2 text-sm">
+              <ItemTooltip item={item.detail} />
             </HoverPopoverContent>
           </HoverPopover>
           {locked && (
@@ -671,7 +654,22 @@ function ItemRow({
         <div className="flex h-5 items-center justify-end">{item.quantity}</div>
       </td>
       <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
-        <div className="flex h-5 items-center justify-end">{item.weight * item.quantity} lb</div>
+        <div className="flex h-5 items-center justify-end gap-1">
+          {item.weight * item.quantity}
+          <Weight className="text-muted-foreground size-3 shrink-0" />
+        </div>
+      </td>
+      <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
+        <div className="flex h-5 items-center justify-end gap-1">
+          {item.goldValue !== null ? (
+            <>
+              {item.goldValue * item.quantity}
+              <Coins className="text-muted-foreground size-3 shrink-0" />
+            </>
+          ) : (
+            '—'
+          )}
+        </div>
       </td>
     </tr>
   );
