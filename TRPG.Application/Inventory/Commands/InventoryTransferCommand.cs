@@ -1,16 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures;
-using TRPG.Application.Inventory;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Commands;
 
+internal record ItemOwnerReference(Guid Id, OwnerType Type);
+
 internal class InventoryTransferCommand
 {
-    public required Guid FromCreatureId { get; init; }
-    public required Guid ToCreatureId { get; init; }
+    public required ItemOwnerReference From { get; init; }
+    public required ItemOwnerReference To { get; init; }
     public required IReadOnlyList<LootItemSelection> Items { get; init; }
 }
 
@@ -21,33 +22,13 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var fromCreature =
-            await context.Creatures.FirstOrDefaultAsync(
-                c => c.Id == command.FromCreatureId,
-                cancellationToken
-            )
-            ?? throw new InvalidOperationException($"Creature {command.FromCreatureId} not found.");
-        var toCreature =
-            await context.Creatures.FirstOrDefaultAsync(
-                c => c.Id == command.ToCreatureId,
-                cancellationToken
-            ) ?? throw new InvalidOperationException($"Creature {command.ToCreatureId} not found.");
-
-        var sameLocation = fromCreature.LocationId == toCreature.LocationId;
-        if (!sameLocation)
-        {
-            throw new InvalidOperationException(
-                $"Creature {command.FromCreatureId} is not nearby."
-            );
-        }
-
         await using var transaction = await context.Database.BeginTransactionAsync(
             cancellationToken
         );
 
         if (command.Items.Count > 0)
         {
-            await TransferItems(command, fromCreature, toCreature, cancellationToken);
+            await TransferItems(command, cancellationToken);
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -56,8 +37,6 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
 
     private async Task TransferItems(
         InventoryTransferCommand command,
-        Creature fromCreature,
-        Creature toCreature,
         CancellationToken cancellationToken
     )
     {
@@ -71,13 +50,16 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
             var item =
                 items.FirstOrDefault(i => i.Id == selection.ItemId)
                 ?? throw new InvalidOperationException(
-                    $"Item {selection.ItemId} not found in creature {command.FromCreatureId}'s inventory."
+                    $"Item {selection.ItemId} not found in {command.From.Type} {command.From.Id}'s inventory."
                 );
 
-            if (item.Ownership.OwnerId != command.FromCreatureId)
+            if (
+                item.Ownership.OwnerId != command.From.Id
+                || item.Ownership.OwnerType != command.From.Type
+            )
             {
                 throw new InvalidOperationException(
-                    $"Item {selection.ItemId} is not owned by creature {command.FromCreatureId}."
+                    $"Item {selection.ItemId} is not owned by {command.From.Type} {command.From.Id}."
                 );
             }
 
@@ -90,11 +72,12 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
 
             if (item is Gold goldItem)
             {
-                await TransferGold(goldItem, toCreature, selection.Quantity, cancellationToken);
+                await TransferGold(goldItem, command.To, selection.Quantity, cancellationToken);
             }
             else if (selection.Quantity == item.Quantity)
             {
-                item.Ownership.OwnerId = command.ToCreatureId;
+                item.Ownership.OwnerId = command.To.Id;
+                item.Ownership.OwnerType = command.To.Type;
                 item.Ownership.EquippedSlot = null;
                 item.Ownership.AcquiredAt = DateTime.UtcNow;
             }
@@ -105,17 +88,32 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
                     ItemEquipmentPolicy.Split(
                         item,
                         selection.Quantity,
-                        command.ToCreatureId,
-                        OwnerType.Creature
+                        command.To.Id,
+                        command.To.Type
                     )
                 );
             }
         }
 
+        if (command.From.Type == OwnerType.Creature)
+        {
+            await RecalculateCreatureAttributes(command.From.Id, cancellationToken);
+        }
+    }
+
+    private async Task RecalculateCreatureAttributes(
+        Guid creatureId,
+        CancellationToken cancellationToken
+    )
+    {
+        var fromCreature =
+            await context.Creatures.FirstOrDefaultAsync(c => c.Id == creatureId, cancellationToken)
+            ?? throw new InvalidOperationException($"Creature {creatureId} not found.");
+
         var remainingEquipped = await context
             .Items.Where(i =>
                 i.Ownership.OwnerType == OwnerType.Creature
-                && i.Ownership.OwnerId == command.FromCreatureId
+                && i.Ownership.OwnerId == creatureId
                 && i.Ownership.EquippedSlot != null
             )
             .ToListAsync(cancellationToken);
@@ -124,32 +122,34 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
 
     private async Task TransferGold(
         Gold sourceGoldItem,
-        Creature toCreature,
+        ItemOwnerReference to,
         int amount,
         CancellationToken cancellationToken
     )
     {
         sourceGoldItem.Quantity -= amount;
-        var toGoldItem = await FindOrCreateGoldItem(toCreature, cancellationToken);
+        var toGoldItem = await FindOrCreateGoldItem(to, sourceGoldItem.WorldId, cancellationToken);
         toGoldItem.Quantity += amount;
     }
 
-    private async Task<Gold?> FindGoldItem(Guid creatureId, CancellationToken cancellationToken) =>
+    private async Task<Gold?> FindGoldItem(
+        ItemOwnerReference owner,
+        CancellationToken cancellationToken
+    ) =>
         await context
             .Items.OfType<Gold>()
             .FirstOrDefaultAsync(
-                i =>
-                    i.Ownership.OwnerType == OwnerType.Creature
-                    && i.Ownership.OwnerId == creatureId,
+                i => i.Ownership.OwnerType == owner.Type && i.Ownership.OwnerId == owner.Id,
                 cancellationToken
             );
 
     private async Task<Gold> FindOrCreateGoldItem(
-        Creature creature,
+        ItemOwnerReference owner,
+        Guid worldId,
         CancellationToken cancellationToken
     )
     {
-        var existing = await FindGoldItem(creature.Id, cancellationToken);
+        var existing = await FindGoldItem(owner, cancellationToken);
         if (existing != null)
         {
             return existing;
@@ -157,9 +157,9 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
 
         var goldItem = new Gold
         {
-            WorldId = creature.WorldId,
+            WorldId = worldId,
             Name = "Gold",
-            Ownership = new ItemOwnership { OwnerId = creature.Id, OwnerType = OwnerType.Creature },
+            Ownership = new ItemOwnership { OwnerId = owner.Id, OwnerType = owner.Type },
         };
         context.Items.Add(goldItem);
         return goldItem;

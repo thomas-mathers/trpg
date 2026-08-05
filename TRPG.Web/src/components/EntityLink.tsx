@@ -3,7 +3,11 @@ import { useState } from 'react';
 
 import { getSessionsBySessionIdNamedEntitiesByEntityIdOptions } from '@/api/client';
 import type { EntityType } from '@/api/client';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  HoverPopover,
+  HoverPopoverContent,
+  HoverPopoverTrigger,
+} from '@/components/ui/hover-popover';
 import { ENTITY_TYPE_COLORS } from '@/lib/entity-colors';
 
 interface EntityTooltipProps {
@@ -33,11 +37,11 @@ export function EntityTooltip({
   });
 
   return (
-    <Tooltip onOpenChange={setOpen}>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent
+    <HoverPopover onOpenChange={setOpen}>
+      <HoverPopoverTrigger asChild>{children}</HoverPopoverTrigger>
+      <HoverPopoverContent
         side={side}
-        className="flex-col items-start gap-1 text-left whitespace-normal"
+        className="flex flex-col items-start gap-1 text-left whitespace-normal"
       >
         <span className="font-bold" style={{ color: ENTITY_TYPE_COLORS[entityType] }}>
           {name}
@@ -53,8 +57,8 @@ export function EntityTooltip({
         ) : (
           <span className="text-background/70 text-[10px] italic">Loading…</span>
         )}
-      </TooltipContent>
-    </Tooltip>
+      </HoverPopoverContent>
+    </HoverPopover>
   );
 }
 

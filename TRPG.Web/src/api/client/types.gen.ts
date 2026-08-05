@@ -186,8 +186,6 @@ export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gno
 
 export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 'Magic';
 
-export type DistrictType = 'Residential' | 'Scientific' | 'CityCenter' | 'Governmental' | 'HolySite' | 'Encampment';
-
 export type EnqueueJobResponse = {
     jobId: string;
 };
@@ -260,13 +258,6 @@ export type NearbyCorpseSummary = {
     itemCount: number | string;
 };
 
-export type NearbyDistrictSnapshot = {
-    id: string;
-    name: string;
-    type: DistrictType;
-    typeDescription: string;
-};
-
 export type NearbyExitSnapshot = {
     description: string;
     destinationRoomName: string;
@@ -299,7 +290,6 @@ export type SceneSnapshot = {
     hour: number | string;
     playerStatus: CreatureStatusSnapshot;
     nearbyCreatures: Array<CreatureStatusSnapshot>;
-    nearbyDistricts: Array<NearbyDistrictSnapshot>;
     nearbyBuildings: Array<NearbyBuildingSnapshot>;
     nearbyProps: Array<NearbyPropSnapshot>;
     exits: Array<NearbyExitSnapshot>;
@@ -814,6 +804,17 @@ export type PostTransfersData = {
         toId: string;
     };
     url: '/transfers';
+};
+
+export type PostTransfersErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+    /**
+     * Not Found
+     */
+    404: unknown;
 };
 
 export type PostTransfersResponses = {

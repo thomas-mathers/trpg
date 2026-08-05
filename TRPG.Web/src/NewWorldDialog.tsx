@@ -23,6 +23,11 @@ import {
   DialogTrigger,
 } from './components/ui/dialog';
 import { Field, FieldError, FieldGroup, FieldLabel } from './components/ui/field';
+import {
+  HoverPopover,
+  HoverPopoverContent,
+  HoverPopoverTextTrigger,
+} from './components/ui/hover-popover';
 import { Input } from './components/ui/input';
 import {
   Select,
@@ -34,7 +39,6 @@ import {
 import { Slider } from './components/ui/slider';
 import { Spinner } from './components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
-import { Tooltip, TooltipContent, TooltipTrigger } from './components/ui/tooltip';
 import { WorldGenerationDefaults } from './lib/world-generation-defaults';
 
 const GENDERS: Gender[] = ['Male', 'Female'];
@@ -435,16 +439,14 @@ export function NewWorldDialog() {
 
                               return (
                                 <div key={attribute} className="flex items-center justify-between">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="text-sm underline decoration-dotted underline-offset-4">
-                                        {attribute}
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
+                                  <HoverPopover>
+                                    <HoverPopoverTextTrigger className="text-sm">
+                                      {attribute}
+                                    </HoverPopoverTextTrigger>
+                                    <HoverPopoverContent>
                                       {ATTRIBUTE_DESCRIPTIONS[attribute]}
-                                    </TooltipContent>
-                                  </Tooltip>
+                                    </HoverPopoverContent>
+                                  </HoverPopover>
                                   <NumberStepper
                                     value={netValue}
                                     min={1}

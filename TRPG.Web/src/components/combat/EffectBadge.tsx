@@ -13,7 +13,11 @@ import {
 } from 'lucide-react';
 
 import type { ActiveBuff, ActiveDot, ActiveHot, AttributeName, AmountType } from '@/api/client';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  HoverPopover,
+  HoverPopoverContent,
+  HoverPopoverTrigger,
+} from '@/components/ui/hover-popover';
 import { cn } from '@/lib/utils';
 
 const CONDITION_ICON: Record<string, LucideIcon> = {
@@ -131,8 +135,8 @@ export function EffectBadge(props: EffectBadgeProps) {
   const { icon: Icon, variant, title, body, turns } = describe(props);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <HoverPopover>
+      <HoverPopoverTrigger asChild>
         <button
           type="button"
           className={cn(
@@ -147,14 +151,14 @@ export function EffectBadge(props: EffectBadgeProps) {
             {turns}
           </span>
         </button>
-      </PopoverTrigger>
-      <PopoverContent side="top" className="w-auto max-w-56 p-2 text-xs">
+      </HoverPopoverTrigger>
+      <HoverPopoverContent side="top" className="w-auto max-w-56 p-2 text-xs">
         <p className="flex items-center gap-1.5 font-semibold">
           <Icon className="h-3 w-3 shrink-0" />
           {title}
         </p>
         <p className="text-muted-foreground mt-1">{body}</p>
-      </PopoverContent>
-    </Popover>
+      </HoverPopoverContent>
+    </HoverPopover>
   );
 }

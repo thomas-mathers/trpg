@@ -1,8 +1,10 @@
 import { DoorOpen, Ghost, Skull } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 
 import type { CreatureStatusSnapshot, SceneSnapshot } from '@/api/client';
 import { EntityTooltip } from '@/components/EntityLink';
+import { TransferModal } from '@/components/inventory/TransferModal';
 import { BUILDING_TYPE_ICONS } from '@/lib/place-type-icons';
 import { isDangerous } from '@/lib/threat-level';
 import { cn } from '@/lib/utils';
@@ -13,6 +15,8 @@ interface NearbyPanelProps {
 }
 
 export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
+  const [lootTarget, setLootTarget] = useState<{ id: string; name: string } | null>(null);
+
   const pointsOfInterest = scene.nearbyBuildings.map((b) => ({
     ...b,
     entityType: 'Building' as const,
@@ -46,6 +50,7 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
               sessionId={sessionId}
               creature={creature}
               playerLevel={scene.playerStatus.level}
+              onLoot={() => setLootTarget({ id: creature.id, name: creature.name })}
             />
           ))
         )}
@@ -91,6 +96,12 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
           ))
         )}
       </Section>
+
+      <TransferModal
+        playerId={scene.playerStatus.id}
+        target={lootTarget}
+        onClose={() => setLootTarget(null)}
+      />
     </div>
   );
 }
@@ -99,10 +110,12 @@ function CreatureRow({
   sessionId,
   creature,
   playerLevel,
+  onLoot,
 }: {
   sessionId: string;
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
+  onLoot: () => void;
 }) {
   const dead = creature.state === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
@@ -127,15 +140,25 @@ function CreatureRow({
           entityType="Creature"
           side="left"
         >
-          <span
-            className={cn(
-              'cursor-help truncate font-semibold',
-              reputation != null && reputation > 0 && 'text-green-500',
-              reputation != null && reputation < 0 && 'text-red-500',
-            )}
-          >
-            {creature.name}
-          </span>
+          {dead ? (
+            <button
+              type="button"
+              onClick={onLoot}
+              className="cursor-pointer truncate font-semibold underline decoration-dotted underline-offset-2"
+            >
+              {creature.name}
+            </button>
+          ) : (
+            <span
+              className={cn(
+                'cursor-help truncate font-semibold',
+                reputation != null && reputation > 0 && 'text-green-500',
+                reputation != null && reputation < 0 && 'text-red-500',
+              )}
+            >
+              {creature.name}
+            </span>
+          )}
         </EntityTooltip>
         <span className="text-muted-foreground shrink-0 text-xs">Lv {creature.level}</span>
       </span>

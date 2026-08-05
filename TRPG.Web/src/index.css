@@ -74,6 +74,9 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --crit: oklch(0.72 0.19 55);
+  --rarity-magic: oklch(0.55 0.18 255);
+  --rarity-rare: oklch(0.62 0.16 70);
+  --rarity-unique: oklch(0.55 0.2 320);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -110,6 +113,9 @@
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
   --crit: oklch(0.78 0.18 60);
+  --rarity-magic: oklch(0.72 0.15 255);
+  --rarity-rare: oklch(0.75 0.14 70);
+  --rarity-unique: oklch(0.72 0.17 320);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
