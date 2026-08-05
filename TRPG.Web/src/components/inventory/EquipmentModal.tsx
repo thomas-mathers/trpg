@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { PackageOpen, Search } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Empty, EmptyContent, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import {
   HoverPopover,
   HoverPopoverContent,
@@ -25,7 +26,13 @@ import {
 } from '@/components/ui/hover-popover';
 import { Toggle } from '@/components/ui/toggle';
 import { EQUIPMENT_SLOT_LABEL } from '@/lib/enum-labels';
-import { RARITY_COLOR, TYPE_ICON } from '@/lib/item-visuals';
+import {
+  CATEGORY_LABEL,
+  CATEGORY_ORDER,
+  type ItemCategory,
+  RARITY_COLOR,
+  TYPE_ICON,
+} from '@/lib/item-visuals';
 
 const WEAPON_TYPES = new Set<ItemType>([
   'Dagger',
@@ -63,28 +70,6 @@ function equipSlotFor(item: ItemDetail, equippedSlots: Set<EquipmentSlot>): Equi
   }
   return null;
 }
-
-type ItemCategory = ItemDetail['$type'];
-
-const CATEGORY_ORDER: ItemCategory[] = [
-  'Weapon',
-  'Shield',
-  'Armor',
-  'Accessory',
-  'Ammunition',
-  'Consumable',
-  'Gold',
-];
-
-const CATEGORY_LABEL: Record<ItemCategory, string> = {
-  Weapon: 'Weapons',
-  Shield: 'Shields',
-  Armor: 'Armor',
-  Accessory: 'Accessories',
-  Ammunition: 'Ammo',
-  Consumable: 'Consumables',
-  Gold: 'Gold',
-};
 
 type SortKey = 'name' | 'weight' | 'value';
 
@@ -127,7 +112,7 @@ export function EquipmentModal({ playerId, open, onClose }: EquipmentModalProps)
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="flex max-h-[90vh] flex-col gap-4 md:max-w-3xl">
-        {open && <EquipmentModalBody playerId={playerId} onClose={onClose} />}
+        <EquipmentModalBody playerId={playerId} onClose={onClose} />
       </DialogContent>
     </Dialog>
   );
@@ -152,6 +137,11 @@ function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: 
       next.add(category);
     }
     setCategories(next);
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setCategories(new Set());
   };
 
   const invalidateInventory = () =>
@@ -222,53 +212,71 @@ function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: 
       </div>
 
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-        <table className="w-full table-fixed">
-          <colgroup>
-            <col />
-            <col className="w-16" />
-            <col className="w-16" />
-            <col className="w-24" />
-          </colgroup>
-          <thead>
-            <tr className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-              <SortableHeader label="Item" sortKey="name" sort={sort} onToggle={toggleSort} />
-              <SortableHeader
-                label="Weight"
-                sortKey="weight"
-                sort={sort}
-                onToggle={toggleSort}
-                align="right"
-              />
-              <SortableHeader
-                label="Value"
-                sortKey="value"
-                sort={sort}
-                onToggle={toggleSort}
-                align="right"
-              />
-              <th className="px-2 py-2 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-border divide-y">
-            {visible.map((item) => (
-              <EquipmentRow
-                key={item.itemId}
-                item={item}
-                targetSlot={equipSlotFor(item, equippedSlots)}
-                busy={busy}
-                onEquip={(slot) =>
-                  equip.mutate({
-                    path: { creatureId: playerId },
-                    body: { itemId: item.itemId, slot },
-                  })
-                }
-                onUnequip={(slot) =>
-                  unequip.mutate({ path: { creatureId: playerId }, body: { slot } })
-                }
-              />
-            ))}
-          </tbody>
-        </table>
+        {visible.length === 0 ? (
+          <Empty className="py-12">
+            <EmptyMedia variant="icon">
+              <PackageOpen />
+            </EmptyMedia>
+            <EmptyTitle>
+              {items.length === 0 ? 'Your inventory is empty.' : 'No items match your filters.'}
+            </EmptyTitle>
+            {items.length > 0 && (search || categories.size > 0) && (
+              <EmptyContent>
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              </EmptyContent>
+            )}
+          </Empty>
+        ) : (
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col />
+              <col className="w-16" />
+              <col className="w-16" />
+              <col className="w-24" />
+            </colgroup>
+            <thead>
+              <tr className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+                <SortableHeader label="Item" sortKey="name" sort={sort} onToggle={toggleSort} />
+                <SortableHeader
+                  label="Weight"
+                  sortKey="weight"
+                  sort={sort}
+                  onToggle={toggleSort}
+                  align="right"
+                />
+                <SortableHeader
+                  label="Value"
+                  sortKey="value"
+                  sort={sort}
+                  onToggle={toggleSort}
+                  align="right"
+                />
+                <th className="px-2 py-2 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-border divide-y">
+              {visible.map((item) => (
+                <EquipmentRow
+                  key={item.itemId}
+                  item={item}
+                  targetSlot={equipSlotFor(item, equippedSlots)}
+                  busy={busy}
+                  onEquip={(slot) =>
+                    equip.mutate({
+                      path: { creatureId: playerId },
+                      body: { itemId: item.itemId, slot },
+                    })
+                  }
+                  onUnequip={(slot) =>
+                    unequip.mutate({ path: { creatureId: playerId }, body: { slot } })
+                  }
+                />
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <DialogFooter>
