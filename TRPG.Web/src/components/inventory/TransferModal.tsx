@@ -171,7 +171,7 @@ export function TransferModal({ playerId, target, open, onClose }: TransferModal
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
-        className="flex h-[min(90vh,760px)] flex-col gap-4 md:max-w-7xl"
+        className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-7xl"
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         {target && (
