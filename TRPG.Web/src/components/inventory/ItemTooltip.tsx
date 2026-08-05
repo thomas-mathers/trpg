@@ -73,8 +73,12 @@ export function ItemTooltip({ item }: { item: ItemDetail }) {
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5">
         <Icon className="text-muted-foreground mr-1 size-8 shrink-0" />
-        <div>
-          <p className="font-semibold" style={rarityColor ? { color: rarityColor } : undefined}>
+        <div className="min-w-0 flex-1">
+          <p
+            className="truncate font-semibold"
+            style={rarityColor ? { color: rarityColor } : undefined}
+            title={item.name}
+          >
             {item.name}
           </p>
           <p className="text-muted-foreground text-xs">{ITEM_TYPE_LABEL[item.type]}</p>

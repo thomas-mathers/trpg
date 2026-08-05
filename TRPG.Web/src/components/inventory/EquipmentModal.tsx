@@ -71,6 +71,32 @@ function equipSlotFor(item: ItemDetail, equippedSlots: Set<EquipmentSlot>): Equi
   return null;
 }
 
+// Slots a hovered item would occupy or vacate, for comparison-tooltip purposes.
+// Differs from equipSlotFor: a two-handed weapon touches both hands, and rings
+// compare against both ring slots (the player is choosing which one to replace),
+// not just whichever one equipSlotFor would pick for the actual equip action.
+function getComparisonSlots(item: ItemDetail): EquipmentSlot[] {
+  switch (item.$type) {
+    case 'Weapon':
+      return item.isTwoHanded ? ['RightHand', 'LeftHand'] : ['RightHand'];
+    case 'Shield':
+    case 'Ammunition':
+      return ['LeftHand'];
+    case 'Armor':
+      return ARMOR_SLOTS.has(item.type) ? [item.type as EquipmentSlot] : [];
+    case 'Accessory':
+      if (item.type === 'Necklace' || item.type === 'Belt') {
+        return [item.type];
+      }
+      if (item.type === 'Ring') {
+        return ['LeftRing', 'RightRing'];
+      }
+      return [];
+    default:
+      return [];
+  }
+}
+
 type SortKey = 'name' | 'weight' | 'value';
 
 function sortItems(
@@ -168,6 +194,7 @@ function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: 
   }
 
   const items = inventory.data.items;
+  const equippedItems = items.filter((item) => item.equippedSlot != null);
   const equippedSlots = new Set(
     items.map((item) => item.equippedSlot).filter((slot): slot is EquipmentSlot => slot != null),
   );
@@ -265,6 +292,7 @@ function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: 
                   key={item.itemId}
                   item={item}
                   targetSlot={equipSlotFor(item, equippedSlots)}
+                  equippedItems={equippedItems}
                   busy={busy}
                   onEquip={(slot) =>
                     equip.mutate({
@@ -294,12 +322,14 @@ function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: 
 function EquipmentRow({
   item,
   targetSlot,
+  equippedItems,
   busy,
   onEquip,
   onUnequip,
 }: {
   item: ItemDetail;
   targetSlot: EquipmentSlot | null;
+  equippedItems: ItemDetail[];
   busy: boolean;
   onEquip: (slot: EquipmentSlot) => void;
   onUnequip: (slot: EquipmentSlot) => void;
@@ -307,6 +337,13 @@ function EquipmentRow({
   const Icon = TYPE_ICON[item.type];
   const rarityColor = item.rarity ? RARITY_COLOR[item.rarity] : undefined;
   const equippedSlot = item.equippedSlot ?? null;
+  const comparisons =
+    equippedSlot === null
+      ? getComparisonSlots(item).flatMap((slot) => {
+          const equipped = equippedItems.find((e) => e.equippedSlot === slot);
+          return equipped ? [{ slot, equipped }] : [];
+        })
+      : [];
 
   return (
     <tr>
@@ -324,8 +361,37 @@ function EquipmentRow({
             <HoverPopoverTextTrigger className="min-w-0 truncate text-left font-medium">
               {item.name}
             </HoverPopoverTextTrigger>
-            <HoverPopoverContent side="bottom" className="w-auto max-w-64 p-2 text-sm">
-              <ItemTooltip item={item} />
+            <HoverPopoverContent
+              side="bottom"
+              className={
+                comparisons.length > 0
+                  ? 'w-auto max-w-[44rem] p-2 text-sm'
+                  : 'w-auto max-w-64 p-2 text-sm'
+              }
+            >
+              {comparisons.length > 0 ? (
+                <div className="flex gap-3">
+                  <div className="w-52 shrink-0">
+                    <p className="text-background/60 mb-1 truncate text-[10px] font-semibold uppercase">
+                      This item
+                    </p>
+                    <ItemTooltip item={item} />
+                  </div>
+                  {comparisons.map(({ slot, equipped }) => (
+                    <div
+                      key={equipped.itemId}
+                      className="border-background/20 w-52 shrink-0 border-l pl-3"
+                    >
+                      <p className="text-background/60 mb-1 truncate text-[10px] font-semibold uppercase">
+                        Equipped ({EQUIPMENT_SLOT_LABEL[slot]})
+                      </p>
+                      <ItemTooltip item={equipped} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <ItemTooltip item={item} />
+              )}
             </HoverPopoverContent>
           </HoverPopover>
           {equippedSlot && (
