@@ -196,6 +196,11 @@ export type EnqueueJobResponse = {
 
 export type EntityType = 'Creature' | 'Building' | 'District' | 'World' | 'Country' | 'State' | 'City';
 
+export type EquipItemRequest = {
+    itemId: string;
+    slot: EquipmentSlot;
+};
+
 export type EquipmentSlot = 'Helm' | 'Chest' | 'LeftHand' | 'RightHand' | 'Boots' | 'Necklace' | 'Gloves' | 'LeftRing' | 'RightRing' | 'Belt';
 
 export type FightState = {
@@ -509,6 +514,10 @@ export type TurnMetricsDto = {
     tokensPerSecond: number | string;
 };
 
+export type UnequipItemRequest = {
+    slot: EquipmentSlot;
+};
+
 export type WaitRequest = {
     hours: number | string;
 };
@@ -734,6 +743,42 @@ export type GetCreaturesByCreatureIdLevelResponses = {
 };
 
 export type GetCreaturesByCreatureIdLevelResponse = GetCreaturesByCreatureIdLevelResponses[keyof GetCreaturesByCreatureIdLevelResponses];
+
+export type PostCreaturesByCreatureIdEquipmentEquipData = {
+    body: EquipItemRequest;
+    path: {
+        creatureId: string;
+    };
+    query?: never;
+    url: '/creatures/{creatureId}/equipment/equip';
+};
+
+export type PostCreaturesByCreatureIdEquipmentEquipResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type PostCreaturesByCreatureIdEquipmentEquipResponse = PostCreaturesByCreatureIdEquipmentEquipResponses[keyof PostCreaturesByCreatureIdEquipmentEquipResponses];
+
+export type PostCreaturesByCreatureIdEquipmentUnequipData = {
+    body: UnequipItemRequest;
+    path: {
+        creatureId: string;
+    };
+    query?: never;
+    url: '/creatures/{creatureId}/equipment/unequip';
+};
+
+export type PostCreaturesByCreatureIdEquipmentUnequipResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type PostCreaturesByCreatureIdEquipmentUnequipResponse = PostCreaturesByCreatureIdEquipmentUnequipResponses[keyof PostCreaturesByCreatureIdEquipmentUnequipResponses];
 
 export type GetCorpsesData = {
     body?: never;

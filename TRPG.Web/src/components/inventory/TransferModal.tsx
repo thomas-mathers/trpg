@@ -4,8 +4,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  ChevronDown,
-  ChevronUp,
   Coins,
   Search,
   Skull,
@@ -17,6 +15,7 @@ import { useEffect, useState } from 'react';
 import { getCreaturesByCreatureIdInventoryOptions, postTransfersMutation } from '@/api/client';
 import type { ItemDetail, ItemRarity, ItemType } from '@/api/client';
 import { ItemTooltip } from '@/components/inventory/ItemTooltip';
+import { SortableHeader, type SortState } from '@/components/inventory/SortableHeader';
 import { NumberStepper } from '@/components/NumberStepper';
 import { Button } from '@/components/ui/button';
 import {
@@ -56,10 +55,6 @@ interface PendingMove {
 }
 
 type SortKey = 'name' | 'quantity' | 'weight' | 'value';
-interface SortState {
-  key: SortKey;
-  dir: 'asc' | 'desc';
-}
 
 const toWorkingItems = (items: ItemDetail[]): WorkingItem[] =>
   items.map((item) => ({
@@ -75,7 +70,11 @@ const toWorkingItems = (items: ItemDetail[]): WorkingItem[] =>
     detail: item,
   }));
 
-const sortItems = (items: WorkingItem[], search: string, sort: SortState): WorkingItem[] => {
+const sortItems = (
+  items: WorkingItem[],
+  search: string,
+  sort: SortState<SortKey>,
+): WorkingItem[] => {
   const query = search.trim().toLowerCase();
   const filtered = query ? items.filter((item) => item.name.toLowerCase().includes(query)) : items;
   const dir = sort.dir === 'asc' ? 1 : -1;
@@ -196,8 +195,8 @@ function TransferModalBody({
   const [rightSelected, setRightSelected] = useState(new Map<string, number>());
   const [leftSearch, setLeftSearch] = useState('');
   const [rightSearch, setRightSearch] = useState('');
-  const [leftSort, setLeftSort] = useState<SortState>({ key: 'name', dir: 'asc' });
-  const [rightSort, setRightSort] = useState<SortState>({ key: 'name', dir: 'asc' });
+  const [leftSort, setLeftSort] = useState<SortState<SortKey>>({ key: 'name', dir: 'asc' });
+  const [rightSort, setRightSort] = useState<SortState<SortKey>>({ key: 'name', dir: 'asc' });
 
   useEffect(() => {
     if (leftItems === null && playerInventory.data) {
@@ -402,8 +401,8 @@ interface InventorySidePanelProps {
   onSelectedChange: (selected: Map<string, number>) => void;
   search: string;
   onSearchChange: (value: string) => void;
-  sort: SortState;
-  onSortChange: (sort: SortState) => void;
+  sort: SortState<SortKey>;
+  onSortChange: (sort: SortState<SortKey>) => void;
 }
 
 function InventorySidePanel({
@@ -547,40 +546,6 @@ function InventorySidePanel({
         </table>
       </div>
     </div>
-  );
-}
-
-function SortableHeader({
-  label,
-  sortKey,
-  sort,
-  onToggle,
-  align = 'left',
-}: {
-  label: string;
-  sortKey: SortKey;
-  sort: SortState;
-  onToggle: (key: SortKey) => void;
-  align?: 'left' | 'right';
-}) {
-  const active = sort.key === sortKey;
-  const Icon = sort.dir === 'desc' ? ChevronDown : ChevronUp;
-  return (
-    <th
-      className={cn(
-        'cursor-pointer px-2 py-2',
-        align === 'right' ? 'text-right' : 'text-left',
-        active ? 'text-foreground' : 'hover:text-foreground',
-      )}
-      onClick={() => onToggle(sortKey)}
-    >
-      <span
-        className={cn('inline-flex items-center gap-0.5', align === 'right' && 'flex-row-reverse')}
-      >
-        {label}
-        <Icon className={cn('size-2.5', !active && 'opacity-0 group-hover:opacity-100')} />
-      </span>
-    </th>
   );
 }
 

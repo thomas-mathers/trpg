@@ -5,10 +5,13 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Inventory.Mappers;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Contracts.Creatures.Responses;
+using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Inventory.Responses;
 using TRPG.Data.Models;
 
@@ -29,6 +32,8 @@ internal static class CreatureEndpoints
         app.MapGet("/creatures/{creatureId:guid}/attributes", GetBaseAttributes);
         app.MapGet("/creatures/{creatureId:guid}/skills", GetSkills);
         app.MapGet("/creatures/{creatureId:guid}/level", GetLevel);
+        app.MapPost("/creatures/{creatureId:guid}/equipment/equip", EquipItem);
+        app.MapPost("/creatures/{creatureId:guid}/equipment/unequip", UnequipItem);
         app.MapGet("/corpses", GetNearbyCorpses);
     }
 
@@ -115,6 +120,45 @@ internal static class CreatureEndpoints
     {
         await allocateAttributePoints.Handle(
             new AllocateAttributePointsCommand { CreatureId = creatureId, Deltas = request.Deltas },
+            cancellationToken
+        );
+
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<NoContent> EquipItem(
+        Guid creatureId,
+        EquipItemRequest request,
+        EquipInventoryItemCommandHandler equipInventoryItem,
+        CancellationToken cancellationToken
+    )
+    {
+        await equipInventoryItem.Handle(
+            new EquipInventoryItemCommand
+            {
+                CreatureId = creatureId,
+                ItemId = request.ItemId,
+                Slot = request.Slot.ToDataModel(),
+            },
+            cancellationToken
+        );
+
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<NoContent> UnequipItem(
+        Guid creatureId,
+        UnequipItemRequest request,
+        UnequipInventoryItemCommandHandler unequipInventoryItem,
+        CancellationToken cancellationToken
+    )
+    {
+        await unequipInventoryItem.Handle(
+            new UnequipInventoryItemCommand
+            {
+                CreatureId = creatureId,
+                Slot = request.Slot.ToDataModel(),
+            },
             cancellationToken
         );
 
