@@ -20,6 +20,8 @@ export type AbilitySummary = {
     mpCost: number | string;
     cooldown: number | string;
     category: AbilityCategory;
+    requiredSkillLevel: number | string;
+    prerequisites: Array<string>;
 };
 
 export type ActiveBuff = {

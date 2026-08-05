@@ -27,5 +27,7 @@ public record AbilitySummary(
     int ApCost,
     int MpCost,
     int Cooldown,
-    AbilityCategory Category
+    AbilityCategory Category,
+    int RequiredSkillLevel,
+    IReadOnlyCollection<string> Prerequisites
 );
