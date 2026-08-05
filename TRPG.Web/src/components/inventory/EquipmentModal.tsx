@@ -23,6 +23,7 @@ import {
   HoverPopoverContent,
   HoverPopoverTextTrigger,
 } from '@/components/ui/hover-popover';
+import { Toggle } from '@/components/ui/toggle';
 import { EQUIPMENT_SLOT_LABEL } from '@/lib/enum-labels';
 import { RARITY_COLOR, TYPE_ICON } from '@/lib/item-visuals';
 
@@ -63,11 +64,43 @@ function equipSlotFor(item: ItemDetail, equippedSlots: Set<EquipmentSlot>): Equi
   return null;
 }
 
+type ItemCategory = ItemDetail['$type'];
+
+const CATEGORY_ORDER: ItemCategory[] = [
+  'Weapon',
+  'Shield',
+  'Armor',
+  'Accessory',
+  'Ammunition',
+  'Consumable',
+  'Gold',
+];
+
+const CATEGORY_LABEL: Record<ItemCategory, string> = {
+  Weapon: 'Weapons',
+  Shield: 'Shields',
+  Armor: 'Armor',
+  Accessory: 'Accessories',
+  Ammunition: 'Ammo',
+  Consumable: 'Consumables',
+  Gold: 'Gold',
+};
+
 type SortKey = 'name' | 'weight' | 'value';
 
-function sortItems(items: ItemDetail[], search: string, sort: SortState<SortKey>): ItemDetail[] {
+function sortItems(
+  items: ItemDetail[],
+  search: string,
+  categories: ReadonlySet<ItemCategory>,
+  sort: SortState<SortKey>,
+): ItemDetail[] {
   const query = search.trim().toLowerCase();
-  const filtered = query ? items.filter((item) => item.name.toLowerCase().includes(query)) : items;
+  const filtered = items.filter((item) => {
+    if (query && !item.name.toLowerCase().includes(query)) {
+      return false;
+    }
+    return categories.size === 0 || categories.has(item.$type);
+  });
   const dir = sort.dir === 'asc' ? 1 : -1;
   return [...filtered].sort((a, b) => {
     if (sort.key === 'name') {
@@ -108,7 +141,18 @@ function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: 
   const inventory = useQuery(inventoryOptions);
 
   const [search, setSearch] = useState('');
+  const [categories, setCategories] = useState<ReadonlySet<ItemCategory>>(new Set());
   const [sort, setSort] = useState<SortState<SortKey>>({ key: 'name', dir: 'asc' });
+
+  const toggleCategory = (category: ItemCategory) => {
+    const next = new Set(categories);
+    if (next.has(category)) {
+      next.delete(category);
+    } else {
+      next.add(category);
+    }
+    setCategories(next);
+  };
 
   const invalidateInventory = () =>
     queryClient.invalidateQueries({ queryKey: inventoryOptions.queryKey });
@@ -134,7 +178,7 @@ function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: 
   const equippedSlots = new Set(
     items.map((item) => item.equippedSlot).filter((slot): slot is EquipmentSlot => slot != null),
   );
-  const visible = sortItems(items, search, sort);
+  const visible = sortItems(items, search, categories, sort);
   const busy = equip.isPending || unequip.isPending;
 
   const toggleSort = (key: SortKey) => {
@@ -160,6 +204,21 @@ function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: 
           placeholder="Search"
           className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none"
         />
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {CATEGORY_ORDER.map((category) => (
+          <Toggle
+            key={category}
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            pressed={categories.has(category)}
+            onPressedChange={() => toggleCategory(category)}
+          >
+            {CATEGORY_LABEL[category]}
+          </Toggle>
+        ))}
       </div>
 
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
@@ -240,8 +299,8 @@ function EquipmentRow({
 
   return (
     <tr>
-      <td className="px-2 py-1.5 align-top">
-        <div className="flex h-5 items-center gap-1.5 text-sm">
+      <td className="px-2 py-1.5">
+        <div className="flex items-center gap-1.5 text-sm">
           <Icon className="text-muted-foreground size-3.5 shrink-0" />
           {rarityColor && (
             <span
@@ -265,13 +324,11 @@ function EquipmentRow({
           )}
         </div>
       </td>
-      <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
-        {item.weight}
-      </td>
-      <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
+      <td className="px-2 py-1.5 text-right font-mono text-sm tabular-nums">{item.weight}</td>
+      <td className="px-2 py-1.5 text-right font-mono text-sm tabular-nums">
         {item.goldValue ?? '—'}
       </td>
-      <td className="px-2 py-1.5 text-right align-top">
+      <td className="px-2 py-1.5 text-right">
         {equippedSlot ? (
           <Button
             size="sm"
