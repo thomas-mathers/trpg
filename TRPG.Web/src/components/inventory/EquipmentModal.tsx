@@ -111,7 +111,7 @@ interface EquipmentModalProps {
 export function EquipmentModal({ playerId, open, onClose }: EquipmentModalProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="flex h-[min(85vh,640px)] flex-col gap-4 md:max-w-3xl">
+      <DialogContent className="flex h-[min(90vh,760px)] flex-col gap-4 md:max-w-3xl">
         <EquipmentModalBody playerId={playerId} onClose={onClose} />
       </DialogContent>
     </Dialog>
@@ -213,7 +213,7 @@ function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: 
 
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         {visible.length === 0 ? (
-          <Empty className="py-12">
+          <Empty className="h-full">
             <EmptyMedia variant="icon">
               <PackageOpen />
             </EmptyMedia>

@@ -171,7 +171,7 @@ export function TransferModal({ playerId, target, open, onClose }: TransferModal
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
-        className="flex h-[min(85vh,640px)] flex-col gap-4 md:max-w-7xl"
+        className="flex h-[min(90vh,760px)] flex-col gap-4 md:max-w-7xl"
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         {target && (
@@ -541,7 +541,7 @@ function InventorySidePanel({
 
       <div className="flex-1 overflow-x-hidden overflow-y-auto px-3 pb-2">
         {visible.length === 0 ? (
-          <Empty className="py-12">
+          <Empty className="h-full">
             <EmptyMedia variant="icon">
               <PackageOpen />
             </EmptyMedia>
