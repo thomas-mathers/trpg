@@ -255,6 +255,15 @@ internal static class Builders
         };
     }
 
+    public static Container MakeContainer(Guid? worldId = null, Guid? locationId = null) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Container-{Guid.NewGuid():N}",
+            Description = "A test container",
+            LocationId = locationId ?? Guid.NewGuid(),
+        };
+
     public static Attributes MakeAttributes()
     {
         var baseAttributes = new Attributes

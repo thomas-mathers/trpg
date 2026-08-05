@@ -17,18 +17,15 @@ import {
   Lock,
   Mountain,
   Pickaxe,
-  Scroll,
   Shirt,
   ShoppingBag,
   Sparkles,
   Swords,
-  Tent,
-  TestTubeDiagonal,
   Users,
   Warehouse,
 } from 'lucide-react';
 
-import type { BuildingType, DistrictType } from '@/api/client';
+import type { BuildingType } from '@/api/client';
 
 export const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
   ArcaneShop: Sparkles,
@@ -54,13 +51,4 @@ export const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
   Tavern: Beer,
   Temple: Church,
   Tower: Building2,
-};
-
-export const DISTRICT_TYPE_ICONS: Record<DistrictType, LucideIcon> = {
-  Residential: House,
-  Scientific: TestTubeDiagonal,
-  CityCenter: Landmark,
-  Governmental: Scroll,
-  HolySite: Church,
-  Encampment: Tent,
 };

@@ -22,6 +22,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         locationId: LocationId
     );
     private readonly Creature _player = Builders.MakeCreature(WorldId, locationId: LocationId);
+    private readonly Container _container = Builders.MakeContainer(WorldId, LocationId);
 
     public async ValueTask InitializeAsync()
     {
@@ -32,6 +33,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         _handler = _serviceProvider.GetRequiredService<InventoryTransferCommandHandler>();
 
         _context.Creatures.AddRange(_fromCreature, _player);
+        _context.Props.Add(_container);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -81,6 +83,17 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         return item;
     }
 
+    private async Task<Item> SeedItemOnContainer(int quantity)
+    {
+        var item = Builders.MakeWeaponItem(WorldId);
+        item.Quantity = quantity;
+        item.Ownership.OwnerId = _container.Id;
+        item.Ownership.OwnerType = OwnerType.Container;
+        _context.Items.Add(item);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return item;
+    }
+
     [Fact]
     public async Task Handle_MovesGold_WhenGoldItemIsSelected()
     {
@@ -91,8 +104,8 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         await _handler.Handle(
             new InventoryTransferCommand
             {
-                FromCreatureId = _fromCreature.Id,
-                ToCreatureId = _player.Id,
+                From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
                 Items = [new LootItemSelection(gold.Id, 100)],
             },
             TestContext.Current.CancellationToken
@@ -115,8 +128,8 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         await _handler.Handle(
             new InventoryTransferCommand
             {
-                FromCreatureId = _fromCreature.Id,
-                ToCreatureId = _player.Id,
+                From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
                 Items = [new LootItemSelection(item.Id, 1)],
             },
             TestContext.Current.CancellationToken
@@ -137,8 +150,8 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         await _handler.Handle(
             new InventoryTransferCommand
             {
-                FromCreatureId = _fromCreature.Id,
-                ToCreatureId = _player.Id,
+                From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
                 Items = [new LootItemSelection(item.Id, 3)],
             },
             TestContext.Current.CancellationToken
@@ -165,8 +178,8 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         await _handler.Handle(
             new InventoryTransferCommand
             {
-                FromCreatureId = _fromCreature.Id,
-                ToCreatureId = _player.Id,
+                From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
                 Items = [new LootItemSelection(gold.Id, 100), new LootItemSelection(item.Id, 1)],
             },
             TestContext.Current.CancellationToken
@@ -192,8 +205,8 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         await _handler.Handle(
             new InventoryTransferCommand
             {
-                FromCreatureId = _fromCreature.Id,
-                ToCreatureId = _player.Id,
+                From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
                 Items = [new LootItemSelection(item.Id, 4)],
             },
             TestContext.Current.CancellationToken
@@ -226,8 +239,8 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
         await _handler.Handle(
             new InventoryTransferCommand
             {
-                FromCreatureId = _fromCreature.Id,
-                ToCreatureId = _player.Id,
+                From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
                 Items = [new LootItemSelection(gold.Id, 30)],
             },
             TestContext.Current.CancellationToken
@@ -250,8 +263,8 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             _handler.Handle(
                 new InventoryTransferCommand
                 {
-                    FromCreatureId = _fromCreature.Id,
-                    ToCreatureId = _player.Id,
+                    From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                    To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
                     Items = [new LootItemSelection(item.Id, 5)],
                 },
                 TestContext.Current.CancellationToken
@@ -260,24 +273,61 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
-    public async Task Handle_Throws_WhenPlayerIsNotInTheSameLocation()
+    public async Task Handle_MovesSelectedItems_FromContainerToPlayer()
     {
         // Arrange
-        var farPlayer = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
-        _context.Creatures.Add(farPlayer);
+        var item = await SeedItemOnContainer(quantity: 2);
+
+        // Act
+        await _handler.Handle(
+            new InventoryTransferCommand
+            {
+                From = new ItemOwnerReference(_container.Id, OwnerType.Container),
+                To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
+                Items = [new LootItemSelection(item.Id, 2)],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var movedItem = await verifyContext.Items.SingleAsync(
+            i => i.Id == item.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_player.Id, movedItem.Ownership.OwnerId);
+        Assert.Equal(OwnerType.Creature, movedItem.Ownership.OwnerType);
+    }
+
+    [Fact]
+    public async Task Handle_MovesSelectedItems_FromPlayerToContainer()
+    {
+        // Arrange
+        var item = Builders.MakeWeaponItem(WorldId);
+        item.Quantity = 1;
+        item.Ownership.OwnerId = _player.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.Add(item);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _handler.Handle(
-                new InventoryTransferCommand
-                {
-                    FromCreatureId = _fromCreature.Id,
-                    ToCreatureId = farPlayer.Id,
-                    Items = [],
-                },
-                TestContext.Current.CancellationToken
-            )
+        // Act
+        await _handler.Handle(
+            new InventoryTransferCommand
+            {
+                From = new ItemOwnerReference(_player.Id, OwnerType.Creature),
+                To = new ItemOwnerReference(_container.Id, OwnerType.Container),
+                Items = [new LootItemSelection(item.Id, 1)],
+            },
+            TestContext.Current.CancellationToken
         );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var movedItem = await verifyContext.Items.SingleAsync(
+            i => i.Id == item.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_container.Id, movedItem.Ownership.OwnerId);
+        Assert.Equal(OwnerType.Container, movedItem.Ownership.OwnerType);
     }
 }
