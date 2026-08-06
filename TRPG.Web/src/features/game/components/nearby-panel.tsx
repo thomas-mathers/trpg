@@ -1,13 +1,65 @@
 import { DoorOpen, Ghost, Skull } from 'lucide-react';
+import {
+  Anvil,
+  BedDouble,
+  Beer,
+  BookOpen,
+  Building2,
+  Castle,
+  Church,
+  Croissant,
+  Cross,
+  FlaskConical,
+  Gem,
+  Hammer,
+  House,
+  Landmark,
+  type LucideIcon,
+  Lock,
+  Mountain,
+  Pickaxe,
+  Shirt,
+  ShoppingBag,
+  Sparkles,
+  Swords,
+  Users,
+  Warehouse,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
 import type { CreatureStatusSnapshot, SceneSnapshot } from '@/api/client';
-import { EntityTooltip } from '@/features/game/components/entity-link';
-import { TransferDialog } from '@/features/inventory/components/transfer-dialog';
-import { BUILDING_TYPE_ICONS } from '@/features/game/place-type-icons';
+import type { BuildingType } from '@/api/client';
 import { isDangerous } from '@/features/combat/threat-level';
+import { EntityTooltip } from '@/features/game/components/entity-tooltip';
+import { TransferDialog } from '@/features/inventory/components/transfer-dialog';
 import { cn } from '@/lib/utils';
+
+export const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
+  ArcaneShop: Sparkles,
+  Apothecary: FlaskConical,
+  Bakery: Croissant,
+  Barracks: Swords,
+  Blacksmith: Anvil,
+  Carpenter: Hammer,
+  Castle: Castle,
+  Cave: Mountain,
+  Crypt: Cross,
+  GeneralGoods: ShoppingBag,
+  GuildHall: Users,
+  House: House,
+  Inn: BedDouble,
+  Jail: Lock,
+  Jeweler: Gem,
+  Library: BookOpen,
+  Mine: Pickaxe,
+  Ruins: Landmark,
+  Stable: Warehouse,
+  Tailor: Shirt,
+  Tavern: Beer,
+  Temple: Church,
+  Tower: Building2,
+};
 
 interface NearbyPanelProps {
   sessionId: string;
