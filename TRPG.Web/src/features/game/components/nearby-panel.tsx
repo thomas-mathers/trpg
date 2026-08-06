@@ -70,7 +70,7 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
   const [lootTarget, setLootTarget] = useState<{ id: string; name: string } | null>(null);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
 
-  const pointsOfInterest = scene.nearbyBuildings.map((b) => ({
+  const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
     ...b,
     entityType: 'Building' as const,
   }));
@@ -93,7 +93,7 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
         )}
       </Section>
 
-      <Section title="Creatures nearby" subtitle={`You: Level ${scene.playerStatus.level}`}>
+      <Section title="Creatures" subtitle={`You: Level ${scene.playerStatus.level}`}>
         {scene.nearbyCreatures.length === 0 ? (
           <EmptyState />
         ) : (
@@ -113,11 +113,11 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
         )}
       </Section>
 
-      <Section title="Points of interest">
-        {pointsOfInterest.length === 0 ? (
+      <Section title="Buildings">
+        {nearbyBuildings.length === 0 ? (
           <EmptyState />
         ) : (
-          pointsOfInterest.map((poi) => {
+          nearbyBuildings.map((poi) => {
             const Icon = BUILDING_TYPE_ICONS[poi.type];
             return (
               <div key={poi.id} className="flex items-center justify-between gap-2 py-1.5">
