@@ -19,13 +19,13 @@ const rootRoute = createRootRoute({
 const titleRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: lazyRouteComponent(() => import('./TitleScreen.tsx')),
+  component: lazyRouteComponent(() => import('./features/game/components/title-screen.tsx')),
 });
 
 const sessionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/session/$sessionId',
-  component: lazyRouteComponent(() => import('./GameScreen.tsx')),
+  component: lazyRouteComponent(() => import('./features/game/components/game-screen.tsx')),
 });
 
 const routeTree = rootRoute.addChildren([titleRoute, sessionRoute]);
