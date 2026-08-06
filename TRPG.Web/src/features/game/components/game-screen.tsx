@@ -39,7 +39,7 @@ import { formatCombatAction, type PlayerCombatAction } from '../../combat/combat
 import { CombatConsole } from '../../combat/components/combat-console';
 import { useCombatState } from '../../combat/hooks/use-combat-state';
 import { EquipmentModal } from '../../inventory/components/equipment-modal';
-import { SkillTreeModal } from '../../skills/components/SkillTreeModal';
+import { SkillTreeModal } from '../../skills/components/skill-tree-modal';
 import { useGameHubConnection } from '../hooks/use-game-hub-connection';
 import { useSceneQuery } from '../hooks/use-scene-query';
 import { appendNarrationToken, type NarrationSegment } from '../narration-markup';

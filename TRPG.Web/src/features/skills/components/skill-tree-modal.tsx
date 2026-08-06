@@ -4,7 +4,6 @@ import { useState } from 'react';
 
 import type { Skill } from '@/api/client';
 import { getAbilitiesBySkillOptions, getCreaturesByCreatureIdSkillsOptions } from '@/api/client';
-import { SkillTree } from '@/features/skills/components/SkillTree';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SkillTree } from '@/features/skills/components/skill-tree';
 
 const SKILL_ORDER: Skill[] = [
   'Melee',
