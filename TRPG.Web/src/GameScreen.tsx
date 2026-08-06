@@ -2,7 +2,7 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { MenuIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { AbilitiesModal } from './components/abilities/AbilitiesModal';
+import { SkillTreeModal } from './components/abilities/SkillTreeModal';
 import { ChatMarker, type ChatMarkerVariant } from './components/ChatMarker';
 import { CombatConsole } from './components/combat/CombatConsole';
 import { EquipmentModal } from './components/inventory/EquipmentModal';
@@ -369,7 +369,7 @@ function GameScreen() {
       )}
 
       {sceneQuery.data && (
-        <AbilitiesModal
+        <SkillTreeModal
           playerId={sceneQuery.data.playerStatus.id}
           open={isAbilitiesOpen}
           onClose={() => setIsAbilitiesOpen(false)}

@@ -1,29 +1,53 @@
-import { Sparkles } from 'lucide-react';
+import dagre from '@dagrejs/dagre';
+import {
+  Background,
+  ReactFlow,
+  ConnectionLineType,
+  MarkerType,
+  Handle,
+  Position,
+  type Node,
+  type Edge,
+  type NodeProps,
+  useReactFlow,
+} from '@xyflow/react';
+import { Clock3, Droplet, Sparkles, Zap, Lock } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 
 import type { AbilitySummary } from '@/api/client';
-import { AbilityTooltip } from '@/components/abilities/AbilityTooltip';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import {
-  HoverPopover,
-  HoverPopoverContent,
-  HoverPopoverTrigger,
-} from '@/components/ui/hover-popover';
 import { getAbilityIcon } from '@/lib/ability-visuals';
-import { layoutSkillTree } from '@/lib/skill-tree-layout';
+
+import '@xyflow/react/dist/style.css';
 import { cn } from '@/lib/utils';
 
-const COLUMN_WIDTH = 168;
-const ROW_HEIGHT = 88;
-const NODE_SIZE = 56;
-const PADDING = 32;
+import { HoverPopover, HoverPopoverTrigger, HoverPopoverContent } from '../ui/hover-popover';
+
+const NODE_WIDTH = 150;
+const NODE_HEIGHT = 56;
 
 interface SkillTreeProps {
+  level: number;
   abilities: AbilitySummary[];
-  knownAbilityNames: Set<string>;
-  currentLevel: number;
 }
 
-export function SkillTree({ abilities, knownAbilityNames, currentLevel }: SkillTreeProps) {
+export function SkillTree({ abilities, level }: SkillTreeProps) {
+  const { nodes, edges } = useMemo(() => createSkillTree(level, abilities), [abilities, level]);
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    if (nodes.length === 0) return;
+
+    requestAnimationFrame(() => {
+      fitView({
+        padding: 0.25,
+        maxZoom: 1.5,
+        minZoom: 0.5,
+        duration: 0,
+      });
+    });
+  }, [nodes, fitView]);
+
   if (abilities.length === 0) {
     return (
       <Empty>
@@ -36,104 +60,182 @@ export function SkillTree({ abilities, knownAbilityNames, currentLevel }: SkillT
     );
   }
 
-  const { nodes, edges, columnCount } = layoutSkillTree(abilities);
-  const nodeByName = new Map(nodes.map((node) => [node.ability.name, node]));
+  return (
+    <div className="min-h-0 flex-1">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        connectionLineType={ConnectionLineType.SmoothStep}
+        colorMode="light"
+        nodesFocusable={true}
+        nodesConnectable={false}
+        nodesDraggable={false}
+        elementsSelectable={true}
+      >
+        <Background />
+      </ReactFlow>
+    </div>
+  );
+}
 
-  const rowCountByColumn = new Map<number, number>();
-  for (const node of nodes) {
-    rowCountByColumn.set(
-      node.column,
-      Math.max(rowCountByColumn.get(node.column) ?? 0, node.row + 1),
-    );
-  }
-  const maxRows = Math.max(1, ...rowCountByColumn.values());
+const createSkillTree = (
+  level: number,
+  abilities: AbilitySummary[],
+  isHorizontal: boolean = true,
+) => {
+  const dagreGraph = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
-  const width = PADDING * 2 + columnCount * COLUMN_WIDTH;
-  const height = PADDING * 2 + maxRows * ROW_HEIGHT;
+  dagreGraph.setGraph({ rankdir: isHorizontal ? 'LR' : 'TB' });
 
-  const centerOf = (column: number, row: number) => ({
-    x: PADDING + column * COLUMN_WIDTH + COLUMN_WIDTH / 2,
-    y: PADDING + row * ROW_HEIGHT + ROW_HEIGHT / 2,
+  abilities.forEach((ability) => {
+    dagreGraph.setNode(ability.name, { width: NODE_WIDTH, height: NODE_HEIGHT });
   });
 
-  return (
-    <div className="border-border bg-muted/30 overflow-auto rounded-lg border p-2">
-      <div className="relative" style={{ width, height }}>
-        <svg className="pointer-events-none absolute inset-0" width={width} height={height}>
-          <defs>
-            <marker
-              id="skill-tree-arrow"
-              viewBox="0 0 10 10"
-              refX="9"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto-start-reverse"
-            >
-              <path d="M0 0 L10 5 L0 10 z" className="fill-border" />
-            </marker>
-          </defs>
-          {edges.map((edge) => {
-            const fromNode = nodeByName.get(edge.from);
-            const toNode = nodeByName.get(edge.to);
-            if (!fromNode || !toNode) return null;
-            const from = centerOf(fromNode.column, fromNode.row);
-            const to = centerOf(toNode.column, toNode.row);
-            return (
-              <line
-                key={`${edge.from}->${edge.to}`}
-                x1={from.x + NODE_SIZE / 2}
-                y1={from.y}
-                x2={to.x - NODE_SIZE / 2}
-                y2={to.y}
-                className="stroke-border"
-                strokeWidth={2}
-                markerEnd="url(#skill-tree-arrow)"
-              />
-            );
-          })}
-        </svg>
+  abilities.forEach((ability) => {
+    ability.prerequisites.forEach((prerequisite) => {
+      dagreGraph.setEdge(prerequisite, ability.name);
+    });
+  });
 
-        {nodes.map((node) => {
-          const isUnlocked = knownAbilityNames.has(node.ability.name);
-          const Icon = getAbilityIcon(node.ability);
-          const { x, y } = centerOf(node.column, node.row);
-          return (
-            <div
-              key={node.ability.name}
-              className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: x, top: y, width: NODE_SIZE + 16 }}
-            >
-              <HoverPopover>
-                <HoverPopoverTrigger asChild>
-                  <button
-                    type="button"
-                    aria-disabled={!isUnlocked}
-                    className={cn(
-                      'flex w-full flex-col items-center gap-1 rounded-lg border p-1.5 transition-colors',
-                      isUnlocked
-                        ? 'border-primary/40 bg-card hover:bg-accent'
-                        : 'border-border/60 bg-muted/40 opacity-50 grayscale',
-                    )}
-                  >
-                    <Icon className="size-6" />
-                    <span className="w-full truncate text-center text-[10px] leading-tight">
-                      {node.ability.name}
-                    </span>
-                  </button>
-                </HoverPopoverTrigger>
-                <HoverPopoverContent side="top">
-                  <AbilityTooltip
-                    ability={node.ability}
-                    isUnlocked={isUnlocked}
-                    currentLevel={currentLevel}
-                  />
-                </HoverPopoverContent>
-              </HoverPopover>
-            </div>
-          );
-        })}
+  dagre.layout(dagreGraph);
+
+  const nodes: AbilityFlowNode[] = abilities.map((ability) => {
+    const node = dagreGraph.node(ability.name);
+
+    return {
+      id: ability.name,
+      targetPosition: isHorizontal ? Position.Left : Position.Top,
+      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+      position: {
+        x: node.x - NODE_WIDTH / 2,
+        y: node.y - NODE_HEIGHT / 2,
+      },
+      type: ABILITY_NODE_TYPE,
+      data: {
+        ability,
+        isUnlocked: level >= ability.requiredSkillLevel,
+      },
+    };
+  });
+
+  const abilityLevels = new Map(
+    abilities.map((ability) => [ability.name, ability.requiredSkillLevel]),
+  );
+
+  const edges: AbilityFlowEdge[] = abilities.flatMap((ability) =>
+    ability.prerequisites.map((prerequisite) => {
+      const isUnlocked =
+        level >= ability.requiredSkillLevel && level >= abilityLevels.get(prerequisite)!;
+      return {
+        id: `${prerequisite} -> ${ability.name}`,
+        source: prerequisite,
+        target: ability.name,
+        type: 'smoothstep',
+        animated: !isUnlocked,
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+      };
+    }),
+  );
+
+  return { nodes: nodes, edges };
+};
+
+type AbilityNodeData = {
+  ability: AbilitySummary;
+  isUnlocked: boolean;
+};
+
+const ABILITY_NODE_TYPE = 'ability' as const;
+
+type AbilityFlowNode = Node<AbilityNodeData, typeof ABILITY_NODE_TYPE>;
+type AbilityFlowEdge = Edge;
+
+function AbilityNode({ data, sourcePosition, targetPosition }: NodeProps<AbilityFlowNode>) {
+  const { ability, isUnlocked } = data;
+  const Icon = getAbilityIcon(ability);
+
+  return (
+    <HoverPopover>
+      <HoverPopoverTrigger asChild>
+        <div
+          style={{
+            width: NODE_WIDTH,
+            height: NODE_HEIGHT,
+          }}
+          className={cn(
+            'flex cursor-help items-center justify-center rounded border bg-white transition-colors',
+            isUnlocked
+              ? 'border-primary/50 hover:border-primary hover:shadow-sm'
+              : 'border-muted bg-muted/50 opacity-60',
+          )}
+        >
+          <Handle type="target" position={targetPosition ?? Position.Left} style={{ opacity: 0 }} />
+
+          <div className="flex w-full flex-col items-center gap-1">
+            <Icon className={cn('size-6', !isUnlocked && 'grayscale text-muted-foreground')} />
+
+            <span className="w-full truncate text-center text-[10px] leading-tight">
+              {ability.name}
+            </span>
+          </div>
+
+          <Handle
+            type="source"
+            position={sourcePosition ?? Position.Right}
+            style={{ opacity: 0 }}
+          />
+        </div>
+      </HoverPopoverTrigger>
+
+      <HoverPopoverContent side="top">
+        <AbilityTooltip ability={ability} isUnlocked={isUnlocked} />
+      </HoverPopoverContent>
+    </HoverPopover>
+  );
+}
+
+function AbilityTooltip({ ability, isUnlocked }: { ability: AbilitySummary; isUnlocked: boolean }) {
+  return (
+    <div className="space-y-2">
+      <div className="font-semibold">{ability.name}</div>
+
+      <p>{ability.description}</p>
+
+      <div className="flex gap-3 text-xs opacity-80">
+        <span className="flex items-center gap-1 text-amber-500">
+          <Zap className="h-4 w-4" />
+          {ability.apCost}
+        </span>
+        <span className="flex items-center gap-1 text-blue-500">
+          <Droplet className="h-4 w-4" />
+          {ability.mpCost}
+        </span>
+        <span className="flex items-center gap-1">
+          <Clock3 className="h-4 w-4" />
+          {ability.cooldown} turns
+        </span>
+      </div>
+
+      <div className="space-y-1 text-xs">
+        <div className="text-muted-foreground">Requires:</div>
+
+        <div
+          className={cn(
+            'flex items-center gap-1',
+            isUnlocked ? 'text-muted-foreground' : 'text-destructive',
+          )}
+        >
+          <Lock className="h-3 w-3" />
+          Level {ability.requiredSkillLevel}
+        </div>
       </div>
     </div>
   );
 }
+
+const nodeTypes = {
+  ability: AbilityNode,
+};

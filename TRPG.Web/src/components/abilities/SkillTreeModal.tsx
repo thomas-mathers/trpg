@@ -1,12 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import { ReactFlowProvider } from '@xyflow/react';
 import { useState } from 'react';
 
 import type { Skill } from '@/api/client';
-import {
-  getAbilitiesBySkillOptions,
-  getCreaturesByCreatureIdAbilitiesOptions,
-  getCreaturesByCreatureIdSkillsOptions,
-} from '@/api/client';
+import { getAbilitiesBySkillOptions, getCreaturesByCreatureIdSkillsOptions } from '@/api/client';
 import { SkillTree } from '@/components/abilities/SkillTree';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,37 +28,37 @@ const SKILL_ORDER: Skill[] = [
   'Unarmed',
 ];
 
-interface AbilitiesModalProps {
+interface SkillTreeModalProps {
   playerId: string;
   open: boolean;
   onClose: () => void;
 }
 
-export function AbilitiesModal({ playerId, open, onClose }: AbilitiesModalProps) {
+export function SkillTreeModal({ playerId, open, onClose }: SkillTreeModalProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
-        className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-4xl"
+        className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-7xl"
         onPointerDownOutside={(event) => event.preventDefault()}
       >
-        <AbilitiesModalBody playerId={playerId} onClose={onClose} />
+        <ReactFlowProvider>
+          <SkillTreeModalBody playerId={playerId} onClose={onClose} />
+        </ReactFlowProvider>
       </DialogContent>
     </Dialog>
   );
 }
 
-function AbilitiesModalBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
+function SkillTreeModalBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
   const [activeSkill, setActiveSkill] = useState<Skill>('Melee');
 
-  const knownAbilities = useQuery(
-    getCreaturesByCreatureIdAbilitiesOptions({ path: { creatureId: playerId } }),
-  );
   const skillLevels = useQuery(
     getCreaturesByCreatureIdSkillsOptions({ path: { creatureId: playerId } }),
   );
+
   const tree = useQuery(getAbilitiesBySkillOptions({ path: { skill: activeSkill } }));
 
-  if (!knownAbilities.data || !skillLevels.data) {
+  if (!skillLevels.data) {
     return (
       <div className="flex flex-1 items-center justify-center py-12">
         <p className="text-muted-foreground text-sm">Loading abilities...</p>
@@ -69,7 +66,6 @@ function AbilitiesModalBody({ playerId, onClose }: { playerId: string; onClose: 
     );
   }
 
-  const knownAbilityNames = new Set(knownAbilities.data.map((ability) => ability.name));
   const activeProgress = skillLevels.data.find((progress) => progress.skill === activeSkill);
   const currentLevel = Number(activeProgress?.level ?? 0);
   const experienceCurrent = Number(activeProgress?.experienceCurrent ?? 0);
@@ -90,7 +86,7 @@ function AbilitiesModalBody({ playerId, onClose }: { playerId: string; onClose: 
         onValueChange={(value) => setActiveSkill(value as Skill)}
         className="flex min-h-0 flex-1 flex-col gap-3"
       >
-        <div className="shrink-0 overflow-x-auto overflow-y-hidden">
+        <div className="overflow-x-auto">
           <TabsList>
             {SKILL_ORDER.map((skill) => (
               <TabsTrigger key={skill} value={skill}>
@@ -122,11 +118,7 @@ function AbilitiesModalBody({ playerId, onClose }: { playerId: string; onClose: 
               <p className="text-muted-foreground text-sm">Loading tree...</p>
             </div>
           ) : (
-            <SkillTree
-              abilities={tree.data}
-              knownAbilityNames={knownAbilityNames}
-              currentLevel={currentLevel}
-            />
+            <SkillTree level={currentLevel} abilities={tree.data} />
           )}
         </TabsContent>
       </Tabs>
