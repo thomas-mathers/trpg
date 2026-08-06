@@ -6,7 +6,6 @@ import {
   ArrowUp,
   Coins,
   PackageOpen,
-  Search,
   Skull,
   User,
   Weight,
