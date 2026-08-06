@@ -1,0 +1,202 @@
+import { useCallback, useEffect, useReducer } from 'react';
+
+import type { FightState } from '@/api/client';
+import type { CombatOutcome } from '@/features/combat/combat-outcome';
+import type { CombatRoundEvent, CombatUpdatePayload } from '@/features/combat/combat-round-event';
+import { gameEventBus } from '@/lib/game-event-bus';
+
+const ATTACK_WINDUP_MS = 700;
+const ATTACK_RESULT_PAUSE_MS = 900;
+
+export interface CombatCardEffect {
+  kind: 'hit' | 'crit' | 'miss' | 'block';
+  damage?: number;
+  nonce: number;
+}
+
+type AnimationStep =
+  | { kind: 'windup'; attackerId: string; delayMs: number }
+  | { kind: 'apply'; event: CombatRoundEvent; delayMs: number }
+  | { kind: 'settle'; fightState: FightState; delayMs: number };
+
+interface CombatState {
+  fight: FightState | null;
+  activeAttackerId: string | null;
+  cardEffects: Record<string, CombatCardEffect>;
+  isPlayingBack: boolean;
+  combatOutcome: CombatOutcome | null;
+  queue: AnimationStep[];
+  pendingOutcome: CombatOutcome | null;
+  eventCounter: number;
+}
+
+type CombatAction =
+  | { type: 'FIGHT_STARTED'; fight: FightState }
+  | { type: 'ROUND_RECEIVED'; payload: CombatUpdatePayload; skipAnimation: boolean }
+  | { type: 'STEP_ADVANCED' }
+  | { type: 'OUTCOME_RECEIVED'; outcome: CombatOutcome }
+  | { type: 'DISMISSED' };
+
+const initialState: CombatState = {
+  fight: null,
+  activeAttackerId: null,
+  cardEffects: {},
+  isPlayingBack: false,
+  combatOutcome: null,
+  queue: [],
+  pendingOutcome: null,
+  eventCounter: 0,
+};
+
+function applyRoundEventToFight(fight: FightState, event: CombatRoundEvent): FightState {
+  if (event.type !== 'CombatHitEvent') {
+    return fight;
+  }
+
+  return {
+    combatants: fight.combatants.map((combatant) =>
+      combatant.id === event.targetId
+        ? { ...combatant, currentHp: event.targetRemainingHp, maximumHp: event.targetMaximumHp }
+        : combatant,
+    ),
+  };
+}
+
+function toCardEffect(event: CombatRoundEvent, nonce: number): CombatCardEffect {
+  switch (event.type) {
+    case 'CombatHitEvent':
+      return { kind: event.isCritical ? 'crit' : 'hit', damage: event.damage, nonce };
+    case 'CombatMissEvent':
+      return { kind: 'miss', nonce };
+    case 'CombatBlockEvent':
+      return { kind: 'block', nonce };
+  }
+}
+
+function buildRoundSteps(payload: CombatUpdatePayload): AnimationStep[] {
+  const steps: AnimationStep[] = [];
+  for (const event of payload.events) {
+    steps.push({ kind: 'windup', attackerId: event.attackerId, delayMs: ATTACK_WINDUP_MS });
+    steps.push({ kind: 'apply', event, delayMs: ATTACK_RESULT_PAUSE_MS });
+  }
+  steps.push({ kind: 'settle', fightState: payload.fightState, delayMs: 0 });
+  return steps;
+}
+
+function reduceStep(state: CombatState, step: AnimationStep): CombatState {
+  switch (step.kind) {
+    case 'windup':
+      return { ...state, activeAttackerId: step.attackerId };
+    case 'apply':
+      return {
+        ...state,
+        fight: state.fight ? applyRoundEventToFight(state.fight, step.event) : state.fight,
+        activeAttackerId: null,
+        cardEffects: {
+          ...state.cardEffects,
+          [step.event.targetId]: toCardEffect(step.event, state.eventCounter + 1),
+        },
+        eventCounter: state.eventCounter + 1,
+      };
+    case 'settle':
+      return { ...state, fight: step.fightState };
+  }
+}
+
+function combatReducer(state: CombatState, action: CombatAction): CombatState {
+  switch (action.type) {
+    case 'FIGHT_STARTED':
+      return { ...initialState, fight: action.fight };
+
+    case 'ROUND_RECEIVED': {
+      if (state.fight === null || action.payload.events.length === 0 || action.skipAnimation) {
+        return { ...state, fight: action.payload.fightState };
+      }
+
+      return {
+        ...state,
+        queue: [...state.queue, ...buildRoundSteps(action.payload)],
+        isPlayingBack: true,
+      };
+    }
+
+    case 'STEP_ADVANCED': {
+      const [step, ...rest] = state.queue;
+      if (!step) {
+        return state;
+      }
+
+      const next = { ...reduceStep(state, step), queue: rest };
+      if (rest.length > 0) {
+        return next;
+      }
+
+      return {
+        ...next,
+        isPlayingBack: false,
+        combatOutcome: state.pendingOutcome,
+        pendingOutcome: null,
+      };
+    }
+
+    case 'OUTCOME_RECEIVED':
+      return state.queue.length === 0
+        ? { ...state, combatOutcome: action.outcome }
+        : { ...state, pendingOutcome: action.outcome };
+
+    case 'DISMISSED':
+      return { ...state, combatOutcome: null, fight: null };
+
+    default:
+      return state;
+  }
+}
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+export function useCombatState() {
+  const [state, dispatch] = useReducer(combatReducer, initialState);
+
+  useEffect(() => {
+    if (state.queue.length === 0) {
+      return;
+    }
+
+    const timer = setTimeout(() => dispatch({ type: 'STEP_ADVANCED' }), state.queue[0].delayMs);
+    return () => clearTimeout(timer);
+  }, [state.queue]);
+
+  useEffect(() => {
+    const unsubscribeCombatStarted = gameEventBus.on('CombatStarted', (payload) => {
+      dispatch({ type: 'FIGHT_STARTED', fight: payload });
+    });
+    const unsubscribeCombatUpdated = gameEventBus.on('CombatUpdated', (payload) => {
+      dispatch({ type: 'ROUND_RECEIVED', payload, skipAnimation: prefersReducedMotion() });
+    });
+    const unsubscribeCombatEnded = gameEventBus.on('CombatEnded', (outcome) => {
+      dispatch({ type: 'OUTCOME_RECEIVED', outcome });
+    });
+
+    return () => {
+      unsubscribeCombatStarted();
+      unsubscribeCombatUpdated();
+      unsubscribeCombatEnded();
+    };
+  }, []);
+
+  const dismissOutcome = useCallback(() => dispatch({ type: 'DISMISSED' }), []);
+
+  return {
+    fight: state.fight,
+    isInCombat: state.fight !== null,
+    activeAttackerId: state.activeAttackerId,
+    cardEffects: state.cardEffects,
+    isPlayingBack: state.isPlayingBack,
+    combatOutcome: state.combatOutcome,
+    dismissOutcome,
+  };
+}
