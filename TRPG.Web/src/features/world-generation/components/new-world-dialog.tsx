@@ -12,7 +12,7 @@ import {
   postWorldsMutation,
 } from '../../../api/client';
 import type { BaseAttributesResponse, Gender, PlayerClass, Race } from '../../../api/client';
-import { NumberStepper } from '../../../components/number-stepper';
+import { NumericStepper } from '../../../components/numeric-stepper';
 import { Button } from '../../../components/ui/button';
 import {
   Dialog,
@@ -447,7 +447,7 @@ export function NewWorldDialog() {
                                       {ATTRIBUTE_DESCRIPTIONS[attribute]}
                                     </HoverPopoverContent>
                                   </HoverPopover>
-                                  <NumberStepper
+                                  <NumericStepper
                                     value={netValue}
                                     min={1}
                                     max={netValue + remaining}
@@ -538,7 +538,7 @@ export function NewWorldDialog() {
                       {(field) => (
                         <Field orientation="horizontal">
                           <FieldLabel htmlFor={field.name}>Factions</FieldLabel>
-                          <NumberStepper
+                          <NumericStepper
                             value={field.state.value}
                             onChange={field.handleChange}
                             max={30}
@@ -550,7 +550,7 @@ export function NewWorldDialog() {
                       {(field) => (
                         <Field orientation="horizontal">
                           <FieldLabel htmlFor={field.name}>Houses per City</FieldLabel>
-                          <NumberStepper
+                          <NumericStepper
                             value={field.state.value}
                             onChange={field.handleChange}
                             max={40}

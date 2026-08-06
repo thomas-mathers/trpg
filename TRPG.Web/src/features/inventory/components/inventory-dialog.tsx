@@ -10,6 +10,7 @@ import {
   postCreaturesByCreatureIdEquipmentUnequipMutation,
 } from '@/api/client';
 import type { EquipmentSlot, ItemDetail, ItemType } from '@/api/client';
+import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -113,26 +114,26 @@ function sortItems(
   });
 }
 
-interface EquipmentDialogProps {
+interface InventoryDialogProps {
   playerId: string;
   open: boolean;
   onClose: () => void;
 }
 
-export function EquipmentDialog({ playerId, open, onClose }: EquipmentDialogProps) {
+export function InventoryDialog({ playerId, open, onClose }: InventoryDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
         className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-4xl"
         onPointerDownOutside={(event) => event.preventDefault()}
       >
-        <EquipmentDialogBody playerId={playerId} onClose={onClose} />
+        <InventoryDialogBody playerId={playerId} onClose={onClose} />
       </DialogContent>
     </Dialog>
   );
 }
 
-function EquipmentDialogBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
+function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
   const queryClient = useQueryClient();
   const inventoryOptions = getCreaturesByCreatureIdInventoryOptions({
     path: { creatureId: playerId },
@@ -171,8 +172,6 @@ function EquipmentDialogBody({ playerId, onClose }: { playerId: string; onClose:
         path: { creatureId: playerId },
       }).queryKey,
     });
-    // Preview queries are keyed by itemId/slot, which vary per candidate row, so a predicate
-    // is used to invalidate every cached preview rather than just the currently-selected one.
     queryClient.invalidateQueries({
       predicate: (query) => {
         const id = (query.queryKey[0] as { _id?: string } | undefined)?._id;
@@ -212,8 +211,6 @@ function EquipmentDialogBody({ playerId, onClose }: { playerId: string; onClose:
   const busy = equip.isPending || unequip.isPending;
 
   const selectedItem = selectedItemId ? items.find((i) => i.itemId === selectedItemId) : null;
-  // Previewing an already-equipped item would just show its own current state - no deltas
-  // to show, so only unequipped candidates ever produce a preview.
   const selectedSlot =
     selectedItem && selectedItem.equippedSlot == null
       ? equipSlotFor(selectedItem, equippedSlots)
@@ -232,21 +229,12 @@ function EquipmentDialogBody({ playerId, onClose }: { playerId: string; onClose:
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Equipment</DialogTitle>
+        <DialogTitle>Inventory</DialogTitle>
       </DialogHeader>
 
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <div className="border-input bg-background flex h-[34px] items-center gap-2 rounded-md border px-2.5 shadow-sm">
-            <Search className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search"
-              className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none"
-            />
-          </div>
+          <SearchInput value={search} onChange={setSearch} />
 
           <div className="flex flex-wrap gap-1.5">
             <Toggle

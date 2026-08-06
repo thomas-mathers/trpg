@@ -15,7 +15,8 @@ import { useEffect, useState } from 'react';
 
 import { getCreaturesByCreatureIdInventoryOptions, postTransfersMutation } from '@/api/client';
 import type { ItemDetail, ItemRarity, ItemType } from '@/api/client';
-import { NumberStepper } from '@/components/number-stepper';
+import { NumericStepper } from '@/components/numeric-stepper';
+import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -513,16 +514,7 @@ function InventorySidePanel({
       </div>
 
       <div className="space-y-2 px-3 pt-2">
-        <div className="border-input bg-background flex h-[34px] items-center gap-2 rounded-md border px-2.5 shadow-sm">
-          <Search className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search"
-            className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none"
-          />
-        </div>
+        <SearchInput value={search} onChange={onSearchChange} />
 
         <div className="flex flex-wrap gap-1.5">
           {CATEGORY_ORDER.map((category) => (
@@ -684,7 +676,7 @@ function ItemRow({
         </div>
         {checked && item.quantity > 1 && (
           <div className="mt-1">
-            <NumberStepper
+            <NumericStepper
               value={selectedQuantity}
               onChange={onQuantityChange}
               min={1}

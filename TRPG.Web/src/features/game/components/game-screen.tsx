@@ -11,7 +11,7 @@ import {
 import { formatCombatAction, type PlayerCombatAction } from '../../combat/combat-action';
 import { CombatConsole } from '../../combat/components/combat-console';
 import { useCombatState } from '../../combat/hooks/use-combat-state';
-import { EquipmentDialog } from '../../inventory/components/equipment-dialog';
+import { InventoryDialog } from '../../inventory/components/inventory-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
 import { useGameHubConnection } from '../hooks/use-game-hub-connection';
 import { useSceneQuery } from '../hooks/use-scene-query';
@@ -49,10 +49,10 @@ function GameScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
-  const [isEquipmentOpen, setIsEquipmentOpen] = useState(false);
-  const [isAbilitiesOpen, setIsAbilitiesOpen] = useState(false);
+  const [isInventoryDialogOpen, setIsInventoryDialogOpen] = useState(false);
+  const [isSkillTreeDialogOpen, setIsSkillTreeDialogOpen] = useState(false);
+  const [isDisconnectedDialogOpen, setIsDisconnectedDialogOpen] = useState(false);
   const [input, setInput] = useState('');
-  const [showDisconnectedDialog, setShowDisconnectedDialog] = useState(false);
   const startedSessionId = useRef<string | null>(null);
   const lastLocationKey = useRef<string | null>(null);
   const currentNarratorId = useRef<string | null>(null);
@@ -127,7 +127,7 @@ function GameScreen() {
       gameEventBus.on('ConnectionStatusChanged', (status) => {
         appendMarker(CONNECTION_STATUS_TEXT[status], status);
         if (status === 'disconnected') {
-          setShowDisconnectedDialog(true);
+          setIsDisconnectedDialogOpen(true);
         }
       }),
     [],
@@ -135,7 +135,7 @@ function GameScreen() {
 
   const handleReturnToMenu = () => {
     clearStoredMessages(sessionId);
-    setShowDisconnectedDialog(false);
+    setIsDisconnectedDialogOpen(false);
     navigate({ to: '/' });
   };
 
@@ -245,9 +245,9 @@ function GameScreen() {
         {!isInCombat && <NearbyToggleButton />}
         <GameMenu
           hasSceneData={Boolean(sceneQuery.data)}
-          onOpenEquipment={() => setIsEquipmentOpen(true)}
-          onOpenAbilities={() => setIsAbilitiesOpen(true)}
-          onExitToMenu={handleExitToMenu}
+          onOpenInventory={() => setIsInventoryDialogOpen(true)}
+          onOpenSkills={() => setIsSkillTreeDialogOpen(true)}
+          onQuit={handleExitToMenu}
         />
       </div>
 
@@ -284,22 +284,22 @@ function GameScreen() {
       </div>
 
       {sceneQuery.data && (
-        <EquipmentDialog
+        <InventoryDialog
           playerId={sceneQuery.data.playerStatus.id}
-          open={isEquipmentOpen}
-          onClose={() => setIsEquipmentOpen(false)}
+          open={isInventoryDialogOpen}
+          onClose={() => setIsInventoryDialogOpen(false)}
         />
       )}
 
       {sceneQuery.data && (
         <SkillTreeDialog
           playerId={sceneQuery.data.playerStatus.id}
-          open={isAbilitiesOpen}
-          onClose={() => setIsAbilitiesOpen(false)}
+          open={isSkillTreeDialogOpen}
+          onClose={() => setIsSkillTreeDialogOpen(false)}
         />
       )}
 
-      <ConnectionLostDialog open={showDisconnectedDialog} onClose={handleReturnToMenu} />
+      <ConnectionLostDialog open={isDisconnectedDialogOpen} onClose={handleReturnToMenu} />
     </SidebarProvider>
   );
 }

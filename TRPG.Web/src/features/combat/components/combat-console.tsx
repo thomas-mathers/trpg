@@ -1,19 +1,58 @@
 import { DoorOpen, FlaskConical, Shield, Sword, Swords } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import type { AbilityCategory, AbilitySummary, ConsumableSummary, FightState } from '@/api/client';
+import type {
+  AbilityCategory,
+  AbilitySummary,
+  CombatantState,
+  ConsumableSummary,
+  FightState,
+} from '@/api/client';
+import type { UseAbilityAction, UseItemAction } from '@/features/combat/combat-action';
+import type { CombatOutcome } from '@/features/combat/combat-outcome';
 import { AbilityPicker } from '@/features/combat/components/ability-picker';
-import { AnimatedHeight } from '@/components/animated-height';
-import { CombatantCard } from '@/features/combat/components/combatant-card';
+import { AnimatedHeight } from '@/features/combat/components/animated-height';
 import { CombatOutcomeScreen } from '@/features/combat/components/combat-outcome-screen';
-import { EnemyRow } from '@/features/combat/components/enemy-row';
+import { CombatantCard } from '@/features/combat/components/combatant-card';
 import { ItemPicker } from '@/features/combat/components/item-picker';
 import { PickerHeader } from '@/features/combat/components/picker-header';
 import type { CombatCardEffect } from '@/features/combat/hooks/use-combat-state';
-import type { UseAbilityAction, UseItemAction } from '@/features/combat/combat-action';
-import type { CombatOutcome } from '@/features/combat/combat-outcome';
 
 type Mode = 'topmenu' | 'ability' | 'target' | 'item';
+
+interface EnemyRowProps {
+  enemies: CombatantState[];
+  playerLevel: number;
+  targetable?: boolean;
+  onSelectTarget?: (id: string) => void;
+  activeAttackerId?: string | null;
+  cardEffects?: Record<string, CombatCardEffect>;
+}
+
+function EnemyRow({
+  enemies,
+  playerLevel,
+  targetable = false,
+  onSelectTarget,
+  activeAttackerId = null,
+  cardEffects = {},
+}: EnemyRowProps) {
+  return (
+    <div className="flex max-h-52 flex-wrap gap-2 overflow-y-auto p-2.5 pb-1">
+      {enemies.map((enemy) => (
+        <CombatantCard
+          key={enemy.id}
+          combatant={enemy}
+          playerLevel={playerLevel}
+          targetable={targetable}
+          onSelect={() => onSelectTarget?.(enemy.id)}
+          effect={cardEffects[enemy.id]}
+          isActing={activeAttackerId === enemy.id}
+        />
+      ))}
+    </div>
+  );
+}
 
 interface CombatConsoleProps {
   playerId: string;

@@ -78,7 +78,7 @@ function SkillTreeDialogBody({ playerId, onClose }: { playerId: string; onClose:
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Abilities</DialogTitle>
+        <DialogTitle>Skills</DialogTitle>
       </DialogHeader>
 
       <Tabs

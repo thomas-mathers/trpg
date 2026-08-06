@@ -3,14 +3,14 @@ import { MinusIcon, PlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-interface NumberStepperProps {
+interface NumericStepperProps {
   value: number;
   onChange: (value: number) => void;
   min?: number;
   max?: number;
 }
 
-export function NumberStepper({ value, onChange, min = 0, max = 99 }: NumberStepperProps) {
+export function NumericStepper({ value, onChange, min = 0, max = 99 }: NumericStepperProps) {
   const clamp = (next: number) => Math.min(max, Math.max(min, next));
 
   return (

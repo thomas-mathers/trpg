@@ -11,17 +11,12 @@ import {
 
 interface GameMenuProps {
   hasSceneData: boolean;
-  onOpenEquipment: () => void;
-  onOpenAbilities: () => void;
-  onExitToMenu: () => void;
+  onOpenInventory: () => void;
+  onOpenSkills: () => void;
+  onQuit: () => void;
 }
 
-export function GameMenu({
-  hasSceneData,
-  onOpenEquipment,
-  onOpenAbilities,
-  onExitToMenu,
-}: GameMenuProps) {
+export function GameMenu({ hasSceneData, onOpenInventory, onOpenSkills, onQuit }: GameMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -31,14 +26,14 @@ export function GameMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem disabled>Character</DropdownMenuItem>
-        <DropdownMenuItem disabled={!hasSceneData} onClick={onOpenEquipment}>
+        <DropdownMenuItem disabled={!hasSceneData} onClick={onOpenInventory}>
           Inventory
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={!hasSceneData} onClick={onOpenAbilities}>
-          Abilities
+        <DropdownMenuItem disabled={!hasSceneData} onClick={onOpenSkills}>
+          Skills
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onExitToMenu}>Exit to Main Menu</DropdownMenuItem>
+        <DropdownMenuItem onClick={onQuit}>Quit</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
