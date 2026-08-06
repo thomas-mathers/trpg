@@ -11,8 +11,9 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
+import { ENTITY_TYPE_COLORS } from '../entity-type-colors';
 import type { NarrationSegment } from '../narration-markup';
-import { ENTITY_TYPE_COLORS, EntityTooltip } from './entity-tooltip';
+import { EntityTooltip } from './entity-tooltip';
 
 export type ChatMarkerVariant =
   | 'location'

@@ -35,7 +35,7 @@ import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { TransferDialog } from '@/features/inventory/components/transfer-dialog';
 import { cn } from '@/lib/utils';
 
-export const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
+const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
   ArcaneShop: Sparkles,
   Apothecary: FlaskConical,
   Bakery: Croissant,
