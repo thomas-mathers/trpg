@@ -28,13 +28,13 @@ const SKILL_ORDER: Skill[] = [
   'Unarmed',
 ];
 
-interface SkillTreeModalProps {
+interface SkillTreeDialogProps {
   playerId: string;
   open: boolean;
   onClose: () => void;
 }
 
-export function SkillTreeModal({ playerId, open, onClose }: SkillTreeModalProps) {
+export function SkillTreeDialog({ playerId, open, onClose }: SkillTreeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
@@ -42,14 +42,14 @@ export function SkillTreeModal({ playerId, open, onClose }: SkillTreeModalProps)
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         <ReactFlowProvider>
-          <SkillTreeModalBody playerId={playerId} onClose={onClose} />
+          <SkillTreeDialogBody playerId={playerId} onClose={onClose} />
         </ReactFlowProvider>
       </DialogContent>
     </Dialog>
   );
 }
 
-function SkillTreeModalBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
+function SkillTreeDialogBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
   const [activeSkill, setActiveSkill] = useState<Skill>('Melee');
 
   const skillLevels = useQuery(

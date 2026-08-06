@@ -161,14 +161,14 @@ interface TransferTarget {
   name: string;
 }
 
-interface TransferModalProps {
+interface TransferDialogProps {
   playerId: string;
   target: TransferTarget | null;
   open: boolean;
   onClose: () => void;
 }
 
-export function TransferModal({ playerId, target, open, onClose }: TransferModalProps) {
+export function TransferDialog({ playerId, target, open, onClose }: TransferDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
@@ -176,7 +176,7 @@ export function TransferModal({ playerId, target, open, onClose }: TransferModal
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         {target && (
-          <TransferModalBody
+          <TransferDialogBody
             key={target.id}
             playerId={playerId}
             target={target}
@@ -188,7 +188,7 @@ export function TransferModal({ playerId, target, open, onClose }: TransferModal
   );
 }
 
-function TransferModalBody({
+function TransferDialogBody({
   playerId,
   target,
   onClose,

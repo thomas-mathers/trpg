@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import type { CreatureStatusSnapshot, SceneSnapshot } from '@/api/client';
 import { EntityTooltip } from '@/features/game/components/entity-link';
-import { TransferModal } from '@/features/inventory/components/transfer-modal';
+import { TransferDialog } from '@/features/inventory/components/transfer-dialog';
 import { BUILDING_TYPE_ICONS } from '@/features/game/place-type-icons';
 import { isDangerous } from '@/features/combat/threat-level';
 import { cn } from '@/lib/utils';
@@ -102,7 +102,7 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
         )}
       </Section>
 
-      <TransferModal
+      <TransferDialog
         playerId={scene.playerStatus.id}
         target={lootTarget}
         open={isTransferOpen}

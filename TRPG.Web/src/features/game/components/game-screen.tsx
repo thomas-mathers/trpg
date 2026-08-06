@@ -4,14 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '../../../components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../../components/ui/dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -38,13 +30,14 @@ import {
 import { formatCombatAction, type PlayerCombatAction } from '../../combat/combat-action';
 import { CombatConsole } from '../../combat/components/combat-console';
 import { useCombatState } from '../../combat/hooks/use-combat-state';
-import { EquipmentModal } from '../../inventory/components/equipment-modal';
-import { SkillTreeModal } from '../../skills/components/skill-tree-modal';
+import { EquipmentDialog } from '../../inventory/components/equipment-dialog';
+import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
 import { useGameHubConnection } from '../hooks/use-game-hub-connection';
 import { useSceneQuery } from '../hooks/use-scene-query';
 import { appendNarrationToken, type NarrationSegment } from '../narration-markup';
 import { formatLocation, locationKey } from '../scene-format';
 import { ChatMarker, type ChatMarkerVariant } from './chat-marker';
+import { ConnectionLostDialog } from './connection-lost-dialog';
 import { NarrationText } from './narration-text';
 import { NearbySidebar } from './nearby-sidebar';
 import { NearbyToggleButton } from './nearby-toggle-button';
@@ -365,7 +358,7 @@ function GameScreen() {
       </div>
 
       {sceneQuery.data && (
-        <EquipmentModal
+        <EquipmentDialog
           playerId={sceneQuery.data.playerStatus.id}
           open={isEquipmentOpen}
           onClose={() => setIsEquipmentOpen(false)}
@@ -373,31 +366,14 @@ function GameScreen() {
       )}
 
       {sceneQuery.data && (
-        <SkillTreeModal
+        <SkillTreeDialog
           playerId={sceneQuery.data.playerStatus.id}
           open={isAbilitiesOpen}
           onClose={() => setIsAbilitiesOpen(false)}
         />
       )}
 
-      <Dialog open={showDisconnectedDialog}>
-        <DialogContent
-          showCloseButton={false}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-          onPointerDownOutside={(e) => e.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>Connection Lost</DialogTitle>
-            <DialogDescription>
-              The connection to the server was lost and couldn't be restored. Returning to the main
-              menu.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={handleReturnToMenu}>OK</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConnectionLostDialog open={showDisconnectedDialog} onClose={handleReturnToMenu} />
     </SidebarProvider>
   );
 }

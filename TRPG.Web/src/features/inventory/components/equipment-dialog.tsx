@@ -113,26 +113,26 @@ function sortItems(
   });
 }
 
-interface EquipmentModalProps {
+interface EquipmentDialogProps {
   playerId: string;
   open: boolean;
   onClose: () => void;
 }
 
-export function EquipmentModal({ playerId, open, onClose }: EquipmentModalProps) {
+export function EquipmentDialog({ playerId, open, onClose }: EquipmentDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
         className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-4xl"
         onPointerDownOutside={(event) => event.preventDefault()}
       >
-        <EquipmentModalBody playerId={playerId} onClose={onClose} />
+        <EquipmentDialogBody playerId={playerId} onClose={onClose} />
       </DialogContent>
     </Dialog>
   );
 }
 
-function EquipmentModalBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
+function EquipmentDialogBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
   const queryClient = useQueryClient();
   const inventoryOptions = getCreaturesByCreatureIdInventoryOptions({
     path: { creatureId: playerId },
