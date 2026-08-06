@@ -90,7 +90,7 @@ function AbilitiesModalBody({ playerId, onClose }: { playerId: string; onClose: 
         onValueChange={(value) => setActiveSkill(value as Skill)}
         className="flex min-h-0 flex-1 flex-col gap-3"
       >
-        <div className="overflow-x-auto">
+        <div className="shrink-0 overflow-x-auto overflow-y-hidden">
           <TabsList>
             {SKILL_ORDER.map((skill) => (
               <TabsTrigger key={skill} value={skill}>
