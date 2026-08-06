@@ -70,8 +70,14 @@ function AbilitiesModalBody({ playerId, onClose }: { playerId: string; onClose: 
   }
 
   const knownAbilityNames = new Set(knownAbilities.data.map((ability) => ability.name));
-  const currentLevel =
-    skillLevels.data.find((progress) => progress.skill === activeSkill)?.level ?? 0;
+  const activeProgress = skillLevels.data.find((progress) => progress.skill === activeSkill);
+  const currentLevel = Number(activeProgress?.level ?? 0);
+  const experienceCurrent = Number(activeProgress?.experienceCurrent ?? 0);
+  const experienceToNextLevel = Number(activeProgress?.experienceToNextLevel ?? 0);
+  const experiencePercent =
+    experienceToNextLevel > 0
+      ? Math.max(0, Math.min(100, Math.round((experienceCurrent / experienceToNextLevel) * 100)))
+      : 0;
 
   return (
     <>
@@ -94,7 +100,23 @@ function AbilitiesModalBody({ playerId, onClose }: { playerId: string; onClose: 
           </TabsList>
         </div>
 
-        <TabsContent value={activeSkill} className="min-h-0 flex-1 overflow-hidden">
+        <TabsContent
+          value={activeSkill}
+          className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
+        >
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-medium">Level {currentLevel}</span>
+            <span className="bg-muted h-[6px] flex-1 overflow-hidden rounded-full">
+              <span
+                className="bg-primary block h-full rounded-full transition-[width] duration-300 ease-out"
+                style={{ width: `${experiencePercent}%` }}
+              />
+            </span>
+            <span className="text-muted-foreground w-24 shrink-0 text-right text-xs tabular-nums">
+              {experienceCurrent}/{experienceToNextLevel} XP
+            </span>
+          </div>
+
           {!tree.data ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground text-sm">Loading tree...</p>
@@ -103,7 +125,7 @@ function AbilitiesModalBody({ playerId, onClose }: { playerId: string; onClose: 
             <SkillTree
               abilities={tree.data}
               knownAbilityNames={knownAbilityNames}
-              currentLevel={Number(currentLevel)}
+              currentLevel={currentLevel}
             />
           )}
         </TabsContent>

@@ -277,7 +277,6 @@ function GameScreen() {
             <DropdownMenuItem disabled={!sceneQuery.data} onClick={() => setIsEquipmentOpen(true)}>
               Inventory
             </DropdownMenuItem>
-            <DropdownMenuItem disabled>Skills</DropdownMenuItem>
             <DropdownMenuItem disabled={!sceneQuery.data} onClick={() => setIsAbilitiesOpen(true)}>
               Abilities
             </DropdownMenuItem>
