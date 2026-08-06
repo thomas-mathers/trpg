@@ -86,15 +86,13 @@ function SkillTreeDialogBody({ playerId, onClose }: { playerId: string; onClose:
         onValueChange={(value) => setActiveSkill(value as Skill)}
         className="flex min-h-0 flex-1 flex-col gap-3"
       >
-        <div className="overflow-x-auto">
-          <TabsList>
-            {SKILL_ORDER.map((skill) => (
-              <TabsTrigger key={skill} value={skill}>
-                {skill}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+        <TabsList>
+          {SKILL_ORDER.map((skill) => (
+            <TabsTrigger key={skill} value={skill}>
+              {skill}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
         <TabsContent
           value={activeSkill}

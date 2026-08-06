@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Coins, PackageOpen, Search, Weight } from 'lucide-react';
+import { Coins, PackageOpen, Weight } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -124,7 +124,7 @@ export function InventoryDialog({ playerId, open, onClose }: InventoryDialogProp
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
-        className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-4xl"
+        className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-5xl"
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         <InventoryDialogBody playerId={playerId} onClose={onClose} />
@@ -236,11 +236,11 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <SearchInput value={search} onChange={setSearch} />
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex w-full min-w-0 gap-1.5 overflow-x-auto py-2">
             <Toggle
               size="sm"
               variant="outline"
-              className="rounded-full"
+              className="shrink-0 rounded-full"
               pressed={equippedOnly}
               onPressedChange={setEquippedOnly}
             >
@@ -251,7 +251,7 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
                 key={category}
                 size="sm"
                 variant="outline"
-                className="rounded-full"
+                className="shrink-0 rounded-full"
                 pressed={categories.has(category)}
                 onPressedChange={() => toggleCategory(category)}
               >

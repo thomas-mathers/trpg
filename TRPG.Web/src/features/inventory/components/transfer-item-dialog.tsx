@@ -516,13 +516,13 @@ function InventorySidePanel({
       <div className="space-y-2 px-3 pt-2">
         <SearchInput value={search} onChange={onSearchChange} />
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex w-full min-w-0 gap-1.5 overflow-x-auto py-2">
           {CATEGORY_ORDER.map((category) => (
             <Toggle
               key={category}
               size="sm"
               variant="outline"
-              className="rounded-full"
+              className="shrink-0 rounded-full"
               pressed={categories.has(category)}
               onPressedChange={() => toggleCategory(category)}
             >
