@@ -1,25 +1,6 @@
 import { useNavigate, useParams } from '@tanstack/react-router';
-import { MenuIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { Button } from '../../../components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../../../components/ui/dropdown-menu';
-import { Input } from '../../../components/ui/input';
-import { Message, MessageContent, MessageHeader } from '../../../components/ui/message';
-import {
-  MessageScroller,
-  MessageScrollerButton,
-  MessageScrollerContent,
-  MessageScrollerItem,
-  MessageScrollerProvider,
-  MessageScrollerViewport,
-} from '../../../components/ui/message-scroller';
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
 import { gameEventBus, type ConnectionStatus } from '../../../lib/game-event-bus';
 import {
@@ -34,19 +15,15 @@ import { EquipmentDialog } from '../../inventory/components/equipment-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
 import { useGameHubConnection } from '../hooks/use-game-hub-connection';
 import { useSceneQuery } from '../hooks/use-scene-query';
-import { appendNarrationToken, type NarrationSegment } from '../narration-markup';
+import { appendNarrationToken } from '../narration-markup';
 import { formatLocation, locationKey } from '../scene-format';
-import { ChatMarker, type ChatMarkerVariant } from './chat-marker';
+import { ChatHistory, type ChatMarkerVariant, type ChatMessage } from './chat-history';
+import { ChatInput } from './chat-input';
 import { ConnectionLostDialog } from './connection-lost-dialog';
-import { NarrationText } from './narration-text';
+import { GameMenu } from './game-menu';
 import { NearbySidebar } from './nearby-sidebar';
 import { NearbyToggleButton } from './nearby-toggle-button';
 import { StatusBar } from './status-bar';
-
-export type ChatMessage =
-  | { id: string; role: 'narrator'; segments: NarrationSegment[] }
-  | { id: string; role: 'player'; content: string }
-  | { id: string; role: 'marker'; text: string; variant: ChatMarkerVariant };
 
 const CONNECTION_STATUS_TEXT: Record<ConnectionStatus, string> = {
   reconnecting: 'Reconnecting…',
@@ -187,7 +164,9 @@ function GameScreen() {
     const narratorId = crypto.randomUUID();
     setMessages([{ id: narratorId, role: 'narrator', segments: [] }]);
     currentNarratorId.current = narratorId;
+
     setIsStreaming(true);
+
     streamOpening(
       (token) => appendToken(narratorId, token),
       () => {
@@ -217,6 +196,7 @@ function GameScreen() {
     currentNarratorId.current = narratorId;
 
     setIsStreaming(true);
+
     stream(
       (token) => appendToken(narratorId, token),
       () => {
@@ -263,66 +243,17 @@ function GameScreen() {
       <div className="flex items-center gap-4 border-b px-4 py-2">
         <StatusBar sessionId={sessionId} isInCombat={isInCombat} />
         {!isInCombat && <NearbyToggleButton />}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="ml-auto">
-              <MenuIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled>Character</DropdownMenuItem>
-            <DropdownMenuItem disabled={!sceneQuery.data} onClick={() => setIsEquipmentOpen(true)}>
-              Inventory
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={!sceneQuery.data} onClick={() => setIsAbilitiesOpen(true)}>
-              Abilities
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleExitToMenu}>Exit to Main Menu</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <GameMenu
+          hasSceneData={Boolean(sceneQuery.data)}
+          onOpenEquipment={() => setIsEquipmentOpen(true)}
+          onOpenAbilities={() => setIsAbilitiesOpen(true)}
+          onExitToMenu={handleExitToMenu}
+        />
       </div>
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
         <SidebarInset>
-          <MessageScrollerProvider autoScroll scrollPreviousItemPeek={64}>
-            <MessageScroller className="flex-1">
-              <MessageScrollerViewport>
-                <MessageScrollerContent className="mx-auto w-full max-w-2xl p-4">
-                  {messages.map((message) =>
-                    message.role === 'marker' ? (
-                      <MessageScrollerItem key={message.id} messageId={message.id}>
-                        <ChatMarker text={message.text} variant={message.variant} />
-                      </MessageScrollerItem>
-                    ) : (
-                      <MessageScrollerItem
-                        key={message.id}
-                        messageId={message.id}
-                        scrollAnchor={message.role === 'player'}
-                      >
-                        <Message align={message.role === 'player' ? 'end' : 'start'}>
-                          <MessageContent>
-                            {message.role === 'player' && (
-                              <MessageHeader className="justify-end">You</MessageHeader>
-                            )}
-                            {message.role === 'narrator' ? (
-                              <div className="typeset typeset-chat whitespace-pre-line">
-                                <NarrationText sessionId={sessionId} segments={message.segments} />
-                              </div>
-                            ) : (
-                              <p className="text-right">{message.content}</p>
-                            )}
-                          </MessageContent>
-                        </Message>
-                      </MessageScrollerItem>
-                    ),
-                  )}
-                </MessageScrollerContent>
-              </MessageScrollerViewport>
-              <MessageScrollerButton />
-            </MessageScroller>
-          </MessageScrollerProvider>
-
+          <ChatHistory sessionId={sessionId} messages={messages} />
           <div className="mx-auto w-full max-w-2xl p-4">
             {isInCombat && fight && sceneQuery.data ? (
               <CombatConsole
@@ -339,16 +270,11 @@ function GameScreen() {
                 onExitToMenu={handleExitToMenu}
               />
             ) : (
-              <Input
+              <ChatInput
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSend();
-                  }
-                }}
                 disabled={!isConnected || isStreaming}
-                placeholder="What do you do?"
+                onChange={setInput}
+                onSubmit={handleSend}
               />
             )}
           </div>
