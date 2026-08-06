@@ -2,6 +2,7 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { MenuIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { SkillTreeModal } from './components/abilities/SkillTreeModal';
 import { ChatMarker, type ChatMarkerVariant } from './components/ChatMarker';
 import { CombatConsole } from './components/combat/CombatConsole';
 import { EquipmentModal } from './components/inventory/EquipmentModal';
@@ -75,6 +76,7 @@ function GameScreen() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
   const [isEquipmentOpen, setIsEquipmentOpen] = useState(false);
+  const [isAbilitiesOpen, setIsAbilitiesOpen] = useState(false);
   const [input, setInput] = useState('');
   const [showDisconnectedDialog, setShowDisconnectedDialog] = useState(false);
   const startedSessionId = useRef<string | null>(null);
@@ -275,8 +277,9 @@ function GameScreen() {
             <DropdownMenuItem disabled={!sceneQuery.data} onClick={() => setIsEquipmentOpen(true)}>
               Inventory
             </DropdownMenuItem>
-            <DropdownMenuItem disabled>Skills</DropdownMenuItem>
-            <DropdownMenuItem disabled>Abilities</DropdownMenuItem>
+            <DropdownMenuItem disabled={!sceneQuery.data} onClick={() => setIsAbilitiesOpen(true)}>
+              Abilities
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleExitToMenu}>Exit to Main Menu</DropdownMenuItem>
           </DropdownMenuContent>
@@ -362,6 +365,14 @@ function GameScreen() {
           playerId={sceneQuery.data.playerStatus.id}
           open={isEquipmentOpen}
           onClose={() => setIsEquipmentOpen(false)}
+        />
+      )}
+
+      {sceneQuery.data && (
+        <SkillTreeModal
+          playerId={sceneQuery.data.playerStatus.id}
+          open={isAbilitiesOpen}
+          onClose={() => setIsAbilitiesOpen(false)}
         />
       )}
 

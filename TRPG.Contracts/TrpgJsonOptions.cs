@@ -8,6 +8,7 @@ public static class TrpgJsonOptions
     public static JsonSerializerOptions Default { get; } =
         new()
         {
+            NumberHandling = JsonNumberHandling.Strict,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

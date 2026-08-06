@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using TRPG.Application.Abilities;
 using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Common.Mappers;
 using TRPG.Contracts.Abilities.Responses;
@@ -27,7 +26,7 @@ internal static class AbilityEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(abilities.Select(ToAbilitySummary).ToArray());
+        return TypedResults.Ok(abilities.Select(a => a.ToSummary()).ToArray());
     }
 
     private static DataSkill ToDomain(Skill skill) =>
@@ -45,15 +44,4 @@ internal static class AbilityEndpoints
             Skill.Blocking => DataSkill.Blocking,
             _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, null),
         };
-
-    private static AbilitySummary ToAbilitySummary(Ability ability) =>
-        new(
-            ability.Name,
-            ability.Skill.ToContract(),
-            ability.Description,
-            ability.ApCost,
-            ability.MpCost,
-            ability.Cooldown,
-            ability is AttackAbility ? AbilityCategory.Offensive : AbilityCategory.Support
-        );
 }

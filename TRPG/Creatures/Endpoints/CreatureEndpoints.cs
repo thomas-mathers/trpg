@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using TRPG.Application.Abilities;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
@@ -56,7 +55,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(abilities.Select(ToAbilitySummary).ToArray());
+        return TypedResults.Ok(abilities.Select(a => a.ToSummary()).ToArray());
     }
 
     private static async Task<Ok<InventorySummary>> GetInventory(
@@ -528,17 +527,6 @@ internal static class CreatureEndpoints
 
     private static ConsumableSummary ToConsumableSummary(Consumable item) =>
         new(item.Id, item.Name, item.Quantity, item.Resource.ToContract(), item.RestoreAmount);
-
-    private static AbilitySummary ToAbilitySummary(Ability ability) =>
-        new(
-            ability.Name,
-            ability.Skill.ToContract(),
-            ability.Description,
-            ability.ApCost,
-            ability.MpCost,
-            ability.Cooldown,
-            ability is AttackAbility ? AbilityCategory.Offensive : AbilityCategory.Support
-        );
 
     private static SkillProgressSummary ToSkillProgressSummary(CreatureSkillProgress progress) =>
         new(

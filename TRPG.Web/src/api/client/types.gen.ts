@@ -16,36 +16,38 @@ export type AbilitySummary = {
     name: string;
     skill: Skill;
     description: string;
-    apCost: number | string;
-    mpCost: number | string;
-    cooldown: number | string;
+    apCost: number;
+    mpCost: number;
+    cooldown: number;
     category: AbilityCategory;
+    requiredSkillLevel: number;
+    prerequisites: Array<string>;
 };
 
 export type ActiveBuff = {
     abilityName: string;
     attribute: AttributeName;
-    amount: number | string;
+    amount: number;
     amountType: AmountType;
-    remainingTurns: number | string;
+    remainingTurns: number;
 };
 
 export type ActiveDot = {
     abilityName: string;
-    amount: number | string;
+    amount: number;
     damageType: DamageType;
-    remainingTurns: number | string;
+    remainingTurns: number;
 };
 
 export type ActiveHot = {
     abilityName: string;
-    amount: number | string;
-    remainingTurns: number | string;
+    amount: number;
+    remainingTurns: number;
 };
 
 export type AllocateAttributePointsRequest = {
     deltas: {
-        [key: string]: number | string;
+        [key: string]: number;
     };
 };
 
@@ -56,21 +58,21 @@ export type ArmorClass = 'Cloth' | 'Leather' | 'Mail' | 'Plate';
 export type AttributeName = 'MaximumHp' | 'MaximumAp' | 'MaximumMp' | 'Strength' | 'Defense' | 'Dexterity' | 'Endurance' | 'Stamina' | 'Mana' | 'Intelligence' | 'PhysicalResistance' | 'FireResistance' | 'IceResistance' | 'LightningResistance' | 'PoisonResistance' | 'MagicResistance' | 'MovementSpeed';
 
 export type AttributePointsResponse = {
-    unallocatedPoints: number | string;
+    unallocatedPoints: number;
 };
 
 export type BaseAttributesResponse = {
-    strength: number | string;
-    defense: number | string;
-    dexterity: number | string;
-    endurance: number | string;
-    stamina: number | string;
-    mana: number | string;
-    intelligence: number | string;
+    strength: number;
+    defense: number;
+    dexterity: number;
+    endurance: number;
+    stamina: number;
+    mana: number;
+    intelligence: number;
 };
 
 export type BasicAttackDamageResponse = {
-    damagePerTurn: number | string;
+    damagePerTurn: number;
 };
 
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
@@ -87,17 +89,17 @@ export type ChatResponse = {
 export type CombatantState = {
     id: string;
     name: string;
-    level: number | string;
+    level: number;
     isPlayer: boolean;
     isAlive: boolean;
-    currentHp: number | string;
-    maximumHp: number | string;
-    currentAp: number | string;
-    maximumAp: number | string;
-    currentMp: number | string;
-    maximumMp: number | string;
+    currentHp: number;
+    maximumHp: number;
+    currentAp: number;
+    maximumAp: number;
+    currentMp: number;
+    maximumMp: number;
     activeConditions: {
-        [key: string]: number | string;
+        [key: string]: number;
     };
     activeDots: Array<ActiveDot>;
     activeHots: Array<ActiveHot>;
@@ -109,9 +111,9 @@ export type CombatSpeedType = 'IncreasedAttackSpeed' | 'FasterCastRate' | 'Faste
 export type ConsumableSummary = {
     itemId: string;
     name: string;
-    quantity: number | string;
+    quantity: number;
     resource: ResourceType;
-    restoreAmount: number | string;
+    restoreAmount: number;
 };
 
 export type CreateSessionResponse = {
@@ -122,34 +124,34 @@ export type CreateSessionResponse = {
 export type CreateWorldRequest = {
     playerName: string;
     gender: Gender;
-    age: number | string;
+    age: number;
     race: Race;
     playerClass: PlayerClass;
     startingAttributeAllocation?: {
-        [key: string]: number | string;
+        [key: string]: number;
     };
     description?: string;
-    minCityStates?: number | string;
-    maxCityStates?: number | string;
-    minRuralStates?: number | string;
-    maxRuralStates?: number | string;
-    minBuildingsPerState?: number | string;
-    maxBuildingsPerState?: number | string;
-    minFactionMembers?: number | string;
-    maxFactionMembers?: number | string;
-    housesPerCity?: number | string;
-    minHouseholdSize?: number | string;
-    maxHouseholdSize?: number | string;
-    factionCount?: number | string;
+    minCityStates?: number;
+    maxCityStates?: number;
+    minRuralStates?: number;
+    maxRuralStates?: number;
+    minBuildingsPerState?: number;
+    maxBuildingsPerState?: number;
+    minFactionMembers?: number;
+    maxFactionMembers?: number;
+    housesPerCity?: number;
+    minHouseholdSize?: number;
+    maxHouseholdSize?: number;
+    factionCount?: number;
 };
 
 export type CreatureGenerationOptionsResponse = {
-    pointsPerLevel: number | string;
+    pointsPerLevel: number;
     baseAttributes: BaseAttributesResponse;
 };
 
 export type CreatureLevelResponse = {
-    level: number | string;
+    level: number;
 };
 
 export type CreatureState = 'Sleeping' | 'Idle' | 'Busy' | 'Studying' | 'Praying' | 'Training' | 'Sitting' | 'Dead';
@@ -160,34 +162,34 @@ export type CreatureStatusSnapshot = {
     creatureType: CreatureType;
     gender: Gender;
     profession: null | Profession;
-    level: number | string;
-    age: number | string;
+    level: number;
+    age: number;
     state: null | CreatureState;
-    gold: number | string;
-    currentHp: number | string;
-    maximumHp: number | string;
-    currentAp: number | string;
-    maximumAp: number | string;
-    currentMp: number | string;
-    maximumMp: number | string;
-    experienceCurrent: number | string;
-    experienceToNextLevel: number | string;
+    gold: number;
+    currentHp: number;
+    maximumHp: number;
+    currentAp: number;
+    maximumAp: number;
+    currentMp: number;
+    maximumMp: number;
+    experienceCurrent: number;
+    experienceToNextLevel: number;
     factionNames: null | Array<string>;
-    reputation: null | number | string;
-    strength: number | string;
-    dexterity: number | string;
-    intelligence: number | string;
-    endurance: number | string;
-    stamina: number | string;
-    mana: number | string;
-    defense: number | string;
-    movementSpeed: number | string;
-    physicalResistance: number | string;
-    fireResistance: number | string;
-    iceResistance: number | string;
-    lightningResistance: number | string;
-    poisonResistance: number | string;
-    magicResistance: number | string;
+    reputation: null | number;
+    strength: number;
+    dexterity: number;
+    intelligence: number;
+    endurance: number;
+    stamina: number;
+    mana: number;
+    defense: number;
+    movementSpeed: number;
+    physicalResistance: number;
+    fireResistance: number;
+    iceResistance: number;
+    lightningResistance: number;
+    poisonResistance: number;
+    magicResistance: number;
 };
 
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
@@ -195,23 +197,23 @@ export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gno
 export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 'Magic';
 
 export type EffectiveAttributesResponse = {
-    strength: number | string;
-    dexterity: number | string;
-    intelligence: number | string;
-    endurance: number | string;
-    stamina: number | string;
-    mana: number | string;
-    defense: number | string;
-    maximumHp: number | string;
-    maximumAp: number | string;
-    maximumMp: number | string;
-    movementSpeed: number | string;
-    physicalResistance: number | string;
-    fireResistance: number | string;
-    iceResistance: number | string;
-    lightningResistance: number | string;
-    poisonResistance: number | string;
-    magicResistance: number | string;
+    strength: number;
+    dexterity: number;
+    intelligence: number;
+    endurance: number;
+    stamina: number;
+    mana: number;
+    defense: number;
+    maximumHp: number;
+    maximumAp: number;
+    maximumMp: number;
+    movementSpeed: number;
+    physicalResistance: number;
+    fireResistance: number;
+    iceResistance: number;
+    lightningResistance: number;
+    poisonResistance: number;
+    magicResistance: number;
 };
 
 export type EnqueueJobResponse = {
@@ -234,7 +236,7 @@ export type FightState = {
 export type Gender = 'Male' | 'Female';
 
 export type InventorySummary = {
-    gold: number | string;
+    gold: number;
     items: Array<ItemDetail>;
 };
 
@@ -263,12 +265,12 @@ export type ItemDetailAccessoryDetail = {
     itemId: string;
     name: string;
     description: string;
-    weight: number | string;
-    quantity: number | string;
+    weight: number;
+    quantity: number;
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number | string;
+    goldValue: null | number;
     modifiers: Array<ItemModifierSummary>;
 };
 
@@ -277,47 +279,47 @@ export type ItemDetailAmmunitionDetail = {
     itemId: string;
     name: string;
     description: string;
-    weight: number | string;
-    quantity: number | string;
+    weight: number;
+    quantity: number;
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number | string;
+    goldValue: null | number;
     modifiers: Array<ItemModifierSummary>;
 };
 
 export type ItemDetailArmorDetail = {
     $type?: 'Armor';
-    defense: number | string;
+    defense: number;
     armorClass: ArmorClass;
-    durabilityCurrent: number | string;
-    durabilityMax: number | string;
+    durabilityCurrent: number;
+    durabilityMax: number;
     itemId: string;
     name: string;
     description: string;
-    weight: number | string;
-    quantity: number | string;
+    weight: number;
+    quantity: number;
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number | string;
+    goldValue: null | number;
     modifiers: Array<ItemModifierSummary>;
 };
 
 export type ItemDetailConsumableItemDetail = {
     $type?: 'Consumable';
     resource: ResourceType;
-    restoreAmount: number | string;
-    duration: number | string;
+    restoreAmount: number;
+    duration: number;
     itemId: string;
     name: string;
     description: string;
-    weight: number | string;
-    quantity: number | string;
+    weight: number;
+    quantity: number;
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number | string;
+    goldValue: null | number;
     modifiers: Array<ItemModifierSummary>;
 };
 
@@ -326,56 +328,56 @@ export type ItemDetailGoldDetail = {
     itemId: string;
     name: string;
     description: string;
-    weight: number | string;
-    quantity: number | string;
+    weight: number;
+    quantity: number;
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number | string;
+    goldValue: null | number;
     modifiers: Array<ItemModifierSummary>;
 };
 
 export type ItemDetailShieldDetail = {
     $type?: 'Shield';
-    blockChance: number | string;
-    defense: number | string;
-    magicResistance: number | string;
-    fireResistance: number | string;
-    iceResistance: number | string;
-    lightningResistance: number | string;
-    poisonResistance: number | string;
-    durabilityCurrent: number | string;
-    durabilityMax: number | string;
+    blockChance: number;
+    defense: number;
+    magicResistance: number;
+    fireResistance: number;
+    iceResistance: number;
+    lightningResistance: number;
+    poisonResistance: number;
+    durabilityCurrent: number;
+    durabilityMax: number;
     itemId: string;
     name: string;
     description: string;
-    weight: number | string;
-    quantity: number | string;
+    weight: number;
+    quantity: number;
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number | string;
+    goldValue: null | number;
     modifiers: Array<ItemModifierSummary>;
 };
 
 export type ItemDetailWeaponDetail = {
     $type?: 'Weapon';
-    minDamage: number | string;
-    maxDamage: number | string;
-    range: number | string;
-    attacksPerTurn: number | string;
+    minDamage: number;
+    maxDamage: number;
+    range: number;
+    attacksPerTurn: number;
     isTwoHanded: boolean;
-    durabilityCurrent: number | string;
-    durabilityMax: number | string;
+    durabilityCurrent: number;
+    durabilityMax: number;
     itemId: string;
     name: string;
     description: string;
-    weight: number | string;
-    quantity: number | string;
+    weight: number;
+    quantity: number;
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number | string;
+    goldValue: null | number;
     modifiers: Array<ItemModifierSummary>;
 };
 
@@ -397,46 +399,46 @@ export type ItemModifierSummary = ({
 
 export type ItemModifierSummaryAttributeModifierSummary = {
     $type?: 'Attribute';
-    amount: number | string;
+    amount: number;
     attribute: AttributeName;
     amountType: AmountType;
 };
 
 export type ItemModifierSummaryCombatSpeedModifierSummary = {
     $type?: 'CombatSpeed';
-    amount: number | string;
+    amount: number;
     speedType: CombatSpeedType;
 };
 
 export type ItemModifierSummaryElementalDamageModifierSummary = {
     $type?: 'ElementalDamage';
     damageType: DamageType;
-    minDamage: number | string;
-    maxDamage: number | string;
+    minDamage: number;
+    maxDamage: number;
 };
 
 export type ItemModifierSummaryLeechModifierSummary = {
     $type?: 'Leech';
     leechType: LeechType;
-    percent: number | string;
+    percent: number;
 };
 
 export type ItemModifierSummaryProcModifierSummary = {
     $type?: 'Proc';
     abilityName: string;
-    chance: number | string;
+    chance: number;
     trigger: ProcTrigger;
 };
 
 export type ItemModifierSummarySkillBonusModifierSummary = {
     $type?: 'SkillBonus';
-    amount: number | string;
+    amount: number;
     skill: null | Skill;
 };
 
 export type ItemModifierSummarySpecialHitModifierSummary = {
     $type?: 'SpecialHit';
-    chance: number | string;
+    chance: number;
     hitType: SpecialHitType;
 };
 
@@ -457,7 +459,7 @@ export type LeechType = 'Life' | 'Mana';
 
 export type LootItemSelection = {
     itemId: string;
-    quantity: number | string;
+    quantity: number;
 };
 
 export type NamedEntity = {
@@ -478,7 +480,7 @@ export type NearbyBuildingSnapshot = {
 export type NearbyCorpseSummary = {
     id: string;
     name: string;
-    itemCount: number | string;
+    itemCount: number;
 };
 
 export type NearbyExitSnapshot = {
@@ -508,11 +510,11 @@ export type SceneSnapshot = {
     districtName: null | string;
     buildingName: null | string;
     roomName: null | string;
-    year: number | string;
+    year: number;
     monthName: string;
-    day: number | string;
+    day: number;
     weekdayName: string;
-    hour: number | string;
+    hour: number;
     playerStatus: CreatureStatusSnapshot;
     nearbyCreatures: Array<CreatureStatusSnapshot>;
     nearbyBuildings: Array<NearbyBuildingSnapshot>;
@@ -524,18 +526,18 @@ export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Destruction' | 'Illusion' |
 
 export type SkillProgressSummary = {
     skill: Skill;
-    level: number | string;
-    experienceCurrent: number | string;
-    experienceToNextLevel: number | string;
+    level: number;
+    experienceCurrent: number;
+    experienceToNextLevel: number;
 };
 
 export type SpecialHitType = 'CrushingBlow' | 'DeadlyStrike' | 'OpenWounds';
 
 export type TurnMetricsDto = {
-    firstTokenMs: number | string;
-    totalMs: number | string;
-    tokenCount: number | string;
-    tokensPerSecond: number | string;
+    firstTokenMs: number;
+    totalMs: number;
+    tokenCount: number;
+    tokensPerSecond: number;
 };
 
 export type UnequipItemRequest = {
@@ -543,7 +545,7 @@ export type UnequipItemRequest = {
 };
 
 export type WaitRequest = {
-    hours: number | string;
+    hours: number;
 };
 
 export type WaitResponse = {

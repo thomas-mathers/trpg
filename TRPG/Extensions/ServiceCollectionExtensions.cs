@@ -64,6 +64,7 @@ internal static class ServiceCollectionExtensions
 
     private static void ApplyTrpgJsonOptions(JsonSerializerOptions options)
     {
+        options.NumberHandling = TrpgJsonOptions.Default.NumberHandling;
         options.PropertyNamingPolicy = TrpgJsonOptions.Default.PropertyNamingPolicy;
         options.PropertyNameCaseInsensitive = TrpgJsonOptions.Default.PropertyNameCaseInsensitive;
         options.DefaultIgnoreCondition = TrpgJsonOptions.Default.DefaultIgnoreCondition;
