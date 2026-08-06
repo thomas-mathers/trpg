@@ -32,7 +32,7 @@ import type { CreatureStatusSnapshot, SceneSnapshot } from '@/api/client';
 import type { BuildingType } from '@/api/client';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
-import { TransferDialog } from '@/features/inventory/components/transfer-dialog';
+import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
 import { cn } from '@/lib/utils';
 
 const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
@@ -154,7 +154,7 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
         )}
       </Section>
 
-      <TransferDialog
+      <TransferItemDialog
         playerId={scene.playerStatus.id}
         target={lootTarget}
         open={isTransferOpen}

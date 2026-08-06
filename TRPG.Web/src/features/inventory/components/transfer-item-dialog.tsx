@@ -162,14 +162,14 @@ interface TransferTarget {
   name: string;
 }
 
-interface TransferDialogProps {
+interface TransferItemDialogProps {
   playerId: string;
   target: TransferTarget | null;
   open: boolean;
   onClose: () => void;
 }
 
-export function TransferDialog({ playerId, target, open, onClose }: TransferDialogProps) {
+export function TransferItemDialog({ playerId, target, open, onClose }: TransferItemDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
