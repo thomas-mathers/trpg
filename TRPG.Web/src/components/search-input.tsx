@@ -1,14 +1,27 @@
 import { Search } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
+
 interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  placeholder?: string;
+  className?: string;
 }
 
-export function SearchInput({ value, onChange, placeholder }: SearchInputProps) {
+export function SearchInput({
+  value,
+  onChange,
+  placeholder = 'Search...',
+  className,
+}: SearchInputProps) {
   return (
-    <div className="border-input bg-card mb-2 flex h-[34px] items-center gap-2 rounded-md border px-2.5 shadow-sm">
+    <div
+      className={cn(
+        'border-input bg-background flex h-[34px] items-center gap-2 rounded-md border px-2.5 shadow-sm',
+        className,
+      )}
+    >
       <Search className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
       <input
         type="text"

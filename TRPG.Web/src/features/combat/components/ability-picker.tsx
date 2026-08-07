@@ -7,9 +7,9 @@ import {
   getPlayersByPlayerIdFightAbilitiesOptions,
   getPlayersByPlayerIdFightAbilitiesQueryKey,
 } from '@/api/client';
+import { SearchInput } from '@/components/search-input';
 import { EmptyNote } from '@/features/combat/components/empty-note';
 import { PickerHeader } from '@/features/combat/components/picker-header';
-import { SearchInput } from '@/components/search-input';
 import { gameEventBus } from '@/lib/game-event-bus';
 
 const SEARCH_THRESHOLD = 6;
@@ -83,7 +83,7 @@ export function AbilityPicker({ playerId, category, onBack, onChoose }: AbilityP
         groupBySkill(filtered).map(([skill, entries]) => (
           <div key={skill ?? 'all'}>
             {skill && (
-              <p className="text-muted-foreground mt-2.5 mb-1 text-[10px] font-semibold tracking-wider uppercase first:mt-0">
+              <p className="text-muted-foreground mt-2.5 mb-1 text-[10px] font-semibold tracking-wider uppercase">
                 {skill}
               </p>
             )}

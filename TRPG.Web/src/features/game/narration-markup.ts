@@ -28,6 +28,7 @@ function appendText(
   }
 
   const last = segments[segments.length - 1];
+
   if (last?.type === 'text') {
     return [...segments.slice(0, -1), { type: 'text', text: last.text + text, insideQuote }];
   }
@@ -35,7 +36,7 @@ function appendText(
   return [...segments, { type: 'text', text, insideQuote }];
 }
 
-export function appendNarrationToken(
+export function appendTokenToNarrationSegments(
   segments: NarrationSegment[],
   token: string,
 ): NarrationSegment[] {
@@ -57,11 +58,7 @@ export function appendNarrationToken(
 
   for (let i = 0; i < parts.length; i++) {
     const isLastPart = i === parts.length - 1;
-    let text = parts[i];
-
-    if (!isLastPart && quoted) {
-      text += '”';
-    }
+    const text = !isLastPart && quoted ? parts[i] + '”' : parts[i];
 
     result = appendText(result, text, quoted);
 

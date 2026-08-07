@@ -8,7 +8,8 @@ import {
   HoverPopoverContent,
   HoverPopoverTrigger,
 } from '@/components/ui/hover-popover';
-import { ENTITY_TYPE_COLORS } from '@/features/game/entity-colors';
+
+import { ENTITY_TYPE_COLORS } from '../entity-type-colors';
 
 interface EntityTooltipProps {
   sessionId: string;
@@ -62,25 +63,5 @@ export function EntityTooltip({
         )}
       </HoverPopoverContent>
     </HoverPopover>
-  );
-}
-
-interface EntityLinkProps {
-  sessionId: string;
-  id: string;
-  name: string;
-  entityType: EntityType;
-}
-
-export function EntityLink({ sessionId, id, name, entityType }: EntityLinkProps) {
-  return (
-    <EntityTooltip sessionId={sessionId} id={id} name={name} entityType={entityType}>
-      <span
-        className="cursor-help font-bold whitespace-nowrap not-italic"
-        style={{ color: ENTITY_TYPE_COLORS[entityType] }}
-      >
-        [{name}]
-      </span>
-    </EntityTooltip>
   );
 }

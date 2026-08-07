@@ -177,21 +177,77 @@
 
 @keyframes combat-flash-hit {
   0% {
-    box-shadow: 0 0 0 2px var(--destructive);
+    box-shadow:
+      0 0 0 3px var(--destructive),
+      inset 0 0 0 999px color-mix(in oklch, var(--destructive) 22%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 transparent;
+    box-shadow:
+      0 0 0 0 transparent,
+      inset 0 0 0 999px transparent;
   }
 }
 
 @keyframes combat-flash-crit {
   0% {
-    box-shadow: 0 0 0 3px var(--crit);
-    transform: scale(1.03);
+    box-shadow:
+      0 0 0 4px var(--crit),
+      inset 0 0 0 999px color-mix(in oklch, var(--crit) 30%, transparent);
+    transform: scale(1.04);
   }
   100% {
-    box-shadow: 0 0 0 0 transparent;
+    box-shadow:
+      0 0 0 0 transparent,
+      inset 0 0 0 999px transparent;
     transform: scale(1);
+  }
+}
+
+@keyframes combat-flash-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -36px);
+  }
+}
+
+@keyframes combat-flash-float-miss {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -28px);
+  }
+}
+
+@keyframes combat-flash-float-crit {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.5);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.3);
+  }
+  45% {
+    transform: translate(-50%, -4px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -46px) scale(1);
   }
 }
 
@@ -308,6 +364,24 @@
   animation: combat-turn-indicator-pop 0.9s ease forwards;
 }
 
+.combat-flash-float,
+.combat-flash-float-miss,
+.combat-flash-float-crit {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+.combat-flash-float {
+  animation: combat-flash-float 0.9s ease-out forwards;
+}
+
+.combat-flash-float-miss {
+  animation: combat-flash-float-miss 0.9s ease-out forwards;
+}
+
+.combat-flash-float-crit {
+  animation: combat-flash-float-crit 1s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .combat-float-up,
   .combat-float-up-miss,
@@ -316,7 +390,10 @@
   .combat-flash-crit,
   .combat-dodge,
   .combat-windup,
-  .combat-turn-indicator {
+  .combat-turn-indicator,
+  .combat-flash-float,
+  .combat-flash-float-miss,
+  .combat-flash-float-crit {
     animation: none;
   }
 }

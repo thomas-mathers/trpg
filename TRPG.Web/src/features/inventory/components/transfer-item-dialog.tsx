@@ -6,7 +6,6 @@ import {
   ArrowUp,
   Coins,
   PackageOpen,
-  Search,
   Skull,
   User,
   Weight,
@@ -15,7 +14,8 @@ import { useEffect, useState } from 'react';
 
 import { getCreaturesByCreatureIdInventoryOptions, postTransfersMutation } from '@/api/client';
 import type { ItemDetail, ItemRarity, ItemType } from '@/api/client';
-import { NumberStepper } from '@/components/number-stepper';
+import { NumericStepper } from '@/components/numeric-stepper';
+import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -161,14 +161,14 @@ interface TransferTarget {
   name: string;
 }
 
-interface TransferModalProps {
+interface TransferItemDialogProps {
   playerId: string;
   target: TransferTarget | null;
   open: boolean;
   onClose: () => void;
 }
 
-export function TransferModal({ playerId, target, open, onClose }: TransferModalProps) {
+export function TransferItemDialog({ playerId, target, open, onClose }: TransferItemDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
@@ -176,7 +176,7 @@ export function TransferModal({ playerId, target, open, onClose }: TransferModal
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         {target && (
-          <TransferModalBody
+          <TransferDialogBody
             key={target.id}
             playerId={playerId}
             target={target}
@@ -188,7 +188,7 @@ export function TransferModal({ playerId, target, open, onClose }: TransferModal
   );
 }
 
-function TransferModalBody({
+function TransferDialogBody({
   playerId,
   target,
   onClose,
@@ -513,24 +513,15 @@ function InventorySidePanel({
       </div>
 
       <div className="space-y-2 px-3 pt-2">
-        <div className="border-input bg-background flex h-[34px] items-center gap-2 rounded-md border px-2.5 shadow-sm">
-          <Search className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search"
-            className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none"
-          />
-        </div>
+        <SearchInput value={search} onChange={onSearchChange} />
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex w-full min-w-0 gap-1.5 overflow-x-auto py-2">
           {CATEGORY_ORDER.map((category) => (
             <Toggle
               key={category}
               size="sm"
               variant="outline"
-              className="rounded-full"
+              className="shrink-0 rounded-full"
               pressed={categories.has(category)}
               onPressedChange={() => toggleCategory(category)}
             >
@@ -684,7 +675,7 @@ function ItemRow({
         </div>
         {checked && item.quantity > 1 && (
           <div className="mt-1">
-            <NumberStepper
+            <NumericStepper
               value={selectedQuantity}
               onChange={onQuantityChange}
               min={1}

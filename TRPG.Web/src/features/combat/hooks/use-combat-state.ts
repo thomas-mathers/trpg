@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useEffect, useReducer } from 'react';
 
 import type { FightState } from '@/api/client';
 import type { CombatOutcome } from '@/features/combat/combat-outcome';
@@ -8,7 +8,7 @@ import { gameEventBus } from '@/lib/game-event-bus';
 const ATTACK_WINDUP_MS = 700;
 const ATTACK_RESULT_PAUSE_MS = 900;
 
-export interface CombatCardEffect {
+export interface CombatFlash {
   kind: 'hit' | 'crit' | 'miss' | 'block';
   damage?: number;
   nonce: number;
@@ -22,7 +22,7 @@ type AnimationStep =
 interface CombatState {
   fight: FightState | null;
   activeAttackerId: string | null;
-  cardEffects: Record<string, CombatCardEffect>;
+  combatFlashes: Record<string, CombatFlash>;
   isPlayingBack: boolean;
   combatOutcome: CombatOutcome | null;
   queue: AnimationStep[];
@@ -30,17 +30,17 @@ interface CombatState {
   eventCounter: number;
 }
 
-type CombatAction =
+type CombatStateAction =
   | { type: 'FIGHT_STARTED'; fight: FightState }
   | { type: 'ROUND_RECEIVED'; payload: CombatUpdatePayload; skipAnimation: boolean }
   | { type: 'STEP_ADVANCED' }
   | { type: 'OUTCOME_RECEIVED'; outcome: CombatOutcome }
-  | { type: 'DISMISSED' };
+  | { type: 'RESOLVED' };
 
 const initialState: CombatState = {
   fight: null,
   activeAttackerId: null,
-  cardEffects: {},
+  combatFlashes: {},
   isPlayingBack: false,
   combatOutcome: null,
   queue: [],
@@ -62,7 +62,7 @@ function applyRoundEventToFight(fight: FightState, event: CombatRoundEvent): Fig
   };
 }
 
-function toCardEffect(event: CombatRoundEvent, nonce: number): CombatCardEffect {
+function toCombatFlash(event: CombatRoundEvent, nonce: number): CombatFlash {
   switch (event.type) {
     case 'CombatHitEvent':
       return { kind: event.isCritical ? 'crit' : 'hit', damage: event.damage, nonce };
@@ -92,9 +92,9 @@ function reduceStep(state: CombatState, step: AnimationStep): CombatState {
         ...state,
         fight: state.fight ? applyRoundEventToFight(state.fight, step.event) : state.fight,
         activeAttackerId: null,
-        cardEffects: {
-          ...state.cardEffects,
-          [step.event.targetId]: toCardEffect(step.event, state.eventCounter + 1),
+        combatFlashes: {
+          ...state.combatFlashes,
+          [step.event.targetId]: toCombatFlash(step.event, state.eventCounter + 1),
         },
         eventCounter: state.eventCounter + 1,
       };
@@ -103,7 +103,7 @@ function reduceStep(state: CombatState, step: AnimationStep): CombatState {
   }
 }
 
-function combatReducer(state: CombatState, action: CombatAction): CombatState {
+function combatReducer(state: CombatState, action: CombatStateAction): CombatState {
   switch (action.type) {
     case 'FIGHT_STARTED':
       return { ...initialState, fight: action.fight };
@@ -144,7 +144,7 @@ function combatReducer(state: CombatState, action: CombatAction): CombatState {
         ? { ...state, combatOutcome: action.outcome }
         : { ...state, pendingOutcome: action.outcome };
 
-    case 'DISMISSED':
+    case 'RESOLVED':
       return { ...state, combatOutcome: null, fight: null };
 
     default:
@@ -188,15 +188,19 @@ export function useCombatState() {
     };
   }, []);
 
-  const dismissOutcome = useCallback(() => dispatch({ type: 'DISMISSED' }), []);
+  useEffect(() => {
+    if (!state.combatOutcome) {
+      return;
+    }
+
+    gameEventBus.emit('CombatResolved', state.combatOutcome);
+    dispatch({ type: 'RESOLVED' });
+  }, [state.combatOutcome]);
 
   return {
     fight: state.fight,
-    isInCombat: state.fight !== null,
     activeAttackerId: state.activeAttackerId,
-    cardEffects: state.cardEffects,
+    combatFlashes: state.combatFlashes,
     isPlayingBack: state.isPlayingBack,
-    combatOutcome: state.combatOutcome,
-    dismissOutcome,
   };
 }

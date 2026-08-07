@@ -28,13 +28,13 @@ const SKILL_ORDER: Skill[] = [
   'Unarmed',
 ];
 
-interface SkillTreeModalProps {
+interface SkillTreeDialogProps {
   playerId: string;
   open: boolean;
   onClose: () => void;
 }
 
-export function SkillTreeModal({ playerId, open, onClose }: SkillTreeModalProps) {
+export function SkillTreeDialog({ playerId, open, onClose }: SkillTreeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
@@ -42,14 +42,14 @@ export function SkillTreeModal({ playerId, open, onClose }: SkillTreeModalProps)
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         <ReactFlowProvider>
-          <SkillTreeModalBody playerId={playerId} onClose={onClose} />
+          <SkillTreeDialogBody playerId={playerId} onClose={onClose} />
         </ReactFlowProvider>
       </DialogContent>
     </Dialog>
   );
 }
 
-function SkillTreeModalBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
+function SkillTreeDialogBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
   const [activeSkill, setActiveSkill] = useState<Skill>('Melee');
 
   const skillLevels = useQuery(
@@ -78,7 +78,7 @@ function SkillTreeModalBody({ playerId, onClose }: { playerId: string; onClose: 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Abilities</DialogTitle>
+        <DialogTitle>Skills</DialogTitle>
       </DialogHeader>
 
       <Tabs
@@ -86,15 +86,13 @@ function SkillTreeModalBody({ playerId, onClose }: { playerId: string; onClose: 
         onValueChange={(value) => setActiveSkill(value as Skill)}
         className="flex min-h-0 flex-1 flex-col gap-3"
       >
-        <div className="overflow-x-auto">
-          <TabsList>
-            {SKILL_ORDER.map((skill) => (
-              <TabsTrigger key={skill} value={skill}>
-                {skill}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+        <TabsList>
+          {SKILL_ORDER.map((skill) => (
+            <TabsTrigger key={skill} value={skill}>
+              {skill}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
         <TabsContent
           value={activeSkill}
