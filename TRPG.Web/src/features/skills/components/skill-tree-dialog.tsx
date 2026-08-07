@@ -52,9 +52,7 @@ export function SkillTreeDialog({ playerId, open, onClose }: SkillTreeDialogProp
 function SkillTreeDialogBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
   const [activeSkill, setActiveSkill] = useState<Skill>('Melee');
 
-  const skillLevels = useQuery(
-    getCreatureSkillsOptions({ path: { creatureId: playerId } }),
-  );
+  const skillLevels = useQuery(getCreatureSkillsOptions({ path: { creatureId: playerId } }));
 
   const tree = useQuery(getAbilitiesBySkillOptions({ path: { skill: activeSkill } }));
 

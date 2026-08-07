@@ -38,12 +38,8 @@ export function AbilityPicker({ playerId, category, onBack, onChoose }: AbilityP
   const [query, setQuery] = useState('');
   const queryClient = useQueryClient();
 
-  const abilitiesQuery = useQuery(
-    getCreatureAbilitiesOptions({ path: { creatureId: playerId } }),
-  );
-  const availabilityQuery = useQuery(
-    getPlayerFightAbilitiesOptions({ path: { playerId } }),
-  );
+  const abilitiesQuery = useQuery(getCreatureAbilitiesOptions({ path: { creatureId: playerId } }));
+  const availabilityQuery = useQuery(getPlayerFightAbilitiesOptions({ path: { playerId } }));
 
   useEffect(() => {
     const key = getPlayerFightAbilitiesQueryKey({ path: { playerId } });

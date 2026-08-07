@@ -175,10 +175,7 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
     queryClient.invalidateQueries({
       predicate: (query) => {
         const id = (query.queryKey[0] as { _id?: string } | undefined)?._id;
-        return (
-          id === 'previewCreatureEquipment' ||
-          id === 'previewCreatureBasicAttackDamage'
-        );
+        return id === 'previewCreatureEquipment' || id === 'previewCreatureBasicAttackDamage';
       },
     });
   };

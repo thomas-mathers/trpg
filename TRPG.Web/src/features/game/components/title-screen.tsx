@@ -1,11 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
-import {
-  dropWorldMutation,
-  listWorldsOptions,
-  createSessionMutation,
-} from '../../../api/client';
+import { dropWorldMutation, listWorldsOptions, createSessionMutation } from '../../../api/client';
 import { Button } from '../../../components/ui/button';
 import { NewWorldDialog } from '../../world-generation/components/new-world-dialog';
 

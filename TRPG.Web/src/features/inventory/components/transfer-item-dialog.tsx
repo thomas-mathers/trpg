@@ -198,9 +198,7 @@ function TransferDialogBody({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
-  const playerInventory = useQuery(
-    getCreatureInventoryOptions({ path: { creatureId: playerId } }),
-  );
+  const playerInventory = useQuery(getCreatureInventoryOptions({ path: { creatureId: playerId } }));
   const targetInventory = useQuery(
     getCreatureInventoryOptions({ path: { creatureId: target.id } }),
   );
@@ -283,12 +281,10 @@ function TransferDialogBody({
     }
 
     await queryClient.invalidateQueries({
-      queryKey: getCreatureInventoryOptions({ path: { creatureId: playerId } })
-        .queryKey,
+      queryKey: getCreatureInventoryOptions({ path: { creatureId: playerId } }).queryKey,
     });
     await queryClient.invalidateQueries({
-      queryKey: getCreatureInventoryOptions({ path: { creatureId: target.id } })
-        .queryKey,
+      queryKey: getCreatureInventoryOptions({ path: { creatureId: target.id } }).queryKey,
     });
     onClose();
   };
