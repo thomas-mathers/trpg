@@ -334,7 +334,7 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
       </div>
 
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
+        <Button aria-label="Close inventory" variant="outline" onClick={onClose}>
           Close
         </Button>
       </DialogFooter>

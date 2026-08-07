@@ -1,7 +1,9 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 
 const prefersReducedMotion =
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 interface AnimatedHeightProps {
   children: ReactNode;

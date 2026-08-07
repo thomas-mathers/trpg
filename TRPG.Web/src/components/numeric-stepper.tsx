@@ -8,9 +8,16 @@ interface NumericStepperProps {
   onChange: (value: number) => void;
   min?: number;
   max?: number;
+  ariaLabel?: string;
 }
 
-export function NumericStepper({ value, onChange, min = 0, max = 99 }: NumericStepperProps) {
+export function NumericStepper({
+  value,
+  onChange,
+  min = 0,
+  max = 99,
+  ariaLabel,
+}: NumericStepperProps) {
   const clamp = (next: number) => Math.min(max, Math.max(min, next));
 
   return (
@@ -19,6 +26,7 @@ export function NumericStepper({ value, onChange, min = 0, max = 99 }: NumericSt
         type="button"
         variant="outline"
         size="icon"
+        aria-label={`Decrease ${ariaLabel ?? 'value'}`}
         onClick={() => onChange(clamp(value - 1))}
         disabled={value <= min}
       >
@@ -26,6 +34,7 @@ export function NumericStepper({ value, onChange, min = 0, max = 99 }: NumericSt
       </Button>
       <Input
         type="number"
+        aria-label={ariaLabel}
         className="w-16 text-center"
         value={value}
         onChange={(e) => {
@@ -41,6 +50,7 @@ export function NumericStepper({ value, onChange, min = 0, max = 99 }: NumericSt
         type="button"
         variant="outline"
         size="icon"
+        aria-label={`Increase ${ariaLabel ?? 'value'}`}
         onClick={() => onChange(clamp(value + 1))}
         disabled={value >= max}
       >

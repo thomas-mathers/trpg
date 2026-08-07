@@ -15,7 +15,7 @@ interface GameEventMap {
 
 class GameEventBus extends EventTarget {
   emit<K extends keyof GameEventMap>(event: K, detail?: GameEventMap[K]): void {
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && import.meta.env.MODE !== 'test') {
       console.debug(`[gameEventBus] ${event}`, detail);
     }
     this.dispatchEvent(new CustomEvent(event, { detail }));

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { CharacterDialog } from '@/features/character/components/character-dialog';
 
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
+import { gameEventBus } from '../../../lib/game-event-bus';
 import { clearStoredMessages } from '../../../lib/session-storage';
 import { InventoryDialog } from '../../inventory/components/inventory-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
@@ -32,6 +33,16 @@ function GameScreen() {
   useEffect(() => {
     setIsNearbyOpen(!isInCombat);
   }, [isInCombat]);
+
+  useEffect(
+    () =>
+      gameEventBus.on('ConnectionStatusChanged', (status) => {
+        if (status === 'disconnected') {
+          setOpenDialog('disconnected');
+        }
+      }),
+    [],
+  );
 
   const handleReturnToMenu = () => {
     clearStoredMessages(sessionId);

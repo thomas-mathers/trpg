@@ -11,7 +11,7 @@ import { gameEventBus } from '@/lib/game-event-bus';
 const SEARCH_THRESHOLD = 6;
 const RESOURCE_LABEL: Record<string, string> = { Hp: 'HP', Ap: 'AP', Mp: 'MP' };
 
-interface ItemPickerProps {
+export interface ItemPickerProps {
   playerId: string;
   onBack: () => void;
   onChoose: (item: ConsumableSummary) => void;

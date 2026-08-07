@@ -3,13 +3,23 @@ import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
+const HOVER_QUERY = '(hover: hover) and (pointer: fine)';
+
 function useCanHover(): boolean {
-  const [canHover, setCanHover] = React.useState(
-    () => window.matchMedia('(hover: hover) and (pointer: fine)').matches,
-  );
+  const [canHover, setCanHover] = React.useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+
+    return window.matchMedia(HOVER_QUERY).matches;
+  });
 
   React.useEffect(() => {
-    const query = window.matchMedia('(hover: hover) and (pointer: fine)');
+    if (typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const query = window.matchMedia(HOVER_QUERY);
     const listener = (event: MediaQueryListEvent) => setCanHover(event.matches);
     query.addEventListener('change', listener);
     return () => query.removeEventListener('change', listener);

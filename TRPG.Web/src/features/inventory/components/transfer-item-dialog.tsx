@@ -161,7 +161,7 @@ interface TransferTarget {
   name: string;
 }
 
-interface TransferItemDialogProps {
+export interface TransferItemDialogProps {
   playerId: string;
   target: TransferTarget | null;
   open: boolean;
@@ -312,6 +312,7 @@ function TransferDialogBody({
               <User className="text-muted-foreground size-4" /> You
             </>
           }
+          ariaLabel="Your inventory"
           items={leftItems}
           selected={leftSelected}
           onSelectedChange={setLeftSelected}
@@ -356,6 +357,7 @@ function TransferDialogBody({
               <Skull className="text-muted-foreground size-4" /> {target.name}
             </>
           }
+          ariaLabel={`${target.name}'s inventory`}
           items={rightItems}
           selected={rightSelected}
           onSelectedChange={setRightSelected}
@@ -422,6 +424,7 @@ function ArrowBadge({ count }: { count: number }) {
 
 interface InventorySidePanelProps {
   title: React.ReactNode;
+  ariaLabel: string;
   items: WorkingItem[];
   selected: Map<string, number>;
   onSelectedChange: (selected: Map<string, number>) => void;
@@ -435,6 +438,7 @@ interface InventorySidePanelProps {
 
 function InventorySidePanel({
   title,
+  ariaLabel,
   items,
   selected,
   onSelectedChange,
@@ -525,6 +529,7 @@ function InventorySidePanel({
               className="shrink-0 rounded-full"
               pressed={categories.has(category)}
               onPressedChange={() => toggleCategory(category)}
+              aria-label={`${ariaLabel} ${CATEGORY_LABEL[category]}`}
             >
               {CATEGORY_LABEL[category]}
             </Toggle>

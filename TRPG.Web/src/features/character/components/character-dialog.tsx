@@ -218,6 +218,7 @@ function AttributeAllocationForm({
                           value={value}
                           min={base}
                           max={value + remaining}
+                          ariaLabel={ATTRIBUTE_LABELS[attribute]}
                           onChange={(next) => form.setFieldValue(attribute, next - base)}
                         />
                       </div>

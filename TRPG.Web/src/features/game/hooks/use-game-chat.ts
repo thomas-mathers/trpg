@@ -22,7 +22,17 @@ const OUTCOME_MARKER: Record<CombatOutcome, string> = {
   Fled: 'You escaped',
 };
 
-export function useGameChat(sessionId: string) {
+export interface GameChat {
+  messages: ChatMessage[];
+  isConnected: boolean;
+  isStreaming: boolean;
+  submitChatMessage: (text: string) => void;
+  submitCombatAction: (action: PlayerCombatAction, displayText: string) => void;
+  submitFlee: () => void;
+  endSession: () => Promise<void>;
+}
+
+export function useGameChat(sessionId: string): GameChat {
   const { isConnected, streamOpening, streamChat, streamCombatAction, streamFlee, endSession } =
     useGameHubConnection(sessionId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
