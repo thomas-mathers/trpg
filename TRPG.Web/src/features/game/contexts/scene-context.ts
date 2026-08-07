@@ -3,6 +3,7 @@ import { createContext, useContext } from 'react';
 import type { SceneSnapshot } from '@/api/client';
 
 export const SessionContext = createContext<string | null>(null);
+export const PlayerIdContext = createContext<string | undefined>(undefined);
 export const SceneContext = createContext<SceneSnapshot | undefined>(undefined);
 
 export function useSessionId() {
@@ -18,5 +19,5 @@ export function useScene() {
 }
 
 export function usePlayerId() {
-  return useScene()?.playerStatus.id;
+  return useContext(PlayerIdContext);
 }
