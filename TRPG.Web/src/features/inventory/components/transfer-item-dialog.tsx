@@ -443,12 +443,11 @@ function InventorySidePanel({
   sort,
   onSortChange,
 }: InventorySidePanelProps) {
-  const visible = sortItems(items, search, categories, sort);
-  const selectableVisible = visible.filter((item) => item.equippedSlot === null);
+  const sortedItems = sortItems(items, search, categories, sort);
   const totalWeight = items.reduce((sum, item) => sum + item.weight * item.quantity, 0);
   const allSelected =
-    selectableVisible.length > 0 && selectableVisible.every((item) => selected.has(item.rowKey));
-  const someSelected = selectableVisible.some((item) => selected.has(item.rowKey));
+    sortedItems.length > 0 && sortedItems.every((item) => selected.has(item.rowKey));
+  const someSelected = sortedItems.some((item) => selected.has(item.rowKey));
 
   const toggleSort = (key: SortKey) => {
     if (sort.key === key) {
@@ -476,11 +475,11 @@ function InventorySidePanel({
   const toggleSelectAll = () => {
     const next = new Map(selected);
     if (allSelected) {
-      for (const item of selectableVisible) {
+      for (const item of sortedItems) {
         next.delete(item.rowKey);
       }
     } else {
-      for (const item of selectableVisible) {
+      for (const item of sortedItems) {
         next.set(item.rowKey, item.quantity);
       }
     }
@@ -532,7 +531,7 @@ function InventorySidePanel({
       </div>
 
       <div className="flex-1 overflow-x-hidden overflow-y-auto px-3 pb-2">
-        {visible.length === 0 ? (
+        {sortedItems.length === 0 ? (
           <Empty className="h-full">
             <EmptyMedia variant="icon">
               <PackageOpen />
@@ -570,7 +569,7 @@ function InventorySidePanel({
                           el.indeterminate = !allSelected && someSelected;
                         }
                       }}
-                      disabled={selectableVisible.length === 0}
+                      disabled={sortedItems.length === 0}
                       onChange={toggleSelectAll}
                       aria-label="Select all"
                     />
@@ -601,7 +600,7 @@ function InventorySidePanel({
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
-              {visible.map((item) => (
+              {sortedItems.map((item) => (
                 <ItemRow
                   key={item.rowKey}
                   item={item}
@@ -630,22 +629,20 @@ function ItemRow({
   onQuantityChange: (quantity: number) => void;
 }) {
   const checked = selectedQuantity !== undefined;
-  const locked = item.equippedSlot !== null;
+  const equipped = item.equippedSlot !== null;
   const Icon = TYPE_ICON[item.type];
   const rarityColor = item.rarity ? RARITY_COLOR[item.rarity] : undefined;
 
   return (
-    <tr className={cn(checked && 'bg-accent', locked && 'opacity-55')}>
+    <tr className={cn(checked && 'bg-accent')}>
       <td className="px-2 py-1.5 align-top">
         <div className="flex h-5 items-center">
           <input
             type="checkbox"
             className="accent-primary size-4"
             checked={checked}
-            disabled={locked}
             onChange={onToggle}
             aria-label={`Select ${item.name}`}
-            title={locked ? 'Unequip to transfer' : undefined}
           />
         </div>
       </td>
@@ -667,7 +664,7 @@ function ItemRow({
               <ItemTooltip item={item.detail} />
             </HoverPopoverContent>
           </HoverPopover>
-          {locked && (
+          {equipped && (
             <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase">
               Equipped
             </span>

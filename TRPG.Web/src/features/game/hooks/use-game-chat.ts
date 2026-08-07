@@ -9,7 +9,6 @@ import type { ChatMarkerVariant, ChatMessage } from '../components/chat-history'
 import { appendTokenToNarrationSegments } from '../narration-markup';
 import { formatLocation, locationKey } from '../scene-format';
 import { useGameHubConnection } from './use-game-hub-connection';
-import { useSceneQuery } from './use-scene-query';
 
 const CONNECTION_STATUS_TEXT: Record<ConnectionStatus, string> = {
   reconnecting: 'Reconnecting…',
@@ -26,18 +25,11 @@ const OUTCOME_MARKER: Record<CombatOutcome, string> = {
 export function useGameChat(sessionId: string) {
   const { isConnected, streamOpening, streamChat, streamCombatAction, streamFlee, endSession } =
     useGameHubConnection(sessionId);
-  const sceneQuery = useSceneQuery(sessionId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const startedSessionId = useRef<string | null>(null);
   const previousLocation = useRef<string | null>(null);
   const activeNarratorMessageId = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (sceneQuery.data && previousLocation.current === null) {
-      previousLocation.current = locationKey(sceneQuery.data);
-    }
-  }, [sceneQuery.data]);
 
   const appendTokenToActiveNarrationMessage = (id: string, token: string) => {
     setMessages((current) =>
@@ -64,7 +56,7 @@ export function useGameChat(sessionId: string) {
 
   useEffect(
     () =>
-      gameEventBus.on('SceneChanged', (scene) => {
+      gameEventBus.on('SceneSnapshot', (scene) => {
         const key = locationKey(scene);
         if (previousLocation.current !== null && key !== previousLocation.current) {
           appendChatMarker(formatLocation(scene), 'location');

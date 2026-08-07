@@ -8,11 +8,11 @@ import {
   HoverPopoverContent,
   HoverPopoverTrigger,
 } from '@/components/ui/hover-popover';
+import { useSessionId } from '@/features/game/contexts/scene-context';
 
 import { ENTITY_TYPE_COLORS } from '../entity-type-colors';
 
 interface EntityTooltipProps {
-  sessionId: string;
   id: string;
   name: string;
   entityType: EntityType;
@@ -22,7 +22,6 @@ interface EntityTooltipProps {
 }
 
 export function EntityTooltip({
-  sessionId,
   id,
   name,
   entityType,
@@ -30,6 +29,7 @@ export function EntityTooltip({
   forceClosed = false,
   children,
 }: EntityTooltipProps) {
+  const sessionId = useSessionId();
   const [open, setOpen] = useState(false);
   const isOpen = open && !forceClosed;
   const query = useQuery({

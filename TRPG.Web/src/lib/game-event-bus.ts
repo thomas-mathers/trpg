@@ -5,7 +5,7 @@ import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
 export type ConnectionStatus = 'reconnecting' | 'reconnected' | 'disconnected';
 
 interface GameEventMap {
-  SceneChanged: SceneSnapshot;
+  SceneSnapshot: SceneSnapshot;
   CombatStarted: FightState;
   CombatUpdated: CombatUpdatePayload;
   CombatEnded: CombatOutcome;

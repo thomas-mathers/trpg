@@ -12,6 +12,6 @@ public enum SceneUpdateReason
 
 public record SceneUpdatedEvent(SceneSnapshot Scene, SceneUpdateReason Reason) : GameTurnEvent
 {
-    public override string MethodName => "SceneChanged";
+    public override string MethodName => "SceneSnapshot";
     public override object? Payload => Scene;
 }

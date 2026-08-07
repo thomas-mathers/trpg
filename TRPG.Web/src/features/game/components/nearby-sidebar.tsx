@@ -1,17 +1,13 @@
 import { Sidebar, SidebarContent, useSidebar } from '@/components/ui/sidebar';
 import { NearbyPanel } from '@/features/game/components/nearby-panel';
-import { useSceneQuery } from '@/features/game/hooks/use-scene-query';
+import { useScene } from '@/features/game/contexts/scene-context';
 import { cn } from '@/lib/utils';
 
-interface NearbySidebarProps {
-  sessionId: string;
-}
-
-export function NearbySidebar({ sessionId }: NearbySidebarProps) {
-  const query = useSceneQuery(sessionId);
+export function NearbySidebar() {
+  const scene = useScene();
   const { open, isMobile } = useSidebar();
 
-  const panel = query.data && <NearbyPanel sessionId={sessionId} scene={query.data} />;
+  const panel = scene && <NearbyPanel scene={scene} />;
 
   if (isMobile) {
     return (
