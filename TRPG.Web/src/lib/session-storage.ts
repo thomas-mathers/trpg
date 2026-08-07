@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@/features/game/components/game-screen';
+import type { ChatMessage } from '@/features/game/components/chat-history';
 
 function storageKey(sessionId: string): string {
   return `trpg:session:${sessionId}:messages`;

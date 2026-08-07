@@ -9,6 +9,7 @@ interface GameEventMap {
   CombatStarted: FightState;
   CombatUpdated: CombatUpdatePayload;
   CombatEnded: CombatOutcome;
+  CombatResolved: CombatOutcome;
   ConnectionStatusChanged: ConnectionStatus;
 }
 

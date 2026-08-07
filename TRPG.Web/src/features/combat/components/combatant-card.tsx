@@ -2,7 +2,7 @@ import { Droplet, Heart, type LucideIcon, Skull, Swords, Zap } from 'lucide-reac
 
 import type { CombatantState } from '@/api/client';
 import { EffectBadge } from '@/features/combat/components/effect-badge';
-import type { CombatCardEffect } from '@/features/combat/hooks/use-combat-state';
+import type { CombatFlash } from '@/features/combat/hooks/use-combat-state';
 import { useStatDelta } from '@/features/combat/hooks/use-stat-delta';
 import { isDangerous } from '@/features/combat/threat-level';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,7 @@ interface CombatantCardProps {
   playerLevel: number;
   targetable?: boolean;
   onSelect?: () => void;
-  effect?: CombatCardEffect;
+  flash?: CombatFlash;
   isActing?: boolean;
 }
 
@@ -23,13 +23,16 @@ export function CombatantCard({
   playerLevel,
   targetable = false,
   onSelect,
-  effect,
+  flash,
   isActing = false,
 }: CombatantCardProps) {
   const hpDelta = useStatDelta(Number(combatant.currentHp));
   const apDelta = useStatDelta(Number(combatant.currentAp));
   const mpDelta = useStatDelta(Number(combatant.currentMp));
-  const inferredHit = !effect && hpDelta !== null && hpDelta < 0;
+  const inferredHit = !flash && hpDelta !== null && hpDelta < 0;
+  const isHit = flash?.kind === 'hit' || inferredHit;
+  const isCrit = flash?.kind === 'crit';
+  const isDodged = flash?.kind === 'miss' || flash?.kind === 'block';
 
   const danger = !isSelf && combatant.isAlive && isDangerous(Number(combatant.level), playerLevel);
   const canTarget = targetable && combatant.isAlive;
@@ -76,9 +79,9 @@ export function CombatantCard({
         !combatant.isAlive && 'opacity-45',
         canTarget &&
           'ring-ring cursor-pointer ring-1 outline-none hover:-translate-y-px hover:ring-2 focus-visible:-translate-y-px focus-visible:ring-2',
-        (effect?.kind === 'hit' || inferredHit) && 'combat-flash-hit',
-        effect?.kind === 'crit' && 'combat-flash-crit',
-        (effect?.kind === 'miss' || effect?.kind === 'block') && 'combat-dodge',
+        isHit && 'combat-flash-hit',
+        isCrit && 'combat-flash-crit',
+        isDodged && 'combat-dodge',
       )}
     >
       {isActing && (
@@ -91,6 +94,7 @@ export function CombatantCard({
         </span>
       )}
       {isActing && <span className="combat-windup absolute inset-0 rounded-lg" />}
+      {flash && <FlashFloat flash={flash} />}
 
       <div className="mb-1.5 flex items-baseline justify-between gap-1.5">
         <span className="flex min-w-0 items-center gap-1">
@@ -113,7 +117,7 @@ export function CombatantCard({
         current={Number(combatant.currentHp)}
         max={Number(combatant.maximumHp)}
         delta={hpDelta}
-        effect={effect}
+        hideDelta={Boolean(flash)}
       />
       <StatBar
         icon={Zap}
@@ -144,10 +148,18 @@ interface StatBarProps {
   current: number;
   max: number;
   delta: number | null;
-  effect?: CombatCardEffect;
+  hideDelta?: boolean;
 }
 
-function StatBar({ icon: Icon, colorClass, fillClass, current, max, delta, effect }: StatBarProps) {
+function StatBar({
+  icon: Icon,
+  colorClass,
+  fillClass,
+  current,
+  max,
+  delta,
+  hideDelta = false,
+}: StatBarProps) {
   const pct = max > 0 ? Math.max(0, Math.min(100, Math.round((current / max) * 100))) : 0;
 
   return (
@@ -165,60 +177,57 @@ function StatBar({ icon: Icon, colorClass, fillClass, current, max, delta, effec
       <span className="text-muted-foreground w-10 shrink-0 text-right text-[10px] tabular-nums">
         {current}/{max}
       </span>
-      {effect ? (
-        <EffectFloat effect={effect} colorClass={colorClass} />
-      ) : (
-        delta !== null &&
-        delta !== 0 && (
-          <span
-            className={cn(
-              'combat-float-up pointer-events-none absolute -top-0.5 right-0 text-[13px] font-bold tabular-nums',
-              delta > 0 ? 'text-green-500' : colorClass,
-            )}
-          >
-            {delta > 0 ? `+${delta}` : delta}
-          </span>
-        )
+      {!hideDelta && delta !== null && delta !== 0 && (
+        <span
+          className={cn(
+            'combat-float-up pointer-events-none absolute -top-0.5 right-0 text-[13px] font-bold tabular-nums',
+            delta > 0 ? 'text-green-500' : colorClass,
+          )}
+        >
+          {delta > 0 ? `+${delta}` : delta}
+        </span>
       )}
     </div>
   );
 }
 
-function EffectFloat({ effect, colorClass }: { effect: CombatCardEffect; colorClass: string }) {
-  if (effect.kind === 'miss') {
+function FlashFloat({ flash }: { flash: CombatFlash }) {
+  if (flash.kind === 'miss') {
     return (
       <span
-        key={effect.nonce}
-        className="combat-float-up-miss text-muted-foreground pointer-events-none absolute top-0 right-0 text-[11px] font-semibold italic"
+        key={flash.nonce}
+        className="combat-flash-float-miss text-muted-foreground pointer-events-none absolute top-9 left-1/2 z-10 text-[12px] font-semibold italic"
       >
         MISS
       </span>
     );
   }
 
-  if (effect.kind === 'block') {
+  if (flash.kind === 'block') {
     return (
       <span
-        key={effect.nonce}
-        className="combat-float-up-miss text-muted-foreground pointer-events-none absolute top-0 right-0 text-[11px] font-semibold italic"
+        key={flash.nonce}
+        className="combat-flash-float-miss text-muted-foreground pointer-events-none absolute top-9 left-1/2 z-10 text-[12px] font-semibold italic"
       >
         BLOCKED
       </span>
     );
   }
 
-  const isCrit = effect.kind === 'crit';
+  const isCrit = flash.kind === 'crit';
 
   return (
     <span
-      key={effect.nonce}
+      key={flash.nonce}
       className={cn(
-        'pointer-events-none absolute -top-0.5 right-0 font-bold tabular-nums',
-        isCrit ? 'combat-float-up-crit text-[20px]' : cn('combat-float-up text-[13px]', colorClass),
+        'pointer-events-none absolute top-9 left-1/2 z-10 font-bold tabular-nums',
+        isCrit
+          ? 'combat-flash-float-crit text-[22px]'
+          : 'combat-flash-float text-red-500 text-[15px]',
       )}
       style={isCrit ? { color: 'var(--crit)' } : undefined}
     >
-      {isCrit ? `CRIT -${effect.damage}` : `-${effect.damage}`}
+      {isCrit ? `CRIT -${flash.damage}` : `-${flash.damage}`}
     </span>
   );
 }

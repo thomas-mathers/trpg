@@ -1,22 +1,25 @@
 import { DoorOpen, FlaskConical, Shield, Sword, Swords } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type {
   AbilityCategory,
   AbilitySummary,
   CombatantState,
   ConsumableSummary,
-  FightState,
 } from '@/api/client';
-import type { UseAbilityAction, UseItemAction } from '@/features/combat/combat-action';
-import type { CombatOutcome } from '@/features/combat/combat-outcome';
+import {
+  formatCombatAction,
+  type UseAbilityAction,
+  type UseItemAction,
+} from '@/features/combat/combat-action';
 import { AbilityPicker } from '@/features/combat/components/ability-picker';
 import { AnimatedHeight } from '@/features/combat/components/animated-height';
-import { CombatOutcomeScreen } from '@/features/combat/components/combat-outcome-screen';
 import { CombatantCard } from '@/features/combat/components/combatant-card';
 import { ItemPicker } from '@/features/combat/components/item-picker';
 import { PickerHeader } from '@/features/combat/components/picker-header';
-import type { CombatCardEffect } from '@/features/combat/hooks/use-combat-state';
+import { useGameActions } from '@/features/game/game-chat-context';
+
+import { useCombatState, type CombatFlash } from '../hooks/use-combat-state';
 
 type Mode = 'topmenu' | 'ability' | 'target' | 'item';
 
@@ -26,7 +29,7 @@ interface EnemyRowProps {
   targetable?: boolean;
   onSelectTarget?: (id: string) => void;
   activeAttackerId?: string | null;
-  cardEffects?: Record<string, CombatCardEffect>;
+  combatFlashes?: Record<string, CombatFlash>;
 }
 
 function EnemyRow({
@@ -35,7 +38,7 @@ function EnemyRow({
   targetable = false,
   onSelectTarget,
   activeAttackerId = null,
-  cardEffects = {},
+  combatFlashes = {},
 }: EnemyRowProps) {
   return (
     <div className="flex max-h-52 flex-wrap gap-2 overflow-y-auto p-2.5 pb-1">
@@ -46,7 +49,7 @@ function EnemyRow({
           playerLevel={playerLevel}
           targetable={targetable}
           onSelect={() => onSelectTarget?.(enemy.id)}
-          effect={cardEffects[enemy.id]}
+          flash={combatFlashes[enemy.id]}
           isActing={activeAttackerId === enemy.id}
         />
       ))}
@@ -56,38 +59,16 @@ function EnemyRow({
 
 interface CombatConsoleProps {
   playerId: string;
-  fight: FightState;
-  disabled: boolean;
-  onUseAbility: (action: UseAbilityAction) => void;
-  onUseItem: (action: UseItemAction) => void;
-  onFlee: () => void;
-  activeAttackerId?: string | null;
-  cardEffects?: Record<string, CombatCardEffect>;
-  outcome?: CombatOutcome | null;
-  onDismissOutcome?: () => void;
-  onExitToMenu?: () => void;
 }
 
-export function CombatConsole({
-  playerId,
-  fight,
-  disabled,
-  onUseAbility,
-  onUseItem,
-  onFlee,
-  activeAttackerId = null,
-  cardEffects = {},
-  outcome = null,
-  onDismissOutcome = () => {},
-  onExitToMenu = () => {},
-}: CombatConsoleProps) {
+export function CombatConsole({ playerId }: CombatConsoleProps) {
+  const { fight, activeAttackerId, combatFlashes, isPlayingBack } = useCombatState();
+  const { isStreaming, submitCombatAction, submitFlee } = useGameActions();
   const [mode, setMode] = useState<Mode>('topmenu');
   const [abilityCategory, setAbilityCategory] = useState<AbilityCategory | null>(null);
   const [pendingAbility, setPendingAbility] = useState<AbilitySummary | null>(null);
 
-  const player = fight.combatants.find((c) => c.isPlayer);
-  const enemies = fight.combatants.filter((c) => !c.isPlayer);
-  const playerLevel = player ? Number(player.level) : 1;
+  const disabled = isPlayingBack || isStreaming;
 
   useEffect(() => {
     if (!disabled) {
@@ -95,13 +76,38 @@ export function CombatConsole({
     }
   }, [disabled]);
 
+  const wasInCombatRef = useRef(false);
+
+  useEffect(() => {
+    const isInCombat = fight !== null;
+    if (isInCombat && !wasInCombatRef.current) {
+      setMode('topmenu');
+      setAbilityCategory(null);
+      setPendingAbility(null);
+    }
+    wasInCombatRef.current = isInCombat;
+  }, [fight]);
+
+  if (!fight) {
+    return null;
+  }
+
+  const player = fight.combatants.find((c) => c.isPlayer);
+  const enemies = fight.combatants.filter((c) => !c.isPlayer);
+  const playerLevel = player ? Number(player.level) : 1;
+
   if (!player) {
     return null;
   }
 
   function chooseAbility(ability: AbilitySummary) {
     if (abilityCategory === 'Support') {
-      onUseAbility({ type: 'UseAbilityAction', targetId: player!.id, abilityName: ability.name });
+      const action: UseAbilityAction = {
+        type: 'UseAbilityAction',
+        targetId: player!.id,
+        abilityName: ability.name,
+      };
+      submitCombatAction(action, formatCombatAction(action, fight));
       return;
     }
     setPendingAbility(ability);
@@ -112,50 +118,23 @@ export function CombatConsole({
     if (!pendingAbility) {
       return;
     }
-    onUseAbility({ type: 'UseAbilityAction', targetId, abilityName: pendingAbility.name });
+    const action: UseAbilityAction = {
+      type: 'UseAbilityAction',
+      targetId,
+      abilityName: pendingAbility.name,
+    };
+    submitCombatAction(action, formatCombatAction(action, fight));
   }
 
   function chooseItem(item: ConsumableSummary) {
-    onUseItem({ type: 'UseItemAction', itemName: item.name });
+    const action: UseItemAction = { type: 'UseItemAction', itemName: item.name };
+    submitCombatAction(action, formatCombatAction(action, fight));
   }
 
-  return (
-    <div className="bg-muted overflow-hidden rounded-lg border shadow-md">
-      <div className="border-border bg-card flex items-center border-b px-3 py-2">
-        <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
-          <Swords className="h-3.5 w-3.5" />
-          Combat
-        </span>
-      </div>
-
-      <EnemyRow
-        enemies={enemies}
-        playerLevel={playerLevel}
-        targetable={mode === 'target'}
-        onSelectTarget={chooseTarget}
-        activeAttackerId={activeAttackerId}
-        cardEffects={cardEffects}
-      />
-      <div className="px-2.5">
-        <CombatantCard
-          combatant={player}
-          isSelf
-          playerLevel={playerLevel}
-          effect={cardEffects[player.id]}
-          isActing={activeAttackerId === player.id}
-        />
-      </div>
-
-      <AnimatedHeight>
-        {outcome ? (
-          <CombatOutcomeScreen
-            outcome={outcome}
-            onContinue={onDismissOutcome}
-            onExitToMenu={onExitToMenu}
-          />
-        ) : disabled ? (
-          <ResolvingIndicator />
-        ) : mode === 'topmenu' ? (
+  function renderMode() {
+    switch (mode) {
+      case 'topmenu':
+        return (
           <div className="grid grid-cols-4 gap-1.5 p-2.5">
             <ActionButton
               icon={Sword}
@@ -174,16 +153,20 @@ export function CombatConsole({
               }}
             />
             <ActionButton icon={FlaskConical} label="Item" onClick={() => setMode('item')} />
-            <ActionButton icon={DoorOpen} label="Flee" onClick={onFlee} destructive />
+            <ActionButton icon={DoorOpen} label="Flee" onClick={submitFlee} destructive />
           </div>
-        ) : mode === 'ability' && abilityCategory ? (
+        );
+      case 'ability':
+        return abilityCategory ? (
           <AbilityPicker
             playerId={playerId}
             category={abilityCategory}
             onBack={() => setMode('topmenu')}
             onChoose={chooseAbility}
           />
-        ) : mode === 'target' ? (
+        ) : null;
+      case 'target':
+        return (
           <div className="p-2.5">
             <PickerHeader
               onBack={() => setMode('ability')}
@@ -193,10 +176,42 @@ export function CombatConsole({
               Choose an enemy card above to strike.
             </p>
           </div>
-        ) : (
+        );
+      case 'item':
+        return (
           <ItemPicker playerId={playerId} onBack={() => setMode('topmenu')} onChoose={chooseItem} />
-        )}
-      </AnimatedHeight>
+        );
+    }
+  }
+
+  return (
+    <div className="bg-muted overflow-hidden rounded-lg border shadow-md">
+      <div className="border-border bg-card flex items-center border-b px-3 py-2">
+        <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+          <Swords className="h-3.5 w-3.5" />
+          Combat
+        </span>
+      </div>
+
+      <EnemyRow
+        enemies={enemies}
+        playerLevel={playerLevel}
+        targetable={mode === 'target'}
+        onSelectTarget={chooseTarget}
+        activeAttackerId={activeAttackerId}
+        combatFlashes={combatFlashes}
+      />
+      <div className="px-2.5">
+        <CombatantCard
+          combatant={player}
+          isSelf
+          playerLevel={playerLevel}
+          flash={combatFlashes[player.id]}
+          isActing={activeAttackerId === player.id}
+        />
+      </div>
+
+      <AnimatedHeight>{disabled ? <ResolvingIndicator /> : renderMode()}</AnimatedHeight>
     </div>
   );
 }
