@@ -1,8 +1,10 @@
 using TRPG.Application.Combat;
 using ActiveBuff = TRPG.Contracts.Combat.Responses.ActiveBuff;
+using ActiveConditions = TRPG.Contracts.Combat.Responses.ActiveConditions;
 using ActiveDot = TRPG.Contracts.Combat.Responses.ActiveDot;
 using ActiveHot = TRPG.Contracts.Combat.Responses.ActiveHot;
 using CombatantState = TRPG.Contracts.Combat.Responses.CombatantState;
+using ConditionType = TRPG.Application.Abilities.ConditionType;
 using FightState = TRPG.Contracts.Combat.Responses.FightState;
 
 namespace TRPG.Application.Common.Mappers;
@@ -25,8 +27,7 @@ public static class FightStateMapper
                     MaximumAp: c.MaximumAp,
                     CurrentMp: c.CurrentMp,
                     MaximumMp: c.MaximumMp,
-                    ActiveConditions: c.ActiveConditions.Where(kv => kv.Value > 0)
-                        .ToDictionary(kv => kv.Key.ToContract(), kv => kv.Value),
+                    ActiveConditions: ToActiveConditions(c.ActiveConditions),
                     ActiveDots: c.ActiveDots.Select(d => new ActiveDot(
                             d.AbilityName,
                             d.Amount,
@@ -51,4 +52,28 @@ public static class FightStateMapper
                 ))
                 .ToArray()
         );
+
+    private static ActiveConditions ToActiveConditions(
+        IReadOnlyDictionary<ConditionType, int> conditions
+    ) =>
+        new()
+        {
+            Blinded = GetValue(conditions, ConditionType.Blinded),
+            Bleeding = GetValue(conditions, ConditionType.Bleeding),
+            Burning = GetValue(conditions, ConditionType.Burning),
+            Disarmed = GetValue(conditions, ConditionType.Disarmed),
+            Frozen = GetValue(conditions, ConditionType.Frozen),
+            Poisoned = GetValue(conditions, ConditionType.Poisoned),
+            Silenced = GetValue(conditions, ConditionType.Silenced),
+            Snared = GetValue(conditions, ConditionType.Snared),
+            Stunned = GetValue(conditions, ConditionType.Stunned),
+        };
+
+    private static int GetValue(
+        IReadOnlyDictionary<ConditionType, int> conditions,
+        ConditionType condition
+    )
+    {
+        return conditions.GetValueOrDefault(condition);
+    }
 }
