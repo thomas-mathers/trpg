@@ -16,9 +16,9 @@
 #                    (e.g. `--namespace TRPG.Application.Combat`). Repeatable.
 #
 # Generate the report first (see CLAUDE.md's "Code Coverage" section):
-#   dotnet test TRPG.sln --collect:"XPlat Code Coverage" --settings coverlet.runsettings --results-directory ./TestResults
+#   dotnet test api/TRPG.sln --collect:"XPlat Code Coverage" --settings api/coverlet.runsettings --results-directory ./TestResults
 #
-# coverlet.runsettings (repo root) excludes TRPG.Data entirely at collection time --
+# api/coverlet.runsettings excludes TRPG.Data entirely at collection time --
 # entity models, EF schema config, and migrations, none of which have branching logic
 # worth chasing (see that file's comment). This script's own filtering below handles
 # everything else that's still noise after that: Program.cs/Main, *ServiceCollectionExtensions
@@ -138,7 +138,7 @@ def main():
     if not report_path or not os.path.exists(report_path):
         print(
             "No coverage.cobertura.xml found. Run:\n"
-            '  dotnet test TRPG.sln --collect:"XPlat Code Coverage" --results-directory ./TestResults',
+            '  dotnet test api/TRPG.sln --collect:"XPlat Code Coverage" --settings api/coverlet.runsettings --results-directory ./TestResults',
             file=sys.stderr,
         )
         sys.exit(1)

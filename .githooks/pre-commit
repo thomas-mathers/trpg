@@ -1,5 +1,5 @@
 #!/bin/sh
 dotnet tool restore
-dotnet csharpier check .
+dotnet csharpier check api
 
-pnpm --dir TRPG.Web fmt:check
+pnpm --dir spa fmt:check
