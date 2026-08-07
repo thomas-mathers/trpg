@@ -6,9 +6,9 @@ import {
   getCreaturesByCreatureIdConsumablesOptions,
   getCreaturesByCreatureIdConsumablesQueryKey,
 } from '@/api/client';
+import { SearchInput } from '@/components/search-input';
 import { EmptyNote } from '@/features/combat/components/empty-note';
 import { PickerHeader } from '@/features/combat/components/picker-header';
-import { SearchInput } from '@/components/search-input';
 import { gameEventBus } from '@/lib/game-event-bus';
 
 const SEARCH_THRESHOLD = 6;
