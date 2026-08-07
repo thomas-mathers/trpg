@@ -16,6 +16,7 @@ export interface CombatFlash {
 
 type AnimationStep =
   | { kind: 'windup'; attackerId: string; delayMs: number }
+  | { kind: 'resources'; fightState: FightState; delayMs: number }
   | { kind: 'apply'; event: CombatRoundEvent; delayMs: number }
   | { kind: 'settle'; fightState: FightState; delayMs: number };
 
@@ -62,6 +63,27 @@ function applyRoundEventToFight(fight: FightState, event: CombatRoundEvent): Fig
   };
 }
 
+function applyResourcesToFight(fight: FightState, fightState: FightState): FightState {
+  const resourcesByCombatantId = new Map(
+    fightState.combatants.map((combatant) => [combatant.id, combatant]),
+  );
+
+  return {
+    combatants: fight.combatants.map((combatant) => {
+      const updatedCombatant = resourcesByCombatantId.get(combatant.id);
+      return updatedCombatant
+        ? {
+            ...combatant,
+            currentAp: updatedCombatant.currentAp,
+            maximumAp: updatedCombatant.maximumAp,
+            currentMp: updatedCombatant.currentMp,
+            maximumMp: updatedCombatant.maximumMp,
+          }
+        : combatant;
+    }),
+  };
+}
+
 function toCombatFlash(event: CombatRoundEvent, nonce: number): CombatFlash {
   switch (event.type) {
     case 'CombatHitEvent':
@@ -75,7 +97,16 @@ function toCombatFlash(event: CombatRoundEvent, nonce: number): CombatFlash {
 
 function buildRoundSteps(payload: CombatUpdatePayload): AnimationStep[] {
   const steps: AnimationStep[] = [];
-  for (const event of payload.events) {
+  const [firstEvent, ...remainingEvents] = payload.events;
+  if (!firstEvent) {
+    steps.push({ kind: 'resources', fightState: payload.fightState, delayMs: 0 });
+  } else {
+    steps.push({ kind: 'windup', attackerId: firstEvent.attackerId, delayMs: ATTACK_WINDUP_MS });
+    steps.push({ kind: 'resources', fightState: payload.fightState, delayMs: 0 });
+    steps.push({ kind: 'apply', event: firstEvent, delayMs: ATTACK_RESULT_PAUSE_MS });
+  }
+
+  for (const event of remainingEvents) {
     steps.push({ kind: 'windup', attackerId: event.attackerId, delayMs: ATTACK_WINDUP_MS });
     steps.push({ kind: 'apply', event, delayMs: ATTACK_RESULT_PAUSE_MS });
   }
@@ -87,6 +118,11 @@ function reduceStep(state: CombatState, step: AnimationStep): CombatState {
   switch (step.kind) {
     case 'windup':
       return { ...state, activeAttackerId: step.attackerId };
+    case 'resources':
+      return {
+        ...state,
+        fight: state.fight ? applyResourcesToFight(state.fight, step.fightState) : state.fight,
+      };
     case 'apply':
       return {
         ...state,
@@ -109,7 +145,7 @@ function combatReducer(state: CombatState, action: CombatStateAction): CombatSta
       return { ...initialState, fight: action.fight };
 
     case 'ROUND_RECEIVED': {
-      if (state.fight === null || action.payload.events.length === 0 || action.skipAnimation) {
+      if (state.fight === null || action.skipAnimation) {
         return { ...state, fight: action.payload.fightState };
       }
 
