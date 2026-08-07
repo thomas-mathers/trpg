@@ -3,7 +3,6 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Client.Core;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
@@ -79,11 +78,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         return result!.SessionId;
     }
 
-    private async Task<GameHub> Connect(Guid sessionId)
+    private async Task<HubConnection> Connect(Guid sessionId)
     {
         var connection = fixture.CreateHubConnection(sessionId);
         await connection.StartAsync(TestContext.Current.CancellationToken);
-        return new GameHub(connection);
+        return connection;
     }
 
     private async Task<Creature> SeedHostileCreature()
@@ -259,7 +258,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(gameHub.StreamOpening(TestContext.Current.CancellationToken));
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("ReceiveOpening", TestContext.Current.CancellationToken)
+        );
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
@@ -279,7 +280,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(gameHub.StreamWait(3, TestContext.Current.CancellationToken));
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendWait", 3, TestContext.Current.CancellationToken)
+        );
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
@@ -296,7 +299,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act
         var narration = await Drain(
-            gameHub.StreamChat("I look around.", TestContext.Current.CancellationToken)
+            gameHub.StreamAsync<string>(
+                "SendChat",
+                "I look around.",
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -316,7 +323,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act
         var narration = await Drain(
-            gameHub.StreamChat("I look around.", TestContext.Current.CancellationToken)
+            gameHub.StreamAsync<string>(
+                "SendChat",
+                "I look around.",
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -349,7 +360,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await connection.StartAsync(TestContext.Current.CancellationToken);
         await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
         snapshots.Clear();
-        await using var gameHub = new GameHub(connection);
+        await using var gameHub = connection;
 
         // Act - hit/miss is random each round (see
         // SendCombatAction_ResolvesTheAttack_AndNarratesTheOutcome), so the attack is repeated a
@@ -361,7 +372,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         for (var i = 0; i < 4; i++)
         {
             await Drain(
-                gameHub.StreamCombatAction(
+                gameHub.StreamAsync<string>(
+                    "SendCombatAction",
                     new UseAbilityAction(enemy.Id, "Strike"),
                     TestContext.Current.CancellationToken
                 )
@@ -401,10 +413,16 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await connection.StartAsync(TestContext.Current.CancellationToken);
         await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
         snapshots.Clear();
-        await using var gameHub = new GameHub(connection);
+        await using var gameHub = connection;
 
         // Act
-        await Drain(gameHub.StreamChat("I look around.", TestContext.Current.CancellationToken));
+        await Drain(
+            gameHub.StreamAsync<string>(
+                "SendChat",
+                "I look around.",
+                TestContext.Current.CancellationToken
+            )
+        );
 
         // Assert
         Assert.Empty(snapshots);
@@ -421,7 +439,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act
         var narration = await Drain(
-            gameHub.StreamCombatAction(
+            gameHub.StreamAsync<string>(
+                "SendCombatAction",
                 new UseAbilityAction(enemy.Id, "Strike"),
                 TestContext.Current.CancellationToken
             )
@@ -444,7 +463,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act
         var narration = await Drain(
-            gameHub.StreamCombatAction(
+            gameHub.StreamAsync<string>(
+                "SendCombatAction",
                 new UseAbilityAction(Guid.NewGuid(), "Strike"),
                 TestContext.Current.CancellationToken
             )
@@ -465,7 +485,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act
         var narration = await Drain(
-            gameHub.StreamCombatAction(
+            gameHub.StreamAsync<string>(
+                "SendCombatAction",
                 new UseAbilityAction(enemy.Id, "Nonexistent Move"),
                 TestContext.Current.CancellationToken
             )
@@ -485,7 +506,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(gameHub.StreamFlee(TestContext.Current.CancellationToken));
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken)
+        );
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
@@ -502,7 +525,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(gameHub.StreamFlee(TestContext.Current.CancellationToken));
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken)
+        );
 
         // Assert
         Assert.Equal("There's no fight to flee from right now.", narration);
