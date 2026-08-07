@@ -13,11 +13,9 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 ### Projects
 - `TRPG` — ASP.NET Core minimal API host. Endpoints, SignalR hubs, DI wiring (`Program.cs`), background jobs (TickerQ)
 - `TRPG.Application` — all business logic: command/query handlers, the combat engine, world/creature generators, LLM tool definitions. No web-framework references
-- `TRPG.Contracts` — DTOs shared between `TRPG` and `TRPG.Client` (requests/responses only, no logic)
+- `TRPG.Contracts` — DTOs shared between the backend and its clients (requests/responses only, no logic)
 - `TRPG.Data` — EF Core: `TrpgDbContext`, entity models, migrations
-- `TRPG.Client` — thin console client; talks to `TRPG` over HTTP (REST) and SignalR
-- `TRPG.Client.Core` — small library shared by `TRPG.Client` and `TRPG.Tests`: the typed SignalR hub client (`GameHub`) and anything else both need without pulling in the console app's own dependencies (Spectre.Console, System.CommandLine, ...). `TRPG.Client` itself can't be referenced directly from `TRPG.Tests` — both it and `TRPG` are `Exe` projects with top-level-statement `Program` classes, so referencing both makes `Program` ambiguous (`CS0433`)
-- `TRPG.Tests` — all tests for the above (xUnit, Testcontainers-backed Postgres)
+- `TRPG.Tests` — all backend tests (xUnit, Testcontainers-backed Postgres)
 
 ### Folder convention: feature-then-type
 - Inside `TRPG`, `TRPG.Application`, and `TRPG.Contracts`, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
@@ -302,7 +300,7 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 - Any entity with a unique name constraint must use a Guid-suffixed name in builders and seed helpers
 
 ### Hub tests
-- `ChatHubTests` invokes SignalR hub methods through the real `GameHub` wrapper (`TRPG.Client.Core`) instead of raw `connection.StreamAsync<string>("MethodName", args...)` calls — reusing the exact typed client the console app uses means a break here means the console app is broken too, not just an independently-maintained test double that can silently drift from what the real client actually sends
+- `ChatHubTests` invokes SignalR hub methods through `HubConnection.StreamAsync<string>(...)`
 - The two connection-lifecycle tests (`Connect_Succeeds_*`) are the exception — they assert on `HubConnectionState`/`StartAsync` directly against the raw `HubConnection`, since they're testing the connection itself, not a hub method call
 
 ### Endpoint tests

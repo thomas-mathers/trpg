@@ -1,4 +1,0 @@
-[submodule "vendor/spectre.console"]
-	path = vendor/spectre.console
-	url = https://github.com/thomas-mathers/spectre.console.git
-	branch = prototype/selectable-disabled-items
