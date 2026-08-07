@@ -55,10 +55,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     {
         var response = await _client.PostAsync(
             "CreateSession",
-            query: new Dictionary<string, object?> { ["worldId"] = worldId ?? _worldId },
+            body: new { WorldId = worldId ?? _worldId },
             cancellationToken: TestContext.Current.CancellationToken
         );
-        var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(
+        var result = await response.Content.ReadFromJsonAsync<SessionCreatedResponse>(
             TestContext.Current.CancellationToken
         );
         return result!.SessionId;
@@ -70,13 +70,13 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         // Act
         var response = await _client.PostAsync(
             "CreateSession",
-            query: new Dictionary<string, object?> { ["worldId"] = _worldId },
+            body: new { WorldId = _worldId },
             cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(
+        var result = await response.Content.ReadFromJsonAsync<SessionCreatedResponse>(
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(result);
@@ -371,7 +371,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         // Act
         var response = await _client.PostAsync(
             "CreateSession",
-            query: new Dictionary<string, object?> { ["worldId"] = world.Id },
+            body: new { WorldId = world.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );
 

@@ -238,14 +238,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         }
 
         // Act
-        var response = await _client.PostAsJsonAsync(
+        var response = await _client.PatchAsJsonAsync(
             "AllocateCreatureAttributePoints",
-            new AllocateAttributePointsRequest(
-                new Dictionary<AllocatableAttributeName, int>
-                {
-                    [AllocatableAttributeName.Strength] = 3,
-                }
-            ),
+            new AllocateAttributePointsRequest(new AttributeAllocation { Strength = 3 }),
             routeValues: new { creatureId = _creature.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );
@@ -287,7 +282,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.GetAsync(
-            "GetCreatureAttributes",
+            "GetCreatureBaseAttributes",
             new { creatureId = _creature.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );
@@ -399,7 +394,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         }
 
         // Act
-        var response = await _client.PostAsJsonAsync(
+        var response = await _client.PutAsJsonAsync(
             "EquipCreatureItem",
             new EquipItemRequest(itemId, Contracts.Inventory.Responses.EquipmentSlot.RightHand),
             routeValues: new { creatureId = _creature.Id },
@@ -436,10 +431,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         }
 
         // Act
-        var response = await _client.PostAsJsonAsync(
+        var response = await _client.DeleteAsync(
             "UnequipCreatureItem",
-            new UnequipItemRequest(Contracts.Inventory.Responses.EquipmentSlot.RightHand),
-            routeValues: new { creatureId = _creature.Id },
+            new { creatureId = _creature.Id, slot = "RightHand" },
             cancellationToken: TestContext.Current.CancellationToken
         );
 

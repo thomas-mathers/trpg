@@ -22,6 +22,7 @@ internal static class WebApplicationExtensions
     public static WebApplication UseTrpgServices(this WebApplication app)
     {
         app.UseExceptionHandler();
+        app.UseStatusCodePages();
         app.UseCors(ServiceCollectionExtensions.LocalDevFrontendCorsPolicy);
         app.UseResponseCompression();
         app.UseTickerQ();

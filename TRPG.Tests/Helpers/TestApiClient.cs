@@ -21,10 +21,27 @@ public sealed class TestApiClient(
 
     public Task<HttpResponseMessage> PostAsync(
         string endpointName,
+        object? body = null,
         object? routeValues = null,
         IReadOnlyDictionary<string, object?>? query = null,
         CancellationToken cancellationToken = default
-    ) => SendAsync(endpointName, routeValues, query, cancellationToken: cancellationToken);
+    ) => SendAsync(endpointName, routeValues, query, body, cancellationToken);
+
+    public Task<HttpResponseMessage> PatchAsJsonAsync(
+        string endpointName,
+        object? body = null,
+        object? routeValues = null,
+        IReadOnlyDictionary<string, object?>? query = null,
+        CancellationToken cancellationToken = default
+    ) => SendAsync(endpointName, routeValues, query, body, cancellationToken);
+
+    public Task<HttpResponseMessage> PutAsJsonAsync(
+        string endpointName,
+        object? body = null,
+        object? routeValues = null,
+        IReadOnlyDictionary<string, object?>? query = null,
+        CancellationToken cancellationToken = default
+    ) => SendAsync(endpointName, routeValues, query, body, cancellationToken);
 
     public Task<HttpResponseMessage> DeleteAsync(
         string endpointName,

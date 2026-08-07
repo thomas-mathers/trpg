@@ -12,12 +12,12 @@ internal static class InventoryEndpoints
 {
     public static void MapInventoryEndpoints(this WebApplication app)
     {
-        app.MapPost("/transfers", InventoryTransfer).WithName("TransferInventory");
+        app.MapPost("/inventory-transfers", InventoryTransfer)
+            .WithName("TransferInventory")
+            .ProducesProblem(StatusCodes.Status400BadRequest);
     }
 
-    private static async Task<Results<NotFound, BadRequest, NoContent>> InventoryTransfer(
-        Guid fromId,
-        Guid toId,
+    private static async Task<Results<NotFound, ProblemHttpResult, NoContent>> InventoryTransfer(
         InventoryTransferRequest request,
         GetCreatureByIdQueryHandler getCreatureById,
         InventoryTransferCommandHandler transfer,
@@ -25,7 +25,7 @@ internal static class InventoryEndpoints
     )
     {
         var fromCreature = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = fromId },
+            new GetCreatureByIdQuery { Id = request.FromId },
             cancellationToken
         );
         if (fromCreature == null)
@@ -34,7 +34,7 @@ internal static class InventoryEndpoints
         }
 
         var toCreature = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = toId },
+            new GetCreatureByIdQuery { Id = request.ToId },
             cancellationToken
         );
         if (toCreature == null)
@@ -44,14 +44,18 @@ internal static class InventoryEndpoints
 
         if (fromCreature.LocationId != toCreature.LocationId)
         {
-            return TypedResults.BadRequest();
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Creatures are not nearby",
+                detail: "Inventory can only be transferred between creatures at the same location."
+            );
         }
 
         await transfer.Handle(
             new InventoryTransferCommand
             {
-                From = new ItemOwnerReference(fromId, OwnerType.Creature),
-                To = new ItemOwnerReference(toId, OwnerType.Creature),
+                From = new ItemOwnerReference(request.FromId, OwnerType.Creature),
+                To = new ItemOwnerReference(request.ToId, OwnerType.Creature),
                 Items = request.Items,
             },
             cancellationToken

@@ -8,7 +8,7 @@ import {
   getCreatureBasicAttackDamageOptions,
   previewCreatureBasicAttackDamageOptions,
   previewCreatureEquipmentOptions,
-  getCreatureStatsOptions,
+  getCreatureAttributesOptions,
 } from '@/api/client';
 import { cn } from '@/lib/utils';
 
@@ -128,7 +128,7 @@ export function CharacterStatsPanel({
   previewItem: EquipItemPreview | null;
 }) {
   const { data: current } = useQuery({
-    ...getCreatureStatsOptions({ path: { creatureId } }),
+    ...getCreatureAttributesOptions({ path: { creatureId } }),
     placeholderData: keepPreviousData,
   });
   const { data: preview } = useQuery({

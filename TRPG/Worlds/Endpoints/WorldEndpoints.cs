@@ -53,7 +53,7 @@ internal static class WorldEndpoints
             Name = request.PlayerName,
             Age = request.Age,
             Gender = request.Gender,
-            StartingAttributeAllocation = request.StartingAttributeAllocation,
+            StartingAttributeAllocation = request.StartingAttributeAllocation.ToDictionary(),
         };
 
         var result = await timeTicker.AddAsync(

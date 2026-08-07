@@ -224,7 +224,7 @@ export function NewWorldDialog() {
     queryClient.invalidateQueries({ queryKey: listWorldsOptions().queryKey });
 
     startSession.mutate(
-      { query: { worldId: result.worldId } },
+      { body: { worldId: result.worldId } },
       {
         onSuccess: (session) => {
           setOpen(false);

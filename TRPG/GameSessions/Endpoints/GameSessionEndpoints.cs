@@ -8,6 +8,7 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts;
+using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
 
@@ -25,15 +26,15 @@ internal static class GameSessionEndpoints
             .WithName("GetSessionNamedEntity");
     }
 
-    private static async Task<Results<NotFound, Ok<CreateSessionResponse>>> StartSession(
-        Guid worldId,
+    private static async Task<Results<NotFound, Ok<SessionCreatedResponse>>> StartSession(
+        CreateSessionRequest request,
         GetWorldQueryHandler getWorld,
         CreateGameSessionCommandHandler createGameSession,
         CancellationToken cancellationToken
     )
     {
         var world = await getWorld.Handle(
-            new GetWorldQuery { WorldId = worldId },
+            new GetWorldQuery { WorldId = request.WorldId },
             cancellationToken
         );
         if (world?.PlayerId == null)
@@ -44,14 +45,14 @@ internal static class GameSessionEndpoints
         var sessionId = await createGameSession.Handle(
             new CreateGameSessionCommand
             {
-                WorldId = worldId,
+                WorldId = request.WorldId,
                 PlayerId = world.PlayerId.Value,
                 Playtime = world.Playtime,
             },
             cancellationToken
         );
 
-        return TypedResults.Ok(new CreateSessionResponse(sessionId, world.PlayerId.Value));
+        return TypedResults.Ok(new SessionCreatedResponse(sessionId, world.PlayerId.Value));
     }
 
     private static async Task<Results<NotFound, Ok<SceneSnapshot>>> GetScene(

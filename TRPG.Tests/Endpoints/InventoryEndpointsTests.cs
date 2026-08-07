@@ -66,12 +66,11 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         // Act
         var response = await _client.PostAsJsonAsync(
             "TransferInventory",
-            new InventoryTransferRequest([new LootItemSelection(item.Id, 1)]),
-            query: new Dictionary<string, object?>
-            {
-                ["fromId"] = _fromCreature.Id,
-                ["toId"] = _toCreature.Id,
-            },
+            new InventoryTransferRequest(
+                _fromCreature.Id,
+                _toCreature.Id,
+                [new LootItemSelection(item.Id, 1)]
+            ),
             cancellationToken: TestContext.Current.CancellationToken
         );
 
@@ -100,12 +99,11 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         // Act
         var response = await _client.PostAsJsonAsync(
             "TransferInventory",
-            new InventoryTransferRequest([new LootItemSelection(item.Id, 1)]),
-            query: new Dictionary<string, object?>
-            {
-                ["fromId"] = _fromCreature.Id,
-                ["toId"] = farCreature.Id,
-            },
+            new InventoryTransferRequest(
+                _fromCreature.Id,
+                farCreature.Id,
+                [new LootItemSelection(item.Id, 1)]
+            ),
             cancellationToken: TestContext.Current.CancellationToken
         );
 
@@ -119,12 +117,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         // Act
         var response = await _client.PostAsJsonAsync(
             "TransferInventory",
-            new InventoryTransferRequest([]),
-            query: new Dictionary<string, object?>
-            {
-                ["fromId"] = Guid.NewGuid(),
-                ["toId"] = _toCreature.Id,
-            },
+            new InventoryTransferRequest(Guid.NewGuid(), _toCreature.Id, []),
             cancellationToken: TestContext.Current.CancellationToken
         );
 
@@ -138,12 +131,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         // Act
         var response = await _client.PostAsJsonAsync(
             "TransferInventory",
-            new InventoryTransferRequest([]),
-            query: new Dictionary<string, object?>
-            {
-                ["fromId"] = _fromCreature.Id,
-                ["toId"] = Guid.NewGuid(),
-            },
+            new InventoryTransferRequest(_fromCreature.Id, Guid.NewGuid(), []),
             cancellationToken: TestContext.Current.CancellationToken
         );
 

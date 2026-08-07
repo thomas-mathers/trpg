@@ -5,7 +5,7 @@ import { useState } from 'react';
 import {
   getCreatureBasicAttackDamageOptions,
   getCreatureInventoryOptions,
-  getCreatureStatsOptions,
+  getCreatureAttributesOptions,
   equipCreatureItemMutation,
   unequipCreatureItemMutation,
 } from '@/api/client';
@@ -165,7 +165,7 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
   const invalidateCreatureData = () => {
     queryClient.invalidateQueries({ queryKey: inventoryOptions.queryKey });
     queryClient.invalidateQueries({
-      queryKey: getCreatureStatsOptions({ path: { creatureId: playerId } }).queryKey,
+      queryKey: getCreatureAttributesOptions({ path: { creatureId: playerId } }).queryKey,
     });
     queryClient.invalidateQueries({
       queryKey: getCreatureBasicAttackDamageOptions({
@@ -321,9 +321,7 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
                           body: { itemId: item.itemId, slot },
                         })
                       }
-                      onUnequip={(slot) =>
-                        unequip.mutate({ path: { creatureId: playerId }, body: { slot } })
-                      }
+                      onUnequip={(slot) => unequip.mutate({ path: { creatureId: playerId, slot } })}
                     />
                   ))}
                 </tbody>

@@ -220,9 +220,11 @@ public static class AnsiConsoleExtensions
             AddEffectLine(
                 lines,
                 "Conditions",
-                combatant.ActiveConditions.Select(condition =>
-                    $"{AbbreviateCondition(condition.Key)} ({condition.Value}t)"
-                ),
+                combatant
+                    .ActiveConditions.ToEntries()
+                    .Select(condition =>
+                        $"{AbbreviateCondition(condition.Condition)} ({condition.RemainingTurns}t)"
+                    ),
                 Theme.Negative
             );
 

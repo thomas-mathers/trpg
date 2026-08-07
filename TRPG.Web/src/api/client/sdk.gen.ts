@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AdvanceSessionTimeData, AdvanceSessionTimeErrors, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldData, DropWorldResponses, EndSessionData, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillData, GetAbilitiesBySkillResponses, GetCreatureAbilitiesData, GetCreatureAbilitiesResponses, GetCreatureAttributePointsData, GetCreatureAttributePointsResponses, GetCreatureAttributesData, GetCreatureAttributesResponses, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesData, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponses, GetCreatureInventoryData, GetCreatureInventoryResponses, GetCreatureLevelData, GetCreatureLevelResponses, GetCreatureSkillsData, GetCreatureSkillsResponses, GetCreatureStatsData, GetCreatureStatsResponses, GetJobData, GetJobErrors, GetJobResponses, GetNearbyCorpsesData, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponses, GetPlayerFightData, GetPlayerFightErrors, GetPlayerFightResponses, GetSessionNamedEntityData, GetSessionNamedEntityErrors, GetSessionNamedEntityResponses, GetSessionSceneData, GetSessionSceneErrors, GetSessionSceneResponses, ListSessionNamedEntitiesData, ListSessionNamedEntitiesResponses, ListWorldsData, ListWorldsResponses, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryErrors, TransferInventoryResponses, UnequipCreatureItemData, UnequipCreatureItemResponses } from './types.gen';
+import type { AdvanceSessionTimeData, AdvanceSessionTimeErrors, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldData, DropWorldResponses, EndSessionData, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillData, GetAbilitiesBySkillResponses, GetCreatureAbilitiesData, GetCreatureAbilitiesResponses, GetCreatureAttributePointsData, GetCreatureAttributePointsResponses, GetCreatureAttributesData, GetCreatureAttributesResponses, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesData, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponses, GetCreatureInventoryData, GetCreatureInventoryResponses, GetCreatureLevelData, GetCreatureLevelResponses, GetCreatureSkillsData, GetCreatureSkillsResponses, GetJobData, GetJobErrors, GetJobResponses, GetNearbyCorpsesData, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponses, GetPlayerFightData, GetPlayerFightErrors, GetPlayerFightResponses, GetSessionNamedEntityData, GetSessionNamedEntityErrors, GetSessionNamedEntityResponses, GetSessionSceneData, GetSessionSceneErrors, GetSessionSceneResponses, ListSessionNamedEntitiesData, ListSessionNamedEntitiesResponses, ListWorldsData, ListWorldsResponses, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryErrors, TransferInventoryResponses, UnequipCreatureItemData, UnequipCreatureItemResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -41,8 +41,8 @@ export const getCreatureConsumables = <ThrowOnError extends boolean = false>(opt
 
 export const getCreatureAttributePoints = <ThrowOnError extends boolean = false>(options: Options<GetCreatureAttributePointsData, ThrowOnError>): RequestResult<GetCreatureAttributePointsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureAttributePointsResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/attribute-points', ...options });
 
-export const allocateCreatureAttributePoints = <ThrowOnError extends boolean = false>(options: Options<AllocateCreatureAttributePointsData, ThrowOnError>): RequestResult<AllocateCreatureAttributePointsResponses, unknown, ThrowOnError> => (options.client ?? client).post<AllocateCreatureAttributePointsResponses, unknown, ThrowOnError>({
-    url: '/creatures/{creatureId}/attribute-points/allocate',
+export const allocateCreatureAttributePoints = <ThrowOnError extends boolean = false>(options: Options<AllocateCreatureAttributePointsData, ThrowOnError>): RequestResult<AllocateCreatureAttributePointsResponses, unknown, ThrowOnError> => (options.client ?? client).patch<AllocateCreatureAttributePointsResponses, unknown, ThrowOnError>({
+    url: '/creatures/{creatureId}/attribute-points',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -50,9 +50,9 @@ export const allocateCreatureAttributePoints = <ThrowOnError extends boolean = f
     }
 });
 
-export const getCreatureAttributes = <ThrowOnError extends boolean = false>(options: Options<GetCreatureAttributesData, ThrowOnError>): RequestResult<GetCreatureAttributesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureAttributesResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/attributes', ...options });
+export const getCreatureBaseAttributes = <ThrowOnError extends boolean = false>(options: Options<GetCreatureBaseAttributesData, ThrowOnError>): RequestResult<GetCreatureBaseAttributesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureBaseAttributesResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/base-attributes', ...options });
 
-export const getCreatureStats = <ThrowOnError extends boolean = false>(options: Options<GetCreatureStatsData, ThrowOnError>): RequestResult<GetCreatureStatsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureStatsResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/stats', ...options });
+export const getCreatureAttributes = <ThrowOnError extends boolean = false>(options: Options<GetCreatureAttributesData, ThrowOnError>): RequestResult<GetCreatureAttributesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureAttributesResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/attributes', ...options });
 
 export const getCreatureBasicAttackDamage = <ThrowOnError extends boolean = false>(options: Options<GetCreatureBasicAttackDamageData, ThrowOnError>): RequestResult<GetCreatureBasicAttackDamageResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureBasicAttackDamageResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/basic-attack-damage', ...options });
 
@@ -60,8 +60,8 @@ export const getCreatureSkills = <ThrowOnError extends boolean = false>(options:
 
 export const getCreatureLevel = <ThrowOnError extends boolean = false>(options: Options<GetCreatureLevelData, ThrowOnError>): RequestResult<GetCreatureLevelResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureLevelResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/level', ...options });
 
-export const equipCreatureItem = <ThrowOnError extends boolean = false>(options: Options<EquipCreatureItemData, ThrowOnError>): RequestResult<EquipCreatureItemResponses, unknown, ThrowOnError> => (options.client ?? client).post<EquipCreatureItemResponses, unknown, ThrowOnError>({
-    url: '/creatures/{creatureId}/equipment/equip',
+export const equipCreatureItem = <ThrowOnError extends boolean = false>(options: Options<EquipCreatureItemData, ThrowOnError>): RequestResult<EquipCreatureItemResponses, unknown, ThrowOnError> => (options.client ?? client).put<EquipCreatureItemResponses, unknown, ThrowOnError>({
+    url: '/creatures/{creatureId}/equipment',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -69,20 +69,13 @@ export const equipCreatureItem = <ThrowOnError extends boolean = false>(options:
     }
 });
 
-export const unequipCreatureItem = <ThrowOnError extends boolean = false>(options: Options<UnequipCreatureItemData, ThrowOnError>): RequestResult<UnequipCreatureItemResponses, unknown, ThrowOnError> => (options.client ?? client).post<UnequipCreatureItemResponses, unknown, ThrowOnError>({
-    url: '/creatures/{creatureId}/equipment/unequip',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+export const unequipCreatureItem = <ThrowOnError extends boolean = false>(options: Options<UnequipCreatureItemData, ThrowOnError>): RequestResult<UnequipCreatureItemResponses, unknown, ThrowOnError> => (options.client ?? client).delete<UnequipCreatureItemResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/equipment/{slot}', ...options });
 
 export const previewCreatureEquipment = <ThrowOnError extends boolean = false>(options: Options<PreviewCreatureEquipmentData, ThrowOnError>): RequestResult<PreviewCreatureEquipmentResponses, unknown, ThrowOnError> => (options.client ?? client).get<PreviewCreatureEquipmentResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/equipment/preview', ...options });
 
 export const previewCreatureBasicAttackDamage = <ThrowOnError extends boolean = false>(options: Options<PreviewCreatureBasicAttackDamageData, ThrowOnError>): RequestResult<PreviewCreatureBasicAttackDamageResponses, unknown, ThrowOnError> => (options.client ?? client).get<PreviewCreatureBasicAttackDamageResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/equipment/preview/basic-attack-damage', ...options });
 
-export const getNearbyCorpses = <ThrowOnError extends boolean = false>(options: Options<GetNearbyCorpsesData, ThrowOnError>): RequestResult<GetNearbyCorpsesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetNearbyCorpsesResponses, unknown, ThrowOnError>({ url: '/corpses', ...options });
+export const getNearbyCorpses = <ThrowOnError extends boolean = false>(options: Options<GetNearbyCorpsesData, ThrowOnError>): RequestResult<GetNearbyCorpsesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetNearbyCorpsesResponses, unknown, ThrowOnError>({ url: '/players/{playerId}/nearby-corpses', ...options });
 
 export const getPlayerFight = <ThrowOnError extends boolean = false>(options: Options<GetPlayerFightData, ThrowOnError>): RequestResult<GetPlayerFightResponses, GetPlayerFightErrors, ThrowOnError> => (options.client ?? client).get<GetPlayerFightResponses, GetPlayerFightErrors, ThrowOnError>({ url: '/players/{playerId}/fight', ...options });
 
@@ -90,7 +83,14 @@ export const getPlayerFightAbilities = <ThrowOnError extends boolean = false>(op
 
 export const getCreatureGenerationOptions = <ThrowOnError extends boolean = false>(options?: Options<GetCreatureGenerationOptionsData, ThrowOnError>): RequestResult<GetCreatureGenerationOptionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetCreatureGenerationOptionsResponses, unknown, ThrowOnError>({ url: '/creature-generation/options', ...options });
 
-export const createSession = <ThrowOnError extends boolean = false>(options: Options<CreateSessionData, ThrowOnError>): RequestResult<CreateSessionResponses, CreateSessionErrors, ThrowOnError> => (options.client ?? client).post<CreateSessionResponses, CreateSessionErrors, ThrowOnError>({ url: '/sessions', ...options });
+export const createSession = <ThrowOnError extends boolean = false>(options: Options<CreateSessionData, ThrowOnError>): RequestResult<CreateSessionResponses, CreateSessionErrors, ThrowOnError> => (options.client ?? client).post<CreateSessionResponses, CreateSessionErrors, ThrowOnError>({
+    url: '/sessions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 export const getSessionScene = <ThrowOnError extends boolean = false>(options: Options<GetSessionSceneData, ThrowOnError>): RequestResult<GetSessionSceneResponses, GetSessionSceneErrors, ThrowOnError> => (options.client ?? client).get<GetSessionSceneResponses, GetSessionSceneErrors, ThrowOnError>({ url: '/sessions/{sessionId}/scene', ...options });
 
@@ -121,7 +121,7 @@ export const advanceSessionTime = <ThrowOnError extends boolean = false>(options
 export const endSession = <ThrowOnError extends boolean = false>(options: Options<EndSessionData, ThrowOnError>): RequestResult<EndSessionResponses, unknown, ThrowOnError> => (options.client ?? client).delete<EndSessionResponses, unknown, ThrowOnError>({ url: '/admin/sessions/{sessionId}', ...options });
 
 export const transferInventory = <ThrowOnError extends boolean = false>(options: Options<TransferInventoryData, ThrowOnError>): RequestResult<TransferInventoryResponses, TransferInventoryErrors, ThrowOnError> => (options.client ?? client).post<TransferInventoryResponses, TransferInventoryErrors, ThrowOnError>({
-    url: '/transfers',
+    url: '/inventory-transfers',
     ...options,
     headers: {
         'Content-Type': 'application/json',

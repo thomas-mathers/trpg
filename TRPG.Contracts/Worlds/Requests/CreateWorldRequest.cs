@@ -34,10 +34,7 @@ public record CreateWorldRequest
     public required int Age { get; init; }
     public required Race Race { get; init; }
     public required PlayerClass PlayerClass { get; init; }
-    public IReadOnlyDictionary<
-        AllocatableAttributeName,
-        int
-    > StartingAttributeAllocation { get; init; } = new Dictionary<AllocatableAttributeName, int>();
+    public AttributeAllocation StartingAttributeAllocation { get; init; } = new();
     public string Description { get; init; } = "";
     public int MinCityStates { get; init; }
     public int MaxCityStates { get; init; }
