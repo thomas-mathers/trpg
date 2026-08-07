@@ -7,10 +7,10 @@ import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
 import { clearStoredMessages } from '../../../lib/session-storage';
 import { InventoryDialog } from '../../inventory/components/inventory-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
+import { usePlayerId } from '../contexts/scene-context';
 import { GameChatContext } from '../game-chat-context';
 import { useGameChat } from '../hooks/use-game-chat';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
-import { usePlayerId } from '../contexts/scene-context';
 import { SceneProvider } from '../providers/scene-provider';
 import { ConnectionLostDialog } from './connection-lost-dialog';
 import { GameChat } from './game-chat';
@@ -19,16 +19,15 @@ import { NearbySidebar } from './nearby-sidebar';
 import { NearbyToggleButton } from './nearby-toggle-button';
 import { StatusBar } from './status-bar';
 
+type OpenDialog = 'character' | 'inventory' | 'skillTree' | 'disconnected' | null;
+
 function GameScreen() {
   const navigate = useNavigate();
   const { sessionId } = useParams({ from: '/session/$sessionId' });
   const gameChat = useGameChat(sessionId);
   const isInCombat = useIsInCombat();
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
-  const [isCharacterDialogOpen, setIsCharacterDialogOpen] = useState(false);
-  const [isInventoryDialogOpen, setIsInventoryDialogOpen] = useState(false);
-  const [isSkillTreeDialogOpen, setIsSkillTreeDialogOpen] = useState(false);
-  const [isDisconnectedDialogOpen, setIsDisconnectedDialogOpen] = useState(false);
+  const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
 
   useEffect(() => {
     setIsNearbyOpen(!isInCombat);
@@ -36,7 +35,7 @@ function GameScreen() {
 
   const handleReturnToMenu = () => {
     clearStoredMessages(sessionId);
-    setIsDisconnectedDialogOpen(false);
+    setOpenDialog(null);
     navigate({ to: '/' });
   };
 
@@ -52,17 +51,9 @@ function GameScreen() {
         <GameScreenContent
           isInCombat={isInCombat}
           isNearbyOpen={isNearbyOpen}
-          isCharacterDialogOpen={isCharacterDialogOpen}
-          isInventoryDialogOpen={isInventoryDialogOpen}
-          isSkillTreeDialogOpen={isSkillTreeDialogOpen}
-          isDisconnectedDialogOpen={isDisconnectedDialogOpen}
+          openDialog={openDialog}
           onNearbyOpenChange={setIsNearbyOpen}
-          onOpenCharacterDialog={() => setIsCharacterDialogOpen(true)}
-          onOpenInventoryDialog={() => setIsInventoryDialogOpen(true)}
-          onOpenSkillTreeDialog={() => setIsSkillTreeDialogOpen(true)}
-          onCloseCharacterDialog={() => setIsCharacterDialogOpen(false)}
-          onCloseInventoryDialog={() => setIsInventoryDialogOpen(false)}
-          onCloseSkillTreeDialog={() => setIsSkillTreeDialogOpen(false)}
+          onOpenDialog={setOpenDialog}
           onQuit={handleExitToMenu}
           onConnectionLostClose={handleReturnToMenu}
         />
@@ -74,17 +65,9 @@ function GameScreen() {
 interface GameScreenContentProps {
   isInCombat: boolean;
   isNearbyOpen: boolean;
-  isCharacterDialogOpen: boolean;
-  isInventoryDialogOpen: boolean;
-  isSkillTreeDialogOpen: boolean;
-  isDisconnectedDialogOpen: boolean;
+  openDialog: OpenDialog;
   onNearbyOpenChange: (open: boolean) => void;
-  onOpenCharacterDialog: () => void;
-  onOpenInventoryDialog: () => void;
-  onOpenSkillTreeDialog: () => void;
-  onCloseCharacterDialog: () => void;
-  onCloseInventoryDialog: () => void;
-  onCloseSkillTreeDialog: () => void;
+  onOpenDialog: (dialog: OpenDialog) => void;
   onQuit: () => void;
   onConnectionLostClose: () => void;
 }
@@ -92,96 +75,57 @@ interface GameScreenContentProps {
 function GameScreenContent({
   isInCombat,
   isNearbyOpen,
-  isCharacterDialogOpen,
-  isInventoryDialogOpen,
-  isSkillTreeDialogOpen,
-  isDisconnectedDialogOpen,
+  openDialog,
   onNearbyOpenChange,
-  onOpenCharacterDialog,
-  onOpenInventoryDialog,
-  onOpenSkillTreeDialog,
-  onCloseCharacterDialog,
-  onCloseInventoryDialog,
-  onCloseSkillTreeDialog,
+  onOpenDialog,
   onQuit,
   onConnectionLostClose,
 }: GameScreenContentProps) {
-  return (
-      <SidebarProvider
-        open={isNearbyOpen}
-        onOpenChange={onNearbyOpenChange}
-        className="h-screen flex-col"
-      >
-        <div className="flex items-center gap-4 border-b px-4 py-2">
-          <StatusBar isInCombat={isInCombat} />
-          {!isInCombat && <NearbyToggleButton />}
-          <GameMenu
-            onOpenCharacterDialog={onOpenCharacterDialog}
-            onOpenInventoryDialog={onOpenInventoryDialog}
-            onOpenSkillTreeDialog={onOpenSkillTreeDialog}
-            onQuit={onQuit}
-          />
-        </div>
-
-        <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
-          <SidebarInset>
-            <GameChat />
-          </SidebarInset>
-
-          <NearbySidebar />
-        </div>
-
-        <GameDialogs
-          isCharacterDialogOpen={isCharacterDialogOpen}
-          isInventoryDialogOpen={isInventoryDialogOpen}
-          isSkillTreeDialogOpen={isSkillTreeDialogOpen}
-          onCloseCharacterDialog={onCloseCharacterDialog}
-          onCloseInventoryDialog={onCloseInventoryDialog}
-          onCloseSkillTreeDialog={onCloseSkillTreeDialog}
-        />
-
-        <ConnectionLostDialog open={isDisconnectedDialogOpen} onClose={onConnectionLostClose} />
-      </SidebarProvider>
-  );
-}
-
-interface GameDialogsProps {
-  isCharacterDialogOpen: boolean;
-  isInventoryDialogOpen: boolean;
-  isSkillTreeDialogOpen: boolean;
-  onCloseCharacterDialog: () => void;
-  onCloseInventoryDialog: () => void;
-  onCloseSkillTreeDialog: () => void;
-}
-
-function GameDialogs({
-  isCharacterDialogOpen,
-  isInventoryDialogOpen,
-  isSkillTreeDialogOpen,
-  onCloseCharacterDialog,
-  onCloseInventoryDialog,
-  onCloseSkillTreeDialog,
-}: GameDialogsProps) {
   const playerId = usePlayerId();
 
-  if (!playerId) {
-    return null;
-  }
-
   return (
-    <>
-      <CharacterDialog open={isCharacterDialogOpen} onClose={onCloseCharacterDialog} />
-      <InventoryDialog
-        playerId={playerId}
-        open={isInventoryDialogOpen}
-        onClose={onCloseInventoryDialog}
-      />
-      <SkillTreeDialog
-        playerId={playerId}
-        open={isSkillTreeDialogOpen}
-        onClose={onCloseSkillTreeDialog}
-      />
-    </>
+    <SidebarProvider
+      open={isNearbyOpen}
+      onOpenChange={onNearbyOpenChange}
+      className="h-screen flex-col"
+    >
+      <div className="flex items-center gap-4 border-b px-4 py-2">
+        <StatusBar isInCombat={isInCombat} />
+        {!isInCombat && <NearbyToggleButton />}
+        <GameMenu
+          onOpenCharacterDialog={() => onOpenDialog('character')}
+          onOpenInventoryDialog={() => onOpenDialog('inventory')}
+          onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
+          onQuit={onQuit}
+        />
+      </div>
+
+      <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
+        <SidebarInset>
+          <GameChat />
+        </SidebarInset>
+
+        <NearbySidebar />
+      </div>
+
+      {playerId && (
+        <>
+          <CharacterDialog open={openDialog === 'character'} onClose={() => onOpenDialog(null)} />
+          <InventoryDialog
+            playerId={playerId}
+            open={openDialog === 'inventory'}
+            onClose={() => onOpenDialog(null)}
+          />
+          <SkillTreeDialog
+            playerId={playerId}
+            open={openDialog === 'skillTree'}
+            onClose={() => onOpenDialog(null)}
+          />
+        </>
+      )}
+
+      <ConnectionLostDialog open={openDialog === 'disconnected'} onClose={onConnectionLostClose} />
+    </SidebarProvider>
   );
 }
 
