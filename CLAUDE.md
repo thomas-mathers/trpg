@@ -209,6 +209,17 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 
 ---
 
+## Frontend Tests
+
+- Use Vitest, React Testing Library, `user-event`, MSW, and the generated Hey API MSW handlers for frontend tests
+- Render components through `TRPG.Web/src/test/test-utils.tsx`; it provides a fresh `QueryClient`, the shared providers, and an isolated `userEvent` instance per test
+- Configure test query clients with retries disabled so failed queries and mutations fail promptly instead of waiting through exponential backoff
+- Prefer accessible queries (`getByRole`, `getByLabelText`, and accessible names) over DOM order, CSS selectors, or implementation details
+- Add an `aria-label` or other accessible name to a control when that makes it meaningfully testable and improves the component's accessibility; testability is a valid reason to add one
+- When multiple controls have the same visible label, give the intended control a distinct accessible name; do not disambiguate with `getAll()[0]` or DOM order
+- Prefer real components backed by generated MSW handlers over mocking child components or hooks just to avoid configuring their API requests; reserve mocks for true external boundaries or dependencies outside the behavior being tested
+- Assert user-visible behavior and network contracts at the MSW boundary, not internal component state
+
 ## Integration Tests
 
 ### When to skip the database entirely

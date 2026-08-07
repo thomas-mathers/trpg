@@ -7,6 +7,7 @@ export default defineConfig({
     '@hey-api/typescript',
     '@hey-api/sdk',
     '@hey-api/client-fetch',
+    'msw',
     {
       name: '@tanstack/react-query',
       exportFromIndex: true,

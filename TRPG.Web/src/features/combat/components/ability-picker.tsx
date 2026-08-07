@@ -27,7 +27,7 @@ const SKILL_ORDER: Skill[] = [
   'Blocking',
 ];
 
-interface AbilityPickerProps {
+export interface AbilityPickerProps {
   playerId: string;
   category: AbilityCategory;
   onBack: () => void;

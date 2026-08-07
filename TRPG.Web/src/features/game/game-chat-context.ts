@@ -1,8 +1,8 @@
 import { createContext, useContext } from 'react';
 
-import type { useGameChat } from './hooks/use-game-chat';
+import type { GameChat } from './hooks/use-game-chat';
 
-export const GameChatContext = createContext<ReturnType<typeof useGameChat> | null>(null);
+export const GameChatContext = createContext<GameChat | null>(null);
 
 export function useGameActions() {
   const context = useContext(GameChatContext);

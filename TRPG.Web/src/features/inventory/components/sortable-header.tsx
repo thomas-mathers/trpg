@@ -27,18 +27,19 @@ export function SortableHeader<K extends string>({
   return (
     <th
       className={cn(
-        'cursor-pointer px-2 py-2',
+        'px-2 py-2',
         align === 'right' ? 'text-right' : 'text-left',
         active ? 'text-foreground' : 'hover:text-foreground',
       )}
-      onClick={() => onToggle(sortKey)}
     >
-      <span
+      <button
+        type="button"
+        onClick={() => onToggle(sortKey)}
         className={cn('inline-flex items-center gap-0.5', align === 'right' && 'flex-row-reverse')}
       >
         {label}
         <Icon className={cn('size-2.5', !active && 'opacity-0 group-hover:opacity-100')} />
-      </span>
+      </button>
     </th>
   );
 }
