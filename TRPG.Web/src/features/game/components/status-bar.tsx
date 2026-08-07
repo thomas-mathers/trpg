@@ -1,8 +1,8 @@
 import { Droplet, Heart, Swords, Zap } from 'lucide-react';
 
 import type { SceneSnapshot } from '@/api/client';
-import { formatLocation } from '@/features/game/scene-format';
 import { useScene } from '@/features/game/contexts/scene-context';
+import { formatLocation } from '@/features/game/scene-format';
 
 interface StatusBarProps {
   isInCombat?: boolean;

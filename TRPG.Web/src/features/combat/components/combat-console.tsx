@@ -17,8 +17,8 @@ import { AnimatedHeight } from '@/features/combat/components/animated-height';
 import { CombatantCard } from '@/features/combat/components/combatant-card';
 import { ItemPicker } from '@/features/combat/components/item-picker';
 import { PickerHeader } from '@/features/combat/components/picker-header';
-import { useGameActions } from '@/features/game/game-chat-context';
 import { usePlayerId } from '@/features/game/contexts/scene-context';
+import { useGameActions } from '@/features/game/game-chat-context';
 
 import { useCombatState, type CombatFlash } from '../hooks/use-combat-state';
 
