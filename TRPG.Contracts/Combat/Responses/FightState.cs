@@ -92,7 +92,7 @@ public record CombatantState(
     int MaximumAp,
     int CurrentMp,
     int MaximumMp,
-    IReadOnlyDictionary<ConditionType, int> ActiveConditions,
+    ActiveConditions ActiveConditions,
     IReadOnlyCollection<ActiveDot> ActiveDots,
     IReadOnlyCollection<ActiveHot> ActiveHots,
     IReadOnlyCollection<ActiveBuff> ActiveBuffs

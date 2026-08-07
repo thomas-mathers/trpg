@@ -28,7 +28,7 @@ function TitleScreen() {
 
   const handleContinue = (worldId: string) => {
     startSession.mutate(
-      { query: { worldId } },
+      { body: { worldId } },
       {
         onSuccess: (data) => {
           navigate({ to: '/session/$sessionId', params: { sessionId: data.sessionId } });

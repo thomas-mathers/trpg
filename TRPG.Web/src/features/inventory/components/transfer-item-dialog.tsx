@@ -269,14 +269,20 @@ function TransferDialogBody({
 
     if (toOther.size > 0) {
       await transfer.mutateAsync({
-        query: { fromId: playerId, toId: target.id },
-        body: { items: [...toOther].map(([itemId, quantity]) => ({ itemId, quantity })) },
+        body: {
+          fromId: playerId,
+          toId: target.id,
+          items: [...toOther].map(([itemId, quantity]) => ({ itemId, quantity })),
+        },
       });
     }
     if (toPlayer.size > 0) {
       await transfer.mutateAsync({
-        query: { fromId: target.id, toId: playerId },
-        body: { items: [...toPlayer].map(([itemId, quantity]) => ({ itemId, quantity })) },
+        body: {
+          fromId: target.id,
+          toId: playerId,
+          items: [...toPlayer].map(([itemId, quantity]) => ({ itemId, quantity })),
+        },
       });
     }
 

@@ -29,22 +29,19 @@ internal static class CreatureEndpoints
             .WithName("GetCreatureConsumables");
         app.MapGet("/creatures/{creatureId:guid}/attribute-points", GetAttributePoints)
             .WithName("GetCreatureAttributePoints");
-        app.MapPost(
-                "/creatures/{creatureId:guid}/attribute-points/allocate",
-                AllocateAttributePoints
-            )
+        app.MapPatch("/creatures/{creatureId:guid}/attribute-points", AllocateAttributePoints)
             .WithName("AllocateCreatureAttributePoints");
-        app.MapGet("/creatures/{creatureId:guid}/attributes", GetBaseAttributes)
+        app.MapGet("/creatures/{creatureId:guid}/base-attributes", GetBaseAttributes)
+            .WithName("GetCreatureBaseAttributes");
+        app.MapGet("/creatures/{creatureId:guid}/attributes", GetEffectiveStats)
             .WithName("GetCreatureAttributes");
-        app.MapGet("/creatures/{creatureId:guid}/stats", GetEffectiveStats)
-            .WithName("GetCreatureStats");
         app.MapGet("/creatures/{creatureId:guid}/basic-attack-damage", GetBasicAttackDamage)
             .WithName("GetCreatureBasicAttackDamage");
         app.MapGet("/creatures/{creatureId:guid}/skills", GetSkills).WithName("GetCreatureSkills");
         app.MapGet("/creatures/{creatureId:guid}/level", GetLevel).WithName("GetCreatureLevel");
-        app.MapPost("/creatures/{creatureId:guid}/equipment/equip", EquipItem)
+        app.MapPut("/creatures/{creatureId:guid}/equipment", EquipItem)
             .WithName("EquipCreatureItem");
-        app.MapPost("/creatures/{creatureId:guid}/equipment/unequip", UnequipItem)
+        app.MapDelete("/creatures/{creatureId:guid}/equipment/{slot}", UnequipItem)
             .WithName("UnequipCreatureItem");
         app.MapGet("/creatures/{creatureId:guid}/equipment/preview", PreviewEquipItemStats)
             .WithName("PreviewCreatureEquipment");
@@ -53,7 +50,8 @@ internal static class CreatureEndpoints
                 PreviewEquipItemBasicAttackDamage
             )
             .WithName("PreviewCreatureBasicAttackDamage");
-        app.MapGet("/corpses", GetNearbyCorpses).WithName("GetNearbyCorpses");
+        app.MapGet("/players/{playerId:guid}/nearby-corpses", GetNearbyCorpses)
+            .WithName("GetNearbyCorpses");
     }
 
     private static async Task<Ok<AbilitySummary[]>> GetAbilities(
@@ -101,13 +99,13 @@ internal static class CreatureEndpoints
     }
 
     private static async Task<Ok<NearbyCorpseSummary[]>> GetNearbyCorpses(
-        Guid nearPlayerId,
+        Guid playerId,
         GetNearbyCorpsesQueryHandler getNearbyCorpses,
         CancellationToken cancellationToken
     )
     {
         var corpses = await getNearbyCorpses.Handle(
-            new GetNearbyCorpsesQuery { PlayerId = nearPlayerId },
+            new GetNearbyCorpsesQuery { PlayerId = playerId },
             cancellationToken
         );
 
@@ -138,7 +136,11 @@ internal static class CreatureEndpoints
     )
     {
         await allocateAttributePoints.Handle(
-            new AllocateAttributePointsCommand { CreatureId = creatureId, Deltas = request.Deltas },
+            new AllocateAttributePointsCommand
+            {
+                CreatureId = creatureId,
+                Deltas = request.Deltas.ToDictionary(),
+            },
             cancellationToken
         );
 
@@ -167,17 +169,13 @@ internal static class CreatureEndpoints
 
     private static async Task<NoContent> UnequipItem(
         Guid creatureId,
-        UnequipItemRequest request,
+        Contracts.Inventory.Responses.EquipmentSlot slot,
         UnequipInventoryItemCommandHandler unequipInventoryItem,
         CancellationToken cancellationToken
     )
     {
         await unequipInventoryItem.Handle(
-            new UnequipInventoryItemCommand
-            {
-                CreatureId = creatureId,
-                Slot = request.Slot.ToDataModel(),
-            },
+            new UnequipInventoryItemCommand { CreatureId = creatureId, Slot = slot.ToDataModel() },
             cancellationToken
         );
 

@@ -70,10 +70,10 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
     {
         var response = await _client.PostAsync(
             "CreateSession",
-            query: new Dictionary<string, object?> { ["worldId"] = _worldId },
+            body: new { WorldId = _worldId },
             cancellationToken: TestContext.Current.CancellationToken
         );
-        var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(
+        var result = await response.Content.ReadFromJsonAsync<SessionCreatedResponse>(
             TestContext.Current.CancellationToken
         );
         return result!.SessionId;

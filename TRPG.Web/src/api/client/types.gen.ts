@@ -32,6 +32,18 @@ export type ActiveBuff = {
     remainingTurns: number;
 };
 
+export type ActiveConditions = {
+    blinded?: number;
+    bleeding?: number;
+    burning?: number;
+    disarmed?: number;
+    frozen?: number;
+    poisoned?: number;
+    silenced?: number;
+    snared?: number;
+    stunned?: number;
+};
+
 export type ActiveDot = {
     abilityName: string;
     amount: number;
@@ -46,14 +58,21 @@ export type ActiveHot = {
 };
 
 export type AllocateAttributePointsRequest = {
-    deltas: {
-        [key: string]: number;
-    };
+    deltas: AttributeAllocation;
 };
 
 export type AmountType = 'Flat' | 'Percent';
 
 export type ArmorClass = 'Cloth' | 'Leather' | 'Mail' | 'Plate';
+
+export type AttributeAllocation = {
+    strength?: number;
+    dexterity?: number;
+    endurance?: number;
+    stamina?: number;
+    mana?: number;
+    intelligence?: number;
+};
 
 export type AttributeName = 'MaximumHp' | 'MaximumAp' | 'MaximumMp' | 'Strength' | 'Defense' | 'Dexterity' | 'Endurance' | 'Stamina' | 'Mana' | 'Intelligence' | 'PhysicalResistance' | 'FireResistance' | 'IceResistance' | 'LightningResistance' | 'PoisonResistance' | 'MagicResistance' | 'MovementSpeed';
 
@@ -98,9 +117,7 @@ export type CombatantState = {
     maximumAp: number;
     currentMp: number;
     maximumMp: number;
-    activeConditions: {
-        [key: string]: number;
-    };
+    activeConditions: ActiveConditions;
     activeDots: Array<ActiveDot>;
     activeHots: Array<ActiveHot>;
     activeBuffs: Array<ActiveBuff>;
@@ -116,9 +133,8 @@ export type ConsumableSummary = {
     restoreAmount: number;
 };
 
-export type CreateSessionResponse = {
-    sessionId: string;
-    playerId: string;
+export type CreateSessionRequest = {
+    worldId: string;
 };
 
 export type CreateWorldRequest = {
@@ -127,9 +143,7 @@ export type CreateWorldRequest = {
     age: number;
     race: Race;
     playerClass: PlayerClass;
-    startingAttributeAllocation?: {
-        [key: string]: number;
-    };
+    startingAttributeAllocation?: AttributeAllocation;
     description?: string;
     minCityStates?: number;
     maxCityStates?: number;
@@ -241,6 +255,8 @@ export type InventorySummary = {
 };
 
 export type InventoryTransferRequest = {
+    fromId: string;
+    toId: string;
     items: Array<LootItemSelection>;
 };
 
@@ -496,6 +512,14 @@ export type NearbyPropSnapshot = {
 
 export type PlayerClass = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric';
 
+export type ProblemDetails = {
+    type?: null | string;
+    title?: null | string;
+    status?: null | number;
+    detail?: null | string;
+    instance?: null | string;
+};
+
 export type ProcTrigger = 'OnStriking' | 'WhenStruck' | 'OnKill';
 
 export type Profession = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric' | 'Mercenary' | 'Alchemist' | 'Blacksmith' | 'Scholar' | 'Merchant' | 'Politician' | 'StableMaster' | 'Bartender' | 'Guard' | 'Baker' | 'Innkeeper' | 'Tailor' | 'Carpenter' | 'Jeweler' | 'Homemaker' | 'Unemployed';
@@ -522,6 +546,11 @@ export type SceneSnapshot = {
     exits: Array<NearbyExitSnapshot>;
 };
 
+export type SessionCreatedResponse = {
+    sessionId: string;
+    playerId: string;
+};
+
 export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Destruction' | 'Illusion' | 'Archery' | 'Restoration' | 'Alteration' | 'General' | 'Blocking';
 
 export type SkillProgressSummary = {
@@ -538,10 +567,6 @@ export type TurnMetricsDto = {
     totalMs: number;
     tokenCount: number;
     tokensPerSecond: number;
-};
-
-export type UnequipItemRequest = {
-    slot: EquipmentSlot;
 };
 
 export type WaitRequest = {
@@ -704,7 +729,7 @@ export type AllocateCreatureAttributePointsData = {
         creatureId: string;
     };
     query?: never;
-    url: '/creatures/{creatureId}/attribute-points/allocate';
+    url: '/creatures/{creatureId}/attribute-points';
 };
 
 export type AllocateCreatureAttributePointsResponses = {
@@ -715,6 +740,24 @@ export type AllocateCreatureAttributePointsResponses = {
 };
 
 export type AllocateCreatureAttributePointsResponse = AllocateCreatureAttributePointsResponses[keyof AllocateCreatureAttributePointsResponses];
+
+export type GetCreatureBaseAttributesData = {
+    body?: never;
+    path: {
+        creatureId: string;
+    };
+    query?: never;
+    url: '/creatures/{creatureId}/base-attributes';
+};
+
+export type GetCreatureBaseAttributesResponses = {
+    /**
+     * OK
+     */
+    200: BaseAttributesResponse;
+};
+
+export type GetCreatureBaseAttributesResponse = GetCreatureBaseAttributesResponses[keyof GetCreatureBaseAttributesResponses];
 
 export type GetCreatureAttributesData = {
     body?: never;
@@ -729,28 +772,10 @@ export type GetCreatureAttributesResponses = {
     /**
      * OK
      */
-    200: BaseAttributesResponse;
-};
-
-export type GetCreatureAttributesResponse = GetCreatureAttributesResponses[keyof GetCreatureAttributesResponses];
-
-export type GetCreatureStatsData = {
-    body?: never;
-    path: {
-        creatureId: string;
-    };
-    query?: never;
-    url: '/creatures/{creatureId}/stats';
-};
-
-export type GetCreatureStatsResponses = {
-    /**
-     * OK
-     */
     200: EffectiveAttributesResponse;
 };
 
-export type GetCreatureStatsResponse = GetCreatureStatsResponses[keyof GetCreatureStatsResponses];
+export type GetCreatureAttributesResponse = GetCreatureAttributesResponses[keyof GetCreatureAttributesResponses];
 
 export type GetCreatureBasicAttackDamageData = {
     body?: never;
@@ -812,7 +837,7 @@ export type EquipCreatureItemData = {
         creatureId: string;
     };
     query?: never;
-    url: '/creatures/{creatureId}/equipment/equip';
+    url: '/creatures/{creatureId}/equipment';
 };
 
 export type EquipCreatureItemResponses = {
@@ -825,12 +850,13 @@ export type EquipCreatureItemResponses = {
 export type EquipCreatureItemResponse = EquipCreatureItemResponses[keyof EquipCreatureItemResponses];
 
 export type UnequipCreatureItemData = {
-    body: UnequipItemRequest;
+    body?: never;
     path: {
         creatureId: string;
+        slot: EquipmentSlot;
     };
     query?: never;
-    url: '/creatures/{creatureId}/equipment/unequip';
+    url: '/creatures/{creatureId}/equipment/{slot}';
 };
 
 export type UnequipCreatureItemResponses = {
@@ -886,11 +912,11 @@ export type PreviewCreatureBasicAttackDamageResponse = PreviewCreatureBasicAttac
 
 export type GetNearbyCorpsesData = {
     body?: never;
-    path?: never;
-    query: {
-        nearPlayerId: string;
+    path: {
+        playerId: string;
     };
-    url: '/corpses';
+    query?: never;
+    url: '/players/{playerId}/nearby-corpses';
 };
 
 export type GetNearbyCorpsesResponses = {
@@ -962,11 +988,9 @@ export type GetCreatureGenerationOptionsResponses = {
 export type GetCreatureGenerationOptionsResponse = GetCreatureGenerationOptionsResponses[keyof GetCreatureGenerationOptionsResponses];
 
 export type CreateSessionData = {
-    body?: never;
+    body: CreateSessionRequest;
     path?: never;
-    query: {
-        worldId: string;
-    };
+    query?: never;
     url: '/sessions';
 };
 
@@ -981,10 +1005,10 @@ export type CreateSessionResponses = {
     /**
      * OK
      */
-    200: CreateSessionResponse;
+    200: SessionCreatedResponse;
 };
 
-export type CreateSessionResponse2 = CreateSessionResponses[keyof CreateSessionResponses];
+export type CreateSessionResponse = CreateSessionResponses[keyof CreateSessionResponses];
 
 export type GetSessionSceneData = {
     body?: never;
@@ -1113,8 +1137,10 @@ export type AdvanceSessionTimeErrors = {
     /**
      * Bad Request
      */
-    400: unknown;
+    400: ProblemDetails;
 };
+
+export type AdvanceSessionTimeError = AdvanceSessionTimeErrors[keyof AdvanceSessionTimeErrors];
 
 export type AdvanceSessionTimeResponses = {
     /**
@@ -1146,23 +1172,22 @@ export type EndSessionResponse = EndSessionResponses[keyof EndSessionResponses];
 export type TransferInventoryData = {
     body: InventoryTransferRequest;
     path?: never;
-    query: {
-        fromId: string;
-        toId: string;
-    };
-    url: '/transfers';
+    query?: never;
+    url: '/inventory-transfers';
 };
 
 export type TransferInventoryErrors = {
     /**
      * Bad Request
      */
-    400: unknown;
+    400: ProblemDetails;
     /**
      * Not Found
      */
     404: unknown;
 };
+
+export type TransferInventoryError = TransferInventoryErrors[keyof TransferInventoryErrors];
 
 export type TransferInventoryResponses = {
     /**

@@ -5,6 +5,7 @@ using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Contracts.Creatures.Responses;
+using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Inventory.Responses;
@@ -72,18 +73,18 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task<CreateSessionResponse> StartSession(
+    public async Task<SessionCreatedResponse> StartSession(
         Guid worldId,
         CancellationToken cancellationToken
     )
     {
-        var response = await httpClient.PostAsync(
-            new Uri($"/sessions?worldId={worldId}", UriKind.Relative),
-            null,
+        var response = await httpClient.PostAsJsonAsync(
+            "/sessions",
+            new CreateSessionRequest(worldId),
             cancellationToken
         );
         response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(
+        var result = await response.Content.ReadFromJsonAsync<SessionCreatedResponse>(
             TrpgJsonOptions.Default,
             cancellationToken
         );
@@ -158,7 +159,7 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
     )
     {
         var result = await httpClient.GetFromJsonAsync<List<NearbyCorpseSummary>>(
-            new Uri($"/corpses?nearPlayerId={playerId}", UriKind.Relative),
+            new Uri($"/players/{playerId}/nearby-corpses", UriKind.Relative),
             TrpgJsonOptions.Default,
             cancellationToken
         );
@@ -173,8 +174,12 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
     )
     {
         var response = await httpClient.PostAsJsonAsync(
-            new Uri($"/transfers?fromId={fromId}&toId={toId}", UriKind.Relative),
-            request,
+            "/inventory-transfers",
+            request with
+            {
+                FromId = fromId,
+                ToId = toId,
+            },
             TrpgJsonOptions.Default,
             cancellationToken
         );
@@ -223,8 +228,8 @@ internal sealed class TrpgHttpClient(HttpClient httpClient)
     )
     {
         var response = await httpClient.PostAsJsonAsync(
-            new Uri($"/creatures/{creatureId}/attribute-points/allocate", UriKind.Relative),
-            new AllocateAttributePointsRequest(deltas),
+            new Uri($"/creatures/{creatureId}/attribute-points", UriKind.Relative),
+            new AllocateAttributePointsRequest(AttributeAllocation.FromDictionary(deltas)),
             TrpgJsonOptions.Default,
             cancellationToken
         );

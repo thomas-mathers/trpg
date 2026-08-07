@@ -224,7 +224,9 @@ internal sealed class NewGameFlow(TrpgHttpClient client)
             Gender = gender,
             Age = age,
             PlayerClass = playerClass,
-            StartingAttributeAllocation = startingAttributeAllocation,
+            StartingAttributeAllocation = AttributeAllocation.FromDictionary(
+                startingAttributeAllocation
+            ),
             Description = description,
             MinCityStates = minCityStates,
             MaxCityStates = maxCityStates,

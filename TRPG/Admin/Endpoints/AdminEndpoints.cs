@@ -14,7 +14,9 @@ internal static class AdminEndpoints
     public static void MapAdminEndpoints(this WebApplication app)
     {
         app.MapPost("/admin/sessions/{sessionId:guid}/chat", SendChat).WithName("SendAdminChat");
-        app.MapPost("/admin/sessions/{sessionId:guid}/wait", Wait).WithName("AdvanceSessionTime");
+        app.MapPost("/admin/sessions/{sessionId:guid}/wait", Wait)
+            .WithName("AdvanceSessionTime")
+            .ProducesProblem(StatusCodes.Status400BadRequest);
         app.MapDelete("/admin/sessions/{sessionId:guid}", EndSession).WithName("EndSession");
     }
 
@@ -35,7 +37,7 @@ internal static class AdminEndpoints
         );
     }
 
-    private static async Task<Results<BadRequest, Ok<WaitResponse>>> Wait(
+    private static async Task<Results<ProblemHttpResult, Ok<WaitResponse>>> Wait(
         Guid sessionId,
         WaitRequest request,
         AdvanceTimeCommandHandler advanceTime,
@@ -44,7 +46,11 @@ internal static class AdminEndpoints
     {
         if (request.Hours <= 0)
         {
-            return TypedResults.BadRequest();
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid wait duration",
+                detail: "Hours must be greater than zero."
+            );
         }
 
         var bankedPlaytime = await advanceTime.Handle(

@@ -45,7 +45,7 @@ export function CombatantCard({
           key={`condition-${type}`}
           kind="condition"
           type={type}
-          remainingTurns={turns}
+          remainingTurns={Number(turns)}
         />
       )),
     ...combatant.activeDots.map((dot, index) => (

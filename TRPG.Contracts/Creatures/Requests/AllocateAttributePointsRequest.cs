@@ -10,6 +10,4 @@ public enum AllocatableAttributeName
     Intelligence,
 }
 
-public record AllocateAttributePointsRequest(
-    IReadOnlyDictionary<AllocatableAttributeName, int> Deltas
-);
+public record AllocateAttributePointsRequest(AttributeAllocation Deltas);

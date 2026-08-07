@@ -50,7 +50,7 @@ internal sealed class LootMenu(TrpgHttpClient client, Guid playerId)
         await client.InventoryTransfer(
             corpse.Id,
             playerId,
-            new InventoryTransferRequest(selection),
+            new InventoryTransferRequest(corpse.Id, playerId, selection),
             cancellationToken
         );
 
