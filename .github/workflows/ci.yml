@@ -3,13 +3,40 @@ name: CI
 on:
   push:
     branches-ignore: [main]
+    
   pull_request:
     branches: [main]
+    
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  changes:
     runs-on: ubuntu-latest
+    
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      backend: ${{ steps.filter.outputs.backend }}
+      
+    steps:
+      - uses: actions/checkout@v7
+        
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'TRPG.Web/**'
+            backend:
+              - '**'
+              - '!TRPG.Web/**'
+            
+  backend:
+    needs: changes
+    
+    if: needs.changes.outputs.backend == 'true'
+    
+    runs-on: ubuntu-latest
+    
     steps:
       - uses: actions/checkout@v7
         with:
@@ -33,3 +60,44 @@ jobs:
 
       - name: Test
         run: dotnet test TRPG.sln --no-build
+
+  spa:
+    needs: changes
+    
+    if: needs.changes.outputs.web == 'true'
+    
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: TRPG.Web
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: TRPG.Web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm fmt:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
