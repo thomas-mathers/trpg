@@ -1,3 +1,5 @@
 #!/bin/sh
 dotnet tool restore
 dotnet csharpier check .
+
+pnpm --dir TRPG.Web fmt:check

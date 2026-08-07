@@ -22,6 +22,13 @@ public sealed class EndpointTestFixture : IAsyncLifetime
 
     public HttpClient CreateClient() => Factory.CreateClient();
 
+    public TestApiClient CreateApiClient() =>
+        new(
+            Factory.CreateClient(),
+            Factory.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>(),
+            Factory.Services.GetRequiredService<Microsoft.AspNetCore.Routing.LinkGenerator>()
+        );
+
     public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();
 
     public HubConnection CreateHubConnection(Guid sessionId)

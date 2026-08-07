@@ -6,10 +6,10 @@ import * as z from 'zod';
 
 import {
   getCreatureGenerationOptionsOptions,
-  getJobsByIdOptions,
-  getWorldsOptions,
-  postSessionsMutation,
-  postWorldsMutation,
+  getJobOptions,
+  listWorldsOptions,
+  createSessionMutation,
+  createWorldMutation,
 } from '../../../api/client';
 import type { BaseAttributesResponse, Gender, PlayerClass, Race } from '../../../api/client';
 import { NumericStepper } from '../../../components/numeric-stepper';
@@ -147,8 +147,8 @@ export function NewWorldDialog() {
   const generationOptions = useQuery(getCreatureGenerationOptionsOptions());
   const pointsPerLevel = Number(generationOptions.data?.pointsPerLevel ?? 0);
 
-  const createWorld = useMutation(postWorldsMutation());
-  const startSession = useMutation(postSessionsMutation());
+  const createWorld = useMutation(createWorldMutation());
+  const startSession = useMutation(createSessionMutation());
 
   const form = useForm({
     defaultValues,
@@ -193,7 +193,7 @@ export function NewWorldDialog() {
   });
 
   const jobStatus = useQuery({
-    ...getJobsByIdOptions({ path: { id: jobId ?? '' } }),
+    ...getJobOptions({ path: { id: jobId ?? '' } }),
     enabled: jobId !== null,
     refetchInterval: (query) => {
       const currentStatus = query.state.data?.status;
@@ -221,7 +221,7 @@ export function NewWorldDialog() {
     }
 
     const result = JSON.parse(data.resultJson!) as CreateWorldResponse;
-    queryClient.invalidateQueries({ queryKey: getWorldsOptions().queryKey });
+    queryClient.invalidateQueries({ queryKey: listWorldsOptions().queryKey });
 
     startSession.mutate(
       { query: { worldId: result.worldId } },

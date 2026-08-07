@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteAdminSessionsBySessionIdData, DeleteAdminSessionsBySessionIdResponses, DeleteWorldsByWorldIdData, DeleteWorldsByWorldIdResponses, GetAbilitiesBySkillData, GetAbilitiesBySkillResponses, GetCorpsesData, GetCorpsesResponses, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponses, GetCreaturesByCreatureIdAbilitiesData, GetCreaturesByCreatureIdAbilitiesResponses, GetCreaturesByCreatureIdAttributePointsData, GetCreaturesByCreatureIdAttributePointsResponses, GetCreaturesByCreatureIdAttributesData, GetCreaturesByCreatureIdAttributesResponses, GetCreaturesByCreatureIdBasicAttackDamageData, GetCreaturesByCreatureIdBasicAttackDamageResponses, GetCreaturesByCreatureIdConsumablesData, GetCreaturesByCreatureIdConsumablesResponses, GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageData, GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponses, GetCreaturesByCreatureIdEquipmentPreviewData, GetCreaturesByCreatureIdEquipmentPreviewResponses, GetCreaturesByCreatureIdInventoryData, GetCreaturesByCreatureIdInventoryResponses, GetCreaturesByCreatureIdLevelData, GetCreaturesByCreatureIdLevelResponses, GetCreaturesByCreatureIdSkillsData, GetCreaturesByCreatureIdSkillsResponses, GetCreaturesByCreatureIdStatsData, GetCreaturesByCreatureIdStatsResponses, GetJobsByIdData, GetJobsByIdErrors, GetJobsByIdResponses, GetPlayersByPlayerIdFightAbilitiesData, GetPlayersByPlayerIdFightAbilitiesResponses, GetPlayersByPlayerIdFightData, GetPlayersByPlayerIdFightErrors, GetPlayersByPlayerIdFightResponses, GetSessionsBySessionIdNamedEntitiesByEntityIdData, GetSessionsBySessionIdNamedEntitiesByEntityIdErrors, GetSessionsBySessionIdNamedEntitiesByEntityIdResponses, GetSessionsBySessionIdNamedEntitiesData, GetSessionsBySessionIdNamedEntitiesResponses, GetSessionsBySessionIdSceneData, GetSessionsBySessionIdSceneErrors, GetSessionsBySessionIdSceneResponses, GetWorldsData, GetWorldsResponses, PostAdminSessionsBySessionIdChatData, PostAdminSessionsBySessionIdChatResponses, PostAdminSessionsBySessionIdWaitData, PostAdminSessionsBySessionIdWaitErrors, PostAdminSessionsBySessionIdWaitResponses, PostCreaturesByCreatureIdAttributePointsAllocateData, PostCreaturesByCreatureIdAttributePointsAllocateResponses, PostCreaturesByCreatureIdEquipmentEquipData, PostCreaturesByCreatureIdEquipmentEquipResponses, PostCreaturesByCreatureIdEquipmentUnequipData, PostCreaturesByCreatureIdEquipmentUnequipResponses, PostSessionsData, PostSessionsErrors, PostSessionsResponses, PostTransfersData, PostTransfersErrors, PostTransfersResponses, PostWorldsData, PostWorldsResponses } from './types.gen';
+import type { AdvanceSessionTimeData, AdvanceSessionTimeErrors, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldData, DropWorldResponses, EndSessionData, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillData, GetAbilitiesBySkillResponses, GetCreatureAbilitiesData, GetCreatureAbilitiesResponses, GetCreatureAttributePointsData, GetCreatureAttributePointsResponses, GetCreatureAttributesData, GetCreatureAttributesResponses, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesData, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponses, GetCreatureInventoryData, GetCreatureInventoryResponses, GetCreatureLevelData, GetCreatureLevelResponses, GetCreatureSkillsData, GetCreatureSkillsResponses, GetCreatureStatsData, GetCreatureStatsResponses, GetJobData, GetJobErrors, GetJobResponses, GetNearbyCorpsesData, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponses, GetPlayerFightData, GetPlayerFightErrors, GetPlayerFightResponses, GetSessionNamedEntityData, GetSessionNamedEntityErrors, GetSessionNamedEntityResponses, GetSessionSceneData, GetSessionSceneErrors, GetSessionSceneResponses, ListSessionNamedEntitiesData, ListSessionNamedEntitiesResponses, ListWorldsData, ListWorldsResponses, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryErrors, TransferInventoryResponses, UnequipCreatureItemData, UnequipCreatureItemResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -18,9 +18,9 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
 
-export const getWorlds = <ThrowOnError extends boolean = false>(options?: Options<GetWorldsData, ThrowOnError>): RequestResult<GetWorldsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetWorldsResponses, unknown, ThrowOnError>({ url: '/worlds', ...options });
+export const listWorlds = <ThrowOnError extends boolean = false>(options?: Options<ListWorldsData, ThrowOnError>): RequestResult<ListWorldsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListWorldsResponses, unknown, ThrowOnError>({ url: '/worlds', ...options });
 
-export const postWorlds = <ThrowOnError extends boolean = false>(options: Options<PostWorldsData, ThrowOnError>): RequestResult<PostWorldsResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostWorldsResponses, unknown, ThrowOnError>({
+export const createWorld = <ThrowOnError extends boolean = false>(options: Options<CreateWorldData, ThrowOnError>): RequestResult<CreateWorldResponses, unknown, ThrowOnError> => (options.client ?? client).post<CreateWorldResponses, unknown, ThrowOnError>({
     url: '/worlds',
     ...options,
     headers: {
@@ -29,19 +29,19 @@ export const postWorlds = <ThrowOnError extends boolean = false>(options: Option
     }
 });
 
-export const deleteWorldsByWorldId = <ThrowOnError extends boolean = false>(options: Options<DeleteWorldsByWorldIdData, ThrowOnError>): RequestResult<DeleteWorldsByWorldIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteWorldsByWorldIdResponses, unknown, ThrowOnError>({ url: '/worlds/{worldId}', ...options });
+export const dropWorld = <ThrowOnError extends boolean = false>(options: Options<DropWorldData, ThrowOnError>): RequestResult<DropWorldResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DropWorldResponses, unknown, ThrowOnError>({ url: '/worlds/{worldId}', ...options });
 
 export const getAbilitiesBySkill = <ThrowOnError extends boolean = false>(options: Options<GetAbilitiesBySkillData, ThrowOnError>): RequestResult<GetAbilitiesBySkillResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetAbilitiesBySkillResponses, unknown, ThrowOnError>({ url: '/abilities/{skill}', ...options });
 
-export const getCreaturesByCreatureIdAbilities = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdAbilitiesData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdAbilitiesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdAbilitiesResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/abilities', ...options });
+export const getCreatureAbilities = <ThrowOnError extends boolean = false>(options: Options<GetCreatureAbilitiesData, ThrowOnError>): RequestResult<GetCreatureAbilitiesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureAbilitiesResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/abilities', ...options });
 
-export const getCreaturesByCreatureIdInventory = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdInventoryData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdInventoryResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdInventoryResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/inventory', ...options });
+export const getCreatureInventory = <ThrowOnError extends boolean = false>(options: Options<GetCreatureInventoryData, ThrowOnError>): RequestResult<GetCreatureInventoryResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureInventoryResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/inventory', ...options });
 
-export const getCreaturesByCreatureIdConsumables = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdConsumablesData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdConsumablesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdConsumablesResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/consumables', ...options });
+export const getCreatureConsumables = <ThrowOnError extends boolean = false>(options: Options<GetCreatureConsumablesData, ThrowOnError>): RequestResult<GetCreatureConsumablesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureConsumablesResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/consumables', ...options });
 
-export const getCreaturesByCreatureIdAttributePoints = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdAttributePointsData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdAttributePointsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdAttributePointsResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/attribute-points', ...options });
+export const getCreatureAttributePoints = <ThrowOnError extends boolean = false>(options: Options<GetCreatureAttributePointsData, ThrowOnError>): RequestResult<GetCreatureAttributePointsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureAttributePointsResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/attribute-points', ...options });
 
-export const postCreaturesByCreatureIdAttributePointsAllocate = <ThrowOnError extends boolean = false>(options: Options<PostCreaturesByCreatureIdAttributePointsAllocateData, ThrowOnError>): RequestResult<PostCreaturesByCreatureIdAttributePointsAllocateResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostCreaturesByCreatureIdAttributePointsAllocateResponses, unknown, ThrowOnError>({
+export const allocateCreatureAttributePoints = <ThrowOnError extends boolean = false>(options: Options<AllocateCreatureAttributePointsData, ThrowOnError>): RequestResult<AllocateCreatureAttributePointsResponses, unknown, ThrowOnError> => (options.client ?? client).post<AllocateCreatureAttributePointsResponses, unknown, ThrowOnError>({
     url: '/creatures/{creatureId}/attribute-points/allocate',
     ...options,
     headers: {
@@ -50,17 +50,17 @@ export const postCreaturesByCreatureIdAttributePointsAllocate = <ThrowOnError ex
     }
 });
 
-export const getCreaturesByCreatureIdAttributes = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdAttributesData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdAttributesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdAttributesResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/attributes', ...options });
+export const getCreatureAttributes = <ThrowOnError extends boolean = false>(options: Options<GetCreatureAttributesData, ThrowOnError>): RequestResult<GetCreatureAttributesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureAttributesResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/attributes', ...options });
 
-export const getCreaturesByCreatureIdStats = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdStatsData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdStatsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdStatsResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/stats', ...options });
+export const getCreatureStats = <ThrowOnError extends boolean = false>(options: Options<GetCreatureStatsData, ThrowOnError>): RequestResult<GetCreatureStatsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureStatsResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/stats', ...options });
 
-export const getCreaturesByCreatureIdBasicAttackDamage = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdBasicAttackDamageData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdBasicAttackDamageResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdBasicAttackDamageResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/basic-attack-damage', ...options });
+export const getCreatureBasicAttackDamage = <ThrowOnError extends boolean = false>(options: Options<GetCreatureBasicAttackDamageData, ThrowOnError>): RequestResult<GetCreatureBasicAttackDamageResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureBasicAttackDamageResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/basic-attack-damage', ...options });
 
-export const getCreaturesByCreatureIdSkills = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdSkillsData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdSkillsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdSkillsResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/skills', ...options });
+export const getCreatureSkills = <ThrowOnError extends boolean = false>(options: Options<GetCreatureSkillsData, ThrowOnError>): RequestResult<GetCreatureSkillsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureSkillsResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/skills', ...options });
 
-export const getCreaturesByCreatureIdLevel = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdLevelData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdLevelResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdLevelResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/level', ...options });
+export const getCreatureLevel = <ThrowOnError extends boolean = false>(options: Options<GetCreatureLevelData, ThrowOnError>): RequestResult<GetCreatureLevelResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreatureLevelResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/level', ...options });
 
-export const postCreaturesByCreatureIdEquipmentEquip = <ThrowOnError extends boolean = false>(options: Options<PostCreaturesByCreatureIdEquipmentEquipData, ThrowOnError>): RequestResult<PostCreaturesByCreatureIdEquipmentEquipResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostCreaturesByCreatureIdEquipmentEquipResponses, unknown, ThrowOnError>({
+export const equipCreatureItem = <ThrowOnError extends boolean = false>(options: Options<EquipCreatureItemData, ThrowOnError>): RequestResult<EquipCreatureItemResponses, unknown, ThrowOnError> => (options.client ?? client).post<EquipCreatureItemResponses, unknown, ThrowOnError>({
     url: '/creatures/{creatureId}/equipment/equip',
     ...options,
     headers: {
@@ -69,7 +69,7 @@ export const postCreaturesByCreatureIdEquipmentEquip = <ThrowOnError extends boo
     }
 });
 
-export const postCreaturesByCreatureIdEquipmentUnequip = <ThrowOnError extends boolean = false>(options: Options<PostCreaturesByCreatureIdEquipmentUnequipData, ThrowOnError>): RequestResult<PostCreaturesByCreatureIdEquipmentUnequipResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostCreaturesByCreatureIdEquipmentUnequipResponses, unknown, ThrowOnError>({
+export const unequipCreatureItem = <ThrowOnError extends boolean = false>(options: Options<UnequipCreatureItemData, ThrowOnError>): RequestResult<UnequipCreatureItemResponses, unknown, ThrowOnError> => (options.client ?? client).post<UnequipCreatureItemResponses, unknown, ThrowOnError>({
     url: '/creatures/{creatureId}/equipment/unequip',
     ...options,
     headers: {
@@ -78,29 +78,29 @@ export const postCreaturesByCreatureIdEquipmentUnequip = <ThrowOnError extends b
     }
 });
 
-export const getCreaturesByCreatureIdEquipmentPreview = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdEquipmentPreviewData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdEquipmentPreviewResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdEquipmentPreviewResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/equipment/preview', ...options });
+export const previewCreatureEquipment = <ThrowOnError extends boolean = false>(options: Options<PreviewCreatureEquipmentData, ThrowOnError>): RequestResult<PreviewCreatureEquipmentResponses, unknown, ThrowOnError> => (options.client ?? client).get<PreviewCreatureEquipmentResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/equipment/preview', ...options });
 
-export const getCreaturesByCreatureIdEquipmentPreviewBasicAttackDamage = <ThrowOnError extends boolean = false>(options: Options<GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageData, ThrowOnError>): RequestResult<GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/equipment/preview/basic-attack-damage', ...options });
+export const previewCreatureBasicAttackDamage = <ThrowOnError extends boolean = false>(options: Options<PreviewCreatureBasicAttackDamageData, ThrowOnError>): RequestResult<PreviewCreatureBasicAttackDamageResponses, unknown, ThrowOnError> => (options.client ?? client).get<PreviewCreatureBasicAttackDamageResponses, unknown, ThrowOnError>({ url: '/creatures/{creatureId}/equipment/preview/basic-attack-damage', ...options });
 
-export const getCorpses = <ThrowOnError extends boolean = false>(options: Options<GetCorpsesData, ThrowOnError>): RequestResult<GetCorpsesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCorpsesResponses, unknown, ThrowOnError>({ url: '/corpses', ...options });
+export const getNearbyCorpses = <ThrowOnError extends boolean = false>(options: Options<GetNearbyCorpsesData, ThrowOnError>): RequestResult<GetNearbyCorpsesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetNearbyCorpsesResponses, unknown, ThrowOnError>({ url: '/corpses', ...options });
 
-export const getPlayersByPlayerIdFight = <ThrowOnError extends boolean = false>(options: Options<GetPlayersByPlayerIdFightData, ThrowOnError>): RequestResult<GetPlayersByPlayerIdFightResponses, GetPlayersByPlayerIdFightErrors, ThrowOnError> => (options.client ?? client).get<GetPlayersByPlayerIdFightResponses, GetPlayersByPlayerIdFightErrors, ThrowOnError>({ url: '/players/{playerId}/fight', ...options });
+export const getPlayerFight = <ThrowOnError extends boolean = false>(options: Options<GetPlayerFightData, ThrowOnError>): RequestResult<GetPlayerFightResponses, GetPlayerFightErrors, ThrowOnError> => (options.client ?? client).get<GetPlayerFightResponses, GetPlayerFightErrors, ThrowOnError>({ url: '/players/{playerId}/fight', ...options });
 
-export const getPlayersByPlayerIdFightAbilities = <ThrowOnError extends boolean = false>(options: Options<GetPlayersByPlayerIdFightAbilitiesData, ThrowOnError>): RequestResult<GetPlayersByPlayerIdFightAbilitiesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPlayersByPlayerIdFightAbilitiesResponses, unknown, ThrowOnError>({ url: '/players/{playerId}/fight/abilities', ...options });
+export const getPlayerFightAbilities = <ThrowOnError extends boolean = false>(options: Options<GetPlayerFightAbilitiesData, ThrowOnError>): RequestResult<GetPlayerFightAbilitiesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPlayerFightAbilitiesResponses, unknown, ThrowOnError>({ url: '/players/{playerId}/fight/abilities', ...options });
 
 export const getCreatureGenerationOptions = <ThrowOnError extends boolean = false>(options?: Options<GetCreatureGenerationOptionsData, ThrowOnError>): RequestResult<GetCreatureGenerationOptionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetCreatureGenerationOptionsResponses, unknown, ThrowOnError>({ url: '/creature-generation/options', ...options });
 
-export const postSessions = <ThrowOnError extends boolean = false>(options: Options<PostSessionsData, ThrowOnError>): RequestResult<PostSessionsResponses, PostSessionsErrors, ThrowOnError> => (options.client ?? client).post<PostSessionsResponses, PostSessionsErrors, ThrowOnError>({ url: '/sessions', ...options });
+export const createSession = <ThrowOnError extends boolean = false>(options: Options<CreateSessionData, ThrowOnError>): RequestResult<CreateSessionResponses, CreateSessionErrors, ThrowOnError> => (options.client ?? client).post<CreateSessionResponses, CreateSessionErrors, ThrowOnError>({ url: '/sessions', ...options });
 
-export const getSessionsBySessionIdScene = <ThrowOnError extends boolean = false>(options: Options<GetSessionsBySessionIdSceneData, ThrowOnError>): RequestResult<GetSessionsBySessionIdSceneResponses, GetSessionsBySessionIdSceneErrors, ThrowOnError> => (options.client ?? client).get<GetSessionsBySessionIdSceneResponses, GetSessionsBySessionIdSceneErrors, ThrowOnError>({ url: '/sessions/{sessionId}/scene', ...options });
+export const getSessionScene = <ThrowOnError extends boolean = false>(options: Options<GetSessionSceneData, ThrowOnError>): RequestResult<GetSessionSceneResponses, GetSessionSceneErrors, ThrowOnError> => (options.client ?? client).get<GetSessionSceneResponses, GetSessionSceneErrors, ThrowOnError>({ url: '/sessions/{sessionId}/scene', ...options });
 
-export const getSessionsBySessionIdNamedEntities = <ThrowOnError extends boolean = false>(options: Options<GetSessionsBySessionIdNamedEntitiesData, ThrowOnError>): RequestResult<GetSessionsBySessionIdNamedEntitiesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetSessionsBySessionIdNamedEntitiesResponses, unknown, ThrowOnError>({ url: '/sessions/{sessionId}/named-entities', ...options });
+export const listSessionNamedEntities = <ThrowOnError extends boolean = false>(options: Options<ListSessionNamedEntitiesData, ThrowOnError>): RequestResult<ListSessionNamedEntitiesResponses, unknown, ThrowOnError> => (options.client ?? client).get<ListSessionNamedEntitiesResponses, unknown, ThrowOnError>({ url: '/sessions/{sessionId}/named-entities', ...options });
 
-export const getSessionsBySessionIdNamedEntitiesByEntityId = <ThrowOnError extends boolean = false>(options: Options<GetSessionsBySessionIdNamedEntitiesByEntityIdData, ThrowOnError>): RequestResult<GetSessionsBySessionIdNamedEntitiesByEntityIdResponses, GetSessionsBySessionIdNamedEntitiesByEntityIdErrors, ThrowOnError> => (options.client ?? client).get<GetSessionsBySessionIdNamedEntitiesByEntityIdResponses, GetSessionsBySessionIdNamedEntitiesByEntityIdErrors, ThrowOnError>({ url: '/sessions/{sessionId}/named-entities/{entityId}', ...options });
+export const getSessionNamedEntity = <ThrowOnError extends boolean = false>(options: Options<GetSessionNamedEntityData, ThrowOnError>): RequestResult<GetSessionNamedEntityResponses, GetSessionNamedEntityErrors, ThrowOnError> => (options.client ?? client).get<GetSessionNamedEntityResponses, GetSessionNamedEntityErrors, ThrowOnError>({ url: '/sessions/{sessionId}/named-entities/{entityId}', ...options });
 
-export const getJobsById = <ThrowOnError extends boolean = false>(options: Options<GetJobsByIdData, ThrowOnError>): RequestResult<GetJobsByIdResponses, GetJobsByIdErrors, ThrowOnError> => (options.client ?? client).get<GetJobsByIdResponses, GetJobsByIdErrors, ThrowOnError>({ url: '/jobs/{id}', ...options });
+export const getJob = <ThrowOnError extends boolean = false>(options: Options<GetJobData, ThrowOnError>): RequestResult<GetJobResponses, GetJobErrors, ThrowOnError> => (options.client ?? client).get<GetJobResponses, GetJobErrors, ThrowOnError>({ url: '/jobs/{id}', ...options });
 
-export const postAdminSessionsBySessionIdChat = <ThrowOnError extends boolean = false>(options: Options<PostAdminSessionsBySessionIdChatData, ThrowOnError>): RequestResult<PostAdminSessionsBySessionIdChatResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostAdminSessionsBySessionIdChatResponses, unknown, ThrowOnError>({
+export const sendAdminChat = <ThrowOnError extends boolean = false>(options: Options<SendAdminChatData, ThrowOnError>): RequestResult<SendAdminChatResponses, unknown, ThrowOnError> => (options.client ?? client).post<SendAdminChatResponses, unknown, ThrowOnError>({
     url: '/admin/sessions/{sessionId}/chat',
     ...options,
     headers: {
@@ -109,7 +109,7 @@ export const postAdminSessionsBySessionIdChat = <ThrowOnError extends boolean = 
     }
 });
 
-export const postAdminSessionsBySessionIdWait = <ThrowOnError extends boolean = false>(options: Options<PostAdminSessionsBySessionIdWaitData, ThrowOnError>): RequestResult<PostAdminSessionsBySessionIdWaitResponses, PostAdminSessionsBySessionIdWaitErrors, ThrowOnError> => (options.client ?? client).post<PostAdminSessionsBySessionIdWaitResponses, PostAdminSessionsBySessionIdWaitErrors, ThrowOnError>({
+export const advanceSessionTime = <ThrowOnError extends boolean = false>(options: Options<AdvanceSessionTimeData, ThrowOnError>): RequestResult<AdvanceSessionTimeResponses, AdvanceSessionTimeErrors, ThrowOnError> => (options.client ?? client).post<AdvanceSessionTimeResponses, AdvanceSessionTimeErrors, ThrowOnError>({
     url: '/admin/sessions/{sessionId}/wait',
     ...options,
     headers: {
@@ -118,9 +118,9 @@ export const postAdminSessionsBySessionIdWait = <ThrowOnError extends boolean = 
     }
 });
 
-export const deleteAdminSessionsBySessionId = <ThrowOnError extends boolean = false>(options: Options<DeleteAdminSessionsBySessionIdData, ThrowOnError>): RequestResult<DeleteAdminSessionsBySessionIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteAdminSessionsBySessionIdResponses, unknown, ThrowOnError>({ url: '/admin/sessions/{sessionId}', ...options });
+export const endSession = <ThrowOnError extends boolean = false>(options: Options<EndSessionData, ThrowOnError>): RequestResult<EndSessionResponses, unknown, ThrowOnError> => (options.client ?? client).delete<EndSessionResponses, unknown, ThrowOnError>({ url: '/admin/sessions/{sessionId}', ...options });
 
-export const postTransfers = <ThrowOnError extends boolean = false>(options: Options<PostTransfersData, ThrowOnError>): RequestResult<PostTransfersResponses, PostTransfersErrors, ThrowOnError> => (options.client ?? client).post<PostTransfersResponses, PostTransfersErrors, ThrowOnError>({
+export const transferInventory = <ThrowOnError extends boolean = false>(options: Options<TransferInventoryData, ThrowOnError>): RequestResult<TransferInventoryResponses, TransferInventoryErrors, ThrowOnError> => (options.client ?? client).post<TransferInventoryResponses, TransferInventoryErrors, ThrowOnError>({
     url: '/transfers',
     ...options,
     headers: {

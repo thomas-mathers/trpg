@@ -18,17 +18,16 @@ namespace TRPG.Tests.Endpoints;
 [Collection("Endpoints")]
 public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLifetime
 {
-    private HttpClient _client = null!;
+    private TestApiClient _client = null!;
 
     public ValueTask InitializeAsync()
     {
-        _client = fixture.CreateClient();
+        _client = fixture.CreateApiClient();
         return ValueTask.CompletedTask;
     }
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
         return ValueTask.CompletedTask;
     }
 
@@ -58,11 +57,10 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            "/worlds",
-            request,
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
+        var response = await _client.SendAsync(
+            "CreateWorld",
+            body: request,
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -113,11 +111,10 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            "/worlds",
-            request,
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
+        var response = await _client.SendAsync(
+            "CreateWorld",
+            body: request,
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -183,10 +180,10 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         var deadline = DateTime.UtcNow.AddSeconds(30);
         while (DateTime.UtcNow < deadline)
         {
-            var status = await _client.GetFromJsonAsync<JobStatusResponse>(
-                new Uri($"/jobs/{jobId}", UriKind.Relative),
-                TrpgJsonOptions.Default,
-                TestContext.Current.CancellationToken
+            var status = await _client.ReadFromJsonAsync<JobStatusResponse>(
+                "GetJob",
+                new { id = jobId },
+                cancellationToken: TestContext.Current.CancellationToken
             );
             if (status!.Status is JobStatus.Done or JobStatus.Failed or JobStatus.Cancelled)
             {
@@ -211,9 +208,9 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var response = await _client.GetAsync(
-            new Uri("/worlds", UriKind.Relative),
-            TestContext.Current.CancellationToken
+        var response = await _client.SendAsync(
+            "ListWorlds",
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -236,9 +233,10 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var response = await _client.DeleteAsync(
-            new Uri($"/worlds/{world.Id}", UriKind.Relative),
-            TestContext.Current.CancellationToken
+        var response = await _client.SendAsync(
+            "DropWorld",
+            new { worldId = world.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert

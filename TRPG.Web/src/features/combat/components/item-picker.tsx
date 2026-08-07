@@ -2,10 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import type { ConsumableSummary } from '@/api/client';
-import {
-  getCreaturesByCreatureIdConsumablesOptions,
-  getCreaturesByCreatureIdConsumablesQueryKey,
-} from '@/api/client';
+import { getCreatureConsumablesOptions, getCreatureConsumablesQueryKey } from '@/api/client';
 import { SearchInput } from '@/components/search-input';
 import { EmptyNote } from '@/features/combat/components/empty-note';
 import { PickerHeader } from '@/features/combat/components/picker-header';
@@ -24,12 +21,10 @@ export function ItemPicker({ playerId, onBack, onChoose }: ItemPickerProps) {
   const [query, setQuery] = useState('');
   const queryClient = useQueryClient();
 
-  const itemsQuery = useQuery(
-    getCreaturesByCreatureIdConsumablesOptions({ path: { creatureId: playerId } }),
-  );
+  const itemsQuery = useQuery(getCreatureConsumablesOptions({ path: { creatureId: playerId } }));
 
   useEffect(() => {
-    const key = getCreaturesByCreatureIdConsumablesQueryKey({ path: { creatureId: playerId } });
+    const key = getCreatureConsumablesQueryKey({ path: { creatureId: playerId } });
     const invalidate = () => queryClient.invalidateQueries({ queryKey: key });
     const offUpdated = gameEventBus.on('CombatUpdated', invalidate);
     const offStarted = gameEventBus.on('CombatStarted', invalidate);

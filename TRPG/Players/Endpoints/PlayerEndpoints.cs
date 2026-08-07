@@ -12,8 +12,9 @@ internal static class PlayerEndpoints
 {
     public static void MapPlayerEndpoints(this WebApplication app)
     {
-        app.MapGet("/players/{playerId:guid}/fight", GetFight);
-        app.MapGet("/players/{playerId:guid}/fight/abilities", GetAbilityAvailability);
+        app.MapGet("/players/{playerId:guid}/fight", GetFight).WithName("GetPlayerFight");
+        app.MapGet("/players/{playerId:guid}/fight/abilities", GetAbilityAvailability)
+            .WithName("GetPlayerFightAbilities");
     }
 
     private static async Task<Results<NotFound, Ok<FightState>>> GetFight(

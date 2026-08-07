@@ -19,9 +19,9 @@ internal static class WorldEndpoints
 {
     public static void MapWorldEndpoints(this WebApplication app)
     {
-        app.MapPost("/worlds", CreateWorld);
-        app.MapGet("/worlds", ListWorlds);
-        app.MapDelete("/worlds/{worldId:guid}", DropWorld);
+        app.MapPost("/worlds", CreateWorld).WithName("CreateWorld");
+        app.MapGet("/worlds", ListWorlds).WithName("ListWorlds");
+        app.MapDelete("/worlds/{worldId:guid}", DropWorld).WithName("DropWorld");
     }
 
     private static async Task<Accepted<EnqueueJobResponse>> CreateWorld(

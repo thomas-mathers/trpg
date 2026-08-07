@@ -15,14 +15,14 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
 {
     private static readonly Guid LocationId = Guid.NewGuid();
 
-    private HttpClient _client = null!;
+    private TestApiClient _client = null!;
     private Guid _worldId;
     private Creature _fromCreature = null!;
     private Creature _toCreature = null!;
 
     public async ValueTask InitializeAsync()
     {
-        _client = fixture.CreateClient();
+        _client = fixture.CreateApiClient();
 
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -40,7 +40,6 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
         return ValueTask.CompletedTask;
     }
 
@@ -66,13 +65,14 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri(
-                $"/transfers?fromId={_fromCreature.Id}&toId={_toCreature.Id}",
-                UriKind.Relative
-            ),
+            "TransferInventory",
             new InventoryTransferRequest([new LootItemSelection(item.Id, 1)]),
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
+            query: new Dictionary<string, object?>
+            {
+                ["fromId"] = _fromCreature.Id,
+                ["toId"] = _toCreature.Id,
+            },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -81,7 +81,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var movedItem = await verifyContext.Items.SingleAsync(
             i => i.Id == item.Id,
-            TestContext.Current.CancellationToken
+            cancellationToken: TestContext.Current.CancellationToken
         );
         Assert.Equal(_toCreature.Id, movedItem.Ownership.OwnerId);
     }
@@ -99,13 +99,14 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri(
-                $"/transfers?fromId={_fromCreature.Id}&toId={farCreature.Id}",
-                UriKind.Relative
-            ),
+            "TransferInventory",
             new InventoryTransferRequest([new LootItemSelection(item.Id, 1)]),
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
+            query: new Dictionary<string, object?>
+            {
+                ["fromId"] = _fromCreature.Id,
+                ["toId"] = farCreature.Id,
+            },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -117,10 +118,14 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
     {
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/transfers?fromId={Guid.NewGuid()}&toId={_toCreature.Id}", UriKind.Relative),
+            "TransferInventory",
             new InventoryTransferRequest([]),
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
+            query: new Dictionary<string, object?>
+            {
+                ["fromId"] = Guid.NewGuid(),
+                ["toId"] = _toCreature.Id,
+            },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -132,13 +137,14 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
     {
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri(
-                $"/transfers?fromId={_fromCreature.Id}&toId={Guid.NewGuid()}",
-                UriKind.Relative
-            ),
+            "TransferInventory",
             new InventoryTransferRequest([]),
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
+            query: new Dictionary<string, object?>
+            {
+                ["fromId"] = _fromCreature.Id,
+                ["toId"] = Guid.NewGuid(),
+            },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert

@@ -17,10 +17,12 @@ internal static class GameSessionEndpoints
 {
     public static void MapGameSessionEndpoints(this WebApplication app)
     {
-        app.MapPost("/sessions", StartSession);
-        app.MapGet("/sessions/{sessionId:guid}/scene", GetScene);
-        app.MapGet("/sessions/{sessionId:guid}/named-entities", GetNamedEntities);
-        app.MapGet("/sessions/{sessionId:guid}/named-entities/{entityId:guid}", GetNamedEntityById);
+        app.MapPost("/sessions", StartSession).WithName("CreateSession");
+        app.MapGet("/sessions/{sessionId:guid}/scene", GetScene).WithName("GetSessionScene");
+        app.MapGet("/sessions/{sessionId:guid}/named-entities", GetNamedEntities)
+            .WithName("ListSessionNamedEntities");
+        app.MapGet("/sessions/{sessionId:guid}/named-entities/{entityId:guid}", GetNamedEntityById)
+            .WithName("GetSessionNamedEntity");
     }
 
     private static async Task<Results<NotFound, Ok<CreateSessionResponse>>> StartSession(

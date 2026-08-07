@@ -10,7 +10,7 @@ internal static class JobsEndpoints
 {
     public static void MapJobsEndpoints(this WebApplication app)
     {
-        app.MapGet("/jobs/{id:guid}", GetJob);
+        app.MapGet("/jobs/{id:guid}", GetJob).WithName("GetJob");
     }
 
     private static async Task<Results<NotFound, Ok<JobStatusResponse>>> GetJob(
