@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     
     outputs:
-      web: ${{ steps.filter.outputs.web }}
-      backend: ${{ steps.filter.outputs.backend }}
+      spa: ${{ steps.filter.outputs.spa }}
+      api: ${{ steps.filter.outputs.api }}
       
     steps:
       - uses: actions/checkout@v7
@@ -24,18 +24,21 @@ jobs:
         id: filter
         with:
           filters: |
-            web:
-              - 'TRPG.Web/**'
-            backend:
-              - '**'
-              - '!TRPG.Web/**'
+            spa:
+              - 'spa/**'
+            api:
+              - 'api/**'
             
-  backend:
+  api:
     needs: changes
     
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.api == 'true'
     
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: api
     
     steps:
       - uses: actions/checkout@v7
@@ -64,13 +67,13 @@ jobs:
   spa:
     needs: changes
     
-    if: needs.changes.outputs.web == 'true'
+    if: needs.changes.outputs.spa == 'true'
     
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: TRPG.Web
+        working-directory: spa
 
     steps:
       - uses: actions/checkout@v7
@@ -85,7 +88,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: TRPG.Web/pnpm-lock.yaml
+          cache-dependency-path: spa/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

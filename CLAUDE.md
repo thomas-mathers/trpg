@@ -11,20 +11,21 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 ## Project Structure
 
 ### Projects
-- `TRPG` — ASP.NET Core minimal API host. Endpoints, SignalR hubs, DI wiring (`Program.cs`), background jobs (TickerQ)
-- `TRPG.Application` — all business logic: command/query handlers, the combat engine, world/creature generators, LLM tool definitions. No web-framework references
-- `TRPG.Contracts` — DTOs shared between the backend and its clients (requests/responses only, no logic)
-- `TRPG.Data` — EF Core: `TrpgDbContext`, entity models, migrations
-- `TRPG.Tests` — all backend tests (xUnit, Testcontainers-backed Postgres)
+- `api/TRPG` — ASP.NET Core minimal API host. Endpoints, SignalR hubs, DI wiring (`Program.cs`), background jobs (TickerQ)
+- `api/TRPG.Application` — all business logic: command/query handlers, the combat engine, world/creature generators, LLM tool definitions. No web-framework references
+- `api/TRPG.Contracts` — DTOs shared between the backend and its clients (requests/responses only, no logic)
+- `api/TRPG.Data` — EF Core: `TrpgDbContext`, entity models, migrations
+- `api/TRPG.Tests` — all backend tests (xUnit, Testcontainers-backed Postgres)
+- `spa` — React single-page application
 
 ### Folder convention: feature-then-type
-- Inside `TRPG`, `TRPG.Application`, and `TRPG.Contracts`, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
+- Inside `api/TRPG`, `api/TRPG.Application`, and `api/TRPG.Contracts`, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
 - Within a feature folder, subfolders group by type: `Commands/`, `Queries/`, `Tools/`, `Generators/` (Application); `Endpoints/`, `Hubs/`, `Jobs/` (host); `Requests/`, `Responses/` (Contracts)
-- `TRPG.Data` is flat: `Models/` + `Migrations/` — entities aren't split by feature
+- `api/TRPG.Data` is flat: `Models/` + `Migrations/` — entities aren't split by feature
 
 ### Key request flows
-- **Plain HTTP**: `TRPG/<Feature>/Endpoints/<Feature>Endpoints.cs` → one or more `*QueryHandler`/`*CommandHandler` in `TRPG.Application` → `TrpgDbContext`
-- **Player turn (chat/wait)**: `TRPG/GameSessions/Hubs/ChatHub.cs` (SignalR) → `GameTurnRunner` (`TRPG.Application/GameSessions/GameTurnRunner.cs`) → LLM (`IChatClient`) with tool-calling (`TRPG.Application/*/Tools/`) → narration streamed back token-by-token
+- **Plain HTTP**: `api/TRPG/<Feature>/Endpoints/<Feature>Endpoints.cs` → one or more `*QueryHandler`/`*CommandHandler` in `api/TRPG.Application` → `TrpgDbContext`
+- **Player turn (chat/wait)**: `api/TRPG/GameSessions/Hubs/ChatHub.cs` (SignalR) → `GameTurnRunner` (`api/TRPG.Application/GameSessions/GameTurnRunner.cs`) → LLM (`IChatClient`) with tool-calling (`api/TRPG.Application/*/Tools/`) → narration streamed back token-by-token
 - **Combat action (Attack/Defend/Item menu)**: client sends a typed `PlayerCombatAction` (`UseAbilityAction`/`UseItemAction`) over the same `SendCombatAction` hub method → `GameTurnRunner.StreamCombatActionResponse` → `PlayerCombatActionResolver` (validates the action, never throws — returns a `PlayerCombatActionResolverResult` with `Result`/`ErrorMessage`) → `CombatEngine.ProcessRound` (pure simulation over an already-validated action, also records any items consumed) → `ResolveCombatRoundCommand` persists the result and depletes any consumed inventory items → the LLM narrates the already-resolved outcome (tool-calling disabled for that one completion)
 
 Keep this section in sync: when a change adds, removes, or moves a top-level project, a feature folder, or alters one of the flows above, update this section in the same commit. This section is structural only (project/folder map, request-flow shapes) — it should rarely need touching for ordinary feature work, which is exactly why it's worth keeping accurate.
@@ -50,9 +51,9 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 ## Code Coverage
 
 - Local only, not wired into CI. `coverlet.collector` is already a `TRPG.Tests` package reference; `reportgenerator` is pinned in `.config/dotnet-tools.json` alongside CSharpier
-- Generate: `dotnet test TRPG.sln --collect:"XPlat Code Coverage" --settings coverlet.runsettings --results-directory ./TestResults`, then `dotnet reportgenerator "-reports:TestResults/**/coverage.cobertura.xml" "-targetdir:CoverageReport" "-reporttypes:Html"` and open `CoverageReport/index.html`
+- Generate: `dotnet test api/TRPG.sln --collect:"XPlat Code Coverage" --settings api/coverlet.runsettings --results-directory ./TestResults`, then `dotnet reportgenerator "-reports:TestResults/**/coverage.cobertura.xml" "-targetdir:CoverageReport" "-reporttypes:Html"` and open `CoverageReport/index.html`
 - `TestResults/` and `CoverageReport/` are gitignored — regenerate locally rather than committing either
-- `coverlet.runsettings` (repo root) excludes `TRPG.Data` from collection entirely — entity models, EF schema config, and migrations, none of which have branching logic worth chasing; its correctness is already proven by every other test failing if the schema/mappings were wrong. Always pass `--settings coverlet.runsettings`, or `TRPG.Data` noise (mostly generated migration `Up`/`Down` bodies) drowns out real gaps
+- `api/coverlet.runsettings` excludes `TRPG.Data` from collection entirely — entity models, EF schema config, and migrations, none of which have branching logic worth chasing; its correctness is already proven by every other test failing if the schema/mappings were wrong. Always pass `--settings api/coverlet.runsettings`, or `TRPG.Data` noise (mostly generated migration `Up`/`Down` bodies) drowns out real gaps
 - `scripts/coverage-gaps.py` parses a cobertura report and prints uncovered methods ranked by uncovered-line count, with compiler-generated async state machines folded back onto their real method and known-noise buckets (Program.cs, `*ServiceCollectionExtensions`, record/compiler-generated members) filtered out by default — read the script's own header comment for usage and exact filtering rules before assuming what it excludes
 
 ---
@@ -142,10 +143,10 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - DbSet accessor: expression body using `Set<T>()`, not auto-property
 
 ### Migrations
-- `Microsoft.EntityFrameworkCore.Design` is referenced by `TRPG.Data`, not `TRPG` (the host) — `--startup-project` must point at `TRPG.Data`, not `TRPG`, or the CLI fails with "doesn't reference Microsoft.EntityFrameworkCore.Design"
+- `Microsoft.EntityFrameworkCore.Design` is referenced by `api/TRPG.Data`, not `api/TRPG` (the host) — `--startup-project` must point at `api/TRPG.Data`, not `api/TRPG`, or the CLI fails with "doesn't reference Microsoft.EntityFrameworkCore.Design"
 - Two `DbContext`s exist (`TrpgDbContext`, `TrpgTickerQDbContext`) — always pass `--context TrpgDbContext` explicitly or the CLI fails with "More than one DbContext was found"
-- Full command to add a migration: `dotnet ef migrations add <Name> --project TRPG.Data --startup-project TRPG.Data --context TrpgDbContext`
-- To apply migrations against a running Postgres instance: `dotnet ef database update --project TRPG.Data --startup-project TRPG.Data --context TrpgDbContext` (tests never need this — `DatabaseFixture` calls `MigrateAsync` itself against its Testcontainers instance)
+- Full command to add a migration: `dotnet ef migrations add <Name> --project api/TRPG.Data --startup-project api/TRPG.Data --context TrpgDbContext`
+- To apply migrations against a running Postgres instance: `dotnet ef database update --project api/TRPG.Data --startup-project api/TRPG.Data --context TrpgDbContext` (tests never need this — `DatabaseFixture` calls `MigrateAsync` itself against its Testcontainers instance)
 
 ### Owned entities
 - `ToJson()` for owned types not queried/indexed (e.g. `Attributes`, `Progression`, `WorldEvent.Region`)
@@ -212,7 +213,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 ## Frontend Tests
 
 - Use Vitest, React Testing Library, `user-event`, MSW, and the generated Hey API MSW handlers for frontend tests
-- Render components through `TRPG.Web/src/test/test-utils.tsx`; it provides a fresh `QueryClient`, the shared providers, and an isolated `userEvent` instance per test
+- Render components through `spa/src/test/test-utils.tsx`; it provides a fresh `QueryClient`, the shared providers, and an isolated `userEvent` instance per test
 - Configure test query clients with retries disabled so failed queries and mutations fail promptly instead of waiting through exponential backoff
 - Prefer accessible queries (`getByRole`, `getByLabelText`, and accessible names) over DOM order, CSS selectors, or implementation details
 - Add an `aria-label` or other accessible name to a control when that makes it meaningfully testable and improves the component's accessibility; testability is a valid reason to add one

@@ -3,7 +3,8 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
-/logs/
+logs/
+.idea/
 /scripts/benchmark-results.csv
 /TestResults/
 /CoverageReport/
