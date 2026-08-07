@@ -50,15 +50,14 @@ export function ChatMarker({ text, variant = 'location' }: ChatMarkerProps) {
 }
 
 interface EntityLinkProps {
-  sessionId: string;
   id: string;
   name: string;
   entityType: EntityType;
 }
 
-export function EntityLink({ sessionId, id, name, entityType }: EntityLinkProps) {
+export function EntityLink({ id, name, entityType }: EntityLinkProps) {
   return (
-    <EntityTooltip sessionId={sessionId} id={id} name={name} entityType={entityType}>
+    <EntityTooltip id={id} name={name} entityType={entityType}>
       <span
         className="cursor-help font-bold whitespace-nowrap not-italic"
         style={{ color: ENTITY_TYPE_COLORS[entityType] }}
@@ -70,18 +69,16 @@ export function EntityLink({ sessionId, id, name, entityType }: EntityLinkProps)
 }
 
 interface NarrationTextProps {
-  sessionId: string;
   segments: NarrationSegment[];
 }
 
-function NarrationText({ sessionId, segments }: NarrationTextProps) {
+function NarrationText({ segments }: NarrationTextProps) {
   return (
     <>
       {segments.map((segment, index) =>
         segment.type === 'entity' ? (
           <EntityLink
             key={index}
-            sessionId={sessionId}
             id={segment.id}
             name={segment.name}
             entityType={segment.entityType}
@@ -100,11 +97,10 @@ export type ChatMessage =
   | { id: string; role: 'marker'; text: string; variant: ChatMarkerVariant };
 
 export type ChatHistoryProps = {
-  sessionId: string;
   messages: ChatMessage[];
 };
 
-export function ChatHistory({ sessionId, messages }: ChatHistoryProps) {
+export function ChatHistory({ messages }: ChatHistoryProps) {
   return (
     <MessageScrollerProvider autoScroll scrollPreviousItemPeek={64}>
       <MessageScroller className="flex-1">
@@ -128,7 +124,7 @@ export function ChatHistory({ sessionId, messages }: ChatHistoryProps) {
                       )}
                       {message.role === 'narrator' ? (
                         <div className="typeset typeset-chat whitespace-pre-line">
-                          <NarrationText sessionId={sessionId} segments={message.segments} />
+                          <NarrationText segments={message.segments} />
                         </div>
                       ) : (
                         <p className="text-right">{message.content}</p>

@@ -18,6 +18,7 @@ import { CombatantCard } from '@/features/combat/components/combatant-card';
 import { ItemPicker } from '@/features/combat/components/item-picker';
 import { PickerHeader } from '@/features/combat/components/picker-header';
 import { useGameActions } from '@/features/game/game-chat-context';
+import { usePlayerId } from '@/features/game/contexts/scene-context';
 
 import { useCombatState, type CombatFlash } from '../hooks/use-combat-state';
 
@@ -57,13 +58,10 @@ function EnemyRow({
   );
 }
 
-interface CombatConsoleProps {
-  playerId: string;
-}
-
-export function CombatConsole({ playerId }: CombatConsoleProps) {
+export function CombatConsole() {
   const { fight, activeAttackerId, combatFlashes, isPlayingBack } = useCombatState();
   const { isStreaming, submitCombatAction, submitFlee } = useGameActions();
+  const playerId = usePlayerId();
   const [mode, setMode] = useState<Mode>('topmenu');
   const [abilityCategory, setAbilityCategory] = useState<AbilityCategory | null>(null);
   const [pendingAbility, setPendingAbility] = useState<AbilitySummary | null>(null);
@@ -88,10 +86,11 @@ export function CombatConsole({ playerId }: CombatConsoleProps) {
     wasInCombatRef.current = isInCombat;
   }, [fight]);
 
-  if (!fight) {
+  if (!fight || !playerId) {
     return null;
   }
 
+  const currentPlayerId = playerId;
   const player = fight.combatants.find((c) => c.isPlayer);
   const enemies = fight.combatants.filter((c) => !c.isPlayer);
   const playerLevel = player ? Number(player.level) : 1;
@@ -159,7 +158,7 @@ export function CombatConsole({ playerId }: CombatConsoleProps) {
       case 'ability':
         return abilityCategory ? (
           <AbilityPicker
-            playerId={playerId}
+            playerId={currentPlayerId}
             category={abilityCategory}
             onBack={() => setMode('topmenu')}
             onChoose={chooseAbility}
@@ -179,7 +178,11 @@ export function CombatConsole({ playerId }: CombatConsoleProps) {
         );
       case 'item':
         return (
-          <ItemPicker playerId={playerId} onBack={() => setMode('topmenu')} onChoose={chooseItem} />
+          <ItemPicker
+            playerId={currentPlayerId}
+            onBack={() => setMode('topmenu')}
+            onChoose={chooseItem}
+          />
         );
     }
   }

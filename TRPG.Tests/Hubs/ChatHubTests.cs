@@ -177,6 +177,27 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Connect_PushesSceneSnapshot_WhenSessionStarts()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        var snapshotReceived =
+            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            "SceneSnapshot",
+            snapshot => snapshotReceived.TrySetResult(snapshot)
+        );
+
+        // Act
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var snapshot = await snapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(_playerId, snapshot.PlayerStatus.Id);
+    }
+
+    [Fact]
     public async Task Connect_Succeeds_AfterThePriorConnectionForTheWorldHasDisconnected()
     {
         // Arrange
@@ -191,6 +212,43 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Act & Assert
         await secondConnection.StartAsync(TestContext.Current.CancellationToken);
         Assert.Equal(HubConnectionState.Connected, secondConnection.State);
+    }
+
+    [Fact]
+    public async Task Reconnect_PushesSceneSnapshot_WhenSessionResumes()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        var firstConnection = fixture.CreateHubConnection(sessionId);
+        var firstSnapshotReceived =
+            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        firstConnection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            "SceneSnapshot",
+            snapshot => firstSnapshotReceived.TrySetResult(snapshot)
+        );
+        await firstConnection.StartAsync(TestContext.Current.CancellationToken);
+        var firstSnapshot = await firstSnapshotReceived.Task.WaitAsync(
+            TestContext.Current.CancellationToken
+        );
+        await firstConnection.DisposeAsync();
+
+        await using var secondConnection = fixture.CreateHubConnection(sessionId);
+        var secondSnapshotReceived =
+            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        secondConnection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            "SceneSnapshot",
+            snapshot => secondSnapshotReceived.TrySetResult(snapshot)
+        );
+
+        // Act
+        await secondConnection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var secondSnapshot = await secondSnapshotReceived.Task.WaitAsync(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_playerId, firstSnapshot.PlayerStatus.Id);
+        Assert.Equal(_playerId, secondSnapshot.PlayerStatus.Id);
     }
 
     [Fact]
@@ -269,7 +327,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendCombatAction_PushesSceneChanged_WhenTheAttackChangesNearbyCreatureState()
+    public async Task SendCombatAction_PushesSceneSnapshot_WhenTheAttackChangesNearbyCreatureState()
     {
         // Arrange
         var enemy = await SeedHostileCreature();
@@ -277,12 +335,20 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await StartFight(sessionId, enemy);
 
         var connection = fixture.CreateHubConnection(sessionId);
-        var sceneChanges = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        var snapshots = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        var initialSnapshotReceived =
+            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
         connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
-            "SceneChanged",
-            scene => sceneChanges.Add(scene)
+            "SceneSnapshot",
+            snapshot =>
+            {
+                snapshots.Add(snapshot);
+                initialSnapshotReceived.TrySetResult(snapshot);
+            }
         );
         await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
+        snapshots.Clear();
         await using var gameHub = new GameHub(connection);
 
         // Act - hit/miss is random each round (see
@@ -290,8 +356,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // fixed number of times; what's being exercised is that the before/after diff in
         // ChatHub.StreamTurn notices whichever round(s) actually land a hit on either side, not a
         // specific round's outcome. All eight independent rolls across four rounds missing is
-        // negligible. Each round that changes something pushes its own SceneChanged, so this may
-        // push more than once - only the most recent push needs to reflect the truth.
+        // negligible. Each round that changes something pushes its own SceneSnapshot, so this may
+        // push more than once - only the most recent snapshot needs to reflect the truth.
         for (var i = 0; i < 4; i++)
         {
             await Drain(
@@ -303,8 +369,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         }
 
         // Assert
-        Assert.NotEmpty(sceneChanges);
-        var nearbyEnemy = Assert.Single(sceneChanges[^1].NearbyCreatures, c => c.Id == enemy.Id);
+        Assert.NotEmpty(snapshots);
+        var nearbyEnemy = Assert.Single(snapshots[^1].NearbyCreatures, c => c.Id == enemy.Id);
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var freshEnemy = await context.Creatures.SingleAsync(
@@ -315,25 +381,33 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendChat_DoesNotPushSceneChanged_WhenNothingChangedDuringTheTurn()
+    public async Task SendChat_DoesNotPushSceneSnapshot_WhenNothingChangedDuringTheTurn()
     {
         // Arrange
         await SeedHostileCreature();
         var sessionId = await StartSession();
         var connection = fixture.CreateHubConnection(sessionId);
-        var sceneChanges = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        var snapshots = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        var initialSnapshotReceived =
+            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
         connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
-            "SceneChanged",
-            scene => sceneChanges.Add(scene)
+            "SceneSnapshot",
+            snapshot =>
+            {
+                snapshots.Add(snapshot);
+                initialSnapshotReceived.TrySetResult(snapshot);
+            }
         );
         await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
+        snapshots.Clear();
         await using var gameHub = new GameHub(connection);
 
         // Act
         await Drain(gameHub.StreamChat("I look around.", TestContext.Current.CancellationToken));
 
         // Assert
-        Assert.Empty(sceneChanges);
+        Assert.Empty(snapshots);
     }
 
     [Fact]

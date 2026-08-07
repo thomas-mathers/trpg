@@ -1,22 +1,21 @@
 import { Droplet, Heart, Swords, Zap } from 'lucide-react';
 
 import type { SceneSnapshot } from '@/api/client';
-import { useSceneQuery } from '@/features/game/hooks/use-scene-query';
 import { formatLocation } from '@/features/game/scene-format';
+import { useScene } from '@/features/game/contexts/scene-context';
 
 interface StatusBarProps {
-  sessionId: string;
   isInCombat?: boolean;
 }
 
-export function StatusBar({ sessionId, isInCombat = false }: StatusBarProps) {
-  const query = useSceneQuery(sessionId);
+export function StatusBar({ isInCombat = false }: StatusBarProps) {
+  const scene = useScene();
 
-  if (!query.data) {
+  if (!scene) {
     return null;
   }
 
-  const { playerStatus } = query.data;
+  const { playerStatus } = scene;
 
   if (isInCombat) {
     return (
@@ -34,8 +33,8 @@ export function StatusBar({ sessionId, isInCombat = false }: StatusBarProps) {
     <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
       <span className="shrink-0 font-bold">{playerStatus.name}</span>
       <div className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-2 text-xs max-sm:basis-full sm:gap-4 sm:text-sm">
-        <span className="min-w-0 truncate">{formatLocation(query.data)}</span>
-        <span className="shrink-0">{formatTime(query.data)}</span>
+        <span className="min-w-0 truncate">{formatLocation(scene)}</span>
+        <span className="shrink-0">{formatTime(scene)}</span>
       </div>
       <div className="ml-auto hidden shrink-0 items-center gap-4 lg:flex">
         <span className="flex items-center gap-1 text-red-500">

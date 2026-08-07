@@ -53,7 +53,18 @@ internal sealed class ChatHub(
 
         await base.OnConnectedAsync();
 
+        await PushSceneSnapshot(snapshot);
         await PushActiveCombatState(snapshot.PlayerId);
+    }
+
+    private async Task PushSceneSnapshot(GameSession gameSession)
+    {
+        var scene = await GetCurrentScene(gameSession, Context.ConnectionAborted);
+        await Clients.Caller.SendAsync(
+            "SceneSnapshot",
+            SceneSnapshotMapper.ToSnapshot(scene),
+            Context.ConnectionAborted
+        );
     }
 
     private async Task PushActiveCombatState(Guid playerId)

@@ -8,15 +8,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenu,
 } from '@/components/ui/dropdown-menu';
+import { useScene } from '@/features/game/contexts/scene-context';
 
 interface GameMenuProps {
-  hasSceneData: boolean;
-  onOpenInventory: () => void;
-  onOpenSkills: () => void;
+  onOpenCharacterDialog: () => void;
+  onOpenInventoryDialog: () => void;
+  onOpenSkillTreeDialog: () => void;
   onQuit: () => void;
 }
 
-export function GameMenu({ hasSceneData, onOpenInventory, onOpenSkills, onQuit }: GameMenuProps) {
+export function GameMenu({
+  onOpenCharacterDialog,
+  onOpenInventoryDialog,
+  onOpenSkillTreeDialog,
+  onQuit,
+}: GameMenuProps) {
+  const scene = useScene();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -25,11 +33,13 @@ export function GameMenu({ hasSceneData, onOpenInventory, onOpenSkills, onQuit }
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem disabled>Character</DropdownMenuItem>
-        <DropdownMenuItem disabled={!hasSceneData} onClick={onOpenInventory}>
+        <DropdownMenuItem disabled={!scene} onClick={onOpenCharacterDialog}>
+          Character
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={!scene} onClick={onOpenInventoryDialog}>
           Inventory
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={!hasSceneData} onClick={onOpenSkills}>
+        <DropdownMenuItem disabled={!scene} onClick={onOpenSkillTreeDialog}>
           Skills
         </DropdownMenuItem>
         <DropdownMenuSeparator />

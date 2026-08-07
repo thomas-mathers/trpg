@@ -70,8 +70,8 @@ export function useGameHubConnection(sessionId: string | null) {
       }
     });
 
-    connection.on('SceneChanged', (payload: SceneSnapshot) =>
-      gameEventBus.emit('SceneChanged', payload),
+    connection.on('SceneSnapshot', (payload: SceneSnapshot) =>
+      gameEventBus.emit('SceneSnapshot', payload),
     );
     connection.on('CombatStarted', (payload: FightState) =>
       gameEventBus.emit('CombatStarted', payload),

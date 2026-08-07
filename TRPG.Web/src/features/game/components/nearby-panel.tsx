@@ -62,11 +62,10 @@ const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
 };
 
 interface NearbyPanelProps {
-  sessionId: string;
   scene: SceneSnapshot;
 }
 
-export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
+export function NearbyPanel({ scene }: NearbyPanelProps) {
   const [lootTarget, setLootTarget] = useState<{ id: string; name: string } | null>(null);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
 
@@ -100,7 +99,6 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
           scene.nearbyCreatures.map((creature) => (
             <CreatureRow
               key={creature.id}
-              sessionId={sessionId}
               creature={creature}
               playerLevel={scene.playerStatus.level}
               tooltipForceClosed={isTransferOpen}
@@ -124,7 +122,6 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
                 <span className="flex min-w-0 items-center gap-1.5">
                   <Icon className="text-muted-foreground h-[15px] w-[15px] shrink-0" />
                   <EntityTooltip
-                    sessionId={sessionId}
                     id={poi.id}
                     name={poi.name}
                     entityType={poi.entityType}
@@ -165,13 +162,11 @@ export function NearbyPanel({ sessionId, scene }: NearbyPanelProps) {
 }
 
 function CreatureRow({
-  sessionId,
   creature,
   playerLevel,
   tooltipForceClosed,
   onLoot,
 }: {
-  sessionId: string;
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
   tooltipForceClosed: boolean;
@@ -194,7 +189,6 @@ function CreatureRow({
           )}
         </span>
         <EntityTooltip
-          sessionId={sessionId}
           id={creature.id}
           name={creature.name}
           entityType="Creature"
