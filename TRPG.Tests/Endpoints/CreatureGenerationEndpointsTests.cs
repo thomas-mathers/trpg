@@ -5,23 +5,23 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Contracts;
 using TRPG.Contracts.Creatures.Responses;
+using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;
 
 [Collection("Endpoints")]
 public sealed class CreatureGenerationEndpointsTests(EndpointTestFixture fixture) : IAsyncLifetime
 {
-    private HttpClient _client = null!;
+    private TestApiClient _client = null!;
 
     public ValueTask InitializeAsync()
     {
-        _client = fixture.CreateClient();
+        _client = fixture.CreateApiClient();
         return ValueTask.CompletedTask;
     }
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
         return ValueTask.CompletedTask;
     }
 
@@ -37,8 +37,8 @@ public sealed class CreatureGenerationEndpointsTests(EndpointTestFixture fixture
 
         // Act
         var response = await _client.GetAsync(
-            new Uri("/creature-generation/options", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetCreatureGenerationOptions",
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert

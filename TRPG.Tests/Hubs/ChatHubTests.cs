@@ -16,7 +16,7 @@ namespace TRPG.Tests.Hubs;
 [Collection("Endpoints")]
 public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 {
-    private HttpClient _client = null!;
+    private TestApiClient _client = null!;
     private Guid _worldId;
     private Guid _playerId;
     private Guid _stateId;
@@ -24,7 +24,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        _client = fixture.CreateClient();
+        _client = fixture.CreateApiClient();
 
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -60,7 +60,6 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
         fixture.ChatClient.PendingToolCallName = null;
         fixture.ChatClient.PendingToolCallArguments = null;
         fixture.ChatClient.ChatResponseText = "You look around. What do you want to do next?";
@@ -70,9 +69,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     private async Task<Guid> StartSession()
     {
         var response = await _client.PostAsync(
-            new Uri($"/sessions?worldId={_worldId}", UriKind.Relative),
-            null,
-            TestContext.Current.CancellationToken
+            "CreateSession",
+            query: new Dictionary<string, object?> { ["worldId"] = _worldId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
         var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(
             TestContext.Current.CancellationToken
@@ -106,9 +105,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
     private Task<HttpResponseMessage> SendAdminChat(Guid sessionId, string message) =>
         _client.PostAsJsonAsync(
-            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
+            "SendAdminChat",
             new ChatRequest(message),
-            TestContext.Current.CancellationToken
+            routeValues: new { sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
     private async Task StartFight(Guid sessionId, Creature enemy)

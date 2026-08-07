@@ -19,13 +19,13 @@ namespace TRPG.Tests.Endpoints;
 [Collection("Endpoints")]
 public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsyncLifetime
 {
-    private HttpClient _client = null!;
+    private TestApiClient _client = null!;
     private Guid _worldId;
     private Creature _creature = null!;
 
     public async ValueTask InitializeAsync()
     {
-        _client = fixture.CreateClient();
+        _client = fixture.CreateApiClient();
 
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -42,7 +42,6 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
         return ValueTask.CompletedTask;
     }
 
@@ -61,8 +60,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{_creature.Id}/abilities", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetCreatureAbilities",
+            new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -83,8 +83,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         // abilities. Unlike Strike, Block is a normal learned ability now, so it can't appear
         // for a creature that doesn't even exist.
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{Guid.NewGuid()}/abilities", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetCreatureAbilities",
+            new { creatureId = Guid.NewGuid() },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -125,7 +126,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{_creature.Id}/inventory?consumableOnly=true", UriKind.Relative),
+            "GetCreatureInventory",
+            new { creatureId = _creature.Id },
+            new Dictionary<string, object?> { ["consumableOnly"] = true },
             TestContext.Current.CancellationToken
         );
 
@@ -144,8 +147,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
     {
         // Act — no existence check by design; an unknown creature id just has no inventory
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{Guid.NewGuid()}/inventory", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetCreatureInventory",
+            new { creatureId = Guid.NewGuid() },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -193,8 +197,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{_creature.Id}/attribute-points", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetCreatureAttributePoints",
+            new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -234,15 +239,15 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/creatures/{_creature.Id}/attribute-points/allocate", UriKind.Relative),
+            "AllocateCreatureAttributePoints",
             new AllocateAttributePointsRequest(
                 new Dictionary<AllocatableAttributeName, int>
                 {
                     [AllocatableAttributeName.Strength] = 3,
                 }
             ),
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
+            routeValues: new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -282,8 +287,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{_creature.Id}/attributes", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetCreatureAttributes",
+            new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -325,8 +331,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{_creature.Id}/skills", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetCreatureSkills",
+            new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -359,8 +366,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/creatures/{_creature.Id}/level", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetCreatureLevel",
+            new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -392,10 +400,10 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/creatures/{_creature.Id}/equipment/equip", UriKind.Relative),
+            "EquipCreatureItem",
             new EquipItemRequest(itemId, Contracts.Inventory.Responses.EquipmentSlot.RightHand),
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
+            routeValues: new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -429,10 +437,10 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/creatures/{_creature.Id}/equipment/unequip", UriKind.Relative),
+            "UnequipCreatureItem",
             new UnequipItemRequest(Contracts.Inventory.Responses.EquipmentSlot.RightHand),
-            TrpgJsonOptions.Default,
-            TestContext.Current.CancellationToken
+            routeValues: new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert

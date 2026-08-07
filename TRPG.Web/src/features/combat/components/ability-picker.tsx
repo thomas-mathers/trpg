@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 
 import type { AbilityCategory, AbilitySummary, Skill } from '@/api/client';
 import {
-  getCreaturesByCreatureIdAbilitiesOptions,
-  getPlayersByPlayerIdFightAbilitiesOptions,
-  getPlayersByPlayerIdFightAbilitiesQueryKey,
+  getCreatureAbilitiesOptions,
+  getPlayerFightAbilitiesOptions,
+  getPlayerFightAbilitiesQueryKey,
 } from '@/api/client';
 import { SearchInput } from '@/components/search-input';
 import { EmptyNote } from '@/features/combat/components/empty-note';
@@ -39,14 +39,14 @@ export function AbilityPicker({ playerId, category, onBack, onChoose }: AbilityP
   const queryClient = useQueryClient();
 
   const abilitiesQuery = useQuery(
-    getCreaturesByCreatureIdAbilitiesOptions({ path: { creatureId: playerId } }),
+    getCreatureAbilitiesOptions({ path: { creatureId: playerId } }),
   );
   const availabilityQuery = useQuery(
-    getPlayersByPlayerIdFightAbilitiesOptions({ path: { playerId } }),
+    getPlayerFightAbilitiesOptions({ path: { playerId } }),
   );
 
   useEffect(() => {
-    const key = getPlayersByPlayerIdFightAbilitiesQueryKey({ path: { playerId } });
+    const key = getPlayerFightAbilitiesQueryKey({ path: { playerId } });
     const invalidate = () => queryClient.invalidateQueries({ queryKey: key });
     const offUpdated = gameEventBus.on('CombatUpdated', invalidate);
     const offStarted = gameEventBus.on('CombatStarted', invalidate);

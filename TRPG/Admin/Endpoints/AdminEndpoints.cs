@@ -13,9 +13,9 @@ internal static class AdminEndpoints
 {
     public static void MapAdminEndpoints(this WebApplication app)
     {
-        app.MapPost("/admin/sessions/{sessionId:guid}/chat", SendChat);
-        app.MapPost("/admin/sessions/{sessionId:guid}/wait", Wait);
-        app.MapDelete("/admin/sessions/{sessionId:guid}", EndSession);
+        app.MapPost("/admin/sessions/{sessionId:guid}/chat", SendChat).WithName("SendAdminChat");
+        app.MapPost("/admin/sessions/{sessionId:guid}/wait", Wait).WithName("AdvanceSessionTime");
+        app.MapDelete("/admin/sessions/{sessionId:guid}", EndSession).WithName("EndSession");
     }
 
     private static async Task<Ok<ChatResponse>> SendChat(

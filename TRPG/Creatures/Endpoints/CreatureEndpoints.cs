@@ -21,27 +21,39 @@ internal static class CreatureEndpoints
 {
     public static void MapCreatureEndpoints(this WebApplication app)
     {
-        app.MapGet("/creatures/{creatureId:guid}/abilities", GetAbilities);
-        app.MapGet("/creatures/{creatureId:guid}/inventory", GetInventory);
-        app.MapGet("/creatures/{creatureId:guid}/consumables", GetConsumables);
-        app.MapGet("/creatures/{creatureId:guid}/attribute-points", GetAttributePoints);
+        app.MapGet("/creatures/{creatureId:guid}/abilities", GetAbilities)
+            .WithName("GetCreatureAbilities");
+        app.MapGet("/creatures/{creatureId:guid}/inventory", GetInventory)
+            .WithName("GetCreatureInventory");
+        app.MapGet("/creatures/{creatureId:guid}/consumables", GetConsumables)
+            .WithName("GetCreatureConsumables");
+        app.MapGet("/creatures/{creatureId:guid}/attribute-points", GetAttributePoints)
+            .WithName("GetCreatureAttributePoints");
         app.MapPost(
-            "/creatures/{creatureId:guid}/attribute-points/allocate",
-            AllocateAttributePoints
-        );
-        app.MapGet("/creatures/{creatureId:guid}/attributes", GetBaseAttributes);
-        app.MapGet("/creatures/{creatureId:guid}/stats", GetEffectiveStats);
-        app.MapGet("/creatures/{creatureId:guid}/basic-attack-damage", GetBasicAttackDamage);
-        app.MapGet("/creatures/{creatureId:guid}/skills", GetSkills);
-        app.MapGet("/creatures/{creatureId:guid}/level", GetLevel);
-        app.MapPost("/creatures/{creatureId:guid}/equipment/equip", EquipItem);
-        app.MapPost("/creatures/{creatureId:guid}/equipment/unequip", UnequipItem);
-        app.MapGet("/creatures/{creatureId:guid}/equipment/preview", PreviewEquipItemStats);
+                "/creatures/{creatureId:guid}/attribute-points/allocate",
+                AllocateAttributePoints
+            )
+            .WithName("AllocateCreatureAttributePoints");
+        app.MapGet("/creatures/{creatureId:guid}/attributes", GetBaseAttributes)
+            .WithName("GetCreatureAttributes");
+        app.MapGet("/creatures/{creatureId:guid}/stats", GetEffectiveStats)
+            .WithName("GetCreatureStats");
+        app.MapGet("/creatures/{creatureId:guid}/basic-attack-damage", GetBasicAttackDamage)
+            .WithName("GetCreatureBasicAttackDamage");
+        app.MapGet("/creatures/{creatureId:guid}/skills", GetSkills).WithName("GetCreatureSkills");
+        app.MapGet("/creatures/{creatureId:guid}/level", GetLevel).WithName("GetCreatureLevel");
+        app.MapPost("/creatures/{creatureId:guid}/equipment/equip", EquipItem)
+            .WithName("EquipCreatureItem");
+        app.MapPost("/creatures/{creatureId:guid}/equipment/unequip", UnequipItem)
+            .WithName("UnequipCreatureItem");
+        app.MapGet("/creatures/{creatureId:guid}/equipment/preview", PreviewEquipItemStats)
+            .WithName("PreviewCreatureEquipment");
         app.MapGet(
-            "/creatures/{creatureId:guid}/equipment/preview/basic-attack-damage",
-            PreviewEquipItemBasicAttackDamage
-        );
-        app.MapGet("/corpses", GetNearbyCorpses);
+                "/creatures/{creatureId:guid}/equipment/preview/basic-attack-damage",
+                PreviewEquipItemBasicAttackDamage
+            )
+            .WithName("PreviewCreatureBasicAttackDamage");
+        app.MapGet("/corpses", GetNearbyCorpses).WithName("GetNearbyCorpses");
     }
 
     private static async Task<Ok<AbilitySummary[]>> GetAbilities(

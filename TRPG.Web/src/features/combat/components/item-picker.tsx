@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 
 import type { ConsumableSummary } from '@/api/client';
 import {
-  getCreaturesByCreatureIdConsumablesOptions,
-  getCreaturesByCreatureIdConsumablesQueryKey,
+  getCreatureConsumablesOptions,
+  getCreatureConsumablesQueryKey,
 } from '@/api/client';
 import { SearchInput } from '@/components/search-input';
 import { EmptyNote } from '@/features/combat/components/empty-note';
@@ -25,11 +25,11 @@ export function ItemPicker({ playerId, onBack, onChoose }: ItemPickerProps) {
   const queryClient = useQueryClient();
 
   const itemsQuery = useQuery(
-    getCreaturesByCreatureIdConsumablesOptions({ path: { creatureId: playerId } }),
+    getCreatureConsumablesOptions({ path: { creatureId: playerId } }),
   );
 
   useEffect(() => {
-    const key = getCreaturesByCreatureIdConsumablesQueryKey({ path: { creatureId: playerId } });
+    const key = getCreatureConsumablesQueryKey({ path: { creatureId: playerId } });
     const invalidate = () => queryClient.invalidateQueries({ queryKey: key });
     const offUpdated = gameEventBus.on('CombatUpdated', invalidate);
     const offStarted = gameEventBus.on('CombatStarted', invalidate);

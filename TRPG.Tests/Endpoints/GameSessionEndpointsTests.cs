@@ -16,13 +16,13 @@ namespace TRPG.Tests.Endpoints;
 [Collection("Endpoints")]
 public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAsyncLifetime
 {
-    private HttpClient _client = null!;
+    private TestApiClient _client = null!;
     private Guid _worldId;
     private Creature _player = null!;
 
     public async ValueTask InitializeAsync()
     {
-        _client = fixture.CreateClient();
+        _client = fixture.CreateApiClient();
 
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -45,7 +45,6 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
         fixture.ChatClient.PendingToolCallName = null;
         fixture.ChatClient.PendingToolCallArguments = null;
         fixture.ChatClient.ChatResponseText = "You look around. What do you want to do next?";
@@ -55,9 +54,9 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     private async Task<Guid> StartSession(Guid? worldId = null)
     {
         var response = await _client.PostAsync(
-            new Uri($"/sessions?worldId={worldId ?? _worldId}", UriKind.Relative),
-            null,
-            TestContext.Current.CancellationToken
+            "CreateSession",
+            query: new Dictionary<string, object?> { ["worldId"] = worldId ?? _worldId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
         var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(
             TestContext.Current.CancellationToken
@@ -70,9 +69,9 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     {
         // Act
         var response = await _client.PostAsync(
-            new Uri($"/sessions?worldId={_worldId}", UriKind.Relative),
-            null,
-            TestContext.Current.CancellationToken
+            "CreateSession",
+            query: new Dictionary<string, object?> { ["worldId"] = _worldId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -92,9 +91,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
+            "SendAdminChat",
             new ChatRequest("look around"),
-            TestContext.Current.CancellationToken
+            routeValues: new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -175,9 +175,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
+            "SendAdminChat",
             new ChatRequest($"I head to {destination.Name}"),
-            TestContext.Current.CancellationToken
+            routeValues: new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -204,8 +205,9 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetSessionScene",
+            new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -224,8 +226,9 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         // Arrange — first call populates the catch-up cache for this location+hour
         var sessionId = await StartSession();
         var firstResponse = await _client.GetAsync(
-            new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetSessionScene",
+            new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
         var firstScene = await firstResponse.Content.ReadFromJsonAsync<SceneSnapshot>(
             TrpgJsonOptions.Default,
@@ -246,8 +249,9 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act — same in-game hour and location, so the catch-up cache is still warm
         var secondResponse = await _client.GetAsync(
-            new Uri($"/sessions/{sessionId}/scene", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetSessionScene",
+            new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert — the cache must never mask a live HP change
@@ -263,8 +267,9 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     {
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/sessions/{Guid.NewGuid()}/scene", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetSessionScene",
+            new { sessionId = Guid.NewGuid() },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -279,9 +284,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/admin/sessions/{sessionId}/wait", UriKind.Relative),
+            "AdvanceSessionTime",
             new WaitRequest(5),
-            TestContext.Current.CancellationToken
+            routeValues: new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -302,8 +308,9 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.DeleteAsync(
-            new Uri($"/admin/sessions/{sessionId}", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "EndSession",
+            new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert — in-game time only advances from messages/waits, never from real time alone
@@ -325,15 +332,17 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         // Arrange
         var sessionId = await StartSession();
         await _client.PostAsJsonAsync(
-            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
+            "SendAdminChat",
             new ChatRequest("look around"),
-            TestContext.Current.CancellationToken
+            routeValues: new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Act
         var response = await _client.DeleteAsync(
-            new Uri($"/admin/sessions/{sessionId}", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "EndSession",
+            new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -361,9 +370,9 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.PostAsync(
-            new Uri($"/sessions?worldId={world.Id}", UriKind.Relative),
-            null,
-            TestContext.Current.CancellationToken
+            "CreateSession",
+            query: new Dictionary<string, object?> { ["worldId"] = world.Id },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -375,9 +384,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     {
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/admin/sessions/{Guid.NewGuid()}/chat", UriKind.Relative),
+            "SendAdminChat",
             new ChatRequest("look around"),
-            TestContext.Current.CancellationToken
+            routeValues: new { sessionId = Guid.NewGuid() },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -389,9 +399,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     {
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/admin/sessions/{Guid.NewGuid()}/wait", UriKind.Relative),
+            "AdvanceSessionTime",
             new WaitRequest(5),
-            TestContext.Current.CancellationToken
+            routeValues: new { sessionId = Guid.NewGuid() },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -406,9 +417,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            new Uri($"/admin/sessions/{sessionId}/wait", UriKind.Relative),
+            "AdvanceSessionTime",
             new WaitRequest(0),
-            TestContext.Current.CancellationToken
+            routeValues: new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -420,8 +432,9 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     {
         // Act
         var response = await _client.DeleteAsync(
-            new Uri($"/admin/sessions/{Guid.NewGuid()}", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "EndSession",
+            new { sessionId = Guid.NewGuid() },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert

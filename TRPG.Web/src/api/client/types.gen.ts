@@ -558,39 +558,39 @@ export type WorldSummary = {
     hasPlayer: boolean;
 };
 
-export type GetWorldsData = {
+export type ListWorldsData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/worlds';
 };
 
-export type GetWorldsResponses = {
+export type ListWorldsResponses = {
     /**
      * OK
      */
     200: Array<WorldSummary>;
 };
 
-export type GetWorldsResponse = GetWorldsResponses[keyof GetWorldsResponses];
+export type ListWorldsResponse = ListWorldsResponses[keyof ListWorldsResponses];
 
-export type PostWorldsData = {
+export type CreateWorldData = {
     body: CreateWorldRequest;
     path?: never;
     query?: never;
     url: '/worlds';
 };
 
-export type PostWorldsResponses = {
+export type CreateWorldResponses = {
     /**
      * Accepted
      */
     202: EnqueueJobResponse;
 };
 
-export type PostWorldsResponse = PostWorldsResponses[keyof PostWorldsResponses];
+export type CreateWorldResponse = CreateWorldResponses[keyof CreateWorldResponses];
 
-export type DeleteWorldsByWorldIdData = {
+export type DropWorldData = {
     body?: never;
     path: {
         worldId: string;
@@ -599,14 +599,14 @@ export type DeleteWorldsByWorldIdData = {
     url: '/worlds/{worldId}';
 };
 
-export type DeleteWorldsByWorldIdResponses = {
+export type DropWorldResponses = {
     /**
      * No Content
      */
     204: void;
 };
 
-export type DeleteWorldsByWorldIdResponse = DeleteWorldsByWorldIdResponses[keyof DeleteWorldsByWorldIdResponses];
+export type DropWorldResponse = DropWorldResponses[keyof DropWorldResponses];
 
 export type GetAbilitiesBySkillData = {
     body?: never;
@@ -626,7 +626,7 @@ export type GetAbilitiesBySkillResponses = {
 
 export type GetAbilitiesBySkillResponse = GetAbilitiesBySkillResponses[keyof GetAbilitiesBySkillResponses];
 
-export type GetCreaturesByCreatureIdAbilitiesData = {
+export type GetCreatureAbilitiesData = {
     body?: never;
     path: {
         creatureId: string;
@@ -635,16 +635,16 @@ export type GetCreaturesByCreatureIdAbilitiesData = {
     url: '/creatures/{creatureId}/abilities';
 };
 
-export type GetCreaturesByCreatureIdAbilitiesResponses = {
+export type GetCreatureAbilitiesResponses = {
     /**
      * OK
      */
     200: Array<AbilitySummary>;
 };
 
-export type GetCreaturesByCreatureIdAbilitiesResponse = GetCreaturesByCreatureIdAbilitiesResponses[keyof GetCreaturesByCreatureIdAbilitiesResponses];
+export type GetCreatureAbilitiesResponse = GetCreatureAbilitiesResponses[keyof GetCreatureAbilitiesResponses];
 
-export type GetCreaturesByCreatureIdInventoryData = {
+export type GetCreatureInventoryData = {
     body?: never;
     path: {
         creatureId: string;
@@ -653,16 +653,16 @@ export type GetCreaturesByCreatureIdInventoryData = {
     url: '/creatures/{creatureId}/inventory';
 };
 
-export type GetCreaturesByCreatureIdInventoryResponses = {
+export type GetCreatureInventoryResponses = {
     /**
      * OK
      */
     200: InventorySummary;
 };
 
-export type GetCreaturesByCreatureIdInventoryResponse = GetCreaturesByCreatureIdInventoryResponses[keyof GetCreaturesByCreatureIdInventoryResponses];
+export type GetCreatureInventoryResponse = GetCreatureInventoryResponses[keyof GetCreatureInventoryResponses];
 
-export type GetCreaturesByCreatureIdConsumablesData = {
+export type GetCreatureConsumablesData = {
     body?: never;
     path: {
         creatureId: string;
@@ -671,16 +671,16 @@ export type GetCreaturesByCreatureIdConsumablesData = {
     url: '/creatures/{creatureId}/consumables';
 };
 
-export type GetCreaturesByCreatureIdConsumablesResponses = {
+export type GetCreatureConsumablesResponses = {
     /**
      * OK
      */
     200: Array<ConsumableSummary>;
 };
 
-export type GetCreaturesByCreatureIdConsumablesResponse = GetCreaturesByCreatureIdConsumablesResponses[keyof GetCreaturesByCreatureIdConsumablesResponses];
+export type GetCreatureConsumablesResponse = GetCreatureConsumablesResponses[keyof GetCreatureConsumablesResponses];
 
-export type GetCreaturesByCreatureIdAttributePointsData = {
+export type GetCreatureAttributePointsData = {
     body?: never;
     path: {
         creatureId: string;
@@ -689,16 +689,16 @@ export type GetCreaturesByCreatureIdAttributePointsData = {
     url: '/creatures/{creatureId}/attribute-points';
 };
 
-export type GetCreaturesByCreatureIdAttributePointsResponses = {
+export type GetCreatureAttributePointsResponses = {
     /**
      * OK
      */
     200: AttributePointsResponse;
 };
 
-export type GetCreaturesByCreatureIdAttributePointsResponse = GetCreaturesByCreatureIdAttributePointsResponses[keyof GetCreaturesByCreatureIdAttributePointsResponses];
+export type GetCreatureAttributePointsResponse = GetCreatureAttributePointsResponses[keyof GetCreatureAttributePointsResponses];
 
-export type PostCreaturesByCreatureIdAttributePointsAllocateData = {
+export type AllocateCreatureAttributePointsData = {
     body: AllocateAttributePointsRequest;
     path: {
         creatureId: string;
@@ -707,16 +707,16 @@ export type PostCreaturesByCreatureIdAttributePointsAllocateData = {
     url: '/creatures/{creatureId}/attribute-points/allocate';
 };
 
-export type PostCreaturesByCreatureIdAttributePointsAllocateResponses = {
+export type AllocateCreatureAttributePointsResponses = {
     /**
      * No Content
      */
     204: void;
 };
 
-export type PostCreaturesByCreatureIdAttributePointsAllocateResponse = PostCreaturesByCreatureIdAttributePointsAllocateResponses[keyof PostCreaturesByCreatureIdAttributePointsAllocateResponses];
+export type AllocateCreatureAttributePointsResponse = AllocateCreatureAttributePointsResponses[keyof AllocateCreatureAttributePointsResponses];
 
-export type GetCreaturesByCreatureIdAttributesData = {
+export type GetCreatureAttributesData = {
     body?: never;
     path: {
         creatureId: string;
@@ -725,16 +725,16 @@ export type GetCreaturesByCreatureIdAttributesData = {
     url: '/creatures/{creatureId}/attributes';
 };
 
-export type GetCreaturesByCreatureIdAttributesResponses = {
+export type GetCreatureAttributesResponses = {
     /**
      * OK
      */
     200: BaseAttributesResponse;
 };
 
-export type GetCreaturesByCreatureIdAttributesResponse = GetCreaturesByCreatureIdAttributesResponses[keyof GetCreaturesByCreatureIdAttributesResponses];
+export type GetCreatureAttributesResponse = GetCreatureAttributesResponses[keyof GetCreatureAttributesResponses];
 
-export type GetCreaturesByCreatureIdStatsData = {
+export type GetCreatureStatsData = {
     body?: never;
     path: {
         creatureId: string;
@@ -743,16 +743,16 @@ export type GetCreaturesByCreatureIdStatsData = {
     url: '/creatures/{creatureId}/stats';
 };
 
-export type GetCreaturesByCreatureIdStatsResponses = {
+export type GetCreatureStatsResponses = {
     /**
      * OK
      */
     200: EffectiveAttributesResponse;
 };
 
-export type GetCreaturesByCreatureIdStatsResponse = GetCreaturesByCreatureIdStatsResponses[keyof GetCreaturesByCreatureIdStatsResponses];
+export type GetCreatureStatsResponse = GetCreatureStatsResponses[keyof GetCreatureStatsResponses];
 
-export type GetCreaturesByCreatureIdBasicAttackDamageData = {
+export type GetCreatureBasicAttackDamageData = {
     body?: never;
     path: {
         creatureId: string;
@@ -761,16 +761,16 @@ export type GetCreaturesByCreatureIdBasicAttackDamageData = {
     url: '/creatures/{creatureId}/basic-attack-damage';
 };
 
-export type GetCreaturesByCreatureIdBasicAttackDamageResponses = {
+export type GetCreatureBasicAttackDamageResponses = {
     /**
      * OK
      */
     200: BasicAttackDamageResponse;
 };
 
-export type GetCreaturesByCreatureIdBasicAttackDamageResponse = GetCreaturesByCreatureIdBasicAttackDamageResponses[keyof GetCreaturesByCreatureIdBasicAttackDamageResponses];
+export type GetCreatureBasicAttackDamageResponse = GetCreatureBasicAttackDamageResponses[keyof GetCreatureBasicAttackDamageResponses];
 
-export type GetCreaturesByCreatureIdSkillsData = {
+export type GetCreatureSkillsData = {
     body?: never;
     path: {
         creatureId: string;
@@ -779,16 +779,16 @@ export type GetCreaturesByCreatureIdSkillsData = {
     url: '/creatures/{creatureId}/skills';
 };
 
-export type GetCreaturesByCreatureIdSkillsResponses = {
+export type GetCreatureSkillsResponses = {
     /**
      * OK
      */
     200: Array<SkillProgressSummary>;
 };
 
-export type GetCreaturesByCreatureIdSkillsResponse = GetCreaturesByCreatureIdSkillsResponses[keyof GetCreaturesByCreatureIdSkillsResponses];
+export type GetCreatureSkillsResponse = GetCreatureSkillsResponses[keyof GetCreatureSkillsResponses];
 
-export type GetCreaturesByCreatureIdLevelData = {
+export type GetCreatureLevelData = {
     body?: never;
     path: {
         creatureId: string;
@@ -797,16 +797,16 @@ export type GetCreaturesByCreatureIdLevelData = {
     url: '/creatures/{creatureId}/level';
 };
 
-export type GetCreaturesByCreatureIdLevelResponses = {
+export type GetCreatureLevelResponses = {
     /**
      * OK
      */
     200: CreatureLevelResponse;
 };
 
-export type GetCreaturesByCreatureIdLevelResponse = GetCreaturesByCreatureIdLevelResponses[keyof GetCreaturesByCreatureIdLevelResponses];
+export type GetCreatureLevelResponse = GetCreatureLevelResponses[keyof GetCreatureLevelResponses];
 
-export type PostCreaturesByCreatureIdEquipmentEquipData = {
+export type EquipCreatureItemData = {
     body: EquipItemRequest;
     path: {
         creatureId: string;
@@ -815,16 +815,16 @@ export type PostCreaturesByCreatureIdEquipmentEquipData = {
     url: '/creatures/{creatureId}/equipment/equip';
 };
 
-export type PostCreaturesByCreatureIdEquipmentEquipResponses = {
+export type EquipCreatureItemResponses = {
     /**
      * No Content
      */
     204: void;
 };
 
-export type PostCreaturesByCreatureIdEquipmentEquipResponse = PostCreaturesByCreatureIdEquipmentEquipResponses[keyof PostCreaturesByCreatureIdEquipmentEquipResponses];
+export type EquipCreatureItemResponse = EquipCreatureItemResponses[keyof EquipCreatureItemResponses];
 
-export type PostCreaturesByCreatureIdEquipmentUnequipData = {
+export type UnequipCreatureItemData = {
     body: UnequipItemRequest;
     path: {
         creatureId: string;
@@ -833,16 +833,16 @@ export type PostCreaturesByCreatureIdEquipmentUnequipData = {
     url: '/creatures/{creatureId}/equipment/unequip';
 };
 
-export type PostCreaturesByCreatureIdEquipmentUnequipResponses = {
+export type UnequipCreatureItemResponses = {
     /**
      * No Content
      */
     204: void;
 };
 
-export type PostCreaturesByCreatureIdEquipmentUnequipResponse = PostCreaturesByCreatureIdEquipmentUnequipResponses[keyof PostCreaturesByCreatureIdEquipmentUnequipResponses];
+export type UnequipCreatureItemResponse = UnequipCreatureItemResponses[keyof UnequipCreatureItemResponses];
 
-export type GetCreaturesByCreatureIdEquipmentPreviewData = {
+export type PreviewCreatureEquipmentData = {
     body?: never;
     path: {
         creatureId: string;
@@ -854,16 +854,16 @@ export type GetCreaturesByCreatureIdEquipmentPreviewData = {
     url: '/creatures/{creatureId}/equipment/preview';
 };
 
-export type GetCreaturesByCreatureIdEquipmentPreviewResponses = {
+export type PreviewCreatureEquipmentResponses = {
     /**
      * OK
      */
     200: EffectiveAttributesResponse;
 };
 
-export type GetCreaturesByCreatureIdEquipmentPreviewResponse = GetCreaturesByCreatureIdEquipmentPreviewResponses[keyof GetCreaturesByCreatureIdEquipmentPreviewResponses];
+export type PreviewCreatureEquipmentResponse = PreviewCreatureEquipmentResponses[keyof PreviewCreatureEquipmentResponses];
 
-export type GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageData = {
+export type PreviewCreatureBasicAttackDamageData = {
     body?: never;
     path: {
         creatureId: string;
@@ -875,16 +875,16 @@ export type GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageData = {
     url: '/creatures/{creatureId}/equipment/preview/basic-attack-damage';
 };
 
-export type GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponses = {
+export type PreviewCreatureBasicAttackDamageResponses = {
     /**
      * OK
      */
     200: BasicAttackDamageResponse;
 };
 
-export type GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponse = GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponses[keyof GetCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageResponses];
+export type PreviewCreatureBasicAttackDamageResponse = PreviewCreatureBasicAttackDamageResponses[keyof PreviewCreatureBasicAttackDamageResponses];
 
-export type GetCorpsesData = {
+export type GetNearbyCorpsesData = {
     body?: never;
     path?: never;
     query: {
@@ -893,16 +893,16 @@ export type GetCorpsesData = {
     url: '/corpses';
 };
 
-export type GetCorpsesResponses = {
+export type GetNearbyCorpsesResponses = {
     /**
      * OK
      */
     200: Array<NearbyCorpseSummary>;
 };
 
-export type GetCorpsesResponse = GetCorpsesResponses[keyof GetCorpsesResponses];
+export type GetNearbyCorpsesResponse = GetNearbyCorpsesResponses[keyof GetNearbyCorpsesResponses];
 
-export type GetPlayersByPlayerIdFightData = {
+export type GetPlayerFightData = {
     body?: never;
     path: {
         playerId: string;
@@ -911,23 +911,23 @@ export type GetPlayersByPlayerIdFightData = {
     url: '/players/{playerId}/fight';
 };
 
-export type GetPlayersByPlayerIdFightErrors = {
+export type GetPlayerFightErrors = {
     /**
      * Not Found
      */
     404: unknown;
 };
 
-export type GetPlayersByPlayerIdFightResponses = {
+export type GetPlayerFightResponses = {
     /**
      * OK
      */
     200: FightState;
 };
 
-export type GetPlayersByPlayerIdFightResponse = GetPlayersByPlayerIdFightResponses[keyof GetPlayersByPlayerIdFightResponses];
+export type GetPlayerFightResponse = GetPlayerFightResponses[keyof GetPlayerFightResponses];
 
-export type GetPlayersByPlayerIdFightAbilitiesData = {
+export type GetPlayerFightAbilitiesData = {
     body?: never;
     path: {
         playerId: string;
@@ -936,14 +936,14 @@ export type GetPlayersByPlayerIdFightAbilitiesData = {
     url: '/players/{playerId}/fight/abilities';
 };
 
-export type GetPlayersByPlayerIdFightAbilitiesResponses = {
+export type GetPlayerFightAbilitiesResponses = {
     /**
      * OK
      */
     200: Array<AbilityAvailability>;
 };
 
-export type GetPlayersByPlayerIdFightAbilitiesResponse = GetPlayersByPlayerIdFightAbilitiesResponses[keyof GetPlayersByPlayerIdFightAbilitiesResponses];
+export type GetPlayerFightAbilitiesResponse = GetPlayerFightAbilitiesResponses[keyof GetPlayerFightAbilitiesResponses];
 
 export type GetCreatureGenerationOptionsData = {
     body?: never;
@@ -961,7 +961,7 @@ export type GetCreatureGenerationOptionsResponses = {
 
 export type GetCreatureGenerationOptionsResponse = GetCreatureGenerationOptionsResponses[keyof GetCreatureGenerationOptionsResponses];
 
-export type PostSessionsData = {
+export type CreateSessionData = {
     body?: never;
     path?: never;
     query: {
@@ -970,23 +970,23 @@ export type PostSessionsData = {
     url: '/sessions';
 };
 
-export type PostSessionsErrors = {
+export type CreateSessionErrors = {
     /**
      * Not Found
      */
     404: unknown;
 };
 
-export type PostSessionsResponses = {
+export type CreateSessionResponses = {
     /**
      * OK
      */
     200: CreateSessionResponse;
 };
 
-export type PostSessionsResponse = PostSessionsResponses[keyof PostSessionsResponses];
+export type CreateSessionResponse2 = CreateSessionResponses[keyof CreateSessionResponses];
 
-export type GetSessionsBySessionIdSceneData = {
+export type GetSessionSceneData = {
     body?: never;
     path: {
         sessionId: string;
@@ -995,23 +995,23 @@ export type GetSessionsBySessionIdSceneData = {
     url: '/sessions/{sessionId}/scene';
 };
 
-export type GetSessionsBySessionIdSceneErrors = {
+export type GetSessionSceneErrors = {
     /**
      * Not Found
      */
     404: unknown;
 };
 
-export type GetSessionsBySessionIdSceneResponses = {
+export type GetSessionSceneResponses = {
     /**
      * OK
      */
     200: SceneSnapshot;
 };
 
-export type GetSessionsBySessionIdSceneResponse = GetSessionsBySessionIdSceneResponses[keyof GetSessionsBySessionIdSceneResponses];
+export type GetSessionSceneResponse = GetSessionSceneResponses[keyof GetSessionSceneResponses];
 
-export type GetSessionsBySessionIdNamedEntitiesData = {
+export type ListSessionNamedEntitiesData = {
     body?: never;
     path: {
         sessionId: string;
@@ -1020,16 +1020,16 @@ export type GetSessionsBySessionIdNamedEntitiesData = {
     url: '/sessions/{sessionId}/named-entities';
 };
 
-export type GetSessionsBySessionIdNamedEntitiesResponses = {
+export type ListSessionNamedEntitiesResponses = {
     /**
      * OK
      */
     200: Array<NamedEntity>;
 };
 
-export type GetSessionsBySessionIdNamedEntitiesResponse = GetSessionsBySessionIdNamedEntitiesResponses[keyof GetSessionsBySessionIdNamedEntitiesResponses];
+export type ListSessionNamedEntitiesResponse = ListSessionNamedEntitiesResponses[keyof ListSessionNamedEntitiesResponses];
 
-export type GetSessionsBySessionIdNamedEntitiesByEntityIdData = {
+export type GetSessionNamedEntityData = {
     body?: never;
     path: {
         sessionId: string;
@@ -1039,23 +1039,23 @@ export type GetSessionsBySessionIdNamedEntitiesByEntityIdData = {
     url: '/sessions/{sessionId}/named-entities/{entityId}';
 };
 
-export type GetSessionsBySessionIdNamedEntitiesByEntityIdErrors = {
+export type GetSessionNamedEntityErrors = {
     /**
      * Not Found
      */
     404: unknown;
 };
 
-export type GetSessionsBySessionIdNamedEntitiesByEntityIdResponses = {
+export type GetSessionNamedEntityResponses = {
     /**
      * OK
      */
     200: NamedEntity;
 };
 
-export type GetSessionsBySessionIdNamedEntitiesByEntityIdResponse = GetSessionsBySessionIdNamedEntitiesByEntityIdResponses[keyof GetSessionsBySessionIdNamedEntitiesByEntityIdResponses];
+export type GetSessionNamedEntityResponse = GetSessionNamedEntityResponses[keyof GetSessionNamedEntityResponses];
 
-export type GetJobsByIdData = {
+export type GetJobData = {
     body?: never;
     path: {
         id: string;
@@ -1064,23 +1064,23 @@ export type GetJobsByIdData = {
     url: '/jobs/{id}';
 };
 
-export type GetJobsByIdErrors = {
+export type GetJobErrors = {
     /**
      * Not Found
      */
     404: unknown;
 };
 
-export type GetJobsByIdResponses = {
+export type GetJobResponses = {
     /**
      * OK
      */
     200: JobStatusResponse;
 };
 
-export type GetJobsByIdResponse = GetJobsByIdResponses[keyof GetJobsByIdResponses];
+export type GetJobResponse = GetJobResponses[keyof GetJobResponses];
 
-export type PostAdminSessionsBySessionIdChatData = {
+export type SendAdminChatData = {
     body: ChatRequest;
     path: {
         sessionId: string;
@@ -1091,16 +1091,16 @@ export type PostAdminSessionsBySessionIdChatData = {
     url: '/admin/sessions/{sessionId}/chat';
 };
 
-export type PostAdminSessionsBySessionIdChatResponses = {
+export type SendAdminChatResponses = {
     /**
      * OK
      */
     200: ChatResponse;
 };
 
-export type PostAdminSessionsBySessionIdChatResponse = PostAdminSessionsBySessionIdChatResponses[keyof PostAdminSessionsBySessionIdChatResponses];
+export type SendAdminChatResponse = SendAdminChatResponses[keyof SendAdminChatResponses];
 
-export type PostAdminSessionsBySessionIdWaitData = {
+export type AdvanceSessionTimeData = {
     body: WaitRequest;
     path: {
         sessionId: string;
@@ -1109,23 +1109,23 @@ export type PostAdminSessionsBySessionIdWaitData = {
     url: '/admin/sessions/{sessionId}/wait';
 };
 
-export type PostAdminSessionsBySessionIdWaitErrors = {
+export type AdvanceSessionTimeErrors = {
     /**
      * Bad Request
      */
     400: unknown;
 };
 
-export type PostAdminSessionsBySessionIdWaitResponses = {
+export type AdvanceSessionTimeResponses = {
     /**
      * OK
      */
     200: WaitResponse;
 };
 
-export type PostAdminSessionsBySessionIdWaitResponse = PostAdminSessionsBySessionIdWaitResponses[keyof PostAdminSessionsBySessionIdWaitResponses];
+export type AdvanceSessionTimeResponse = AdvanceSessionTimeResponses[keyof AdvanceSessionTimeResponses];
 
-export type DeleteAdminSessionsBySessionIdData = {
+export type EndSessionData = {
     body?: never;
     path: {
         sessionId: string;
@@ -1134,16 +1134,16 @@ export type DeleteAdminSessionsBySessionIdData = {
     url: '/admin/sessions/{sessionId}';
 };
 
-export type DeleteAdminSessionsBySessionIdResponses = {
+export type EndSessionResponses = {
     /**
      * No Content
      */
     204: void;
 };
 
-export type DeleteAdminSessionsBySessionIdResponse = DeleteAdminSessionsBySessionIdResponses[keyof DeleteAdminSessionsBySessionIdResponses];
+export type EndSessionResponse = EndSessionResponses[keyof EndSessionResponses];
 
-export type PostTransfersData = {
+export type TransferInventoryData = {
     body: InventoryTransferRequest;
     path?: never;
     query: {
@@ -1153,7 +1153,7 @@ export type PostTransfersData = {
     url: '/transfers';
 };
 
-export type PostTransfersErrors = {
+export type TransferInventoryErrors = {
     /**
      * Bad Request
      */
@@ -1164,11 +1164,11 @@ export type PostTransfersErrors = {
     404: unknown;
 };
 
-export type PostTransfersResponses = {
+export type TransferInventoryResponses = {
     /**
      * No Content
      */
     204: void;
 };
 
-export type PostTransfersResponse = PostTransfersResponses[keyof PostTransfersResponses];
+export type TransferInventoryResponse = TransferInventoryResponses[keyof TransferInventoryResponses];

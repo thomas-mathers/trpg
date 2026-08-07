@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { getCreaturesByCreatureIdInventoryOptions, postTransfersMutation } from '@/api/client';
+import { getCreatureInventoryOptions, transferInventoryMutation } from '@/api/client';
 import type { ItemDetail, ItemRarity, ItemType } from '@/api/client';
 import { NumericStepper } from '@/components/numeric-stepper';
 import { SearchInput } from '@/components/search-input';
@@ -199,12 +199,12 @@ function TransferDialogBody({
 }) {
   const queryClient = useQueryClient();
   const playerInventory = useQuery(
-    getCreaturesByCreatureIdInventoryOptions({ path: { creatureId: playerId } }),
+    getCreatureInventoryOptions({ path: { creatureId: playerId } }),
   );
   const targetInventory = useQuery(
-    getCreaturesByCreatureIdInventoryOptions({ path: { creatureId: target.id } }),
+    getCreatureInventoryOptions({ path: { creatureId: target.id } }),
   );
-  const transfer = useMutation(postTransfersMutation());
+  const transfer = useMutation(transferInventoryMutation());
 
   const [leftItems, setLeftItems] = useState<WorkingItem[] | null>(null);
   const [rightItems, setRightItems] = useState<WorkingItem[] | null>(null);
@@ -283,11 +283,11 @@ function TransferDialogBody({
     }
 
     await queryClient.invalidateQueries({
-      queryKey: getCreaturesByCreatureIdInventoryOptions({ path: { creatureId: playerId } })
+      queryKey: getCreatureInventoryOptions({ path: { creatureId: playerId } })
         .queryKey,
     });
     await queryClient.invalidateQueries({
-      queryKey: getCreaturesByCreatureIdInventoryOptions({ path: { creatureId: target.id } })
+      queryKey: getCreatureInventoryOptions({ path: { creatureId: target.id } })
         .queryKey,
     });
     onClose();

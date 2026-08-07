@@ -12,7 +12,7 @@ internal static class AbilityEndpoints
 {
     public static void MapAbilityEndpoints(this WebApplication app)
     {
-        app.MapGet("/abilities/{skill}", GetAbilitiesBySkill);
+        app.MapGet("/abilities/{skill}", GetAbilitiesBySkill).WithName("GetAbilitiesBySkill");
     }
 
     private static async Task<Ok<AbilitySummary[]>> GetAbilitiesBySkill(

@@ -3,11 +3,11 @@ import { Coins, PackageOpen, Weight } from 'lucide-react';
 import { useState } from 'react';
 
 import {
-  getCreaturesByCreatureIdBasicAttackDamageOptions,
-  getCreaturesByCreatureIdInventoryOptions,
-  getCreaturesByCreatureIdStatsOptions,
-  postCreaturesByCreatureIdEquipmentEquipMutation,
-  postCreaturesByCreatureIdEquipmentUnequipMutation,
+  getCreatureBasicAttackDamageOptions,
+  getCreatureInventoryOptions,
+  getCreatureStatsOptions,
+  equipCreatureItemMutation,
+  unequipCreatureItemMutation,
 } from '@/api/client';
 import type { EquipmentSlot, ItemDetail, ItemType } from '@/api/client';
 import { SearchInput } from '@/components/search-input';
@@ -135,7 +135,7 @@ export function InventoryDialog({ playerId, open, onClose }: InventoryDialogProp
 
 function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const inventoryOptions = getCreaturesByCreatureIdInventoryOptions({
+  const inventoryOptions = getCreatureInventoryOptions({
     path: { creatureId: playerId },
   });
   const inventory = useQuery(inventoryOptions);
@@ -165,10 +165,10 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
   const invalidateCreatureData = () => {
     queryClient.invalidateQueries({ queryKey: inventoryOptions.queryKey });
     queryClient.invalidateQueries({
-      queryKey: getCreaturesByCreatureIdStatsOptions({ path: { creatureId: playerId } }).queryKey,
+      queryKey: getCreatureStatsOptions({ path: { creatureId: playerId } }).queryKey,
     });
     queryClient.invalidateQueries({
-      queryKey: getCreaturesByCreatureIdBasicAttackDamageOptions({
+      queryKey: getCreatureBasicAttackDamageOptions({
         path: { creatureId: playerId },
       }).queryKey,
     });
@@ -176,22 +176,22 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
       predicate: (query) => {
         const id = (query.queryKey[0] as { _id?: string } | undefined)?._id;
         return (
-          id === 'getCreaturesByCreatureIdEquipmentPreview' ||
-          id === 'getCreaturesByCreatureIdEquipmentPreviewBasicAttackDamage'
+          id === 'previewCreatureEquipment' ||
+          id === 'previewCreatureBasicAttackDamage'
         );
       },
     });
   };
 
   const equip = useMutation({
-    ...postCreaturesByCreatureIdEquipmentEquipMutation(),
+    ...equipCreatureItemMutation(),
     onSuccess: () => {
       invalidateCreatureData();
       setSelectedItemId(null);
     },
   });
   const unequip = useMutation({
-    ...postCreaturesByCreatureIdEquipmentUnequipMutation(),
+    ...unequipCreatureItemMutation(),
     onSuccess: invalidateCreatureData,
   });
 

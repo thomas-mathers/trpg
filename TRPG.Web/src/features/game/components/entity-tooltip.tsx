@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { getSessionsBySessionIdNamedEntitiesByEntityIdOptions } from '@/api/client';
+import { getSessionNamedEntityOptions } from '@/api/client';
 import type { EntityType } from '@/api/client';
 import {
   HoverPopover,
@@ -33,7 +33,7 @@ export function EntityTooltip({
   const [open, setOpen] = useState(false);
   const isOpen = open && !forceClosed;
   const query = useQuery({
-    ...getSessionsBySessionIdNamedEntitiesByEntityIdOptions({
+    ...getSessionNamedEntityOptions({
       path: { sessionId, entityId: id },
     }),
     enabled: isOpen,

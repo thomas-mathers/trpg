@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
 import {
-  deleteWorldsByWorldIdMutation,
-  getWorldsOptions,
-  postSessionsMutation,
+  dropWorldMutation,
+  listWorldsOptions,
+  createSessionMutation,
 } from '../../../api/client';
 import { Button } from '../../../components/ui/button';
 import { NewWorldDialog } from '../../world-generation/components/new-world-dialog';
@@ -13,18 +13,18 @@ function TitleScreen() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const worldsQuery = useQuery(getWorldsOptions());
+  const worldsQuery = useQuery(listWorldsOptions());
   const worlds = worldsQuery.data ?? [];
 
-  const dropWorld = useMutation(deleteWorldsByWorldIdMutation());
-  const startSession = useMutation(postSessionsMutation());
+  const dropWorld = useMutation(dropWorldMutation());
+  const startSession = useMutation(createSessionMutation());
 
   const handleDrop = (worldId: string) => {
     dropWorld.mutate(
       { path: { worldId } },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getWorldsOptions().queryKey });
+          queryClient.invalidateQueries({ queryKey: listWorldsOptions().queryKey });
         },
       },
     );

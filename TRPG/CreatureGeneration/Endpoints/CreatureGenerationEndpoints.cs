@@ -11,7 +11,8 @@ internal static class CreatureGenerationEndpoints
 {
     public static void MapCreatureGenerationEndpoints(this WebApplication app)
     {
-        app.MapGet("/creature-generation/options", GetOptions);
+        app.MapGet("/creature-generation/options", GetOptions)
+            .WithName("GetCreatureGenerationOptions");
     }
 
     private static Ok<CreatureGenerationOptionsResponse> GetOptions(

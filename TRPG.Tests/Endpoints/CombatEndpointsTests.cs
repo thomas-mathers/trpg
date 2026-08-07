@@ -16,7 +16,7 @@ namespace TRPG.Tests.Endpoints;
 [Collection("Endpoints")]
 public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLifetime
 {
-    private HttpClient _client = null!;
+    private TestApiClient _client = null!;
     private Guid _worldId;
     private Guid _playerId;
     private Guid _stateId;
@@ -24,7 +24,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
     public async ValueTask InitializeAsync()
     {
-        _client = fixture.CreateClient();
+        _client = fixture.CreateApiClient();
 
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -60,7 +60,6 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
         fixture.ChatClient.PendingToolCallName = null;
         fixture.ChatClient.PendingToolCallArguments = null;
         fixture.ChatClient.ChatResponseText = "You look around. What do you want to do next?";
@@ -70,9 +69,9 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
     private async Task<Guid> StartSession()
     {
         var response = await _client.PostAsync(
-            new Uri($"/sessions?worldId={_worldId}", UriKind.Relative),
-            null,
-            TestContext.Current.CancellationToken
+            "CreateSession",
+            query: new Dictionary<string, object?> { ["worldId"] = _worldId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
         var result = await response.Content.ReadFromJsonAsync<CreateSessionResponse>(
             TestContext.Current.CancellationToken
@@ -98,9 +97,10 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
     private Task<HttpResponseMessage> SendChat(Guid sessionId, string message) =>
         _client.PostAsJsonAsync(
-            new Uri($"/admin/sessions/{sessionId}/chat", UriKind.Relative),
+            "SendAdminChat",
             new ChatRequest(message),
-            TestContext.Current.CancellationToken
+            routeValues: new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
     private async Task ResolveFleeDirectly(Guid sessionId)
@@ -241,8 +241,9 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
     {
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/players/{_playerId}/fight", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetPlayerFight",
+            new { playerId = _playerId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -266,8 +267,9 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
         // Act
         var response = await _client.GetAsync(
-            new Uri($"/players/{_playerId}/fight", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetPlayerFight",
+            new { playerId = _playerId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
@@ -299,8 +301,9 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
         // Act — the fight row still exists (Fled), it just isn't Ongoing anymore
         var response = await _client.GetAsync(
-            new Uri($"/players/{_playerId}/fight", UriKind.Relative),
-            TestContext.Current.CancellationToken
+            "GetPlayerFight",
+            new { playerId = _playerId },
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert

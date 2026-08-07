@@ -3,7 +3,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { useState } from 'react';
 
 import type { Skill } from '@/api/client';
-import { getAbilitiesBySkillOptions, getCreaturesByCreatureIdSkillsOptions } from '@/api/client';
+import { getAbilitiesBySkillOptions, getCreatureSkillsOptions } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -53,7 +53,7 @@ function SkillTreeDialogBody({ playerId, onClose }: { playerId: string; onClose:
   const [activeSkill, setActiveSkill] = useState<Skill>('Melee');
 
   const skillLevels = useQuery(
-    getCreaturesByCreatureIdSkillsOptions({ path: { creatureId: playerId } }),
+    getCreatureSkillsOptions({ path: { creatureId: playerId } }),
   );
 
   const tree = useQuery(getAbilitiesBySkillOptions({ path: { skill: activeSkill } }));

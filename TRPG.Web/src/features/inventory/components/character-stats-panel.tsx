@@ -5,10 +5,10 @@ import {
   type AttributeName,
   type EffectiveAttributesResponse,
   type EquipmentSlot,
-  getCreaturesByCreatureIdBasicAttackDamageOptions,
-  getCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageOptions,
-  getCreaturesByCreatureIdEquipmentPreviewOptions,
-  getCreaturesByCreatureIdStatsOptions,
+  getCreatureBasicAttackDamageOptions,
+  previewCreatureBasicAttackDamageOptions,
+  previewCreatureEquipmentOptions,
+  getCreatureStatsOptions,
 } from '@/api/client';
 import { cn } from '@/lib/utils';
 
@@ -128,11 +128,11 @@ export function CharacterStatsPanel({
   previewItem: EquipItemPreview | null;
 }) {
   const { data: current } = useQuery({
-    ...getCreaturesByCreatureIdStatsOptions({ path: { creatureId } }),
+    ...getCreatureStatsOptions({ path: { creatureId } }),
     placeholderData: keepPreviousData,
   });
   const { data: preview } = useQuery({
-    ...getCreaturesByCreatureIdEquipmentPreviewOptions({
+    ...previewCreatureEquipmentOptions({
       path: { creatureId },
       query: previewItem ?? { itemId: '', slot: 'RightHand' },
     }),
@@ -140,11 +140,11 @@ export function CharacterStatsPanel({
     placeholderData: keepPreviousData,
   });
   const { data: currentDamage } = useQuery({
-    ...getCreaturesByCreatureIdBasicAttackDamageOptions({ path: { creatureId } }),
+    ...getCreatureBasicAttackDamageOptions({ path: { creatureId } }),
     placeholderData: keepPreviousData,
   });
   const { data: previewDamage } = useQuery({
-    ...getCreaturesByCreatureIdEquipmentPreviewBasicAttackDamageOptions({
+    ...previewCreatureBasicAttackDamageOptions({
       path: { creatureId },
       query: previewItem ?? { itemId: '', slot: 'RightHand' },
     }),

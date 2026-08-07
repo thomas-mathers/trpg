@@ -12,7 +12,7 @@ internal static class InventoryEndpoints
 {
     public static void MapInventoryEndpoints(this WebApplication app)
     {
-        app.MapPost("/transfers", InventoryTransfer);
+        app.MapPost("/transfers", InventoryTransfer).WithName("TransferInventory");
     }
 
     private static async Task<Results<NotFound, BadRequest, NoContent>> InventoryTransfer(
