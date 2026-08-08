@@ -279,6 +279,7 @@ internal class GameTurnRunner(
 
     private async Task BeginTurn(CancellationToken cancellationToken)
     {
+        turnContext.PlayerMoved = false;
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = turnContext.SessionId },
             cancellationToken
@@ -301,10 +302,7 @@ internal class GameTurnRunner(
     private async Task FinishTurn(int currentTurnStart, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
-        var playerMoved = turnContext
-            .Events.OfType<SceneUpdatedEvent>()
-            .Any(e => e.Reason == SceneUpdateReason.Moved);
-        if (playerMoved)
+        if (turnContext.PlayerMoved)
         {
             await CloseLingeringConversations(currentTurnStart, cancellationToken);
         }

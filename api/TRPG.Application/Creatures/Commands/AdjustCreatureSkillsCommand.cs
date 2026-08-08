@@ -91,7 +91,7 @@ internal class AdjustCreatureSkillsCommandHandler(
 
         foreach (var (skill, level) in skillLevelUps)
         {
-            gameEvents.Enqueue(
+            gameEvents.Publish(
                 new SkillLevelUpEvent(
                     skill,
                     level,
@@ -102,7 +102,7 @@ internal class AdjustCreatureSkillsCommandHandler(
         }
         foreach (var characterLevelUp in characterLevelUps)
         {
-            gameEvents.Enqueue(characterLevelUp);
+            gameEvents.Publish(characterLevelUp);
         }
     }
 }

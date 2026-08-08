@@ -19,6 +19,7 @@ using TickerQ.Utilities.Enums;
 using TRPG.Application.Common;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
+using TRPG.Application.GameSessions;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Configuration;
 using TRPG.Contracts;
@@ -182,7 +183,12 @@ internal static class ServiceCollectionExtensions
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {
         return serviceCollection
-            .AddSingleton<WorldConnectionRegistry>()
+            .AddScoped<GameClientEventBuffer>()
+            .AddScoped<IGameClientEventPublisher>(sp =>
+                sp.GetRequiredService<GameClientEventBuffer>()
+            )
+            .AddScoped<IGameClientEventBuffer>(sp => sp.GetRequiredService<GameClientEventBuffer>())
+            .AddScoped<GameClientEventDispatcher>()
             .AddSingleton<PendingSessionEndRegistry>();
     }
 

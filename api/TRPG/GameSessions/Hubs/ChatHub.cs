@@ -24,11 +24,11 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class ChatHub(
     GameTurnRunner turnRunner,
     GameTurnContext turnContext,
-    IGameClientEventDispatcher eventDispatcher,
+    IGameClientEventPublisher gameEvents,
+    GameClientEventDispatcher eventDispatcher,
     GetGameSessionQueryHandler getGameSession,
     EndGameSessionCommandHandler endGameSession,
     GetEntityNameAutomatonByWorldQueryHandler getEntityNameAutomatonByWorld,
-    WorldConnectionRegistry worldConnections,
     PendingSessionEndRegistry pendingSessionEnds,
     GetCreatureByIdQueryHandler getCreatureById,
     GetActiveFightCombatantsQueryHandler getActiveFightCombatants,
@@ -48,10 +48,10 @@ internal sealed class ChatHub(
         );
         Context.Items[GameSessionKey] = snapshot;
 
-        if (!worldConnections.TryAdd(snapshot.WorldId, Context.ConnectionId))
-        {
-            throw new HubException("Another connection is already active for this world.");
-        }
+        await Groups.AddToGroupAsync(
+            Context.ConnectionId,
+            GameClientGroups.ForWorld(snapshot.WorldId)
+        );
 
         await base.OnConnectedAsync();
 
@@ -88,7 +88,6 @@ internal sealed class ChatHub(
     {
         if (Context.Items[GameSessionKey] is GameSession gameSession)
         {
-            worldConnections.Remove(gameSession.WorldId, Context.ConnectionId);
             pendingSessionEnds.Schedule(gameSession.Id);
         }
 
@@ -164,10 +163,7 @@ internal sealed class ChatHub(
 
         await foreach (var token in linkedTokens)
         {
-            if (eventDispatcher.HasPendingEvents)
-            {
-                await PushPendingEvents();
-            }
+            await eventDispatcher.FlushAsync(gameSession.WorldId, cancellationToken);
 
             yield return token;
         }
@@ -176,7 +172,7 @@ internal sealed class ChatHub(
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
-            turnContext.Enqueue(
+            gameEvents.Publish(
                 new SceneUpdatedEvent(
                     SceneSnapshotMapper.ToSnapshot(after),
                     SceneUpdateReason.Synced
@@ -184,7 +180,7 @@ internal sealed class ChatHub(
             );
         }
 
-        await PushPendingEvents();
+        await eventDispatcher.FlushAsync(gameSession.WorldId, cancellationToken);
     }
 
     private async Task<SceneResult> GetCurrentScene(
@@ -209,21 +205,6 @@ internal sealed class ChatHub(
         );
     }
 
-    private async Task PushPendingEvents()
-    {
-        while (eventDispatcher.TryDequeue(out var turnEvent))
-        {
-            if (turnEvent!.Payload != null)
-            {
-                await Clients.Caller.SendAsync(turnEvent.MethodName, turnEvent.Payload);
-            }
-            else
-            {
-                await Clients.Caller.SendAsync(turnEvent.MethodName);
-            }
-        }
-    }
-
     private Guid GetSessionIdFromQuery()
     {
         var raw = Context.GetHttpContext()?.Request.Query["sessionId"].ToString();
@@ -234,20 +215,6 @@ internal sealed class ChatHub(
 
         return sessionId;
     }
-}
-
-internal sealed class WorldConnectionRegistry
-{
-    private readonly ConcurrentDictionary<Guid, string> _connectionIdsByWorldId = new();
-
-    public bool TryAdd(Guid worldId, string connectionId) =>
-        _connectionIdsByWorldId.TryAdd(worldId, connectionId);
-
-    public void Remove(Guid worldId, string connectionId) =>
-        _connectionIdsByWorldId.TryRemove(new KeyValuePair<Guid, string>(worldId, connectionId));
-
-    public bool TryGetConnectionId(Guid worldId, out string? connectionId) =>
-        _connectionIdsByWorldId.TryGetValue(worldId, out connectionId);
 }
 
 internal sealed class PendingSessionEndRegistry(

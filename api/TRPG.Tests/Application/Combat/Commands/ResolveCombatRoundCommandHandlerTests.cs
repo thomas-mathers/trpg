@@ -224,8 +224,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         );
 
         // Assert
-        var turnContext = _serviceProvider.GetRequiredService<GameTurnContext>();
-        var combatEnded = Assert.Single(turnContext.Events.OfType<CombatEndedEvent>());
+        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventPublisher>();
+        var combatEnded = Assert.Single(gameEvents.PublishedEvents.OfType<CombatEndedEvent>());
         Assert.Equal(CombatOutcome.Victory, combatEnded.Outcome);
     }
 
@@ -331,8 +331,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         );
 
         // Assert
-        var turnContext = _serviceProvider.GetRequiredService<GameTurnContext>();
-        var turnEvent = Assert.Single(turnContext.Events);
+        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventPublisher>();
+        var turnEvent = Assert.Single(gameEvents.PublishedEvents);
         var combatUpdated = Assert.IsType<CombatUpdatedEvent>(turnEvent);
         Assert.Equal(33, combatUpdated.FightState.Combatants.Single(c => c.IsPlayer).CurrentHp);
     }
@@ -383,8 +383,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         );
 
         // Assert
-        var turnContext = _serviceProvider.GetRequiredService<GameTurnContext>();
-        var turnEvent = Assert.Single(turnContext.Events);
+        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventPublisher>();
+        var turnEvent = Assert.Single(gameEvents.PublishedEvents);
         var combatUpdated = Assert.IsType<CombatUpdatedEvent>(turnEvent);
         var mappedHit = Assert.IsType<TRPG.Contracts.Combat.Responses.CombatHitEvent>(
             Assert.Single(combatUpdated.Events)
