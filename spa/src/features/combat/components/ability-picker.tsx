@@ -32,9 +32,16 @@ export interface AbilityPickerProps {
   category: AbilityCategory;
   onBack: () => void;
   onChoose: (ability: AbilitySummary) => void;
+  showHeader?: boolean;
 }
 
-export function AbilityPicker({ playerId, category, onBack, onChoose }: AbilityPickerProps) {
+export function AbilityPicker({
+  playerId,
+  category,
+  onBack,
+  onChoose,
+  showHeader = true,
+}: AbilityPickerProps) {
   const [query, setQuery] = useState('');
   const queryClient = useQueryClient();
 
@@ -62,10 +69,13 @@ export function AbilityPicker({ playerId, category, onBack, onChoose }: AbilityP
 
   return (
     <div className="p-2.5">
-      <PickerHeader
-        onBack={onBack}
-        title={`Choose ${category === 'Offensive' ? 'an attack' : 'a support ability'}`}
-      />
+      {showHeader && (
+        <PickerHeader
+          className="pb-2"
+          onBack={onBack}
+          title={`Choose ${category === 'Offensive' ? 'an attack' : 'a support ability'}`}
+        />
+      )}
 
       {candidates.length > SEARCH_THRESHOLD && (
         <SearchInput value={query} onChange={setQuery} placeholder="Search abilities…" />
@@ -93,11 +103,11 @@ export function AbilityPicker({ playerId, category, onBack, onChoose }: AbilityP
                     type="button"
                     disabled={!usable}
                     onClick={() => onChoose(ability)}
-                    className="border-border bg-card hover:bg-accent flex items-center justify-between gap-2.5 rounded-md border px-2.5 py-2 text-left shadow-sm disabled:pointer-events-none disabled:opacity-50"
+                    className="border-border bg-card hover:bg-accent flex items-end justify-between gap-2.5 rounded-md border px-2.5 py-2 text-left shadow-sm disabled:pointer-events-none disabled:opacity-50"
                   >
                     <span className="min-w-0">
                       <span className="block text-[13px] font-medium">{ability.name}</span>
-                      <span className="text-muted-foreground block truncate text-[11px]">
+                      <span className="text-muted-foreground block text-[11px] leading-snug">
                         {usable ? ability.description : availability?.reason}
                       </span>
                     </span>

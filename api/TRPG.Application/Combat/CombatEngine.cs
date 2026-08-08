@@ -31,7 +31,16 @@ public class CombatEngine(
                     ? ProcessTurn(player, action)
                     : ProcessTurn(combatant, enemyCombatActionResolver.Resolve(combatant, player))
             )
-            .ToArray();
+            .ToList();
+
+        foreach (var combatant in combatants.Where(c => c.IsAlive))
+        {
+            var regeneration = TickInCombatResourceRegeneration(combatant);
+            if (regeneration is not null)
+            {
+                combatEvents.Add(regeneration);
+            }
+        }
 
         var outcome = GetCurrentOutcome(player, enemies);
 
@@ -88,17 +97,28 @@ public class CombatEngine(
         actor.CurrentAp -= ability.ApCost;
         actor.CurrentMp -= ability.MpCost;
 
+        var resourceState = new ResourceStateUpdated(
+            actor.CreatureId,
+            actor.Name,
+            actor.CurrentAp,
+            actor.MaximumAp,
+            actor.CurrentMp,
+            actor.MaximumMp
+        );
+
         var trainedSkill = ResolveTrainedSkill(actor, ability);
 
         actor.SkillUsageCounts[trainedSkill] =
             actor.SkillUsageCounts.GetValueOrDefault(trainedSkill) + 1;
 
-        return ability switch
+        var actionEvents = ability switch
         {
             SupportAbility support => ApplySupport(actor, support, targets),
             AttackAbility attack => ApplyAttack(actor, attack, targets),
             _ => [],
         };
+
+        return [resourceState, .. actionEvents];
     }
 
     private static Skill ResolveTrainedSkill(Combatant actor, Ability ability)
@@ -171,8 +191,10 @@ public class CombatEngine(
         ];
     }
 
-    private void TickInCombatResourceRegeneration(Combatant actor)
+    private Regenerated? TickInCombatResourceRegeneration(Combatant actor)
     {
+        var currentAp = actor.CurrentAp;
+        var currentMp = actor.CurrentMp;
         var apRegenAmount = Math.Max(
             1,
             (int)Math.Round(actor.MaximumAp * optionsSnapshot.Value.ApRegenPercentPerRound)
@@ -183,6 +205,19 @@ public class CombatEngine(
         );
         actor.CurrentAp = Math.Min(actor.CurrentAp + apRegenAmount, actor.MaximumAp);
         actor.CurrentMp = Math.Min(actor.CurrentMp + mpRegenAmount, actor.MaximumMp);
+
+        return actor.CurrentAp == currentAp && actor.CurrentMp == currentMp
+            ? null
+            : new Regenerated(
+                actor.CreatureId,
+                actor.Name,
+                currentAp,
+                actor.CurrentAp,
+                actor.MaximumAp,
+                currentMp,
+                actor.CurrentMp,
+                actor.MaximumMp
+            );
     }
 
     private static void TickCooldowns(Combatant actor)
@@ -467,7 +502,6 @@ public class CombatEngine(
 
         if (actor.IsAlive)
         {
-            TickInCombatResourceRegeneration(actor);
             TickCooldowns(actor);
         }
 

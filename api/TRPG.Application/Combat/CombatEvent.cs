@@ -14,6 +14,8 @@ namespace TRPG.Application.Combat;
 [JsonDerivedType(typeof(Healed), "Healed")]
 [JsonDerivedType(typeof(HealOverTimeApplied), "HealOverTimeApplied")]
 [JsonDerivedType(typeof(ConsumedPotion), "ConsumedPotion")]
+[JsonDerivedType(typeof(Regenerated), "Regenerated")]
+[JsonDerivedType(typeof(ResourceStateUpdated), "ResourceStateUpdated")]
 public abstract record CombatEvent;
 
 public sealed record Hit(
@@ -97,4 +99,24 @@ public sealed record ConsumedPotion(
     int Amount,
     int RemainingValue,
     int MaximumValue
+) : CombatEvent;
+
+public sealed record Regenerated(
+    [property: JsonIgnore] Guid CombatantId,
+    string CombatantName,
+    int PreviousAp,
+    int CurrentAp,
+    int MaximumAp,
+    int PreviousMp,
+    int CurrentMp,
+    int MaximumMp
+) : CombatEvent;
+
+public sealed record ResourceStateUpdated(
+    [property: JsonIgnore] Guid CombatantId,
+    string CombatantName,
+    int CurrentAp,
+    int MaximumAp,
+    int CurrentMp,
+    int MaximumMp
 ) : CombatEvent;

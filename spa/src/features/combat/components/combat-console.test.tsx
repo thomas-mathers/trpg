@@ -51,7 +51,7 @@ const ui = {
   ability: (name: string) => byRole('button', { name: new RegExp(name) }),
   consumable: (name: string) => byRole('button', { name: new RegExp(name) }),
   target: (name: string) => byRole('button', { name: new RegExp(name) }),
-  resolving: byText('Resolving action'),
+  resolving: byText('Resolving round'),
 };
 
 function ability(name: string, category: AbilitySummary['category']): AbilitySummary {
@@ -74,6 +74,7 @@ function renderConsole({ isStreaming = false } = {}) {
   const gameChat: GameChat = {
     messages: [],
     isConnected: true,
+    connectionStatus: 'connected',
     isStreaming,
     submitChatMessage: vi.fn(),
     submitCombatAction,
@@ -103,7 +104,7 @@ describe('CombatConsole', () => {
     expect(submitFlee).toHaveBeenCalledOnce();
   });
 
-  it('targets an enemy after choosing an offensive ability', async () => {
+  it('chooses an offensive ability after targeting an enemy', async () => {
     server.use(
       handleGetCreatureAbilities({ body: [ability('Power Strike', 'Offensive')] }),
       handleGetPlayerFightAbilities({ body: [] }),

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { resolveCombatAction, type CombatActionResponse, type SceneSnapshot } from '@/api/client';
 import type { PlayerCombatAction } from '@/features/combat/combat-action';
 import type { CombatOutcome } from '@/features/combat/combat-outcome';
 import { gameEventBus, type ConnectionStatus } from '@/lib/game-event-bus';
@@ -10,12 +11,6 @@ import { appendTokenToNarrationSegments } from '../narration-markup';
 import { formatLocation, locationKey } from '../scene-format';
 import { useGameHubConnection } from './use-game-hub-connection';
 
-const CONNECTION_STATUS_TEXT: Record<ConnectionStatus, string> = {
-  reconnecting: 'Reconnecting…',
-  reconnected: 'Reconnected',
-  disconnected: 'Connection lost',
-};
-
 const OUTCOME_MARKER: Record<CombatOutcome, string> = {
   Victory: 'Victory!',
   Defeat: 'You have died',
@@ -25,6 +20,7 @@ const OUTCOME_MARKER: Record<CombatOutcome, string> = {
 export interface GameChat {
   messages: ChatMessage[];
   isConnected: boolean;
+  connectionStatus: ConnectionStatus;
   isStreaming: boolean;
   submitChatMessage: (text: string) => void;
   submitCombatAction: (action: PlayerCombatAction, displayText: string) => void;
@@ -33,13 +29,14 @@ export interface GameChat {
 }
 
 export function useGameChat(sessionId: string): GameChat {
-  const { isConnected, streamOpening, streamChat, streamCombatAction, streamFlee, endSession } =
+  const { connectionStatus, isConnected, streamOpening, streamChat, streamFlee, endSession } =
     useGameHubConnection(sessionId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const startedSessionId = useRef<string | null>(null);
   const previousLocation = useRef<string | null>(null);
   const activeNarratorMessageId = useRef<string | null>(null);
+  const pendingCombatScene = useRef<SceneSnapshot | null>(null);
 
   const appendTokenToActiveNarrationMessage = (id: string, token: string) => {
     setMessages((current) =>
@@ -85,15 +82,11 @@ export function useGameChat(sessionId: string): GameChat {
   useEffect(
     () =>
       gameEventBus.on('CombatResolved', (outcome) => {
+        if (pendingCombatScene.current) {
+          gameEventBus.emit('SceneSnapshot', pendingCombatScene.current);
+          pendingCombatScene.current = null;
+        }
         appendChatMarker(OUTCOME_MARKER[outcome], 'combat-end');
-      }),
-    [],
-  );
-
-  useEffect(
-    () =>
-      gameEventBus.on('ConnectionStatusChanged', (status) => {
-        appendChatMarker(CONNECTION_STATUS_TEXT[status], status);
       }),
     [],
   );
@@ -169,13 +162,35 @@ export function useGameChat(sessionId: string): GameChat {
     startTurn(text, (onToken, onComplete) => streamChat(text, onToken, onComplete));
   };
 
-  const submitCombatAction = (action: PlayerCombatAction, displayText: string) => {
+  const submitCombatAction = (action: PlayerCombatAction, _displayText: string) => {
     if (isStreaming) {
       return;
     }
-    startTurn(displayText, (onToken, onComplete) =>
-      streamCombatAction(action, onToken, onComplete),
-    );
+    setIsStreaming(true);
+    void resolveCombatAction({
+      body: action,
+      path: { sessionId },
+      throwOnError: true,
+    })
+      .then(({ data }) => {
+        if (!data) {
+          throw new Error('Combat action returned no result.');
+        }
+        return data as CombatActionResponse;
+      })
+      .then((response) => {
+        if (response.update) gameEventBus.emit('CombatUpdated', response.update);
+        pendingCombatScene.current = response.scene ?? null;
+        if (response.narrations.length > 0)
+          gameEventBus.emit('CombatNarrations', response.narrations);
+        if (response.outcome) gameEventBus.emit('CombatEnded', response.outcome);
+        if (response.errorMessage) appendChatMarker(response.errorMessage, 'disconnected');
+      })
+      .catch((error) => {
+        console.error('Error resolving combat action', error);
+        appendChatMarker('Combat action could not be resolved.', 'disconnected');
+      })
+      .finally(() => setIsStreaming(false));
   };
 
   const submitFlee = () => {
@@ -188,6 +203,7 @@ export function useGameChat(sessionId: string): GameChat {
   return {
     messages,
     isConnected,
+    connectionStatus,
     isStreaming,
     submitChatMessage,
     submitCombatAction,
