@@ -106,7 +106,7 @@ public abstract record ItemDetail(
     EquipmentSlot? EquippedSlot,
     ItemType Type,
     ItemRarity? Rarity,
-    int? GoldValue,
+    int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers
 );
 
@@ -119,7 +119,7 @@ public sealed record WeaponDetail(
     EquipmentSlot? EquippedSlot,
     ItemType Type,
     ItemRarity? Rarity,
-    int? GoldValue,
+    int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers,
     int MinDamage,
     int MaxDamage,
@@ -151,7 +151,7 @@ public sealed record ArmorDetail(
     EquipmentSlot? EquippedSlot,
     ItemType Type,
     ItemRarity? Rarity,
-    int? GoldValue,
+    int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers,
     int Defense,
     ArmorClass ArmorClass,
@@ -180,7 +180,7 @@ public sealed record ShieldDetail(
     EquipmentSlot? EquippedSlot,
     ItemType Type,
     ItemRarity? Rarity,
-    int? GoldValue,
+    int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers,
     float BlockChance,
     int Defense,
@@ -214,7 +214,7 @@ public sealed record AccessoryDetail(
     EquipmentSlot? EquippedSlot,
     ItemType Type,
     ItemRarity? Rarity,
-    int? GoldValue,
+    int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers
 )
     : ItemDetail(
@@ -239,7 +239,7 @@ public sealed record AmmunitionDetail(
     EquipmentSlot? EquippedSlot,
     ItemType Type,
     ItemRarity? Rarity,
-    int? GoldValue,
+    int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers
 )
     : ItemDetail(
@@ -264,7 +264,7 @@ public sealed record ConsumableItemDetail(
     EquipmentSlot? EquippedSlot,
     ItemType Type,
     ItemRarity? Rarity,
-    int? GoldValue,
+    int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers,
     ResourceType Resource,
     int RestoreAmount,
@@ -292,7 +292,7 @@ public sealed record GoldDetail(
     EquipmentSlot? EquippedSlot,
     ItemType Type,
     ItemRarity? Rarity,
-    int? GoldValue,
+    int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers
 )
     : ItemDetail(

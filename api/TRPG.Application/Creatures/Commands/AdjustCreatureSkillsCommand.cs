@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
+using TRPG.Application.GameSessions;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -15,7 +16,8 @@ internal class AdjustCreatureSkillsCommand
 
 internal class AdjustCreatureSkillsCommandHandler(
     TrpgDbContext context,
-    IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
+    IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot,
+    IGameClientEventPublisher gameEvents
 )
 {
     public async Task Handle(
@@ -34,7 +36,7 @@ internal class AdjustCreatureSkillsCommandHandler(
             )
             .ToListAsync(cancellationToken);
 
-        var totalSkillLevelsGained = 0;
+        var skillLevelUps = new List<(Skill Skill, int Level)>();
 
         foreach (var skill in skills)
         {
@@ -48,11 +50,12 @@ internal class AdjustCreatureSkillsCommandHandler(
             )
             {
                 skill.Level++;
-                totalSkillLevelsGained++;
+                skillLevelUps.Add((skill.Skill, skill.Level));
             }
         }
 
-        if (totalSkillLevelsGained > 0)
+        var characterLevelUps = new List<CharacterLevelUpEvent>();
+        if (skillLevelUps.Count > 0)
         {
             var creature = await context.Creatures.FirstAsync(
                 c => c.Id == command.CreatureId,
@@ -61,9 +64,45 @@ internal class AdjustCreatureSkillsCommandHandler(
 
             var skillLevels = skills.Select(s => s.Level).ToArray();
 
+            var previousLevel = creature.Level;
             creature.Level = SkillFormulas.CalculateLevelFromSkillLevels(skillLevels);
+            for (var level = previousLevel + 1; level <= creature.Level; level++)
+            {
+                characterLevelUps.Add(new CharacterLevelUpEvent(level));
+            }
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        var totalCharacterExperience = skills.Sum(s =>
+            SkillFormulas.CalculateExperienceFromSkillLevel(s.Level)
+        );
+        var characterExperience = SkillFormulas.GetExperienceProgress(
+            characterLevelUps.LastOrDefault()?.Level
+                ?? (
+                    skillLevelUps.Count > 0
+                        ? SkillFormulas.CalculateLevelFromSkillLevels(
+                            skills.Select(s => s.Level).ToArray()
+                        )
+                        : 1
+                ),
+            totalCharacterExperience
+        );
+
+        foreach (var (skill, level) in skillLevelUps)
+        {
+            gameEvents.Publish(
+                new SkillLevelUpEvent(
+                    skill,
+                    level,
+                    characterExperience.Current,
+                    characterExperience.ToNextLevel
+                )
+            );
+        }
+        foreach (var characterLevelUp in characterLevelUps)
+        {
+            gameEvents.Publish(characterLevelUp);
+        }
     }
 }

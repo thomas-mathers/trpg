@@ -23,7 +23,7 @@ internal class ResolveCombatRoundCommandHandler(
     AdjustCreatureSkillsCommandHandler adjustCreatureSkills,
     RemoveInventoryItemCommandHandler removeInventoryItem,
     EndFightCommandHandler endFight,
-    GameTurnContext turnContext
+    IGameClientEventPublisher gameEvents
 )
 {
     public async Task<CombatResult> Handle(
@@ -40,7 +40,7 @@ internal class ResolveCombatRoundCommandHandler(
 
         if (command.PublishEvents)
         {
-            turnContext.PendingEvents.Enqueue(
+            gameEvents.Publish(
                 new CombatUpdatedEvent(
                     FightStateMapper.ToFightState(command.Combatants),
                     CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
@@ -103,7 +103,7 @@ internal class ResolveCombatRoundCommandHandler(
             );
             if (command.PublishEvents)
             {
-                turnContext.PendingEvents.Enqueue(new CombatEndedEvent(state.Outcome));
+                gameEvents.Publish(new CombatEndedEvent(state.Outcome));
             }
         }
 

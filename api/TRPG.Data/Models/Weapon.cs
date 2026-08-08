@@ -19,7 +19,6 @@ public enum WeaponType
 
 public class Weapon : Item
 {
-    public int GoldValue { get; init; }
     public int Level { get; init; }
     public ItemRarity Rarity { get; init; }
     public WeaponType Type { get; init; }

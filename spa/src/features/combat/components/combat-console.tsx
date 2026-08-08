@@ -1,6 +1,7 @@
 import { DoorOpen, FlaskConical, Shield, Sparkles, Sword, Swords } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
 
 import type {
   AbilityCategory,
@@ -25,6 +26,7 @@ import { useGameActions } from '@/features/game/game-chat-context';
 import { formatLocation } from '@/features/game/scene-format';
 import { gameEventBus } from '@/lib/game-event-bus';
 
+import { GameToast } from '../../game/components/game-toast';
 import { useCombatState, type CombatFlash } from '../hooks/use-combat-state';
 
 type Mode = 'topmenu' | 'target';
@@ -140,13 +142,14 @@ export function CombatConsole() {
   const [pendingAbility, setPendingAbility] = useState<AbilitySummary | null>(null);
   const [openMenu, setOpenMenu] = useState<'attack' | 'defend' | 'item' | null>(null);
   const [popoverContainer, setPopoverContainer] = useState<HTMLDivElement | null>(null);
-  const [narration, setNarration] = useState<{
+  const [narration] = useState<{
     id: number;
     text: string;
     actor: string;
     ability: string;
   } | null>(null);
   const [pendingNarrations, setPendingNarrations] = useState<string[]>([]);
+  const [isNarrationVisible, setIsNarrationVisible] = useState(false);
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
   const disabled = isPlayingBack || isStreaming || isSubmittingAction;
@@ -186,33 +189,39 @@ export function CombatConsole() {
   }, []);
 
   useEffect(() => {
-    if (!activeDefenderId || narration || pendingNarrations.length === 0) {
+    if (!activeDefenderId || isNarrationVisible || pendingNarrations.length === 0) {
       return;
     }
 
     const text = pendingNarrations[0];
     const show = setTimeout(() => {
-      setNarration({
-        id: Date.now(),
-        text,
-        actor: activeCombatEvent?.attackerName ?? 'Combatant',
-        ability: activeCombatEvent?.abilityName ?? 'Ability',
-      });
+      toast.custom(
+        (toastId) => (
+          <GameToast
+            toastId={toastId}
+            icon={Sparkles}
+            title={`${activeCombatEvent?.attackerName ?? 'Combatant'} · ${activeCombatEvent?.abilityName ?? 'Ability'}`}
+            description={text}
+          />
+        ),
+        { duration: 1200 },
+      );
+      setIsNarrationVisible(true);
       setPendingNarrations((current) => current.slice(1));
     }, 180);
     return () => {
       clearTimeout(show);
     };
-  }, [activeCombatEvent, activeDefenderId, narration, pendingNarrations]);
+  }, [activeCombatEvent, activeDefenderId, isNarrationVisible, pendingNarrations]);
 
   useEffect(() => {
-    if (!narration) {
+    if (!isNarrationVisible) {
       return;
     }
 
-    const hide = setTimeout(() => setNarration(null), 1200);
+    const hide = setTimeout(() => setIsNarrationVisible(false), 1200);
     return () => clearTimeout(hide);
-  }, [narration]);
+  }, [isNarrationVisible]);
 
   if (!fight || !playerId) {
     return null;

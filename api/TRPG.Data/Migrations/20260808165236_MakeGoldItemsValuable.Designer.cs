@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808165236_MakeGoldItemsValuable")]
+    partial class MakeGoldItemsValuable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -926,10 +929,6 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<int>("GoldValue")
-                        .HasColumnType("integer")
-                        .HasColumnName("gold_value");
-
                     b.Property<string>("Modifiers")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -1554,6 +1553,11 @@ namespace TRPG.Migrations
                 {
                     b.HasBaseType("TRPG.Data.Models.Item");
 
+                    b.Property<int>("GoldValue")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("integer")
+                        .HasColumnName("gold_value");
+
                     b.Property<int>("Level")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("integer")
@@ -1578,6 +1582,11 @@ namespace TRPG.Migrations
             modelBuilder.Entity("TRPG.Data.Models.Ammunition", b =>
                 {
                     b.HasBaseType("TRPG.Data.Models.Item");
+
+                    b.Property<int>("GoldValue")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("integer")
+                        .HasColumnName("gold_value");
 
                     b.Property<int>("Level")
                         .ValueGeneratedOnUpdateSometimes()
@@ -1621,6 +1630,11 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("durability_max");
 
+                    b.Property<int>("GoldValue")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("integer")
+                        .HasColumnName("gold_value");
+
                     b.Property<int>("Level")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("integer")
@@ -1649,6 +1663,11 @@ namespace TRPG.Migrations
                     b.Property<int>("Duration")
                         .HasColumnType("integer")
                         .HasColumnName("duration");
+
+                    b.Property<int>("GoldValue")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("integer")
+                        .HasColumnName("gold_value");
 
                     b.Property<int>("Level")
                         .ValueGeneratedOnUpdateSometimes()
@@ -1708,6 +1727,11 @@ namespace TRPG.Migrations
                         .HasColumnType("real")
                         .HasColumnName("fire_resistance");
 
+                    b.Property<int>("GoldValue")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("integer")
+                        .HasColumnName("gold_value");
+
                     b.Property<float>("IceResistance")
                         .HasColumnType("real")
                         .HasColumnName("ice_resistance");
@@ -1765,6 +1789,11 @@ namespace TRPG.Migrations
                     b.Property<int>("DurabilityMax")
                         .HasColumnType("integer")
                         .HasColumnName("durability_max");
+
+                    b.Property<int>("GoldValue")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("integer")
+                        .HasColumnName("gold_value");
 
                     b.Property<bool>("IsTwoHanded")
                         .HasColumnType("boolean")

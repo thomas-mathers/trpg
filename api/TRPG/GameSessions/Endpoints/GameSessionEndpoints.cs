@@ -13,6 +13,7 @@ using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
+using TRPG.GameSessions.Hubs;
 
 namespace TRPG.GameSessions.Endpoints;
 
@@ -35,6 +36,7 @@ internal static class GameSessionEndpoints
         PlayerCombatAction action,
         GameTurnRunner turnRunner,
         GameTurnContext turnContext,
+        GameClientEventDispatcher eventDispatcher,
         GetGameSessionQueryHandler getGameSession,
         GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
         CancellationToken cancellationToken
@@ -56,6 +58,7 @@ internal static class GameSessionEndpoints
             },
             cancellationToken
         );
+        await eventDispatcher.FlushAsync(session.WorldId, cancellationToken);
         return TypedResults.Ok(
             response with
             {

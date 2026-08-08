@@ -2,7 +2,6 @@ namespace TRPG.Data.Models;
 
 public class Shield : Item
 {
-    public int GoldValue { get; init; }
     public int Level { get; init; }
     public ItemRarity Rarity { get; init; }
     public float BlockChance { get; init; }

@@ -13,6 +13,7 @@ using TRPG.Application.Common;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes;
@@ -34,6 +35,7 @@ internal class GameTurnRunner(
     GameTurnContext turnContext,
     GetGameSessionQueryHandler getGameSession,
     GetOpenConversationsQueryHandler getOpenConversations,
+    ApplyPassiveRegenCommandHandler applyPassiveRegen,
     AdvanceTimeCommandHandler advanceTime,
     UpdateGameSessionCommandHandler updateGameSession,
     GetChatMessagesQueryHandler getChatMessages,
@@ -97,6 +99,7 @@ internal class GameTurnRunner(
             },
             cancellationToken
         );
+        await ApplyPassiveRegen(cancellationToken);
 
         var waitPrompt =
             $"{hours} hour(s) have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns.";
@@ -276,21 +279,30 @@ internal class GameTurnRunner(
 
     private async Task BeginTurn(CancellationToken cancellationToken)
     {
+        turnContext.PlayerMoved = false;
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
         turnContext.WorldId = snapshot.WorldId;
         turnContext.PlayerId = snapshot.PlayerId;
+        await ApplyPassiveRegen(cancellationToken);
     }
+
+    private Task ApplyPassiveRegen(CancellationToken cancellationToken) =>
+        applyPassiveRegen.Handle(
+            new ApplyPassiveRegenCommand
+            {
+                SessionId = turnContext.SessionId,
+                CreatureIds = [turnContext.PlayerId],
+            },
+            cancellationToken
+        );
 
     private async Task FinishTurn(int currentTurnStart, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
-        var playerMoved = turnContext
-            .PendingEvents.OfType<SceneUpdatedEvent>()
-            .Any(e => e.Reason == SceneUpdateReason.Moved);
-        if (playerMoved)
+        if (turnContext.PlayerMoved)
         {
             await CloseLingeringConversations(currentTurnStart, cancellationToken);
         }

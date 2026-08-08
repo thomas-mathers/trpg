@@ -59,14 +59,10 @@ export function ItemTooltip({ item }: { item: ItemDetail }) {
       Weight: {item.weight}
       <Weight className="size-3" />
     </span>,
-    ...(item.goldValue != null
-      ? [
-          <span key="value" className="inline-flex items-center gap-1">
-            Value: {item.goldValue}
-            <Coins className="size-3" />
-          </span>,
-        ]
-      : []),
+    <span key="value" className="inline-flex items-center gap-1">
+      Value: {item.goldValue}
+      <Coins className="size-3" />
+    </span>,
     ...getStatLines(item),
   ];
 

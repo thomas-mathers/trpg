@@ -4,6 +4,17 @@ import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'reconnected' | 'disconnected';
 
+export interface SkillLevelUp {
+  skill: string;
+  level: number;
+  characterExperienceCurrent: number;
+  characterExperienceToNextLevel: number;
+}
+
+export interface CharacterLevelUp {
+  level: number;
+}
+
 interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
   CombatStarted: FightState;
@@ -11,6 +22,8 @@ interface GameEventMap {
   CombatNarrations: string[];
   CombatEnded: CombatOutcome;
   CombatResolved: CombatOutcome;
+  SkillLevelUp: SkillLevelUp;
+  CharacterLevelUp: CharacterLevelUp;
   ConnectionStatusChanged: ConnectionStatus;
 }
 

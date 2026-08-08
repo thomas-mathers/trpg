@@ -19,6 +19,35 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
 
   useEffect(() => gameEventBus.on('SceneSnapshot', setScene), []);
 
+  useEffect(
+    () =>
+      gameEventBus.on('SkillLevelUp', (progress) => {
+        setScene((current) =>
+          current
+            ? {
+                ...current,
+                playerStatus: {
+                  ...current.playerStatus,
+                  experienceCurrent: progress.characterExperienceCurrent,
+                  experienceToNextLevel: progress.characterExperienceToNextLevel,
+                },
+              }
+            : current,
+        );
+      }),
+    [],
+  );
+
+  useEffect(
+    () =>
+      gameEventBus.on('CharacterLevelUp', ({ level }) => {
+        setScene((current) =>
+          current ? { ...current, playerStatus: { ...current.playerStatus, level } } : current,
+        );
+      }),
+    [],
+  );
+
   return (
     <SessionContext.Provider value={sessionId}>
       <PlayerIdContext.Provider value={playerId}>

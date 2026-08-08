@@ -17,13 +17,7 @@ import type { ItemDetail, ItemRarity, ItemType } from '@/api/client';
 import { NumericStepper } from '@/components/numeric-stepper';
 import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Empty, EmptyContent, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import {
   HoverPopover,
@@ -53,7 +47,7 @@ interface WorkingItem {
   equippedSlot: string | null;
   weight: number;
   quantity: number;
-  goldValue: number | null;
+  goldValue: number;
   detail: ItemDetail;
 }
 
@@ -78,7 +72,7 @@ const toWorkingItems = (items: ItemDetail[]): WorkingItem[] =>
     equippedSlot: item.equippedSlot ?? null,
     weight: Number(item.weight),
     quantity: Number(item.quantity),
-    goldValue: item.goldValue != null ? Number(item.goldValue) : null,
+    goldValue: Number(item.goldValue),
     detail: item,
   }));
 
@@ -104,7 +98,7 @@ const sortItems = (
       return (a.quantity - b.quantity) * dir;
     }
     if (sort.key === 'value') {
-      return ((a.goldValue ?? 0) * a.quantity - (b.goldValue ?? 0) * b.quantity) * dir;
+      return (a.goldValue * a.quantity - b.goldValue * b.quantity) * dir;
     }
     return (a.weight * a.quantity - b.weight * b.quantity) * dir;
   });
@@ -165,10 +159,17 @@ export interface TransferItemDialogProps {
   playerId: string;
   target: TransferTarget | null;
   open: boolean;
+  transfersEnabled?: boolean;
   onClose: () => void;
 }
 
-export function TransferItemDialog({ playerId, target, open, onClose }: TransferItemDialogProps) {
+export function TransferItemDialog({
+  playerId,
+  target,
+  open,
+  transfersEnabled = true,
+  onClose,
+}: TransferItemDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
@@ -176,10 +177,14 @@ export function TransferItemDialog({ playerId, target, open, onClose }: Transfer
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         {target && (
+          <DialogTitle>{transfersEnabled ? 'Transfer Items' : 'Inspect Inventory'}</DialogTitle>
+        )}
+        {target && (
           <TransferDialogBody
             key={target.id}
             playerId={playerId}
             target={target}
+            transfersEnabled={transfersEnabled}
             onClose={onClose}
           />
         )}
@@ -191,10 +196,12 @@ export function TransferItemDialog({ playerId, target, open, onClose }: Transfer
 function TransferDialogBody({
   playerId,
   target,
+  transfersEnabled,
   onClose,
 }: {
   playerId: string;
   target: TransferTarget;
+  transfersEnabled: boolean;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -301,10 +308,6 @@ function TransferDialogBody({
 
   return (
     <>
-      <DialogHeader>
-        <DialogTitle>Transfer Items</DialogTitle>
-      </DialogHeader>
-
       <div className="flex min-h-0 flex-1 flex-col items-stretch gap-3 overflow-hidden md:flex-row">
         <InventorySidePanel
           title={
@@ -315,6 +318,7 @@ function TransferDialogBody({
           ariaLabel="Your inventory"
           items={leftItems}
           selected={leftSelected}
+          selectionEnabled={transfersEnabled}
           onSelectedChange={setLeftSelected}
           search={leftSearch}
           onSearchChange={setLeftSearch}
@@ -330,7 +334,7 @@ function TransferDialogBody({
             size="icon"
             className="relative rounded-full"
             onClick={handleTake}
-            disabled={rightSelected.size === 0}
+            disabled={!transfersEnabled || rightSelected.size === 0}
             title={`Move selected items to your inventory`}
           >
             <ArrowUp className="md:hidden" />
@@ -342,7 +346,7 @@ function TransferDialogBody({
             size="icon"
             className="relative rounded-full"
             onClick={handleGive}
-            disabled={leftSelected.size === 0}
+            disabled={!transfersEnabled || leftSelected.size === 0}
             title={`Move selected items to ${target.name}`}
           >
             <ArrowDown className="md:hidden" />
@@ -360,6 +364,7 @@ function TransferDialogBody({
           ariaLabel={`${target.name}'s inventory`}
           items={rightItems}
           selected={rightSelected}
+          selectionEnabled={transfersEnabled}
           onSelectedChange={setRightSelected}
           search={rightSearch}
           onSearchChange={setRightSearch}
@@ -380,7 +385,10 @@ function TransferDialogBody({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={changedCount === 0 || transfer.isPending}>
+          <Button
+            onClick={handleConfirm}
+            disabled={!transfersEnabled || changedCount === 0 || transfer.isPending}
+          >
             Confirm Transfer
           </Button>
         </div>
@@ -427,6 +435,7 @@ interface InventorySidePanelProps {
   ariaLabel: string;
   items: WorkingItem[];
   selected: Map<string, number>;
+  selectionEnabled: boolean;
   onSelectedChange: (selected: Map<string, number>) => void;
   search: string;
   onSearchChange: (value: string) => void;
@@ -441,6 +450,7 @@ function InventorySidePanel({
   ariaLabel,
   items,
   selected,
+  selectionEnabled,
   onSelectedChange,
   search,
   onSearchChange,
@@ -576,7 +586,7 @@ function InventorySidePanel({
                           el.indeterminate = !allSelected && someSelected;
                         }
                       }}
-                      disabled={sortedItems.length === 0}
+                      disabled={!selectionEnabled || sortedItems.length === 0}
                       onChange={toggleSelectAll}
                       aria-label="Select all"
                     />
@@ -612,6 +622,7 @@ function InventorySidePanel({
                   key={item.rowKey}
                   item={item}
                   selectedQuantity={selected.get(item.rowKey)}
+                  selectionEnabled={selectionEnabled}
                   onToggle={() => toggleRow(item)}
                   onQuantityChange={(quantity) => setRowQuantity(item.rowKey, quantity)}
                 />
@@ -627,11 +638,13 @@ function InventorySidePanel({
 function ItemRow({
   item,
   selectedQuantity,
+  selectionEnabled,
   onToggle,
   onQuantityChange,
 }: {
   item: WorkingItem;
   selectedQuantity: number | undefined;
+  selectionEnabled: boolean;
   onToggle: () => void;
   onQuantityChange: (quantity: number) => void;
 }) {
@@ -648,6 +661,7 @@ function ItemRow({
             type="checkbox"
             className="accent-primary size-4"
             checked={checked}
+            disabled={!selectionEnabled}
             onChange={onToggle}
             aria-label={`Select ${item.name}`}
           />
@@ -677,7 +691,7 @@ function ItemRow({
             </span>
           )}
         </div>
-        {checked && item.quantity > 1 && (
+        {selectionEnabled && checked && item.quantity > 1 && (
           <div className="mt-1">
             <NumericStepper
               value={selectedQuantity}
@@ -699,14 +713,8 @@ function ItemRow({
       </td>
       <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
         <div className="flex h-5 items-center justify-end gap-1">
-          {item.goldValue !== null ? (
-            <>
-              {item.goldValue * item.quantity}
-              <Coins className="text-muted-foreground size-3 shrink-0" />
-            </>
-          ) : (
-            '—'
-          )}
+          {item.goldValue * item.quantity}
+          <Coins className="text-muted-foreground size-3 shrink-0" />
         </div>
       </td>
     </tr>

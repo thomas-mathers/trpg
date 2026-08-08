@@ -66,7 +66,11 @@ interface NearbyPanelProps {
 }
 
 export function NearbyPanel({ scene }: NearbyPanelProps) {
-  const [lootTarget, setLootTarget] = useState<{ id: string; name: string } | null>(null);
+  const [inventoryTarget, setInventoryTarget] = useState<{
+    id: string;
+    name: string;
+    transfersEnabled: boolean;
+  } | null>(null);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
 
   const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
@@ -102,8 +106,12 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
               creature={creature}
               playerLevel={scene.playerStatus.level}
               tooltipForceClosed={isTransferOpen}
-              onLoot={() => {
-                setLootTarget({ id: creature.id, name: creature.name });
+              onOpenInventory={() => {
+                setInventoryTarget({
+                  id: creature.id,
+                  name: creature.name,
+                  transfersEnabled: creature.state === 'Dead',
+                });
                 setIsTransferOpen(true);
               }}
             />
@@ -153,8 +161,9 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
 
       <TransferItemDialog
         playerId={scene.playerStatus.id}
-        target={lootTarget}
+        target={inventoryTarget}
         open={isTransferOpen}
+        transfersEnabled={inventoryTarget?.transfersEnabled}
         onClose={() => setIsTransferOpen(false)}
       />
     </div>
@@ -165,12 +174,12 @@ function CreatureRow({
   creature,
   playerLevel,
   tooltipForceClosed,
-  onLoot,
+  onOpenInventory,
 }: {
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
   tooltipForceClosed: boolean;
-  onLoot: () => void;
+  onOpenInventory: () => void;
 }) {
   const dead = creature.state === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
@@ -195,25 +204,17 @@ function CreatureRow({
           side="left"
           forceClosed={tooltipForceClosed}
         >
-          {dead ? (
-            <button
-              type="button"
-              onClick={onLoot}
-              className="cursor-pointer truncate font-semibold underline decoration-dotted underline-offset-2"
-            >
-              {creature.name}
-            </button>
-          ) : (
-            <span
-              className={cn(
-                'cursor-help truncate font-semibold',
-                reputation != null && reputation > 0 && 'text-green-500',
-                reputation != null && reputation < 0 && 'text-red-500',
-              )}
-            >
-              {creature.name}
-            </span>
-          )}
+          <button
+            type="button"
+            onClick={onOpenInventory}
+            className={cn(
+              'cursor-pointer truncate font-semibold underline decoration-dotted underline-offset-2',
+              reputation != null && reputation > 0 && 'text-green-500',
+              reputation != null && reputation < 0 && 'text-red-500',
+            )}
+          >
+            {creature.name}
+          </button>
         </EntityTooltip>
         <span className="text-muted-foreground shrink-0 text-xs">Lv {creature.level}</span>
       </span>
