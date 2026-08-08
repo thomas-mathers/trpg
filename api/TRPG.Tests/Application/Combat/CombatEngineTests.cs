@@ -144,9 +144,10 @@ public class CombatEngineTests
 
         // Assert — player acted (faster) and the surviving enemy answered
         Assert.Equal(CombatOutcome.Ongoing, state.Outcome);
-        Assert.Equal(2, state.Events.Count);
-        Assert.Equal("Hero", Assert.IsType<Hit>(state.Events[0]).AttackerName);
-        Assert.Equal("Wraith", Assert.IsType<Hit>(state.Events[1]).AttackerName);
+        var hits = state.Events.OfType<Hit>().ToArray();
+        Assert.Equal(2, hits.Length);
+        Assert.Equal("Hero", hits[0].AttackerName);
+        Assert.Equal("Wraith", hits[1].AttackerName);
         var playerState = state.Combatants.Single(c => c.IsPlayer);
         Assert.True(playerState.CurrentHp < playerState.MaximumHp);
     }
@@ -164,7 +165,8 @@ public class CombatEngineTests
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
 
         // Assert
-        Assert.All(state.Events, t => Assert.IsType<Miss>(t));
+        var misses = state.Events.OfType<Miss>().ToArray();
+        Assert.Equal(2, misses.Length);
         var playerState = state.Combatants.Single(c => c.IsPlayer);
         Assert.Equal(playerState.MaximumHp, playerState.CurrentHp);
     }
@@ -304,7 +306,7 @@ public class CombatEngineTests
 
         // Assert — the dead enemy never got its turn, and the spoils are reported
         Assert.Equal(CombatOutcome.Victory, state.Outcome);
-        var hit = Assert.IsType<Hit>(Assert.Single(state.Events));
+        var hit = Assert.Single(state.Events.OfType<Hit>());
         Assert.True(hit.Killed);
         Assert.False(state.Combatants.Single(c => !c.IsPlayer).IsAlive);
     }
@@ -327,7 +329,7 @@ public class CombatEngineTests
 
         // Assert — the player never got to act
         Assert.Equal(CombatOutcome.Defeat, state.Outcome);
-        var hit = Assert.IsType<Hit>(Assert.Single(state.Events));
+        var hit = Assert.Single(state.Events.OfType<Hit>());
         Assert.Equal("Wraith", hit.AttackerName);
         Assert.True(hit.Killed);
     }
@@ -348,8 +350,7 @@ public class CombatEngineTests
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
 
         // Assert — it fell back to the always-affordable basic attack rather than skipping
-        Assert.Equal(2, state.Events.Count);
-        var monsterHit = Assert.IsType<Hit>(state.Events[1]);
+        var monsterHit = Assert.Single(state.Events.OfType<Hit>(), h => h.AttackerName == "Wraith");
         Assert.Equal("Strike", monsterHit.AbilityName);
     }
 
@@ -371,9 +372,9 @@ public class CombatEngineTests
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Bash"));
 
         // Assert — the stunned enemy lost its turn and the condition is visible in its state
-        var noAction = Assert.IsType<NoAction>(state.Events[1]);
+        var noAction = Assert.Single(state.Events.OfType<NoAction>());
         Assert.Equal(ConditionType.Stunned, noAction.Condition);
-        var playerHit = Assert.IsType<Hit>(state.Events[0]);
+        var playerHit = Assert.Single(state.Events.OfType<Hit>(), h => h.AttackerName == "Hero");
         Assert.Equal(ConditionType.Stunned, Assert.Single(playerHit.AppliedConditions));
         var enemyState = state.Combatants.Single(c => !c.IsPlayer);
         Assert.True(enemyState.ActiveConditions.ContainsKey(ConditionType.Stunned));
@@ -427,7 +428,7 @@ public class CombatEngineTests
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
 
         // Assert — the frozen enemy lost its turn
-        var noAction = Assert.IsType<NoAction>(state.Events[1]);
+        var noAction = Assert.Single(state.Events.OfType<NoAction>());
         Assert.Equal("Wraith", noAction.CreatureName);
         Assert.Equal(ConditionType.Frozen, noAction.Condition);
     }
@@ -448,7 +449,7 @@ public class CombatEngineTests
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
 
         // Assert
-        var noAction = Assert.IsType<NoAction>(state.Events[1]);
+        var noAction = Assert.Single(state.Events.OfType<NoAction>());
         Assert.Equal(ConditionType.Blinded, noAction.Condition);
     }
 
@@ -468,7 +469,7 @@ public class CombatEngineTests
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
 
         // Assert
-        Assert.IsType<Hit>(state.Events[1]);
+        Assert.Contains(state.Events.OfType<Hit>(), hit => hit.AttackerName == "Wraith");
     }
 
     [Fact]
@@ -487,7 +488,7 @@ public class CombatEngineTests
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
 
         // Assert
-        var noAction = Assert.IsType<NoAction>(state.Events[1]);
+        var noAction = Assert.Single(state.Events.OfType<NoAction>());
         Assert.Equal(ConditionType.Silenced, noAction.Condition);
     }
 
@@ -507,7 +508,7 @@ public class CombatEngineTests
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
 
         // Assert
-        Assert.IsType<Hit>(state.Events[1]);
+        Assert.Contains(state.Events.OfType<Hit>(), hit => hit.AttackerName == "Wraith");
     }
 
     [Fact]
@@ -695,7 +696,7 @@ public class CombatEngineTests
 
         // Assert
         Assert.Equal(CombatOutcome.Fled, state.Outcome);
-        var partingHit = Assert.IsType<Hit>(Assert.Single(state.Events));
+        var partingHit = Assert.Single(state.Events.OfType<Hit>());
         Assert.Equal("Wraith", partingHit.AttackerName);
         var playerState = state.Combatants.Single(c => c.IsPlayer);
         Assert.True(playerState.CurrentHp < playerState.MaximumHp);
@@ -732,7 +733,7 @@ public class CombatEngineTests
         Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
         Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
         var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Smite"));
-        var smiteHit = Assert.IsType<Hit>(state.Events[0]);
+        var smiteHit = Assert.Single(state.Events.OfType<Hit>(), h => h.AbilityName == "Smite");
         Assert.Equal("Smite", smiteHit.AbilityName);
     }
 
@@ -1067,11 +1068,14 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysMiss);
 
         // Act
-        Resolve(engine, combatants, new UseAbilityAction(player.CreatureId, "Block"));
+        var state = Resolve(engine, combatants, new UseAbilityAction(player.CreatureId, "Block"));
 
         // Assert
-        var playerState = combatants.Single(c => c.IsPlayer);
-        Assert.Equal(player.MaximumAp - BlockStance.ApCost, playerState.CurrentAp);
+        var resourceState = Assert.Single(
+            state.Events.OfType<ResourceStateUpdated>(),
+            update => update.CombatantId == player.CreatureId
+        );
+        Assert.Equal(player.MaximumAp - BlockStance.ApCost, resourceState.CurrentAp);
     }
 
     [Fact]

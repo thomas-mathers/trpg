@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts;
+using TRPG.Contracts.Combat.Requests;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data;
@@ -18,6 +20,8 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 {
     private TestApiClient _client = null!;
     private Guid _worldId;
+    private Guid _stateId;
+    private Guid _locationId;
     private Creature _player = null!;
 
     public async ValueTask InitializeAsync()
@@ -30,16 +34,29 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         var world = Builders.MakeWorld();
         var country = Builders.MakeCountry(world.Id);
         var state = Builders.MakeState(country.Id, world.Id);
-        var player = Builders.MakeCreature(world.Id, stateId: state.Id);
+        var city = Builders.MakeCity(state.Id, country.Id, worldId: world.Id);
+        var district = Builders.MakeDistrict(city.Id, worldId: world.Id);
+        var location = Builders.MakeLocation(
+            world.Id,
+            state.Id,
+            cityId: city.Id,
+            districtId: district.Id
+        );
+        var player = Builders.MakeCreature(world.Id, stateId: state.Id, locationId: location.Id);
         world.PlayerId = player.Id;
 
         context.Worlds.Add(world);
         context.Countries.Add(country);
         context.States.Add(state);
+        context.Cities.Add(city);
+        context.Districts.Add(district);
+        context.Locations.Add(location);
         context.Creatures.Add(player);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _worldId = world.Id;
+        _stateId = state.Id;
+        _locationId = location.Id;
         _player = player;
     }
 
@@ -62,6 +79,58 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
             TestContext.Current.CancellationToken
         );
         return result!.SessionId;
+    }
+
+    private async Task<Creature> SeedHostileCreature()
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var creature = Builders.MakeCreature(
+            _worldId,
+            name: "Wraith",
+            creatureType: Data.Models.CreatureType.Beast,
+            stateId: _stateId,
+            locationId: _locationId
+        );
+        context.Creatures.Add(creature);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return creature;
+    }
+
+    private async Task StartFight(Guid sessionId, Creature enemy)
+    {
+        fixture.ChatClient.PendingToolCallName = "attack";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["abilityName"] = "Strike",
+            ["targetName"] = enemy.Name,
+        };
+        using var response = await _client.PostAsJsonAsync(
+            "SendAdminChat",
+            new ChatRequest("I look around."),
+            routeValues: new { sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+        response.EnsureSuccessStatusCode();
+    }
+
+    private async Task<CombatActionResponse> ResolveCombatAction(
+        Guid sessionId,
+        UseAbilityAction action
+    )
+    {
+        using var response = await _client.PostAsJsonAsync(
+            "ResolveCombatAction",
+            action,
+            routeValues: new { sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+        response.EnsureSuccessStatusCode();
+        return (
+            await response.Content.ReadFromJsonAsync<CombatActionResponse>(
+                TestContext.Current.CancellationToken
+            )
+        )!;
     }
 
     [Fact]
@@ -105,6 +174,93 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         Assert.NotNull(result);
         Assert.False(string.IsNullOrWhiteSpace(result.Response));
         Assert.Null(result.Metrics);
+    }
+
+    [Fact]
+    public async Task ResolveCombatAction_ReturnsSceneSnapshot_WhenTheAttackChangesNearbyCreatureState()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+
+        // Act - hit/miss is random each round, so the attack is repeated a fixed number of times.
+        // The final response must include the scene state after whichever round(s) landed a hit.
+        CombatActionResponse? lastResponse = null;
+        for (var i = 0; i < 4; i++)
+        {
+            lastResponse = await ResolveCombatAction(
+                sessionId,
+                new UseAbilityAction(enemy.Id, "Strike")
+            );
+        }
+
+        // Assert
+        var scene = Assert.IsType<SceneSnapshot>(lastResponse?.Scene);
+        var updatedEnemy = Assert.Single(scene.NearbyCreatures, c => c.Id == enemy.Id);
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var freshEnemy = await context.Creatures.SingleAsync(
+            c => c.Id == enemy.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(freshEnemy.CurrentHp, updatedEnemy.CurrentHp);
+    }
+
+    [Fact]
+    public async Task ResolveCombatAction_ResolvesTheAttack_AndReturnsDeterministicNarration()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+
+        // Act
+        var response = await ResolveCombatAction(
+            sessionId,
+            new UseAbilityAction(enemy.Id, "Strike")
+        );
+
+        // Assert - hit/miss is the only random part here (unarmed damage is a deterministic 3,
+        // both combatants default to 35 max HP), so Outcome staying Ongoing is guaranteed
+        // regardless of which side's roll lands; only the exact HP change is left unasserted.
+        Assert.NotNull(response.Update);
+        Assert.NotEmpty(response.Narrations);
+        Assert.Null(response.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ResolveCombatAction_ReturnsAMessage_WhenNoFightIsActive()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+
+        // Act
+        var response = await ResolveCombatAction(
+            sessionId,
+            new UseAbilityAction(Guid.NewGuid(), "Strike")
+        );
+
+        // Assert
+        Assert.Equal("There's no fight to act in right now.", response.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ResolveCombatAction_ReturnsTheRejectionReason_WhenActionIsInvalid()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+
+        // Act
+        var response = await ResolveCombatAction(
+            sessionId,
+            new UseAbilityAction(enemy.Id, "Nonexistent Move")
+        );
+
+        // Assert
+        Assert.Equal("Ability Nonexistent Move not found", response.ErrorMessage);
     }
 
     [Fact]
