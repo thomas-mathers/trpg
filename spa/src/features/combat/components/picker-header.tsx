@@ -3,11 +3,12 @@ import { ChevronLeft } from 'lucide-react';
 interface PickerHeaderProps {
   onBack: () => void;
   title: string;
+  className?: string;
 }
 
-export function PickerHeader({ onBack, title }: PickerHeaderProps) {
+export function PickerHeader({ onBack, title, className }: PickerHeaderProps) {
   return (
-    <div className="flex items-center gap-2 px-0.5 pb-2">
+    <div className={`flex items-center gap-2 px-0.5 ${className ?? ''}`}>
       <button
         type="button"
         onClick={onBack}

@@ -14,6 +14,7 @@ internal class ResolveCombatRoundCommand
     public required Guid PlayerId { get; init; }
     public required IReadOnlyList<Combatant> Combatants { get; init; }
     public required CombatState State { get; init; }
+    public bool PublishEvents { get; init; } = true;
 }
 
 internal class ResolveCombatRoundCommandHandler(
@@ -37,12 +38,15 @@ internal class ResolveCombatRoundCommandHandler(
             cancellationToken
         );
 
-        turnContext.PendingEvents.Enqueue(
-            new CombatUpdatedEvent(
-                FightStateMapper.ToFightState(command.Combatants),
-                CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
-            )
-        );
+        if (command.PublishEvents)
+        {
+            turnContext.PendingEvents.Enqueue(
+                new CombatUpdatedEvent(
+                    FightStateMapper.ToFightState(command.Combatants),
+                    CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
+                )
+            );
+        }
 
         if (state.WeaponSwingCounts.Count > 0)
         {
@@ -97,7 +101,10 @@ internal class ResolveCombatRoundCommandHandler(
                 },
                 cancellationToken
             );
-            turnContext.PendingEvents.Enqueue(new CombatEndedEvent(state.Outcome));
+            if (command.PublishEvents)
+            {
+                turnContext.PendingEvents.Enqueue(new CombatEndedEvent(state.Outcome));
+            }
         }
 
         return state.ToCombatResult();

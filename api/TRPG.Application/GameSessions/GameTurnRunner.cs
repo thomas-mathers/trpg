@@ -10,12 +10,14 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common;
+using TRPG.Application.Common.Mappers;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Contracts.Combat.Requests;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions;
@@ -172,19 +174,11 @@ internal class GameTurnRunner(
         await FinishTurn(inputOrdinal, cancellationToken);
     }
 
-    public async IAsyncEnumerable<string> StreamCombatActionResponse(
+    public async Task<CombatActionResponse> ResolveCombatAction(
         PlayerCombatAction action,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default
     )
     {
-        using var _ = logger.BeginScope(
-            new Dictionary<string, object>
-            {
-                ["SessionId"] = turnContext.SessionId,
-                ["TurnId"] = Guid.NewGuid().ToString("N")[..8],
-            }
-        );
-
         await BeginTurn(cancellationToken);
 
         var combatants = await getCombatants.Handle(
@@ -193,21 +187,18 @@ internal class GameTurnRunner(
         );
         if (combatants.Count == 0)
         {
-            yield return "There's no fight to act in right now.";
-            yield break;
+            return CombatActionResponse.Rejected("There's no fight to act in right now.");
         }
 
         var resolverResult = new PlayerCombatActionResolver(combatants).Resolve(action);
-
         if (resolverResult.ErrorMessage is not null)
         {
-            yield return resolverResult.ErrorMessage;
-            yield break;
+            return CombatActionResponse.Rejected(resolverResult.ErrorMessage);
         }
 
         var state = combatEngine.ProcessRound(combatants, resolverResult.Result!);
 
-        var result = await resolveCombatRound.Handle(
+        await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {
                 SessionId = turnContext.SessionId,
@@ -215,20 +206,22 @@ internal class GameTurnRunner(
                 PlayerId = turnContext.PlayerId,
                 Combatants = combatants,
                 State = state,
+                PublishEvents = false,
             },
             cancellationToken
         );
 
-        var prompt =
-            $"A combat action was resolved automatically (no tool call needed). Result: {JsonSerializer.Serialize(result, ToolJsonOptions.Options)}. Narrate what just happened vividly based on this result. Do not call any tools.";
-
-        var inputOrdinal = await AppendUserMessage(prompt, cancellationToken);
-        await foreach (var token in StreamReply(includeTools: false, cancellationToken))
-        {
-            yield return token;
-        }
-
-        await FinishTurn(inputOrdinal, cancellationToken);
+        return new CombatActionResponse(
+            new CombatUpdatePayload(
+                FightStateMapper.ToFightState(combatants),
+                CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
+            ),
+            null,
+            CombatNarration.Describe(state.Events),
+            state.Outcome == TRPG.Data.Models.CombatOutcome.Ongoing
+                ? null
+                : state.Outcome.ToContract()
+        );
     }
 
     public async IAsyncEnumerable<string> StreamFleeResponse(

@@ -1,4 +1,4 @@
-import { DoorOpen, Ghost, Skull } from 'lucide-react';
+import { Crown, DoorOpen, Skull } from 'lucide-react';
 import {
   Anvil,
   BedDouble,
@@ -181,10 +181,10 @@ function CreatureRow({
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="flex h-[15px] w-[15px] shrink-0 items-center justify-center">
           {dead ? (
-            <Ghost className="h-[15px] w-[15px]" aria-label="Dead" />
+            <Skull className="h-[15px] w-[15px]" aria-label="Dead" />
           ) : (
             dangerous && (
-              <Skull className="h-[15px] w-[15px]" aria-label="Much more powerful than you" />
+              <Crown className="h-[15px] w-[15px]" aria-label="Much more powerful than you" />
             )
           )}
         </span>

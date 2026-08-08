@@ -283,6 +283,21 @@
   }
 }
 
+@keyframes combat-player-turn {
+  0%,
+  100% {
+    box-shadow: none;
+    transform: translateY(0);
+  }
+  20%,
+  80% {
+    box-shadow:
+      0 0 0 2px var(--crit),
+      0 0 16px color-mix(in oklch, var(--crit) 35%, transparent);
+    transform: translateY(-2px);
+  }
+}
+
 @keyframes combat-turn-indicator-pop {
   0% {
     opacity: 0;
@@ -334,6 +349,7 @@
 
 .combat-float-up {
   animation: combat-float-up 0.9s ease-out forwards;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .combat-float-up-miss {
@@ -358,6 +374,10 @@
 
 .combat-windup {
   animation: combat-windup 0.9s ease;
+}
+
+.combat-player-turn {
+  animation: combat-player-turn 0.9s ease;
 }
 
 .combat-turn-indicator {
@@ -390,6 +410,7 @@
   .combat-flash-crit,
   .combat-dodge,
   .combat-windup,
+  .combat-player-turn,
   .combat-turn-indicator,
   .combat-flash-float,
   .combat-flash-float-miss,

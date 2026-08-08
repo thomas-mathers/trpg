@@ -1,7 +1,7 @@
 import { defineConfig } from '@hey-api/openapi-ts';
 
 export default defineConfig({
-  input: '../TRPG/obj/TRPG.json',
+  input: '../api/TRPG/obj/TRPG.json',
   output: './src/api/client',
   plugins: [
     '@hey-api/typescript',

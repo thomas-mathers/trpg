@@ -1,14 +1,24 @@
-import { Droplet, Heart, Swords, Zap } from 'lucide-react';
+import { Droplet, Heart, Zap } from 'lucide-react';
 
 import type { SceneSnapshot } from '@/api/client';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useScene } from '@/features/game/contexts/scene-context';
 import { formatLocation } from '@/features/game/scene-format';
+import type { ConnectionStatus } from '@/lib/game-event-bus';
 
 interface StatusBarProps {
   isInCombat?: boolean;
+  connectionStatus: ConnectionStatus;
 }
 
-export function StatusBar({ isInCombat = false }: StatusBarProps) {
+const connectionStatusStyles: Record<ConnectionStatus, { className: string; label: string }> = {
+  connected: { className: 'bg-green-500', label: 'Connected' },
+  reconnecting: { className: 'animate-pulse bg-amber-500', label: 'Reconnecting…' },
+  reconnected: { className: 'bg-green-500', label: 'Connected' },
+  disconnected: { className: 'bg-destructive', label: 'Connection lost' },
+};
+
+export function StatusBar({ isInCombat = false, connectionStatus }: StatusBarProps) {
   const scene = useScene();
 
   if (!scene) {
@@ -20,18 +30,14 @@ export function StatusBar({ isInCombat = false }: StatusBarProps) {
   if (isInCombat) {
     return (
       <div className="flex flex-1 items-center gap-2 text-sm">
-        <span className="shrink-0 font-bold">{playerStatus.name}</span>
-        <span className="bg-destructive/15 text-destructive flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold">
-          <Swords className="h-2.5 w-2.5" />
-          In combat
-        </span>
+        <PlayerName connectionStatus={connectionStatus} name={playerStatus.name} />
       </div>
     );
   }
 
   return (
     <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-      <span className="shrink-0 font-bold">{playerStatus.name}</span>
+      <PlayerName connectionStatus={connectionStatus} name={playerStatus.name} />
       <div className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-2 text-xs max-sm:basis-full sm:gap-4 sm:text-sm">
         <span className="min-w-0 truncate">{formatLocation(scene)}</span>
         <span className="shrink-0">{formatTime(scene)}</span>
@@ -51,6 +57,33 @@ export function StatusBar({ isInCombat = false }: StatusBarProps) {
         </span>
       </div>
     </div>
+  );
+}
+
+function PlayerName({
+  name,
+  connectionStatus,
+}: {
+  name: string;
+  connectionStatus: ConnectionStatus;
+}) {
+  const status = connectionStatusStyles[connectionStatus];
+
+  return (
+    <span className="flex shrink-0 items-center gap-1.5 font-bold">
+      {name}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              aria-label={status.label}
+              className={`h-2 w-2 rounded-full ${status.className}`}
+            />
+          </TooltipTrigger>
+          <TooltipContent>{status.label}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </span>
   );
 }
 

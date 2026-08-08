@@ -3,7 +3,6 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -338,61 +337,6 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendCombatAction_PushesSceneSnapshot_WhenTheAttackChangesNearbyCreatureState()
-    {
-        // Arrange
-        var enemy = await SeedHostileCreature();
-        var sessionId = await StartSession();
-        await StartFight(sessionId, enemy);
-
-        var connection = fixture.CreateHubConnection(sessionId);
-        var snapshots = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
-        var initialSnapshotReceived =
-            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
-        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
-            "SceneSnapshot",
-            snapshot =>
-            {
-                snapshots.Add(snapshot);
-                initialSnapshotReceived.TrySetResult(snapshot);
-            }
-        );
-        await connection.StartAsync(TestContext.Current.CancellationToken);
-        await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
-        snapshots.Clear();
-        await using var gameHub = connection;
-
-        // Act - hit/miss is random each round (see
-        // SendCombatAction_ResolvesTheAttack_AndNarratesTheOutcome), so the attack is repeated a
-        // fixed number of times; what's being exercised is that the before/after diff in
-        // ChatHub.StreamTurn notices whichever round(s) actually land a hit on either side, not a
-        // specific round's outcome. All eight independent rolls across four rounds missing is
-        // negligible. Each round that changes something pushes its own SceneSnapshot, so this may
-        // push more than once - only the most recent snapshot needs to reflect the truth.
-        for (var i = 0; i < 4; i++)
-        {
-            await Drain(
-                gameHub.StreamAsync<string>(
-                    "SendCombatAction",
-                    new UseAbilityAction(enemy.Id, "Strike"),
-                    TestContext.Current.CancellationToken
-                )
-            );
-        }
-
-        // Assert
-        Assert.NotEmpty(snapshots);
-        var nearbyEnemy = Assert.Single(snapshots[^1].NearbyCreatures, c => c.Id == enemy.Id);
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var freshEnemy = await context.Creatures.SingleAsync(
-            c => c.Id == enemy.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(freshEnemy.CurrentHp, nearbyEnemy.CurrentHp);
-    }
-
-    [Fact]
     public async Task SendChat_DoesNotPushSceneSnapshot_WhenNothingChangedDuringTheTurn()
     {
         // Arrange
@@ -426,74 +370,6 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Empty(snapshots);
-    }
-
-    [Fact]
-    public async Task SendCombatAction_ResolvesTheAttack_AndNarratesTheOutcome()
-    {
-        // Arrange
-        var enemy = await SeedHostileCreature();
-        var sessionId = await StartSession();
-        await StartFight(sessionId, enemy);
-        await using var gameHub = await Connect(sessionId);
-
-        // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>(
-                "SendCombatAction",
-                new UseAbilityAction(enemy.Id, "Strike"),
-                TestContext.Current.CancellationToken
-            )
-        );
-
-        // Assert — hit/miss is the only random part here (unarmed damage is a deterministic
-        // 3, both combatants default to 35 max HP), so Outcome staying Ongoing is guaranteed
-        // regardless of which side's roll lands; only the exact HP change is left unasserted
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        var fight = await GetFight();
-        Assert.Equal(CombatOutcome.Ongoing, fight.Outcome);
-    }
-
-    [Fact]
-    public async Task SendCombatAction_ReturnsAMessage_WhenNoFightIsActive()
-    {
-        // Arrange
-        var sessionId = await StartSession();
-        await using var gameHub = await Connect(sessionId);
-
-        // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>(
-                "SendCombatAction",
-                new UseAbilityAction(Guid.NewGuid(), "Strike"),
-                TestContext.Current.CancellationToken
-            )
-        );
-
-        // Assert
-        Assert.Equal("There's no fight to act in right now.", narration);
-    }
-
-    [Fact]
-    public async Task SendCombatAction_ReturnsTheRejectionReason_WhenActionIsInvalid()
-    {
-        // Arrange
-        var enemy = await SeedHostileCreature();
-        var sessionId = await StartSession();
-        await StartFight(sessionId, enemy);
-        await using var gameHub = await Connect(sessionId);
-
-        // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>(
-                "SendCombatAction",
-                new UseAbilityAction(enemy.Id, "Nonexistent Move"),
-                TestContext.Current.CancellationToken
-            )
-        );
-
-        // Assert
-        Assert.Equal("Ability Nonexistent Move not found", narration);
     }
 
     [Fact]

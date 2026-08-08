@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { CharacterDialog } from '@/features/character/components/character-dialog';
 
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
-import { gameEventBus } from '../../../lib/game-event-bus';
+import { gameEventBus, type ConnectionStatus } from '../../../lib/game-event-bus';
 import { clearStoredMessages } from '../../../lib/session-storage';
 import { InventoryDialog } from '../../inventory/components/inventory-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
@@ -20,7 +20,7 @@ import { NearbySidebar } from './nearby-sidebar';
 import { NearbyToggleButton } from './nearby-toggle-button';
 import { StatusBar } from './status-bar';
 
-type OpenDialog = 'character' | 'inventory' | 'skillTree' | 'disconnected' | null;
+type OpenDialog = 'character' | 'inventory' | 'skillTree' | null;
 
 function GameScreen() {
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ function GameScreen() {
   const isInCombat = useIsInCombat();
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
+  const [isConnectionLostDialogOpen, setIsConnectionLostDialogOpen] = useState(false);
 
   useEffect(() => {
     setIsNearbyOpen(!isInCombat);
@@ -38,7 +39,7 @@ function GameScreen() {
     () =>
       gameEventBus.on('ConnectionStatusChanged', (status) => {
         if (status === 'disconnected') {
-          setOpenDialog('disconnected');
+          setIsConnectionLostDialogOpen(true);
         }
       }),
     [],
@@ -63,6 +64,8 @@ function GameScreen() {
           isInCombat={isInCombat}
           isNearbyOpen={isNearbyOpen}
           openDialog={openDialog}
+          isConnectionLostDialogOpen={isConnectionLostDialogOpen}
+          connectionStatus={gameChat.connectionStatus}
           onNearbyOpenChange={setIsNearbyOpen}
           onOpenDialog={setOpenDialog}
           onQuit={handleExitToMenu}
@@ -77,6 +80,8 @@ interface GameScreenContentProps {
   isInCombat: boolean;
   isNearbyOpen: boolean;
   openDialog: OpenDialog;
+  isConnectionLostDialogOpen: boolean;
+  connectionStatus: ConnectionStatus;
   onNearbyOpenChange: (open: boolean) => void;
   onOpenDialog: (dialog: OpenDialog) => void;
   onQuit: () => void;
@@ -87,6 +92,8 @@ function GameScreenContent({
   isInCombat,
   isNearbyOpen,
   openDialog,
+  isConnectionLostDialogOpen,
+  connectionStatus,
   onNearbyOpenChange,
   onOpenDialog,
   onQuit,
@@ -101,7 +108,7 @@ function GameScreenContent({
       className="h-screen flex-col"
     >
       <div className="flex items-center gap-4 border-b px-4 py-2">
-        <StatusBar isInCombat={isInCombat} />
+        <StatusBar connectionStatus={connectionStatus} isInCombat={isInCombat} />
         {!isInCombat && <NearbyToggleButton />}
         <GameMenu
           onOpenCharacterDialog={() => onOpenDialog('character')}
@@ -135,7 +142,7 @@ function GameScreenContent({
         </>
       )}
 
-      <ConnectionLostDialog open={openDialog === 'disconnected'} onClose={onConnectionLostClose} />
+      <ConnectionLostDialog open={isConnectionLostDialogOpen} onClose={onConnectionLostClose} />
     </SidebarProvider>
   );
 }

@@ -15,9 +15,10 @@ export interface ItemPickerProps {
   playerId: string;
   onBack: () => void;
   onChoose: (item: ConsumableSummary) => void;
+  showHeader?: boolean;
 }
 
-export function ItemPicker({ playerId, onBack, onChoose }: ItemPickerProps) {
+export function ItemPicker({ playerId, onBack, onChoose, showHeader = true }: ItemPickerProps) {
   const [query, setQuery] = useState('');
   const queryClient = useQueryClient();
 
@@ -42,7 +43,7 @@ export function ItemPicker({ playerId, onBack, onChoose }: ItemPickerProps) {
 
   return (
     <div className="p-2.5">
-      <PickerHeader onBack={onBack} title="Choose an item" />
+      {showHeader && <PickerHeader className="pb-2" onBack={onBack} title="Choose an item" />}
 
       {items.length > SEARCH_THRESHOLD && (
         <SearchInput value={query} onChange={setQuery} placeholder="Search items…" />

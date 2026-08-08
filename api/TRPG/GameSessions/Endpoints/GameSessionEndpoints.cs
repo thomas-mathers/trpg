@@ -8,6 +8,8 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts;
+using TRPG.Contracts.Combat.Requests;
+using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
@@ -19,11 +21,47 @@ internal static class GameSessionEndpoints
     public static void MapGameSessionEndpoints(this WebApplication app)
     {
         app.MapPost("/sessions", StartSession).WithName("CreateSession");
+        app.MapPost("/sessions/{sessionId:guid}/combat-actions", ResolveCombatAction)
+            .WithName("ResolveCombatAction");
         app.MapGet("/sessions/{sessionId:guid}/scene", GetScene).WithName("GetSessionScene");
         app.MapGet("/sessions/{sessionId:guid}/named-entities", GetNamedEntities)
             .WithName("ListSessionNamedEntities");
         app.MapGet("/sessions/{sessionId:guid}/named-entities/{entityId:guid}", GetNamedEntityById)
             .WithName("GetSessionNamedEntity");
+    }
+
+    private static async Task<Ok<CombatActionResponse>> ResolveCombatAction(
+        Guid sessionId,
+        PlayerCombatAction action,
+        GameTurnRunner turnRunner,
+        GameTurnContext turnContext,
+        GetGameSessionQueryHandler getGameSession,
+        GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
+        CancellationToken cancellationToken
+    )
+    {
+        var session = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = sessionId },
+            cancellationToken
+        );
+        turnContext.SessionId = session.Id;
+
+        var response = await turnRunner.ResolveCombatAction(action, cancellationToken);
+        var scene = await getSceneWithCatchUp.Handle(
+            new GetSceneWithCatchUpQuery
+            {
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                SessionId = session.Id,
+            },
+            cancellationToken
+        );
+        return TypedResults.Ok(
+            response with
+            {
+                Scene = scene is null ? null : SceneSnapshotMapper.ToSnapshot(scene),
+            }
+        );
     }
 
     private static async Task<Results<NotFound, Ok<SessionCreatedResponse>>> StartSession(

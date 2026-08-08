@@ -2,7 +2,7 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AdvanceSessionTimeData, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetSessionNamedEntityResponses, GetSessionSceneResponses, ListSessionNamedEntitiesResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AdvanceSessionTimeData, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetSessionNamedEntityResponses, GetSessionSceneResponses, ListSessionNamedEntitiesResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ResolveCombatActionData, ResolveCombatActionResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
@@ -708,6 +708,37 @@ export function handleCreateSession(response?: HandleCreateSessionResponse | Htt
     }, options);
 }
 
+export type HandleResolveCombatActionResponse = {
+    body: ResolveCombatActionResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `POST /sessions/{sessionId}/combat-actions` operation.
+ */
+export function handleResolveCombatAction(response?: HandleResolveCombatActionResponse | HttpResponseResolver<{
+    sessionId: string;
+}, ResolveCombatActionData['body']>, options?: RequestHandlerOptions): HttpHandler {
+    return http.post<{
+        sessionId: string;
+    }, ResolveCombatActionData['body']>(`${options?.baseUrl ?? '*'}/sessions/:sessionId/combat-actions`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
 export type HandleGetSessionSceneResponse = {
     body: GetSessionSceneResponses[200];
     status?: 200;
@@ -1048,6 +1079,10 @@ export type MswHandlerFactories = {
      */
     createSession: typeof handleCreateSession;
     /**
+     * Handler for the `POST /sessions/{sessionId}/combat-actions` operation.
+     */
+    resolveCombatAction: typeof handleResolveCombatAction;
+    /**
      * Handler for the `GET /sessions/{sessionId}/scene` operation.
      */
     getSessionScene: typeof handleGetSessionScene;
@@ -1119,6 +1154,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         getPlayerFightAbilities: wrap(handleGetPlayerFightAbilities),
         getCreatureGenerationOptions: wrap(handleGetCreatureGenerationOptions),
         createSession: wrap(handleCreateSession),
+        resolveCombatAction: wrap(handleResolveCombatAction),
         getSessionScene: wrap(handleGetSessionScene),
         listSessionNamedEntities: wrap(handleListSessionNamedEntities),
         getSessionNamedEntity: wrap(handleGetSessionNamedEntity),
@@ -1159,6 +1195,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
             invoke(pick.equipCreatureItem, overrides.equipCreatureItem),
             invoke(pick.getNearbyCorpses, overrides.getNearbyCorpses),
             invoke(pick.getPlayerFight, overrides.getPlayerFight),
+            invoke(pick.resolveCombatAction, overrides.resolveCombatAction),
             invoke(pick.getSessionScene, overrides.getSessionScene),
             invoke(pick.listSessionNamedEntities, overrides.listSessionNamedEntities),
             invoke(pick.getCreatureGenerationOptions, overrides.getCreatureGenerationOptions),

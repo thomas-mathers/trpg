@@ -1,4 +1,5 @@
-import { Droplet, Heart, type LucideIcon, Skull, Swords, Zap } from 'lucide-react';
+import { Crown, Droplet, Heart, type LucideIcon, Skull, Zap } from 'lucide-react';
+import { motion } from 'motion/react';
 
 import type { CombatantState } from '@/api/client';
 import { EffectBadge } from '@/features/combat/components/effect-badge';
@@ -15,6 +16,7 @@ interface CombatantCardProps {
   onSelect?: () => void;
   flash?: CombatFlash;
   isActing?: boolean;
+  className?: string;
 }
 
 export function CombatantCard({
@@ -25,6 +27,7 @@ export function CombatantCard({
   onSelect,
   flash,
   isActing = false,
+  className,
 }: CombatantCardProps) {
   const hpDelta = useStatDelta(Number(combatant.currentHp));
   const apDelta = useStatDelta(Number(combatant.currentAp));
@@ -75,36 +78,41 @@ export function CombatantCard({
           : undefined
       }
       className={cn(
-        'bg-card relative min-w-[156px] flex-1 rounded-lg border p-2.5 text-left shadow-sm transition-[box-shadow,transform] duration-150',
+        'bg-card relative min-w-[156px] overflow-hidden rounded-lg p-2.5 text-left shadow-sm transition-[box-shadow,transform] duration-150',
         !combatant.isAlive && 'opacity-45',
         canTarget &&
-          'ring-ring cursor-pointer ring-1 outline-none hover:-translate-y-px hover:ring-2 focus-visible:-translate-y-px focus-visible:ring-2',
+          'cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-foreground/50',
         isHit && 'combat-flash-hit',
         isCrit && 'combat-flash-crit',
         isDodged && 'combat-dodge',
+        isActing && 'shadow-lg',
+        className,
       )}
     >
       {isActing && (
         <span
-          key="acting"
-          className="combat-turn-indicator bg-destructive absolute -top-1.5 left-2 flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white uppercase"
-        >
-          <Swords className="h-2 w-2" />
-          Turn
-        </span>
+          className={
+            isSelf
+              ? 'combat-player-turn absolute inset-0 rounded-lg'
+              : 'combat-windup absolute inset-0 rounded-lg'
+          }
+        />
       )}
-      {isActing && <span className="combat-windup absolute inset-0 rounded-lg" />}
       {flash && <FlashFloat flash={flash} />}
 
       <div className="mb-1.5 flex items-baseline justify-between gap-1.5">
         <span className="flex min-w-0 items-center gap-1">
           {danger && (
-            <Skull className="h-3 w-3 shrink-0" aria-label="Much more powerful than you" />
+            <Crown className="h-3 w-3 shrink-0" aria-label="Much more powerful than you" />
           )}
-          <span className="truncate text-[13px] font-semibold">
-            {combatant.name}
-            {!combatant.isAlive && ' (defeated)'}
-            {isSelf && ' (you)'}
+          {!combatant.isAlive && (
+            <Skull className="text-muted-foreground h-3.5 w-3.5 shrink-0" aria-label="Defeated" />
+          )}
+          <span className="flex min-w-0 items-center gap-1 text-[13px] font-semibold">
+            <span className="truncate">
+              {combatant.name}
+              {isSelf && ' (you)'}
+            </span>
           </span>
         </span>
         <span className="text-muted-foreground shrink-0 text-[11px]">Lv {combatant.level}</span>
@@ -180,7 +188,7 @@ function StatBar({
       {!hideDelta && delta !== null && delta !== 0 && (
         <span
           className={cn(
-            'combat-float-up pointer-events-none absolute -top-0.5 right-0 text-[13px] font-bold tabular-nums',
+            'combat-float-up pointer-events-none absolute -top-0.5 right-0 text-[13px] font-bold tabular-nums [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]',
             delta > 0 ? 'text-green-500' : colorClass,
           )}
         >
@@ -192,42 +200,25 @@ function StatBar({
 }
 
 function FlashFloat({ flash }: { flash: CombatFlash }) {
-  if (flash.kind === 'miss') {
-    return (
-      <span
-        key={flash.nonce}
-        className="combat-flash-float-miss text-muted-foreground pointer-events-none absolute top-9 left-1/2 z-10 text-[12px] font-semibold italic"
-      >
-        MISS
-      </span>
-    );
-  }
-
-  if (flash.kind === 'block') {
-    return (
-      <span
-        key={flash.nonce}
-        className="combat-flash-float-miss text-muted-foreground pointer-events-none absolute top-9 left-1/2 z-10 text-[12px] font-semibold italic"
-      >
-        BLOCKED
-      </span>
-    );
-  }
-
-  const isCrit = flash.kind === 'crit';
+  const treatment = {
+    hit: { label: `−${flash.damage}`, className: 'text-yellow-400 text-lg' },
+    crit: { label: `CRIT −${flash.damage}`, className: 'text-red-500 text-2xl' },
+    miss: { label: 'MISS', className: 'text-muted-foreground text-lg italic' },
+    block: { label: 'BLOCKED', className: 'text-sky-500 text-lg' },
+  } as const;
+  const current = treatment[flash.kind];
 
   return (
-    <span
+    <motion.span
       key={flash.nonce}
+      animate={{ opacity: [0, 1, 1, 0], scale: [1.5, 1.15, 0.85, 0.7], y: [8, 0, -24, -36] }}
       className={cn(
-        'pointer-events-none absolute top-9 left-1/2 z-10 font-bold tabular-nums',
-        isCrit
-          ? 'combat-flash-float-crit text-[22px]'
-          : 'combat-flash-float text-red-500 text-[15px]',
+        'pointer-events-none absolute top-1/2 left-1/2 z-10 -translate-x-1/2 font-black tracking-tight whitespace-nowrap [-webkit-text-stroke:1px_rgba(0,0,0,0.85)] [text-shadow:0_1px_0_rgba(0,0,0,0.65),0_2px_3px_rgba(0,0,0,0.4)]',
+        current.className,
       )}
-      style={isCrit ? { color: 'var(--crit)' } : undefined}
+      transition={{ duration: 1, ease: 'easeOut' }}
     >
-      {isCrit ? `CRIT -${flash.damage}` : `-${flash.damage}`}
-    </span>
+      {current.label}
+    </motion.span>
   );
 }

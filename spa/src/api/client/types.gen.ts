@@ -105,6 +105,14 @@ export type ChatResponse = {
     metrics: null | TurnMetricsDto;
 };
 
+export type CombatActionResponse = {
+    update: null | CombatUpdatePayload;
+    errorMessage: null | string;
+    narrations: Array<string>;
+    outcome: null | CombatOutcome;
+    scene?: null | SceneSnapshot;
+};
+
 export type CombatantState = {
     id: string;
     name: string;
@@ -123,7 +131,90 @@ export type CombatantState = {
     activeBuffs: Array<ActiveBuff>;
 };
 
+export type CombatOutcome = 'Victory' | 'Defeat' | 'Fled';
+
+export type CombatRoundEvent = ({
+    type: 'CombatHitEvent';
+} & CombatRoundEventCombatHitEvent) | ({
+    type: 'CombatMissEvent';
+} & CombatRoundEventCombatMissEvent) | ({
+    type: 'CombatBlockEvent';
+} & CombatRoundEventCombatBlockEvent) | ({
+    type: 'CombatRegeneratedEvent';
+} & CombatRoundEventCombatRegeneratedEvent) | ({
+    type: 'CombatResourceStateUpdatedEvent';
+} & CombatRoundEventCombatResourceStateUpdatedEvent);
+
+export type CombatRoundEventCombatBlockEvent = {
+    type?: 'CombatBlockEvent';
+    attackerId: string;
+    attackerName: string;
+    abilityName: string;
+    targetId: string;
+    targetName: string;
+};
+
+export type CombatRoundEventCombatHitEvent = {
+    type?: 'CombatHitEvent';
+    damage: number;
+    damageType: DamageType;
+    isCritical: boolean;
+    killed: boolean;
+    targetRemainingHp: number;
+    targetMaximumHp: number;
+    appliedConditions: Array<ConditionType>;
+    attackerId: string;
+    attackerName: string;
+    abilityName: string;
+    targetId: string;
+    targetName: string;
+};
+
+export type CombatRoundEventCombatMissEvent = {
+    type?: 'CombatMissEvent';
+    attackerId: string;
+    attackerName: string;
+    abilityName: string;
+    targetId: string;
+    targetName: string;
+};
+
+export type CombatRoundEventCombatRegeneratedEvent = {
+    type?: 'CombatRegeneratedEvent';
+    previousAp: number;
+    currentAp: number;
+    maximumAp: number;
+    previousMp: number;
+    currentMp: number;
+    maximumMp: number;
+    attackerId: string;
+    attackerName: string;
+    abilityName?: string;
+    targetId?: string;
+    targetName?: string;
+};
+
+export type CombatRoundEventCombatResourceStateUpdatedEvent = {
+    type?: 'CombatResourceStateUpdatedEvent';
+    currentAp: number;
+    maximumAp: number;
+    currentMp: number;
+    maximumMp: number;
+    attackerId: string;
+    attackerName: string;
+    abilityName?: string;
+    targetId?: string;
+    targetName?: string;
+};
+
 export type CombatSpeedType = 'IncreasedAttackSpeed' | 'FasterCastRate' | 'FasterHitRecovery';
+
+export type CombatUpdatePayload = {
+    fightState: FightState;
+    events: Array<CombatRoundEvent>;
+};
+
+export type ConditionType = 'Blinded' | 'Bleeding' | 'Burning' | 'Disarmed' | 'Frozen' | 'Poisoned' | 'Silenced' | 'Snared' | 'Stunned';
 
 export type ConsumableSummary = {
     itemId: string;
@@ -511,6 +602,23 @@ export type NearbyPropSnapshot = {
 };
 
 export type PlayerClass = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric';
+
+export type PlayerCombatAction = ({
+    type: 'UseAbilityAction';
+} & PlayerCombatActionUseAbilityAction) | ({
+    type: 'UseItemAction';
+} & PlayerCombatActionUseItemAction);
+
+export type PlayerCombatActionUseAbilityAction = {
+    type?: 'UseAbilityAction';
+    targetId: string;
+    abilityName: string;
+};
+
+export type PlayerCombatActionUseItemAction = {
+    type?: 'UseItemAction';
+    itemName: string;
+};
 
 export type ProblemDetails = {
     type?: null | string;
@@ -1009,6 +1117,24 @@ export type CreateSessionResponses = {
 };
 
 export type CreateSessionResponse = CreateSessionResponses[keyof CreateSessionResponses];
+
+export type ResolveCombatActionData = {
+    body: PlayerCombatAction;
+    path: {
+        sessionId: string;
+    };
+    query?: never;
+    url: '/sessions/{sessionId}/combat-actions';
+};
+
+export type ResolveCombatActionResponses = {
+    /**
+     * OK
+     */
+    200: CombatActionResponse;
+};
+
+export type ResolveCombatActionResponse = ResolveCombatActionResponses[keyof ResolveCombatActionResponses];
 
 export type GetSessionSceneData = {
     body?: never;

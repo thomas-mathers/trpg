@@ -6,6 +6,8 @@ namespace TRPG.Contracts.Combat.Responses;
 [JsonDerivedType(typeof(CombatHitEvent), nameof(CombatHitEvent))]
 [JsonDerivedType(typeof(CombatMissEvent), nameof(CombatMissEvent))]
 [JsonDerivedType(typeof(CombatBlockEvent), nameof(CombatBlockEvent))]
+[JsonDerivedType(typeof(CombatRegeneratedEvent), nameof(CombatRegeneratedEvent))]
+[JsonDerivedType(typeof(CombatResourceStateUpdatedEvent), nameof(CombatResourceStateUpdatedEvent))]
 public abstract record CombatRoundEvent(
     Guid AttackerId,
     string AttackerName,
@@ -44,3 +46,23 @@ public sealed record CombatBlockEvent(
     Guid TargetId,
     string TargetName
 ) : CombatRoundEvent(AttackerId, AttackerName, AbilityName, TargetId, TargetName);
+
+public sealed record CombatRegeneratedEvent(
+    Guid AttackerId,
+    string AttackerName,
+    int PreviousAp,
+    int CurrentAp,
+    int MaximumAp,
+    int PreviousMp,
+    int CurrentMp,
+    int MaximumMp
+) : CombatRoundEvent(AttackerId, AttackerName, "Regenerate", AttackerId, AttackerName);
+
+public sealed record CombatResourceStateUpdatedEvent(
+    Guid AttackerId,
+    string AttackerName,
+    int CurrentAp,
+    int MaximumAp,
+    int CurrentMp,
+    int MaximumMp
+) : CombatRoundEvent(AttackerId, AttackerName, "Resource state updated", AttackerId, AttackerName);

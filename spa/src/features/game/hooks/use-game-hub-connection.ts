@@ -9,10 +9,9 @@ import {
 import { useRef, useEffect, useState, useCallback } from 'react';
 
 import type { FightState, SceneSnapshot } from '@/api/client';
-import type { PlayerCombatAction } from '@/features/combat/combat-action';
 import type { CombatOutcome } from '@/features/combat/combat-outcome';
 import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
-import { gameEventBus } from '@/lib/game-event-bus';
+import { gameEventBus, type ConnectionStatus } from '@/lib/game-event-bus';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string;
 
@@ -35,6 +34,7 @@ export function useGameHubConnection(sessionId: string | null) {
   const hubConnection = useRef<HubConnection | null>(null);
   const isIntentionalStop = useRef(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [error, setError] = useState<boolean>(false);
 
   useEffect(() => {
@@ -54,15 +54,18 @@ export function useGameHubConnection(sessionId: string | null) {
 
     connection.onreconnecting(() => {
       setIsConnected(false);
+      setConnectionStatus('reconnecting');
       gameEventBus.emit('ConnectionStatusChanged', 'reconnecting');
     });
     connection.onreconnected(() => {
       setIsConnected(true);
+      setConnectionStatus('connected');
       setError(false);
       gameEventBus.emit('ConnectionStatusChanged', 'reconnected');
     });
     connection.onclose((e) => {
       setIsConnected(false);
+      setConnectionStatus('disconnected');
       if (!isIntentionalStop.current) {
         console.error('SignalR connection lost', e);
         setError(true);
@@ -87,10 +90,12 @@ export function useGameHubConnection(sessionId: string | null) {
       .start()
       .then(() => {
         setIsConnected(true);
+        setConnectionStatus('connected');
         setError(false);
       })
       .catch((e) => {
         console.error('Error connecting to game hub', e);
+        setConnectionStatus('disconnected');
         setError(true);
       });
 
@@ -98,6 +103,7 @@ export function useGameHubConnection(sessionId: string | null) {
       isIntentionalStop.current = true;
       connection.stop();
       setIsConnected(false);
+      setConnectionStatus('disconnected');
       hubConnection.current = null;
     };
   }, [sessionId]);
@@ -154,15 +160,6 @@ export function useGameHubConnection(sessionId: string | null) {
     [streamTokens],
   );
 
-  const streamCombatAction = useCallback(
-    (
-      action: PlayerCombatAction,
-      onReceiveToken: (token: string) => void,
-      onComplete?: () => void,
-    ) => streamTokens('SendCombatAction', onReceiveToken, onComplete, action),
-    [streamTokens],
-  );
-
   const streamFlee = useCallback(
     (onReceiveToken: (token: string) => void, onComplete?: () => void) =>
       streamTokens('SendFlee', onReceiveToken, onComplete),
@@ -184,11 +181,11 @@ export function useGameHubConnection(sessionId: string | null) {
 
   return {
     isConnected,
+    connectionStatus,
     error,
     streamOpening,
     streamChat,
     streamWait,
-    streamCombatAction,
     streamFlee,
     endSession,
   };
