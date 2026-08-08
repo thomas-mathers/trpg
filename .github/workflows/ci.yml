@@ -87,8 +87,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: spa/pnpm-lock.yaml
+
+      # The SPA configures pnpm with a project-local store.  setup-node resolves
+      # its built-in pnpm cache from the repository root, so cache that store
+      # explicitly instead.
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: spa/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('spa/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

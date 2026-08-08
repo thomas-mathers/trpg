@@ -128,6 +128,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         response.EnsureSuccessStatusCode();
         return (
             await response.Content.ReadFromJsonAsync<CombatActionResponse>(
+                TrpgJsonOptions.Default,
                 TestContext.Current.CancellationToken
             )
         )!;
