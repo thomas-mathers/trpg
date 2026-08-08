@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 using Anthropic;
 using Microsoft.AspNetCore.Builder;
@@ -243,37 +245,58 @@ internal static class ServiceCollectionExtensions
                     );
                     return CreateChatClient(gameplay.Provider, gameplay.Model, ollamaUri)
                         .AsBuilder()
-                        .Use(innerClient => new LoggingChatClient(
-                            innerClient,
-                            loggerFactory.CreateLogger<LoggingChatClient>()
-                        ))
                         .UseFunctionInvocation(
                             loggerFactory,
                             configure: client =>
                             {
                                 client.FunctionInvoker = async (context, cancellationToken) =>
                                 {
+                                    var stopwatch = Stopwatch.StartNew();
                                     try
                                     {
-                                        return await context.Function.InvokeAsync(
+                                        object? result = await context.Function.InvokeAsync(
                                             context.Arguments,
                                             cancellationToken
                                         );
+                                        var outcome = result is ToolError ? "rejected" : "success";
+                                        toolLogger.LogInformation(
+                                            "[perf] Tool {ToolName}: outcome={Outcome}, resultBytes~={ResultBytes}, total={ElapsedMs}ms",
+                                            context.Function.Name,
+                                            outcome,
+                                            GetSerializedByteCount(result),
+                                            stopwatch.ElapsedMilliseconds
+                                        );
+                                        return result;
                                     }
                                     catch (Exception ex)
                                         when (ex is InvalidOperationException or ArgumentException)
                                     {
                                         toolLogger.LogWarning(
                                             ex,
-                                            "[tool] {ToolName} failed: {Message}",
+                                            "[perf] Tool {ToolName}: outcome=rejected, total={ElapsedMs}ms, message={Message}",
                                             context.Function.Name,
+                                            stopwatch.ElapsedMilliseconds,
                                             ex.Message
                                         );
                                         return new ToolError(ex.Message);
                                     }
+                                    catch (Exception ex) when (ex is not OperationCanceledException)
+                                    {
+                                        toolLogger.LogError(
+                                            ex,
+                                            "[perf] Tool {ToolName}: outcome=exception, total={ElapsedMs}ms",
+                                            context.Function.Name,
+                                            stopwatch.ElapsedMilliseconds
+                                        );
+                                        throw;
+                                    }
                                 };
                             }
                         )
+                        .Use(innerClient => new LoggingChatClient(
+                            innerClient,
+                            loggerFactory.CreateLogger<LoggingChatClient>()
+                        ))
                         .Use(innerClient => new PromptCachingChatClient(
                             innerClient,
                             loggerFactory.CreateLogger<PromptCachingChatClient>()
@@ -303,6 +326,18 @@ internal static class ServiceCollectionExtensions
             .Configure<CreatureRegenOptions>(configuration.GetSection("CreatureRegen"))
             .Configure<GameClockOptions>(configuration.GetSection("GameClock"))
             .Configure<GameSessionOptions>(configuration.GetSection("GameSession"));
+    }
+
+    private static int GetSerializedByteCount(object? value)
+    {
+        try
+        {
+            return JsonSerializer.SerializeToUtf8Bytes(value).Length;
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            return Encoding.UTF8.GetByteCount(value?.ToString() ?? string.Empty);
+        }
     }
 
     [SuppressMessage(
