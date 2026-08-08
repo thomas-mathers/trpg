@@ -136,6 +136,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<Accessory>("accessory")
                 .HasValue<Gold>("gold");
             entity.Property(i => i.Modifiers).HasJsonConversion(() => []);
+            entity.Property(i => i.GoldValue).HasColumnName("gold_value");
             entity.HasIndex(i => i.WorldId);
             entity.OwnsOne(
                 i => i.Ownership,
@@ -169,7 +170,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         )
         {
             var entity = modelBuilder.Entity(tradeableItemType);
-            entity.Property("GoldValue").HasColumnName("gold_value");
             entity.Property("Level").HasColumnName("level");
             entity.Property("Rarity").HasColumnName("rarity");
         }

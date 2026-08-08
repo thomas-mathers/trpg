@@ -440,7 +440,7 @@ internal static class CreatureEndpoints
                 equippedSlot,
                 type,
                 rarity,
-                null,
+                g.GoldValue,
                 modifiers
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(item)),

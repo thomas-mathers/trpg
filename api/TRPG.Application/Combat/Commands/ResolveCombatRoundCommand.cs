@@ -40,7 +40,7 @@ internal class ResolveCombatRoundCommandHandler(
 
         if (command.PublishEvents)
         {
-            turnContext.PendingEvents.Enqueue(
+            turnContext.Enqueue(
                 new CombatUpdatedEvent(
                     FightStateMapper.ToFightState(command.Combatants),
                     CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
@@ -103,7 +103,7 @@ internal class ResolveCombatRoundCommandHandler(
             );
             if (command.PublishEvents)
             {
-                turnContext.PendingEvents.Enqueue(new CombatEndedEvent(state.Outcome));
+                turnContext.Enqueue(new CombatEndedEvent(state.Outcome));
             }
         }
 

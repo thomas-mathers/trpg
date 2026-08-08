@@ -61,7 +61,7 @@ internal class MoveTool(
             cancellationToken
         );
 
-        turnContext.PendingEvents.Enqueue(
+        turnContext.Enqueue(
             new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(result!), SceneUpdateReason.Moved)
         );
         logger.LogInformation(

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.SignalR;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
@@ -13,6 +14,7 @@ using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
+using TRPG.GameSessions.Hubs;
 
 namespace TRPG.GameSessions.Endpoints;
 
@@ -35,6 +37,9 @@ internal static class GameSessionEndpoints
         PlayerCombatAction action,
         GameTurnRunner turnRunner,
         GameTurnContext turnContext,
+        IGameClientEventDispatcher eventDispatcher,
+        IHubContext<ChatHub> chatHub,
+        WorldConnectionRegistry worldConnections,
         GetGameSessionQueryHandler getGameSession,
         GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
         CancellationToken cancellationToken
@@ -56,6 +61,15 @@ internal static class GameSessionEndpoints
             },
             cancellationToken
         );
+        if (worldConnections.TryGetConnectionId(session.WorldId, out var connectionId))
+        {
+            while (eventDispatcher.TryDequeue(out var gameEvent))
+            {
+                await chatHub
+                    .Clients.Client(connectionId!)
+                    .SendAsync(gameEvent!.MethodName, gameEvent.Payload, cancellationToken);
+            }
+        }
         return TypedResults.Ok(
             response with
             {

@@ -60,7 +60,7 @@ const gold = (overrides: Partial<ItemDetailGoldDetail> = {}): ItemDetail => ({
   equippedSlot: null,
   type: 'Gold',
   rarity: null,
-  goldValue: null,
+  goldValue: 1,
   modifiers: [],
   ...overrides,
 });

@@ -45,6 +45,8 @@ public static class ServiceCollectionExtensions
         return serviceCollection
             .AddMemoryCache()
             .AddScoped<GameTurnContext>()
+            .AddScoped<IGameClientEventPublisher>(sp => sp.GetRequiredService<GameTurnContext>())
+            .AddScoped<IGameClientEventDispatcher>(sp => sp.GetRequiredService<GameTurnContext>())
             .AddTransient<AddBuildingOwnerCommandHandler>()
             .AddTransient<RemoveBuildingOwnerCommandHandler>()
             .AddTransient<SetWorkstationOccupantCommandHandler>()

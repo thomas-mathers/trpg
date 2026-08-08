@@ -105,9 +105,7 @@ function sortItems(
     }
     if (sort.key === 'value') {
       return (
-        (Number(a.goldValue ?? 0) * Number(a.quantity) -
-          Number(b.goldValue ?? 0) * Number(b.quantity)) *
-        dir
+        (Number(a.goldValue) * Number(a.quantity) - Number(b.goldValue) * Number(b.quantity)) * dir
       );
     }
     return (Number(a.weight) * Number(a.quantity) - Number(b.weight) * Number(b.quantity)) * dir;
@@ -401,14 +399,8 @@ function EquipmentRow({
       </td>
       <td className="px-2 py-1.5 text-right font-mono text-sm tabular-nums">
         <div className="flex items-center justify-end gap-1">
-          {item.goldValue !== null ? (
-            <>
-              {item.goldValue}
-              <Coins className="text-muted-foreground size-3 shrink-0" />
-            </>
-          ) : (
-            '—'
-          )}
+          {item.goldValue}
+          <Coins className="text-muted-foreground size-3 shrink-0" />
         </div>
       </td>
       <td className="px-2 py-1.5 text-right">

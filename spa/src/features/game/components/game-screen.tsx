@@ -16,6 +16,7 @@ import { SceneProvider } from '../providers/scene-provider';
 import { ConnectionLostDialog } from './connection-lost-dialog';
 import { GameChat } from './game-chat';
 import { GameMenu } from './game-menu';
+import { GameNotifications } from './game-notifications';
 import { NearbySidebar } from './nearby-sidebar';
 import { NearbyToggleButton } from './nearby-toggle-button';
 import { StatusBar } from './status-bar';
@@ -143,6 +144,7 @@ function GameScreenContent({
       )}
 
       <ConnectionLostDialog open={isConnectionLostDialogOpen} onClose={onConnectionLostClose} />
+      <GameNotifications />
     </SidebarProvider>
   );
 }

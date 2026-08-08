@@ -11,7 +11,12 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import type { FightState, SceneSnapshot } from '@/api/client';
 import type { CombatOutcome } from '@/features/combat/combat-outcome';
 import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
-import { gameEventBus, type ConnectionStatus } from '@/lib/game-event-bus';
+import {
+  gameEventBus,
+  type CharacterLevelUp,
+  type ConnectionStatus,
+  type SkillLevelUp,
+} from '@/lib/game-event-bus';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string;
 
@@ -84,6 +89,12 @@ export function useGameHubConnection(sessionId: string | null) {
     );
     connection.on('CombatEnded', (outcome: CombatOutcome) =>
       gameEventBus.emit('CombatEnded', outcome),
+    );
+    connection.on('SkillLevelUp', (payload: SkillLevelUp) =>
+      gameEventBus.emit('SkillLevelUp', payload),
+    );
+    connection.on('CharacterLevelUp', (payload: CharacterLevelUp) =>
+      gameEventBus.emit('CharacterLevelUp', payload),
     );
 
     connection

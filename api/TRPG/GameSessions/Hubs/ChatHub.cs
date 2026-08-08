@@ -24,6 +24,7 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class ChatHub(
     GameTurnRunner turnRunner,
     GameTurnContext turnContext,
+    IGameClientEventDispatcher eventDispatcher,
     GetGameSessionQueryHandler getGameSession,
     EndGameSessionCommandHandler endGameSession,
     GetEntityNameAutomatonByWorldQueryHandler getEntityNameAutomatonByWorld,
@@ -163,7 +164,7 @@ internal sealed class ChatHub(
 
         await foreach (var token in linkedTokens)
         {
-            if (turnContext.PendingEvents.Count > 0)
+            if (eventDispatcher.HasPendingEvents)
             {
                 await PushPendingEvents();
             }
@@ -175,7 +176,7 @@ internal sealed class ChatHub(
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
-            turnContext.PendingEvents.Enqueue(
+            turnContext.Enqueue(
                 new SceneUpdatedEvent(
                     SceneSnapshotMapper.ToSnapshot(after),
                     SceneUpdateReason.Synced
@@ -210,15 +211,9 @@ internal sealed class ChatHub(
 
     private async Task PushPendingEvents()
     {
-        var sentMethodNames = new HashSet<string>();
-        while (turnContext.PendingEvents.TryDequeue(out var turnEvent))
+        while (eventDispatcher.TryDequeue(out var turnEvent))
         {
-            if (!sentMethodNames.Add(turnEvent.MethodName))
-            {
-                continue;
-            }
-
-            if (turnEvent.Payload != null)
+            if (turnEvent!.Payload != null)
             {
                 await Clients.Caller.SendAsync(turnEvent.MethodName, turnEvent.Payload);
             }
@@ -250,6 +245,9 @@ internal sealed class WorldConnectionRegistry
 
     public void Remove(Guid worldId, string connectionId) =>
         _connectionIdsByWorldId.TryRemove(new KeyValuePair<Guid, string>(worldId, connectionId));
+
+    public bool TryGetConnectionId(Guid worldId, out string? connectionId) =>
+        _connectionIdsByWorldId.TryGetValue(worldId, out connectionId);
 }
 
 internal sealed class PendingSessionEndRegistry(

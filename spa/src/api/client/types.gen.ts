@@ -377,7 +377,7 @@ export type ItemDetailAccessoryDetail = {
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number;
+    goldValue: number;
     modifiers: Array<ItemModifierSummary>;
 };
 
@@ -391,7 +391,7 @@ export type ItemDetailAmmunitionDetail = {
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number;
+    goldValue: number;
     modifiers: Array<ItemModifierSummary>;
 };
 
@@ -409,7 +409,7 @@ export type ItemDetailArmorDetail = {
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number;
+    goldValue: number;
     modifiers: Array<ItemModifierSummary>;
 };
 
@@ -426,7 +426,7 @@ export type ItemDetailConsumableItemDetail = {
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number;
+    goldValue: number;
     modifiers: Array<ItemModifierSummary>;
 };
 
@@ -440,7 +440,7 @@ export type ItemDetailGoldDetail = {
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number;
+    goldValue: number;
     modifiers: Array<ItemModifierSummary>;
 };
 
@@ -463,7 +463,7 @@ export type ItemDetailShieldDetail = {
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number;
+    goldValue: number;
     modifiers: Array<ItemModifierSummary>;
 };
 
@@ -484,7 +484,7 @@ export type ItemDetailWeaponDetail = {
     equippedSlot: null | EquipmentSlot;
     type: ItemType;
     rarity: null | ItemRarity;
-    goldValue: null | number;
+    goldValue: number;
     modifiers: Array<ItemModifierSummary>;
 };
 

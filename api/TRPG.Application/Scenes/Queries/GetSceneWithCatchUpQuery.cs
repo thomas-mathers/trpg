@@ -96,7 +96,7 @@ internal class GetSceneWithCatchUpQueryHandler(
 
         if (catchUpRan)
         {
-            turnContext.PendingEvents.Enqueue(
+            turnContext.Enqueue(
                 new SceneUpdatedEvent(
                     SceneSnapshotMapper.ToSnapshot(scene),
                     SceneUpdateReason.CatchUp

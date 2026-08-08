@@ -11,7 +11,7 @@ import { renderWithProviders } from '@/test/test-utils';
 import { TransferItemDialog } from './transfer-item-dialog';
 
 const ui = {
-  dialog: byRole('dialog', { name: 'Transfer Items' }),
+  dialog: byRole('dialog'),
   confirm: byRole('button', { name: 'Confirm Transfer' }),
   cancel: byRole('button', { name: 'Cancel' }),
   clearFilters: byRole('button', { name: 'Clear filters' }),
@@ -33,7 +33,7 @@ const item = (overrides: Partial<ItemDetailGoldDetail> = {}): ItemDetail => ({
   equippedSlot: null,
   type: 'Gold',
   rarity: null,
-  goldValue: null,
+  goldValue: 1,
   modifiers: [],
   ...overrides,
 });
@@ -59,12 +59,13 @@ const sword = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
     ...overrides,
   }) as ItemDetail;
 
-function renderDialog(onClose = vi.fn()) {
+function renderDialog(onClose = vi.fn(), transfersEnabled = true) {
   return renderWithProviders(
     <TransferItemDialog
       playerId="player-id"
       target={{ id: 'target-id', name: 'Goblin' }}
       open
+      transfersEnabled={transfersEnabled}
       onClose={onClose}
     />,
   );
@@ -77,6 +78,27 @@ describe('TransferItemDialog', () => {
     renderDialog();
 
     expect(await screen.findAllByText('Nothing here.')).toHaveLength(2);
+    expect(ui.confirm.get()).toBeDisabled();
+  });
+
+  it('disables transfers when viewing a living creature inventory', async () => {
+    server.use(
+      handleGetCreatureInventory(async ({ params }) =>
+        HttpResponse.json({
+          gold: 0,
+          items: params.creatureId === 'player-id' ? [item()] : [],
+        }),
+      ),
+    );
+
+    const { user } = renderDialog(vi.fn(), false);
+    await ui.dialog.find();
+    expect(screen.getByRole('heading', { name: 'Inspect Inventory' })).toBeVisible();
+    await user.click(await ui.item('Gold coins').find());
+
+    expect(ui.item('Gold coins').get()).toBeDisabled();
+    expect(ui.moveToTarget('Goblin').get()).toBeDisabled();
+    expect(ui.moveToPlayer.get()).toBeDisabled();
     expect(ui.confirm.get()).toBeDisabled();
   });
 
@@ -230,7 +252,7 @@ describe('TransferItemDialog', () => {
     const { user } = renderDialog(onClose);
 
     await ui.dialog.find();
-    await user.click(ui.cancel.get());
+    await user.click(await ui.cancel.find());
 
     expect(onClose).toHaveBeenCalledOnce();
   });
