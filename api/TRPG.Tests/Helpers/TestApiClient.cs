@@ -1,15 +1,16 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
-using TRPG.Contracts;
 
 namespace TRPG.Tests.Helpers;
 
 public sealed class TestApiClient(
     HttpClient client,
     EndpointDataSource endpointDataSource,
-    LinkGenerator linkGenerator
+    LinkGenerator linkGenerator,
+    JsonSerializerOptions jsonSerializerOptions
 )
 {
     public Task<HttpResponseMessage> GetAsync(
@@ -112,7 +113,7 @@ public sealed class TestApiClient(
         using var request = new HttpRequestMessage(new HttpMethod(method), path);
         if (body is not null)
         {
-            request.Content = JsonContent.Create(body, options: TrpgJsonOptions.Default);
+            request.Content = JsonContent.Create(body, options: jsonSerializerOptions);
         }
 
         return await client.SendAsync(request, cancellationToken);
@@ -134,8 +135,13 @@ public sealed class TestApiClient(
             cancellationToken
         );
         return await response.Content.ReadFromJsonAsync<T>(
-            TrpgJsonOptions.Default,
+            jsonSerializerOptions,
             cancellationToken
         );
     }
+
+    public Task<T?> ReadContentFromJsonAsync<T>(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken = default
+    ) => response.Content.ReadFromJsonAsync<T>(jsonSerializerOptions, cancellationToken);
 }

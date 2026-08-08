@@ -342,15 +342,19 @@ internal class GameTurnRunner(
     )
     {
         var gameplayOptions = optionsMonitor.Get(LlmRoleKeys.Gameplay);
+        var additionalProperties = new AdditionalPropertiesDictionary { ["num_ctx"] = 8192 };
+        if (gameplayOptions.Provider == LlmProvider.Ollama)
+        {
+            additionalProperties["think"] = gameplayOptions.Think ?? false;
+        }
         var chatOptions = new ChatOptions
         {
             Tools = includeTools ? tools.Cast<AITool>().ToList() : [],
             Temperature = gameplayOptions.Temperature,
-            AdditionalProperties = new AdditionalPropertiesDictionary
-            {
-                ["think"] = gameplayOptions.Think ?? false,
-                ["num_ctx"] = 8192,
-            },
+            AdditionalProperties = additionalProperties,
+            Reasoning = gameplayOptions is { Provider: LlmProvider.Anthropic, Think: false }
+                ? new ReasoningOptions { Effort = ReasoningEffort.None }
+                : null,
         };
 
         var messages = await getChatMessages.Handle(

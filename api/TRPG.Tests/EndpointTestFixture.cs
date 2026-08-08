@@ -6,6 +6,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common;
 using TRPG.Contracts;
 using TRPG.Data;
@@ -26,7 +27,10 @@ public sealed class EndpointTestFixture : IAsyncLifetime
         new(
             Factory.CreateClient(),
             Factory.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>(),
-            Factory.Services.GetRequiredService<Microsoft.AspNetCore.Routing.LinkGenerator>()
+            Factory.Services.GetRequiredService<Microsoft.AspNetCore.Routing.LinkGenerator>(),
+            Factory
+                .Services.GetRequiredService<IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>()
+                .Value.SerializerOptions
         );
 
     public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();
