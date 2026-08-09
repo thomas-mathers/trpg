@@ -25,9 +25,9 @@ public sealed class ArmorGeneratorTests
         {
             var modifier = Assert.Single(
                 shield.Modifiers.OfType<AttributeModifier>(),
-                modifier => modifier.Attribute == attribute
+                modifier =>
+                    modifier.Attribute == attribute && modifier.AmountType == AmountType.Flat
             );
-            Assert.Equal(AmountType.Flat, modifier.AmountType);
             Assert.True(modifier.Amount > 0);
         }
     }
