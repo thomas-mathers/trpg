@@ -34,7 +34,20 @@ public record SceneBuildingInfo(
     string? FactionDescription
 );
 
-public record SceneExitInfo(string Description, string DestinationRoomName, bool IsLocked);
+public abstract record SceneExitDestination(string Name);
+
+public sealed record SceneDistrictExitDestination(string Name, DistrictType DistrictType)
+    : SceneExitDestination(Name);
+
+public sealed record SceneBuildingExitDestination(string Name, BuildingType BuildingType)
+    : SceneExitDestination(Name);
+
+public sealed record SceneRoomExitDestination(string Name, BuildingType BuildingType)
+    : SceneExitDestination(Name);
+
+public sealed record SceneWildernessExitDestination(string Name) : SceneExitDestination(Name);
+
+public record SceneExitInfo(string Description, SceneExitDestination Destination, bool IsLocked);
 
 public record SceneRoomInfo(string Name, string Description, int FloorNumber);
 
@@ -137,11 +150,13 @@ internal class GetSceneQueryHandler(
         var cityInfo = await BuildCityInfo(player, cancellationToken);
         var districtInfo = await BuildDistrictInfo(player, cancellationToken);
 
-        var exitInfos = BuildExitInfos(
+        var exitInfos = await BuildExitInfos(
             await getConnectorsByLocationId.Handle(
                 new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
                 cancellationToken
-            )
+            ),
+            player.RoomId != null,
+            cancellationToken
         );
         var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
 
@@ -414,12 +429,95 @@ internal class GetSceneQueryHandler(
             .ToArray();
     }
 
-    private static IReadOnlyCollection<SceneExitInfo> BuildExitInfos(
-        IReadOnlyCollection<LocationConnector> connectors
-    ) =>
-        connectors
-            .Select(c => new SceneExitInfo(c.Description, c.DestinationLabel, c.IsLocked))
+    private async Task<IReadOnlyCollection<SceneExitInfo>> BuildExitInfos(
+        IReadOnlyCollection<LocationConnector> connectors,
+        bool sourceIsRoom,
+        CancellationToken cancellationToken
+    )
+    {
+        var typedConnectors = connectors
+            .Where(connector => connector.DestinationType != LocationDestinationType.Wilderness)
             .ToArray();
+        var destinationLocationIds = typedConnectors
+            .Select(connector => connector.DestinationLocationId)
+            .ToArray();
+        var destinations = await context
+            .Locations.AsNoTracking()
+            .Where(location => destinationLocationIds.Contains(location.Id))
+            .ToDictionaryAsync(location => location.Id, cancellationToken);
+        var districtIds = typedConnectors
+            .Where(connector => connector.DestinationType == LocationDestinationType.District)
+            .Select(connector => destinations[connector.DestinationLocationId].DistrictId)
+            .OfType<Guid>()
+            .ToArray();
+        var districts = await context
+            .Districts.AsNoTracking()
+            .Where(district => districtIds.Contains(district.Id))
+            .ToDictionaryAsync(district => district.Id, cancellationToken);
+        var roomIds = typedConnectors
+            .Where(connector => connector.DestinationType == LocationDestinationType.Room)
+            .Select(connector => destinations[connector.DestinationLocationId].RoomId)
+            .OfType<Guid>()
+            .ToArray();
+        var rooms = await context
+            .Rooms.AsNoTracking()
+            .Where(room => roomIds.Contains(room.Id))
+            .ToDictionaryAsync(room => room.Id, cancellationToken);
+        var buildingIds = rooms.Values.Select(room => room.BuildingId).ToArray();
+        var buildings = await context
+            .Buildings.AsNoTracking()
+            .Where(building => buildingIds.Contains(building.Id))
+            .ToDictionaryAsync(building => building.Id, cancellationToken);
+
+        return connectors
+            .Select(connector => new SceneExitInfo(
+                connector.Description,
+                ToExitDestination(
+                    connector,
+                    destinations.GetValueOrDefault(connector.DestinationLocationId),
+                    districts,
+                    rooms,
+                    buildings,
+                    sourceIsRoom
+                ),
+                connector.IsLocked
+            ))
+            .ToArray();
+    }
+
+    private static SceneExitDestination ToExitDestination(
+        LocationConnector connector,
+        Location? location,
+        IReadOnlyDictionary<Guid, District> districts,
+        IReadOnlyDictionary<Guid, Room> rooms,
+        IReadOnlyDictionary<Guid, Building> buildings,
+        bool sourceIsRoom
+    )
+    {
+        if (connector.DestinationType == LocationDestinationType.District)
+        {
+            var districtId = location!.DistrictId!.Value;
+            var district = districts[districtId];
+            return new SceneDistrictExitDestination(
+                connector.DestinationLabel,
+                district.DistrictType
+            );
+        }
+
+        if (connector.DestinationType == LocationDestinationType.Room)
+        {
+            var roomId = location!.RoomId!.Value;
+            var building = buildings[rooms[roomId].BuildingId];
+            return sourceIsRoom
+                ? new SceneRoomExitDestination(connector.DestinationLabel, building.BuildingType)
+                : new SceneBuildingExitDestination(
+                    connector.DestinationLabel,
+                    building.BuildingType
+                );
+        }
+
+        return new SceneWildernessExitDestination(connector.DestinationLabel);
+    }
 
     private static string GetPropType(Prop prop)
     {

@@ -8,10 +8,23 @@ import {
   PROC_TRIGGER_LABEL,
 } from './display-names';
 
+const RESISTANCE_ATTRIBUTES = new Set([
+  'PhysicalResistance',
+  'FireResistance',
+  'IceResistance',
+  'LightningResistance',
+  'PoisonResistance',
+  'MagicResistance',
+]);
+
 export function formatItemModifier(modifier: ItemModifierSummary): string {
   switch (modifier.$type) {
-    case 'Attribute':
+    case 'Attribute': {
+      if (modifier.amountType === 'Flat' && RESISTANCE_ATTRIBUTES.has(modifier.attribute)) {
+        return `+${Number(modifier.amount) * 100}% ${ATTRIBUTE_LABEL[modifier.attribute]}`;
+      }
       return `${formatAmount(Number(modifier.amount), modifier.amountType)} ${ATTRIBUTE_LABEL[modifier.attribute]}`;
+    }
     case 'CombatSpeed':
       return `+${modifier.amount}% ${COMBAT_SPEED_LABEL[modifier.speedType]}`;
     case 'ElementalDamage':

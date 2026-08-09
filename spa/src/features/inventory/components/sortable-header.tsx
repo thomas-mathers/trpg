@@ -35,7 +35,10 @@ export function SortableHeader<K extends string>({
       <button
         type="button"
         onClick={() => onToggle(sortKey)}
-        className={cn('inline-flex items-center gap-0.5', align === 'right' && 'flex-row-reverse')}
+        className={cn(
+          'inline-flex items-center gap-0.5 whitespace-nowrap',
+          align === 'right' && 'flex-row-reverse',
+        )}
       >
         {label}
         <Icon className={cn('size-2.5', !active && 'opacity-0 group-hover:opacity-100')} />

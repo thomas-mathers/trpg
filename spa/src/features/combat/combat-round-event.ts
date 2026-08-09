@@ -13,6 +13,7 @@ interface CombatRoundEventBase {
   abilityName: string;
   targetId: string;
   targetName: string;
+  narration?: string | null;
 }
 
 export interface CombatHitEvent extends CombatRoundEventBase {

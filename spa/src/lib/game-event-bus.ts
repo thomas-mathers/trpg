@@ -19,7 +19,6 @@ interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
   CombatStarted: FightState;
   CombatUpdated: CombatUpdatePayload;
-  CombatNarrations: string[];
   CombatEnded: CombatOutcome;
   CombatResolved: CombatOutcome;
   SkillLevelUp: SkillLevelUp;

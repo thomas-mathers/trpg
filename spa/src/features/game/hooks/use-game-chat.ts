@@ -131,14 +131,16 @@ export function useGameChat(sessionId: string): GameChat {
   }, [messages, sessionId]);
 
   const startTurn = (
-    playerInput: string,
+    playerInput: string | null,
     stream: (onToken: (token: string) => void, onComplete: () => void) => void,
   ) => {
     const narratorMessageId = crypto.randomUUID();
 
     setMessages((current) => [
       ...current,
-      { id: crypto.randomUUID(), role: 'player', content: playerInput },
+      ...(playerInput
+        ? [{ id: crypto.randomUUID(), role: 'player' as const, content: playerInput }]
+        : []),
       { id: narratorMessageId, role: 'narrator', segments: [] },
     ]);
 
@@ -181,8 +183,6 @@ export function useGameChat(sessionId: string): GameChat {
       .then((response) => {
         if (response.update) gameEventBus.emit('CombatUpdated', response.update);
         pendingCombatScene.current = response.scene ?? null;
-        if (response.narrations.length > 0)
-          gameEventBus.emit('CombatNarrations', response.narrations);
         if (response.outcome) gameEventBus.emit('CombatEnded', response.outcome);
         if (response.errorMessage) appendChatMarker(response.errorMessage, 'disconnected');
       })
@@ -197,7 +197,7 @@ export function useGameChat(sessionId: string): GameChat {
     if (isStreaming) {
       return;
     }
-    startTurn('Attempts to flee', (onToken, onComplete) => streamFlee(onToken, onComplete));
+    startTurn(null, (onToken, onComplete) => streamFlee(onToken, onComplete));
   };
 
   return {

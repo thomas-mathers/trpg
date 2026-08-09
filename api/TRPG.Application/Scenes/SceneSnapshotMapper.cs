@@ -32,11 +32,33 @@ public static class SceneSnapshotMapper
             NearbyProps: scene
                 .NearbyProps.Select(p => new NearbyPropSnapshot(p.Id, p.Name, p.Type))
                 .ToArray(),
-            Exits: scene
-                .Exits.Select(e => new NearbyExitSnapshot(e.Description, e.DestinationRoomName))
-                .ToArray()
+            Exits: scene.Exits.Select(ToNearbyExitSnapshot).ToArray()
         );
     }
+
+    private static NearbyExitSnapshot ToNearbyExitSnapshot(SceneExitInfo exit) =>
+        new(
+            exit.Description,
+            exit.Destination switch
+            {
+                SceneDistrictExitDestination district => new DistrictExitDestination(
+                    district.Name,
+                    district.DistrictType.ToContract()
+                ),
+                SceneBuildingExitDestination building => new BuildingExitDestination(
+                    building.Name,
+                    building.BuildingType.ToContract()
+                ),
+                SceneRoomExitDestination room => new RoomExitDestination(
+                    room.Name,
+                    room.BuildingType.ToContract()
+                ),
+                SceneWildernessExitDestination wilderness => new WildernessExitDestination(
+                    wilderness.Name
+                ),
+                _ => throw new ArgumentOutOfRangeException(nameof(exit)),
+            }
+        );
 
     private static CreatureStatusSnapshot ToCreatureStatusSnapshot(SceneCreatureInfo creature) =>
         new(

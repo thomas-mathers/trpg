@@ -30,21 +30,30 @@ public static class CombatRoundEventMapper
                 TargetRemainingHp: hit.TargetRemainingHp,
                 TargetMaximumHp: hit.TargetMaximumHp,
                 AppliedConditions: hit.AppliedConditions.Select(c => c.ToContract()).ToArray()
-            ),
+            )
+            {
+                Narration = CombatNarration.Describe(hit),
+            },
             Miss miss => new CombatMissEvent(
                 AttackerId: miss.AttackerId,
                 AttackerName: miss.AttackerName,
                 AbilityName: miss.AbilityName,
                 TargetId: miss.TargetId,
                 TargetName: miss.TargetName
-            ),
+            )
+            {
+                Narration = CombatNarration.Describe(miss),
+            },
             Block block => new CombatBlockEvent(
                 AttackerId: block.AttackerId,
                 AttackerName: block.AttackerName,
                 AbilityName: block.AbilityName,
                 TargetId: block.TargetId,
                 TargetName: block.TargetName
-            ),
+            )
+            {
+                Narration = CombatNarration.Describe(block),
+            },
             Regenerated regenerated => new CombatRegeneratedEvent(
                 AttackerId: regenerated.CombatantId,
                 AttackerName: regenerated.CombatantName,

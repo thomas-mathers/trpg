@@ -143,11 +143,6 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
                 .CreatureSkills.Where(s => monsterIds.Contains(s.CreatureId))
                 .ToListAsync(TestContext.Current.CancellationToken)
         ).ToLookup(s => s.CreatureId);
-        var abilitiesByCreature = (
-            await context
-                .CreatureAbilities.Where(a => monsterIds.Contains(a.CreatureId))
-                .ToListAsync(TestContext.Current.CancellationToken)
-        ).ToLookup(a => a.CreatureId);
         var inventoryByCreature = (
             await context
                 .Items.Where(i =>
@@ -161,8 +156,6 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
             monsters,
             m => Assert.Equal(Enum.GetValues<DataSkill>().Length, skillsByCreature[m.Id].Count())
         );
-        Assert.All(monsters, m => Assert.NotEmpty(abilitiesByCreature[m.Id]));
-
         var armedCreatureTypes = new[]
         {
             DataCreatureType.Undead,

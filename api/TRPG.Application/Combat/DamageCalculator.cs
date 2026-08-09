@@ -30,8 +30,9 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         var withBonus = ApplyCreatureTypeBonus(rawDamage, ability, defender);
         var isCritical = Random.Shared.NextDouble() < attacker.CritChance;
         var critedDamage = isCritical ? withBonus * attacker.CritDamageMultiplier : withBonus;
+        var elementalDamage = CalculateElementalDamage(attacker, ability, weapon, defender);
         return new DamageResult(
-            CalculateDamage(critedDamage, ability.DamageType, defender),
+            CalculateDamage(critedDamage, ability.DamageType, defender) + elementalDamage,
             isCritical
         );
     }
@@ -55,11 +56,9 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
                 : CalculateMagicRawDamage(attacker, ability);
 
         var withBonus = ApplyCreatureTypeBonus(rawDamage, ability, defender);
-        return CalculateDamage(
-            ApplyExpectedCrit(withBonus, attacker),
-            ability.DamageType,
-            defender
-        );
+        var elementalDamage = EstimateElementalDamage(attacker, ability, weapon, defender);
+        return CalculateDamage(ApplyExpectedCrit(withBonus, attacker), ability.DamageType, defender)
+            + (int)elementalDamage;
     }
 
     public float EstimateRawDamage(Combatant attacker, AttackAbility ability, Weapon? weapon = null)
@@ -75,7 +74,8 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
                 )
                 : CalculateMagicRawDamage(attacker, ability);
 
-        return ApplyExpectedCrit(rawDamage, attacker);
+        return ApplyExpectedCrit(rawDamage, attacker)
+            + EstimateElementalDamage(attacker, ability, weapon);
     }
 
     public float EstimateBasicAttackDamagePerTurn(Combatant attacker)
@@ -131,6 +131,52 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         );
 
         return ability.DamageAmount * (1 + intelligenceBonus);
+    }
+
+    private int CalculateElementalDamage(
+        Combatant attacker,
+        AttackAbility ability,
+        Weapon? weapon,
+        Combatant defender
+    ) =>
+        GetElementalDamageModifiers(attacker, ability, weapon)
+            .Sum(modifier =>
+                CalculateDamage(
+                    Random.Shared.Next(modifier.MinDamage, modifier.MaxDamage + 1),
+                    modifier.DamageType,
+                    defender
+                )
+            );
+
+    private float EstimateElementalDamage(
+        Combatant attacker,
+        AttackAbility ability,
+        Weapon? weapon,
+        Combatant? defender = null
+    ) =>
+        GetElementalDamageModifiers(attacker, ability, weapon)
+            .Sum(modifier =>
+            {
+                var averageDamage = (modifier.MinDamage + modifier.MaxDamage) / 2f;
+                return defender is null
+                    ? averageDamage
+                    : CalculateDamage(averageDamage, modifier.DamageType, defender);
+            });
+
+    private static IReadOnlyCollection<ElementalDamageModifier> GetElementalDamageModifiers(
+        Combatant attacker,
+        AttackAbility ability,
+        Weapon? weapon
+    )
+    {
+        var swungWeapon = weapon ?? attacker.MainHandWeapon;
+
+        return
+            ability.DamageType == DamageType.Physical
+            && attacker.ActiveConditions[ConditionType.Disarmed] == 0
+            && swungWeapon is not null
+            ? swungWeapon.Modifiers.OfType<ElementalDamageModifier>().ToArray()
+            : [];
     }
 
     private static float ApplyCreatureTypeBonus(

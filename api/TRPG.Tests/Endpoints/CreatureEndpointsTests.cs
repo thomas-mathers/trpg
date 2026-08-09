@@ -13,6 +13,7 @@ using TRPG.Contracts.Inventory.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
+using DataSkill = TRPG.Data.Models.Skill;
 
 namespace TRPG.Tests.Endpoints;
 
@@ -46,14 +47,20 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
     }
 
     [Fact]
-    public async Task GetAbilities_ReturnsStrikePlusLearnedAbilities()
+    public async Task GetAbilities_ReturnsStrikePlusAbilitiesUnlockedBySkills()
     {
         // Arrange
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            context.CreatureAbilities.Add(
-                Builders.MakeCreatureAbility(_creature.Id, "Slash", _worldId)
+            context.CreatureSkills.Add(
+                new CreatureSkill
+                {
+                    WorldId = _worldId,
+                    CreatureId = _creature.Id,
+                    Skill = DataSkill.Melee,
+                    Level = 1,
+                }
             );
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
@@ -140,6 +147,46 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         );
         Assert.NotNull(result);
         Assert.Contains(result.Items, i => i.Name == "Health Potion");
+    }
+
+    [Fact]
+    public async Task GetInventory_ReturnsKeyItems()
+    {
+        // Arrange
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            var key = new Key
+            {
+                WorldId = _worldId,
+                Name = "Key to the Inn",
+                Description = "A key that unlocks the inn.",
+                Quantity = 1,
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = _creature.Id,
+                    OwnerType = OwnerType.Creature,
+                },
+            };
+            context.Items.Add(key);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        // Act
+        var response = await _client.GetAsync(
+            "GetCreatureInventory",
+            new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<InventorySummary>(
+            TrpgJsonOptions.Default,
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(result);
+        Assert.Contains(result.Items, i => i is KeyDetail { Name: "Key to the Inn" });
     }
 
     [Fact]

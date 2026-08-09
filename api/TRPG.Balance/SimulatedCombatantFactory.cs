@@ -112,13 +112,24 @@ internal static class SimulatedCombatantFactory
             GoldValue = 30,
             Defense = 8,
             BlockChance = 0.25f,
-            MagicResistance = 0.07f,
-            FireResistance = 0.07f,
-            IceResistance = 0.07f,
-            LightningResistance = 0.07f,
-            PoisonResistance = 0.07f,
+            Modifiers =
+            [
+                MakeResistanceModifier(AttributeName.MagicResistance),
+                MakeResistanceModifier(AttributeName.FireResistance),
+                MakeResistanceModifier(AttributeName.IceResistance),
+                MakeResistanceModifier(AttributeName.LightningResistance),
+                MakeResistanceModifier(AttributeName.PoisonResistance),
+            ],
             DurabilityMax = 100,
             DurabilityCurrent = 100,
             Ownership = new ItemOwnership { EquippedSlot = EquipmentSlot.LeftHand },
+        };
+
+    private static AttributeModifier MakeResistanceModifier(AttributeName attribute) =>
+        new()
+        {
+            Attribute = attribute,
+            AmountType = AmountType.Flat,
+            Amount = 0.07f,
         };
 }

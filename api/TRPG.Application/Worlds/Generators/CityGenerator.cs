@@ -26,7 +26,6 @@ public class CityGeneratorResult
     public required IReadOnlyList<Location> Locations { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<CreatureSkill> Skills { get; init; }
-    public required IReadOnlyList<CreatureAbility> Abilities { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required IReadOnlyList<LocationConnectorKey> LocationConnectorKeys { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
@@ -59,7 +58,6 @@ public class CityGenerator(
         public List<Location> Locations { get; } = [];
         public List<Prop> Props { get; } = [];
         public List<CreatureSkill> Skills { get; } = [];
-        public List<CreatureAbility> Abilities { get; } = [];
         public List<CreatureJob> Jobs { get; } = [];
         public List<LocationConnectorKey> LocationConnectorKeys { get; } = [];
         public List<Relationship> Relationships { get; } = [];
@@ -169,7 +167,6 @@ public class CityGenerator(
             Locations = workspace.Locations.ToArray(),
             Props = workspace.Props.ToArray(),
             Skills = workspace.Skills.ToArray(),
-            Abilities = workspace.Abilities.ToArray(),
             Jobs = workspace.Jobs.ToArray(),
             LocationConnectorKeys = workspace.LocationConnectorKeys.ToArray(),
             Relationships = workspace.Relationships.ToArray(),
@@ -319,7 +316,7 @@ public class CityGenerator(
         var frontDoor = buildingResult.FrontDoor;
         foreach (var residentId in memberIds)
         {
-            var keyItem = new Item
+            var keyItem = new Key
             {
                 WorldId = worldId,
                 Name = $"Key to {buildingResult.Building.Name}",
@@ -396,7 +393,6 @@ public class CityGenerator(
             workspace.Creatures.Add(memberCreature.Creature);
             workspace.Items.AddRange(memberCreature.Items);
             workspace.Skills.AddRange(memberCreature.Skills);
-            workspace.Abilities.AddRange(memberCreature.Abilities);
 
             var memberBedLocationId = buildingResult
                 .Props.OfType<Bed>()
@@ -553,7 +549,6 @@ public class CityGenerator(
             );
             workspace.Items.AddRange(member.Items);
             workspace.Skills.AddRange(member.Skills);
-            workspace.Abilities.AddRange(member.Abilities);
             workspace.HomeLocationIdByMemberId[member.Creature.Id] = household.HomeLocationId;
         }
 

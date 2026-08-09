@@ -1,4 +1,4 @@
-import { Crown, DoorOpen, Skull } from 'lucide-react';
+import { Crown, Skull } from 'lucide-react';
 import {
   Anvil,
   BedDouble,
@@ -28,8 +28,13 @@ import {
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
-import type { CreatureStatusSnapshot, SceneSnapshot } from '@/api/client';
-import type { BuildingType } from '@/api/client';
+import type {
+  BuildingType,
+  CreatureStatusSnapshot,
+  DistrictType,
+  NearbyExitDestination,
+  SceneSnapshot,
+} from '@/api/client';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
@@ -61,6 +66,15 @@ const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
   Tower: Building2,
 };
 
+const DISTRICT_TYPE_ICONS: Record<DistrictType, LucideIcon> = {
+  Residential: House,
+  Scientific: FlaskConical,
+  CityCenter: Landmark,
+  Governmental: Crown,
+  HolySite: Church,
+  Encampment: Swords,
+};
+
 interface NearbyPanelProps {
   scene: SceneSnapshot;
 }
@@ -80,23 +94,21 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
 
   return (
     <div className="flex flex-col gap-6 p-4 text-sm">
-      <Section title="Routes">
+      <Section title="Nearby Exits">
         {scene.exits.length === 0 ? (
           <EmptyState />
         ) : (
           scene.exits.map((exit, index) => (
-            <div key={index} className="flex items-start gap-2 py-1.5">
-              <DoorOpen className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
-              <div className="min-w-0">
-                <div>{exit.description}</div>
-                <div className="text-muted-foreground text-xs">→ {exit.destinationRoomName}</div>
-              </div>
+            <div key={index} className="flex items-center gap-1.5 py-1.5">
+              <span className="text-muted-foreground">→</span>
+              <ExitDestinationIcon destination={exit.destination} />
+              <span className="truncate font-medium">{exit.destination.name}</span>
             </div>
           ))
         )}
       </Section>
 
-      <Section title="Creatures" subtitle={`You: Level ${scene.playerStatus.level}`}>
+      <Section title="Nearby Creatures">
         {scene.nearbyCreatures.length === 0 ? (
           <EmptyState />
         ) : (
@@ -105,7 +117,6 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
               key={creature.id}
               creature={creature}
               playerLevel={scene.playerStatus.level}
-              tooltipForceClosed={isTransferOpen}
               onOpenInventory={() => {
                 setInventoryTarget({
                   id: creature.id,
@@ -119,7 +130,7 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
         )}
       </Section>
 
-      <Section title="Buildings">
+      <Section title="Nearby Buildings">
         {nearbyBuildings.length === 0 ? (
           <EmptyState />
         ) : (
@@ -135,7 +146,7 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
                     entityType={poi.entityType}
                     side="left"
                   >
-                    <span className="cursor-help truncate font-semibold">{poi.name}</span>
+                    <span className="cursor-help truncate font-medium">{poi.name}</span>
                   </EntityTooltip>
                 </span>
                 <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[10px]">
@@ -144,18 +155,6 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
               </div>
             );
           })
-        )}
-      </Section>
-
-      <Section title="Props">
-        {scene.nearbyProps.length === 0 ? (
-          <EmptyState />
-        ) : (
-          scene.nearbyProps.map((prop) => (
-            <div key={prop.id} className="py-1.5">
-              {prop.name}
-            </div>
-          ))
         )}
       </Section>
 
@@ -170,15 +169,24 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
   );
 }
 
+function ExitDestinationIcon({ destination }: { destination: NearbyExitDestination }) {
+  const Icon =
+    destination.$type === 'District'
+      ? DISTRICT_TYPE_ICONS[destination.districtType]
+      : destination.$type === 'Building' || destination.$type === 'Room'
+        ? BUILDING_TYPE_ICONS[destination.buildingType]
+        : Mountain;
+
+  return <Icon className="text-muted-foreground size-3 shrink-0" />;
+}
+
 function CreatureRow({
   creature,
   playerLevel,
-  tooltipForceClosed,
   onOpenInventory,
 }: {
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
-  tooltipForceClosed: boolean;
   onOpenInventory: () => void;
 }) {
   const dead = creature.state === 'Dead';
@@ -197,25 +205,17 @@ function CreatureRow({
             )
           )}
         </span>
-        <EntityTooltip
-          id={creature.id}
-          name={creature.name}
-          entityType="Creature"
-          side="left"
-          forceClosed={tooltipForceClosed}
+        <button
+          type="button"
+          onClick={onOpenInventory}
+          className={cn(
+            'cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2',
+            reputation != null && reputation > 0 && 'text-green-500',
+            reputation != null && reputation < 0 && 'text-red-500',
+          )}
         >
-          <button
-            type="button"
-            onClick={onOpenInventory}
-            className={cn(
-              'cursor-pointer truncate font-semibold underline decoration-dotted underline-offset-2',
-              reputation != null && reputation > 0 && 'text-green-500',
-              reputation != null && reputation < 0 && 'text-red-500',
-            )}
-          >
-            {creature.name}
-          </button>
-        </EntityTooltip>
+          {creature.name}
+        </button>
         <span className="text-muted-foreground shrink-0 text-xs">Lv {creature.level}</span>
       </span>
       {creature.state && (
@@ -227,21 +227,12 @@ function CreatureRow({
   );
 }
 
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
       <p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
         {title}
       </p>
-      {subtitle && <p className="text-muted-foreground -mt-0.5 mb-1 text-xs">{subtitle}</p>}
       <div className="divide-border divide-y">{children}</div>
     </div>
   );

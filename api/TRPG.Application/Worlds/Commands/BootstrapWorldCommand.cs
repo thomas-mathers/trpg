@@ -38,7 +38,6 @@ public class BootstrapWorldCommandHandler(
         context.Locations.AddRange(world.Locations);
         context.Props.AddRange(world.Props);
         context.CreatureSkills.AddRange(world.Skills);
-        context.CreatureAbilities.AddRange(world.Abilities);
         context.CreatureJobs.AddRange(world.Jobs);
         context.CreatureKnowledge.AddRange(world.Knowledge);
         context.LocationConnectorKeys.AddRange(world.LocationConnectorKeys);
@@ -49,7 +48,6 @@ public class BootstrapWorldCommandHandler(
             context.Creatures.Add(player.Creature);
             context.Items.AddRange(player.Items);
             context.CreatureSkills.AddRange(player.Skills);
-            context.CreatureAbilities.AddRange(player.Abilities);
         }
 
         await context.SaveChangesAsync(cancellationToken);

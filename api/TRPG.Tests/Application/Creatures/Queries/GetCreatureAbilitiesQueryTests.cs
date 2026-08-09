@@ -41,7 +41,7 @@ public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
-    public async Task Handle_ExcludesBlock_WhenNotLearned()
+    public async Task Handle_ExcludesAbilities_WhenCreatureHasNoSkills()
     {
         // Act — unlike Strike, Block is a normal learned ability, not hardcoded onto everyone
         var abilities = await _handler.Handle(
@@ -54,11 +54,18 @@ public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
-    public async Task Handle_IncludesLearnedAbilities()
+    public async Task Handle_IncludesAbilitiesUnlockedByCreatureSkills()
     {
         // Arrange
-        var ability = Builders.MakeCreatureAbility(_player.Id, "Slash", WorldId);
-        _context.CreatureAbilities.Add(ability);
+        _context.CreatureSkills.Add(
+            new CreatureSkill
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                Skill = Skill.Melee,
+                Level = 2,
+            }
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -68,18 +75,24 @@ public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncL
         );
 
         // Assert
-        Assert.Contains(abilities, a => a.Name == "Slash");
+        Assert.Contains(abilities, a => a.Name == "Cleave");
         Assert.Contains(abilities, a => a.Name == "Strike");
     }
 
     [Fact]
-    public async Task Handle_ExcludesAbilities_LearnedByOtherCreatures()
+    public async Task Handle_ExcludesAbilitiesUnlockedByOtherCreaturesSkills()
     {
         // Arrange
         var otherCreature = Builders.MakeCreature(WorldId);
-        var ability = Builders.MakeCreatureAbility(otherCreature.Id, "Slash", WorldId);
+        var skill = new CreatureSkill
+        {
+            WorldId = WorldId,
+            CreatureId = otherCreature.Id,
+            Skill = Skill.Melee,
+            Level = 1,
+        };
         _context.Creatures.Add(otherCreature);
-        _context.CreatureAbilities.Add(ability);
+        _context.CreatureSkills.Add(skill);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

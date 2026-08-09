@@ -42,6 +42,12 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 
 ---
 
+## GitHub CLI
+
+- GitHub CLI credentials are stored in the Windows keyring and are unavailable inside the filesystem sandbox. Always run `gh` commands with elevated sandbox permissions; do not treat sandboxed `gh auth status` failures as an invalid user login.
+
+---
+
 ## Language & Framework
 
 - C# .NET 10, EF Core 10.0.9, Npgsql 10.0.2

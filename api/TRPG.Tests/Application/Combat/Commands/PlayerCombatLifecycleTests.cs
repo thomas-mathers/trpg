@@ -77,7 +77,6 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         _context.Creatures.Add(playerResult.Creature);
         _context.Items.AddRange(playerResult.Items);
         _context.CreatureSkills.AddRange(playerResult.Skills);
-        _context.CreatureAbilities.AddRange(playerResult.Abilities);
 
         var enemy = Builders.MakeCreature(
             worldId,
@@ -105,7 +104,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         var maximumHpAtCreation = playerResult.Creature.MaximumHp;
         var currentHpAtCreation = playerResult.Creature.CurrentHp;
 
-        // Act — start a fight exactly like StartFightTool does on the first attack
+        // Act — start a fight exactly like StartFightTool does before the player chooses an action
         var combatants = await _startFight.Handle(
             new StartFightCommand
             {

@@ -22,6 +22,16 @@ public static class AbilityCatalog
 
     public static IEnumerable<Ability> Abilities => Catalog.ByName.Values;
 
+    public static IReadOnlyList<Ability> GetAbilitiesForSkillLevels(
+        IReadOnlyDictionary<Skill, int> skillLevels
+    ) =>
+        [
+            Strike,
+            .. Catalog.ByName.Values.Where(ability =>
+                skillLevels.GetValueOrDefault(ability.Skill) >= ability.RequiredSkillLevel
+            ),
+        ];
+
     private static readonly CatalogResult Catalog = BuildCatalog();
 
     private sealed record CatalogResult(Dictionary<string, Ability> ByName, SupportAbility Block);

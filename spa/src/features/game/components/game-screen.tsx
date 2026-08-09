@@ -108,14 +108,21 @@ function GameScreenContent({
       onOpenChange={onNearbyOpenChange}
       className="h-screen flex-col"
     >
-      <div className="flex items-center gap-4 border-b px-4 py-2">
-        <StatusBar connectionStatus={connectionStatus} isInCombat={isInCombat} />
-        {!isInCombat && <NearbyToggleButton />}
-        <GameMenu
-          onOpenCharacterDialog={() => onOpenDialog('character')}
-          onOpenInventoryDialog={() => onOpenDialog('inventory')}
-          onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
-          onQuit={onQuit}
+      <div className="border-b px-4 py-2">
+        <StatusBar
+          connectionStatus={connectionStatus}
+          isInCombat={isInCombat}
+          controls={
+            <>
+              {!isInCombat && <NearbyToggleButton />}
+              <GameMenu
+                onOpenCharacterDialog={() => onOpenDialog('character')}
+                onOpenInventoryDialog={() => onOpenDialog('inventory')}
+                onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
+                onQuit={onQuit}
+              />
+            </>
+          }
         />
       </div>
 

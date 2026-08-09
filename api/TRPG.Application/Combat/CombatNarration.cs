@@ -7,7 +7,7 @@ internal static class CombatNarration
     public static IReadOnlyList<string> Describe(IReadOnlyList<CombatEvent> events) =>
         events.Select(Describe).OfType<string>().ToArray();
 
-    private static string? Describe(CombatEvent combatEvent) =>
+    public static string? Describe(CombatEvent combatEvent) =>
         combatEvent switch
         {
             Hit { IsCritical: true } hit =>

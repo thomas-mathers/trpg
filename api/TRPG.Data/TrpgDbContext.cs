@@ -48,7 +48,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<Building> Buildings => Set<Building>();
     public DbSet<City> Cities => Set<City>();
     public DbSet<Country> Countries => Set<Country>();
-    public DbSet<CreatureAbility> CreatureAbilities => Set<CreatureAbility>();
     public DbSet<CreatureKnowledge> CreatureKnowledge => Set<CreatureKnowledge>();
     public DbSet<CreatureWeaponProficiency> CreatureWeaponProficiencies =>
         Set<CreatureWeaponProficiency>();
@@ -134,7 +133,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<Consumable>("consumable")
                 .HasValue<Ammunition>("ammunition")
                 .HasValue<Accessory>("accessory")
-                .HasValue<Gold>("gold");
+                .HasValue<Gold>("gold")
+                .HasValue<Key>("key");
             entity.Property(i => i.Modifiers).HasJsonConversion(() => []);
             entity.Property(i => i.GoldValue).HasColumnName("gold_value");
             entity.HasIndex(i => i.WorldId);
@@ -276,12 +276,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         {
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
-        });
-
-        modelBuilder.Entity<CreatureAbility>(entity =>
-        {
-            entity.HasIndex(pa => new { pa.CreatureId, pa.AbilityName }).IsUnique();
-            entity.HasIndex(pa => pa.WorldId);
         });
 
         modelBuilder.Entity<CreatureSkill>(entity =>

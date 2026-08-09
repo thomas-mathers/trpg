@@ -55,9 +55,6 @@ public class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache)
             .ExecuteDeleteAsync(cancellationToken);
         await context.Quests.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context
-            .CreatureAbilities.Where(x => x.WorldId == worldId)
-            .ExecuteDeleteAsync(cancellationToken);
-        await context
             .CreatureSkills.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
         await context

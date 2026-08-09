@@ -238,6 +238,7 @@ public class ArmorGenerator
         var eligible = _modifiers.Where(t => t.MinItemLevel <= level).ToList();
         var chosen = PickModifierTemplates(eligible, ModifierCount(level), level);
         var modifiers = chosen.Select(t => t.Build(level)).ToList();
+        modifiers.AddRange(GenerateShieldResistanceModifiers(level));
         var durabilityMax = 60 + level * 6;
 
         return new Shield
@@ -252,15 +253,32 @@ public class ArmorGenerator
             Modifiers = modifiers,
             Defense = Roll(level, 3, 25),
             BlockChance = Roll(level, 10, 50) / 100f,
-            MagicResistance = Roll(level, 1, 4) / 100f,
-            FireResistance = Roll(level, 1, 4) / 100f,
-            IceResistance = Roll(level, 1, 4) / 100f,
-            LightningResistance = Roll(level, 1, 4) / 100f,
-            PoisonResistance = Roll(level, 1, 4) / 100f,
             DurabilityMax = durabilityMax,
             DurabilityCurrent = durabilityMax,
         };
     }
+
+    private static IReadOnlyCollection<AttributeModifier> GenerateShieldResistanceModifiers(
+        int level
+    ) =>
+        [
+            MakeShieldResistanceModifier(AttributeName.MagicResistance, level),
+            MakeShieldResistanceModifier(AttributeName.FireResistance, level),
+            MakeShieldResistanceModifier(AttributeName.IceResistance, level),
+            MakeShieldResistanceModifier(AttributeName.LightningResistance, level),
+            MakeShieldResistanceModifier(AttributeName.PoisonResistance, level),
+        ];
+
+    private static AttributeModifier MakeShieldResistanceModifier(
+        AttributeName attribute,
+        int level
+    ) =>
+        new()
+        {
+            Attribute = attribute,
+            AmountType = AmountType.Flat,
+            Amount = Roll(level, 1, 4) / 100f,
+        };
 
     private record ArmorClassData(string[] BaseNames, int Weight, int DefenseLow, int DefenseHigh);
 }

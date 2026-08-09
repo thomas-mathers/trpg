@@ -35,7 +35,7 @@ export function CombatantCard({
   const inferredHit = !flash && hpDelta !== null && hpDelta < 0;
   const isHit = flash?.kind === 'hit' || inferredHit;
   const isCrit = flash?.kind === 'crit';
-  const isDodged = flash?.kind === 'miss' || flash?.kind === 'block';
+  const isBlocked = flash?.kind === 'block';
 
   const danger = !isSelf && combatant.isAlive && isDangerous(Number(combatant.level), playerLevel);
   const canTarget = targetable && combatant.isAlive;
@@ -84,7 +84,7 @@ export function CombatantCard({
           'cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-foreground/50',
         isHit && 'combat-flash-hit',
         isCrit && 'combat-flash-crit',
-        isDodged && 'combat-dodge',
+        isBlocked && 'combat-dodge',
         isActing && 'shadow-lg',
         className,
       )}

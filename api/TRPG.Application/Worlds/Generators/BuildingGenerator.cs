@@ -408,6 +408,7 @@ public class BuildingGenerator
                     Description = "A staircase leading up.",
                     DestinationLocationId = roomAbove.LocationId,
                     DestinationLabel = roomAbove.Name,
+                    DestinationType = LocationDestinationType.Room,
                     WorldId = input.WorldId,
                 }
             );
@@ -420,6 +421,7 @@ public class BuildingGenerator
                     Description = "A staircase leading down.",
                     DestinationLocationId = roomBelow.LocationId,
                     DestinationLabel = roomBelow.Name,
+                    DestinationType = LocationDestinationType.Room,
                     WorldId = input.WorldId,
                 }
             );
@@ -433,6 +435,7 @@ public class BuildingGenerator
             Description = "The door leading outside.",
             DestinationLocationId = input.DistrictLocationId,
             DestinationLabel = "Outside",
+            DestinationType = LocationDestinationType.District,
             IsLocked = input.IsLockable,
             WorldId = input.WorldId,
         };

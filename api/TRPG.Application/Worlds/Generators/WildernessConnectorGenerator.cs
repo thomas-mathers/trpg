@@ -19,6 +19,7 @@ internal static class WildernessConnectorGenerator
                 Name = "Path",
                 Description = "A path leading into the wilderness.",
                 DestinationLabel = "Wilderness",
+                DestinationType = LocationDestinationType.Wilderness,
                 WorldId = worldId,
             },
             new LocationConnector
@@ -28,6 +29,7 @@ internal static class WildernessConnectorGenerator
                 Name = "Path",
                 Description = $"A path leading back to {cityCenterDistrict.Name}.",
                 DestinationLabel = cityCenterDistrict.Name,
+                DestinationType = LocationDestinationType.District,
                 WorldId = worldId,
             },
         ];

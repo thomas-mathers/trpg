@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260809022706_DropCreatureAbilities")]
+    partial class DropCreatureAbilities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1651,15 +1654,6 @@ namespace TRPG.Migrations
                     b.HasDiscriminator().HasValue("gold");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Key", b =>
-                {
-                    b.HasBaseType("TRPG.Data.Models.Item");
-
-                    b.ToTable("items", (string)null);
-
-                    b.HasDiscriminator().HasValue("key");
-                });
-
             modelBuilder.Entity("TRPG.Data.Models.Shield", b =>
                 {
                     b.HasBaseType("TRPG.Data.Models.Item");
@@ -1680,10 +1674,30 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("durability_max");
 
+                    b.Property<float>("FireResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("fire_resistance");
+
+                    b.Property<float>("IceResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("ice_resistance");
+
                     b.Property<int>("Level")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("integer")
                         .HasColumnName("level");
+
+                    b.Property<float>("LightningResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("lightning_resistance");
+
+                    b.Property<float>("MagicResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("magic_resistance");
+
+                    b.Property<float>("PoisonResistance")
+                        .HasColumnType("real")
+                        .HasColumnName("poison_resistance");
 
                     b.Property<string>("Rarity")
                         .IsRequired()
@@ -1812,11 +1826,6 @@ namespace TRPG.Migrations
                     b.Property<Guid>("DestinationLocationId")
                         .HasColumnType("uuid")
                         .HasColumnName("destination_location_id");
-
-                    b.Property<string>("DestinationType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("destination_type");
 
                     b.Property<bool>("IsLocked")
                         .HasColumnType("boolean")

@@ -1,13 +1,11 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
-using TRPG.Contracts.Combat.Requests;
 
 namespace TRPG.Application.Combat.Tools;
 
@@ -16,8 +14,6 @@ internal class StartFightTool(
     IGameClientEventPublisher gameEvents,
     GetActiveFightQueryHandler getActiveFight,
     StartFightCommandHandler startFight,
-    CombatEngine combatEngine,
-    ResolveCombatRoundCommandHandler resolveCombatRound,
     ILogger<StartFightTool> logger
 ) : IGameTool
 {
@@ -25,22 +21,17 @@ internal class StartFightTool(
 
     [DisplayName("attack")]
     [Description(
-        "Attacks a hostile creature by name, using the named ability. If not already in combat, this starts an encounter with every hostile creature nearby, not just the named target, and resolves the first round. Use one of the player's own learned abilities, or \"Strike\" for a plain unenhanced attack with whatever is equipped. Once a fight is underway, all further rounds are resolved through the player's combat menu, not through this tool."
+        "Starts combat with a hostile creature by name. If no fight is active, every hostile creature nearby joins the encounter. Combat begins without resolving an attack; the player chooses the first and all later actions from the combat menu."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
             "The exact name of the creature to attack, copied verbatim from the most recent look result or combat result."
         )]
             string targetName,
-        [Description("The exact name of the ability to use.")] string abilityName,
         CancellationToken cancellationToken
     )
     {
-        logger.LogInformation(
-            "[attack] abilityName={AbilityName} targetName={TargetName}",
-            abilityName,
-            targetName
-        );
+        logger.LogInformation("[attack] targetName={TargetName}", targetName);
         var stopwatch = Stopwatch.StartNew();
 
         var activeFight = await getActiveFight.Handle(
@@ -65,38 +56,15 @@ internal class StartFightTool(
             cancellationToken
         );
 
-        var targetId = combatants.First(c => c.Name == targetName).CreatureId;
-
-        var resolverResult = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(targetId, abilityName)
-        );
-
-        if (resolverResult.ErrorMessage is not null)
-        {
-            return new ToolError(resolverResult.ErrorMessage!);
-        }
-
-        var state = combatEngine.ProcessRound(combatants, resolverResult.Result!);
-
         gameEvents.Publish(new CombatStartedEvent(FightStateMapper.ToFightState(combatants)));
 
-        var result = await resolveCombatRound.Handle(
-            new ResolveCombatRoundCommand
-            {
-                SessionId = turnContext.SessionId,
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-                Combatants = combatants,
-                State = state,
-            },
-            cancellationToken
-        );
-
         logger.LogInformation(
-            "[perf] [attack] result in {ElapsedMs}ms: {Result}",
-            stopwatch.ElapsedMilliseconds,
-            JsonSerializer.Serialize(result, ToolJsonOptions.Options)
+            "[perf] [attack] combat started in {ElapsedMs}ms",
+            stopwatch.ElapsedMilliseconds
         );
-        return result;
+        return new
+        {
+            Message = "Combat has started. The player will choose the first action from the combat menu.",
+        };
     }
 }

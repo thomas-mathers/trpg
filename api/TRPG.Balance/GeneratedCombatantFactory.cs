@@ -36,14 +36,8 @@ public static class GeneratedCombatantFactory
         CombatOptions? combatOptions = null
     )
     {
-        var abilities = result
-            .Abilities.Select(a =>
-                AbilityCatalog.Abilities.FirstOrDefault(x => x.Name == a.AbilityName)
-            )
-            .OfType<Ability>()
-            .Prepend(AbilityCatalog.Strike)
-            .Distinct()
-            .ToArray();
+        var skillLevels = result.Skills.ToDictionary(skill => skill.Skill, skill => skill.Level);
+        var abilities = AbilityCatalog.GetAbilitiesForSkillLevels(skillLevels);
 
         var weaponProficiencies = isPlayer
             ? Enum.GetValues<WeaponType>()

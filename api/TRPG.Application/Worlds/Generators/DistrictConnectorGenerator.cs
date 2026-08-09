@@ -21,6 +21,7 @@ internal static class DistrictConnectorGenerator
                     Name = "Path",
                     Description = $"A path leading to {cityCenterDistrict.Name}.",
                     DestinationLabel = cityCenterDistrict.Name,
+                    DestinationType = LocationDestinationType.District,
                     WorldId = worldId,
                 }
             );
@@ -32,6 +33,7 @@ internal static class DistrictConnectorGenerator
                     Name = "Path",
                     Description = $"A path leading to {district.Name}.",
                     DestinationLabel = district.Name,
+                    DestinationType = LocationDestinationType.District,
                     WorldId = worldId,
                 }
             );

@@ -108,12 +108,6 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             await verifyContext.Creatures.AnyAsync(x => x.Id == target.Id, cancellationToken)
         );
         Assert.False(
-            await verifyContext.CreatureAbilities.AnyAsync(
-                x => x.CreatureId == target.Id,
-                cancellationToken
-            )
-        );
-        Assert.False(
             await verifyContext.CreatureSkills.AnyAsync(
                 x => x.CreatureId == target.Id,
                 cancellationToken
@@ -213,12 +207,6 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
 
         Assert.True(
             await verifyContext.Creatures.AnyAsync(x => x.Id == other.Id, cancellationToken)
-        );
-        Assert.True(
-            await verifyContext.CreatureAbilities.AnyAsync(
-                x => x.CreatureId == other.Id,
-                cancellationToken
-            )
         );
         Assert.True(
             await verifyContext.CreatureSkills.AnyAsync(
@@ -323,7 +311,6 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         _context.Items.Add(item);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        _context.CreatureAbilities.Add(Builders.MakeCreatureAbility(creatureId, "Strike", worldId));
         _context.CreatureSkills.Add(
             new CreatureSkill
             {
