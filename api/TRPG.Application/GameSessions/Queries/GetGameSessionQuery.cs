@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.GameSessions.Exceptions;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -29,7 +29,7 @@ internal class GetGameSessionQueryHandler(
 
         if (row == null)
         {
-            throw new GameSessionNotFoundException(query.SessionId);
+            throw new EntityNotFoundException("Game session", query.SessionId);
         }
 
         logger.LogInformation(

@@ -2,24 +2,24 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Queries;
 
-internal class GetInventorySummaryQuery
+internal class GetInventorySummaryByOwnerQuery
 {
-    public required Guid CreatureId { get; init; }
+    public required ItemOwnerReference Owner { get; init; }
 }
 
 internal record InventorySnapshot(int Gold, IReadOnlyList<Item> Items);
 
-internal class GetInventorySummaryQueryHandler(
-    GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId
+internal class GetInventorySummaryByOwnerQueryHandler(
+    GetInventoryByOwnerQueryHandler getInventoryByOwner
 )
 {
     public async Task<InventorySnapshot> Handle(
-        GetInventorySummaryQuery query,
+        GetInventorySummaryByOwnerQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var items = await getInventoryByCreatureId.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = query.CreatureId },
+        var items = await getInventoryByOwner.Handle(
+            new GetInventoryByOwnerQuery { Owner = query.Owner },
             cancellationToken
         );
 

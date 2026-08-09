@@ -1,3 +1,4 @@
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -6,20 +7,22 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Inventory.Queries;
 
 [Collection("Database")]
-public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetInventoryByOwnerQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private GetInventoryByCreatureIdQueryHandler _handler = null!;
+    private GetInventoryByOwnerQueryHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
+    private readonly Workstation _workstation = Builders.MakeWorkstation();
     private readonly Item _item = Builders.MakeItem();
     private readonly Item _otherItem = Builders.MakeItem();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetInventoryByCreatureIdQueryHandler(_context);
+        _handler = new GetInventoryByOwnerQueryHandler(_context);
 
         _context.Creatures.Add(_creature);
+        _context.Props.Add(_workstation);
         _context.Items.AddRange(_item, _otherItem);
 
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -31,11 +34,14 @@ public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAs
     }
 
     [Fact]
-    public async Task Handle_ReturnsEmptyCollection_WhenCreatureHasNoItems()
+    public async Task Handle_ReturnsEmptyCollection_WhenOwnerHasNoItems()
     {
         // Act
         var items = await _handler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -59,11 +65,36 @@ public sealed class GetInventoryByCreatureIdQueryTests(DatabaseFixture db) : IAs
 
         // Act
         var items = await _handler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Equal([_item.Id, _otherItem.Id], items.Select(i => i.Id));
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsWorkstationItems()
+    {
+        // Arrange
+        _item.Quantity = 1;
+        _item.Ownership.OwnerId = _workstation.Id;
+        _item.Ownership.OwnerType = OwnerType.Workstation;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var items = await _handler.Handle(
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_workstation.Id, OwnerType.Workstation),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal([_item.Id], items.Select(i => i.Id));
     }
 }

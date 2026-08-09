@@ -35,7 +35,11 @@ export function InventoryFilters({
 
   return (
     <div className="flex flex-col gap-2">
-      <SearchInput value={search} onChange={onSearchChange} />
+      <SearchInput
+        value={search}
+        onChange={onSearchChange}
+        ariaLabel={ariaLabel ? `Search ${ariaLabel}` : undefined}
+      />
 
       <div className="flex w-full min-w-0 gap-1.5 overflow-x-auto">
         <Toggle

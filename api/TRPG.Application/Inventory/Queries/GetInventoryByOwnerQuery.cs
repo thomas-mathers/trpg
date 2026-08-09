@@ -4,23 +4,23 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Queries;
 
-internal class GetInventoryByCreatureIdQuery
+internal class GetInventoryByOwnerQuery
 {
-    public required Guid CreatureId { get; init; }
+    public required ItemOwnerReference Owner { get; init; }
 }
 
-internal class GetInventoryByCreatureIdQueryHandler(TrpgDbContext context)
+internal class GetInventoryByOwnerQueryHandler(TrpgDbContext context)
 {
     public async Task<IReadOnlyList<Item>> Handle(
-        GetInventoryByCreatureIdQuery query,
+        GetInventoryByOwnerQuery query,
         CancellationToken cancellationToken = default
     )
     {
         return await context
             .Items.AsNoTracking()
             .Where(i =>
-                i.Ownership.OwnerType == OwnerType.Creature
-                && i.Ownership.OwnerId == query.CreatureId
+                i.Ownership.OwnerType == query.Owner.Type
+                && i.Ownership.OwnerId == query.Owner.Id
                 && i.Quantity > 0
             )
             .OrderBy(i => i.Ownership.AcquiredAt)

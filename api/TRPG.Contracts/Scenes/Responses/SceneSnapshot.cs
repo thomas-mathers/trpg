@@ -159,7 +159,8 @@ public record CreatureStatusSnapshot(
     float IceResistance,
     float LightningResistance,
     float PoisonResistance,
-    float MagicResistance
+    float MagicResistance,
+    Guid? TradeWorkstationId
 );
 
 public record NearbyBuildingSnapshot(

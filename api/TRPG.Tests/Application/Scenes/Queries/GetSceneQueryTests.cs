@@ -95,6 +95,51 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Handle_IncludesTradeWorkstationId_ForNearbyWorkerAtTradeCounter()
+    {
+        // Arrange
+        var workstation = Builders.MakeWorkstation(
+            WorldId,
+            _nearbyCreature.LocationId,
+            _nearbyCreature.Id
+        );
+        _context.Props.Add(workstation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var nearby = Assert.Single(result.NearbyCreatures, p => p.Id == _nearbyCreature.Id);
+        Assert.Equal(workstation.Id, nearby.TradeWorkstationId);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNullTradeWorkstationId_WhenNearbyCreatureIsNotAtTradeCounter()
+    {
+        // Arrange
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var nearby = Assert.Single(result.NearbyCreatures, p => p.Id == _nearbyCreature.Id);
+        Assert.Null(nearby.TradeWorkstationId);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsNoNearbyCreatures_WhenNooneElseIsAtTheSameLocation()
     {
         // Arrange - moving the player off the shared Location isolates them from _nearbyCreature,

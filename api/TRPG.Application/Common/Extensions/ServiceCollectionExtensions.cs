@@ -27,6 +27,7 @@ using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Tools;
+using TRPG.Application.Trading;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Application.Worlds.Commands;
@@ -63,11 +64,16 @@ public static class ServiceCollectionExtensions
             .AddTransient<EquipInventoryItemCommandHandler>()
             .AddTransient<UnequipInventoryItemCommandHandler>()
             .AddTransient<RemoveInventoryItemCommandHandler>()
-            .AddTransient<GetInventoryByCreatureIdQueryHandler>()
-            .AddTransient<GetInventorySummaryQueryHandler>()
+            .AddTransient<GetInventoryByOwnerQueryHandler>()
+            .AddTransient<GetInventorySummaryByOwnerQueryHandler>()
             .AddTransient<PreviewEquipItemStatsQueryHandler>()
             .AddTransient<PreviewEquipItemBasicAttackDamageQueryHandler>()
             .AddTransient<InventoryTransferCommandHandler>()
+            .AddTransient<TradeOfferValidator>()
+            .AddTransient<TradeOfferEvaluator>()
+            .AddTransient<ProposeTradeCommandHandler>()
+            .AddTransient<CompleteTradeCommandHandler>()
+            .AddTransient<GetTradeQueryHandler>()
             .AddTransient<AddCreatureJobCommandHandler>()
             .AddTransient<DeleteCreatureJobCommandHandler>()
             .AddTransient<GetAllCreatureJobsByCreatureIdQueryHandler>()

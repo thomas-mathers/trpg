@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.GameSessions.Exceptions;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions.Queries;
@@ -30,7 +30,7 @@ internal class GetPlaytimeQueryHandler(
 
         if (playtime == null)
         {
-            throw new GameSessionNotFoundException(query.SessionId);
+            throw new EntityNotFoundException("Game session", query.SessionId);
         }
 
         logger.LogInformation(

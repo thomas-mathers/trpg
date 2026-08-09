@@ -25,6 +25,7 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 
 ### Key request flows
 - **Plain HTTP**: `api/TRPG/<Feature>/Endpoints/<Feature>Endpoints.cs` → one or more `*QueryHandler`/`*CommandHandler` in `api/TRPG.Application` → `TrpgDbContext`
+- Endpoint methods never inject `TrpgDbContext`. Database access belongs in a dedicated command or query handler.
 - **Player turn (chat/wait)**: `api/TRPG/GameSessions/Hubs/ChatHub.cs` (SignalR) → `GameTurnRunner` (`api/TRPG.Application/GameSessions/GameTurnRunner.cs`) → LLM (`IChatClient`) with tool-calling (`api/TRPG.Application/*/Tools/`) → narration streamed back token-by-token
 - **Combat action (Attack/Defend/Item menu)**: client sends a typed `PlayerCombatAction` (`UseAbilityAction`/`UseItemAction`) over the same `SendCombatAction` hub method → `GameTurnRunner.StreamCombatActionResponse` → `PlayerCombatActionResolver` (validates the action, never throws — returns a `PlayerCombatActionResolverResult` with `Result`/`ErrorMessage`) → `CombatEngine.ProcessRound` (pure simulation over an already-validated action, also records any items consumed) → `ResolveCombatRoundCommand` persists the result and depletes any consumed inventory items → the LLM narrates the already-resolved outcome (tool-calling disabled for that one completion)
 
@@ -38,6 +39,8 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Feature code lives under `spa/src/features/<feature>`; shared UI primitives live in `spa/src/components/ui`.
 - `spa/src/api/client` is generated. After API endpoint or contract changes, run `pnpm generate-client`; do not hand-edit generated files.
 - Prefer generated API/TanStack Query helpers from `@/api/client` over custom fetch wrappers.
+- A dialog owns its content and live state in its exported component. Extract a separate content component only when that content is genuinely reused outside the dialog.
+- Destructure component props in the parameter list and destructure nested object values when they are read locally; avoid repeated property chains.
 - Validate SPA changes with `pnpm run fmt:check`, `pnpm run typecheck`, and `pnpm test`.
 
 ---
@@ -99,6 +102,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - `_camelCase` for private fields
 - `PascalCase` for everything public
 - No abbreviations — write `minimum`, `maximum`, `quantity`, `defense`, `index`, not `min`, `max`, `qty`, `def`, `idx`
+- Name shared contracts for their enduring domain meaning, not the feature that first introduced them.
 - No tuple return types or tuple parameters — use a named `record` instead; tuples as local variables inside method bodies are fine
 - Functions with more than 5 parameters must capture those parameters in a class instead (constructors excluded — DI constructors may have as many parameters as needed)
 - Test classes: `{Subject}Tests`
@@ -110,6 +114,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Classes that are mostly static literal data (e.g. `CreatureGenerator`'s name-pool arrays) can run long without needing a split — the length reflects data volume, not complexity
 
 ### Functions
+- A command represents one operation. Do not use a command property as a flag that switches its behavior; model each operation as its own command instead.
 - Each function does one thing — if you need "and" to describe what it does, split it
 - Prefer pure functions (static methods that depend only on their parameters and return a value with no side effects) where possible
 - Keep functions under 40 lines; if a function exceeds this, extract helpers
@@ -179,6 +184,8 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Let EF Core throw `DbUpdateException` on violations — no pre-check queries
 
 ### Query tracking
+- Project only the fields a query needs; do not materialize an entity solely to read one of its values.
+- Use `AnyAsync` when a lookup only needs to establish existence; do not select or materialize an identifier already supplied to the operation.
 - Public **query methods** (read-only, never call `SaveChangesAsync`) use `.AsNoTracking()`
 - **Command methods** (mutate + call `SaveChangesAsync` in the same method) use the default tracked query instead — fetch the entity, mutate its properties in place, `SaveChangesAsync()` picks up the change automatically; no explicit `.Update()` call needed
 - When a write only needs to set a field by id/filter and doesn't otherwise need the entity, prefer `ExecuteUpdateAsync` (or `ExecuteDeleteAsync`) over fetch-then-mutate — it never touches the change tracker, so it can't conflict with anything else tracked in the same `DbContext`
@@ -189,6 +196,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 
 ### Command input shape
 - A command class takes scalar ids/values, not a full domain entity — the one exception is a pure creation command (`Add*Command`) that only ever calls `.Add()`, since there's no pre-existing tracked row for a brand-new entity to conflict with
+- A command receives only identifiers that independently define or authorize its operation. Do not carry a related identifier solely to revalidate a relationship or duplicate a route identifier in the request body.
 - Never accept a full entity as a command property and call `.Update()` on it — the entity's tracking state depends entirely on how the caller happened to fetch it, and a second tracked copy of the same row anywhere else in the same `DbContext` throws "another instance with the same key value is already being tracked"; use `ExecuteUpdateAsync` with named `SetProperty` calls instead
 - For a command that may only partially update a row, use `Optional<T>` (`TRPG.Application/Common/Optional.cs`) for any field that's already nullable in the domain — a plain `T?` can't distinguish "leave this alone" from "set it to null". A field that's never legitimately null (e.g. an enum status) can stay a plain `T?` on the command
 - Build the `ExecuteUpdateAsync` call as a block-bodied lambda (EF Core 10+) and only call `s.SetProperty(...)` for fields the command actually set — `if (command.State != null) { s.SetProperty(c => c.State, command.State.Value); }`, `if (command.CityId.IsSet) { s.SetProperty(c => c.CityId, command.CityId.Value); }` — rather than the old pattern of unconditionally chaining every `SetProperty` and null-coalescing against the row's own current value (`c => command.State ?? c.State`); the old pattern always wrote every column, whether the caller set that field or not. `ExecuteUpdateAsync` throws if the lambda ends up calling `SetProperty` zero times, so guard the call (or return early) when every optional field on the command is unset
@@ -203,6 +211,10 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 ## Services
 
 ### Structure
+- Throw `EntityNotFoundException` when an entity lookup fails; the global exception handler maps it to `404`.
+- Queries focus on building their requested response; commands enforce the operational rules required to mutate state.
+- When validation resolves data needed by a subsequent operation, return that resolved data in the validation result rather than issuing a second query.
+- An execution command throws when revalidation fails; only a proposal-style command returns an accepted/rejected outcome.
 - Primary constructor injection: `public class ReputationService(TrpgDbContext context)`
 - No interfaces — direct concrete classes
 - Throw `InvalidOperationException` for business rule violations

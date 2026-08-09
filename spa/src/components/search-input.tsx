@@ -7,6 +7,7 @@ interface SearchInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  ariaLabel?: string;
 }
 
 export function SearchInput({
@@ -14,6 +15,7 @@ export function SearchInput({
   onChange,
   placeholder = 'Search...',
   className,
+  ariaLabel,
 }: SearchInputProps) {
   return (
     <div
@@ -28,6 +30,7 @@ export function SearchInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        aria-label={ariaLabel}
         className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none"
       />
     </div>

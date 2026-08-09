@@ -1,3 +1,4 @@
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
@@ -10,7 +11,7 @@ namespace TRPG.Tests.Application.Inventory.Commands;
 public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private GetInventoryByCreatureIdQueryHandler _getHandler = null!;
+    private GetInventoryByOwnerQueryHandler _getHandler = null!;
     private RemoveInventoryItemCommandHandler _removeHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
     private readonly Item _item = Builders.MakeItem();
@@ -20,7 +21,7 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
     {
         _context = db.CreateContext();
         _removeHandler = new RemoveInventoryItemCommandHandler(_context);
-        _getHandler = new GetInventoryByCreatureIdQueryHandler(_context);
+        _getHandler = new GetInventoryByOwnerQueryHandler(_context);
 
         _context.Creatures.Add(_creature);
         _context.Items.AddRange(_item, _stackableItem);
@@ -60,7 +61,10 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
 
         // Assert
         var items = await _getHandler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
         Assert.Single(items);
@@ -86,7 +90,10 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
 
         // Assert
         var items = await _getHandler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
         Assert.Empty(items);

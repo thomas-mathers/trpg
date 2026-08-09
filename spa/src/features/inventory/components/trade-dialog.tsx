@@ -1,0 +1,481 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  CircleCheck,
+  CircleX,
+  Coins,
+  PackageOpen,
+  Store,
+  UserRound,
+  Weight,
+  X,
+} from 'lucide-react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+
+import {
+  completeTradeMutation,
+  getTradeOptions,
+  proposeTradeMutation,
+  type ItemDetail,
+} from '@/api/client';
+import { NumericStepper } from '@/components/numeric-stepper';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Empty, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import {
+  HoverPopover,
+  HoverPopoverContent,
+  HoverPopoverTextTrigger,
+} from '@/components/ui/hover-popover';
+import { InventoryEmptyState } from '@/features/inventory/components/inventory-empty-state';
+import { InventoryFilters } from '@/features/inventory/components/inventory-filters';
+import { filterAndSortItems } from '@/features/inventory/components/item-filtering';
+import {
+  isItemTableSortKeyVisible,
+  ItemTable,
+  type ItemTableItem,
+  type ItemTableSortKey,
+} from '@/features/inventory/components/item-table';
+import { ItemTooltip } from '@/features/inventory/components/item-tooltip';
+import type { SortState } from '@/features/inventory/components/sortable-header';
+import { type ItemCategory, TYPE_ICON } from '@/features/inventory/item-visuals';
+
+export interface TradeDialogProps {
+  open: boolean;
+  playerId: string;
+  workstationId: string;
+  workerName: string;
+  shopName: string;
+  onClose: () => void;
+}
+
+export type TradeProposalStatus = 'accepted' | 'rejected';
+
+function toTradeRequest(playerOffer: readonly ItemDetail[], shopOffer: readonly ItemDetail[]) {
+  return {
+    playerOffer: playerOffer.map((item) => ({
+      itemId: item.itemId,
+      quantity: Number(item.quantity),
+    })),
+    shopOffer: shopOffer.map((item) => ({
+      itemId: item.itemId,
+      quantity: Number(item.quantity),
+    })),
+  };
+}
+
+export function TradeDialog({
+  playerId,
+  workstationId,
+  workerName,
+  shopName,
+  open,
+  onClose,
+}: TradeDialogProps) {
+  const queryClient = useQueryClient();
+  const trade = useQuery({
+    ...getTradeOptions({ path: { playerId, workstationId } }),
+    enabled: open,
+  });
+  const propose = useMutation(proposeTradeMutation());
+  const complete = useMutation(completeTradeMutation());
+  const [playerOffer, setPlayerOffer] = useState<ItemDetail[]>([]);
+  const [shopOffer, setShopOffer] = useState<ItemDetail[]>([]);
+  const [status, setStatus] = useState<TradeProposalStatus>();
+  useEffect(() => {
+    if (open) {
+      setPlayerOffer([]);
+      setShopOffer([]);
+      setStatus(undefined);
+    }
+  }, [open, workstationId]);
+  if (!trade.data) return null;
+  const {
+    playerInventory: { items: playerItems },
+    shopInventory: { items: shopItems },
+  } = trade.data;
+  const add = (set: Dispatch<SetStateAction<ItemDetail[]>>) => (item: ItemDetail) => {
+    set((current) =>
+      current.some((value) => value.itemId === item.itemId) ? current : [...current, item],
+    );
+    setStatus(undefined);
+  };
+  const changeQuantity =
+    (set: Dispatch<SetStateAction<ItemDetail[]>>) => (itemId: string, quantity: number) => {
+      set((current) =>
+        current.map((item) => (item.itemId === itemId ? { ...item, quantity } : item)),
+      );
+      setStatus(undefined);
+    };
+  const remove = (set: Dispatch<SetStateAction<ItemDetail[]>>) => (itemId: string) => {
+    set((current) => current.filter((item) => item.itemId !== itemId));
+    setStatus(undefined);
+  };
+  const hasOffer = playerOffer.length > 0 || shopOffer.length > 0;
+  const proposeTrade = async () => {
+    const result = await propose.mutateAsync({
+      path: { playerId, workstationId },
+      body: toTradeRequest(playerOffer, shopOffer),
+    });
+    setStatus(result.status.toLowerCase() as TradeProposalStatus);
+  };
+  const completeTrade = async () => {
+    await complete.mutateAsync({
+      path: { playerId, workstationId },
+      body: toTradeRequest(playerOffer, shopOffer),
+    });
+    await queryClient.invalidateQueries({
+      queryKey: getTradeOptions({ path: { playerId, workstationId } }).queryKey,
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="flex h-[min(94dvh,880px)] w-[calc(100vw-2rem)] max-w-none flex-col gap-4 sm:max-w-none">
+        <div>
+          <DialogTitle>Trade with {workerName}</DialogTitle>
+          <DialogDescription className="mt-1">{shopName}</DialogDescription>
+        </div>
+
+        <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(15rem,0.65fr)_minmax(0,1fr)] lg:overflow-hidden">
+          <InventoryPanel
+            icon={UserRound}
+            title="Your inventory"
+            items={playerItems}
+            offerItems={playerOffer}
+            ariaLabel="Your available items"
+            filterLabel="Your inventory"
+            filterKey={playerId}
+            onAdd={add(setPlayerOffer)}
+          />
+
+          <div className="flex min-h-0 flex-col gap-3">
+            <OfferPanel
+              title="You offer"
+              items={playerOffer}
+              sourceItems={playerItems}
+              emptyMessage="Add items from your inventory"
+              onQuantityChange={changeQuantity(setPlayerOffer)}
+              onRemove={remove(setPlayerOffer)}
+            />
+            <OfferPanel
+              title="You receive"
+              items={shopOffer}
+              sourceItems={shopItems}
+              emptyMessage="Add items from the shop"
+              onQuantityChange={changeQuantity(setShopOffer)}
+              onRemove={remove(setShopOffer)}
+            />
+          </div>
+
+          <InventoryPanel
+            icon={Store}
+            title="Shop inventory"
+            items={shopItems}
+            offerItems={shopOffer}
+            ariaLabel="Shop available items"
+            filterLabel="Shop inventory"
+            filterKey={workstationId}
+            onAdd={add(setShopOffer)}
+          />
+        </div>
+
+        <DialogFooter className="flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1.5">
+            {status && <TradeResponse status={status} workerName={workerName} />}
+            <TradeSummary playerOffer={playerOffer} shopOffer={shopOffer} />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              {status === 'accepted' ? 'Close' : 'Cancel'}
+            </Button>
+            <Button
+              disabled={status !== 'accepted' && !hasOffer}
+              onClick={status === 'accepted' ? completeTrade : proposeTrade}
+            >
+              {status === 'accepted' ? 'Complete trade' : 'Propose trade'}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function InventoryPanel({
+  icon: Icon,
+  title,
+  items,
+  offerItems,
+  ariaLabel,
+  filterLabel,
+  filterKey,
+  onAdd,
+}: {
+  icon: typeof UserRound;
+  title: string;
+  items: readonly ItemDetail[];
+  offerItems: readonly ItemDetail[];
+  ariaLabel: string;
+  filterLabel: string;
+  filterKey: string;
+  onAdd: (item: ItemDetail) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [categories, setCategories] = useState<ReadonlySet<ItemCategory>>(new Set());
+  const [equippedOnly, setEquippedOnly] = useState(false);
+  const [sort, setSort] = useState<SortState<ItemTableSortKey>>({ key: 'name', dir: 'asc' });
+  useEffect(() => {
+    setSearch('');
+    setCategories(new Set());
+    setEquippedOnly(false);
+    setSort({ key: 'name', dir: 'asc' });
+  }, [filterKey]);
+  const tableItems: ItemTableItem[] = items.map((item) => ({
+    item,
+    quantity: Number(item.quantity),
+    goldValue: Number(item.goldValue),
+    weight: Number(item.weight) * Number(item.quantity),
+  }));
+  const totalWeight = tableItems.reduce((sum, item) => sum + item.weight, 0);
+  const offeredItemIds = new Set(offerItems.map((item) => item.itemId));
+  const visibleItems = filterAndSortItems(items, search, categories, equippedOnly, sort);
+
+  const toggleSort = (key: ItemTableSortKey) => {
+    if (sort.key === key) {
+      setSort({ key, dir: sort.dir === 'asc' ? 'desc' : 'asc' });
+    } else {
+      setSort({ key, dir: key === 'name' ? 'asc' : 'desc' });
+    }
+  };
+
+  const handleCategoriesChange = (next: ReadonlySet<ItemCategory>) => {
+    setCategories(next);
+    if (!isItemTableSortKeyVisible(sort.key, next)) {
+      setSort({ key: 'name', dir: 'asc' });
+    }
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setCategories(new Set());
+    setEquippedOnly(false);
+    if (!isItemTableSortKeyVisible(sort.key, new Set())) {
+      setSort({ key: 'name', dir: 'asc' });
+    }
+  };
+
+  return (
+    <section className="bg-muted/40 flex min-h-72 min-w-0 flex-col overflow-hidden rounded-lg border lg:min-h-0">
+      <div className="border-b px-3 py-2">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+          <Icon className="text-muted-foreground size-4" />
+          {title}
+        </h2>
+        <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
+          {items.length} items · {totalWeight} <Weight className="size-3 shrink-0" /> total
+        </p>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
+        <InventoryFilters
+          search={search}
+          onSearchChange={setSearch}
+          categories={categories}
+          onCategoriesChange={handleCategoriesChange}
+          equippedOnly={equippedOnly}
+          onEquippedOnlyChange={setEquippedOnly}
+          ariaLabel={filterLabel}
+        />
+
+        <div className="min-h-0 flex-1 overflow-auto" aria-label={ariaLabel}>
+          {visibleItems.length === 0 ? (
+            <InventoryEmptyState
+              itemCount={items.length}
+              emptyMessage="Nothing here."
+              hasActiveFilters={Boolean(search) || categories.size > 0 || equippedOnly}
+              onClearFilters={clearFilters}
+            />
+          ) : (
+            <ItemTable
+              items={visibleItems.map((item) => ({
+                item,
+                quantity: Number(item.quantity),
+                goldValue: Number(item.goldValue),
+                weight: Number(item.weight) * Number(item.quantity),
+              }))}
+              categories={categories}
+              sort={sort}
+              onToggleSort={toggleSort}
+              renderName={(item) => <ItemName item={item.item} />}
+              renderAction={(item) =>
+                offeredItemIds.has(item.item.itemId) ? (
+                  <div className="h-8" />
+                ) : (
+                  <Button
+                    variant="outline"
+                    aria-label={`Add ${item.item.name} to offer`}
+                    onClick={() => onAdd(item.item)}
+                  >
+                    Add
+                  </Button>
+                )
+              }
+            />
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OfferPanel({
+  title,
+  items,
+  sourceItems,
+  emptyMessage,
+  onQuantityChange,
+  onRemove,
+}: {
+  title: string;
+  items: readonly ItemDetail[];
+  sourceItems: readonly ItemDetail[];
+  emptyMessage: string;
+  onQuantityChange: (itemId: string, quantity: number) => void;
+  onRemove: (itemId: string) => void;
+}) {
+  const total = items.reduce(
+    (sum, item) => sum + Number(item.goldValue) * Number(item.quantity),
+    0,
+  );
+
+  return (
+    <section className="bg-muted/40 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border">
+      <div className="flex items-center justify-between border-b px-3 py-2">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        <span className="text-muted-foreground flex items-center gap-1 font-mono text-xs tabular-nums">
+          {total} <Coins className="size-3" />
+        </span>
+      </div>
+      {items.length === 0 ? (
+        <Empty className="min-h-28">
+          <EmptyMedia variant="icon">
+            <PackageOpen />
+          </EmptyMedia>
+          <EmptyTitle>{emptyMessage}</EmptyTitle>
+        </Empty>
+      ) : (
+        <ul className="divide-border divide-y">
+          {items.map((item) => (
+            <li key={item.itemId} className="flex items-center gap-2 px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <ItemName item={item} />
+              </div>
+              {isStackable(item) ? (
+                <NumericStepper
+                  value={Number(item.quantity)}
+                  onChange={(quantity) => onQuantityChange(item.itemId, quantity)}
+                  min={1}
+                  max={
+                    sourceItems.find((sourceItem) => sourceItem.itemId === item.itemId)?.quantity ??
+                    1
+                  }
+                  ariaLabel={`${item.name} quantity`}
+                />
+              ) : null}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Remove ${item.name} from offer`}
+                onClick={() => onRemove(item.itemId)}
+              >
+                <X />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function isStackable(item: ItemDetail) {
+  return item.$type === 'Ammunition' || item.$type === 'Consumable' || item.$type === 'Gold';
+}
+
+function ItemName({ item }: { item: ItemDetail }) {
+  const Icon = TYPE_ICON[item.type];
+
+  return (
+    <HoverPopover>
+      <HoverPopoverTextTrigger className="flex min-w-0 items-center gap-1.5 text-left no-underline">
+        <Icon className="text-muted-foreground size-3.5 shrink-0" />
+        <span className="truncate">{item.name}</span>
+      </HoverPopoverTextTrigger>
+      <HoverPopoverContent>
+        <ItemTooltip item={item} />
+      </HoverPopoverContent>
+    </HoverPopover>
+  );
+}
+
+function TradeSummary({
+  playerOffer,
+  shopOffer,
+}: {
+  playerOffer: readonly ItemDetail[];
+  shopOffer: readonly ItemDetail[];
+}) {
+  const playerOfferValue = playerOffer.reduce(
+    (sum, item) => sum + Number(item.goldValue) * Number(item.quantity),
+    0,
+  );
+  const shopOfferValue = shopOffer.reduce(
+    (sum, item) => sum + Number(item.goldValue) * Number(item.quantity),
+    0,
+  );
+  const difference = playerOfferValue - shopOfferValue;
+  const summary =
+    difference === 0
+      ? 'This is an even trade.'
+      : difference > 0
+        ? `You are offering ${difference} more in value.`
+        : `You are requesting ${Math.abs(difference)} more in value.`;
+
+  return (
+    <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+      <Coins className="size-4" />
+      {summary}
+    </p>
+  );
+}
+
+function TradeResponse({
+  status,
+  workerName,
+}: {
+  status: TradeProposalStatus;
+  workerName: string;
+}) {
+  const accepted = status === 'accepted';
+  const Icon = accepted ? CircleCheck : CircleX;
+
+  return (
+    <p
+      className={
+        accepted
+          ? 'flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400'
+          : 'text-destructive flex items-center gap-1.5 text-sm'
+      }
+      role="status"
+    >
+      <Icon className="size-4" />
+      {accepted ? `${workerName} accepts your offer.` : `${workerName} declines your offer.`}
+    </p>
+  );
+}

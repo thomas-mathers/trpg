@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
@@ -106,7 +107,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
                 To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
-                Items = [new LootItemSelection(gold.Id, 100)],
+                Items = [new ItemSelection(gold.Id, 100)],
             },
             TestContext.Current.CancellationToken
         );
@@ -130,7 +131,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
                 To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
-                Items = [new LootItemSelection(item.Id, 1)],
+                Items = [new ItemSelection(item.Id, 1)],
             },
             TestContext.Current.CancellationToken
         );
@@ -152,7 +153,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
                 To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
-                Items = [new LootItemSelection(item.Id, 3)],
+                Items = [new ItemSelection(item.Id, 3)],
             },
             TestContext.Current.CancellationToken
         );
@@ -180,7 +181,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
                 To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
-                Items = [new LootItemSelection(gold.Id, 100), new LootItemSelection(item.Id, 1)],
+                Items = [new ItemSelection(gold.Id, 100), new ItemSelection(item.Id, 1)],
             },
             TestContext.Current.CancellationToken
         );
@@ -207,7 +208,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
                 To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
-                Items = [new LootItemSelection(item.Id, 4)],
+                Items = [new ItemSelection(item.Id, 4)],
             },
             TestContext.Current.CancellationToken
         );
@@ -241,7 +242,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
                 To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
-                Items = [new LootItemSelection(gold.Id, 30)],
+                Items = [new ItemSelection(gold.Id, 30)],
             },
             TestContext.Current.CancellationToken
         );
@@ -265,7 +266,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
                 {
                     From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
                     To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
-                    Items = [new LootItemSelection(item.Id, 5)],
+                    Items = [new ItemSelection(item.Id, 5)],
                 },
                 TestContext.Current.CancellationToken
             )
@@ -284,7 +285,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 From = new ItemOwnerReference(_container.Id, OwnerType.Container),
                 To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
-                Items = [new LootItemSelection(item.Id, 2)],
+                Items = [new ItemSelection(item.Id, 2)],
             },
             TestContext.Current.CancellationToken
         );
@@ -316,7 +317,7 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
             {
                 From = new ItemOwnerReference(_player.Id, OwnerType.Creature),
                 To = new ItemOwnerReference(_container.Id, OwnerType.Container),
-                Items = [new LootItemSelection(item.Id, 1)],
+                Items = [new ItemSelection(item.Id, 1)],
             },
             TestContext.Current.CancellationToken
         );
