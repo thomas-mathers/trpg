@@ -190,6 +190,28 @@ describe('TransferItemDialog', () => {
     expect(ui.item('Iron Sword').query()).not.toBeInTheDocument();
   });
 
+  it('filters items by equipped status', async () => {
+    server.use(
+      handleGetCreatureInventory(async ({ params }) =>
+        HttpResponse.json({
+          gold: 0,
+          items:
+            params.creatureId === 'player-id' ? [item(), sword({ equippedSlot: 'RightHand' })] : [],
+        }),
+      ),
+    );
+
+    const { user } = renderDialog();
+    await ui.dialog.find();
+    expect(await ui.item('Gold coins').find()).toBeVisible();
+    expect(ui.item('Iron Sword').get()).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Your inventory Equipped' }));
+
+    expect(ui.item('Gold coins').query()).not.toBeInTheDocument();
+    expect(ui.item('Iron Sword').get()).toBeVisible();
+  });
+
   it('sorts items by weight', async () => {
     server.use(
       handleGetCreatureInventory(async ({ params }) =>

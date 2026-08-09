@@ -65,6 +65,26 @@ const gold = (overrides: Partial<ItemDetailGoldDetail> = {}): ItemDetail => ({
   ...overrides,
 });
 
+const armor = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
+  ({
+    $type: 'Armor',
+    itemId: 'armor-1',
+    name: 'Leather Armor',
+    description: 'A protective leather vest.',
+    weight: 4,
+    quantity: 1,
+    equippedSlot: null,
+    type: 'Chest',
+    rarity: null,
+    goldValue: 15,
+    modifiers: [],
+    defense: 4,
+    armorClass: 'Light',
+    durabilityCurrent: 10,
+    durabilityMax: 10,
+    ...overrides,
+  }) as ItemDetail;
+
 function renderDialog(onClose = vi.fn()) {
   return renderWithProviders(<InventoryDialog playerId="player-id" open onClose={onClose} />);
 }
@@ -174,5 +194,39 @@ describe('InventoryDialog', () => {
     const itemRows = screen.getAllByRole('row').slice(1);
     expect(itemRows[0]).toHaveTextContent('High Value Sword');
     expect(itemRows[1]).toHaveTextContent('Low Value Sword');
+  });
+
+  it('shows sortable weapon and defense columns for matching filters', async () => {
+    server.use(
+      handleGetCreatureInventory({
+        body: {
+          gold: 0,
+          items: [
+            sword({ itemId: 'low-damage', name: 'Low Damage Sword', minDamage: 2 }),
+            sword({ itemId: 'high-damage', name: 'High Damage Sword', minDamage: 6 }),
+            armor(),
+          ],
+        },
+      }),
+    );
+    const { user } = renderDialog();
+    await ui.dialog.find();
+    await ui.item('Low Damage Sword').find();
+
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(
+      ['Item', 'Damage', 'Defense', 'Qty', 'Value', 'Weight', ''],
+    );
+
+    await user.click(ui.category('Weapons').get());
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(
+      ['Item', 'Damage', 'Qty', 'Value', 'Weight', ''],
+    );
+    await user.click(ui.sort('Damage').get());
+    expect(screen.getAllByRole('row')[1]).toHaveTextContent('High Damage Sword');
+
+    await user.click(ui.category('Armor').get());
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(
+      ['Item', 'Damage', 'Defense', 'Qty', 'Value', 'Weight', ''],
+    );
   });
 });

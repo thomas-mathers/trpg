@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Coins,
   PackageOpen,
   Skull,
   User,
@@ -15,7 +14,6 @@ import { useEffect, useState } from 'react';
 import { getCreatureInventoryOptions, transferInventoryMutation } from '@/api/client';
 import type { ItemDetail, ItemRarity, ItemType } from '@/api/client';
 import { NumericStepper } from '@/components/numeric-stepper';
-import { SearchInput } from '@/components/search-input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Empty, EmptyContent, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -24,20 +22,18 @@ import {
   HoverPopoverContent,
   HoverPopoverTextTrigger,
 } from '@/components/ui/hover-popover';
-import { Toggle } from '@/components/ui/toggle';
-import { ItemTooltip } from '@/features/inventory/components/item-tooltip';
-import { SortableHeader, type SortState } from '@/features/inventory/components/sortable-header';
+import { InventoryFilters } from '@/features/inventory/components/inventory-filters';
 import {
-  CATEGORY_ORDER,
-  type ItemCategory,
-  RARITY_COLOR,
-  TYPE_ICON,
-} from '@/features/inventory/item-visuals';
-import { cn } from '@/lib/utils';
+  isItemTableSortKeyVisible,
+  ItemTable,
+  type ItemTableItem,
+  type ItemTableSortKey,
+} from '@/features/inventory/components/item-table';
+import { ItemTooltip } from '@/features/inventory/components/item-tooltip';
+import type { SortState } from '@/features/inventory/components/sortable-header';
+import { type ItemCategory, RARITY_COLOR, TYPE_ICON } from '@/features/inventory/item-visuals';
 
-import { CATEGORY_LABEL } from '../display-names';
-
-interface WorkingItem {
+interface WorkingItem extends ItemTableItem {
   rowKey: string;
   itemId: string;
   name: string;
@@ -48,7 +44,6 @@ interface WorkingItem {
   weight: number;
   quantity: number;
   goldValue: number;
-  detail: ItemDetail;
 }
 
 type Direction = 'toOther' | 'toPlayer';
@@ -59,7 +54,7 @@ interface PendingMove {
   direction: Direction;
 }
 
-type SortKey = 'name' | 'quantity' | 'weight' | 'value';
+type SortKey = ItemTableSortKey;
 
 const toWorkingItems = (items: ItemDetail[]): WorkingItem[] =>
   items.map((item) => ({
@@ -73,18 +68,22 @@ const toWorkingItems = (items: ItemDetail[]): WorkingItem[] =>
     weight: Number(item.weight),
     quantity: Number(item.quantity),
     goldValue: Number(item.goldValue),
-    detail: item,
+    item,
   }));
 
 const sortItems = (
   items: WorkingItem[],
   search: string,
   categories: ReadonlySet<ItemCategory>,
+  equippedOnly: boolean,
   sort: SortState<SortKey>,
 ): WorkingItem[] => {
   const query = search.trim().toLowerCase();
   const filtered = items.filter((item) => {
     if (query && !item.name.toLowerCase().includes(query)) {
+      return false;
+    }
+    if (equippedOnly && item.equippedSlot === null) {
       return false;
     }
     return categories.size === 0 || categories.has(item.category);
@@ -99,6 +98,26 @@ const sortItems = (
     }
     if (sort.key === 'value') {
       return (a.goldValue * a.quantity - b.goldValue * b.quantity) * dir;
+    }
+    if (sort.key === 'damage') {
+      const averageDamage = (item: WorkingItem) =>
+        item.item.$type === 'Weapon' ? (item.item.minDamage + item.item.maxDamage) / 2 : 0;
+      const averageDifference = averageDamage(a) - averageDamage(b);
+      if (averageDifference !== 0) {
+        return averageDifference * dir;
+      }
+      return (
+        ((a.item.$type === 'Weapon' ? a.item.maxDamage : 0) -
+          (b.item.$type === 'Weapon' ? b.item.maxDamage : 0)) *
+        dir
+      );
+    }
+    if (sort.key === 'defense') {
+      return (
+        ((a.item.$type === 'Armor' || a.item.$type === 'Shield' ? a.item.defense : 0) -
+          (b.item.$type === 'Armor' || b.item.$type === 'Shield' ? b.item.defense : 0)) *
+        dir
+      );
     }
     return (a.weight * a.quantity - b.weight * b.quantity) * dir;
   });
@@ -220,6 +239,8 @@ function TransferDialogBody({
   const [rightSearch, setRightSearch] = useState('');
   const [leftCategories, setLeftCategories] = useState<ReadonlySet<ItemCategory>>(new Set());
   const [rightCategories, setRightCategories] = useState<ReadonlySet<ItemCategory>>(new Set());
+  const [leftEquippedOnly, setLeftEquippedOnly] = useState(false);
+  const [rightEquippedOnly, setRightEquippedOnly] = useState(false);
   const [leftSort, setLeftSort] = useState<SortState<SortKey>>({ key: 'name', dir: 'asc' });
   const [rightSort, setRightSort] = useState<SortState<SortKey>>({ key: 'name', dir: 'asc' });
 
@@ -324,6 +345,8 @@ function TransferDialogBody({
           onSearchChange={setLeftSearch}
           categories={leftCategories}
           onCategoriesChange={setLeftCategories}
+          equippedOnly={leftEquippedOnly}
+          onEquippedOnlyChange={setLeftEquippedOnly}
           sort={leftSort}
           onSortChange={setLeftSort}
         />
@@ -370,6 +393,8 @@ function TransferDialogBody({
           onSearchChange={setRightSearch}
           categories={rightCategories}
           onCategoriesChange={setRightCategories}
+          equippedOnly={rightEquippedOnly}
+          onEquippedOnlyChange={setRightEquippedOnly}
           sort={rightSort}
           onSortChange={setRightSort}
         />
@@ -441,6 +466,8 @@ interface InventorySidePanelProps {
   onSearchChange: (value: string) => void;
   categories: ReadonlySet<ItemCategory>;
   onCategoriesChange: (categories: ReadonlySet<ItemCategory>) => void;
+  equippedOnly: boolean;
+  onEquippedOnlyChange: (equippedOnly: boolean) => void;
   sort: SortState<SortKey>;
   onSortChange: (sort: SortState<SortKey>) => void;
 }
@@ -456,10 +483,12 @@ function InventorySidePanel({
   onSearchChange,
   categories,
   onCategoriesChange,
+  equippedOnly,
+  onEquippedOnlyChange,
   sort,
   onSortChange,
 }: InventorySidePanelProps) {
-  const sortedItems = sortItems(items, search, categories, sort);
+  const sortedItems = sortItems(items, search, categories, equippedOnly, sort);
   const totalWeight = items.reduce((sum, item) => sum + item.weight * item.quantity, 0);
   const allSelected =
     sortedItems.length > 0 && sortedItems.every((item) => selected.has(item.rowKey));
@@ -473,19 +502,20 @@ function InventorySidePanel({
     }
   };
 
-  const toggleCategory = (category: ItemCategory) => {
-    const next = new Set(categories);
-    if (next.has(category)) {
-      next.delete(category);
-    } else {
-      next.add(category);
-    }
+  const handleCategoriesChange = (next: ReadonlySet<ItemCategory>) => {
     onCategoriesChange(next);
+    if (!isItemTableSortKeyVisible(sort.key, next)) {
+      onSortChange({ key: 'name', dir: 'asc' });
+    }
   };
 
   const clearFilters = () => {
     onSearchChange('');
     onCategoriesChange(new Set());
+    onEquippedOnlyChange(false);
+    if (!isItemTableSortKeyVisible(sort.key, new Set())) {
+      onSortChange({ key: 'name', dir: 'asc' });
+    }
   };
 
   const toggleSelectAll = () => {
@@ -527,125 +557,118 @@ function InventorySidePanel({
         </p>
       </div>
 
-      <div className="space-y-2 px-3 pt-2">
-        <SearchInput value={search} onChange={onSearchChange} />
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
+        <InventoryFilters
+          search={search}
+          onSearchChange={onSearchChange}
+          categories={categories}
+          onCategoriesChange={handleCategoriesChange}
+          equippedOnly={equippedOnly}
+          onEquippedOnlyChange={onEquippedOnlyChange}
+          ariaLabel={ariaLabel}
+        />
 
-        <div className="flex w-full min-w-0 gap-1.5 overflow-x-auto py-2">
-          {CATEGORY_ORDER.map((category) => (
-            <Toggle
-              key={category}
-              size="sm"
-              variant="outline"
-              className="shrink-0 rounded-full"
-              pressed={categories.has(category)}
-              onPressedChange={() => toggleCategory(category)}
-              aria-label={`${ariaLabel} ${CATEGORY_LABEL[category]}`}
-            >
-              {CATEGORY_LABEL[category]}
-            </Toggle>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-x-hidden overflow-y-auto px-3 pb-2">
-        {sortedItems.length === 0 ? (
-          <Empty className="h-full">
-            <EmptyMedia variant="icon">
-              <PackageOpen />
-            </EmptyMedia>
-            <EmptyTitle>
-              {items.length === 0 ? 'Nothing here.' : 'No items match your filters.'}
-            </EmptyTitle>
-            {items.length > 0 && (search || categories.size > 0) && (
-              <EmptyContent>
-                <Button variant="outline" size="sm" onClick={clearFilters}>
-                  Clear filters
-                </Button>
-              </EmptyContent>
-            )}
-          </Empty>
-        ) : (
-          <table className="w-full table-fixed">
-            <colgroup>
-              <col className="w-7" />
-              <col />
-              <col className="w-12" />
-              <col className="w-16" />
-              <col className="w-16" />
-            </colgroup>
-            <thead>
-              <tr className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-                <th className="px-2 py-2 text-left">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      className="accent-primary size-4"
-                      checked={allSelected}
-                      ref={(el) => {
-                        if (el) {
-                          el.indeterminate = !allSelected && someSelected;
-                        }
-                      }}
-                      disabled={!selectionEnabled || sortedItems.length === 0}
-                      onChange={toggleSelectAll}
-                      aria-label="Select all"
-                    />
-                  </div>
-                </th>
-                <SortableHeader label="Item" sortKey="name" sort={sort} onToggle={toggleSort} />
-                <SortableHeader
-                  label="Qty"
-                  sortKey="quantity"
-                  sort={sort}
-                  onToggle={toggleSort}
-                  align="right"
-                />
-                <SortableHeader
-                  label="Value"
-                  sortKey="value"
-                  sort={sort}
-                  onToggle={toggleSort}
-                  align="right"
-                />
-                <SortableHeader
-                  label="Weight"
-                  sortKey="weight"
-                  sort={sort}
-                  onToggle={toggleSort}
-                  align="right"
-                />
-              </tr>
-            </thead>
-            <tbody className="divide-border divide-y">
-              {sortedItems.map((item) => (
-                <ItemRow
-                  key={item.rowKey}
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+          {sortedItems.length === 0 ? (
+            <Empty className="h-full">
+              <EmptyMedia variant="icon">
+                <PackageOpen />
+              </EmptyMedia>
+              <EmptyTitle>
+                {items.length === 0 ? 'Nothing here.' : 'No items match your filters.'}
+              </EmptyTitle>
+              {items.length > 0 && (search || categories.size > 0 || equippedOnly) && (
+                <EmptyContent>
+                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                </EmptyContent>
+              )}
+            </Empty>
+          ) : (
+            <ItemTable
+              items={sortedItems.map((item) => ({ ...item, weight: item.weight * item.quantity }))}
+              categories={categories}
+              sort={sort}
+              onToggleSort={toggleSort}
+              rowClassName={(item) => (selected.has(item.rowKey) ? 'bg-accent' : undefined)}
+              renderLeadingHeader={
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    className="accent-primary size-4"
+                    checked={allSelected}
+                    ref={(element) => {
+                      if (element) {
+                        element.indeterminate = !allSelected && someSelected;
+                      }
+                    }}
+                    disabled={!selectionEnabled || sortedItems.length === 0}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </div>
+              }
+              renderLeadingCell={(item) => (
+                <TransferSelectionCell
                   item={item}
                   selectedQuantity={selected.get(item.rowKey)}
                   selectionEnabled={selectionEnabled}
                   onToggle={() => toggleRow(item)}
+                />
+              )}
+              renderName={(item) => (
+                <TransferItemName
+                  item={item}
+                  selectedQuantity={selected.get(item.rowKey)}
+                  selectionEnabled={selectionEnabled}
                   onQuantityChange={(quantity) => setRowQuantity(item.rowKey, quantity)}
                 />
-              ))}
-            </tbody>
-          </table>
-        )}
+              )}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function ItemRow({
+function TransferSelectionCell({
   item,
   selectedQuantity,
   selectionEnabled,
   onToggle,
-  onQuantityChange,
 }: {
   item: WorkingItem;
   selectedQuantity: number | undefined;
   selectionEnabled: boolean;
   onToggle: () => void;
+}) {
+  const checked = selectedQuantity !== undefined;
+
+  return (
+    <div className="flex h-5 items-center">
+      <input
+        type="checkbox"
+        className="accent-primary size-4"
+        checked={checked}
+        disabled={!selectionEnabled}
+        onChange={onToggle}
+        aria-label={`Select ${item.name}`}
+      />
+    </div>
+  );
+}
+
+function TransferItemName({
+  item,
+  selectedQuantity,
+  selectionEnabled,
+  onQuantityChange,
+}: {
+  item: WorkingItem;
+  selectedQuantity: number | undefined;
+  selectionEnabled: boolean;
   onQuantityChange: (quantity: number) => void;
 }) {
   const checked = selectedQuantity !== undefined;
@@ -654,69 +677,40 @@ function ItemRow({
   const rarityColor = item.rarity ? RARITY_COLOR[item.rarity] : undefined;
 
   return (
-    <tr className={cn(checked && 'bg-accent')}>
-      <td className="px-2 py-1.5 align-top">
-        <div className="flex h-5 items-center">
-          <input
-            type="checkbox"
-            className="accent-primary size-4"
-            checked={checked}
-            disabled={!selectionEnabled}
-            onChange={onToggle}
-            aria-label={`Select ${item.name}`}
+    <>
+      <div className="flex h-5 items-center gap-1.5 text-sm">
+        <Icon className="text-muted-foreground size-3.5 shrink-0" />
+        {rarityColor && (
+          <span
+            className="size-1.5 shrink-0 rounded-full"
+            style={{ backgroundColor: rarityColor }}
+            title={item.rarity ?? undefined}
+          />
+        )}
+        <HoverPopover>
+          <HoverPopoverTextTrigger className="min-w-0 truncate text-left font-medium">
+            {item.name}
+          </HoverPopoverTextTrigger>
+          <HoverPopoverContent side="bottom" className="w-auto max-w-64 p-2 text-sm">
+            <ItemTooltip item={item.item} />
+          </HoverPopoverContent>
+        </HoverPopover>
+        {equipped && (
+          <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase">
+            Equipped
+          </span>
+        )}
+      </div>
+      {selectionEnabled && checked && item.quantity > 1 && (
+        <div className="mt-1">
+          <NumericStepper
+            value={selectedQuantity}
+            onChange={onQuantityChange}
+            min={1}
+            max={item.quantity}
           />
         </div>
-      </td>
-      <td className="px-2 py-1.5 align-top">
-        <div className="flex h-5 items-center gap-1.5 text-sm">
-          <Icon className="text-muted-foreground size-3.5 shrink-0" />
-          {rarityColor && (
-            <span
-              className="size-1.5 shrink-0 rounded-full"
-              style={{ backgroundColor: rarityColor }}
-              title={item.rarity ?? undefined}
-            />
-          )}
-          <HoverPopover>
-            <HoverPopoverTextTrigger className="min-w-0 truncate text-left font-medium">
-              {item.name}
-            </HoverPopoverTextTrigger>
-            <HoverPopoverContent side="bottom" className="w-auto max-w-64 p-2 text-sm">
-              <ItemTooltip item={item.detail} />
-            </HoverPopoverContent>
-          </HoverPopover>
-          {equipped && (
-            <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase">
-              Equipped
-            </span>
-          )}
-        </div>
-        {selectionEnabled && checked && item.quantity > 1 && (
-          <div className="mt-1">
-            <NumericStepper
-              value={selectedQuantity}
-              onChange={onQuantityChange}
-              min={1}
-              max={item.quantity}
-            />
-          </div>
-        )}
-      </td>
-      <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
-        <div className="flex h-5 items-center justify-end">{item.quantity}</div>
-      </td>
-      <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
-        <div className="flex h-5 items-center justify-end gap-1">
-          {item.goldValue * item.quantity}
-          <Coins className="text-muted-foreground size-3 shrink-0" />
-        </div>
-      </td>
-      <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
-        <div className="flex h-5 items-center justify-end gap-1">
-          {item.weight * item.quantity}
-          <Weight className="text-muted-foreground size-3 shrink-0" />
-        </div>
-      </td>
-    </tr>
+      )}
+    </>
   );
 }
