@@ -23,7 +23,6 @@ public class WorldGeneratorInput
 
 public class WorldGeneratorResult
 {
-    public required IReadOnlyCollection<CreatureAbility> Abilities { get; init; }
     public required IReadOnlyList<BuildingOwner> BuildingOwners { get; init; }
     public required IReadOnlyList<Building> Buildings { get; init; }
     public required IReadOnlyList<City> Cities { get; init; }
@@ -122,7 +121,6 @@ public class WorldGenerator(
         var locations = new List<Location>(geography.Locations);
         var props = new List<Prop>(geography.Props);
         var skills = new List<CreatureSkill>();
-        var abilities = new List<CreatureAbility>();
         var jobs = new List<CreatureJob>();
         var locationConnectorKeys = new List<LocationConnectorKey>();
         var relationships = new List<Relationship>();
@@ -160,7 +158,6 @@ public class WorldGenerator(
             locations.AddRange(cityResult.Locations);
             props.AddRange(cityResult.Props);
             skills.AddRange(cityResult.Skills);
-            abilities.AddRange(cityResult.Abilities);
             jobs.AddRange(cityResult.Jobs);
             locationConnectorKeys.AddRange(cityResult.LocationConnectorKeys);
             relationships.AddRange(cityResult.Relationships);
@@ -221,7 +218,6 @@ public class WorldGenerator(
                 monsters.AddRange(dungeonMonsters.Select(m => m.Creature));
                 items.AddRange(dungeonMonsters.SelectMany(m => m.Items));
                 skills.AddRange(dungeonMonsters.SelectMany(m => m.Skills));
-                abilities.AddRange(dungeonMonsters.SelectMany(m => m.Abilities));
             }
         }
 
@@ -276,7 +272,6 @@ public class WorldGenerator(
             Locations = locations,
             Props = props,
             Skills = skills,
-            Abilities = abilities,
             Jobs = jobs,
             Knowledge = knowledge,
             LocationConnectorKeys = locationConnectorKeys,

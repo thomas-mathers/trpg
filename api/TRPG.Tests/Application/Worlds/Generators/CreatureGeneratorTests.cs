@@ -281,13 +281,13 @@ public class CreatureGeneratorTests
     }
 
     [Fact]
-    public void Generate_DoesNotGrantAbilities_FromSkillTreesOutsideArchetypeAffinity()
+    public void Generate_LeavesSkillsOutsideArchetypeAffinity_AtZero()
     {
         // Act — Baker has no Melee affinity, so it should never learn "Slash" (Melee level 1)
         var result = _creatureGenerator.Generate(MakeInput(Profession.Baker, level: 1));
 
         // Assert
-        Assert.DoesNotContain(result.Abilities, a => a.AbilityName == "Slash");
+        Assert.Equal(0, result.Skills.Single(s => s.Skill == Skill.Melee).Level);
     }
 
     [Fact]
@@ -361,12 +361,12 @@ public class CreatureGeneratorTests
     }
 
     [Fact]
-    public void Generate_GrantsAbilities_ToMonsterArchetypes()
+    public void Generate_CreatesSkills_ForMonsterArchetypes()
     {
         // Act
         var result = _creatureGenerator.Generate(MakeMonsterInput(CreatureArchetype.Giant, 8));
 
         // Assert
-        Assert.NotEmpty(result.Abilities);
+        Assert.NotEmpty(result.Skills);
     }
 }

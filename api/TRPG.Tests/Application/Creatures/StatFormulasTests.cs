@@ -152,6 +152,37 @@ public class StatFormulasTests
     }
 
     [Fact]
+    public void EffectiveAttribute_AddsShieldResistanceModifier_ToBaseResistance()
+    {
+        // Arrange
+        Item[] inventory =
+        [
+            Builders.MakeShieldItem(
+                modifiers:
+                [
+                    new AttributeModifier
+                    {
+                        Attribute = AttributeName.FireResistance,
+                        AmountType = AmountType.Flat,
+                        Amount = 0.15f,
+                    },
+                ]
+            ),
+        ];
+
+        // Act
+        var value = StatFormulas.CalculateEffectiveAttribute(
+            MakeAttributes(),
+            [],
+            inventory,
+            AttributeName.FireResistance
+        );
+
+        // Assert
+        Assert.Equal(0.4f, value);
+    }
+
+    [Fact]
     public void EffectiveAttributes_ResolvesEveryField_ByDelegatingToEffectiveAttribute()
     {
         // Arrange

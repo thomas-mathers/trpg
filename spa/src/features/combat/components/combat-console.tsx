@@ -106,7 +106,9 @@ function EnemyRow({
           offset={
             activeAttackerId === enemy.id
               ? -14
-              : activeDefenderId === enemy.id && combatFlashes[enemy.id]?.kind !== 'block'
+              : activeDefenderId === enemy.id &&
+                  (combatFlashes[enemy.id]?.kind === 'hit' ||
+                    combatFlashes[enemy.id]?.kind === 'crit')
                 ? 14
                 : 0
           }
@@ -387,7 +389,8 @@ export function CombatConsole() {
                       activeAttackerId === player.id
                         ? 14
                         : activeDefenderId === player.id &&
-                            combatFlashes[player.id]?.kind !== 'block'
+                            (combatFlashes[player.id]?.kind === 'hit' ||
+                              combatFlashes[player.id]?.kind === 'crit')
                           ? -14
                           : 0
                     }

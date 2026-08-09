@@ -301,6 +301,8 @@ export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gno
 
 export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 'Magic';
 
+export type DistrictType = 'Residential' | 'Scientific' | 'CityCenter' | 'Governmental' | 'HolySite' | 'Encampment';
+
 export type EffectiveAttributesResponse = {
     strength: number;
     dexterity: number;
@@ -365,7 +367,9 @@ export type ItemDetail = ({
     $type: 'Consumable';
 } & ItemDetailConsumableItemDetail) | ({
     $type: 'Gold';
-} & ItemDetailGoldDetail);
+} & ItemDetailGoldDetail) | ({
+    $type: 'Key';
+} & ItemDetailKeyDetail);
 
 export type ItemDetailAccessoryDetail = {
     $type?: 'Accessory';
@@ -444,15 +448,24 @@ export type ItemDetailGoldDetail = {
     modifiers: Array<ItemModifierSummary>;
 };
 
+export type ItemDetailKeyDetail = {
+    $type?: 'Key';
+    itemId: string;
+    name: string;
+    description: string;
+    weight: number;
+    quantity: number;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+    goldValue: number;
+    modifiers: Array<ItemModifierSummary>;
+};
+
 export type ItemDetailShieldDetail = {
     $type?: 'Shield';
     blockChance: number;
     defense: number;
-    magicResistance: number;
-    fireResistance: number;
-    iceResistance: number;
-    lightningResistance: number;
-    poisonResistance: number;
     durabilityCurrent: number;
     durabilityMax: number;
     itemId: string;
@@ -551,7 +564,7 @@ export type ItemModifierSummarySpecialHitModifierSummary = {
 
 export type ItemRarity = 'Low' | 'Normal' | 'Magic' | 'Rare' | 'Unique';
 
-export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold';
+export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold' | 'Key';
 
 export type JobStatus = 'Idle' | 'Queued' | 'InProgress' | 'Done' | 'Failed' | 'Cancelled';
 
@@ -590,9 +603,42 @@ export type NearbyCorpseSummary = {
     itemCount: number;
 };
 
+export type NearbyExitDestination = ({
+    $type: 'District';
+} & NearbyExitDestinationDistrictExitDestination) | ({
+    $type: 'Building';
+} & NearbyExitDestinationBuildingExitDestination) | ({
+    $type: 'Room';
+} & NearbyExitDestinationRoomExitDestination) | ({
+    $type: 'Wilderness';
+} & NearbyExitDestinationWildernessExitDestination);
+
+export type NearbyExitDestinationBuildingExitDestination = {
+    $type?: 'Building';
+    buildingType: BuildingType;
+    name: string;
+};
+
+export type NearbyExitDestinationDistrictExitDestination = {
+    $type?: 'District';
+    districtType: DistrictType;
+    name: string;
+};
+
+export type NearbyExitDestinationRoomExitDestination = {
+    $type?: 'Room';
+    buildingType: BuildingType;
+    name: string;
+};
+
+export type NearbyExitDestinationWildernessExitDestination = {
+    $type?: 'Wilderness';
+    name: string;
+};
+
 export type NearbyExitSnapshot = {
     description: string;
-    destinationRoomName: string;
+    destination: NearbyExitDestination;
 };
 
 export type NearbyPropSnapshot = {

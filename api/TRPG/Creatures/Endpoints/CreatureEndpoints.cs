@@ -384,11 +384,6 @@ internal static class CreatureEndpoints
                 modifiers,
                 s.BlockChance,
                 s.Defense,
-                s.MagicResistance,
-                s.FireResistance,
-                s.IceResistance,
-                s.LightningResistance,
-                s.PoisonResistance,
                 s.DurabilityCurrent,
                 s.DurabilityMax
             ),
@@ -441,6 +436,18 @@ internal static class CreatureEndpoints
                 type,
                 rarity,
                 g.GoldValue,
+                modifiers
+            ),
+            Key k => new KeyDetail(
+                k.Id,
+                k.Name,
+                k.Description,
+                k.Weight,
+                k.Quantity,
+                equippedSlot,
+                type,
+                rarity,
+                k.GoldValue,
                 modifiers
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
@@ -519,6 +526,7 @@ internal static class CreatureEndpoints
                 _ => throw new ArgumentOutOfRangeException(nameof(item)),
             },
             Gold => ItemType.Gold,
+            Key => ItemType.Key,
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
@@ -532,6 +540,7 @@ internal static class CreatureEndpoints
             Ammunition am => am.Rarity.ToContract(),
             Accessory ac => ac.Rarity.ToContract(),
             Gold => null,
+            Key => null,
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 

@@ -77,7 +77,6 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         _context.Creatures.Add(playerResult.Creature);
         _context.Items.AddRange(playerResult.Items);
         _context.CreatureSkills.AddRange(playerResult.Skills);
-        _context.CreatureAbilities.AddRange(playerResult.Abilities);
 
         var enemy = Builders.MakeCreature(
             worldId,

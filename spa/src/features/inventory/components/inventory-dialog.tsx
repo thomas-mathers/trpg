@@ -79,7 +79,7 @@ function equipSlotFor(item: ItemDetail, equippedSlots: Set<EquipmentSlot>): Equi
   return null;
 }
 
-type SortKey = 'name' | 'weight' | 'value';
+type SortKey = 'name' | 'quantity' | 'weight' | 'value';
 
 function sortItems(
   items: ItemDetail[],
@@ -102,6 +102,9 @@ function sortItems(
   return [...filtered].sort((a, b) => {
     if (sort.key === 'name') {
       return a.name.localeCompare(b.name) * dir;
+    }
+    if (sort.key === 'quantity') {
+      return (Number(a.quantity) - Number(b.quantity)) * dir;
     }
     if (sort.key === 'value') {
       return (
@@ -279,13 +282,14 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
                   <col className="w-16" />
                   <col className="w-16" />
                   <col className="w-24" />
+                  <col className="w-24" />
                 </colgroup>
                 <thead>
                   <tr className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
                     <SortableHeader label="Item" sortKey="name" sort={sort} onToggle={toggleSort} />
                     <SortableHeader
-                      label="Weight"
-                      sortKey="weight"
+                      label="Qty"
+                      sortKey="quantity"
                       sort={sort}
                       onToggle={toggleSort}
                       align="right"
@@ -297,7 +301,14 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
                       onToggle={toggleSort}
                       align="right"
                     />
-                    <th className="px-2 py-2 text-right">Action</th>
+                    <SortableHeader
+                      label="Weight"
+                      sortKey="weight"
+                      sort={sort}
+                      onToggle={toggleSort}
+                      align="right"
+                    />
+                    <th className="px-2 py-2" />
                   </tr>
                 </thead>
                 <tbody className="divide-border divide-y">
@@ -391,16 +402,17 @@ function EquipmentRow({
           )}
         </div>
       </td>
+      <td className="px-2 py-1.5 text-right font-mono text-sm tabular-nums">{item.quantity}</td>
       <td className="px-2 py-1.5 text-right font-mono text-sm tabular-nums">
         <div className="flex items-center justify-end gap-1">
-          {item.weight}
-          <Weight className="text-muted-foreground size-3 shrink-0" />
+          {item.goldValue * item.quantity}
+          <Coins className="text-muted-foreground size-3 shrink-0" />
         </div>
       </td>
       <td className="px-2 py-1.5 text-right font-mono text-sm tabular-nums">
         <div className="flex items-center justify-end gap-1">
-          {item.goldValue}
-          <Coins className="text-muted-foreground size-3 shrink-0" />
+          {item.weight}
+          <Weight className="text-muted-foreground size-3 shrink-0" />
         </div>
       </td>
       <td className="px-2 py-1.5 text-right">

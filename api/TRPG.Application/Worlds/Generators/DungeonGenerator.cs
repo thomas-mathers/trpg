@@ -146,6 +146,7 @@ internal static class DungeonGenerator
             Description = "The way back outside.",
             DestinationLocationId = input.WildernessLocationId,
             DestinationLabel = "Outside",
+            DestinationType = LocationDestinationType.Wilderness,
             WorldId = input.WorldId,
         };
         return new DungeonGeneratorResult(building, room, location, [frontDoor]);

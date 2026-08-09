@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using TRPG.Application.Abilities;
 using TRPG.Application.Common.Algorithms;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
@@ -28,8 +27,7 @@ public record CreatureGeneratorInput(
 public record CreatureGeneratorResult(
     Creature Creature,
     IReadOnlyList<Item> Items,
-    IReadOnlyCollection<CreatureSkill> Skills,
-    IReadOnlyCollection<CreatureAbility> Abilities
+    IReadOnlyCollection<CreatureSkill> Skills
 );
 
 public class CreatureGenerator(
@@ -1249,9 +1247,7 @@ public class CreatureGenerator(
             isPlayer
         );
 
-        var abilities = GetAbilities(creature, skills);
-
-        return new CreatureGeneratorResult(creature, items, skills, abilities);
+        return new CreatureGeneratorResult(creature, items, skills);
     }
 
     public CreatureGeneratorResult AddStartingPotions(CreatureGeneratorResult result)
@@ -1275,25 +1271,6 @@ public class CreatureGenerator(
         {
             Items = [.. result.Items, .. potions],
         };
-    }
-
-    private IReadOnlyCollection<CreatureAbility> GetAbilities(
-        Creature creature,
-        IReadOnlyCollection<CreatureSkill> skills
-    )
-    {
-        return skills
-            .SelectMany(cs =>
-                AbilityCatalog
-                    .Abilities.Where(a => a.Skill == cs.Skill && a.RequiredSkillLevel <= cs.Level)
-                    .Select(a => new CreatureAbility
-                    {
-                        CreatureId = creature.Id,
-                        AbilityName = a.Name,
-                        WorldId = creature.WorldId,
-                    })
-            )
-            .ToArray();
     }
 
     private static int GetGold(int level, CreatureArchetype archetype)

@@ -16,16 +16,11 @@ internal class GetCreatureAbilitiesQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var abilityNames = await context
-            .CreatureAbilities.AsNoTracking()
-            .Where(a => a.CreatureId == query.CreatureId)
-            .Select(a => a.AbilityName)
-            .ToArrayAsync(cancellationToken);
+        var skillLevels = await context
+            .CreatureSkills.AsNoTracking()
+            .Where(skill => skill.CreatureId == query.CreatureId)
+            .ToDictionaryAsync(skill => skill.Skill, skill => skill.Level, cancellationToken);
 
-        var learnedAbilities = abilityNames.Select(name =>
-            AbilityCatalog.Abilities.FirstOrDefault(a => a.Name == name)
-        );
-
-        return [AbilityCatalog.Strike, .. learnedAbilities.OfType<Ability>()];
+        return AbilityCatalog.GetAbilitiesForSkillLevels(skillLevels);
     }
 }

@@ -164,6 +164,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var connector = Builders.MakeLocationConnector(
             room.LocationId,
             destinationLocationId: destinationRoom.LocationId,
+            destinationType: LocationDestinationType.Room,
             worldId: WorldId,
             name: "Wooden Door",
             description: "A creaking wooden door.",
@@ -190,7 +191,9 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         Assert.Equal(building.Name, result.Building!.Name);
         Assert.Equal(room.Name, result.Room!.Name);
         var exit = Assert.Single(result.Exits);
-        Assert.Equal(destinationRoom.Name, exit.DestinationRoomName);
+        var destination = Assert.IsType<SceneRoomExitDestination>(exit.Destination);
+        Assert.Equal(destinationRoom.Name, destination.Name);
+        Assert.Equal(building.BuildingType, destination.BuildingType);
         Assert.False(exit.IsLocked);
     }
 
@@ -214,6 +217,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var connector = Builders.MakeLocationConnector(
             _player.LocationId,
             destinationLocationId: cityCenter.LocationId,
+            destinationType: LocationDestinationType.District,
             worldId: WorldId,
             name: "Path",
             description: "A path leading to City Center.",
@@ -236,7 +240,9 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         // Assert
         var exit = Assert.Single(result.Exits);
-        Assert.Equal("City Center", exit.DestinationRoomName);
+        var destination = Assert.IsType<SceneDistrictExitDestination>(exit.Destination);
+        Assert.Equal("City Center", destination.Name);
+        Assert.Equal(Data.Models.DistrictType.CityCenter, destination.DistrictType);
     }
 
     [Fact]

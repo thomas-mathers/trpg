@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260809023829_ConvertShieldResistancesToAttributeModifiers")]
+    partial class ConvertShieldResistancesToAttributeModifiers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1651,15 +1654,6 @@ namespace TRPG.Migrations
                     b.HasDiscriminator().HasValue("gold");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Key", b =>
-                {
-                    b.HasBaseType("TRPG.Data.Models.Item");
-
-                    b.ToTable("items", (string)null);
-
-                    b.HasDiscriminator().HasValue("key");
-                });
-
             modelBuilder.Entity("TRPG.Data.Models.Shield", b =>
                 {
                     b.HasBaseType("TRPG.Data.Models.Item");
@@ -1812,11 +1806,6 @@ namespace TRPG.Migrations
                     b.Property<Guid>("DestinationLocationId")
                         .HasColumnType("uuid")
                         .HasColumnName("destination_location_id");
-
-                    b.Property<string>("DestinationType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("destination_type");
 
                     b.Property<bool>("IsLocked")
                         .HasColumnType("boolean")

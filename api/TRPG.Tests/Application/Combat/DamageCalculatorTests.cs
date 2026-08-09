@@ -155,6 +155,48 @@ public class DamageCalculatorTests
     }
 
     [Fact]
+    public void CalculateDamage_AddsElementalWeaponDamage_AfterTheMatchingResistance()
+    {
+        // Arrange â€” 10 physical damage plus 8 fixed fire damage against 25% fire resistance.
+        var weapon = Builders.MakeWeaponItem(
+            worldId: _worldId,
+            minDamage: 10,
+            maxDamage: 10,
+            modifiers:
+            [
+                new ElementalDamageModifier
+                {
+                    DamageType = DamageType.Fire,
+                    MinDamage = 8,
+                    MaxDamage = 8,
+                },
+            ]
+        );
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithCombatOptions(Settings.Value)
+            .Build();
+        var defender = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithFireResistance(0.25f)
+            .Build();
+        var calculator = new DamageCalculator(Settings);
+
+        // Act
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageAmount: 100),
+            defender
+        );
+
+        // Assert
+        Assert.Equal(16, damage.Amount);
+    }
+
+    [Fact]
     public void CalculateDamage_IsSelfContained_ForMagicAbilities()
     {
         // Arrange — magic ignores the weapon entirely
@@ -448,6 +490,39 @@ public class DamageCalculatorTests
 
         // Assert
         Assert.Equal(30, damagePerTurn);
+    }
+
+    [Fact]
+    public void EstimateBasicAttackDamagePerTurn_IncludesAverageElementalWeaponDamage()
+    {
+        // Arrange — a 10-damage weapon with a 4-8 fire affix has 16 expected damage per swing.
+        var weapon = Builders.MakeWeaponItem(
+            worldId: _worldId,
+            minDamage: 10,
+            maxDamage: 10,
+            modifiers:
+            [
+                new ElementalDamageModifier
+                {
+                    DamageType = DamageType.Fire,
+                    MinDamage = 4,
+                    MaxDamage = 8,
+                },
+            ]
+        );
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon, slot: EquipmentSlot.RightHand)
+            .WithCombatOptions(Settings.Value)
+            .Build();
+        var calculator = new DamageCalculator(Settings);
+
+        // Act
+        var damagePerTurn = calculator.EstimateBasicAttackDamagePerTurn(attacker);
+
+        // Assert
+        Assert.Equal(16, damagePerTurn);
     }
 
     [Fact]

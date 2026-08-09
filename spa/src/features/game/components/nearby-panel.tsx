@@ -28,8 +28,13 @@ import {
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
-import type { CreatureStatusSnapshot, SceneSnapshot } from '@/api/client';
-import type { BuildingType } from '@/api/client';
+import type {
+  BuildingType,
+  CreatureStatusSnapshot,
+  DistrictType,
+  NearbyExitDestination,
+  SceneSnapshot,
+} from '@/api/client';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
@@ -61,6 +66,15 @@ const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
   Tower: Building2,
 };
 
+const DISTRICT_TYPE_ICONS: Record<DistrictType, LucideIcon> = {
+  Residential: House,
+  Scientific: FlaskConical,
+  CityCenter: Landmark,
+  Governmental: Crown,
+  HolySite: Church,
+  Encampment: Swords,
+};
+
 interface NearbyPanelProps {
   scene: SceneSnapshot;
 }
@@ -89,7 +103,10 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
               <DoorOpen className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
               <div className="min-w-0">
                 <div>{exit.description}</div>
-                <div className="text-muted-foreground text-xs">→ {exit.destinationRoomName}</div>
+                <div className="text-muted-foreground flex items-center gap-1 text-xs">
+                  → <ExitDestinationIcon destination={exit.destination} />
+                  {exit.destination.name}
+                </div>
               </div>
             </div>
           ))
@@ -168,6 +185,17 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
       />
     </div>
   );
+}
+
+function ExitDestinationIcon({ destination }: { destination: NearbyExitDestination }) {
+  const Icon =
+    destination.$type === 'District'
+      ? DISTRICT_TYPE_ICONS[destination.districtType]
+      : destination.$type === 'Building' || destination.$type === 'Room'
+        ? BUILDING_TYPE_ICONS[destination.buildingType]
+        : Mountain;
+
+  return <Icon className="size-3 shrink-0" />;
 }
 
 function CreatureRow({

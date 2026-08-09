@@ -173,7 +173,7 @@ export function TransferItemDialog({
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent
-        className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-7xl"
+        className="flex h-[min(94vh,880px)] flex-col gap-4 md:max-w-[min(96vw,96rem)]"
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         {target && (
@@ -601,15 +601,15 @@ function InventorySidePanel({
                   align="right"
                 />
                 <SortableHeader
-                  label="Weight"
-                  sortKey="weight"
+                  label="Value"
+                  sortKey="value"
                   sort={sort}
                   onToggle={toggleSort}
                   align="right"
                 />
                 <SortableHeader
-                  label="Value"
-                  sortKey="value"
+                  label="Weight"
+                  sortKey="weight"
                   sort={sort}
                   onToggle={toggleSort}
                   align="right"
@@ -707,14 +707,14 @@ function ItemRow({
       </td>
       <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
         <div className="flex h-5 items-center justify-end gap-1">
-          {item.weight * item.quantity}
-          <Weight className="text-muted-foreground size-3 shrink-0" />
+          {item.goldValue * item.quantity}
+          <Coins className="text-muted-foreground size-3 shrink-0" />
         </div>
       </td>
       <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
         <div className="flex h-5 items-center justify-end gap-1">
-          {item.goldValue * item.quantity}
-          <Coins className="text-muted-foreground size-3 shrink-0" />
+          {item.weight * item.quantity}
+          <Weight className="text-muted-foreground size-3 shrink-0" />
         </div>
       </td>
     </tr>

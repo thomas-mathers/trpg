@@ -67,21 +67,10 @@ internal static class Builders
     public static InGameDate MakeDate(int hour) =>
         new(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, hour);
 
-    public static CreatureAbility MakeCreatureAbility(
-        Guid creatureId,
-        string abilityName,
-        Guid? worldId = null
-    ) =>
-        new()
-        {
-            CreatureId = creatureId,
-            AbilityName = abilityName,
-            WorldId = worldId ?? Guid.NewGuid(),
-        };
-
     public static LocationConnector MakeLocationConnector(
         Guid locationId,
         Guid? destinationLocationId = null,
+        LocationDestinationType destinationType = LocationDestinationType.Wilderness,
         bool isLocked = false,
         Guid? worldId = null,
         string name = "Door",
@@ -96,6 +85,7 @@ internal static class Builders
             Description = description,
             DestinationLocationId = destinationLocationId ?? Guid.NewGuid(),
             DestinationLabel = destinationLabel,
+            DestinationType = destinationType,
             IsLocked = isLocked,
         };
 
@@ -313,7 +303,8 @@ internal static class Builders
         int minDamage = 5,
         int maxDamage = 15,
         int attacksPerTurn = 1,
-        bool isTwoHanded = false
+        bool isTwoHanded = false,
+        IReadOnlyCollection<ItemModifier>? modifiers = null
     )
     {
         return new Weapon
@@ -331,6 +322,7 @@ internal static class Builders
             IsTwoHanded = isTwoHanded,
             DurabilityMax = 100,
             DurabilityCurrent = 100,
+            Modifiers = modifiers ?? [],
         };
     }
 
@@ -355,7 +347,11 @@ internal static class Builders
         };
     }
 
-    public static Shield MakeShieldItem(Guid? worldId = null, float blockChance = 0.25f)
+    public static Shield MakeShieldItem(
+        Guid? worldId = null,
+        float blockChance = 0.25f,
+        IReadOnlyCollection<ItemModifier>? modifiers = null
+    )
     {
         return new Shield
         {
@@ -366,6 +362,7 @@ internal static class Builders
             GoldValue = 30,
             Defense = 8,
             BlockChance = blockChance,
+            Modifiers = modifiers ?? [],
             DurabilityMax = 100,
             DurabilityCurrent = 100,
         };

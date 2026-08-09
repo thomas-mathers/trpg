@@ -22,23 +22,12 @@ function getStatLines(item: ItemDetail): string[] {
         `Armor Class: ${item.armorClass}`,
         `Durability: ${item.durabilityCurrent}/${item.durabilityMax}`,
       ];
-    case 'Shield': {
-      const resistances: Array<[string, number]> = [
-        ['Magic Resistance', Number(item.magicResistance)],
-        ['Fire Resistance', Number(item.fireResistance)],
-        ['Ice Resistance', Number(item.iceResistance)],
-        ['Lightning Resistance', Number(item.lightningResistance)],
-        ['Poison Resistance', Number(item.poisonResistance)],
-      ];
+    case 'Shield':
       return [
         `Block Chance: ${item.blockChance}%`,
         `Defense: ${item.defense}`,
-        ...resistances
-          .filter(([, value]) => value !== 0)
-          .map(([label, value]) => `${label}: ${value}%`),
         `Durability: ${item.durabilityCurrent}/${item.durabilityMax}`,
       ];
-    }
     case 'Consumable':
       return [
         `Restores ${item.restoreAmount} ${RESOURCE_LABEL[item.resource]}`,
@@ -47,6 +36,7 @@ function getStatLines(item: ItemDetail): string[] {
     case 'Accessory':
     case 'Ammunition':
     case 'Gold':
+    case 'Key':
       return [];
   }
 }

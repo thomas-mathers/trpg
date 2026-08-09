@@ -105,7 +105,7 @@ public class HouseholdGenerator(
         var houseFrontDoor = houseResult.FrontDoor;
         foreach (var resident in household)
         {
-            var houseKeyItem = new Item
+            var houseKeyItem = new Key
             {
                 WorldId = input.WorldId,
                 Name = $"Key to {houseResult.Building.Name}",

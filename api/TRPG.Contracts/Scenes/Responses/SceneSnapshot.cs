@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 using TRPG.Contracts.Worlds.Requests;
 
 namespace TRPG.Contracts.Scenes.Responses;
@@ -170,4 +171,22 @@ public record NearbyBuildingSnapshot(
 
 public record NearbyPropSnapshot(Guid Id, string Name, string Type);
 
-public record NearbyExitSnapshot(string Description, string DestinationRoomName);
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(DistrictExitDestination), "District")]
+[JsonDerivedType(typeof(BuildingExitDestination), "Building")]
+[JsonDerivedType(typeof(RoomExitDestination), "Room")]
+[JsonDerivedType(typeof(WildernessExitDestination), "Wilderness")]
+public abstract record NearbyExitDestination(string Name);
+
+public sealed record DistrictExitDestination(string Name, DistrictType DistrictType)
+    : NearbyExitDestination(Name);
+
+public sealed record BuildingExitDestination(string Name, BuildingType BuildingType)
+    : NearbyExitDestination(Name);
+
+public sealed record RoomExitDestination(string Name, BuildingType BuildingType)
+    : NearbyExitDestination(Name);
+
+public sealed record WildernessExitDestination(string Name) : NearbyExitDestination(Name);
+
+public record NearbyExitSnapshot(string Description, NearbyExitDestination Destination);

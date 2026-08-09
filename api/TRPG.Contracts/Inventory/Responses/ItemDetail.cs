@@ -79,6 +79,7 @@ public enum ItemType
     Shield,
     Consumable,
     Gold,
+    Key,
 }
 
 public enum ArmorClass
@@ -97,6 +98,7 @@ public enum ArmorClass
 [JsonDerivedType(typeof(AmmunitionDetail), "Ammunition")]
 [JsonDerivedType(typeof(ConsumableItemDetail), "Consumable")]
 [JsonDerivedType(typeof(GoldDetail), "Gold")]
+[JsonDerivedType(typeof(KeyDetail), "Key")]
 public abstract record ItemDetail(
     Guid ItemId,
     string Name,
@@ -184,11 +186,6 @@ public sealed record ShieldDetail(
     IReadOnlyList<ItemModifierSummary> Modifiers,
     float BlockChance,
     int Defense,
-    float MagicResistance,
-    float FireResistance,
-    float IceResistance,
-    float LightningResistance,
-    float PoisonResistance,
     int DurabilityCurrent,
     int DurabilityMax
 )
@@ -284,6 +281,31 @@ public sealed record ConsumableItemDetail(
     );
 
 public sealed record GoldDetail(
+    Guid ItemId,
+    string Name,
+    string Description,
+    int Weight,
+    int Quantity,
+    EquipmentSlot? EquippedSlot,
+    ItemType Type,
+    ItemRarity? Rarity,
+    int GoldValue,
+    IReadOnlyList<ItemModifierSummary> Modifiers
+)
+    : ItemDetail(
+        ItemId,
+        Name,
+        Description,
+        Weight,
+        Quantity,
+        EquippedSlot,
+        Type,
+        Rarity,
+        GoldValue,
+        Modifiers
+    );
+
+public sealed record KeyDetail(
     Guid ItemId,
     string Name,
     string Description,

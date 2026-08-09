@@ -6,6 +6,7 @@ import {
   Gem,
   Hand,
   HardHat,
+  KeyRound,
   Shield,
   Shirt,
   Sword,
@@ -40,6 +41,7 @@ export const TYPE_ICON: Record<ItemType, LucideIcon> = {
   Shield: Shield,
   Consumable: FlaskConical,
   Gold: Coins,
+  Key: KeyRound,
 };
 
 export const RARITY_COLOR: Partial<Record<ItemRarity, string>> = {
@@ -58,4 +60,5 @@ export const CATEGORY_ORDER: ItemCategory[] = [
   'Ammunition',
   'Consumable',
   'Gold',
+  'Key',
 ];

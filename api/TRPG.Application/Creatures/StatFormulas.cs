@@ -52,21 +52,6 @@ public class StatFormulas(IOptionsSnapshot<CreatureGeneratorOptions> optionsSnap
         {
             AttributeName.Defense => inventory.OfType<Armor>().Sum(armor => armor.Defense)
                 + inventory.OfType<Shield>().Sum(shield => shield.Defense),
-            AttributeName.MagicResistance => inventory
-                .OfType<Shield>()
-                .Sum(shield => shield.MagicResistance),
-            AttributeName.FireResistance => inventory
-                .OfType<Shield>()
-                .Sum(shield => shield.FireResistance),
-            AttributeName.IceResistance => inventory
-                .OfType<Shield>()
-                .Sum(shield => shield.IceResistance),
-            AttributeName.LightningResistance => inventory
-                .OfType<Shield>()
-                .Sum(shield => shield.LightningResistance),
-            AttributeName.PoisonResistance => inventory
-                .OfType<Shield>()
-                .Sum(shield => shield.PoisonResistance),
             _ => 0,
         };
 
