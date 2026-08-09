@@ -226,7 +226,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         // both combatants default to 35 max HP), so Outcome staying Ongoing is guaranteed
         // regardless of which side's roll lands; only the exact HP change is left unasserted.
         Assert.NotNull(response.Update);
-        Assert.NotEmpty(response.Narrations);
+        Assert.Contains(response.Update.Events, combatEvent => combatEvent.Narration is not null);
         Assert.Null(response.ErrorMessage);
     }
 

@@ -683,7 +683,7 @@ public class CombatEngineTests
     }
 
     [Fact]
-    public void ResolveFlee_GivesEnemiesAPartingRound_ThenEndsTheFight()
+    public void ResolveFlee_EndsTheFightWithoutResolvingARound()
     {
         // Arrange
         var player = MakeCombatant("Hero").AsPlayer().Build();
@@ -696,10 +696,9 @@ public class CombatEngineTests
 
         // Assert
         Assert.Equal(CombatOutcome.Fled, state.Outcome);
-        var partingHit = Assert.Single(state.Events.OfType<Hit>());
-        Assert.Equal("Wraith", partingHit.AttackerName);
+        Assert.Empty(state.Events);
         var playerState = state.Combatants.Single(c => c.IsPlayer);
-        Assert.True(playerState.CurrentHp < playerState.MaximumHp);
+        Assert.Equal(playerState.MaximumHp, playerState.CurrentHp);
     }
 
     [Fact]

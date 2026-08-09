@@ -28,7 +28,7 @@ export function GameMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="ml-auto">
+        <Button variant="ghost" size="icon">
           <MenuIcon />
         </Button>
       </DropdownMenuTrigger>

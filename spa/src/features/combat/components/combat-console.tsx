@@ -1,6 +1,6 @@
 import { DoorOpen, FlaskConical, Shield, Sparkles, Sword, Swords } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
 import type {
@@ -24,7 +24,6 @@ import { PickerHeader } from '@/features/combat/components/picker-header';
 import { usePlayerId, useScene } from '@/features/game/contexts/scene-context';
 import { useGameActions } from '@/features/game/game-chat-context';
 import { formatLocation } from '@/features/game/scene-format';
-import { gameEventBus } from '@/lib/game-event-bus';
 
 import { GameToast } from '../../game/components/game-toast';
 import { useCombatState, type CombatFlash } from '../hooks/use-combat-state';
@@ -144,17 +143,10 @@ export function CombatConsole() {
   const [pendingAbility, setPendingAbility] = useState<AbilitySummary | null>(null);
   const [openMenu, setOpenMenu] = useState<'attack' | 'defend' | 'item' | null>(null);
   const [popoverContainer, setPopoverContainer] = useState<HTMLDivElement | null>(null);
-  const [narration] = useState<{
-    id: number;
-    text: string;
-    actor: string;
-    ability: string;
-  } | null>(null);
-  const [pendingNarrations, setPendingNarrations] = useState<string[]>([]);
-  const [isNarrationVisible, setIsNarrationVisible] = useState(false);
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
-  const disabled = isPlayingBack || isStreaming || isSubmittingAction;
+  const isResolvingRound = isPlayingBack || isSubmittingAction;
+  const disabled = isResolvingRound || isStreaming;
 
   useEffect(() => {
     if (!disabled) {
@@ -169,61 +161,51 @@ export function CombatConsole() {
     setIsSubmittingAction(false);
   }, [isStreaming]);
 
+  const actionMenuRef = useRef<HTMLDivElement>(null);
+  const shouldFocusInitialAttackRef = useRef(false);
   const wasInCombatRef = useRef(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const isInCombat = fight !== null;
     if (isInCombat && !wasInCombatRef.current) {
       setMode('topmenu');
       setPendingAbility(null);
       setOpenMenu(null);
+      shouldFocusInitialAttackRef.current = true;
+    }
+    if (!isInCombat) {
+      shouldFocusInitialAttackRef.current = false;
     }
     wasInCombatRef.current = isInCombat;
   }, [fight]);
 
-  useEffect(() => {
-    const unsubscribe = gameEventBus.on('CombatNarrations', (narrations) => {
-      setPendingNarrations((current) => [...current, ...narrations]);
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  useLayoutEffect(() => {
+    if (fight && !disabled && shouldFocusInitialAttackRef.current) {
+      actionMenuRef.current
+        ?.querySelector<HTMLButtonElement>('[data-combat-action="attack"]')
+        ?.focus();
+      shouldFocusInitialAttackRef.current = false;
+    }
+  }, [disabled, fight]);
 
   useEffect(() => {
-    if (!activeDefenderId || isNarrationVisible || pendingNarrations.length === 0) {
+    const narration = activeCombatEvent?.narration;
+    if (!narration || !activeCombatEvent) {
       return;
     }
 
-    const text = pendingNarrations[0];
-    const show = setTimeout(() => {
-      toast.custom(
-        (toastId) => (
-          <GameToast
-            toastId={toastId}
-            icon={Sparkles}
-            title={`${activeCombatEvent?.attackerName ?? 'Combatant'} · ${activeCombatEvent?.abilityName ?? 'Ability'}`}
-            description={text}
-          />
-        ),
-        { duration: 1200 },
-      );
-      setIsNarrationVisible(true);
-      setPendingNarrations((current) => current.slice(1));
-    }, 180);
-    return () => {
-      clearTimeout(show);
-    };
-  }, [activeCombatEvent, activeDefenderId, isNarrationVisible, pendingNarrations]);
-
-  useEffect(() => {
-    if (!isNarrationVisible) {
-      return;
-    }
-
-    const hide = setTimeout(() => setIsNarrationVisible(false), 1200);
-    return () => clearTimeout(hide);
-  }, [isNarrationVisible]);
+    toast.custom(
+      (toastId) => (
+        <GameToast
+          toastId={toastId}
+          icon={Sparkles}
+          title={`${activeCombatEvent.attackerName} · ${activeCombatEvent.abilityName}`}
+          description={narration}
+        />
+      ),
+      { duration: 1200 },
+    );
+  }, [activeCombatEvent]);
 
   if (!fight || !playerId) {
     return null;
@@ -273,7 +255,7 @@ export function CombatConsole() {
         return (
           <section className="flex h-[97px] w-full items-center p-3">
             <div className="flex w-full items-stretch justify-between gap-4">
-              <div className="grid w-60 grid-cols-3 gap-1.5">
+              <div ref={actionMenuRef} className="grid w-60 grid-cols-3 gap-1.5">
                 <ActionPickerPopover
                   category="Offensive"
                   container={popoverContainer}
@@ -284,7 +266,14 @@ export function CombatConsole() {
                   onOpenChange={(open) => setOpenMenu(open ? 'attack' : null)}
                   open={openMenu === 'attack'}
                   playerId={currentPlayerId}
-                  trigger={<ActionButton icon={Sword} label="Attack" />}
+                  trigger={
+                    <ActionButton
+                      combatAction="attack"
+                      disabled={disabled}
+                      icon={Sword}
+                      label="Attack"
+                    />
+                  }
                 />
                 <ActionPickerPopover
                   category="Support"
@@ -293,14 +282,14 @@ export function CombatConsole() {
                   onOpenChange={(open) => setOpenMenu(open ? 'defend' : null)}
                   open={openMenu === 'defend'}
                   playerId={currentPlayerId}
-                  trigger={<ActionButton icon={Shield} label="Defend" />}
+                  trigger={<ActionButton disabled={disabled} icon={Shield} label="Defend" />}
                 />
                 <Popover
                   open={openMenu === 'item'}
                   onOpenChange={(open) => setOpenMenu(open ? 'item' : null)}
                 >
                   <PopoverTrigger asChild>
-                    <ActionButton icon={FlaskConical} label="Item" />
+                    <ActionButton disabled={disabled} icon={FlaskConical} label="Item" />
                   </PopoverTrigger>
                   <PopoverContent
                     align="start"
@@ -319,6 +308,7 @@ export function CombatConsole() {
               </div>
               <ActionButton
                 className="w-20"
+                disabled={disabled}
                 icon={DoorOpen}
                 label="Flee"
                 onClick={submitFlee}
@@ -345,6 +335,11 @@ export function CombatConsole() {
       <Dialog open onOpenChange={() => undefined}>
         <DialogContent
           showCloseButton={false}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            const dialog = event.currentTarget as HTMLElement | null;
+            dialog?.querySelector<HTMLButtonElement>('[data-combat-action="attack"]')?.focus();
+          }}
           className="h-[min(100dvh-2rem,56rem)] w-[min(100vw-2rem,72rem)] max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 shadow-2xl sm:max-w-[72rem]"
         >
           <DialogTitle className="sr-only">{encounterTitle}</DialogTitle>
@@ -359,28 +354,6 @@ export function CombatConsole() {
             <InitiativeTrack combatants={fight.combatants} activeAttackerId={activeAttackerId} />
 
             <div className="relative min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 md:px-10">
-              <AnimatePresence>
-                {narration && (
-                  <motion.div
-                    key={narration.id}
-                    initial={{ opacity: 0, scale: 0.82, y: 18 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.88, y: -30 }}
-                    transition={{ duration: 0.42, ease: [0.42, 0, 0.58, 1] }}
-                    className="pointer-events-none absolute top-8 left-1/2 z-20 w-[calc(100%-2rem)] max-w-md -translate-x-1/2"
-                  >
-                    <div className="border-border/80 bg-popover/95 shadow-foreground/10 rounded-lg border px-3 py-2.5 shadow-lg backdrop-blur-sm">
-                      <div className="text-muted-foreground mb-1 flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase">
-                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                        <span>{narration.actor}</span>
-                        <span className="text-muted-foreground/60">•</span>
-                        <span>{narration.ability}</span>
-                      </div>
-                      <p className="text-sm leading-snug">{narration.text}</p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
               <div className="grid min-h-full grid-cols-1 gap-5 pt-14 md:grid-cols-[16rem_16rem] md:justify-between md:pt-12">
                 <section className="flex flex-col justify-center">
                   <CombatantFrame
@@ -426,13 +399,13 @@ export function CombatConsole() {
             >
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.div
-                  key={disabled ? 'resolving' : mode}
+                  key={mode}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.36, ease: 'easeOut' }}
                 >
-                  {disabled ? <ResolvingIndicator /> : renderMode()}
+                  {renderMode()}
                 </motion.div>
               </AnimatePresence>
             </motion.div>
@@ -481,24 +454,6 @@ function InitiativeTrack({ combatants, activeAttackerId }: InitiativeTrackProps)
   );
 }
 
-function ResolvingIndicator() {
-  return (
-    <div className="text-muted-foreground flex items-center justify-center gap-2 px-2.5 py-6 text-sm">
-      Resolving round
-      <span className="flex gap-1">
-        {[0, 0.12, 0.24].map((delay) => (
-          <motion.span
-            key={delay}
-            animate={{ opacity: [0.45, 1, 0.45], scale: [1, 1.4, 1], y: [0, -6, 0] }}
-            className="h-1.5 w-1.5 rounded-full bg-current"
-            transition={{ duration: 0.72, delay, ease: 'easeInOut', repeat: Infinity }}
-          />
-        ))}
-      </span>
-    </div>
-  );
-}
-
 function ActionPickerPopover({
   category,
   container,
@@ -541,12 +496,14 @@ interface ActionButtonProps {
   icon: typeof Sword;
   label: string;
   onClick?: () => void;
+  combatAction?: string;
+  disabled?: boolean;
   destructive?: boolean;
   className?: string;
 }
 
 const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(function ActionButton(
-  { icon: Icon, label, onClick, destructive = false, className },
+  { icon: Icon, label, onClick, combatAction, disabled = false, destructive = false, className },
   ref,
 ) {
   return (
@@ -554,6 +511,8 @@ const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(function A
       ref={ref}
       type="button"
       onClick={onClick}
+      disabled={disabled}
+      data-combat-action={combatAction}
       className={`border-border bg-card hover:bg-accent flex flex-col items-center gap-1 rounded-md border py-2 text-xs font-medium shadow-sm ${
         destructive ? 'text-destructive' : ''
       } ${className ?? ''}`}

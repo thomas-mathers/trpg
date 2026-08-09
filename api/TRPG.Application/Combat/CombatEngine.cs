@@ -669,34 +669,11 @@ public class CombatEngine(
     public CombatState ResolveFlee(IReadOnlyList<Combatant> combatants)
     {
         var player = combatants.Single(c => c.IsPlayer);
-        var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
-
-        var hotEvents = TickHots(player);
-        var dotEvents = TickDots(player);
-
-        TickBuffs(player);
-        TickConditions(player);
-
-        var combatEvents = hotEvents.Concat(dotEvents).ToList();
-
-        if (player.IsAlive)
-        {
-            var enemyTurnOrder = enemies.Where(e => e.IsAlive).OrderByTurnOrder();
-
-            foreach (var enemy in enemyTurnOrder)
-            {
-                combatEvents.AddRange(
-                    ProcessTurn(enemy, enemyCombatActionResolver.Resolve(enemy, player))
-                );
-            }
-        }
-
-        var outcome = player.IsAlive ? CombatOutcome.Fled : CombatOutcome.Defeat;
 
         return new CombatState(
-            Outcome: outcome,
+            Outcome: CombatOutcome.Fled,
             Combatants: combatants.Select(c => c.ToCombatantState()).ToArray(),
-            Events: combatEvents,
+            Events: [],
             WeaponSwingCounts: player.WeaponSwingCounts,
             SkillUsageCounts: player.SkillUsageCounts
         );

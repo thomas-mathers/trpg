@@ -32,6 +32,7 @@ import { InventoryFilters } from '@/features/inventory/components/inventory-filt
 import {
   isItemTableSortKeyVisible,
   ItemTable,
+  ItemTableSkeleton,
   type ItemTableSortKey,
 } from '@/features/inventory/components/item-table';
 import { ItemTooltip } from '@/features/inventory/components/item-tooltip';
@@ -209,15 +210,7 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
     onSuccess: invalidateCreatureData,
   });
 
-  if (!inventory.data) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-12">
-        <p className="text-muted-foreground text-sm">Loading inventory...</p>
-      </div>
-    );
-  }
-
-  const items = inventory.data.items;
+  const items = inventory.data?.items ?? [];
   const equippedSlots = new Set(
     items.map((item) => item.equippedSlot).filter((slot): slot is EquipmentSlot => slot != null),
   );
@@ -258,7 +251,9 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
           />
 
           <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-            {visible.length === 0 ? (
+            {!inventory.data ? (
+              <ItemTableSkeleton hasAction />
+            ) : visible.length === 0 ? (
               <Empty className="h-full">
                 <EmptyMedia variant="icon">
                   <PackageOpen />

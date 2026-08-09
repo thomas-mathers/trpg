@@ -108,7 +108,6 @@ export type ChatResponse = {
 export type CombatActionResponse = {
     update: null | CombatUpdatePayload;
     errorMessage: null | string;
-    narrations: Array<string>;
     outcome: null | CombatOutcome;
     scene?: null | SceneSnapshot;
 };
@@ -152,6 +151,7 @@ export type CombatRoundEventCombatBlockEvent = {
     abilityName: string;
     targetId: string;
     targetName: string;
+    narration?: null | string;
 };
 
 export type CombatRoundEventCombatHitEvent = {
@@ -168,6 +168,7 @@ export type CombatRoundEventCombatHitEvent = {
     abilityName: string;
     targetId: string;
     targetName: string;
+    narration?: null | string;
 };
 
 export type CombatRoundEventCombatMissEvent = {
@@ -177,6 +178,7 @@ export type CombatRoundEventCombatMissEvent = {
     abilityName: string;
     targetId: string;
     targetName: string;
+    narration?: null | string;
 };
 
 export type CombatRoundEventCombatRegeneratedEvent = {
@@ -192,6 +194,7 @@ export type CombatRoundEventCombatRegeneratedEvent = {
     abilityName?: string;
     targetId?: string;
     targetName?: string;
+    narration?: null | string;
 };
 
 export type CombatRoundEventCombatResourceStateUpdatedEvent = {
@@ -205,6 +208,7 @@ export type CombatRoundEventCombatResourceStateUpdatedEvent = {
     abilityName?: string;
     targetId?: string;
     targetName?: string;
+    narration?: null | string;
 };
 
 export type CombatSpeedType = 'IncreasedAttackSpeed' | 'FasterCastRate' | 'FasterHitRecovery';

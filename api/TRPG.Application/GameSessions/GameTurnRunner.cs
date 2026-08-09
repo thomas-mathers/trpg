@@ -55,7 +55,7 @@ internal class GameTurnRunner(
     )
     {
         const string openingPrompt =
-            "This is the start of the session. Call look now, then narrate the opening scene based on what it returns.";
+            "This is the start of the session. Your first response must be only a call to look, with no text or narration. After it returns, begin directly with the in-world opening scene it describes. Never announce or describe looking around.";
 
         using var _ = logger.BeginScope(
             new Dictionary<string, object>
@@ -220,7 +220,6 @@ internal class GameTurnRunner(
                 CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
             ),
             null,
-            CombatNarration.Describe(state.Events),
             state.Outcome == TRPG.Data.Models.CombatOutcome.Ongoing
                 ? null
                 : state.Outcome.ToContract()

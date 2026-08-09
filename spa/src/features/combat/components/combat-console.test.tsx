@@ -1,4 +1,4 @@
-import { byRole, byText } from 'testing-library-selector';
+import { byRole } from 'testing-library-selector';
 import { describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -51,7 +51,6 @@ const ui = {
   ability: (name: string) => byRole('button', { name: new RegExp(name) }),
   consumable: (name: string) => byRole('button', { name: new RegExp(name) }),
   target: (name: string) => byRole('button', { name: new RegExp(name) }),
-  resolving: byText('Resolving round'),
 };
 
 function ability(name: string, category: AbilitySummary['category']): AbilitySummary {
@@ -96,6 +95,12 @@ function renderConsole({ isStreaming = false } = {}) {
 }
 
 describe('CombatConsole', () => {
+  it('focuses Attack when combat begins', async () => {
+    renderConsole();
+
+    expect(await ui.attack.find()).toHaveFocus();
+  });
+
   it('submits flee actions', async () => {
     const { submitFlee, user } = renderConsole();
 
@@ -157,10 +162,9 @@ describe('CombatConsole', () => {
     );
   });
 
-  it('shows the resolving state while streaming', async () => {
+  it('disables actions while the combat-starting chat turn finishes', async () => {
     renderConsole({ isStreaming: true });
 
-    expect(await ui.resolving.find()).toBeVisible();
-    expect(ui.attack.query()).not.toBeInTheDocument();
+    expect(await ui.attack.find()).toBeDisabled();
   });
 });

@@ -14,7 +14,10 @@ public abstract record CombatRoundEvent(
     string AbilityName,
     Guid TargetId,
     string TargetName
-);
+)
+{
+    public string? Narration { get; init; }
+}
 
 public sealed record CombatHitEvent(
     Guid AttackerId,

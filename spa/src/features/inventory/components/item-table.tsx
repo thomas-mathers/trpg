@@ -2,6 +2,7 @@ import { Coins, Weight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ItemDetail } from '@/api/client';
+import { Skeleton } from '@/components/ui/skeleton';
 import { SortableHeader, type SortState } from '@/features/inventory/components/sortable-header';
 import type { ItemCategory } from '@/features/inventory/item-visuals';
 import { cn } from '@/lib/utils';
@@ -152,6 +153,77 @@ export function ItemTable<T extends ItemTableItem>({
             </tr>
           );
         })}
+      </tbody>
+    </table>
+  );
+}
+
+interface ItemTableSkeletonProps {
+  hasLeadingCell?: boolean;
+  hasAction?: boolean;
+}
+
+export function ItemTableSkeleton({
+  hasLeadingCell = false,
+  hasAction = false,
+}: ItemTableSkeletonProps) {
+  return (
+    <table className="w-full table-fixed" aria-label="Loading items">
+      <colgroup>
+        {hasLeadingCell && <col className="w-7" />}
+        <col />
+        <col className="w-20" />
+        <col className="w-16" />
+        <col className="w-16" />
+        <col className="w-16" />
+        <col className="w-16" />
+        {hasAction && <col className="w-24" />}
+      </colgroup>
+      <thead>
+        <tr className="bg-muted/50 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+          {hasLeadingCell && <th className="px-2 py-2" />}
+          <th className="px-2 py-2 text-left">Item</th>
+          <th className="px-2 py-2 text-right">Damage</th>
+          <th className="px-2 py-2 text-right">Defense</th>
+          <th className="px-2 py-2 text-right">Qty</th>
+          <th className="px-2 py-2 text-right">Value</th>
+          <th className="px-2 py-2 text-right">Weight</th>
+          {hasAction && <th className="px-2 py-2" />}
+        </tr>
+      </thead>
+      <tbody className="divide-border divide-y">
+        {Array.from({ length: 5 }, (_, index) => (
+          <tr key={index}>
+            {hasLeadingCell && (
+              <td className="px-2 py-1.5">
+                <Skeleton className="size-4" />
+              </td>
+            )}
+            <td className="px-2 py-1.5">
+              <Skeleton className="h-5 w-3/4" />
+            </td>
+            <td className="px-2 py-1.5">
+              <Skeleton className="ml-auto h-5 w-12" />
+            </td>
+            <td className="px-2 py-1.5">
+              <Skeleton className="ml-auto h-5 w-10" />
+            </td>
+            <td className="px-2 py-1.5">
+              <Skeleton className="ml-auto h-5 w-6" />
+            </td>
+            <td className="px-2 py-1.5">
+              <Skeleton className="ml-auto h-5 w-10" />
+            </td>
+            <td className="px-2 py-1.5">
+              <Skeleton className="ml-auto h-5 w-10" />
+            </td>
+            {hasAction && (
+              <td className="px-2 py-1.5">
+                <Skeleton className="ml-auto h-8 w-16" />
+              </td>
+            )}
+          </tr>
+        ))}
       </tbody>
     </table>
   );

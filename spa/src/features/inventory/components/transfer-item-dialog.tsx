@@ -26,6 +26,7 @@ import { InventoryFilters } from '@/features/inventory/components/inventory-filt
 import {
   isItemTableSortKeyVisible,
   ItemTable,
+  ItemTableSkeleton,
   type ItemTableItem,
   type ItemTableSortKey,
 } from '@/features/inventory/components/item-table';
@@ -256,18 +257,13 @@ function TransferDialogBody({
     }
   }, [rightItems, targetInventory.data]);
 
-  if (leftItems === null || rightItems === null) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-12">
-        <p className="text-muted-foreground text-sm">Loading inventories...</p>
-      </div>
-    );
-  }
-
   const recordMoves = (moves: PendingMove[]) =>
     setPendingMoves((current) => [...current, ...moves]);
 
-  const handleTake = () =>
+  const handleTake = () => {
+    if (leftItems === null || rightItems === null) {
+      return;
+    }
     moveSelected(
       rightItems,
       setRightItems,
@@ -278,8 +274,12 @@ function TransferDialogBody({
       'toPlayer',
       recordMoves,
     );
+  };
 
-  const handleGive = () =>
+  const handleGive = () => {
+    if (leftItems === null || rightItems === null) {
+      return;
+    }
     moveSelected(
       leftItems,
       setLeftItems,
@@ -290,6 +290,7 @@ function TransferDialogBody({
       'toOther',
       recordMoves,
     );
+  };
 
   const handleConfirm = async () => {
     const toOther = netMoves(pendingMoves, 'toOther', 'toPlayer');
@@ -337,7 +338,8 @@ function TransferDialogBody({
             </>
           }
           ariaLabel="Your inventory"
-          items={leftItems}
+          items={leftItems ?? []}
+          loading={leftItems === null}
           selected={leftSelected}
           selectionEnabled={transfersEnabled}
           onSelectedChange={setLeftSelected}
@@ -385,7 +387,8 @@ function TransferDialogBody({
             </>
           }
           ariaLabel={`${target.name}'s inventory`}
-          items={rightItems}
+          items={rightItems ?? []}
+          loading={rightItems === null}
           selected={rightSelected}
           selectionEnabled={transfersEnabled}
           onSelectedChange={setRightSelected}
@@ -459,6 +462,7 @@ interface InventorySidePanelProps {
   title: React.ReactNode;
   ariaLabel: string;
   items: WorkingItem[];
+  loading: boolean;
   selected: Map<string, number>;
   selectionEnabled: boolean;
   onSelectedChange: (selected: Map<string, number>) => void;
@@ -476,6 +480,7 @@ function InventorySidePanel({
   title,
   ariaLabel,
   items,
+  loading,
   selected,
   selectionEnabled,
   onSelectedChange,
@@ -569,7 +574,9 @@ function InventorySidePanel({
         />
 
         <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-          {sortedItems.length === 0 ? (
+          {loading ? (
+            <ItemTableSkeleton hasLeadingCell />
+          ) : sortedItems.length === 0 ? (
             <Empty className="h-full">
               <EmptyMedia variant="icon">
                 <PackageOpen />
