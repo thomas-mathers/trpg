@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common;
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -17,7 +18,7 @@ internal record BuildingEntryResult(EntryOutcome Outcome, Guid? EntranceLocation
 internal class CanEnterBuildingQueryHandler(
     TrpgDbContext context,
     GetKeyItemIdsQueryHandler getKeyItemIds,
-    GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId
+    GetInventoryByOwnerQueryHandler getInventoryByOwner
 )
 {
     public async Task<BuildingEntryResult> Handle(
@@ -51,8 +52,14 @@ internal class CanEnterBuildingQueryHandler(
             return new BuildingEntryResult(EntryOutcome.Entered, entranceRoom.LocationId);
         }
 
-        var inventory = await getInventoryByCreatureId.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = buildingQuery.EnteringCreatureId },
+        var inventory = await getInventoryByOwner.Handle(
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(
+                    buildingQuery.EnteringCreatureId,
+                    OwnerType.Creature
+                ),
+            },
             cancellationToken
         );
         var hasKey = inventory.Any(i => validKeyItemIds.Contains(i.Id));

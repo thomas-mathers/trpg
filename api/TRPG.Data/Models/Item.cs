@@ -27,6 +27,7 @@ public enum OwnerType
 {
     Creature,
     Container,
+    Workstation,
 }
 
 public class ItemOwnership

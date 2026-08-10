@@ -254,6 +254,21 @@ internal static class Builders
             LocationId = locationId ?? Guid.NewGuid(),
         };
 
+    public static Workstation MakeWorkstation(
+        Guid? worldId = null,
+        Guid? locationId = null,
+        Guid? occupantId = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Workstation-{Guid.NewGuid():N}",
+            Description = "A test workstation",
+            LocationId = locationId ?? Guid.NewGuid(),
+            WorkstationType = WorkstationType.Trade,
+            OccupantId = occupantId,
+        };
+
     public static Attributes MakeAttributes()
     {
         var baseAttributes = new Attributes
@@ -304,6 +319,7 @@ internal static class Builders
         int maxDamage = 15,
         int attacksPerTurn = 1,
         bool isTwoHanded = false,
+        int quantity = 0,
         IReadOnlyCollection<ItemModifier>? modifiers = null
     )
     {
@@ -313,6 +329,7 @@ internal static class Builders
             Name = $"Item-{Guid.NewGuid():N}",
             Description = "A test weapon",
             Weight = 8,
+            Quantity = quantity,
             GoldValue = 50,
             Type = type,
             MinDamage = minDamage,
@@ -329,6 +346,7 @@ internal static class Builders
     public static Armor MakeArmorItem(
         Guid? worldId = null,
         ArmorType type = ArmorType.Chest,
+        int quantity = 0,
         IReadOnlyCollection<ItemModifier>? modifiers = null
     )
     {
@@ -338,6 +356,7 @@ internal static class Builders
             Name = $"Item-{Guid.NewGuid():N}",
             Description = "A test armor",
             Weight = 15,
+            Quantity = quantity,
             GoldValue = 40,
             Type = type,
             Defense = 10,

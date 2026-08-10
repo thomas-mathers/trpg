@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data;
@@ -14,7 +15,7 @@ internal class AllocateAttributePointsCommand
 
 internal class AllocateAttributePointsCommandHandler(
     TrpgDbContext context,
-    GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
+    GetInventoryByOwnerQueryHandler getInventoryByOwner,
     StatFormulas statFormulas
 )
 {
@@ -66,8 +67,11 @@ internal class AllocateAttributePointsCommandHandler(
             creature.BaseAttributes
         );
 
-        var items = await getInventoryByCreatureId.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = command.CreatureId },
+        var items = await getInventoryByOwner.Handle(
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(command.CreatureId, OwnerType.Creature),
+            },
             cancellationToken
         );
         var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Exceptions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
@@ -56,7 +56,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetGameSession_Throws_WhenSessionDoesNotExist()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<GameSessionNotFoundException>(() =>
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
             _getGameSession.Handle(
                 new GetGameSessionQuery { SessionId = Guid.NewGuid() },
                 TestContext.Current.CancellationToken
@@ -206,7 +206,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetOpenConversations_Throws_WhenSessionDoesNotExist()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<GameSessionNotFoundException>(() =>
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
             _getOpenConversations.Handle(
                 new GetOpenConversationsQuery { SessionId = Guid.NewGuid() },
                 TestContext.Current.CancellationToken
@@ -254,7 +254,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     public async Task GetPlaytime_Throws_WhenSessionDoesNotExist()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<GameSessionNotFoundException>(() =>
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
             _getPlaytime.Handle(
                 new GetPlaytimeQuery { SessionId = Guid.NewGuid() },
                 TestContext.Current.CancellationToken

@@ -7,6 +7,8 @@ import { SortableHeader, type SortState } from '@/features/inventory/components/
 import type { ItemCategory } from '@/features/inventory/item-visuals';
 import { cn } from '@/lib/utils';
 
+const numberFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+
 export type ItemTableSortKey = 'name' | 'damage' | 'defense' | 'quantity' | 'value' | 'weight';
 
 export interface ItemTableItem {
@@ -65,9 +67,9 @@ export function ItemTable<T extends ItemTableItem>({
         <col />
         {showDamage && <col className="w-20" />}
         {showDefense && <col className="w-16" />}
-        <col className="w-16" />
-        <col className="w-16" />
-        <col className="w-16" />
+        <col className="w-20" />
+        <col className="w-20" />
+        <col className="w-20" />
         {renderAction && <col className="w-24" />}
       </colgroup>
       <thead>
@@ -129,26 +131,16 @@ export function ItemTable<T extends ItemTableItem>({
               onClick={onRowClick ? () => onRowClick(tableItem) : undefined}
             >
               {renderLeadingCell && (
-                <td className="px-2 py-1.5 align-top">{renderLeadingCell(tableItem)}</td>
+                <td className="px-2 py-1.5 align-middle">{renderLeadingCell(tableItem)}</td>
               )}
-              <td className="px-2 py-1.5 align-top">{renderName(tableItem)}</td>
+              <td className="px-2 py-1.5 align-middle">{renderName(tableItem)}</td>
               {showDamage && <ItemStatCell value={damage} />}
               {showDefense && <ItemStatCell value={defense} />}
               <ItemStatCell value={tableItem.quantity} />
-              <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
-                <div className="flex h-5 items-center justify-end gap-1">
-                  {tableItem.goldValue * tableItem.quantity}
-                  <Coins className="text-muted-foreground size-3 shrink-0" />
-                </div>
-              </td>
-              <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
-                <div className="flex h-5 items-center justify-end gap-1">
-                  {tableItem.weight}
-                  <Weight className="text-muted-foreground size-3 shrink-0" />
-                </div>
-              </td>
+              <ItemGoldValueCell value={tableItem.goldValue * tableItem.quantity} />
+              <ItemWeightCell value={tableItem.weight} />
               {renderAction && (
-                <td className="px-2 py-1.5 text-right align-top">{renderAction(tableItem)}</td>
+                <td className="px-2 py-1.5 text-right align-middle">{renderAction(tableItem)}</td>
               )}
             </tr>
           );
@@ -173,9 +165,9 @@ export function ItemTableSkeleton({
         {hasLeadingCell && <col className="w-7" />}
         <col />
         <col className="w-20" />
-        <col className="w-16" />
-        <col className="w-16" />
-        <col className="w-16" />
+        <col className="w-20" />
+        <col className="w-20" />
+        <col className="w-20" />
         <col className="w-16" />
         {hasAction && <col className="w-24" />}
       </colgroup>
@@ -230,9 +222,42 @@ export function ItemTableSkeleton({
 }
 
 function ItemStatCell({ value }: { value: number | string | null }) {
+  const displayValue = typeof value === 'number' ? numberFormatter.format(value) : (value ?? '—');
+
   return (
-    <td className="px-2 py-1.5 text-right align-top font-mono text-sm tabular-nums">
-      <div className="flex h-5 items-center justify-end">{value ?? '—'}</div>
+    <td className="overflow-hidden px-2 py-1.5 text-right align-middle font-mono text-sm tabular-nums">
+      <div
+        className="flex h-5 w-full min-w-0 items-center justify-end truncate"
+        title={String(displayValue)}
+      >
+        {displayValue}
+      </div>
+    </td>
+  );
+}
+
+function ItemGoldValueCell({ value }: { value: number }) {
+  const displayValue = numberFormatter.format(value);
+
+  return (
+    <td className="overflow-hidden px-2 py-1.5 text-right align-middle font-mono text-sm tabular-nums">
+      <div className="flex h-5 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
+        <span className="truncate">{displayValue}</span>
+        <Coins className="text-muted-foreground size-3 shrink-0" />
+      </div>
+    </td>
+  );
+}
+
+function ItemWeightCell({ value }: { value: number }) {
+  const displayValue = numberFormatter.format(value);
+
+  return (
+    <td className="overflow-hidden px-2 py-1.5 text-right align-middle font-mono text-sm tabular-nums">
+      <div className="flex h-5 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
+        <span className="truncate">{displayValue}</span>
+        <Weight className="text-muted-foreground size-3 shrink-0" />
+      </div>
     </td>
   );
 }

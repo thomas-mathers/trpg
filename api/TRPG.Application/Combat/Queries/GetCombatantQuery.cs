@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Data.Models;
@@ -14,7 +15,7 @@ internal class GetCombatantQuery
 }
 
 internal class GetCombatantQueryHandler(
-    GetInventoryByCreatureIdQueryHandler getInventory,
+    GetInventoryByOwnerQueryHandler getInventory,
     GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
     GetCreatureAbilitiesQueryHandler getCreatureAbilities,
     IOptionsSnapshot<CombatOptions> optionsSnapshot
@@ -35,7 +36,10 @@ internal class GetCombatantQueryHandler(
         );
 
         var items = await getInventory.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = query.Creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(query.Creature.Id, OwnerType.Creature),
+            },
             cancellationToken
         );
 

@@ -69,7 +69,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
             new InventoryTransferRequest(
                 _fromCreature.Id,
                 _toCreature.Id,
-                [new LootItemSelection(item.Id, 1)]
+                [new ItemSelection(item.Id, 1)]
             ),
             cancellationToken: TestContext.Current.CancellationToken
         );
@@ -102,7 +102,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
             new InventoryTransferRequest(
                 _fromCreature.Id,
                 farCreature.Id,
-                [new LootItemSelection(item.Id, 1)]
+                [new ItemSelection(item.Id, 1)]
             ),
             cancellationToken: TestContext.Current.CancellationToken
         );

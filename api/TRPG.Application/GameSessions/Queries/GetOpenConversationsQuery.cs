@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.GameSessions.Exceptions;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions.Queries;
@@ -24,7 +24,7 @@ internal class GetOpenConversationsQueryHandler(TrpgDbContext context)
 
         if (openConversations == null)
         {
-            throw new GameSessionNotFoundException(query.SessionId);
+            throw new EntityNotFoundException("Game session", query.SessionId);
         }
 
         return openConversations;

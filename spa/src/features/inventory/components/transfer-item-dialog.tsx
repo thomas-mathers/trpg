@@ -1,14 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  PackageOpen,
-  Skull,
-  User,
-  Weight,
-} from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Skull, User, Weight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { getCreatureInventoryOptions, transferInventoryMutation } from '@/api/client';
@@ -16,12 +7,12 @@ import type { ItemDetail, ItemRarity, ItemType } from '@/api/client';
 import { NumericStepper } from '@/components/numeric-stepper';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { Empty, EmptyContent, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import {
   HoverPopover,
   HoverPopoverContent,
   HoverPopoverTextTrigger,
 } from '@/components/ui/hover-popover';
+import { InventoryEmptyState } from '@/features/inventory/components/inventory-empty-state';
 import { InventoryFilters } from '@/features/inventory/components/inventory-filters';
 import {
   isItemTableSortKeyVisible,
@@ -577,21 +568,12 @@ function InventorySidePanel({
           {loading ? (
             <ItemTableSkeleton hasLeadingCell />
           ) : sortedItems.length === 0 ? (
-            <Empty className="h-full">
-              <EmptyMedia variant="icon">
-                <PackageOpen />
-              </EmptyMedia>
-              <EmptyTitle>
-                {items.length === 0 ? 'Nothing here.' : 'No items match your filters.'}
-              </EmptyTitle>
-              {items.length > 0 && (search || categories.size > 0 || equippedOnly) && (
-                <EmptyContent>
-                  <Button variant="outline" size="sm" onClick={clearFilters}>
-                    Clear filters
-                  </Button>
-                </EmptyContent>
-              )}
-            </Empty>
+            <InventoryEmptyState
+              itemCount={items.length}
+              emptyMessage="Nothing here."
+              hasActiveFilters={Boolean(search) || categories.size > 0 || equippedOnly}
+              onClearFilters={clearFilters}
+            />
           ) : (
             <ItemTable
               items={sortedItems.map((item) => ({ ...item, weight: item.weight * item.quantity }))}

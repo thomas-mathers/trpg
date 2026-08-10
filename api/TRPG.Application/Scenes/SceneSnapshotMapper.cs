@@ -94,6 +94,7 @@ public static class SceneSnapshotMapper
             IceResistance: creature.IceResistance,
             LightningResistance: creature.LightningResistance,
             PoisonResistance: creature.PoisonResistance,
-            MagicResistance: creature.MagicResistance
+            MagicResistance: creature.MagicResistance,
+            TradeWorkstationId: creature.TradeWorkstationId
         );
 }

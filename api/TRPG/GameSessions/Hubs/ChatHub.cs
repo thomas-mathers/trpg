@@ -6,12 +6,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Exceptions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
@@ -103,7 +103,7 @@ internal sealed class ChatHub(
         {
             await endGameSession.Handle(new EndGameSessionCommand { SessionId = gameSession.Id });
         }
-        catch (GameSessionNotFoundException)
+        catch (EntityNotFoundException)
         {
             // Already ended some other way; nothing left to clean up.
         }
@@ -261,7 +261,7 @@ internal sealed class PendingSessionEndRegistry(
         {
             // The player reconnected within the grace period; nothing to end.
         }
-        catch (GameSessionNotFoundException)
+        catch (EntityNotFoundException)
         {
             // Already ended some other way; nothing left to clean up.
         }

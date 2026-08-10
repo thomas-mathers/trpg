@@ -2,7 +2,7 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AdvanceSessionTimeData, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetSessionNamedEntityResponses, GetSessionSceneResponses, ListSessionNamedEntitiesResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ResolveCombatActionData, ResolveCombatActionResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AdvanceSessionTimeData, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetSessionNamedEntityResponses, GetSessionSceneResponses, GetTradeResponses, ListSessionNamedEntitiesResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ResolveCombatActionData, ResolveCombatActionResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
@@ -985,6 +985,105 @@ export function handleTransferInventory(response?: HandleTransferInventoryRespon
     }, options);
 }
 
+export type HandleGetTradeResponse = {
+    body: GetTradeResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `GET /players/{playerId}/trades/{workstationId}` operation.
+ */
+export function handleGetTrade(response?: HandleGetTradeResponse | HttpResponseResolver<{
+    playerId: string;
+    workstationId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.get<{
+        playerId: string;
+        workstationId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/trades/:workstationId`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleProposeTradeResponse = {
+    body: ProposeTradeResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `POST /players/{playerId}/trades/{workstationId}/proposal` operation.
+ */
+export function handleProposeTrade(response?: HandleProposeTradeResponse | HttpResponseResolver<{
+    playerId: string;
+    workstationId: string;
+}, ProposeTradeData['body']>, options?: RequestHandlerOptions): HttpHandler {
+    return http.post<{
+        playerId: string;
+        workstationId: string;
+    }, ProposeTradeData['body']>(`${options?.baseUrl ?? '*'}/players/:playerId/trades/:workstationId/proposal`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleCompleteTradeResponse = {
+    body: CompleteTradeResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `POST /players/{playerId}/trades/{workstationId}/complete` operation.
+ */
+export function handleCompleteTrade(response?: HandleCompleteTradeResponse | HttpResponseResolver<{
+    playerId: string;
+    workstationId: string;
+}, CompleteTradeData['body']>, options?: RequestHandlerOptions): HttpHandler {
+    return http.post<{
+        playerId: string;
+        workstationId: string;
+    }, CompleteTradeData['body']>(`${options?.baseUrl ?? '*'}/players/:playerId/trades/:workstationId/complete`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
 export type MswHandlerFactories = {
     /**
      * Handler for the `GET /worlds` operation.
@@ -1114,6 +1213,18 @@ export type MswHandlerFactories = {
      * Handler for the `POST /inventory-transfers` operation.
      */
     transferInventory: typeof handleTransferInventory;
+    /**
+     * Handler for the `GET /players/{playerId}/trades/{workstationId}` operation.
+     */
+    getTrade: typeof handleGetTrade;
+    /**
+     * Handler for the `POST /players/{playerId}/trades/{workstationId}/proposal` operation.
+     */
+    proposeTrade: typeof handleProposeTrade;
+    /**
+     * Handler for the `POST /players/{playerId}/trades/{workstationId}/complete` operation.
+     */
+    completeTrade: typeof handleCompleteTrade;
 };
 
 export type CreateMswHandlersResult = {
@@ -1162,7 +1273,10 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         sendAdminChat: wrap(handleSendAdminChat),
         advanceSessionTime: wrap(handleAdvanceSessionTime),
         endSession: wrap(handleEndSession),
-        transferInventory: wrap(handleTransferInventory)
+        transferInventory: wrap(handleTransferInventory),
+        getTrade: wrap(handleGetTrade),
+        proposeTrade: wrap(handleProposeTrade),
+        completeTrade: wrap(handleCompleteTrade)
     };
     const all: CreateMswHandlersResult['all'] = (options = {}) => {
         type OverrideValue<R> = R | [
@@ -1175,12 +1289,15 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         const overrides = options.pick ?? {};
         return [
             invoke(pick.previewCreatureBasicAttackDamage, overrides.previewCreatureBasicAttackDamage),
+            invoke(pick.proposeTrade, overrides.proposeTrade),
+            invoke(pick.completeTrade, overrides.completeTrade),
             invoke(pick.sendAdminChat, overrides.sendAdminChat),
             invoke(pick.advanceSessionTime, overrides.advanceSessionTime),
             invoke(pick.previewCreatureEquipment, overrides.previewCreatureEquipment),
             invoke(pick.getPlayerFightAbilities, overrides.getPlayerFightAbilities),
             invoke(pick.unequipCreatureItem, overrides.unequipCreatureItem),
             invoke(pick.getSessionNamedEntity, overrides.getSessionNamedEntity),
+            invoke(pick.getTrade, overrides.getTrade),
             invoke(pick.endSession, overrides.endSession),
             invoke(pick.getCreatureAbilities, overrides.getCreatureAbilities),
             invoke(pick.getCreatureInventory, overrides.getCreatureInventory),

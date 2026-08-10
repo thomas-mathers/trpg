@@ -1,18 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures;
+using TRPG.Application.Inventory;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Commands;
 
-internal record ItemOwnerReference(Guid Id, OwnerType Type);
-
 internal class InventoryTransferCommand
 {
     public required ItemOwnerReference From { get; init; }
     public required ItemOwnerReference To { get; init; }
-    public required IReadOnlyList<LootItemSelection> Items { get; init; }
+    public required IReadOnlyList<ItemSelection> Items { get; init; }
 }
 
 internal class InventoryTransferCommandHandler(TrpgDbContext context)
@@ -22,17 +21,12 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        await using var transaction = await context.Database.BeginTransactionAsync(
-            cancellationToken
-        );
-
         if (command.Items.Count > 0)
         {
             await TransferItems(command, cancellationToken);
         }
 
         await context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
     }
 
     private async Task TransferItems(

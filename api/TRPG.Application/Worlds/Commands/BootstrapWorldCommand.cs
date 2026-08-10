@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Commands;
 
@@ -8,6 +9,7 @@ public record BootstrapWorldResult(Guid WorldId, Guid PlayerId);
 
 public class BootstrapWorldCommandHandler(
     TrpgDbContext context,
+    ItemGenerator itemGenerator,
     ILogger<BootstrapWorldCommandHandler> logger
 )
 {
@@ -37,6 +39,7 @@ public class BootstrapWorldCommandHandler(
         context.Rooms.AddRange(world.Rooms);
         context.Locations.AddRange(world.Locations);
         context.Props.AddRange(world.Props);
+        context.Items.AddRange(CreateTradeStock(world.Props, world.World.Id));
         context.CreatureSkills.AddRange(world.Skills);
         context.CreatureJobs.AddRange(world.Jobs);
         context.CreatureKnowledge.AddRange(world.Knowledge);
@@ -56,4 +59,24 @@ public class BootstrapWorldCommandHandler(
 
         return new BootstrapWorldResult(world.World.Id, world.World.PlayerId ?? Guid.Empty);
     }
+
+    private IReadOnlyCollection<Item> CreateTradeStock(
+        IReadOnlyCollection<Prop> props,
+        Guid worldId
+    ) =>
+        props
+            .OfType<Workstation>()
+            .Where(workstation => workstation.WorkstationType == WorkstationType.Trade)
+            .SelectMany(workstation =>
+                Enumerable
+                    .Range(0, 6)
+                    .Select(_ =>
+                    {
+                        var item = itemGenerator.GenerateConsumable(level: 1, worldId);
+                        item.Ownership.OwnerId = workstation.Id;
+                        item.Ownership.OwnerType = OwnerType.Workstation;
+                        return (Item)item;
+                    })
+            )
+            .ToArray();
 }

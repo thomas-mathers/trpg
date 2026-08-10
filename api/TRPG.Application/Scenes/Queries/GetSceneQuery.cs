@@ -86,7 +86,8 @@ public record SceneCreatureInfo(
     float IceResistance,
     float LightningResistance,
     float PoisonResistance,
-    float MagicResistance
+    float MagicResistance,
+    Guid? TradeWorkstationId
 );
 
 public record SceneNearbyBuildingInfo(Guid Id, string Name, BuildingType Type);
@@ -222,7 +223,8 @@ internal class GetSceneQueryHandler(
         IReadOnlyCollection<string> factionNames,
         CreatureState? state,
         int? reputation,
-        int totalCharacterXp
+        int totalCharacterXp,
+        Guid? tradeWorkstationId = null
     )
     {
         var experienceProgress = SkillFormulas.GetExperienceProgress(
@@ -263,7 +265,8 @@ internal class GetSceneQueryHandler(
             creature.IceResistance,
             creature.LightningResistance,
             creature.PoisonResistance,
-            creature.MagicResistance
+            creature.MagicResistance,
+            tradeWorkstationId
         );
     }
 
@@ -414,6 +417,14 @@ internal class GetSceneQueryHandler(
             },
             cancellationToken
         );
+        var tradeWorkstationIdsByCreature = await context
+            .Props.AsNoTracking()
+            .OfType<Workstation>()
+            .Where(w =>
+                nearbyCreatureIds.Contains(w.OccupantId ?? Guid.Empty)
+                && w.WorkstationType == WorkstationType.Trade
+            )
+            .ToDictionaryAsync(w => w.OccupantId!.Value, w => (Guid?)w.Id, cancellationToken);
 
         return nearby
             .Select(x =>
@@ -423,7 +434,8 @@ internal class GetSceneQueryHandler(
                     factionNames: factionNamesByCreature.GetValueOrDefault(x.Id, []),
                     state: x.State,
                     reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
-                    totalCharacterXp: 0
+                    totalCharacterXp: 0,
+                    tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id)
                 )
             )
             .ToArray();

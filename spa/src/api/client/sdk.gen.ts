@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AdvanceSessionTimeData, AdvanceSessionTimeErrors, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldData, DropWorldResponses, EndSessionData, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillData, GetAbilitiesBySkillResponses, GetCreatureAbilitiesData, GetCreatureAbilitiesResponses, GetCreatureAttributePointsData, GetCreatureAttributePointsResponses, GetCreatureAttributesData, GetCreatureAttributesResponses, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesData, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponses, GetCreatureInventoryData, GetCreatureInventoryResponses, GetCreatureLevelData, GetCreatureLevelResponses, GetCreatureSkillsData, GetCreatureSkillsResponses, GetJobData, GetJobErrors, GetJobResponses, GetNearbyCorpsesData, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponses, GetPlayerFightData, GetPlayerFightErrors, GetPlayerFightResponses, GetSessionNamedEntityData, GetSessionNamedEntityErrors, GetSessionNamedEntityResponses, GetSessionSceneData, GetSessionSceneErrors, GetSessionSceneResponses, ListSessionNamedEntitiesData, ListSessionNamedEntitiesResponses, ListWorldsData, ListWorldsResponses, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponses, ResolveCombatActionData, ResolveCombatActionResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryErrors, TransferInventoryResponses, UnequipCreatureItemData, UnequipCreatureItemResponses } from './types.gen';
+import type { AdvanceSessionTimeData, AdvanceSessionTimeErrors, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldData, DropWorldResponses, EndSessionData, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillData, GetAbilitiesBySkillResponses, GetCreatureAbilitiesData, GetCreatureAbilitiesResponses, GetCreatureAttributePointsData, GetCreatureAttributePointsResponses, GetCreatureAttributesData, GetCreatureAttributesResponses, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesData, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponses, GetCreatureInventoryData, GetCreatureInventoryResponses, GetCreatureLevelData, GetCreatureLevelResponses, GetCreatureSkillsData, GetCreatureSkillsResponses, GetJobData, GetJobErrors, GetJobResponses, GetNearbyCorpsesData, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponses, GetPlayerFightData, GetPlayerFightErrors, GetPlayerFightResponses, GetSessionNamedEntityData, GetSessionNamedEntityErrors, GetSessionNamedEntityResponses, GetSessionSceneData, GetSessionSceneErrors, GetSessionSceneResponses, GetTradeData, GetTradeResponses, ListSessionNamedEntitiesData, ListSessionNamedEntitiesResponses, ListWorldsData, ListWorldsResponses, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeErrors, ProposeTradeResponses, ResolveCombatActionData, ResolveCombatActionResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryErrors, TransferInventoryResponses, UnequipCreatureItemData, UnequipCreatureItemResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -131,6 +131,26 @@ export const endSession = <ThrowOnError extends boolean = false>(options: Option
 
 export const transferInventory = <ThrowOnError extends boolean = false>(options: Options<TransferInventoryData, ThrowOnError>): RequestResult<TransferInventoryResponses, TransferInventoryErrors, ThrowOnError> => (options.client ?? client).post<TransferInventoryResponses, TransferInventoryErrors, ThrowOnError>({
     url: '/inventory-transfers',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const getTrade = <ThrowOnError extends boolean = false>(options: Options<GetTradeData, ThrowOnError>): RequestResult<GetTradeResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetTradeResponses, unknown, ThrowOnError>({ url: '/players/{playerId}/trades/{workstationId}', ...options });
+
+export const proposeTrade = <ThrowOnError extends boolean = false>(options: Options<ProposeTradeData, ThrowOnError>): RequestResult<ProposeTradeResponses, ProposeTradeErrors, ThrowOnError> => (options.client ?? client).post<ProposeTradeResponses, ProposeTradeErrors, ThrowOnError>({
+    url: '/players/{playerId}/trades/{workstationId}/proposal',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const completeTrade = <ThrowOnError extends boolean = false>(options: Options<CompleteTradeData, ThrowOnError>): RequestResult<CompleteTradeResponses, unknown, ThrowOnError> => (options.client ?? client).post<CompleteTradeResponses, unknown, ThrowOnError>({
+    url: '/players/{playerId}/trades/{workstationId}/complete',
     ...options,
     headers: {
         'Content-Type': 'application/json',

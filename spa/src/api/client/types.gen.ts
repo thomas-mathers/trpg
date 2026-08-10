@@ -299,6 +299,7 @@ export type CreatureStatusSnapshot = {
     lightningResistance: number;
     poisonResistance: number;
     magicResistance: number;
+    tradeWorkstationId: null | string;
 };
 
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
@@ -354,7 +355,7 @@ export type InventorySummary = {
 export type InventoryTransferRequest = {
     fromId: string;
     toId: string;
-    items: Array<LootItemSelection>;
+    items: Array<ItemSelection>;
 };
 
 export type ItemDetail = ({
@@ -568,6 +569,11 @@ export type ItemModifierSummarySpecialHitModifierSummary = {
 
 export type ItemRarity = 'Low' | 'Normal' | 'Magic' | 'Rare' | 'Unique';
 
+export type ItemSelection = {
+    itemId: string;
+    quantity: number;
+};
+
 export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold' | 'Key';
 
 export type JobStatus = 'Idle' | 'Queued' | 'InProgress' | 'Done' | 'Failed' | 'Cancelled';
@@ -580,11 +586,6 @@ export type JobStatusResponse = {
 };
 
 export type LeechType = 'Life' | 'Mana';
-
-export type LootItemSelection = {
-    itemId: string;
-    quantity: number;
-};
 
 export type NamedEntity = {
     id: string;
@@ -719,6 +720,22 @@ export type SkillProgressSummary = {
 };
 
 export type SpecialHitType = 'CrushingBlow' | 'DeadlyStrike' | 'OpenWounds';
+
+export type TradeProposalResponse = {
+    status: TradeProposalStatus;
+};
+
+export type TradeProposalStatus = 'Accepted' | 'Rejected';
+
+export type TradeRequest = {
+    playerOffer: Array<ItemSelection>;
+    shopOffer: Array<ItemSelection>;
+};
+
+export type TradeSnapshot = {
+    playerInventory: InventorySummary;
+    shopInventory: InventorySummary;
+};
 
 export type TurnMetricsDto = {
     firstTokenMs: number;
@@ -1373,3 +1390,67 @@ export type TransferInventoryResponses = {
 };
 
 export type TransferInventoryResponse = TransferInventoryResponses[keyof TransferInventoryResponses];
+
+export type GetTradeData = {
+    body?: never;
+    path: {
+        playerId: string;
+        workstationId: string;
+    };
+    query?: never;
+    url: '/players/{playerId}/trades/{workstationId}';
+};
+
+export type GetTradeResponses = {
+    /**
+     * OK
+     */
+    200: TradeSnapshot;
+};
+
+export type GetTradeResponse = GetTradeResponses[keyof GetTradeResponses];
+
+export type ProposeTradeData = {
+    body: TradeRequest;
+    path: {
+        playerId: string;
+        workstationId: string;
+    };
+    query?: never;
+    url: '/players/{playerId}/trades/{workstationId}/proposal';
+};
+
+export type ProposeTradeErrors = {
+    /**
+     * Bad Request
+     */
+    400: unknown;
+};
+
+export type ProposeTradeResponses = {
+    /**
+     * OK
+     */
+    200: TradeProposalResponse;
+};
+
+export type ProposeTradeResponse = ProposeTradeResponses[keyof ProposeTradeResponses];
+
+export type CompleteTradeData = {
+    body: TradeRequest;
+    path: {
+        playerId: string;
+        workstationId: string;
+    };
+    query?: never;
+    url: '/players/{playerId}/trades/{workstationId}/complete';
+};
+
+export type CompleteTradeResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type CompleteTradeResponse = CompleteTradeResponses[keyof CompleteTradeResponses];

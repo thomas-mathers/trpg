@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Mappers;
 using TRPG.Application.Inventory.Queries;
@@ -70,12 +71,15 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<InventorySummary>> GetInventory(
         Guid creatureId,
-        GetInventorySummaryQueryHandler getInventorySummary,
+        GetInventorySummaryByOwnerQueryHandler getInventorySummaryByOwner,
         CancellationToken cancellationToken
     )
     {
-        var snapshot = await getInventorySummary.Handle(
-            new GetInventorySummaryQuery { CreatureId = creatureId },
+        var snapshot = await getInventorySummaryByOwner.Handle(
+            new GetInventorySummaryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(creatureId, OwnerType.Creature),
+            },
             cancellationToken
         );
 
@@ -86,12 +90,15 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<ConsumableSummary[]>> GetConsumables(
         Guid creatureId,
-        GetInventoryByCreatureIdQueryHandler getInventoryByCreatureId,
+        GetInventoryByOwnerQueryHandler getInventoryByOwner,
         CancellationToken cancellationToken
     )
     {
-        var items = await getInventoryByCreatureId.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = creatureId },
+        var items = await getInventoryByOwner.Handle(
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(creatureId, OwnerType.Creature),
+            },
             cancellationToken
         );
 
@@ -327,7 +334,7 @@ internal static class CreatureEndpoints
         return TypedResults.Ok(new CreatureLevelResponse(level));
     }
 
-    private static ItemDetail ToItemDetail(Item item)
+    internal static ItemDetail ToItemDetail(Item item)
     {
         var equippedSlot = item.Ownership.EquippedSlot?.ToContract();
         var type = ToItemType(item);

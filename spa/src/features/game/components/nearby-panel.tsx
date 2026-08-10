@@ -37,6 +37,7 @@ import type {
 } from '@/api/client';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
+import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
 import { cn } from '@/lib/utils';
 
@@ -86,6 +87,10 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
     transfersEnabled: boolean;
   } | null>(null);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [tradeWorker, setTradeWorker] = useState<{
+    name: string;
+    workstationId: string;
+  } | null>(null);
 
   const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
     ...b,
@@ -125,6 +130,15 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
                 });
                 setIsTransferOpen(true);
               }}
+              onTrade={() => {
+                if (creature.tradeWorkstationId) {
+                  setTradeWorker({
+                    name: creature.name,
+                    workstationId: creature.tradeWorkstationId,
+                  });
+                }
+              }}
+              tradeEnabled={Boolean(creature.tradeWorkstationId)}
             />
           ))
         )}
@@ -165,6 +179,16 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
         transfersEnabled={inventoryTarget?.transfersEnabled}
         onClose={() => setIsTransferOpen(false)}
       />
+      {tradeWorker && (
+        <TradeDialog
+          playerId={scene.playerStatus.id}
+          workstationId={tradeWorker.workstationId}
+          workerName={tradeWorker.name}
+          shopName={scene.buildingName ?? 'Shop'}
+          open
+          onClose={() => setTradeWorker(null)}
+        />
+      )}
     </div>
   );
 }
@@ -184,10 +208,14 @@ function CreatureRow({
   creature,
   playerLevel,
   onOpenInventory,
+  onTrade,
+  tradeEnabled,
 }: {
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
   onOpenInventory: () => void;
+  onTrade: () => void;
+  tradeEnabled: boolean;
 }) {
   const dead = creature.state === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
@@ -222,6 +250,11 @@ function CreatureRow({
         <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[10px]">
           {creature.state}
         </span>
+      )}
+      {!dead && tradeEnabled && (
+        <button type="button" onClick={onTrade} className="text-muted-foreground text-xs underline">
+          Trade
+        </button>
       )}
     </div>
   );

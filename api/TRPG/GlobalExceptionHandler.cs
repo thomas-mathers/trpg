@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
-using TRPG.Application.GameSessions.Exceptions;
+using TRPG.Application.Common.Exceptions;
 
 namespace TRPG;
 
@@ -12,7 +12,7 @@ internal class GlobalExceptionHandler : IExceptionHandler
         CancellationToken cancellationToken
     )
     {
-        if (exception is not GameSessionNotFoundException)
+        if (exception is not EntityNotFoundException)
         {
             return ValueTask.FromResult(false);
         }

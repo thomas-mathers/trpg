@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
-using TRPG.Application.GameSessions.Exceptions;
+using TRPG.Application.Common.Exceptions;
 
 namespace TRPG.GameSessions.Filters;
 
@@ -24,7 +24,7 @@ internal class GameSessionNotFoundHubFilter : IHubFilter
         {
             await next(context, exception);
         }
-        catch (GameSessionNotFoundException) { }
+        catch (EntityNotFoundException) { }
     }
 
     private static async IAsyncEnumerable<string> Wrap(IAsyncEnumerable<string> inner)
@@ -37,7 +37,7 @@ internal class GameSessionNotFoundHubFilter : IHubFilter
             {
                 hasNext = await enumerator.MoveNextAsync();
             }
-            catch (GameSessionNotFoundException ex)
+            catch (EntityNotFoundException ex)
             {
                 throw new HubException(ex.Message);
             }

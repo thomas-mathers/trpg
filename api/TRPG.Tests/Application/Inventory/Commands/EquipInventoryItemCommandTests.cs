@@ -1,3 +1,4 @@
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
@@ -11,7 +12,7 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
 {
     private TrpgDbContext _context = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
-    private GetInventoryByCreatureIdQueryHandler _getHandler = null!;
+    private GetInventoryByOwnerQueryHandler _getHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
     private readonly Item _weapon = Builders.MakeWeaponItem();
     private readonly Item _otherWeapon = Builders.MakeWeaponItem();
@@ -20,7 +21,7 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
     {
         _context = db.CreateContext();
         _equipHandler = new EquipInventoryItemCommandHandler(_context);
-        _getHandler = new GetInventoryByCreatureIdQueryHandler(_context);
+        _getHandler = new GetInventoryByOwnerQueryHandler(_context);
 
         GiveToCreature(_weapon);
         GiveToCreature(_otherWeapon);
@@ -59,7 +60,10 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
 
         // Assert
         var items = await _getHandler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(
@@ -95,7 +99,10 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
 
         // Assert
         var items = await _getHandler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
         var equipped = items
@@ -199,7 +206,10 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
 
         // Assert
         var items = await _getHandler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(
@@ -232,7 +242,10 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
 
         // Assert
         var items = await _getHandler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(
@@ -272,7 +285,10 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
 
         // Assert
         var items = await _getHandler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(

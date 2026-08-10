@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PackageOpen } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -18,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Empty, EmptyContent, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import {
   HoverPopover,
   HoverPopoverContent,
@@ -28,7 +26,9 @@ import {
   CharacterStatsPanel,
   type EquipItemPreview,
 } from '@/features/inventory/components/character-stats-panel';
+import { InventoryEmptyState } from '@/features/inventory/components/inventory-empty-state';
 import { InventoryFilters } from '@/features/inventory/components/inventory-filters';
+import { filterAndSortItems } from '@/features/inventory/components/item-filtering';
 import {
   isItemTableSortKeyVisible,
   ItemTable,
@@ -79,58 +79,6 @@ function equipSlotFor(item: ItemDetail, equippedSlots: Set<EquipmentSlot>): Equi
 }
 
 type SortKey = ItemTableSortKey;
-
-function sortItems(
-  items: ItemDetail[],
-  search: string,
-  categories: ReadonlySet<ItemCategory>,
-  equippedOnly: boolean,
-  sort: SortState<SortKey>,
-): ItemDetail[] {
-  const query = search.trim().toLowerCase();
-  const filtered = items.filter((item) => {
-    if (query && !item.name.toLowerCase().includes(query)) {
-      return false;
-    }
-    if (equippedOnly && item.equippedSlot == null) {
-      return false;
-    }
-    return categories.size === 0 || categories.has(item.$type);
-  });
-  const dir = sort.dir === 'asc' ? 1 : -1;
-  return [...filtered].sort((a, b) => {
-    if (sort.key === 'name') {
-      return a.name.localeCompare(b.name) * dir;
-    }
-    if (sort.key === 'quantity') {
-      return (Number(a.quantity) - Number(b.quantity)) * dir;
-    }
-    if (sort.key === 'value') {
-      return (
-        (Number(a.goldValue) * Number(a.quantity) - Number(b.goldValue) * Number(b.quantity)) * dir
-      );
-    }
-    if (sort.key === 'damage') {
-      const averageDamage = (item: ItemDetail) =>
-        item.$type === 'Weapon' ? (item.minDamage + item.maxDamage) / 2 : 0;
-      const averageDifference = averageDamage(a) - averageDamage(b);
-      if (averageDifference !== 0) {
-        return averageDifference * dir;
-      }
-      return (
-        ((a.$type === 'Weapon' ? a.maxDamage : 0) - (b.$type === 'Weapon' ? b.maxDamage : 0)) * dir
-      );
-    }
-    if (sort.key === 'defense') {
-      return (
-        ((a.$type === 'Armor' || a.$type === 'Shield' ? a.defense : 0) -
-          (b.$type === 'Armor' || b.$type === 'Shield' ? b.defense : 0)) *
-        dir
-      );
-    }
-    return (Number(a.weight) * Number(a.quantity) - Number(b.weight) * Number(b.quantity)) * dir;
-  });
-}
 
 interface InventoryDialogProps {
   playerId: string;
@@ -214,7 +162,7 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
   const equippedSlots = new Set(
     items.map((item) => item.equippedSlot).filter((slot): slot is EquipmentSlot => slot != null),
   );
-  const visible = sortItems(items, search, categories, equippedOnly, sort);
+  const visible = filterAndSortItems(items, search, categories, equippedOnly, sort);
   const busy = equip.isPending || unequip.isPending;
 
   const selectedItem = selectedItemId ? items.find((i) => i.itemId === selectedItemId) : null;
@@ -254,21 +202,12 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
             {!inventory.data ? (
               <ItemTableSkeleton hasAction />
             ) : visible.length === 0 ? (
-              <Empty className="h-full">
-                <EmptyMedia variant="icon">
-                  <PackageOpen />
-                </EmptyMedia>
-                <EmptyTitle>
-                  {items.length === 0 ? 'Your inventory is empty.' : 'No items match your filters.'}
-                </EmptyTitle>
-                {items.length > 0 && (search || categories.size > 0 || equippedOnly) && (
-                  <EmptyContent>
-                    <Button variant="outline" size="sm" onClick={clearFilters}>
-                      Clear filters
-                    </Button>
-                  </EmptyContent>
-                )}
-              </Empty>
+              <InventoryEmptyState
+                itemCount={items.length}
+                emptyMessage="Your inventory is empty."
+                hasActiveFilters={Boolean(search) || categories.size > 0 || equippedOnly}
+                onClearFilters={clearFilters}
+              />
             ) : (
               <ItemTable
                 items={visible.map((item) => ({

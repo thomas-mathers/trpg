@@ -1,3 +1,4 @@
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
@@ -11,7 +12,7 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
 {
     private TrpgDbContext _context = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
-    private GetInventoryByCreatureIdQueryHandler _getHandler = null!;
+    private GetInventoryByOwnerQueryHandler _getHandler = null!;
     private UnequipInventoryItemCommandHandler _unequipHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
     private readonly Item _item = Builders.MakeWeaponItem();
@@ -21,7 +22,7 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
         _context = db.CreateContext();
         _equipHandler = new EquipInventoryItemCommandHandler(_context);
         _unequipHandler = new UnequipInventoryItemCommandHandler(_context);
-        _getHandler = new GetInventoryByCreatureIdQueryHandler(_context);
+        _getHandler = new GetInventoryByOwnerQueryHandler(_context);
 
         _item.Quantity = 1;
         _item.Ownership.OwnerId = _creature.Id;
@@ -64,7 +65,10 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
 
         // Assert
         var items = await _getHandler.Handle(
-            new GetInventoryByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
             TestContext.Current.CancellationToken
         );
         Assert.Null(items[0].Ownership.EquippedSlot);
