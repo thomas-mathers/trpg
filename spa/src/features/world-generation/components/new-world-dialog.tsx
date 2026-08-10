@@ -489,6 +489,7 @@ export function NewWorldDialog() {
                           label="City States"
                           value={field.state.value}
                           onChange={field.handleChange}
+                          min={RACES.length}
                           max={80}
                         />
                       )}
@@ -604,10 +605,11 @@ interface RangeFieldProps {
   label: string;
   value: [number, number];
   onChange: (value: [number, number]) => void;
+  min?: number;
   max: number;
 }
 
-function RangeField({ label, value, onChange, max }: RangeFieldProps) {
+function RangeField({ label, value, onChange, min = 0, max }: RangeFieldProps) {
   return (
     <Field>
       <div className="flex items-center justify-between">
@@ -619,7 +621,7 @@ function RangeField({ label, value, onChange, max }: RangeFieldProps) {
       <Slider
         value={value}
         onValueChange={(next) => onChange(next as [number, number])}
-        min={0}
+        min={min}
         max={max}
         step={1}
       />

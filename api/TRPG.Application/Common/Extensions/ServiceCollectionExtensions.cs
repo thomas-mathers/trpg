@@ -138,6 +138,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ConsumableGenerator>()
             .AddTransient<AmmoGenerator>()
             .AddTransient<ItemGenerator>()
+            .AddTransient<TradeStockGenerator>()
             .AddTransient<CreatureGenerator>()
             .AddTransient<DungeonPopulator>()
             .AddTransient<HouseholdGenerator>()

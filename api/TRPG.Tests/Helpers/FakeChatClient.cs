@@ -87,23 +87,6 @@ public sealed class FakeChatClient : IChatClient
             return JsonSerializer.Serialize(schema);
         }
 
-        if (text.Contains("Cities array containing exactly", StringComparison.OrdinalIgnoreCase))
-        {
-            var count = ExtractCount(text, @"Cities array containing exactly (\d+)");
-            var schema = new CityDescriptionListSchema
-            {
-                Cities = Enumerable
-                    .Range(1, count)
-                    .Select(i => new CityDescriptionItemSchema
-                    {
-                        Index = i,
-                        Description = "A fake city.",
-                    })
-                    .ToList(),
-            };
-            return JsonSerializer.Serialize(schema);
-        }
-
         if (
             text.Contains("Generate the world", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Generate country", StringComparison.OrdinalIgnoreCase)

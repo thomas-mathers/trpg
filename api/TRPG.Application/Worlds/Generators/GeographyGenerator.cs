@@ -38,7 +38,6 @@ public class GeographyGenerator(
     ILogger<GeographyGenerator> logger
 )
 {
-    private const int MaxCitiesPerRequest = 6;
     private const int CityTileSize = 100;
 
     public async Task<GeographyGeneratorResult> Generate(
@@ -292,115 +291,72 @@ public class GeographyGenerator(
                     .Select(s => SelectDistrictTypes(s.IsCapital, country.Focus))
                     .ToList();
 
-                for (
-                    var chunkStart = 0;
-                    chunkStart < cityStates.Count;
-                    chunkStart += MaxCitiesPerRequest
-                )
+                for (var j = 0; j < cityStates.Count; j++)
                 {
-                    var chunk = cityStates.Skip(chunkStart).Take(MaxCitiesPerRequest).ToList();
-                    var chunkNames = cityNames.Skip(chunkStart).Take(MaxCitiesPerRequest).ToList();
-                    var chunkDistrictTypes = cityDistrictTypes
-                        .Skip(chunkStart)
-                        .Take(MaxCitiesPerRequest)
-                        .ToList();
+                    var mapState = cityStates[j];
+                    var cityName = cityNames[j];
+                    var districtTypes = cityDistrictTypes[j];
+                    var state = new State
+                    {
+                        CountryId = country.Id,
+                        Name = $"{cityName} Territory",
+                        Description = $"The territory surrounding {cityName}.",
+                        Width = CityTileSize,
+                        Height = CityTileSize,
+                        Center = mapState.Center,
+                        Boundary = new Polygon
+                        {
+                            Points = new List<Point>(mapState.Boundary.Points.ToArray()),
+                        },
+                        WorldId = world.Id,
+                    };
+                    var city = new City
+                    {
+                        StateId = state.Id,
+                        CountryId = country.Id,
+                        Name = cityName,
+                        Description = CreateCityDescription(
+                            cityName,
+                            country,
+                            dominantRace,
+                            mapState.IsCapital,
+                            districtTypes
+                        ),
+                        IsCapital = mapState.IsCapital,
+                        WorldId = world.Id,
+                    };
+                    states.Add(state);
+                    cities.Add(city);
+                    stateById[mapState.Id] = state;
 
-                    var cityList = string.Join(
-                        "\n",
-                        chunk.Select(
-                            (s, j) =>
-                                $"{j + 1}. {chunkNames[j]}{(s.IsCapital ? " (capital)" : "")}, districts: {string.Join(", ", chunkDistrictTypes[j])}"
+                    var cityDistricts = new List<District>();
+                    foreach (var districtType in districtTypes)
+                    {
+                        var districtResult = DistrictGenerator.Generate(
+                            districtType,
+                            city.Id,
+                            state.Id,
+                            world.Id
+                        );
+                        districts.Add(districtResult.District);
+                        locations.Add(districtResult.Location);
+                        cityDistricts.Add(districtResult.District);
+                    }
+
+                    var cityCenterDistrict = cityDistricts.First(d =>
+                        d.DistrictType == DistrictType.CityCenter
+                    );
+                    props.AddRange(
+                        DistrictConnectorGenerator.Generate(
+                            cityCenterDistrict,
+                            cityDistricts
+                                .Where(d => d.DistrictType != DistrictType.CityCenter)
+                                .ToArray(),
+                            world.Id
                         )
                     );
-
-                    var schema = await client.GetValidatedJson<CityDescriptionListSchema>(
-                        logger,
-                        $"""
-                        You are a creative world-building assistant for a TRPG game generating content for: {context.GeneratorInput.Description}.
-                        The world is {world.Name}: {world.Description}.
-                        Respond with a JSON object with a Cities array containing exactly {chunk.Count} entries for the country of {country.Name}: {country.Description}, whose people are predominantly {dominantRace} and whose society is oriented around {FocusDescriptions[
-                            country.Focus
-                        ]}.
-                        Each entry has an Index (1-based integer matching the city number below) and a Description — a single sentence capturing that city's culture and character, consistent with its name and the districts it actually has (a city with no Scientific district isn't a center of learning; one with an Encampment district has a military presence; a Governmental district signals a seat of local power; etc). Do not invent a different name for the city. You MUST respond in English only. Do not use markdown.
-                        """,
-                        $"Generate descriptions for these {chunk.Count} cities:\n{cityList}",
-                        s =>
-                            s.Cities.Count != chunk.Count
-                                ? $"Expected exactly {chunk.Count} entries but got {s.Cities.Count}. You MUST produce one entry per city number."
-                                : null,
-                        cancellationToken
-                    );
-
-                    var descriptionByIndex = schema.Cities.ToDictionary(
-                        c => c.Index,
-                        c => c.Description
-                    );
-
-                    for (var j = 0; j < chunk.Count; j++)
-                    {
-                        var mapState = chunk[j];
-                        var cityName = chunkNames[j];
-                        var description = descriptionByIndex.GetValueOrDefault(
-                            j + 1,
-                            $"A settlement with a {string.Join(", ", chunkDistrictTypes[j])} presence."
-                        );
-                        var state = new State
-                        {
-                            CountryId = country.Id,
-                            Name = $"{cityName} Territory",
-                            Description = $"The territory surrounding {cityName}.",
-                            Width = CityTileSize,
-                            Height = CityTileSize,
-                            Center = mapState.Center,
-                            Boundary = new Polygon
-                            {
-                                Points = new List<Point>(mapState.Boundary.Points.ToArray()),
-                            },
-                            WorldId = world.Id,
-                        };
-                        var city = new City
-                        {
-                            StateId = state.Id,
-                            CountryId = country.Id,
-                            Name = cityName,
-                            Description = description,
-                            IsCapital = mapState.IsCapital,
-                            WorldId = world.Id,
-                        };
-                        states.Add(state);
-                        cities.Add(city);
-                        stateById[mapState.Id] = state;
-
-                        var cityDistricts = new List<District>();
-                        foreach (var districtType in chunkDistrictTypes[j])
-                        {
-                            var districtResult = DistrictGenerator.Generate(
-                                districtType,
-                                city.Id,
-                                state.Id,
-                                world.Id
-                            );
-                            districts.Add(districtResult.District);
-                            locations.Add(districtResult.Location);
-                            cityDistricts.Add(districtResult.District);
-                        }
-
-                        var cityCenterDistrict = cityDistricts.First(d =>
-                            d.DistrictType == DistrictType.CityCenter
-                        );
-                        props.AddRange(
-                            DistrictConnectorGenerator.Generate(
-                                cityCenterDistrict,
-                                cityDistricts
-                                    .Where(d => d.DistrictType != DistrictType.CityCenter)
-                                    .ToArray(),
-                                world.Id
-                            )
-                        );
-                    }
                 }
             }
-
             for (var j = 0; j < nonCityStates.Count; j++)
             {
                 var mapState = nonCityStates[j];
@@ -425,6 +381,41 @@ public class GeographyGenerator(
 
         return new GeneratedStates(states, cities, districts, locations, props, stateById);
     }
+
+    private static string CreateCityDescription(
+        string cityName,
+        Country country,
+        CreatureType dominantRace,
+        bool isCapital,
+        IReadOnlyCollection<DistrictType> districtTypes
+    )
+    {
+        var cityRole = isCapital ? "the capital" : "a city";
+        var race = dominantRace.ToString().ToLowerInvariant();
+        var districts = JoinPhrases(districtTypes.Select(GetDistrictLabel).ToArray());
+
+        return $"{cityName} is {cityRole} of {country.Name}, a {race}-majority country shaped by {FocusDescriptions[country.Focus]}. Its districts include {districts}.";
+    }
+
+    private static string GetDistrictLabel(DistrictType districtType) =>
+        districtType switch
+        {
+            DistrictType.Residential => "a residential district",
+            DistrictType.Scientific => "a scientific district",
+            DistrictType.CityCenter => "a city center",
+            DistrictType.Governmental => "a governmental district",
+            DistrictType.HolySite => "a holy site",
+            DistrictType.Encampment => "an encampment",
+            _ => throw new ArgumentOutOfRangeException(nameof(districtType)),
+        };
+
+    private static string JoinPhrases(IReadOnlyList<string> phrases) =>
+        phrases.Count switch
+        {
+            1 => phrases[0],
+            2 => $"{phrases[0]} and {phrases[1]}",
+            _ => $"{string.Join(", ", phrases.Take(phrases.Count - 1))}, and {phrases[^1]}",
+        };
 
     private static List<Road> GenerateRoadEntities(GenerateRoadsInput input)
     {
@@ -497,17 +488,6 @@ internal record GenerateRoadsInput(
     GeneratedStates States,
     IReadOnlyDictionary<Guid, CreatureType> DominantRaceByCountryId
 );
-
-internal class CityDescriptionListSchema
-{
-    public List<CityDescriptionItemSchema> Cities { get; init; } = [];
-}
-
-internal class CityDescriptionItemSchema
-{
-    public string Description { get; init; } = "";
-    public int Index { get; init; }
-}
 
 internal class GeographyEntitySchema
 {
