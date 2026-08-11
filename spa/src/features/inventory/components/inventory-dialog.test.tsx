@@ -48,6 +48,7 @@ const sword = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
     attacksPerTurn: 1,
     isTwoHanded: false,
     ...overrides,
+    isStackable: false,
   }) as ItemDetail;
 
 const gold = (overrides: Partial<ItemDetailGoldDetail> = {}): ItemDetail => ({
@@ -63,6 +64,7 @@ const gold = (overrides: Partial<ItemDetailGoldDetail> = {}): ItemDetail => ({
   goldValue: 1,
   modifiers: [],
   ...overrides,
+  isStackable: true,
 });
 
 const armor = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
@@ -83,6 +85,7 @@ const armor = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
     durabilityCurrent: 10,
     durabilityMax: 10,
     ...overrides,
+    isStackable: false,
   }) as ItemDetail;
 
 function renderDialog(onClose = vi.fn()) {

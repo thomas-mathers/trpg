@@ -388,6 +388,7 @@ export type ItemDetailAccessoryDetail = {
     rarity: null | ItemRarity;
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
 };
 
 export type ItemDetailAmmunitionDetail = {
@@ -402,6 +403,7 @@ export type ItemDetailAmmunitionDetail = {
     rarity: null | ItemRarity;
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
 };
 
 export type ItemDetailArmorDetail = {
@@ -420,6 +422,7 @@ export type ItemDetailArmorDetail = {
     rarity: null | ItemRarity;
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
 };
 
 export type ItemDetailConsumableItemDetail = {
@@ -437,6 +440,7 @@ export type ItemDetailConsumableItemDetail = {
     rarity: null | ItemRarity;
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
 };
 
 export type ItemDetailGoldDetail = {
@@ -451,6 +455,7 @@ export type ItemDetailGoldDetail = {
     rarity: null | ItemRarity;
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
 };
 
 export type ItemDetailKeyDetail = {
@@ -465,6 +470,7 @@ export type ItemDetailKeyDetail = {
     rarity: null | ItemRarity;
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
 };
 
 export type ItemDetailShieldDetail = {
@@ -483,6 +489,7 @@ export type ItemDetailShieldDetail = {
     rarity: null | ItemRarity;
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
 };
 
 export type ItemDetailWeaponDetail = {
@@ -504,6 +511,7 @@ export type ItemDetailWeaponDetail = {
     rarity: null | ItemRarity;
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
 };
 
 export type ItemModifierSummary = ({

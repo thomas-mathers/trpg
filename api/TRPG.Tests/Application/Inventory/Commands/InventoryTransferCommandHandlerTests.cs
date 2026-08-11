@@ -231,6 +231,26 @@ public sealed class InventoryTransferCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
+    public async Task Handle_Throws_WhenPartiallyTransferringNonStackableItem()
+    {
+        // Arrange
+        var item = await SeedItemOnFromCreature(quantity: 2);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                new InventoryTransferCommand
+                {
+                    From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                    To = new ItemOwnerReference(_player.Id, OwnerType.Creature),
+                    Items = [new ItemSelection(item.Id, 1)],
+                },
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
     public async Task Handle_TransfersPartialGold_WhenLessThanFullAmountIsSelected()
     {
         // Arrange

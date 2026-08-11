@@ -27,23 +27,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Empty, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import {
-  HoverPopover,
-  HoverPopoverContent,
-  HoverPopoverTextTrigger,
-} from '@/components/ui/hover-popover';
-import { InventoryEmptyState } from '@/features/inventory/components/inventory-empty-state';
-import { InventoryFilters } from '@/features/inventory/components/inventory-filters';
-import { filterAndSortItems } from '@/features/inventory/components/item-filtering';
-import {
-  isItemTableSortKeyVisible,
-  ItemTable,
-  type ItemTableItem,
-  type ItemTableSortKey,
-} from '@/features/inventory/components/item-table';
-import { ItemTooltip } from '@/features/inventory/components/item-tooltip';
-import type { SortState } from '@/features/inventory/components/sortable-header';
-import { type ItemCategory, TYPE_ICON } from '@/features/inventory/item-visuals';
+import { ItemName } from '@/features/inventory/components/item-name';
+import { ItemTable } from '@/features/inventory/components/item-table';
+import { useItemTable } from '@/features/inventory/hooks/use-item-table';
 
 export interface TradeDialogProps {
   open: boolean;
@@ -150,7 +136,6 @@ export function TradeDialog({
             items={playerItems}
             offerItems={playerOffer}
             ariaLabel="Your available items"
-            filterLabel="Your inventory"
             filterKey={playerId}
             onAdd={add(setPlayerOffer)}
           />
@@ -180,7 +165,6 @@ export function TradeDialog({
             items={shopItems}
             offerItems={shopOffer}
             ariaLabel="Shop available items"
-            filterLabel="Shop inventory"
             filterKey={workstationId}
             onAdd={add(setShopOffer)}
           />
@@ -214,7 +198,6 @@ function InventoryPanel({
   items,
   offerItems,
   ariaLabel,
-  filterLabel,
   filterKey,
   onAdd,
 }: {
@@ -223,56 +206,21 @@ function InventoryPanel({
   items: readonly ItemDetail[];
   offerItems: readonly ItemDetail[];
   ariaLabel: string;
-  filterLabel: string;
   filterKey: string;
   onAdd: (item: ItemDetail) => void;
 }) {
-  const [search, setSearch] = useState('');
-  const [categories, setCategories] = useState<ReadonlySet<ItemCategory>>(new Set());
-  const [equippedOnly, setEquippedOnly] = useState(false);
-  const [sort, setSort] = useState<SortState<ItemTableSortKey>>({ key: 'name', dir: 'asc' });
-  useEffect(() => {
-    setSearch('');
-    setCategories(new Set());
-    setEquippedOnly(false);
-    setSort({ key: 'name', dir: 'asc' });
-  }, [filterKey]);
-  const tableItems: ItemTableItem[] = items.map((item) => ({
-    item,
-    quantity: Number(item.quantity),
-    goldValue: Number(item.goldValue),
-    weight: Number(item.weight) * Number(item.quantity),
-  }));
-  const totalWeight = tableItems.reduce((sum, item) => sum + item.weight, 0);
+  const itemTable = useItemTable(items, { resetKey: filterKey });
+  const totalWeight = items.reduce(
+    (sum, item) => sum + Number(item.weight) * Number(item.quantity),
+    0,
+  );
   const offeredItemIds = new Set(offerItems.map((item) => item.itemId));
-  const visibleItems = filterAndSortItems(items, search, categories, equippedOnly, sort);
-
-  const toggleSort = (key: ItemTableSortKey) => {
-    if (sort.key === key) {
-      setSort({ key, dir: sort.dir === 'asc' ? 'desc' : 'asc' });
-    } else {
-      setSort({ key, dir: key === 'name' ? 'asc' : 'desc' });
-    }
-  };
-
-  const handleCategoriesChange = (next: ReadonlySet<ItemCategory>) => {
-    setCategories(next);
-    if (!isItemTableSortKeyVisible(sort.key, next)) {
-      setSort({ key: 'name', dir: 'asc' });
-    }
-  };
-
-  const clearFilters = () => {
-    setSearch('');
-    setCategories(new Set());
-    setEquippedOnly(false);
-    if (!isItemTableSortKeyVisible(sort.key, new Set())) {
-      setSort({ key: 'name', dir: 'asc' });
-    }
-  };
 
   return (
-    <section className="bg-muted/40 flex min-h-72 min-w-0 flex-col overflow-hidden rounded-lg border lg:min-h-0">
+    <section
+      className="bg-muted/40 flex min-h-72 min-w-0 flex-col overflow-hidden rounded-lg border lg:min-h-0"
+      aria-label={ariaLabel}
+    >
       <div className="border-b px-3 py-2">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold">
           <Icon className="text-muted-foreground size-4" />
@@ -283,52 +231,23 @@ function InventoryPanel({
         </p>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
-        <InventoryFilters
-          search={search}
-          onSearchChange={setSearch}
-          categories={categories}
-          onCategoriesChange={handleCategoriesChange}
-          equippedOnly={equippedOnly}
-          onEquippedOnlyChange={setEquippedOnly}
-          ariaLabel={filterLabel}
+        <ItemTable
+          table={itemTable}
+          renderItemName={(item) => <ItemName item={item} />}
+          renderAction={(item) =>
+            offeredItemIds.has(item.itemId) ? (
+              <div className="h-8" />
+            ) : (
+              <Button
+                variant="outline"
+                aria-label={`Add ${item.name} to offer`}
+                onClick={() => onAdd(item)}
+              >
+                Add
+              </Button>
+            )
+          }
         />
-
-        <div className="min-h-0 flex-1 overflow-auto" aria-label={ariaLabel}>
-          {visibleItems.length === 0 ? (
-            <InventoryEmptyState
-              itemCount={items.length}
-              emptyMessage="Nothing here."
-              hasActiveFilters={Boolean(search) || categories.size > 0 || equippedOnly}
-              onClearFilters={clearFilters}
-            />
-          ) : (
-            <ItemTable
-              items={visibleItems.map((item) => ({
-                item,
-                quantity: Number(item.quantity),
-                goldValue: Number(item.goldValue),
-                weight: Number(item.weight) * Number(item.quantity),
-              }))}
-              categories={categories}
-              sort={sort}
-              onToggleSort={toggleSort}
-              renderName={(item) => <ItemName item={item.item} />}
-              renderAction={(item) =>
-                offeredItemIds.has(item.item.itemId) ? (
-                  <div className="h-8" />
-                ) : (
-                  <Button
-                    variant="outline"
-                    aria-label={`Add ${item.item.name} to offer`}
-                    onClick={() => onAdd(item.item)}
-                  >
-                    Add
-                  </Button>
-                )
-              }
-            />
-          )}
-        </div>
       </div>
     </section>
   );
@@ -376,7 +295,7 @@ function OfferPanel({
               <div className="min-w-0 flex-1">
                 <ItemName item={item} />
               </div>
-              {isStackable(item) ? (
+              {item.isStackable ? (
                 <NumericStepper
                   value={Number(item.quantity)}
                   onChange={(quantity) => onQuantityChange(item.itemId, quantity)}
@@ -401,26 +320,6 @@ function OfferPanel({
         </ul>
       )}
     </section>
-  );
-}
-
-function isStackable(item: ItemDetail) {
-  return item.$type === 'Ammunition' || item.$type === 'Consumable' || item.$type === 'Gold';
-}
-
-function ItemName({ item }: { item: ItemDetail }) {
-  const Icon = TYPE_ICON[item.type];
-
-  return (
-    <HoverPopover>
-      <HoverPopoverTextTrigger className="flex min-w-0 items-center gap-1.5 text-left no-underline">
-        <Icon className="text-muted-foreground size-3.5 shrink-0" />
-        <span className="truncate">{item.name}</span>
-      </HoverPopoverTextTrigger>
-      <HoverPopoverContent>
-        <ItemTooltip item={item} />
-      </HoverPopoverContent>
-    </HoverPopover>
   );
 }
 

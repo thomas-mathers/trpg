@@ -31,7 +31,7 @@ import { GameChatContext } from '@/features/game/game-chat-context';
 import type { GameChat } from '@/features/game/hooks/use-game-chat';
 import { gameEventBus } from '@/lib/game-event-bus';
 
-import { CombatConsole } from './combat-console';
+import { CombatDialog } from './combat-dialog';
 
 const player: CombatantState = {
   id: 'player-id',
@@ -264,15 +264,15 @@ interface WorkbenchProvidersProps {
   initiallyStreaming: boolean;
 }
 
-interface CombatConsoleStoryProps {
+interface CombatDialogStoryProps {
   fight: FightState;
   isStreaming?: boolean;
 }
 
-function CombatConsoleStory({ fight, isStreaming = false }: CombatConsoleStoryProps) {
+function CombatDialogStory({ fight, isStreaming = false }: CombatDialogStoryProps) {
   return (
     <WorkbenchProviders initialFight={fight} initiallyStreaming={isStreaming}>
-      <CombatConsole />
+      <CombatDialog />
     </WorkbenchProviders>
   );
 }
@@ -475,9 +475,9 @@ const crowdedFight: FightState = {
 
 const meta = {
   title: 'Combat/Combat Console',
-  component: CombatConsoleStory,
+  component: CombatDialogStory,
   parameters: { msw: { handlers } },
-} satisfies Meta<typeof CombatConsoleStory>;
+} satisfies Meta<typeof CombatDialogStory>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -493,7 +493,7 @@ export const NarrationToastPreview: Story = {
   render: () => (
     <WorkbenchProviders initialFight={crowdedFight} initiallyStreaming={false}>
       <div className="relative">
-        <CombatConsole />
+        <CombatDialog />
         <NarrationToastMock
           actor="Aria"
           ability="Firebolt"

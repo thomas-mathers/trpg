@@ -64,6 +64,13 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
                 );
             }
 
+            if (selection.Quantity < item.Quantity && !ItemStackability.IsStackable(item))
+            {
+                throw new InvalidOperationException(
+                    $"Cannot partially transfer non-stackable item {selection.ItemId}."
+                );
+            }
+
             if (item is Gold goldItem)
             {
                 await TransferGold(goldItem, command.To, selection.Quantity, cancellationToken);

@@ -127,7 +127,7 @@ function EnemyRow({
   );
 }
 
-export function CombatConsole() {
+export function CombatDialog() {
   const {
     fight,
     activeAttackerId,

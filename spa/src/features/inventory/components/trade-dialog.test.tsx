@@ -22,6 +22,7 @@ const gold = (overrides: Partial<ItemDetailGoldDetail> = {}): ItemDetail => ({
   goldValue: 1,
   modifiers: [],
   ...overrides,
+  isStackable: true,
 });
 
 const sword = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
@@ -43,6 +44,7 @@ const sword = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
     attacksPerTurn: 1,
     isTwoHanded: false,
     ...overrides,
+    isStackable: false,
   }) as ItemDetail;
 
 function tradeSnapshot(
@@ -92,7 +94,7 @@ describe('TradeDialog', () => {
 
     expect(within(playerInventory).getAllByRole('row')[1]).toHaveTextContent('Iron Sword');
 
-    const search = screen.getByRole('textbox', { name: 'Search Your inventory' });
+    const search = within(playerInventory).getByRole('textbox', { name: 'Search' });
     await user.type(search, 'sword');
 
     expect(
@@ -103,7 +105,7 @@ describe('TradeDialog', () => {
     ).not.toBeInTheDocument();
 
     await user.clear(search);
-    await user.click(screen.getByRole('button', { name: 'Your inventory Gold' }));
+    await user.click(within(playerInventory).getByRole('button', { name: 'Gold' }));
 
     expect(
       within(playerInventory).getByRole('button', { name: 'Add Gold coins to offer' }),
@@ -111,6 +113,16 @@ describe('TradeDialog', () => {
     expect(
       within(playerInventory).queryByRole('button', { name: 'Add Iron Sword to offer' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the equipped chip for equipped inventory items', async () => {
+    server.use(handleGetTrade({ body: tradeSnapshot([sword({ equippedSlot: 'RightHand' })]) }));
+
+    renderDialog();
+
+    const playerInventory = await screen.findByLabelText('Your available items');
+
+    expect(within(playerInventory).getByText('Equipped', { selector: 'span' })).toBeVisible();
   });
 
   it('updates a stack quantity and removes it from the offer', async () => {

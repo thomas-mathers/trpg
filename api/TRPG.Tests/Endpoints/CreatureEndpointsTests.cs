@@ -146,7 +146,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(result);
-        Assert.Contains(result.Items, i => i.Name == "Health Potion");
+        var potionDetail = Assert.Single(result.Items);
+        Assert.Equal("Health Potion", potionDetail.Name);
+        Assert.True(potionDetail.IsStackable);
     }
 
     [Fact]
@@ -186,7 +188,9 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             TestContext.Current.CancellationToken
         );
         Assert.NotNull(result);
-        Assert.Contains(result.Items, i => i is KeyDetail { Name: "Key to the Inn" });
+        var keyDetail = Assert.IsType<KeyDetail>(Assert.Single(result.Items));
+        Assert.Equal("Key to the Inn", keyDetail.Name);
+        Assert.False(keyDetail.IsStackable);
     }
 
     [Fact]

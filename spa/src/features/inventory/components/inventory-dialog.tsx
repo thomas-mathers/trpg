@@ -18,26 +18,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  HoverPopover,
-  HoverPopoverContent,
-  HoverPopoverTextTrigger,
-} from '@/components/ui/hover-popover';
-import {
   CharacterStatsPanel,
   type EquipItemPreview,
 } from '@/features/inventory/components/character-stats-panel';
-import { InventoryEmptyState } from '@/features/inventory/components/inventory-empty-state';
-import { InventoryFilters } from '@/features/inventory/components/inventory-filters';
-import { filterAndSortItems } from '@/features/inventory/components/item-filtering';
-import {
-  isItemTableSortKeyVisible,
-  ItemTable,
-  ItemTableSkeleton,
-  type ItemTableSortKey,
-} from '@/features/inventory/components/item-table';
-import { ItemTooltip } from '@/features/inventory/components/item-tooltip';
-import type { SortState } from '@/features/inventory/components/sortable-header';
-import { type ItemCategory, RARITY_COLOR, TYPE_ICON } from '@/features/inventory/item-visuals';
+import { ItemName } from '@/features/inventory/components/item-name';
+import { ItemTable } from '@/features/inventory/components/item-table';
+import { useItemTable } from '@/features/inventory/hooks/use-item-table';
 
 import { EQUIPMENT_SLOT_LABEL } from '../display-names';
 
@@ -78,8 +64,6 @@ function equipSlotFor(item: ItemDetail, equippedSlots: Set<EquipmentSlot>): Equi
   return null;
 }
 
-type SortKey = ItemTableSortKey;
-
 interface InventoryDialogProps {
   playerId: string;
   open: boolean;
@@ -105,28 +89,10 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
     path: { creatureId: playerId },
   });
   const inventory = useQuery(inventoryOptions);
+  const items = inventory.data?.items ?? [];
 
-  const [search, setSearch] = useState('');
-  const [categories, setCategories] = useState<ReadonlySet<ItemCategory>>(new Set());
-  const [equippedOnly, setEquippedOnly] = useState(false);
-  const [sort, setSort] = useState<SortState<SortKey>>({ key: 'name', dir: 'asc' });
+  const itemTable = useItemTable(items);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-
-  const handleCategoriesChange = (next: ReadonlySet<ItemCategory>) => {
-    setCategories(next);
-    if (!isItemTableSortKeyVisible(sort.key, next)) {
-      setSort({ key: 'name', dir: 'asc' });
-    }
-  };
-
-  const clearFilters = () => {
-    setSearch('');
-    setCategories(new Set());
-    setEquippedOnly(false);
-    if (!isItemTableSortKeyVisible(sort.key, new Set())) {
-      setSort({ key: 'name', dir: 'asc' });
-    }
-  };
 
   const invalidateCreatureData = () => {
     queryClient.invalidateQueries({ queryKey: inventoryOptions.queryKey });
@@ -158,11 +124,9 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
     onSuccess: invalidateCreatureData,
   });
 
-  const items = inventory.data?.items ?? [];
   const equippedSlots = new Set(
     items.map((item) => item.equippedSlot).filter((slot): slot is EquipmentSlot => slot != null),
   );
-  const visible = filterAndSortItems(items, search, categories, equippedOnly, sort);
   const busy = equip.isPending || unequip.isPending;
 
   const selectedItem = selectedItemId ? items.find((i) => i.itemId === selectedItemId) : null;
@@ -173,14 +137,6 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
   const previewItem: EquipItemPreview | null =
     selectedItem && selectedSlot ? { itemId: selectedItem.itemId, slot: selectedSlot } : null;
 
-  const toggleSort = (key: SortKey) => {
-    if (sort.key === key) {
-      setSort({ key, dir: sort.dir === 'asc' ? 'desc' : 'asc' });
-    } else {
-      setSort({ key, dir: key === 'name' ? 'asc' : 'desc' });
-    }
-  };
-
   return (
     <>
       <DialogHeader>
@@ -189,78 +145,34 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
 
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <InventoryFilters
-            search={search}
-            onSearchChange={setSearch}
-            categories={categories}
-            onCategoriesChange={handleCategoriesChange}
-            equippedOnly={equippedOnly}
-            onEquippedOnlyChange={setEquippedOnly}
-          />
-
-          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-            {!inventory.data ? (
-              <ItemTableSkeleton hasAction />
-            ) : visible.length === 0 ? (
-              <InventoryEmptyState
-                itemCount={items.length}
-                emptyMessage="Your inventory is empty."
-                hasActiveFilters={Boolean(search) || categories.size > 0 || equippedOnly}
-                onClearFilters={clearFilters}
-              />
-            ) : (
-              <ItemTable
-                items={visible.map((item) => ({
-                  item,
-                  quantity: Number(item.quantity),
-                  goldValue: Number(item.goldValue),
-                  weight: Number(item.weight) * Number(item.quantity),
-                }))}
-                categories={categories}
-                sort={sort}
-                onToggleSort={toggleSort}
-                onRowClick={({ item }) =>
-                  setSelectedItemId((current) => (current === item.itemId ? null : item.itemId))
+          <ItemTable
+            table={itemTable}
+            renderItemName={(item) => (
+              <ItemName
+                item={item}
+                equippedLabel={
+                  item.equippedSlot === null ? undefined : EQUIPMENT_SLOT_LABEL[item.equippedSlot]
                 }
-                rowClassName={({ item }) =>
-                  item.itemId === selectedItemId ? 'bg-accent/50' : undefined
-                }
-                renderName={({ item }) => <EquipmentName item={item} />}
-                renderAction={({ item }) => {
-                  const targetSlot = equipSlotFor(item, equippedSlots);
-                  const equippedSlot = item.equippedSlot ?? null;
-
-                  return equippedSlot ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        unequip.mutate({ path: { creatureId: playerId, slot: equippedSlot } });
-                      }}
-                    >
-                      Unequip
-                    </Button>
-                  ) : targetSlot ? (
-                    <Button
-                      size="sm"
-                      disabled={busy}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        equip.mutate({
-                          path: { creatureId: playerId },
-                          body: { itemId: item.itemId, slot: targetSlot },
-                        });
-                      }}
-                    >
-                      Equip
-                    </Button>
-                  ) : null;
-                }}
               />
             )}
-          </div>
+            loading={!inventory.data}
+            emptyMessage="Your inventory is empty."
+            onRowClick={(item) =>
+              setSelectedItemId((current) => (current === item.itemId ? null : item.itemId))
+            }
+            isSelected={(item) => item.itemId === selectedItemId}
+            renderAction={(item) => (
+              <InventoryItemAction
+                item={item}
+                equippedSlots={equippedSlots}
+                busy={busy}
+                onEquip={(itemId, slot) =>
+                  equip.mutate({ path: { creatureId: playerId }, body: { itemId, slot } })
+                }
+                onUnequip={(slot) => unequip.mutate({ path: { creatureId: playerId, slot } })}
+              />
+            )}
+          />
         </div>
 
         <CharacterStatsPanel creatureId={playerId} previewItem={previewItem} />
@@ -275,37 +187,52 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
   );
 }
 
-function EquipmentName({ item }: { item: ItemDetail }) {
-  const Icon = TYPE_ICON[item.type];
-  const rarityColor = item.rarity ? RARITY_COLOR[item.rarity] : undefined;
-  const equippedSlot = item.equippedSlot ?? null;
+function InventoryItemAction({
+  item,
+  equippedSlots,
+  busy,
+  onEquip,
+  onUnequip,
+}: {
+  item: ItemDetail;
+  equippedSlots: Set<EquipmentSlot>;
+  busy: boolean;
+  onEquip: (itemId: string, slot: EquipmentSlot) => void;
+  onUnequip: (slot: EquipmentSlot) => void;
+}) {
+  const targetSlot = equipSlotFor(item, equippedSlots);
+  const equippedSlot = item.equippedSlot;
 
-  return (
-    <div className="flex h-5 items-center gap-1.5 text-sm">
-      <Icon className="text-muted-foreground size-3.5 shrink-0" />
-      {rarityColor && (
-        <span
-          className="size-1.5 shrink-0 rounded-full"
-          style={{ backgroundColor: rarityColor }}
-          title={item.rarity ?? undefined}
-        />
-      )}
-      <HoverPopover>
-        <HoverPopoverTextTrigger
-          className="min-w-0 truncate text-left font-medium"
-          onClick={(event) => event.stopPropagation()}
-        >
-          {item.name}
-        </HoverPopoverTextTrigger>
-        <HoverPopoverContent side="bottom" className="w-auto max-w-64 p-2 text-sm">
-          <ItemTooltip item={item} />
-        </HoverPopoverContent>
-      </HoverPopover>
-      {equippedSlot && (
-        <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase">
-          {EQUIPMENT_SLOT_LABEL[equippedSlot]}
-        </span>
-      )}
-    </div>
-  );
+  if (equippedSlot != null) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={busy}
+        onClick={(event) => {
+          event.stopPropagation();
+          onUnequip(equippedSlot);
+        }}
+      >
+        Unequip
+      </Button>
+    );
+  }
+
+  if (targetSlot != null) {
+    return (
+      <Button
+        size="sm"
+        disabled={busy}
+        onClick={(event) => {
+          event.stopPropagation();
+          onEquip(item.itemId, targetSlot);
+        }}
+      >
+        Equip
+      </Button>
+    );
+  }
+
+  return null;
 }

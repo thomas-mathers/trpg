@@ -13,7 +13,12 @@ import {
   getCreatureBasicAttackDamageQueryKey,
   type BaseAttributesResponse,
 } from '@/api/client';
-import { NumericStepper } from '@/components/numeric-stepper';
+import {
+  ALLOCATABLE_ATTRIBUTES,
+  toAttributeValues,
+  type AllocatableAttributeKey,
+} from '@/components/attribute-allocation';
+import { AttributeAllocator } from '@/components/attribute-allocator';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,44 +27,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldGroup } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { usePlayerId } from '@/features/game/contexts/scene-context';
 
-const ALLOCATABLE_ATTRIBUTES = [
-  'strength',
-  'dexterity',
-  'endurance',
-  'stamina',
-  'mana',
-  'intelligence',
-] as const;
-
-type AllocatableAttribute = (typeof ALLOCATABLE_ATTRIBUTES)[number];
-type AttributeDeltas = Record<AllocatableAttribute, number>;
-
-const ATTRIBUTE_LABELS: Record<AllocatableAttribute, string> = {
-  strength: 'Strength',
-  dexterity: 'Dexterity',
-  endurance: 'Endurance',
-  stamina: 'Stamina',
-  mana: 'Mana',
-  intelligence: 'Intelligence',
-};
-
-const ATTRIBUTE_DESCRIPTIONS: Record<AllocatableAttribute, string> = {
-  strength: 'Increases physical attack damage.',
-  dexterity: 'Increases evasion and critical hit chance.',
-  endurance: 'Increases maximum HP.',
-  stamina: 'Increases maximum AP, spent on physical abilities.',
-  mana: 'Increases maximum MP, spent on magic abilities.',
-  intelligence: 'Increases magic attack damage.',
-};
+type AttributeDeltas = Record<AllocatableAttributeKey, number>;
 
 const attributeDeltasSchema = z.object(
   Object.fromEntries(
-    ALLOCATABLE_ATTRIBUTES.map((attribute) => [attribute, z.number().int().min(0)]),
-  ) as Record<AllocatableAttribute, z.ZodNumber>,
+    ALLOCATABLE_ATTRIBUTES.map(({ allocationKey }) => [allocationKey, z.number().int().min(0)]),
+  ) as Record<AllocatableAttributeKey, z.ZodNumber>,
 );
 
 const defaultAttributeDeltas: AttributeDeltas = {
@@ -163,6 +140,7 @@ function AttributeAllocationForm({
   onCancel: () => void;
   onSubmit: (deltas: AttributeDeltas) => void;
 }) {
+  const baseValues = toAttributeValues(baseAttributes);
   const form = useForm({
     defaultValues: defaultAttributeDeltas,
     validators: { onSubmit: attributeDeltasSchema },
@@ -195,35 +173,14 @@ function AttributeAllocationForm({
 
               return (
                 <Field>
-                  <div className="flex items-center justify-between">
-                    <FieldLabel>Attributes</FieldLabel>
-                    <span className="text-muted-foreground text-sm">
-                      {remaining} of {availablePoints} points remaining
-                    </span>
-                  </div>
-                  {ALLOCATABLE_ATTRIBUTES.map((attribute) => {
-                    const base = Number(baseAttributes[attribute]);
-                    const delta = values[attribute];
-                    const value = base + delta;
-
-                    return (
-                      <div key={attribute} className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm">{ATTRIBUTE_LABELS[attribute]}</p>
-                          <p className="text-muted-foreground text-xs">
-                            {ATTRIBUTE_DESCRIPTIONS[attribute]}
-                          </p>
-                        </div>
-                        <NumericStepper
-                          value={value}
-                          min={base}
-                          max={value + remaining}
-                          ariaLabel={ATTRIBUTE_LABELS[attribute]}
-                          onChange={(next) => form.setFieldValue(attribute, next - base)}
-                        />
-                      </div>
-                    );
-                  })}
+                  <AttributeAllocator
+                    baseValues={baseValues}
+                    deltas={values}
+                    minimumValues={baseValues}
+                    availablePoints={availablePoints}
+                    remainingPoints={remaining}
+                    onDeltaChange={(attribute, delta) => form.setFieldValue(attribute, delta)}
+                  />
                   <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
                     {(error) =>
                       error && <p className="text-destructive text-sm">{String(error)}</p>

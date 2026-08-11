@@ -1,9 +1,14 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse } from 'msw';
-import { byPlaceholderText, byRole, byTitle } from 'testing-library-selector';
+import { byRole, byTitle } from 'testing-library-selector';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { InventoryTransferRequest, ItemDetail, ItemDetailGoldDetail } from '@/api/client';
+import type {
+  InventoryTransferRequest,
+  ItemDetail,
+  ItemDetailConsumableItemDetail,
+  ItemDetailGoldDetail,
+} from '@/api/client';
 import { handleGetCreatureInventory, handleTransferInventory } from '@/api/client/msw.gen';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
@@ -18,8 +23,6 @@ const ui = {
   item: (name: string) => byRole('checkbox', { name: `Select ${name}` }),
   moveToPlayer: byTitle('Move selected items to your inventory'),
   moveToTarget: (name: string) => byTitle(`Move selected items to ${name}`),
-  search: byPlaceholderText('Search...'),
-  category: (name: string) => byRole('button', { name: `Your inventory ${name}` }),
   sort: (name: string) => byRole('button', { name }),
 };
 
@@ -36,6 +39,7 @@ const item = (overrides: Partial<ItemDetailGoldDetail> = {}): ItemDetail => ({
   goldValue: 1,
   modifiers: [],
   ...overrides,
+  isStackable: true,
 });
 
 const sword = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
@@ -57,7 +61,27 @@ const sword = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
     attacksPerTurn: 1,
     isTwoHanded: false,
     ...overrides,
+    isStackable: false,
   }) as ItemDetail;
+
+const potion = (overrides: Partial<ItemDetailConsumableItemDetail> = {}): ItemDetail => ({
+  $type: 'Consumable',
+  itemId: 'potion-1',
+  name: 'Healing potion',
+  description: 'Restores health.',
+  resource: 'Hp',
+  restoreAmount: 20,
+  duration: 0,
+  weight: 0.1,
+  quantity: 10,
+  equippedSlot: null,
+  type: 'Consumable',
+  rarity: null,
+  goldValue: 5,
+  modifiers: [],
+  ...overrides,
+  isStackable: true,
+});
 
 function renderDialog(onClose = vi.fn(), transfersEnabled = true) {
   return renderWithProviders(
@@ -142,6 +166,37 @@ describe('TransferItemDialog', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it('merges a returned partial stack with its source stack', async () => {
+    // Arrange
+    server.use(
+      handleGetCreatureInventory(async ({ params }) =>
+        HttpResponse.json({
+          gold: 0,
+          items: params.creatureId === 'player-id' ? [potion()] : [],
+        }),
+      ),
+    );
+    const { user } = renderDialog();
+    await ui.dialog.find();
+    await user.click(await ui.item('Healing potion').find());
+    const quantity = screen.getByRole('spinbutton', { name: 'Transfer Healing potion quantity' });
+    await user.clear(quantity);
+    await user.type(quantity, '2');
+
+    // Act
+    await user.click(ui.moveToTarget('Goblin').get());
+    const targetInventory = screen.getByRole('region', { name: "Goblin's inventory" });
+    await user.click(
+      within(targetInventory).getByRole('checkbox', { name: 'Select Healing potion' }),
+    );
+    await user.click(ui.moveToPlayer.get());
+
+    // Assert
+    expect(screen.getByRole('row', { name: /Healing potion/ })).toHaveTextContent('10');
+    expect(targetInventory).not.toHaveTextContent('Healing potion');
+    expect(screen.getByText('No changes yet.')).toBeVisible();
+  });
+
   it('filters items and clears the filter', async () => {
     server.use(
       handleGetCreatureInventory(async ({ params }) => {
@@ -159,8 +214,9 @@ describe('TransferItemDialog', () => {
     await ui.dialog.find();
     expect(await ui.item('Gold coins').find()).toBeVisible();
     expect(ui.item('Healing potion').get()).toBeVisible();
+    const playerInventory = screen.getByRole('region', { name: 'Your inventory' });
 
-    await user.type(ui.search.getAll()[0], 'missing');
+    await user.type(within(playerInventory).getByRole('textbox', { name: 'Search' }), 'missing');
     expect(ui.item('Gold coins').query()).not.toBeInTheDocument();
     expect(ui.item('Healing potion').query()).not.toBeInTheDocument();
 
@@ -183,8 +239,9 @@ describe('TransferItemDialog', () => {
     await ui.dialog.find();
     expect(await ui.item('Gold coins').find()).toBeVisible();
     expect(ui.item('Iron Sword').get()).toBeVisible();
+    const playerInventory = screen.getByRole('region', { name: 'Your inventory' });
 
-    await user.click(ui.category('Gold').get());
+    await user.click(within(playerInventory).getByRole('button', { name: 'Gold' }));
 
     expect(ui.item('Gold coins').get()).toBeVisible();
     expect(ui.item('Iron Sword').query()).not.toBeInTheDocument();
@@ -205,8 +262,9 @@ describe('TransferItemDialog', () => {
     await ui.dialog.find();
     expect(await ui.item('Gold coins').find()).toBeVisible();
     expect(ui.item('Iron Sword').get()).toBeVisible();
+    const playerInventory = screen.getByRole('region', { name: 'Your inventory' });
 
-    await user.click(screen.getByRole('button', { name: 'Your inventory Equipped' }));
+    await user.click(within(playerInventory).getByRole('button', { name: 'Equipped' }));
 
     expect(ui.item('Gold coins').query()).not.toBeInTheDocument();
     expect(ui.item('Iron Sword').get()).toBeVisible();

@@ -11,7 +11,12 @@ import {
   createSessionMutation,
   createWorldMutation,
 } from '../../../api/client';
-import type { BaseAttributesResponse, Gender, PlayerClass, Race } from '../../../api/client';
+import type { Gender, PlayerClass, Race } from '../../../api/client';
+import {
+  MINIMUM_ATTRIBUTE_VALUES,
+  toAttributeValues,
+} from '../../../components/attribute-allocation';
+import { AttributeAllocator } from '../../../components/attribute-allocator';
 import { NumericStepper } from '../../../components/numeric-stepper';
 import { Button } from '../../../components/ui/button';
 import {
@@ -23,11 +28,6 @@ import {
   DialogTrigger,
 } from '../../../components/ui/dialog';
 import { Field, FieldError, FieldGroup, FieldLabel } from '../../../components/ui/field';
-import {
-  HoverPopover,
-  HoverPopoverContent,
-  HoverPopoverTextTrigger,
-} from '../../../components/ui/hover-popover';
 import { Input } from '../../../components/ui/input';
 import {
   Select,
@@ -46,36 +46,6 @@ const MIN_AGE = 18;
 const MAX_AGE = 75;
 const RACES: Race[] = ['Human', 'Elf', 'Dwarf', 'Orc', 'Halfling', 'Gnome'];
 const PLAYER_CLASSES: PlayerClass[] = ['Knight', 'Rogue', 'Ranger', 'Mage', 'Cleric'];
-const ALLOCATABLE_ATTRIBUTES = [
-  'Strength',
-  'Dexterity',
-  'Endurance',
-  'Stamina',
-  'Mana',
-  'Intelligence',
-] as const;
-
-const BASE_ATTRIBUTE_KEYS: Record<
-  (typeof ALLOCATABLE_ATTRIBUTES)[number],
-  keyof BaseAttributesResponse
-> = {
-  Strength: 'strength',
-  Dexterity: 'dexterity',
-  Endurance: 'endurance',
-  Stamina: 'stamina',
-  Mana: 'mana',
-  Intelligence: 'intelligence',
-};
-
-const ATTRIBUTE_DESCRIPTIONS: Record<(typeof ALLOCATABLE_ATTRIBUTES)[number], string> = {
-  Strength: 'Increases physical attack damage.',
-  Dexterity: 'Increases evasion and critical hit chance.',
-  Endurance: 'Increases maximum HP.',
-  Stamina: 'Increases maximum AP, spent on physical abilities.',
-  Mana: 'Increases maximum MP, spent on magic abilities.',
-  Intelligence: 'Increases magic attack damage.',
-};
-
 type Status = 'idle' | 'generating' | 'error';
 
 interface CreateWorldResponse {
@@ -420,47 +390,22 @@ export function NewWorldDialog() {
                           0,
                         );
                         const remaining = pointsPerLevel - spent;
-                        const baseAttributes = generationOptions.data?.baseAttributes;
 
                         return (
                           <Field>
-                            <div className="flex items-center justify-between">
-                              <FieldLabel>Attributes</FieldLabel>
-                              <span className="text-muted-foreground text-sm">
-                                {remaining} of {pointsPerLevel} points remaining
-                              </span>
-                            </div>
-                            {ALLOCATABLE_ATTRIBUTES.map((attribute) => {
-                              const base = Number(
-                                baseAttributes?.[BASE_ATTRIBUTE_KEYS[attribute]] ?? 0,
-                              );
-                              const delta = field.state.value[attribute] ?? 0;
-                              const netValue = base + delta;
-
-                              return (
-                                <div key={attribute} className="flex items-center justify-between">
-                                  <HoverPopover>
-                                    <HoverPopoverTextTrigger className="text-sm">
-                                      {attribute}
-                                    </HoverPopoverTextTrigger>
-                                    <HoverPopoverContent>
-                                      {ATTRIBUTE_DESCRIPTIONS[attribute]}
-                                    </HoverPopoverContent>
-                                  </HoverPopover>
-                                  <NumericStepper
-                                    value={netValue}
-                                    min={1}
-                                    max={netValue + remaining}
-                                    onChange={(value) =>
-                                      field.handleChange({
-                                        ...field.state.value,
-                                        [attribute]: value - base,
-                                      })
-                                    }
-                                  />
-                                </div>
-                              );
-                            })}
+                            <AttributeAllocator
+                              baseValues={toAttributeValues(generationOptions.data?.baseAttributes)}
+                              deltas={field.state.value}
+                              minimumValues={MINIMUM_ATTRIBUTE_VALUES}
+                              availablePoints={pointsPerLevel}
+                              remainingPoints={remaining}
+                              onDeltaChange={(attribute, delta) =>
+                                field.handleChange({
+                                  ...field.state.value,
+                                  [attribute]: delta,
+                                })
+                              }
+                            />
                           </Field>
                         );
                       }}

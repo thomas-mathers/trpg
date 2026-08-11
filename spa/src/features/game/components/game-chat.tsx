@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { CombatConsole } from '@/features/combat/components/combat-console';
+import { CombatDialog } from '@/features/combat/components/combat-dialog';
 import { useGameActions } from '@/features/game/game-chat-context';
 import { useIsInCombat } from '@/features/game/hooks/use-is-in-combat';
 
@@ -56,7 +56,7 @@ function GameChatControls({
 }: GameChatControlsProps) {
   return (
     <div className="mx-auto w-full max-w-2xl p-4">
-      <CombatConsole />
+      <CombatDialog />
       {!isInCombat && (
         <ChatInput
           value={input}

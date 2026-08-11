@@ -15,7 +15,7 @@ export function SearchInput({
   onChange,
   placeholder = 'Search...',
   className,
-  ariaLabel,
+  ariaLabel = 'Search',
 }: SearchInputProps) {
   return (
     <div
