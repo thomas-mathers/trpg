@@ -15,8 +15,6 @@ using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Contracts.Combat.Requests;
-using TRPG.Contracts.Combat.Responses;
 using TRPG.Data.Models;
 
 namespace TRPG.GameSessions.Hubs;

@@ -8,6 +8,7 @@ using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Mappers;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Quests.Queries;
 using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Creatures.Requests;
@@ -72,6 +73,7 @@ internal static class CreatureEndpoints
     private static async Task<Ok<InventorySummary>> GetInventory(
         Guid creatureId,
         GetInventorySummaryByOwnerQueryHandler getInventorySummaryByOwner,
+        GetActiveQuestItemIdsQueryHandler getActiveQuestItemIds,
         CancellationToken cancellationToken
     )
     {
@@ -83,8 +85,13 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
+        var questItemIds = await getActiveQuestItemIds.Handle(
+            new GetActiveQuestItemIdsQuery { PlayerId = creatureId },
+            cancellationToken
+        );
+
         return TypedResults.Ok(
-            new InventorySummary(snapshot.Gold, snapshot.Items.Select(ToItemDetail).ToArray())
+            new InventorySummary(snapshot.Gold, ToItemDetails(snapshot.Items, questItemIds))
         );
     }
 
@@ -334,7 +341,7 @@ internal static class CreatureEndpoints
         return TypedResults.Ok(new CreatureLevelResponse(level));
     }
 
-    internal static ItemDetail ToItemDetail(Item item)
+    internal static ItemDetail ToItemDetail(Item item, bool isQuestItem = false)
     {
         var equippedSlot = item.Ownership.EquippedSlot?.ToContract();
         var type = ToItemType(item);
@@ -469,8 +476,16 @@ internal static class CreatureEndpoints
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
-        return detail;
+        return detail with
+        {
+            IsQuestItem = isQuestItem,
+        };
     }
+
+    internal static ItemDetail[] ToItemDetails(
+        IEnumerable<Item> items,
+        IReadOnlyCollection<Guid> questItemIds
+    ) => items.Select(item => ToItemDetail(item, questItemIds.Contains(item.Id))).ToArray();
 
     private static ItemModifierSummary ToItemModifierSummary(ItemModifier modifier) =>
         modifier switch

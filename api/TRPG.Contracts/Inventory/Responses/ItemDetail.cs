@@ -111,7 +111,10 @@ public abstract record ItemDetail(
     int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers,
     bool IsStackable
-);
+)
+{
+    public bool IsQuestItem { get; init; }
+}
 
 public sealed record WeaponDetail(
     Guid ItemId,

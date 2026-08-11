@@ -1,5 +1,3 @@
-using TRPG.Data.Models;
-
 namespace TRPG.Application.Combat;
 
 internal static class CombatNarration

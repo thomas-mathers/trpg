@@ -1,8 +1,6 @@
 using System.Net;
-using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Contracts;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -71,6 +69,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
                 _toCreature.Id,
                 [new ItemSelection(item.Id, 1)]
             ),
+            routeValues: new { playerId = _toCreature.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );
 
@@ -104,6 +103,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
                 farCreature.Id,
                 [new ItemSelection(item.Id, 1)]
             ),
+            routeValues: new { playerId = _fromCreature.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );
 
@@ -118,6 +118,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         var response = await _client.PostAsJsonAsync(
             "TransferInventory",
             new InventoryTransferRequest(Guid.NewGuid(), _toCreature.Id, []),
+            routeValues: new { playerId = _toCreature.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );
 
@@ -132,6 +133,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         var response = await _client.PostAsJsonAsync(
             "TransferInventory",
             new InventoryTransferRequest(_fromCreature.Id, Guid.NewGuid(), []),
+            routeValues: new { playerId = _fromCreature.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );
 

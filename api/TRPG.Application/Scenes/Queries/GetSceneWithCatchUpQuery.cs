@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 
 namespace TRPG.Application.Scenes.Queries;

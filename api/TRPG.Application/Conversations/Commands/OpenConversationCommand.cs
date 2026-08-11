@@ -1,5 +1,8 @@
+using TRPG.Application.Common.Events;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Quests;
+using TRPG.Data;
 
 namespace TRPG.Application.Conversations.Commands;
 
@@ -17,6 +20,8 @@ internal class OpenConversationCommand
 }
 
 internal class OpenConversationCommandHandler(
+    TrpgDbContext context,
+    QuestEventHandler questEvents,
     GetGameSessionQueryHandler getGameSession,
     UpdateGameSessionCommandHandler updateGameSession
 )
@@ -26,12 +31,16 @@ internal class OpenConversationCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = command.SessionId },
             cancellationToken
         );
         if (snapshot.OpenConversationCreatureIdsByName.ContainsKey(command.NpcName))
         {
+            await transaction.CommitAsync(cancellationToken);
             return OpenConversationOutcome.AlreadyOpen;
         }
 
@@ -45,6 +54,15 @@ internal class OpenConversationCommandHandler(
             cancellationToken
         );
 
+        await questEvents.Handle(
+            new ConversationStartedEvent(
+                PlayerId: snapshot.PlayerId,
+                WorldId: snapshot.WorldId,
+                CreatureId: command.NpcId
+            ),
+            cancellationToken
+        );
+        await transaction.CommitAsync(cancellationToken);
         return OpenConversationOutcome.Opened;
     }
 }

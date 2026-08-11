@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Data.Models;

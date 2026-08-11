@@ -3,7 +3,6 @@
 public class Quest
 {
     public string Description { get; init; } = "";
-    public int ExperienceReward { get; init; }
     public Guid GiverId { get; init; }
     public int GoldReward { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();

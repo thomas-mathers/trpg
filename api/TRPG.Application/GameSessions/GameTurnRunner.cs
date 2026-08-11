@@ -16,7 +16,6 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Scenes;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Data;

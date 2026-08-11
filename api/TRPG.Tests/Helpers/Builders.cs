@@ -448,7 +448,6 @@ internal static class Builders
             Name = $"Quest-{Guid.NewGuid():N}",
             Description = "A test quest",
             GoldReward = 100,
-            ExperienceReward = 50,
         };
     }
 

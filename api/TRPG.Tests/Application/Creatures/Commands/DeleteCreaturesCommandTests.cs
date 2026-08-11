@@ -36,14 +36,12 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         _context.Quests.Add(quest);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var questObjective = new QuestObjective
+        var questObjective = new KillCreatureObjective
         {
             QuestId = quest.Id,
             Name = "Slay",
             Description = "A test objective",
-            Target = target.Id,
-            TargetType = QuestTargetType.Creature,
-            Type = QuestObjectiveType.Kill,
+            CreatureId = target.Id,
             WorldId = worldId,
         };
         _context.QuestObjectives.Add(questObjective);

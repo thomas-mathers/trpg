@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Data;

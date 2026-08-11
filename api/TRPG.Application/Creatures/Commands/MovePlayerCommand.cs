@@ -1,9 +1,12 @@
+using System.Transactions;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Quests;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.Models;
@@ -20,6 +23,7 @@ internal class MovePlayerCommand
 internal record MovePlayerResult(EntryOutcome Outcome, Creature Player);
 
 internal class MovePlayerCommandHandler(
+    QuestEventHandler questEvents,
     GetCreatureByIdQueryHandler getCreatureById,
     GetLocationByIdQueryHandler getLocationById,
     GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
@@ -38,6 +42,10 @@ internal class MovePlayerCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
@@ -54,6 +62,7 @@ internal class MovePlayerCommandHandler(
 
         if (outcome != EntryOutcome.Entered)
         {
+            transaction.Complete();
             return new MovePlayerResult(outcome, player);
         }
 
@@ -68,6 +77,15 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
+        await questEvents.Handle(
+            new PlayerMovedEvent(
+                PlayerId: player.Id,
+                WorldId: player.WorldId,
+                LocationId: player.LocationId
+            ),
+            cancellationToken
+        );
+        transaction.Complete();
         return new MovePlayerResult(EntryOutcome.Entered, player);
     }
 

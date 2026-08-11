@@ -274,8 +274,17 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
 
         modelBuilder.Entity<QuestObjective>(entity =>
         {
+            entity
+                .HasDiscriminator<string>("objective_kind")
+                .HasValue<KillCreatureObjective>("KillCreature")
+                .HasValue<KillCreatureTypeObjective>("KillCreatureType")
+                .HasValue<CollectItemObjective>("CollectItem")
+                .HasValue<ExploreBuildingObjective>("ExploreBuilding")
+                .HasValue<ExploreCityObjective>("ExploreCity")
+                .HasValue<SpeakToCreatureObjective>("SpeakToCreature");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
+            entity.Property(o => o.RequiredAmount).HasDefaultValue(1);
         });
 
         modelBuilder.Entity<CreatureSkill>(entity =>
@@ -287,6 +296,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<CreatureQuest>(entity =>
         {
             entity.HasOne(pq => pq.Quest).WithMany().HasForeignKey(pq => pq.QuestId);
+            entity.Property(pq => pq.IsTracked).HasDefaultValue(true);
             entity.HasIndex(pq => new { pq.CreatureId, pq.QuestId }).IsUnique();
             entity.HasIndex(pq => pq.WorldId);
         });

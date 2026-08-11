@@ -150,6 +150,7 @@ public sealed class TradeEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
                 [new ItemSelection(shopItem.Id, 1)]
             ),
             new { playerId = _player.Id, workstationId = _workstation.Id },
+            new Dictionary<string, object?> { ["worldId"] = _world.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );
 

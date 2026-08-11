@@ -538,6 +538,12 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("creature_id");
 
+                    b.Property<bool>("IsTracked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_tracked");
+
                     b.Property<Guid>("QuestId")
                         .HasColumnType("uuid")
                         .HasColumnName("quest_id");
@@ -1113,10 +1119,6 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<int>("ExperienceReward")
-                        .HasColumnType("integer")
-                        .HasColumnName("experience_reward");
-
                     b.Property<Guid>("GiverId")
                         .HasColumnType("uuid")
                         .HasColumnName("giver_id");
@@ -1163,14 +1165,14 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<int?>("Amount")
-                        .HasColumnType("integer")
-                        .HasColumnName("amount");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("description");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1181,27 +1183,21 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("quest_id");
 
-                    b.Property<Guid?>("StateId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("state_id");
-
-                    b.Property<Guid>("Target")
-                        .HasColumnType("uuid")
-                        .HasColumnName("target");
-
-                    b.Property<string>("TargetType")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("target_type");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("type");
+                    b.Property<int>("RequiredAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("required_amount");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
+
+                    b.Property<string>("objective_kind")
+                        .IsRequired()
+                        .HasMaxLength(21)
+                        .HasColumnType("character varying(21)")
+                        .HasColumnName("objective_kind");
 
                     b.HasKey("Id")
                         .HasName("pk_quest_objectives");
@@ -1213,6 +1209,10 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_quest_objectives_world_id");
 
                     b.ToTable("quest_objectives", (string)null);
+
+                    b.HasDiscriminator<string>("objective_kind").HasValue("QuestObjective");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("TRPG.Data.Models.Relationship", b =>
@@ -1884,6 +1884,89 @@ namespace TRPG.Migrations
                         });
 
                     b.HasDiscriminator().HasValue("Workstation");
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.CollectItemObjective", b =>
+                {
+                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.ToTable("quest_objectives", (string)null);
+
+                    b.HasDiscriminator().HasValue("CollectItem");
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.ExploreBuildingObjective", b =>
+                {
+                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+
+                    b.Property<Guid>("BuildingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("building_id");
+
+                    b.ToTable("quest_objectives", (string)null);
+
+                    b.HasDiscriminator().HasValue("ExploreBuilding");
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.ExploreCityObjective", b =>
+                {
+                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+
+                    b.Property<Guid>("CityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("city_id");
+
+                    b.ToTable("quest_objectives", (string)null);
+
+                    b.HasDiscriminator().HasValue("ExploreCity");
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.KillCreatureObjective", b =>
+                {
+                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+
+                    b.Property<Guid>("CreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creature_id");
+
+                    b.ToTable("quest_objectives", (string)null);
+
+                    b.HasDiscriminator().HasValue("KillCreature");
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.KillCreatureTypeObjective", b =>
+                {
+                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+
+                    b.Property<string>("CreatureType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("creature_type");
+
+                    b.ToTable("quest_objectives", (string)null);
+
+                    b.HasDiscriminator().HasValue("KillCreatureType");
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.SpeakToCreatureObjective", b =>
+                {
+                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+
+                    b.Property<Guid>("CreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creature_id");
+
+                    b.ToTable("quest_objectives", null, t =>
+                        {
+                            t.Property("CreatureId")
+                                .HasColumnName("speak_to_creature_objective_creature_id");
+                        });
+
+                    b.HasDiscriminator().HasValue("SpeakToCreature");
                 });
 
             modelBuilder.Entity("TRPG.Data.Models.Country", b =>

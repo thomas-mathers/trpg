@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
-using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Commands;
 
@@ -16,6 +15,7 @@ public class BootstrapWorldCommandHandler(
     public async Task<BootstrapWorldResult> Handle(
         WorldGeneratorResult world,
         CreatureGeneratorResult? player,
+        QuestGeneratorResult quests,
         CancellationToken cancellationToken
     )
     {
@@ -47,6 +47,8 @@ public class BootstrapWorldCommandHandler(
         context.CreatureKnowledge.AddRange(world.Knowledge);
         context.LocationConnectorKeys.AddRange(world.LocationConnectorKeys);
         context.Relationships.AddRange(world.Relationships);
+        context.Quests.AddRange(quests.Quests);
+        context.QuestObjectives.AddRange(quests.Objectives);
 
         if (player != null)
         {

@@ -7,7 +7,6 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Contracts;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Requests;

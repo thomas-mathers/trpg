@@ -1,31 +1,42 @@
-﻿namespace TRPG.Data.Models;
+namespace TRPG.Data.Models;
 
-public enum QuestObjectiveType
+public abstract class QuestObjective
 {
-    Kill,
-    Collect,
-    Explore,
-    Speak,
-}
-
-public enum QuestTargetType
-{
-    Creature,
-    Item,
-    City,
-    Building,
-}
-
-public class QuestObjective
-{
-    public int? Amount { get; init; }
     public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid? LocationId { get; init; }
     public string Name { get; init; } = "";
     public Guid QuestId { get; init; }
-    public Guid? StateId { get; init; }
-    public Guid Target { get; init; }
-    public QuestTargetType TargetType { get; init; }
-    public QuestObjectiveType Type { get; init; }
+    public int RequiredAmount { get; init; } = 1;
     public Guid WorldId { get; init; }
+}
+
+public sealed class KillCreatureObjective : QuestObjective
+{
+    public Guid CreatureId { get; init; }
+}
+
+public sealed class KillCreatureTypeObjective : QuestObjective
+{
+    public CreatureType CreatureType { get; init; }
+}
+
+public sealed class CollectItemObjective : QuestObjective
+{
+    public Guid ItemId { get; init; }
+}
+
+public sealed class ExploreBuildingObjective : QuestObjective
+{
+    public Guid BuildingId { get; init; }
+}
+
+public sealed class ExploreCityObjective : QuestObjective
+{
+    public Guid CityId { get; init; }
+}
+
+public sealed class SpeakToCreatureObjective : QuestObjective
+{
+    public Guid CreatureId { get; init; }
 }
