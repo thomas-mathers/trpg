@@ -3,6 +3,7 @@ namespace TRPG.Data.Models;
 public enum QuestStatus
 {
     Accepted,
+    ReadyToComplete,
     Completed,
     Failed,
     Abandoned,
