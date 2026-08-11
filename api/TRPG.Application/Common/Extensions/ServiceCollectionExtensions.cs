@@ -146,6 +146,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GeographyGenerator>()
             .AddTransient<BuildingGenerator>()
             .AddTransient<FactionsGenerator>()
+            .AddTransient<QuestGenerator>()
             .AddTransient<WorldGenerator>()
             .AddTransient<CreateWorldCommandHandler>()
             .AddTransient<BootstrapWorldCommandHandler>()

@@ -16,6 +16,7 @@ public class BootstrapWorldCommandHandler(
     public async Task<BootstrapWorldResult> Handle(
         WorldGeneratorResult world,
         CreatureGeneratorResult? player,
+        QuestGeneratorResult quests,
         CancellationToken cancellationToken
     )
     {
@@ -47,6 +48,8 @@ public class BootstrapWorldCommandHandler(
         context.CreatureKnowledge.AddRange(world.Knowledge);
         context.LocationConnectorKeys.AddRange(world.LocationConnectorKeys);
         context.Relationships.AddRange(world.Relationships);
+        context.Quests.AddRange(quests.Quests);
+        context.QuestObjectives.AddRange(quests.Objectives);
 
         if (player != null)
         {

@@ -27,6 +27,7 @@ public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);
 public class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
+    QuestGenerator questGenerator,
     BootstrapWorldCommandHandler bootstrapWorld
 )
 {
@@ -71,9 +72,12 @@ public class CreateWorldCommandHandler(
         playerResult = creatureGenerator.AddStartingPotions(playerResult);
         playerResult.Creature.LocationId = startingDistrict.LocationId;
 
+        var quests = questGenerator.Generate(worldResult, startingState.Id);
+
         var bootstrapResult = await bootstrapWorld.Handle(
             worldResult,
             playerResult,
+            quests,
             cancellationToken
         );
 
