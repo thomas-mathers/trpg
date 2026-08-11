@@ -109,7 +109,8 @@ public abstract record ItemDetail(
     ItemType Type,
     ItemRarity? Rarity,
     int GoldValue,
-    IReadOnlyList<ItemModifierSummary> Modifiers
+    IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable
 );
 
 public sealed record WeaponDetail(
@@ -123,6 +124,7 @@ public sealed record WeaponDetail(
     ItemRarity? Rarity,
     int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable,
     int MinDamage,
     int MaxDamage,
     int Range,
@@ -141,7 +143,8 @@ public sealed record WeaponDetail(
         Type,
         Rarity,
         GoldValue,
-        Modifiers
+        Modifiers,
+        IsStackable
     );
 
 public sealed record ArmorDetail(
@@ -155,6 +158,7 @@ public sealed record ArmorDetail(
     ItemRarity? Rarity,
     int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable,
     int Defense,
     ArmorClass ArmorClass,
     int DurabilityCurrent,
@@ -170,7 +174,8 @@ public sealed record ArmorDetail(
         Type,
         Rarity,
         GoldValue,
-        Modifiers
+        Modifiers,
+        IsStackable
     );
 
 public sealed record ShieldDetail(
@@ -184,6 +189,7 @@ public sealed record ShieldDetail(
     ItemRarity? Rarity,
     int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable,
     float BlockChance,
     int Defense,
     int DurabilityCurrent,
@@ -199,7 +205,8 @@ public sealed record ShieldDetail(
         Type,
         Rarity,
         GoldValue,
-        Modifiers
+        Modifiers,
+        IsStackable
     );
 
 public sealed record AccessoryDetail(
@@ -212,7 +219,8 @@ public sealed record AccessoryDetail(
     ItemType Type,
     ItemRarity? Rarity,
     int GoldValue,
-    IReadOnlyList<ItemModifierSummary> Modifiers
+    IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable
 )
     : ItemDetail(
         ItemId,
@@ -224,7 +232,8 @@ public sealed record AccessoryDetail(
         Type,
         Rarity,
         GoldValue,
-        Modifiers
+        Modifiers,
+        IsStackable
     );
 
 public sealed record AmmunitionDetail(
@@ -237,7 +246,8 @@ public sealed record AmmunitionDetail(
     ItemType Type,
     ItemRarity? Rarity,
     int GoldValue,
-    IReadOnlyList<ItemModifierSummary> Modifiers
+    IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable
 )
     : ItemDetail(
         ItemId,
@@ -249,7 +259,8 @@ public sealed record AmmunitionDetail(
         Type,
         Rarity,
         GoldValue,
-        Modifiers
+        Modifiers,
+        IsStackable
     );
 
 public sealed record ConsumableItemDetail(
@@ -263,6 +274,7 @@ public sealed record ConsumableItemDetail(
     ItemRarity? Rarity,
     int GoldValue,
     IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable,
     ResourceType Resource,
     int RestoreAmount,
     int Duration
@@ -277,7 +289,8 @@ public sealed record ConsumableItemDetail(
         Type,
         Rarity,
         GoldValue,
-        Modifiers
+        Modifiers,
+        IsStackable
     );
 
 public sealed record GoldDetail(
@@ -290,7 +303,8 @@ public sealed record GoldDetail(
     ItemType Type,
     ItemRarity? Rarity,
     int GoldValue,
-    IReadOnlyList<ItemModifierSummary> Modifiers
+    IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable
 )
     : ItemDetail(
         ItemId,
@@ -302,7 +316,8 @@ public sealed record GoldDetail(
         Type,
         Rarity,
         GoldValue,
-        Modifiers
+        Modifiers,
+        IsStackable
     );
 
 public sealed record KeyDetail(
@@ -315,7 +330,8 @@ public sealed record KeyDetail(
     ItemType Type,
     ItemRarity? Rarity,
     int GoldValue,
-    IReadOnlyList<ItemModifierSummary> Modifiers
+    IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable
 )
     : ItemDetail(
         ItemId,
@@ -327,7 +343,8 @@ public sealed record KeyDetail(
         Type,
         Rarity,
         GoldValue,
-        Modifiers
+        Modifiers,
+        IsStackable
     );
 
 public record ConsumableSummary(

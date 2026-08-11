@@ -6,14 +6,12 @@ import { Empty, EmptyContent, EmptyMedia, EmptyTitle } from '@/components/ui/emp
 interface InventoryEmptyStateProps {
   itemCount: number;
   emptyMessage: string;
-  hasActiveFilters: boolean;
-  onClearFilters: () => void;
+  onClearFilters?: () => void;
 }
 
 export function InventoryEmptyState({
   itemCount,
   emptyMessage,
-  hasActiveFilters,
   onClearFilters,
 }: InventoryEmptyStateProps) {
   return (
@@ -22,7 +20,7 @@ export function InventoryEmptyState({
         <PackageOpen />
       </EmptyMedia>
       <EmptyTitle>{itemCount === 0 ? emptyMessage : 'No items match your filters.'}</EmptyTitle>
-      {itemCount > 0 && hasActiveFilters && (
+      {itemCount > 0 && onClearFilters && (
         <EmptyContent>
           <Button variant="outline" size="sm" onClick={onClearFilters}>
             Clear filters

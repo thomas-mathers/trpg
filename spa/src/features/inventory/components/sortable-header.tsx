@@ -1,27 +1,26 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
+import type {
+  ItemTableSortKey,
+  ItemTableSortState,
+} from '@/features/inventory/hooks/use-item-table';
 import { cn } from '@/lib/utils';
 
-export interface SortState<K extends string> {
-  key: K;
-  dir: 'asc' | 'desc';
-}
-
-interface SortableHeaderProps<K extends string> {
+interface SortableHeaderProps {
   label: string;
-  sortKey: K;
-  sort: SortState<K>;
-  onToggle: (key: K) => void;
+  sortKey: ItemTableSortKey;
+  sort: ItemTableSortState;
+  onToggle: (key: ItemTableSortKey) => void;
   align?: 'left' | 'right';
 }
 
-export function SortableHeader<K extends string>({
+export function SortableHeader({
   label,
   sortKey,
   sort,
   onToggle,
   align = 'left',
-}: SortableHeaderProps<K>) {
+}: SortableHeaderProps) {
   const active = sort.key === sortKey;
   const Icon = sort.dir === 'desc' ? ChevronDown : ChevronUp;
   return (

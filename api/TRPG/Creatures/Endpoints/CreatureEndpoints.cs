@@ -340,8 +340,9 @@ internal static class CreatureEndpoints
         var type = ToItemType(item);
         var rarity = ToRarity(item);
         var modifiers = item.Modifiers.Select(ToItemModifierSummary).ToArray();
+        var isStackable = ItemStackability.IsStackable(item);
 
-        return item switch
+        ItemDetail detail = item switch
         {
             Weapon w => new WeaponDetail(
                 w.Id,
@@ -354,6 +355,7 @@ internal static class CreatureEndpoints
                 rarity,
                 w.GoldValue,
                 modifiers,
+                isStackable,
                 w.MinDamage,
                 w.MaxDamage,
                 w.Range,
@@ -373,6 +375,7 @@ internal static class CreatureEndpoints
                 rarity,
                 a.GoldValue,
                 modifiers,
+                isStackable,
                 a.Defense,
                 a.ArmorClass.ToContract(),
                 a.DurabilityCurrent,
@@ -389,6 +392,7 @@ internal static class CreatureEndpoints
                 rarity,
                 s.GoldValue,
                 modifiers,
+                isStackable,
                 s.BlockChance,
                 s.Defense,
                 s.DurabilityCurrent,
@@ -404,7 +408,8 @@ internal static class CreatureEndpoints
                 type,
                 rarity,
                 ac.GoldValue,
-                modifiers
+                modifiers,
+                isStackable
             ),
             Ammunition am => new AmmunitionDetail(
                 am.Id,
@@ -416,7 +421,8 @@ internal static class CreatureEndpoints
                 type,
                 rarity,
                 am.GoldValue,
-                modifiers
+                modifiers,
+                isStackable
             ),
             Consumable c => new ConsumableItemDetail(
                 c.Id,
@@ -429,6 +435,7 @@ internal static class CreatureEndpoints
                 rarity,
                 c.GoldValue,
                 modifiers,
+                isStackable,
                 c.Resource.ToContract(),
                 c.RestoreAmount,
                 c.Duration
@@ -443,7 +450,8 @@ internal static class CreatureEndpoints
                 type,
                 rarity,
                 g.GoldValue,
-                modifiers
+                modifiers,
+                isStackable
             ),
             Key k => new KeyDetail(
                 k.Id,
@@ -455,10 +463,13 @@ internal static class CreatureEndpoints
                 type,
                 rarity,
                 k.GoldValue,
-                modifiers
+                modifiers,
+                isStackable
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
+
+        return detail;
     }
 
     private static ItemModifierSummary ToItemModifierSummary(ItemModifier modifier) =>

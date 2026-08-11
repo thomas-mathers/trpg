@@ -30,14 +30,6 @@ internal static class ItemEquipmentPolicy
             _ => null,
         };
 
-    public static bool IsStackable(Item item) =>
-        item switch
-        {
-            Consumable or Ammunition or Gold => true,
-            Weapon weapon => weapon.Type == WeaponType.Javelin,
-            _ => false,
-        };
-
     public static IReadOnlyCollection<EquipmentSlot> GetFootprint(Item item, EquipmentSlot slot) =>
         item is Weapon { IsTwoHanded: true }
             ? [EquipmentSlot.RightHand, EquipmentSlot.LeftHand]

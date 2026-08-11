@@ -11,7 +11,6 @@ interface InventoryFiltersProps {
   onCategoriesChange: (categories: ReadonlySet<ItemCategory>) => void;
   equippedOnly: boolean;
   onEquippedOnlyChange: (equippedOnly: boolean) => void;
-  ariaLabel?: string;
 }
 
 export function InventoryFilters({
@@ -21,7 +20,6 @@ export function InventoryFilters({
   onCategoriesChange,
   equippedOnly,
   onEquippedOnlyChange,
-  ariaLabel,
 }: InventoryFiltersProps) {
   const toggleCategory = (category: ItemCategory) => {
     const next = new Set(categories);
@@ -35,11 +33,7 @@ export function InventoryFilters({
 
   return (
     <div className="flex flex-col gap-2">
-      <SearchInput
-        value={search}
-        onChange={onSearchChange}
-        ariaLabel={ariaLabel ? `Search ${ariaLabel}` : undefined}
-      />
+      <SearchInput value={search} onChange={onSearchChange} />
 
       <div className="flex w-full min-w-0 gap-1.5 overflow-x-auto">
         <Toggle
@@ -48,7 +42,6 @@ export function InventoryFilters({
           className="shrink-0 rounded-full"
           pressed={equippedOnly}
           onPressedChange={onEquippedOnlyChange}
-          aria-label={ariaLabel ? `${ariaLabel} Equipped` : undefined}
         >
           Equipped
         </Toggle>
@@ -60,7 +53,6 @@ export function InventoryFilters({
             className="shrink-0 rounded-full"
             pressed={categories.has(category)}
             onPressedChange={() => toggleCategory(category)}
-            aria-label={ariaLabel ? `${ariaLabel} ${CATEGORY_LABEL[category]}` : undefined}
           >
             {CATEGORY_LABEL[category]}
           </Toggle>

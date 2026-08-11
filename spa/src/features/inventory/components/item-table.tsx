@@ -3,62 +3,118 @@ import type { ReactNode } from 'react';
 
 import type { ItemDetail } from '@/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SortableHeader, type SortState } from '@/features/inventory/components/sortable-header';
-import type { ItemCategory } from '@/features/inventory/item-visuals';
+import { InventoryEmptyState } from '@/features/inventory/components/inventory-empty-state';
+import { InventoryFilters } from '@/features/inventory/components/inventory-filters';
+import {
+  ItemDamageCell,
+  ItemDefenseCell,
+  ItemStatisticCell,
+} from '@/features/inventory/components/item-table-cells';
+import { SortableHeader } from '@/features/inventory/components/sortable-header';
+import type { ItemTableState } from '@/features/inventory/hooks/use-item-table';
 import { cn } from '@/lib/utils';
 
 const numberFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 
-export type ItemTableSortKey = 'name' | 'damage' | 'defense' | 'quantity' | 'value' | 'weight';
-
-export interface ItemTableItem {
-  item: ItemDetail;
-  quantity: number;
-  goldValue: number;
-  weight: number;
-}
-
-export function isItemTableSortKeyVisible(
-  key: ItemTableSortKey,
-  categories: ReadonlySet<ItemCategory>,
-) {
-  if (key === 'damage') {
-    return categories.size === 0 || categories.has('Weapon');
-  }
-  if (key === 'defense') {
-    return categories.size === 0 || categories.has('Armor') || categories.has('Shield');
-  }
-  return true;
-}
-
-interface ItemTableProps<T extends ItemTableItem> {
-  items: readonly T[];
-  categories: ReadonlySet<ItemCategory>;
-  sort: SortState<ItemTableSortKey>;
-  onToggleSort: (key: ItemTableSortKey) => void;
-  renderName: (item: T) => ReactNode;
+interface ItemTableProps {
+  table: ItemTableState;
+  renderItemName: (item: ItemDetail) => ReactNode;
+  loading?: boolean;
+  emptyMessage?: string;
   renderLeadingHeader?: ReactNode;
-  renderLeadingCell?: (item: T) => ReactNode;
-  renderAction?: (item: T) => ReactNode;
-  onRowClick?: (item: T) => void;
-  rowClassName?: (item: T) => string | undefined;
+  renderLeadingCell?: (item: ItemDetail) => ReactNode;
+  renderAction?: (item: ItemDetail) => ReactNode;
+  onRowClick?: (item: ItemDetail) => void;
+  isSelected?: (item: ItemDetail) => boolean;
 }
 
-export function ItemTable<T extends ItemTableItem>({
-  items,
-  categories,
-  sort,
-  onToggleSort,
-  renderName,
+export function ItemTable({
+  table,
+  renderItemName,
+  loading = false,
+  emptyMessage = 'Nothing here.',
   renderLeadingHeader,
   renderLeadingCell,
   renderAction,
   onRowClick,
-  rowClassName,
-}: ItemTableProps<T>) {
-  const showAllStats = categories.size === 0;
-  const showDamage = showAllStats || categories.has('Weapon');
-  const showDefense = showAllStats || categories.has('Armor') || categories.has('Shield');
+  isSelected,
+}: ItemTableProps) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <InventoryFilters
+        search={table.search}
+        onSearchChange={table.setSearch}
+        categories={table.categories}
+        onCategoriesChange={table.onCategoriesChange}
+        equippedOnly={table.equippedOnly}
+        onEquippedOnlyChange={table.setEquippedOnly}
+      />
+      <div className="min-h-0 flex-1 overflow-auto">
+        <ItemTableContent
+          table={table}
+          renderItemName={renderItemName}
+          loading={loading}
+          emptyMessage={emptyMessage}
+          renderLeadingHeader={renderLeadingHeader}
+          renderLeadingCell={renderLeadingCell}
+          renderAction={renderAction}
+          onRowClick={onRowClick}
+          isSelected={isSelected}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface ItemTableContentProps {
+  table: ItemTableState;
+  renderItemName: (item: ItemDetail) => ReactNode;
+  loading: boolean;
+  emptyMessage: string;
+  renderLeadingHeader?: ReactNode;
+  renderLeadingCell?: (item: ItemDetail) => ReactNode;
+  renderAction?: (item: ItemDetail) => ReactNode;
+  onRowClick?: (item: ItemDetail) => void;
+  isSelected?: (item: ItemDetail) => boolean;
+}
+
+function ItemTableContent({
+  table,
+  renderItemName,
+  loading,
+  emptyMessage,
+  renderLeadingHeader,
+  renderLeadingCell,
+  renderAction,
+  onRowClick,
+  isSelected,
+}: ItemTableContentProps) {
+  const showAllStats = table.categories.size === 0;
+  const showDamage = showAllStats || table.categories.has('Weapon');
+  const showDefense =
+    showAllStats || table.categories.has('Armor') || table.categories.has('Shield');
+  const hasActiveFilters = Boolean(table.search) || table.categories.size > 0 || table.equippedOnly;
+
+  if (loading) {
+    return (
+      <ItemTableSkeleton
+        hasLeadingCell={renderLeadingCell !== undefined}
+        hasAction={renderAction !== undefined}
+        showDamage={showDamage}
+        showDefense={showDefense}
+      />
+    );
+  }
+
+  if (table.visibleItems.length === 0) {
+    return (
+      <InventoryEmptyState
+        itemCount={table.itemCount}
+        emptyMessage={emptyMessage}
+        onClearFilters={hasActiveFilters ? table.clearFilters : undefined}
+      />
+    );
+  }
 
   return (
     <table className="w-full table-fixed">
@@ -75,13 +131,18 @@ export function ItemTable<T extends ItemTableItem>({
       <thead>
         <tr className="bg-muted/50 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
           {renderLeadingCell && <th className="px-2 py-2">{renderLeadingHeader}</th>}
-          <SortableHeader label="Item" sortKey="name" sort={sort} onToggle={onToggleSort} />
+          <SortableHeader
+            label="Item"
+            sortKey="name"
+            sort={table.sort}
+            onToggle={table.onToggleSort}
+          />
           {showDamage && (
             <SortableHeader
               label="Damage"
               sortKey="damage"
-              sort={sort}
-              onToggle={onToggleSort}
+              sort={table.sort}
+              onToggle={table.onToggleSort}
               align="right"
             />
           )}
@@ -89,58 +150,54 @@ export function ItemTable<T extends ItemTableItem>({
             <SortableHeader
               label="Defense"
               sortKey="defense"
-              sort={sort}
-              onToggle={onToggleSort}
+              sort={table.sort}
+              onToggle={table.onToggleSort}
               align="right"
             />
           )}
           <SortableHeader
             label="Qty"
             sortKey="quantity"
-            sort={sort}
-            onToggle={onToggleSort}
+            sort={table.sort}
+            onToggle={table.onToggleSort}
             align="right"
           />
           <SortableHeader
             label="Value"
             sortKey="value"
-            sort={sort}
-            onToggle={onToggleSort}
+            sort={table.sort}
+            onToggle={table.onToggleSort}
             align="right"
           />
           <SortableHeader
             label="Weight"
             sortKey="weight"
-            sort={sort}
-            onToggle={onToggleSort}
+            sort={table.sort}
+            onToggle={table.onToggleSort}
             align="right"
           />
           {renderAction && <th className="px-2 py-2" />}
         </tr>
       </thead>
       <tbody className="divide-border divide-y">
-        {items.map((tableItem) => {
-          const item = tableItem.item;
-          const damage = item.$type === 'Weapon' ? `${item.minDamage}–${item.maxDamage}` : null;
-          const defense = item.$type === 'Armor' || item.$type === 'Shield' ? item.defense : null;
-
+        {table.visibleItems.map((item) => {
           return (
             <tr
               key={item.itemId}
-              className={cn(onRowClick && 'cursor-pointer', rowClassName?.(tableItem))}
-              onClick={onRowClick ? () => onRowClick(tableItem) : undefined}
+              className={cn(onRowClick && 'cursor-pointer', isSelected?.(item) && 'bg-accent')}
+              onClick={onRowClick ? () => onRowClick(item) : undefined}
             >
               {renderLeadingCell && (
-                <td className="px-2 py-1.5 align-middle">{renderLeadingCell(tableItem)}</td>
+                <td className="px-2 py-1.5 align-middle">{renderLeadingCell(item)}</td>
               )}
-              <td className="px-2 py-1.5 align-middle">{renderName(tableItem)}</td>
-              {showDamage && <ItemStatCell value={damage} />}
-              {showDefense && <ItemStatCell value={defense} />}
-              <ItemStatCell value={tableItem.quantity} />
-              <ItemGoldValueCell value={tableItem.goldValue * tableItem.quantity} />
-              <ItemWeightCell value={tableItem.weight} />
+              <td className="px-2 py-1.5 align-middle">{renderItemName(item)}</td>
+              {showDamage && <ItemDamageCell item={item} />}
+              {showDefense && <ItemDefenseCell item={item} />}
+              <ItemStatisticCell value={Number(item.quantity)} />
+              <ItemGoldValueCell value={Number(item.goldValue) * Number(item.quantity)} />
+              <ItemWeightCell value={Number(item.weight) * Number(item.quantity)} />
               {renderAction && (
-                <td className="px-2 py-1.5 text-right align-middle">{renderAction(tableItem)}</td>
+                <td className="px-2 py-1.5 text-right align-middle">{renderAction(item)}</td>
               )}
             </tr>
           );
@@ -151,21 +208,25 @@ export function ItemTable<T extends ItemTableItem>({
 }
 
 interface ItemTableSkeletonProps {
-  hasLeadingCell?: boolean;
-  hasAction?: boolean;
+  hasLeadingCell: boolean;
+  hasAction: boolean;
+  showDamage: boolean;
+  showDefense: boolean;
 }
 
-export function ItemTableSkeleton({
-  hasLeadingCell = false,
-  hasAction = false,
+function ItemTableSkeleton({
+  hasLeadingCell,
+  hasAction,
+  showDamage,
+  showDefense,
 }: ItemTableSkeletonProps) {
   return (
     <table className="w-full table-fixed" aria-label="Loading items">
       <colgroup>
         {hasLeadingCell && <col className="w-7" />}
         <col />
-        <col className="w-20" />
-        <col className="w-20" />
+        {showDamage && <col className="w-20" />}
+        {showDefense && <col className="w-16" />}
         <col className="w-20" />
         <col className="w-20" />
         <col className="w-16" />
@@ -175,8 +236,8 @@ export function ItemTableSkeleton({
         <tr className="bg-muted/50 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
           {hasLeadingCell && <th className="px-2 py-2" />}
           <th className="px-2 py-2 text-left">Item</th>
-          <th className="px-2 py-2 text-right">Damage</th>
-          <th className="px-2 py-2 text-right">Defense</th>
+          {showDamage && <th className="px-2 py-2 text-right">Damage</th>}
+          {showDefense && <th className="px-2 py-2 text-right">Defense</th>}
           <th className="px-2 py-2 text-right">Qty</th>
           <th className="px-2 py-2 text-right">Value</th>
           <th className="px-2 py-2 text-right">Weight</th>
@@ -194,12 +255,16 @@ export function ItemTableSkeleton({
             <td className="px-2 py-1.5">
               <Skeleton className="h-5 w-3/4" />
             </td>
-            <td className="px-2 py-1.5">
-              <Skeleton className="ml-auto h-5 w-12" />
-            </td>
-            <td className="px-2 py-1.5">
-              <Skeleton className="ml-auto h-5 w-10" />
-            </td>
+            {showDamage && (
+              <td className="px-2 py-1.5">
+                <Skeleton className="ml-auto h-5 w-12" />
+              </td>
+            )}
+            {showDefense && (
+              <td className="px-2 py-1.5">
+                <Skeleton className="ml-auto h-5 w-10" />
+              </td>
+            )}
             <td className="px-2 py-1.5">
               <Skeleton className="ml-auto h-5 w-6" />
             </td>
@@ -218,21 +283,6 @@ export function ItemTableSkeleton({
         ))}
       </tbody>
     </table>
-  );
-}
-
-function ItemStatCell({ value }: { value: number | string | null }) {
-  const displayValue = typeof value === 'number' ? numberFormatter.format(value) : (value ?? '—');
-
-  return (
-    <td className="overflow-hidden px-2 py-1.5 text-right align-middle font-mono text-sm tabular-nums">
-      <div
-        className="flex h-5 w-full min-w-0 items-center justify-end truncate"
-        title={String(displayValue)}
-      >
-        {displayValue}
-      </div>
-    </td>
   );
 }
 

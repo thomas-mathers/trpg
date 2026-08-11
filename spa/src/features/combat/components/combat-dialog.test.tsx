@@ -20,7 +20,7 @@ import { gameEventBus } from '@/lib/game-event-bus';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 
-import { CombatConsole } from './combat-console';
+import { CombatDialog } from './combat-dialog';
 
 const player: CombatantState = {
   id: 'player-id',
@@ -83,7 +83,7 @@ function renderConsole({ isStreaming = false } = {}) {
   const result = renderWithProviders(
     <GameChatContext.Provider value={gameChat}>
       <SceneProvider sessionId="session-id">
-        <CombatConsole />
+        <CombatDialog />
       </SceneProvider>
     </GameChatContext.Provider>,
   );
@@ -94,7 +94,7 @@ function renderConsole({ isStreaming = false } = {}) {
   return { submitCombatAction, submitFlee, ...result };
 }
 
-describe('CombatConsole', () => {
+describe('CombatDialog', () => {
   it('focuses Attack when combat begins', async () => {
     renderConsole();
 
