@@ -33,10 +33,6 @@ internal class SetQuestTrackingCommandHandler(TrpgDbContext context)
                 quest.CreatureId == command.PlayerId
                 && quest.QuestId == command.QuestId
                 && quest.WorldId == playerWorldId.Value
-                && (
-                    quest.Status == QuestStatus.Accepted
-                    || quest.Status == QuestStatus.ReadyToComplete
-                )
             )
             .ExecuteUpdateAsync(
                 setters => setters.SetProperty(quest => quest.IsTracked, command.IsTracked),
@@ -44,7 +40,7 @@ internal class SetQuestTrackingCommandHandler(TrpgDbContext context)
             );
         if (updated == 0)
         {
-            throw new EntityNotFoundException("Active quest", command.QuestId);
+            throw new EntityNotFoundException("Quest", command.QuestId);
         }
     }
 }

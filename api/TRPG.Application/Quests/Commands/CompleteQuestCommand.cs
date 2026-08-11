@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,7 +13,10 @@ internal class CompleteQuestCommand
     public required Guid QuestId { get; init; }
 }
 
-internal class CompleteQuestCommandHandler(TrpgDbContext context)
+internal class CompleteQuestCommandHandler(
+    TrpgDbContext context,
+    FindOrCreateGoldItemCommandHandler findOrCreateGoldItem
+)
 {
     public async Task Handle(
         CompleteQuestCommand command,
@@ -43,35 +48,17 @@ internal class CompleteQuestCommandHandler(TrpgDbContext context)
             throw new InvalidOperationException("Quest objectives have not all been completed.");
         }
 
-        var gold = await FindOrCreateGold(player, cancellationToken);
+        var gold = await findOrCreateGoldItem.Handle(
+            new FindOrCreateGoldItemCommand
+            {
+                Owner = new ItemOwnerReference(player.Id, OwnerType.Creature),
+                WorldId = player.WorldId,
+            },
+            cancellationToken
+        );
         gold.Quantity += creatureQuest.Quest.GoldReward;
         creatureQuest.Status = QuestStatus.Completed;
 
         await context.SaveChangesAsync(cancellationToken);
-    }
-
-    private async Task<Gold> FindOrCreateGold(Creature player, CancellationToken cancellationToken)
-    {
-        var gold = await context
-            .Items.OfType<Gold>()
-            .FirstOrDefaultAsync(
-                item =>
-                    item.Ownership.OwnerId == player.Id
-                    && item.Ownership.OwnerType == OwnerType.Creature,
-                cancellationToken
-            );
-        if (gold is not null)
-        {
-            return gold;
-        }
-
-        gold = new Gold
-        {
-            WorldId = player.WorldId,
-            Name = "Gold",
-            Ownership = new ItemOwnership { OwnerId = player.Id, OwnerType = OwnerType.Creature },
-        };
-        context.Items.Add(gold);
-        return gold;
     }
 }

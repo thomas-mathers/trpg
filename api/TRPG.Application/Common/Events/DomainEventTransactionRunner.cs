@@ -4,7 +4,7 @@ namespace TRPG.Application.Common.Events;
 
 internal class DomainEventTransactionRunner(
     TrpgDbContext context,
-    IEnumerable<GameDomainEventListener> listeners
+    IEnumerable<GameEventListener> listeners
 )
 {
     public async Task<TResult> Run<TInput, TResult>(
@@ -24,7 +24,7 @@ internal class DomainEventTransactionRunner(
             cancellationToken
         );
         var actionResult = await action(input, cancellationToken);
-        await Dispatch(actionResult.DomainEvents, cancellationToken);
+        await Dispatch(actionResult.Events, cancellationToken);
 
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -33,15 +33,15 @@ internal class DomainEventTransactionRunner(
     }
 
     private async Task Dispatch(
-        IReadOnlyCollection<GameDomainEvent> domainEvents,
+        IReadOnlyCollection<GameEvent> events,
         CancellationToken cancellationToken
     )
     {
-        foreach (var domainEvent in domainEvents)
+        foreach (var gameEvent in events)
         {
             foreach (var listener in listeners)
             {
-                await listener.Handle(domainEvent, cancellationToken);
+                await listener.Handle(gameEvent, cancellationToken);
             }
         }
     }

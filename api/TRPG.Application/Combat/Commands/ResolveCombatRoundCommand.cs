@@ -118,7 +118,7 @@ internal class ResolveCombatRoundCommandHandler(
             state.ToCombatResult(),
             command
                 .Combatants.Where(combatant => !combatant.IsPlayer && !combatant.IsAlive)
-                .Select(combatant => new CreatureKilledDomainEvent(
+                .Select(combatant => new CreatureKilledEvent(
                     command.PlayerId,
                     command.WorldId,
                     combatant.CreatureId,

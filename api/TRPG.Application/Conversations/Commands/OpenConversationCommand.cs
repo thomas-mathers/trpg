@@ -41,7 +41,7 @@ internal class OpenConversationCommandHandler(
         {
             return new GameActionResult<OpenConversationOutcome>(
                 Result: OpenConversationOutcome.AlreadyOpen,
-                DomainEvents: []
+                Events: []
             );
         }
 
@@ -57,9 +57,9 @@ internal class OpenConversationCommandHandler(
 
         return new GameActionResult<OpenConversationOutcome>(
             Result: OpenConversationOutcome.Opened,
-            DomainEvents:
+            Events:
             [
-                new ConversationStartedDomainEvent(
+                new ConversationStartedEvent(
                     PlayerId: snapshot.PlayerId,
                     WorldId: snapshot.WorldId,
                     CreatureId: command.NpcId

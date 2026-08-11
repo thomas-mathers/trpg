@@ -17,7 +17,8 @@ internal class InventoryTransferCommand
 
 internal class InventoryTransferCommandHandler(
     TrpgDbContext context,
-    DomainEventTransactionRunner domainEventTransactions
+    DomainEventTransactionRunner domainEventTransactions,
+    FindOrCreateGoldItemCommandHandler findOrCreateGoldItem
 )
 {
     public async Task Handle(
@@ -44,10 +45,10 @@ internal class InventoryTransferCommandHandler(
 
         return new GameActionResult<bool>(
             Result: true,
-            DomainEvents: playerWorldId is null
+            Events: playerWorldId is null
                 ? []
                 : command
-                    .Items.Select(item => new ItemAcquiredDomainEvent(
+                    .Items.Select(item => new ItemAcquiredEvent(
                         PlayerId: command.To.Id,
                         WorldId: playerWorldId.Value,
                         ItemId: item.ItemId
@@ -167,40 +168,10 @@ internal class InventoryTransferCommandHandler(
     )
     {
         sourceGoldItem.Quantity -= amount;
-        var toGoldItem = await FindOrCreateGoldItem(to, sourceGoldItem.WorldId, cancellationToken);
+        var toGoldItem = await findOrCreateGoldItem.Handle(
+            new FindOrCreateGoldItemCommand { Owner = to, WorldId = sourceGoldItem.WorldId },
+            cancellationToken
+        );
         toGoldItem.Quantity += amount;
-    }
-
-    private async Task<Gold?> FindGoldItem(
-        ItemOwnerReference owner,
-        CancellationToken cancellationToken
-    ) =>
-        await context
-            .Items.OfType<Gold>()
-            .FirstOrDefaultAsync(
-                i => i.Ownership.OwnerType == owner.Type && i.Ownership.OwnerId == owner.Id,
-                cancellationToken
-            );
-
-    private async Task<Gold> FindOrCreateGoldItem(
-        ItemOwnerReference owner,
-        Guid worldId,
-        CancellationToken cancellationToken
-    )
-    {
-        var existing = await FindGoldItem(owner, cancellationToken);
-        if (existing != null)
-        {
-            return existing;
-        }
-
-        var goldItem = new Gold
-        {
-            WorldId = worldId,
-            Name = "Gold",
-            Ownership = new ItemOwnership { OwnerId = owner.Id, OwnerType = owner.Type },
-        };
-        context.Items.Add(goldItem);
-        return goldItem;
     }
 }

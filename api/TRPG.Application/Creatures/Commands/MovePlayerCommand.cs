@@ -63,7 +63,7 @@ internal class MovePlayerCommandHandler(
         {
             return new GameActionResult<MovePlayerResult>(
                 Result: new MovePlayerResult(outcome, player),
-                DomainEvents: []
+                Events: []
             );
         }
 
@@ -80,9 +80,9 @@ internal class MovePlayerCommandHandler(
 
         return new GameActionResult<MovePlayerResult>(
             Result: new MovePlayerResult(EntryOutcome.Entered, player),
-            DomainEvents:
+            Events:
             [
-                new PlayerEnteredLocationDomainEvent(
+                new PlayerMovedEvent(
                     PlayerId: player.Id,
                     WorldId: player.WorldId,
                     LocationId: player.LocationId
