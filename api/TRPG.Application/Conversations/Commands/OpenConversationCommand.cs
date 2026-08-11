@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Events;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 
@@ -17,13 +18,19 @@ internal class OpenConversationCommand
 }
 
 internal class OpenConversationCommandHandler(
+    DomainEventTransactionRunner domainEventTransactions,
     GetGameSessionQueryHandler getGameSession,
     UpdateGameSessionCommandHandler updateGameSession
 )
 {
-    public async Task<OpenConversationOutcome> Handle(
+    public Task<OpenConversationOutcome> Handle(
         OpenConversationCommand command,
         CancellationToken cancellationToken = default
+    ) => domainEventTransactions.Run(command, HandleWithinTransaction, cancellationToken);
+
+    private async Task<GameActionResult<OpenConversationOutcome>> HandleWithinTransaction(
+        OpenConversationCommand command,
+        CancellationToken cancellationToken
     )
     {
         var snapshot = await getGameSession.Handle(
@@ -32,7 +39,10 @@ internal class OpenConversationCommandHandler(
         );
         if (snapshot.OpenConversationCreatureIdsByName.ContainsKey(command.NpcName))
         {
-            return OpenConversationOutcome.AlreadyOpen;
+            return new GameActionResult<OpenConversationOutcome>(
+                Result: OpenConversationOutcome.AlreadyOpen,
+                DomainEvents: []
+            );
         }
 
         snapshot.OpenConversationCreatureIdsByName[command.NpcName] = command.NpcId;
@@ -45,6 +55,16 @@ internal class OpenConversationCommandHandler(
             cancellationToken
         );
 
-        return OpenConversationOutcome.Opened;
+        return new GameActionResult<OpenConversationOutcome>(
+            Result: OpenConversationOutcome.Opened,
+            DomainEvents:
+            [
+                new ConversationStartedDomainEvent(
+                    PlayerId: snapshot.PlayerId,
+                    WorldId: snapshot.WorldId,
+                    CreatureId: command.NpcId
+                ),
+            ]
+        );
     }
 }
