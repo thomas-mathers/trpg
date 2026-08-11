@@ -39,16 +39,6 @@ internal class ResolveCombatRoundCommandHandler(
         await using var transaction = await context.Database.BeginTransactionAsync(
             cancellationToken
         );
-        var result = await HandleWithinTransaction(command, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return result;
-    }
-
-    private async Task<CombatResult> HandleWithinTransaction(
-        ResolveCombatRoundCommand command,
-        CancellationToken cancellationToken
-    )
-    {
         var state = command.State;
 
         await persistCombatants.Handle(
@@ -142,6 +132,7 @@ internal class ResolveCombatRoundCommandHandler(
             );
         }
 
+        await transaction.CommitAsync(cancellationToken);
         return state.ToCombatResult();
     }
 }

@@ -25,15 +25,6 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, QuestEvent
         await using var transaction = await context.Database.BeginTransactionAsync(
             cancellationToken
         );
-        await HandleWithinTransaction(command, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-    }
-
-    private async Task HandleWithinTransaction(
-        InventoryTransferCommand command,
-        CancellationToken cancellationToken
-    )
-    {
         if (command.Items.Count > 0)
         {
             await TransferItems(command, cancellationToken);
@@ -43,18 +34,18 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context, QuestEvent
 
         var playerWorldId = await GetPlayerWorldId(command.To, cancellationToken);
 
-        if (playerWorldId is null)
+        if (playerWorldId is not null)
         {
-            return;
+            foreach (var item in command.Items)
+            {
+                await questEvents.Handle(
+                    new ItemAcquiredEvent(command.To.Id, playerWorldId.Value, item.ItemId),
+                    cancellationToken
+                );
+            }
         }
 
-        foreach (var item in command.Items)
-        {
-            await questEvents.Handle(
-                new ItemAcquiredEvent(command.To.Id, playerWorldId.Value, item.ItemId),
-                cancellationToken
-            );
-        }
+        await transaction.CommitAsync(cancellationToken);
     }
 
     private Task<Guid?> GetPlayerWorldId(

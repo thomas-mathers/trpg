@@ -34,22 +34,13 @@ internal class OpenConversationCommandHandler(
         await using var transaction = await context.Database.BeginTransactionAsync(
             cancellationToken
         );
-        var outcome = await HandleWithinTransaction(command, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return outcome;
-    }
-
-    private async Task<OpenConversationOutcome> HandleWithinTransaction(
-        OpenConversationCommand command,
-        CancellationToken cancellationToken
-    )
-    {
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = command.SessionId },
             cancellationToken
         );
         if (snapshot.OpenConversationCreatureIdsByName.ContainsKey(command.NpcName))
         {
+            await transaction.CommitAsync(cancellationToken);
             return OpenConversationOutcome.AlreadyOpen;
         }
 
@@ -71,6 +62,7 @@ internal class OpenConversationCommandHandler(
             ),
             cancellationToken
         );
+        await transaction.CommitAsync(cancellationToken);
         return OpenConversationOutcome.Opened;
     }
 }

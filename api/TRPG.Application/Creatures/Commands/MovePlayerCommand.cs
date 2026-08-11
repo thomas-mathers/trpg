@@ -46,16 +46,6 @@ internal class MovePlayerCommandHandler(
         await using var transaction = await context.Database.BeginTransactionAsync(
             cancellationToken
         );
-        var result = await HandleWithinTransaction(command, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return result;
-    }
-
-    private async Task<MovePlayerResult> HandleWithinTransaction(
-        MovePlayerCommand command,
-        CancellationToken cancellationToken
-    )
-    {
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
@@ -72,6 +62,7 @@ internal class MovePlayerCommandHandler(
 
         if (outcome != EntryOutcome.Entered)
         {
+            await transaction.CommitAsync(cancellationToken);
             return new MovePlayerResult(outcome, player);
         }
 
@@ -94,6 +85,7 @@ internal class MovePlayerCommandHandler(
             ),
             cancellationToken
         );
+        await transaction.CommitAsync(cancellationToken);
         return new MovePlayerResult(EntryOutcome.Entered, player);
     }
 
