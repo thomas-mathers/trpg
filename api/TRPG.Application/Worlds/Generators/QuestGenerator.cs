@@ -70,7 +70,6 @@ public class QuestGenerator
             Name = "A Dangerous Delivery",
             Description = $"Recover {item.Name} from {assassinationTarget.Name}.",
             GoldReward = 100,
-            ExperienceReward = 100,
         };
         var secondQuest = new Quest
         {
@@ -79,7 +78,6 @@ public class QuestGenerator
             Name = "The Trail Continues",
             Description = $"Follow the remaining leads for {giver.Name}.",
             GoldReward = 150,
-            ExperienceReward = 150,
             PrerequisiteQuestIds = [firstQuest.Id],
         };
 
