@@ -1,4 +1,5 @@
 using TRPG.Application.Common.Events;
+using TRPG.Application.GameSessions;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
 using TRPG.Data.Models;
@@ -7,7 +8,8 @@ namespace TRPG.Application.Quests;
 
 internal sealed class QuestObjectiveDomainEventListener(
     GetActiveQuestObjectivesQueryHandler getActiveObjectives,
-    MarkQuestsReadyToCompleteCommandHandler markQuestsReadyToComplete
+    MarkQuestsReadyToCompleteCommandHandler markQuestsReadyToComplete,
+    IGameClientEventPublisher gameEvents
 ) : GameEventListener
 {
     public override async Task Handle(
@@ -33,6 +35,11 @@ internal sealed class QuestObjectiveDomainEventListener(
             objective.Amount++;
         }
 
+        if (progressedObjectives.Length == 0)
+        {
+            return;
+        }
+
         await markQuestsReadyToComplete.Handle(
             new MarkQuestsReadyToCompleteCommand
             {
@@ -43,6 +50,7 @@ internal sealed class QuestObjectiveDomainEventListener(
             },
             cancellationToken
         );
+        gameEvents.Publish(new QuestJournalUpdatedEvent());
     }
 
     private static bool CanAdvance(CreatureQuestObjective objective) =>
