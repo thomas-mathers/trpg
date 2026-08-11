@@ -127,6 +127,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetCreatureKnowledgeQueryHandler>()
             .AddTransient<AdjustReputationCommandHandler>()
             .AddTransient<AcceptQuestCommandHandler>()
+            .AddTransient<CompleteQuestCommandHandler>()
+            .AddTransient<SetQuestTrackingCommandHandler>()
             .AddTransient<GameDomainEventListener, QuestObjectiveDomainEventListener>()
             .AddTransient<GetAllReputationsByCreatureIdQueryHandler>()
             .AddTransient<GetEffectiveReputationQueryHandler>()
