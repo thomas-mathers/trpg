@@ -1,4 +1,3 @@
-using TRPG.Application.GameSessions;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Common.Events;
@@ -28,7 +27,7 @@ internal record GameActionResult<T>(T Result, IReadOnlyCollection<GameDomainEven
 
 internal abstract class GameDomainEventListener
 {
-    public abstract Task<IReadOnlyCollection<GameTurnEvent>> Handle(
+    public abstract Task Handle(
         GameDomainEvent domainEvent,
         CancellationToken cancellationToken = default
     );

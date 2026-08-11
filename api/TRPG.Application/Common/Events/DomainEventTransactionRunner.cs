@@ -1,12 +1,10 @@
-using TRPG.Application.GameSessions;
 using TRPG.Data;
 
 namespace TRPG.Application.Common.Events;
 
 internal class DomainEventTransactionRunner(
     TrpgDbContext context,
-    IEnumerable<GameDomainEventListener> listeners,
-    IGameClientEventPublisher gameEvents
+    IEnumerable<GameDomainEventListener> listeners
 )
 {
     public async Task<TResult> Run<TInput, TResult>(
@@ -25,25 +23,17 @@ internal class DomainEventTransactionRunner(
         await using var transaction = await context.Database.BeginTransactionAsync(
             cancellationToken
         );
-        var clientEvents = new List<GameTurnEvent>();
-
         var actionResult = await action(input, cancellationToken);
-        await Dispatch(actionResult.DomainEvents, clientEvents, cancellationToken);
+        await Dispatch(actionResult.DomainEvents, cancellationToken);
 
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-
-        foreach (var clientEvent in clientEvents)
-        {
-            gameEvents.Publish(clientEvent);
-        }
 
         return actionResult.Result;
     }
 
     private async Task Dispatch(
         IReadOnlyCollection<GameDomainEvent> domainEvents,
-        List<GameTurnEvent> clientEvents,
         CancellationToken cancellationToken
     )
     {
@@ -51,8 +41,7 @@ internal class DomainEventTransactionRunner(
         {
             foreach (var listener in listeners)
             {
-                var events = await listener.Handle(domainEvent, cancellationToken);
-                clientEvents.AddRange(events);
+                await listener.Handle(domainEvent, cancellationToken);
             }
         }
     }

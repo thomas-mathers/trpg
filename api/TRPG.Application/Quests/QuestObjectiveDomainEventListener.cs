@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Events;
-using TRPG.Application.GameSessions;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -9,7 +8,7 @@ namespace TRPG.Application.Quests;
 internal sealed class QuestObjectiveDomainEventListener(TrpgDbContext context)
     : GameDomainEventListener
 {
-    public override async Task<IReadOnlyCollection<GameTurnEvent>> Handle(
+    public override async Task Handle(
         GameDomainEvent domainEvent,
         CancellationToken cancellationToken = default
     )
@@ -26,8 +25,6 @@ internal sealed class QuestObjectiveDomainEventListener(TrpgDbContext context)
         }
 
         await MarkReadyToComplete(objectives, domainEvent.PlayerId, cancellationToken);
-
-        return [];
     }
 
     private Task<List<CreatureQuestObjective>> GetActiveObjectives(
