@@ -1,6 +1,8 @@
 using TRPG.Application.Common.Events;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Quests;
+using TRPG.Data;
 
 namespace TRPG.Application.Conversations.Commands;
 
@@ -18,17 +20,26 @@ internal class OpenConversationCommand
 }
 
 internal class OpenConversationCommandHandler(
-    DomainEventTransactionRunner domainEventTransactions,
+    TrpgDbContext context,
+    QuestEventHandler questEvents,
     GetGameSessionQueryHandler getGameSession,
     UpdateGameSessionCommandHandler updateGameSession
 )
 {
-    public Task<OpenConversationOutcome> Handle(
+    public async Task<OpenConversationOutcome> Handle(
         OpenConversationCommand command,
         CancellationToken cancellationToken = default
-    ) => domainEventTransactions.Run(command, HandleWithinTransaction, cancellationToken);
+    )
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
+        var outcome = await HandleWithinTransaction(command, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return outcome;
+    }
 
-    private async Task<GameActionResult<OpenConversationOutcome>> HandleWithinTransaction(
+    private async Task<OpenConversationOutcome> HandleWithinTransaction(
         OpenConversationCommand command,
         CancellationToken cancellationToken
     )
@@ -39,10 +50,7 @@ internal class OpenConversationCommandHandler(
         );
         if (snapshot.OpenConversationCreatureIdsByName.ContainsKey(command.NpcName))
         {
-            return new GameActionResult<OpenConversationOutcome>(
-                Result: OpenConversationOutcome.AlreadyOpen,
-                Events: []
-            );
+            return OpenConversationOutcome.AlreadyOpen;
         }
 
         snapshot.OpenConversationCreatureIdsByName[command.NpcName] = command.NpcId;
@@ -55,16 +63,14 @@ internal class OpenConversationCommandHandler(
             cancellationToken
         );
 
-        return new GameActionResult<OpenConversationOutcome>(
-            Result: OpenConversationOutcome.Opened,
-            Events:
-            [
-                new ConversationStartedEvent(
-                    PlayerId: snapshot.PlayerId,
-                    WorldId: snapshot.WorldId,
-                    CreatureId: command.NpcId
-                ),
-            ]
+        await questEvents.Handle(
+            new ConversationStartedEvent(
+                PlayerId: snapshot.PlayerId,
+                WorldId: snapshot.WorldId,
+                CreatureId: command.NpcId
+            ),
+            cancellationToken
         );
+        return OpenConversationOutcome.Opened;
     }
 }

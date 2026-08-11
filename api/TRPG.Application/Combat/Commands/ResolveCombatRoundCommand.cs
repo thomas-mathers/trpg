@@ -3,7 +3,9 @@ using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Quests;
 using TRPG.Application.WeaponProficiency.Commands;
+using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Commands;
@@ -25,15 +27,24 @@ internal class ResolveCombatRoundCommandHandler(
     RemoveInventoryItemCommandHandler removeInventoryItem,
     EndFightCommandHandler endFight,
     IGameClientEventPublisher gameEvents,
-    DomainEventTransactionRunner domainEventTransactions
+    QuestEventHandler questEvents,
+    TrpgDbContext context
 )
 {
     public async Task<CombatResult> Handle(
         ResolveCombatRoundCommand command,
         CancellationToken cancellationToken = default
-    ) => await domainEventTransactions.Run(command, HandleWithinTransaction, cancellationToken);
+    )
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
+        var result = await HandleWithinTransaction(command, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return result;
+    }
 
-    private async Task<GameActionResult<CombatResult>> HandleWithinTransaction(
+    private async Task<CombatResult> HandleWithinTransaction(
         ResolveCombatRoundCommand command,
         CancellationToken cancellationToken
     )
@@ -114,17 +125,23 @@ internal class ResolveCombatRoundCommandHandler(
             }
         }
 
-        return new GameActionResult<CombatResult>(
-            state.ToCombatResult(),
-            command
-                .Combatants.Where(combatant => !combatant.IsPlayer && !combatant.IsAlive)
-                .Select(combatant => new CreatureKilledEvent(
+        foreach (
+            var combatant in command.Combatants.Where(combatant =>
+                !combatant.IsPlayer && !combatant.IsAlive
+            )
+        )
+        {
+            await questEvents.Handle(
+                new CreatureKilledEvent(
                     command.PlayerId,
                     command.WorldId,
                     combatant.CreatureId,
                     combatant.CreatureType
-                ))
-                .ToArray()
-        );
+                ),
+                cancellationToken
+            );
+        }
+
+        return state.ToCombatResult();
     }
 }

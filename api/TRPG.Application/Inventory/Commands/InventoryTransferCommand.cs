@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures;
+using TRPG.Application.Quests;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -14,20 +15,21 @@ internal class InventoryTransferCommand
     public required IReadOnlyList<ItemSelection> Items { get; init; }
 }
 
-internal class InventoryTransferCommandHandler(
-    TrpgDbContext context,
-    DomainEventTransactionRunner domainEventTransactions
-)
+internal class InventoryTransferCommandHandler(TrpgDbContext context, QuestEventHandler questEvents)
 {
     public async Task Handle(
         InventoryTransferCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        await domainEventTransactions.Run(command, HandleWithinTransaction, cancellationToken);
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
+        await HandleWithinTransaction(command, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
-    private async Task<GameActionResult<bool>> HandleWithinTransaction(
+    private async Task HandleWithinTransaction(
         InventoryTransferCommand command,
         CancellationToken cancellationToken
     )
@@ -41,18 +43,18 @@ internal class InventoryTransferCommandHandler(
 
         var playerWorldId = await GetPlayerWorldId(command.To, cancellationToken);
 
-        return new GameActionResult<bool>(
-            Result: true,
-            Events: playerWorldId is null
-                ? []
-                : command
-                    .Items.Select(item => new ItemAcquiredEvent(
-                        PlayerId: command.To.Id,
-                        WorldId: playerWorldId.Value,
-                        ItemId: item.ItemId
-                    ))
-                    .ToArray()
-        );
+        if (playerWorldId is null)
+        {
+            return;
+        }
+
+        foreach (var item in command.Items)
+        {
+            await questEvents.Handle(
+                new ItemAcquiredEvent(command.To.Id, playerWorldId.Value, item.ItemId),
+                cancellationToken
+            );
+        }
     }
 
     private Task<Guid?> GetPlayerWorldId(

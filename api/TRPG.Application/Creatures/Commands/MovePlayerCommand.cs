@@ -5,8 +5,10 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Quests;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -21,7 +23,8 @@ internal class MovePlayerCommand
 internal record MovePlayerResult(EntryOutcome Outcome, Creature Player);
 
 internal class MovePlayerCommandHandler(
-    DomainEventTransactionRunner domainEventTransactions,
+    TrpgDbContext context,
+    QuestEventHandler questEvents,
     GetCreatureByIdQueryHandler getCreatureById,
     GetLocationByIdQueryHandler getLocationById,
     GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
@@ -35,12 +38,20 @@ internal class MovePlayerCommandHandler(
     ILogger<MovePlayerCommandHandler> logger
 )
 {
-    public Task<MovePlayerResult> Handle(
+    public async Task<MovePlayerResult> Handle(
         MovePlayerCommand command,
         CancellationToken cancellationToken = default
-    ) => domainEventTransactions.Run(command, HandleWithinTransaction, cancellationToken);
+    )
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            cancellationToken
+        );
+        var result = await HandleWithinTransaction(command, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return result;
+    }
 
-    private async Task<GameActionResult<MovePlayerResult>> HandleWithinTransaction(
+    private async Task<MovePlayerResult> HandleWithinTransaction(
         MovePlayerCommand command,
         CancellationToken cancellationToken
     )
@@ -61,10 +72,7 @@ internal class MovePlayerCommandHandler(
 
         if (outcome != EntryOutcome.Entered)
         {
-            return new GameActionResult<MovePlayerResult>(
-                Result: new MovePlayerResult(outcome, player),
-                Events: []
-            );
+            return new MovePlayerResult(outcome, player);
         }
 
         await CleanUpDeadCreatures(player.WorldId, oldLocationId, cancellationToken);
@@ -78,17 +86,15 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        return new GameActionResult<MovePlayerResult>(
-            Result: new MovePlayerResult(EntryOutcome.Entered, player),
-            Events:
-            [
-                new PlayerMovedEvent(
-                    PlayerId: player.Id,
-                    WorldId: player.WorldId,
-                    LocationId: player.LocationId
-                ),
-            ]
+        await questEvents.Handle(
+            new PlayerMovedEvent(
+                PlayerId: player.Id,
+                WorldId: player.WorldId,
+                LocationId: player.LocationId
+            ),
+            cancellationToken
         );
+        return new MovePlayerResult(EntryOutcome.Entered, player);
     }
 
     private async Task CleanUpDeadCreatures(

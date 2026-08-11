@@ -7,16 +7,13 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests;
 
-internal sealed class QuestObjectiveDomainEventListener(
+internal sealed class QuestEventHandler(
     MarkQuestsReadyToCompleteCommandHandler markQuestsReadyToComplete,
     IGameClientEventPublisher gameEvents,
     TrpgDbContext context
-) : GameEventListener
+)
 {
-    public override async Task Handle(
-        GameEvent gameEvent,
-        CancellationToken cancellationToken = default
-    )
+    public async Task Handle(GameEvent gameEvent, CancellationToken cancellationToken = default)
     {
         var objectives = await context
             .CreatureQuestObjectives.Include(progress => progress.Objective)
@@ -56,6 +53,7 @@ internal sealed class QuestObjectiveDomainEventListener(
             },
             cancellationToken
         );
+        await context.SaveChangesAsync(cancellationToken);
         gameEvents.Publish(new QuestJournalUpdatedEvent());
     }
 

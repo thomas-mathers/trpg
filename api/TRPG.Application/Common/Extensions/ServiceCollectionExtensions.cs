@@ -50,7 +50,6 @@ public static class ServiceCollectionExtensions
         return serviceCollection
             .AddMemoryCache()
             .AddScoped<GameTurnContext>()
-            .AddTransient<DomainEventTransactionRunner>()
             .AddTransient<AddBuildingOwnerCommandHandler>()
             .AddTransient<RemoveBuildingOwnerCommandHandler>()
             .AddTransient<SetWorkstationOccupantCommandHandler>()
@@ -132,7 +131,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<SetQuestTrackingCommandHandler>()
             .AddTransient<MarkQuestsReadyToCompleteCommandHandler>()
             .AddTransient<GetQuestJournalQueryHandler>()
-            .AddTransient<GameEventListener, QuestObjectiveDomainEventListener>()
+            .AddTransient<QuestEventHandler>()
             .AddTransient<GetAllReputationsByCreatureIdQueryHandler>()
             .AddTransient<GetEffectiveReputationQueryHandler>()
             .AddTransient<GetEffectiveReputationsQueryHandler>()

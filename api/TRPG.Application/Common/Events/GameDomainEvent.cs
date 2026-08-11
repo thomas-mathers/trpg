@@ -19,10 +19,3 @@ internal sealed record ConversationStartedEvent(Guid PlayerId, Guid WorldId, Gui
 
 internal sealed record ItemAcquiredEvent(Guid PlayerId, Guid WorldId, Guid ItemId)
     : GameEvent(PlayerId, WorldId);
-
-internal record GameActionResult<T>(T Result, IReadOnlyCollection<GameEvent> Events);
-
-internal abstract class GameEventListener
-{
-    public abstract Task Handle(GameEvent gameEvent, CancellationToken cancellationToken = default);
-}
