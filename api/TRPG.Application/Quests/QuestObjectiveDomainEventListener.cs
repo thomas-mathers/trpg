@@ -1,15 +1,16 @@
+using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Events;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Quests.Commands;
-using TRPG.Application.Quests.Queries;
+using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests;
 
 internal sealed class QuestObjectiveDomainEventListener(
-    GetActiveQuestObjectivesQueryHandler getActiveObjectives,
     MarkQuestsReadyToCompleteCommandHandler markQuestsReadyToComplete,
-    IGameClientEventPublisher gameEvents
+    IGameClientEventPublisher gameEvents,
+    TrpgDbContext context
 ) : GameEventListener
 {
     public override async Task Handle(
@@ -17,14 +18,18 @@ internal sealed class QuestObjectiveDomainEventListener(
         CancellationToken cancellationToken = default
     )
     {
-        var objectives = await getActiveObjectives.Handle(
-            new GetActiveQuestObjectivesQuery
-            {
-                PlayerId = gameEvent.PlayerId,
-                WorldId = gameEvent.WorldId,
-            },
-            cancellationToken
-        );
+        var objectives = await context
+            .CreatureQuestObjectives.Include(progress => progress.Objective)
+            .Where(progress =>
+                progress.CreatureId == gameEvent.PlayerId
+                && progress.WorldId == gameEvent.WorldId
+                && context.CreatureQuests.Any(quest =>
+                    quest.CreatureId == gameEvent.PlayerId
+                    && quest.QuestId == progress.Objective.QuestId
+                    && quest.Status == QuestStatus.Accepted
+                )
+            )
+            .ToListAsync(cancellationToken);
         var progressedObjectives = objectives
             .Where(objective => Matches(objective.Objective, gameEvent))
             .Where(CanAdvance)

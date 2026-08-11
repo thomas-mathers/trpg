@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Inventory;
-using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -14,7 +13,7 @@ internal class CompleteQuestCommand
     public required Guid WorldId { get; init; }
 }
 
-internal class CompleteQuestCommandHandler(TrpgDbContext context, AddGoldCommandHandler addGold)
+internal class CompleteQuestCommandHandler(TrpgDbContext context)
 {
     public async Task Handle(
         CompleteQuestCommand command,
@@ -40,15 +39,30 @@ internal class CompleteQuestCommandHandler(TrpgDbContext context, AddGoldCommand
             throw new InvalidOperationException("Quest objectives have not all been completed.");
         }
 
-        await addGold.Handle(
-            new AddGoldCommand
+        var gold = await context
+            .Items.OfType<Gold>()
+            .FirstOrDefaultAsync(
+                item =>
+                    item.Ownership.OwnerId == command.PlayerId
+                    && item.Ownership.OwnerType == OwnerType.Creature,
+                cancellationToken
+            );
+        if (gold is null)
+        {
+            gold = new Gold
             {
-                Amount = creatureQuest.Quest.GoldReward,
-                Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
                 WorldId = command.WorldId,
-            },
-            cancellationToken
-        );
+                Name = "Gold",
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = command.PlayerId,
+                    OwnerType = OwnerType.Creature,
+                },
+            };
+            context.Items.Add(gold);
+        }
+
+        gold.Quantity += creatureQuest.Quest.GoldReward;
         creatureQuest.Status = QuestStatus.Completed;
 
         await context.SaveChangesAsync(cancellationToken);
