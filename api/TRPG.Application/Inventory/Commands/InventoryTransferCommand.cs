@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures;
 using TRPG.Application.Inventory;
 using TRPG.Contracts.Inventory.Requests;
@@ -14,11 +15,22 @@ internal class InventoryTransferCommand
     public required IReadOnlyList<ItemSelection> Items { get; init; }
 }
 
-internal class InventoryTransferCommandHandler(TrpgDbContext context)
+internal class InventoryTransferCommandHandler(
+    TrpgDbContext context,
+    DomainEventTransactionRunner domainEventTransactions
+)
 {
     public async Task Handle(
         InventoryTransferCommand command,
         CancellationToken cancellationToken = default
+    )
+    {
+        await domainEventTransactions.Run(command, HandleWithinTransaction, cancellationToken);
+    }
+
+    private async Task<GameActionResult<bool>> HandleWithinTransaction(
+        InventoryTransferCommand command,
+        CancellationToken cancellationToken
     )
     {
         if (command.Items.Count > 0)
@@ -27,7 +39,33 @@ internal class InventoryTransferCommandHandler(TrpgDbContext context)
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        var playerWorldId = await GetPlayerWorldId(command.To, cancellationToken);
+
+        return new GameActionResult<bool>(
+            Result: true,
+            DomainEvents: playerWorldId is null
+                ? []
+                : command
+                    .Items.Select(item => new ItemAcquiredDomainEvent(
+                        PlayerId: command.To.Id,
+                        WorldId: playerWorldId.Value,
+                        ItemId: item.ItemId
+                    ))
+                    .ToArray()
+        );
     }
+
+    private Task<Guid?> GetPlayerWorldId(
+        ItemOwnerReference owner,
+        CancellationToken cancellationToken
+    ) =>
+        owner.Type != OwnerType.Creature
+            ? Task.FromResult<Guid?>(null)
+            : context
+                .Worlds.Where(world => world.PlayerId == owner.Id)
+                .Select(world => (Guid?)world.Id)
+                .FirstOrDefaultAsync(cancellationToken);
 
     private async Task TransferItems(
         InventoryTransferCommand command,
