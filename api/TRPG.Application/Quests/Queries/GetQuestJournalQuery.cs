@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -27,14 +27,20 @@ internal record QuestJournalEntry(
     IReadOnlyCollection<QuestObjectiveProgress> Objectives
 );
 
-internal class GetQuestJournalQueryHandler(TrpgDbContext context)
+internal class GetQuestJournalQueryHandler(
+    TrpgDbContext context,
+    GetCreatureWorldIdQueryHandler getCreatureWorldId
+)
 {
     public async Task<IReadOnlyCollection<QuestJournalEntry>> Handle(
         GetQuestJournalQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var playerWorldId = await GetPlayerWorldId(query.PlayerId, cancellationToken);
+        var playerWorldId = await getCreatureWorldId.Handle(
+            new GetCreatureWorldIdQuery { CreatureId = query.PlayerId },
+            cancellationToken
+        );
         var quests = await context
             .CreatureQuests.AsNoTracking()
             .Include(creatureQuest => creatureQuest.Quest)
@@ -61,14 +67,6 @@ internal class GetQuestJournalQueryHandler(TrpgDbContext context)
             ))
             .ToArray();
     }
-
-    private async Task<Guid> GetPlayerWorldId(Guid playerId, CancellationToken cancellationToken) =>
-        await context
-            .Creatures.AsNoTracking()
-            .Where(creature => creature.Id == playerId)
-            .Select(creature => (Guid?)creature.WorldId)
-            .FirstOrDefaultAsync(cancellationToken)
-        ?? throw new EntityNotFoundException("Player", playerId);
 
     private Task<CreatureQuestObjective[]> GetObjectives(
         Guid playerId,

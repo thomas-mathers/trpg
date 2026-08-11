@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,21 +12,23 @@ internal class AcceptQuestCommand
     public required Guid QuestId { get; init; }
 }
 
-internal class AcceptQuestCommandHandler(TrpgDbContext context)
+internal class AcceptQuestCommandHandler(
+    TrpgDbContext context,
+    GetCreatureWorldIdQueryHandler getCreatureWorldId
+)
 {
     public async Task Handle(
         AcceptQuestCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var player = await context.Creatures.FindAsync([command.PlayerId], cancellationToken);
-        if (player is null)
-        {
-            throw new EntityNotFoundException("Player", command.PlayerId);
-        }
+        var playerWorldId = await getCreatureWorldId.Handle(
+            new GetCreatureWorldIdQuery { CreatureId = command.PlayerId },
+            cancellationToken
+        );
 
         var quest = await context.Quests.FirstOrDefaultAsync(
-            quest => quest.Id == command.QuestId && quest.WorldId == player.WorldId,
+            quest => quest.Id == command.QuestId && quest.WorldId == playerWorldId,
             cancellationToken
         );
         if (quest is null)
@@ -35,7 +38,7 @@ internal class AcceptQuestCommandHandler(TrpgDbContext context)
 
         var completedQuestIds = await context
             .CreatureQuests.Where(creatureQuest =>
-                creatureQuest.CreatureId == player.Id
+                creatureQuest.CreatureId == command.PlayerId
                 && creatureQuest.Status == QuestStatus.Completed
                 && quest.PrerequisiteQuestIds.Contains(creatureQuest.QuestId)
             )
@@ -55,20 +58,20 @@ internal class AcceptQuestCommandHandler(TrpgDbContext context)
         context.CreatureQuests.Add(
             new CreatureQuest
             {
-                CreatureId = player.Id,
+                CreatureId = command.PlayerId,
                 QuestId = quest.Id,
                 Status = QuestStatus.Accepted,
                 IsTracked = true,
-                WorldId = player.WorldId,
+                WorldId = playerWorldId,
             }
         );
         context.CreatureQuestObjectives.AddRange(
             objectiveIds.Select(objectiveId => new CreatureQuestObjective
             {
-                CreatureId = player.Id,
+                CreatureId = command.PlayerId,
                 ObjectiveId = objectiveId,
                 Amount = 0,
-                WorldId = player.WorldId,
+                WorldId = playerWorldId,
             })
         );
 

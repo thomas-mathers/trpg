@@ -18,7 +18,7 @@ internal class InventoryTransferCommand
 internal class InventoryTransferCommandHandler(
     TrpgDbContext context,
     DomainEventTransactionRunner domainEventTransactions,
-    FindOrCreateGoldItemCommandHandler findOrCreateGoldItem
+    AddGoldCommandHandler addGold
 )
 {
     public async Task Handle(
@@ -168,10 +168,14 @@ internal class InventoryTransferCommandHandler(
     )
     {
         sourceGoldItem.Quantity -= amount;
-        var toGoldItem = await findOrCreateGoldItem.Handle(
-            new FindOrCreateGoldItemCommand { Owner = to, WorldId = sourceGoldItem.WorldId },
+        await addGold.Handle(
+            new AddGoldCommand
+            {
+                Amount = amount,
+                Owner = to,
+                WorldId = sourceGoldItem.WorldId,
+            },
             cancellationToken
         );
-        toGoldItem.Quantity += amount;
     }
 }

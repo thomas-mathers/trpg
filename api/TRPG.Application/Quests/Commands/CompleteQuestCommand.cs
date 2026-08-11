@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
@@ -15,7 +16,8 @@ internal class CompleteQuestCommand
 
 internal class CompleteQuestCommandHandler(
     TrpgDbContext context,
-    FindOrCreateGoldItemCommandHandler findOrCreateGoldItem
+    AddGoldCommandHandler addGold,
+    GetCreatureWorldIdQueryHandler getCreatureWorldId
 )
 {
     public async Task Handle(
@@ -23,19 +25,18 @@ internal class CompleteQuestCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var player = await context.Creatures.FindAsync([command.PlayerId], cancellationToken);
-        if (player is null)
-        {
-            throw new EntityNotFoundException("Player", command.PlayerId);
-        }
+        var playerWorldId = await getCreatureWorldId.Handle(
+            new GetCreatureWorldIdQuery { CreatureId = command.PlayerId },
+            cancellationToken
+        );
 
         var creatureQuest = await context
             .CreatureQuests.Include(quest => quest.Quest)
             .FirstOrDefaultAsync(
                 quest =>
-                    quest.CreatureId == player.Id
+                    quest.CreatureId == command.PlayerId
                     && quest.QuestId == command.QuestId
-                    && quest.WorldId == player.WorldId,
+                    && quest.WorldId == playerWorldId,
                 cancellationToken
             );
         if (creatureQuest is null)
@@ -48,15 +49,15 @@ internal class CompleteQuestCommandHandler(
             throw new InvalidOperationException("Quest objectives have not all been completed.");
         }
 
-        var gold = await findOrCreateGoldItem.Handle(
-            new FindOrCreateGoldItemCommand
+        await addGold.Handle(
+            new AddGoldCommand
             {
-                Owner = new ItemOwnerReference(player.Id, OwnerType.Creature),
-                WorldId = player.WorldId,
+                Amount = creatureQuest.Quest.GoldReward,
+                Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+                WorldId = playerWorldId,
             },
             cancellationToken
         );
-        gold.Quantity += creatureQuest.Quest.GoldReward;
         creatureQuest.Status = QuestStatus.Completed;
 
         await context.SaveChangesAsync(cancellationToken);
