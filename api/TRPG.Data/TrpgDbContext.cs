@@ -274,8 +274,28 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
 
         modelBuilder.Entity<QuestObjective>(entity =>
         {
+            entity
+                .HasDiscriminator<string>("objective_kind")
+                .HasValue<KillCreatureObjective>("KillCreature")
+                .HasValue<KillCreatureTypeObjective>("KillCreatureType")
+                .HasValue<CollectItemObjective>("CollectItem")
+                .HasValue<ExploreBuildingObjective>("ExploreBuilding")
+                .HasValue<ExploreCityObjective>("ExploreCity")
+                .HasValue<SpeakToCreatureObjective>("SpeakToCreature");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
+        });
+
+        modelBuilder.Entity<KillCreatureTypeObjective>(entity =>
+        {
+            entity
+                .Property(o => o.RequiredAmount)
+                .HasColumnName("kill_creature_type_required_amount");
+        });
+
+        modelBuilder.Entity<CollectItemObjective>(entity =>
+        {
+            entity.Property(o => o.RequiredAmount).HasColumnName("collect_item_required_amount");
         });
 
         modelBuilder.Entity<CreatureSkill>(entity =>
