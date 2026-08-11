@@ -221,6 +221,11 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Exception: a pure resolver/validator whose caller needs to turn failure into user-facing output without exception-driven control flow (e.g. a SignalR-streamed response) can return a small Result-style object instead of throwing — see `PlayerCombatActionResolver`'s `PlayerCombatActionResolverResult` (`Result`/`ErrorMessage`/`IsError`). Reserve this for that specific shape of caller, not general command/query handlers
 - No pre-checks for uniqueness — rely on DB constraints
 
+### Persistence
+- A command handler calls `SaveChangesAsync` before returning, so using a command in isolation always persists its operation.
+- A shared internal service or helper only changes tracked entities; its command-handler caller owns `SaveChangesAsync`.
+- A workflow that composes saving command handlers and requires atomicity uses `TransactionScope(TransactionScopeOption.Required, TransactionScopeAsyncFlowOption.Enabled)`. Nested workflows join the ambient transaction; its outermost `Complete()` is the atomic boundary.
+
 ### Patterns
 - `FindAsync([id], cancellationToken)` for PK lookups
 - `ExecuteDeleteAsync` for hard deletes

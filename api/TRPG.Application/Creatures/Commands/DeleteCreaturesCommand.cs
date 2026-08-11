@@ -1,3 +1,4 @@
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -22,8 +23,9 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
             return;
         }
 
-        await using var transaction = await context.Database.BeginTransactionAsync(
-            cancellationToken
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
         );
 
         await DeleteDirectReferences(ids, cancellationToken);
@@ -34,7 +36,7 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
             .Creatures.Where(c => ids.Contains(c.Id))
             .ExecuteDeleteAsync(cancellationToken);
 
-        await transaction.CommitAsync(cancellationToken);
+        transaction.Complete();
     }
 
     private async Task DeleteDirectReferences(

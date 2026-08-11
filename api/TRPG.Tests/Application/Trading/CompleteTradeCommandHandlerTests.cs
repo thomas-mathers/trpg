@@ -64,6 +64,7 @@ public sealed class CompleteTradeCommandHandlerTests(DatabaseFixture db) : IAsyn
         var command = new CompleteTradeCommand
         {
             PlayerId = _player.Id,
+            WorldId = WorldId,
             WorkstationId = _workstation.Id,
             PlayerOffer = [new ItemSelection(playerItem.Id, 1)],
             ShopOffer = [new ItemSelection(shopItem.Id, 1)],
@@ -105,6 +106,7 @@ public sealed class CompleteTradeCommandHandlerTests(DatabaseFixture db) : IAsyn
         var command = new CompleteTradeCommand
         {
             PlayerId = _player.Id,
+            WorldId = WorldId,
             WorkstationId = _workstation.Id,
             PlayerOffer = [new ItemSelection(playerItem.Id, 1)],
             ShopOffer = [new ItemSelection(shopItem.Id, 1)],

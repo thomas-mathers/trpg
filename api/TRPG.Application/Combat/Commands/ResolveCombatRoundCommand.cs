@@ -1,3 +1,4 @@
+using System.Transactions;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
@@ -5,7 +6,6 @@ using TRPG.Application.GameSessions;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Quests;
 using TRPG.Application.WeaponProficiency.Commands;
-using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Commands;
@@ -27,8 +27,7 @@ internal class ResolveCombatRoundCommandHandler(
     RemoveInventoryItemCommandHandler removeInventoryItem,
     EndFightCommandHandler endFight,
     IGameClientEventPublisher gameEvents,
-    QuestEventHandler questEvents,
-    TrpgDbContext context
+    QuestEventHandler questEvents
 )
 {
     public async Task<CombatResult> Handle(
@@ -36,8 +35,9 @@ internal class ResolveCombatRoundCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        await using var transaction = await context.Database.BeginTransactionAsync(
-            cancellationToken
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
         );
         var state = command.State;
 
@@ -132,7 +132,7 @@ internal class ResolveCombatRoundCommandHandler(
             );
         }
 
-        await transaction.CommitAsync(cancellationToken);
+        transaction.Complete();
         return state.ToCombatResult();
     }
 }

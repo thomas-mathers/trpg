@@ -1,3 +1,4 @@
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
@@ -23,8 +24,9 @@ internal class EndFightCommandHandler(
     {
         var state = command.State;
 
-        await using var transaction = await context.Database.BeginTransactionAsync(
-            cancellationToken
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
         );
 
         var playtime = await getPlaytime.Handle(
@@ -56,6 +58,6 @@ internal class EndFightCommandHandler(
                 cancellationToken
             );
 
-        await transaction.CommitAsync(cancellationToken);
+        transaction.Complete();
     }
 }

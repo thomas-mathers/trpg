@@ -7,7 +7,6 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Combat.Tools;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
@@ -20,6 +19,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Tools;
@@ -72,7 +72,10 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetInventorySummaryByOwnerQueryHandler>()
             .AddTransient<PreviewEquipItemStatsQueryHandler>()
             .AddTransient<PreviewEquipItemBasicAttackDamageQueryHandler>()
-            .AddTransient<InventoryTransferCommandHandler>()
+            .AddTransient<InventoryItemTransfer>()
+            .AddTransient<AddGoldCommandHandler>()
+            .AddTransient<ReceivePlayerInventoryCommandHandler>()
+            .AddTransient<TransferPlayerInventoryCommandHandler>()
             .AddTransient<TradeOfferValidator>()
             .AddTransient<TradeOfferEvaluator>()
             .AddTransient<ProposeTradeCommandHandler>()
