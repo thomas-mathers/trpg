@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
@@ -23,12 +24,18 @@ internal class ResolveCombatRoundCommandHandler(
     AdjustCreatureSkillsCommandHandler adjustCreatureSkills,
     RemoveInventoryItemCommandHandler removeInventoryItem,
     EndFightCommandHandler endFight,
-    IGameClientEventPublisher gameEvents
+    IGameClientEventPublisher gameEvents,
+    DomainEventTransactionRunner domainEventTransactions
 )
 {
     public async Task<CombatResult> Handle(
         ResolveCombatRoundCommand command,
         CancellationToken cancellationToken = default
+    ) => await domainEventTransactions.Run(command, HandleWithinTransaction, cancellationToken);
+
+    private async Task<GameActionResult<CombatResult>> HandleWithinTransaction(
+        ResolveCombatRoundCommand command,
+        CancellationToken cancellationToken
     )
     {
         var state = command.State;
@@ -107,6 +114,17 @@ internal class ResolveCombatRoundCommandHandler(
             }
         }
 
-        return state.ToCombatResult();
+        return new GameActionResult<CombatResult>(
+            state.ToCombatResult(),
+            command
+                .Combatants.Where(combatant => !combatant.IsPlayer && !combatant.IsAlive)
+                .Select(combatant => new CreatureKilledDomainEvent(
+                    command.PlayerId,
+                    command.WorldId,
+                    combatant.CreatureId,
+                    combatant.CreatureType
+                ))
+                .ToArray()
+        );
     }
 }
