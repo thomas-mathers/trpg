@@ -56,13 +56,5 @@ internal class MarkQuestsReadyToCompleteCommandHandler(TrpgDbContext context)
     }
 
     private static bool IsComplete(CreatureQuestObjective objective) =>
-        objective.Amount
-        >= (
-            objective.Objective switch
-            {
-                KillCreatureTypeObjective kill => kill.RequiredAmount,
-                CollectItemObjective collect => collect.RequiredAmount,
-                _ => 1,
-            }
-        );
+        objective.Amount >= objective.Objective.RequiredAmount;
 }

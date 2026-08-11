@@ -58,15 +58,7 @@ internal sealed class QuestEventHandler(
     }
 
     private static bool CanAdvance(CreatureQuestObjective objective) =>
-        objective.Amount < RequiredAmount(objective.Objective);
-
-    private static int RequiredAmount(QuestObjective objective) =>
-        objective switch
-        {
-            KillCreatureTypeObjective killCreatureType => killCreatureType.RequiredAmount,
-            CollectItemObjective collectItem => collectItem.RequiredAmount,
-            _ => 1,
-        };
+        objective.Amount < objective.Objective.RequiredAmount;
 
     private static bool Matches(QuestObjective objective, GameEvent gameEvent) =>
         (objective, gameEvent) switch

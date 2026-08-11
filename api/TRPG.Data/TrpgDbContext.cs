@@ -284,18 +284,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<SpeakToCreatureObjective>("SpeakToCreature");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
-        });
-
-        modelBuilder.Entity<KillCreatureTypeObjective>(entity =>
-        {
-            entity
-                .Property(o => o.RequiredAmount)
-                .HasColumnName("kill_creature_type_required_amount");
-        });
-
-        modelBuilder.Entity<CollectItemObjective>(entity =>
-        {
-            entity.Property(o => o.RequiredAmount).HasColumnName("collect_item_required_amount");
+            entity.Property(o => o.RequiredAmount).HasDefaultValue(1);
         });
 
         modelBuilder.Entity<CreatureSkill>(entity =>

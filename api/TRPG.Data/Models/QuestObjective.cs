@@ -7,6 +7,7 @@ public abstract class QuestObjective
     public Guid? LocationId { get; init; }
     public string Name { get; init; } = "";
     public Guid QuestId { get; init; }
+    public int RequiredAmount { get; init; } = 1;
     public Guid WorldId { get; init; }
 }
 
@@ -18,13 +19,11 @@ public sealed class KillCreatureObjective : QuestObjective
 public sealed class KillCreatureTypeObjective : QuestObjective
 {
     public CreatureType CreatureType { get; init; }
-    public int RequiredAmount { get; init; }
 }
 
 public sealed class CollectItemObjective : QuestObjective
 {
     public Guid ItemId { get; init; }
-    public int RequiredAmount { get; init; }
 }
 
 public sealed class ExploreBuildingObjective : QuestObjective

@@ -77,11 +77,6 @@ internal class GetQuestJournalQueryHandler(TrpgDbContext context)
             objective.Objective.Name,
             objective.Objective.Description,
             objective.Amount,
-            objective.Objective switch
-            {
-                KillCreatureTypeObjective kill => kill.RequiredAmount,
-                CollectItemObjective collect => collect.RequiredAmount,
-                _ => 1,
-            }
+            objective.Objective.RequiredAmount
         );
 }
