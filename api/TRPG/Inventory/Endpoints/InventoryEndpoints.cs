@@ -5,6 +5,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Quests.Queries;
 using TRPG.Application.Trading;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Inventory.Responses;
@@ -114,6 +115,7 @@ internal static class InventoryEndpoints
         Guid playerId,
         Guid workstationId,
         GetTradeQueryHandler getTrade,
+        GetActiveQuestItemIdsQueryHandler getActiveQuestItemIds,
         CancellationToken cancellationToken
     )
     {
@@ -121,8 +123,16 @@ internal static class InventoryEndpoints
             new GetTradeQuery { PlayerId = playerId, WorkstationId = workstationId },
             cancellationToken
         );
+        var questItemIds = await getActiveQuestItemIds.Handle(
+            new GetActiveQuestItemIdsQuery { PlayerId = playerId },
+            cancellationToken
+        );
+
         return TypedResults.Ok(
-            new TradeSnapshot(ToSummary(trade.PlayerInventory), ToSummary(trade.ShopInventory))
+            new TradeSnapshot(
+                ToSummary(trade.PlayerInventory, questItemIds),
+                ToSummary(trade.ShopInventory, [])
+            )
         );
     }
 
@@ -176,6 +186,8 @@ internal static class InventoryEndpoints
         return TypedResults.NoContent();
     }
 
-    private static InventorySummary ToSummary(InventorySnapshot snapshot) =>
-        new(snapshot.Gold, snapshot.Items.Select(CreatureEndpoints.ToItemDetail).ToArray());
+    private static InventorySummary ToSummary(
+        InventorySnapshot snapshot,
+        IReadOnlyCollection<Guid> questItemIds
+    ) => new(snapshot.Gold, CreatureEndpoints.ToItemDetails(snapshot.Items, questItemIds));
 }

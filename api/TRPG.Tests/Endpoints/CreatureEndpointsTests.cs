@@ -194,6 +194,74 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
     }
 
     [Fact]
+    public async Task GetInventory_FlagsItemsRequiredForActiveQuests()
+    {
+        // Arrange
+        var key = new Key
+        {
+            WorldId = _worldId,
+            Name = "Quest Key",
+            Description = "A key required for a quest.",
+            Quantity = 1,
+            Ownership = new ItemOwnership
+            {
+                OwnerId = _creature.Id,
+                OwnerType = OwnerType.Creature,
+            },
+        };
+        var quest = Builders.MakeQuest(_creature.Id, _worldId);
+        var objective = new CollectItemObjective
+        {
+            QuestId = quest.Id,
+            WorldId = _worldId,
+            Name = "Recover key",
+            Description = "Recover the key.",
+            ItemId = key.Id,
+        };
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            context.Items.Add(key);
+            context.Quests.Add(quest);
+            context.QuestObjectives.Add(objective);
+            context.CreatureQuests.Add(
+                new CreatureQuest
+                {
+                    CreatureId = _creature.Id,
+                    QuestId = quest.Id,
+                    Status = QuestStatus.Accepted,
+                    WorldId = _worldId,
+                }
+            );
+            context.CreatureQuestObjectives.Add(
+                new CreatureQuestObjective
+                {
+                    CreatureId = _creature.Id,
+                    ObjectiveId = objective.Id,
+                    Objective = objective,
+                    WorldId = _worldId,
+                }
+            );
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        // Act
+        var response = await _client.GetAsync(
+            "GetCreatureInventory",
+            new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<InventorySummary>(
+            TrpgJsonOptions.Default,
+            TestContext.Current.CancellationToken
+        );
+        Assert.True(Assert.Single(result!.Items).IsQuestItem);
+    }
+
+    [Fact]
     public async Task GetInventory_ReturnsEmpty_ForUnknownCreatureId()
     {
         // Act — no existence check by design; an unknown creature id just has no inventory

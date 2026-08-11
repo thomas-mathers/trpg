@@ -42,6 +42,8 @@ internal class CompleteQuestCommandHandler(TrpgDbContext context, AddGoldCommand
             throw new InvalidOperationException("Quest objectives have not all been completed.");
         }
 
+        await EnsureQuestItemsAreOwned(command, cancellationToken);
+
         using var transaction = new TransactionScope(
             TransactionScopeOption.Required,
             TransactionScopeAsyncFlowOption.Enabled
@@ -61,5 +63,33 @@ internal class CompleteQuestCommandHandler(TrpgDbContext context, AddGoldCommand
 
         await context.SaveChangesAsync(cancellationToken);
         transaction.Complete();
+    }
+
+    private async Task EnsureQuestItemsAreOwned(
+        CompleteQuestCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var requiredItemIds = await context
+            .QuestObjectives.OfType<CollectItemObjective>()
+            .Where(objective => objective.QuestId == command.QuestId)
+            .Select(objective => objective.ItemId)
+            .ToArrayAsync(cancellationToken);
+        var ownedItemIds = await context
+            .Items.Where(item =>
+                requiredItemIds.AsEnumerable().Contains(item.Id)
+                && item.Ownership.OwnerId == command.PlayerId
+                && item.Ownership.OwnerType == OwnerType.Creature
+            )
+            .Select(item => item.Id)
+            .ToArrayAsync(cancellationToken);
+        var missingItemIds = requiredItemIds.Except(ownedItemIds).ToArray();
+
+        if (missingItemIds.Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"Item {missingItemIds[0]} is required to complete this quest."
+            );
+        }
     }
 }

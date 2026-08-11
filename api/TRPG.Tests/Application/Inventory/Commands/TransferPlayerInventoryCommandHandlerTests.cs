@@ -71,4 +71,57 @@ public sealed class TransferPlayerInventoryCommandHandlerTests(DatabaseFixture d
         Assert.Equal(_container.Id, movedItem.Ownership.OwnerId);
         Assert.Equal(OwnerType.Container, movedItem.Ownership.OwnerType);
     }
+
+    [Fact]
+    public async Task Handle_Throws_WhenItemIsRequiredForAnActiveQuest()
+    {
+        // Arrange
+        var item = Builders.MakeItem(WorldId);
+        item.Ownership.OwnerId = _player.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        var quest = Builders.MakeQuest(Guid.NewGuid(), WorldId);
+        var objective = new CollectItemObjective
+        {
+            QuestId = quest.Id,
+            WorldId = WorldId,
+            Name = "Recover item",
+            Description = "Recover item",
+            ItemId = item.Id,
+        };
+        _context.Items.Add(item);
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = _player.Id,
+                QuestId = quest.Id,
+                Status = QuestStatus.Accepted,
+                WorldId = WorldId,
+            }
+        );
+        _context.CreatureQuestObjectives.Add(
+            new CreatureQuestObjective
+            {
+                CreatureId = _player.Id,
+                ObjectiveId = objective.Id,
+                Objective = objective,
+                WorldId = WorldId,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                new TransferPlayerInventoryCommand
+                {
+                    To = new ItemOwnerReference(_container.Id, OwnerType.Container),
+                    Items = [new ItemSelection(item.Id, 1)],
+                    PlayerId = _player.Id,
+                },
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
 }
