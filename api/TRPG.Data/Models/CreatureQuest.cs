@@ -13,6 +13,7 @@ public class CreatureQuest
 {
     public Guid CreatureId { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
+    public bool IsTracked { get; set; } = true;
     public Quest Quest { get; init; } = null!;
     public Guid QuestId { get; init; }
     public QuestStatus Status { get; set; }

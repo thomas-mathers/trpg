@@ -307,6 +307,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<CreatureQuest>(entity =>
         {
             entity.HasOne(pq => pq.Quest).WithMany().HasForeignKey(pq => pq.QuestId);
+            entity.Property(pq => pq.IsTracked).HasDefaultValue(true);
             entity.HasIndex(pq => new { pq.CreatureId, pq.QuestId }).IsUnique();
             entity.HasIndex(pq => pq.WorldId);
         });
