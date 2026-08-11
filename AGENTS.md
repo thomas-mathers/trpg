@@ -119,6 +119,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Prefer pure functions (static methods that depend only on their parameters and return a value with no side effects) where possible
 - Keep functions under 40 lines; if a function exceeds this, extract helpers
 - Avoid flag parameters that switch behavior (e.g. `bool verbose`) on new code — prefer two separate, differently-named methods over one method with a branching bool
+- Separate a batch mutation into validation, mutation, and post-mutation reconciliation; do not interleave all three in one loop.
 
 ### Null handling
 - `null!` for fields initialized in `InitializeAsync` (not inline)
@@ -193,10 +194,12 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Don't mix the two within one method, and don't let a second no-tracking-fetched copy of an already-tracked row get `.Update()`-ed — EF throws "another instance with the same key value is already being tracked"
 - Watch for cross-service ordering/identity assumptions when two methods touch the same row through separate queries on the same `DbContext` — don't rely on the identity map coincidentally handing back the same in-memory object; make any mutating call run before a dependent read, and don't hold a pre-fetched entity/list across a call to another method that independently re-fetches-mutates-saves that same row
 - When a row needs both a cheap read accessor and a targeted write, give the write its own `ExecuteUpdateAsync` query rather than making the read accessor tracked to accommodate a fetch-then-mutate write
+- For a batch lookup by identifier, materialize the rows once as a dictionary, validate missing identifiers as a set, then use direct dictionary access during execution.
 
 ### Command input shape
 - A command class takes scalar ids/values, not a full domain entity — the one exception is a pure creation command (`Add*Command`) that only ever calls `.Add()`, since there's no pre-existing tracked row for a brand-new entity to conflict with
 - A command receives only identifiers that independently define or authorize its operation. Do not carry a related identifier solely to revalidate a relationship or duplicate a route identifier in the request body.
+- When a batch command accepts quantities by identifier, aggregate duplicate identifiers and validate every requested total before mutating tracked entities.
 - Never accept a full entity as a command property and call `.Update()` on it — the entity's tracking state depends entirely on how the caller happened to fetch it, and a second tracked copy of the same row anywhere else in the same `DbContext` throws "another instance with the same key value is already being tracked"; use `ExecuteUpdateAsync` with named `SetProperty` calls instead
 - For a command that may only partially update a row, use `Optional<T>` (`TRPG.Application/Common/Optional.cs`) for any field that's already nullable in the domain — a plain `T?` can't distinguish "leave this alone" from "set it to null". A field that's never legitimately null (e.g. an enum status) can stay a plain `T?` on the command
 - Build the `ExecuteUpdateAsync` call as a block-bodied lambda (EF Core 10+) and only call `s.SetProperty(...)` for fields the command actually set — `if (command.State != null) { s.SetProperty(c => c.State, command.State.Value); }`, `if (command.CityId.IsSet) { s.SetProperty(c => c.CityId, command.CityId.Value); }` — rather than the old pattern of unconditionally chaining every `SetProperty` and null-coalescing against the row's own current value (`c => command.State ?? c.State`); the old pattern always wrote every column, whether the caller set that field or not. `ExecuteUpdateAsync` throws if the lambda ends up calling `SetProperty` zero times, so guard the call (or return early) when every optional field on the command is unset
@@ -223,7 +226,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 
 ### Persistence
 - A command handler calls `SaveChangesAsync` before returning, so using a command in isolation always persists its operation.
-- A shared internal service or helper only changes tracked entities; its command-handler caller owns `SaveChangesAsync`.
+- A shared internal service or helper normally only changes tracked entities; a reusable transactional operation may invoke a saving command handler, but only from within an ambient `TransactionScope` owned by its command-handler caller.
 - A workflow that composes saving command handlers and requires atomicity uses `TransactionScope(TransactionScopeOption.Required, TransactionScopeAsyncFlowOption.Enabled)`. Nested workflows join the ambient transaction; its outermost `Complete()` is the atomic boundary.
 
 ### Patterns

@@ -18,7 +18,6 @@ internal class ReceivePlayerInventoryCommand
 internal class ReceivePlayerInventoryCommandHandler(
     TrpgDbContext context,
     InventoryItemTransfer itemTransfer,
-    AddGoldCommandHandler addGold,
     QuestEventHandler questEvents
 )
 {
@@ -27,34 +26,19 @@ internal class ReceivePlayerInventoryCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        if (command.Items.Count == 0)
+        {
+            return;
+        }
+
         using var transaction = new TransactionScope(
             TransactionScopeOption.Required,
             TransactionScopeAsyncFlowOption.Enabled
         );
 
         var playerOwner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature);
-        var goldTransfers =
-            command.Items.Count == 0
-                ? []
-                : await itemTransfer.Transfer(
-                    command.From,
-                    playerOwner,
-                    command.Items,
-                    cancellationToken
-                );
 
-        foreach (var goldTransfer in goldTransfers)
-        {
-            await addGold.Handle(
-                new AddGoldCommand
-                {
-                    Owner = goldTransfer.To,
-                    WorldId = goldTransfer.WorldId,
-                    Amount = goldTransfer.Amount,
-                },
-                cancellationToken
-            );
-        }
+        await itemTransfer.Transfer(command.From, playerOwner, command.Items, cancellationToken);
 
         await context.SaveChangesAsync(cancellationToken);
 

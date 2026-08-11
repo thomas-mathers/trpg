@@ -1,64 +1,83 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory;
 
-internal record GoldTransfer(Guid WorldId, ItemOwnerReference To, int Amount);
-
-internal class InventoryItemTransfer(TrpgDbContext context)
+internal class InventoryItemTransfer(TrpgDbContext context, AddGoldCommandHandler addGold)
 {
-    public async Task<IReadOnlyCollection<GoldTransfer>> Transfer(
+    public async Task Transfer(
         ItemOwnerReference from,
         ItemOwnerReference to,
         IReadOnlyList<ItemSelection> selections,
         CancellationToken cancellationToken = default
     )
     {
-        var goldTransfers = new List<GoldTransfer>();
-        var itemIds = selections.Select(item => item.ItemId).ToArray();
+        var transferItems = await ValidateTransfer(from, selections, cancellationToken);
+        await MoveItems(transferItems, to, cancellationToken);
+        await RecalculateSourceAttributes(from, cancellationToken);
+    }
 
-        var items = await context
-            .Items.Where(item => itemIds.AsEnumerable().Contains(item.Id))
-            .ToListAsync(cancellationToken);
+    private async Task<IReadOnlyCollection<TransferItem>> ValidateTransfer(
+        ItemOwnerReference from,
+        IReadOnlyList<ItemSelection> selections,
+        CancellationToken cancellationToken
+    )
+    {
+        var quantitiesByItemId = selections
+            .GroupBy(selection => selection.ItemId)
+            .ToDictionary(group => group.Key, group => group.Sum(selection => selection.Quantity));
 
-        foreach (var selection in selections)
+        var itemsById = await context
+            .Items.Where(item => quantitiesByItemId.Keys.AsEnumerable().Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+
+        var missingItemIds = quantitiesByItemId.Keys.Except(itemsById.Keys).ToArray();
+
+        if (missingItemIds.Length > 0)
         {
-            var item =
-                items.FirstOrDefault(item => item.Id == selection.ItemId)
-                ?? throw new InvalidOperationException(
-                    $"Item {selection.ItemId} not found in {from.Type} {from.Id}'s inventory."
-                );
+            throw new InvalidOperationException(
+                $"Item {missingItemIds[0]} not found in {from.Type} {from.Id}'s inventory."
+            );
+        }
 
-            if (item.Ownership.OwnerId != from.Id || item.Ownership.OwnerType != from.Type)
-            {
-                throw new InvalidOperationException(
-                    $"Item {selection.ItemId} is not owned by {from.Type} {from.Id}."
-                );
-            }
+        var transferItems = new List<TransferItem>();
 
-            if (selection.Quantity <= 0 || selection.Quantity > item.Quantity)
-            {
-                throw new InvalidOperationException(
-                    $"Cannot transfer {selection.Quantity} of item {selection.ItemId}; only {item.Quantity} available."
-                );
-            }
+        foreach (var (itemId, quantity) in quantitiesByItemId)
+        {
+            var item = itemsById[itemId];
+            ValidateItem(item, itemId, quantity, from);
+            transferItems.Add(new TransferItem(item, quantity));
+        }
 
-            if (selection.Quantity < item.Quantity && !ItemStackability.IsStackable(item))
-            {
-                throw new InvalidOperationException(
-                    $"Cannot partially transfer non-stackable item {selection.ItemId}."
-                );
-            }
+        return transferItems;
+    }
 
+    private async Task MoveItems(
+        IReadOnlyCollection<TransferItem> transferItems,
+        ItemOwnerReference to,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var (item, quantity) in transferItems)
+        {
             if (item is Gold goldItem)
             {
-                goldItem.Quantity -= selection.Quantity;
-                goldTransfers.Add(new GoldTransfer(goldItem.WorldId, to, selection.Quantity));
+                goldItem.Quantity -= quantity;
+                await addGold.Handle(
+                    new AddGoldCommand
+                    {
+                        Owner = to,
+                        WorldId = goldItem.WorldId,
+                        Amount = quantity,
+                    },
+                    cancellationToken
+                );
             }
-            else if (selection.Quantity == item.Quantity)
+            else if (quantity == item.Quantity)
             {
                 item.Ownership.OwnerId = to.Id;
                 item.Ownership.OwnerType = to.Type;
@@ -67,20 +86,48 @@ internal class InventoryItemTransfer(TrpgDbContext context)
             }
             else
             {
-                item.Quantity -= selection.Quantity;
-                context.Items.Add(
-                    ItemEquipmentPolicy.Split(item, selection.Quantity, to.Id, to.Type)
-                );
+                item.Quantity -= quantity;
+                context.Items.Add(ItemEquipmentPolicy.Split(item, quantity, to.Id, to.Type));
             }
         }
+    }
 
+    private static void ValidateItem(Item item, Guid itemId, int quantity, ItemOwnerReference from)
+    {
+        if (item.Ownership.OwnerId != from.Id || item.Ownership.OwnerType != from.Type)
+        {
+            throw new InvalidOperationException(
+                $"Item {itemId} is not owned by {from.Type} {from.Id}."
+            );
+        }
+
+        if (quantity <= 0 || quantity > item.Quantity)
+        {
+            throw new InvalidOperationException(
+                $"Cannot transfer {quantity} of item {itemId}; only {item.Quantity} available."
+            );
+        }
+
+        if (quantity < item.Quantity && !ItemStackability.IsStackable(item))
+        {
+            throw new InvalidOperationException(
+                $"Cannot partially transfer non-stackable item {itemId}."
+            );
+        }
+    }
+
+    private async Task RecalculateSourceAttributes(
+        ItemOwnerReference from,
+        CancellationToken cancellationToken
+    )
+    {
         if (from.Type == OwnerType.Creature)
         {
             await RecalculateCreatureAttributes(from.Id, cancellationToken);
         }
-
-        return goldTransfers;
     }
+
+    private sealed record TransferItem(Item Item, int Quantity);
 
     private async Task RecalculateCreatureAttributes(
         Guid creatureId,

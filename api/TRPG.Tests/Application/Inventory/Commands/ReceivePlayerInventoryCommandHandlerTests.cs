@@ -303,6 +303,27 @@ public sealed class ReceivePlayerInventoryCommandHandlerTests(DatabaseFixture db
     }
 
     [Fact]
+    public async Task Handle_Throws_WhenDuplicateSelectionsExceedAvailableQuantity()
+    {
+        // Arrange
+        var item = await SeedAmmunitionOnFromCreature(quantity: 3);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _receiveHandler.Handle(
+                new ReceivePlayerInventoryCommand
+                {
+                    From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                    Items = [new ItemSelection(item.Id, 2), new ItemSelection(item.Id, 2)],
+                    PlayerId = _player.Id,
+                    WorldId = WorldId,
+                },
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
     public async Task Handle_MovesSelectedItems_FromContainerToPlayer()
     {
         // Arrange
