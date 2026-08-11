@@ -7,6 +7,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Combat.Tools;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
@@ -46,6 +47,7 @@ public static class ServiceCollectionExtensions
         return serviceCollection
             .AddMemoryCache()
             .AddScoped<GameTurnContext>()
+            .AddTransient<DomainEventTransactionRunner>()
             .AddTransient<AddBuildingOwnerCommandHandler>()
             .AddTransient<RemoveBuildingOwnerCommandHandler>()
             .AddTransient<SetWorkstationOccupantCommandHandler>()
