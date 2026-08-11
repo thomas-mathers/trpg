@@ -27,6 +27,7 @@ internal sealed class QuestEventHandler(
                 )
             )
             .ToListAsync(cancellationToken);
+
         var progressedObjectives = objectives
             .Where(objective => Matches(objective.Objective, gameEvent))
             .Where(CanAdvance)
@@ -53,7 +54,9 @@ internal sealed class QuestEventHandler(
             },
             cancellationToken
         );
+
         await context.SaveChangesAsync(cancellationToken);
+
         gameEvents.Publish(new QuestJournalUpdatedEvent());
     }
 

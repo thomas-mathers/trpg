@@ -31,11 +31,13 @@ internal class MarkQuestsReadyToCompleteCommandHandler(TrpgDbContext context)
                 && command.QuestIds.Contains(progress.Objective.QuestId)
             )
             .ToArrayAsync(cancellationToken);
+
         var readyQuestIds = objectives
             .GroupBy(progress => progress.Objective.QuestId)
             .Where(group => group.All(IsComplete))
             .Select(group => group.Key)
             .ToArray();
+
         if (readyQuestIds.Length == 0)
         {
             return;
@@ -46,9 +48,10 @@ internal class MarkQuestsReadyToCompleteCommandHandler(TrpgDbContext context)
                 quest.CreatureId == command.PlayerId
                 && quest.WorldId == command.WorldId
                 && quest.Status == QuestStatus.Accepted
-                && readyQuestIds.Contains(quest.QuestId)
+                && readyQuestIds.AsEnumerable().Contains(quest.QuestId)
             )
             .ToListAsync(cancellationToken);
+
         foreach (var quest in quests)
         {
             quest.Status = QuestStatus.ReadyToComplete;

@@ -29,6 +29,7 @@ internal class SetQuestTrackingCommandHandler(TrpgDbContext context)
                 setters => setters.SetProperty(quest => quest.IsTracked, command.IsTracked),
                 cancellationToken
             );
+
         if (updated == 0)
         {
             throw new EntityNotFoundException("Quest", command.QuestId);
