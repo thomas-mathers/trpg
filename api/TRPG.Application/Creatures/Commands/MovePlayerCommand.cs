@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
@@ -20,6 +21,7 @@ internal class MovePlayerCommand
 internal record MovePlayerResult(EntryOutcome Outcome, Creature Player);
 
 internal class MovePlayerCommandHandler(
+    DomainEventTransactionRunner domainEventTransactions,
     GetCreatureByIdQueryHandler getCreatureById,
     GetLocationByIdQueryHandler getLocationById,
     GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
@@ -33,9 +35,14 @@ internal class MovePlayerCommandHandler(
     ILogger<MovePlayerCommandHandler> logger
 )
 {
-    public async Task<MovePlayerResult> Handle(
+    public Task<MovePlayerResult> Handle(
         MovePlayerCommand command,
         CancellationToken cancellationToken = default
+    ) => domainEventTransactions.Run(command, HandleWithinTransaction, cancellationToken);
+
+    private async Task<GameActionResult<MovePlayerResult>> HandleWithinTransaction(
+        MovePlayerCommand command,
+        CancellationToken cancellationToken
     )
     {
         var player = await getCreatureById.Handle(
@@ -54,7 +61,10 @@ internal class MovePlayerCommandHandler(
 
         if (outcome != EntryOutcome.Entered)
         {
-            return new MovePlayerResult(outcome, player);
+            return new GameActionResult<MovePlayerResult>(
+                Result: new MovePlayerResult(outcome, player),
+                DomainEvents: []
+            );
         }
 
         await CleanUpDeadCreatures(player.WorldId, oldLocationId, cancellationToken);
@@ -68,7 +78,17 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        return new MovePlayerResult(EntryOutcome.Entered, player);
+        return new GameActionResult<MovePlayerResult>(
+            Result: new MovePlayerResult(EntryOutcome.Entered, player),
+            DomainEvents:
+            [
+                new PlayerEnteredLocationDomainEvent(
+                    PlayerId: player.Id,
+                    WorldId: player.WorldId,
+                    LocationId: player.LocationId
+                ),
+            ]
+        );
     }
 
     private async Task CleanUpDeadCreatures(
