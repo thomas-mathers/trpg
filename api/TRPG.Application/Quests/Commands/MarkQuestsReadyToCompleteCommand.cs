@@ -8,6 +8,7 @@ internal class MarkQuestsReadyToCompleteCommand
 {
     public required Guid PlayerId { get; init; }
     public required IReadOnlyCollection<Guid> QuestIds { get; init; }
+    public required Guid WorldId { get; init; }
 }
 
 internal class MarkQuestsReadyToCompleteCommandHandler(TrpgDbContext context)
@@ -26,6 +27,7 @@ internal class MarkQuestsReadyToCompleteCommandHandler(TrpgDbContext context)
             .CreatureQuestObjectives.Include(progress => progress.Objective)
             .Where(progress =>
                 progress.CreatureId == command.PlayerId
+                && progress.WorldId == command.WorldId
                 && command.QuestIds.Contains(progress.Objective.QuestId)
             )
             .ToArrayAsync(cancellationToken);
@@ -42,6 +44,7 @@ internal class MarkQuestsReadyToCompleteCommandHandler(TrpgDbContext context)
         var quests = await context
             .CreatureQuests.Where(quest =>
                 quest.CreatureId == command.PlayerId
+                && quest.WorldId == command.WorldId
                 && quest.Status == QuestStatus.Accepted
                 && readyQuestIds.Contains(quest.QuestId)
             )

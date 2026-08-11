@@ -47,6 +47,7 @@ internal sealed class QuestObjectiveDomainEventListener(
                 QuestIds = progressedObjectives
                     .Select(objective => objective.Objective.QuestId)
                     .ToArray(),
+                WorldId = gameEvent.WorldId,
             },
             cancellationToken
         );
