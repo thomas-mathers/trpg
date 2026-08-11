@@ -23,6 +23,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Tools;
+using TRPG.Application.Quests.Commands;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Scenes.Commands;
@@ -124,6 +125,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetAbilitiesBySkillQueryHandler>()
             .AddTransient<GetCreatureKnowledgeQueryHandler>()
             .AddTransient<AdjustReputationCommandHandler>()
+            .AddTransient<AcceptQuestCommandHandler>()
             .AddTransient<GetAllReputationsByCreatureIdQueryHandler>()
             .AddTransient<GetEffectiveReputationQueryHandler>()
             .AddTransient<GetEffectiveReputationsQueryHandler>()
