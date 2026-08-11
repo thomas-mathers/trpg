@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -8,6 +7,7 @@ namespace TRPG.Application.Quests.Queries;
 internal class GetQuestJournalQuery
 {
     public required Guid PlayerId { get; init; }
+    public required Guid WorldId { get; init; }
 }
 
 internal record QuestObjectiveProgress(
@@ -27,30 +27,23 @@ internal record QuestJournalEntry(
     IReadOnlyCollection<QuestObjectiveProgress> Objectives
 );
 
-internal class GetQuestJournalQueryHandler(
-    TrpgDbContext context,
-    GetCreatureWorldIdQueryHandler getCreatureWorldId
-)
+internal class GetQuestJournalQueryHandler(TrpgDbContext context)
 {
     public async Task<IReadOnlyCollection<QuestJournalEntry>> Handle(
         GetQuestJournalQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var playerWorldId = await getCreatureWorldId.Handle(
-            new GetCreatureWorldIdQuery { CreatureId = query.PlayerId },
-            cancellationToken
-        );
         var quests = await context
             .CreatureQuests.AsNoTracking()
             .Include(creatureQuest => creatureQuest.Quest)
             .Where(creatureQuest =>
-                creatureQuest.CreatureId == query.PlayerId && creatureQuest.WorldId == playerWorldId
+                creatureQuest.CreatureId == query.PlayerId && creatureQuest.WorldId == query.WorldId
             )
             .OrderBy(creatureQuest => creatureQuest.Status)
             .ThenBy(creatureQuest => creatureQuest.Quest.Name)
             .ToArrayAsync(cancellationToken);
-        var objectives = await GetObjectives(query.PlayerId, playerWorldId, cancellationToken);
+        var objectives = await GetObjectives(query.PlayerId, query.WorldId, cancellationToken);
         var objectivesByQuestId = objectives
             .GroupBy(objective => objective.Objective.QuestId)
             .ToDictionary(group => group.Key, group => group.Select(ToProgress).ToArray());

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,28 +10,21 @@ internal class SetQuestTrackingCommand
     public required bool IsTracked { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid QuestId { get; init; }
+    public required Guid WorldId { get; init; }
 }
 
-internal class SetQuestTrackingCommandHandler(
-    TrpgDbContext context,
-    GetCreatureWorldIdQueryHandler getCreatureWorldId
-)
+internal class SetQuestTrackingCommandHandler(TrpgDbContext context)
 {
     public async Task Handle(
         SetQuestTrackingCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var playerWorldId = await getCreatureWorldId.Handle(
-            new GetCreatureWorldIdQuery { CreatureId = command.PlayerId },
-            cancellationToken
-        );
-
         var updated = await context
             .CreatureQuests.Where(quest =>
                 quest.CreatureId == command.PlayerId
                 && quest.QuestId == command.QuestId
-                && quest.WorldId == playerWorldId
+                && quest.WorldId == command.WorldId
             )
             .ExecuteUpdateAsync(
                 setters => setters.SetProperty(quest => quest.IsTracked, command.IsTracked),

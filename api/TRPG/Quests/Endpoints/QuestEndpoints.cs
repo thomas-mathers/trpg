@@ -26,12 +26,13 @@ internal static class QuestEndpoints
 
     private static async Task<Ok<QuestJournalEntrySnapshot[]>> GetQuestJournal(
         Guid playerId,
+        Guid worldId,
         GetQuestJournalQueryHandler getQuestJournal,
         CancellationToken cancellationToken
     )
     {
         var quests = await getQuestJournal.Handle(
-            new GetQuestJournalQuery { PlayerId = playerId },
+            new GetQuestJournalQuery { PlayerId = playerId, WorldId = worldId },
             cancellationToken
         );
         return TypedResults.Ok(
@@ -59,12 +60,18 @@ internal static class QuestEndpoints
     private static async Task<NoContent> AcceptQuest(
         Guid playerId,
         Guid questId,
+        Guid worldId,
         AcceptQuestCommandHandler acceptQuest,
         CancellationToken cancellationToken
     )
     {
         await acceptQuest.Handle(
-            new AcceptQuestCommand { PlayerId = playerId, QuestId = questId },
+            new AcceptQuestCommand
+            {
+                PlayerId = playerId,
+                QuestId = questId,
+                WorldId = worldId,
+            },
             cancellationToken
         );
         return TypedResults.NoContent();
@@ -73,12 +80,18 @@ internal static class QuestEndpoints
     private static async Task<NoContent> CompleteQuest(
         Guid playerId,
         Guid questId,
+        Guid worldId,
         CompleteQuestCommandHandler completeQuest,
         CancellationToken cancellationToken
     )
     {
         await completeQuest.Handle(
-            new CompleteQuestCommand { PlayerId = playerId, QuestId = questId },
+            new CompleteQuestCommand
+            {
+                PlayerId = playerId,
+                QuestId = questId,
+                WorldId = worldId,
+            },
             cancellationToken
         );
         return TypedResults.NoContent();
@@ -87,6 +100,7 @@ internal static class QuestEndpoints
     private static async Task<NoContent> SetTracking(
         Guid playerId,
         Guid questId,
+        Guid worldId,
         SetQuestTrackingRequest request,
         SetQuestTrackingCommandHandler setQuestTracking,
         CancellationToken cancellationToken
@@ -97,6 +111,7 @@ internal static class QuestEndpoints
             {
                 PlayerId = playerId,
                 QuestId = questId,
+                WorldId = worldId,
                 IsTracked = request.IsTracked,
             },
             cancellationToken

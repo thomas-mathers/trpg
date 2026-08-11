@@ -115,7 +115,6 @@ public static class ServiceCollectionExtensions
             .AddTransient<ApplyPassiveRegenCommandHandler>()
             .AddTransient<DeleteCreaturesCommandHandler>()
             .AddTransient<GetCreatureByIdQueryHandler>()
-            .AddTransient<GetCreatureWorldIdQueryHandler>()
             .AddTransient<GetCreaturesByIdsQueryHandler>()
             .AddTransient<GetAllCreaturesInStateQueryHandler>()
             .AddTransient<GetCreatureIdsByDistrictQueryHandler>()

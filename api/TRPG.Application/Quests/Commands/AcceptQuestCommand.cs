@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -10,25 +9,18 @@ internal class AcceptQuestCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid QuestId { get; init; }
+    public required Guid WorldId { get; init; }
 }
 
-internal class AcceptQuestCommandHandler(
-    TrpgDbContext context,
-    GetCreatureWorldIdQueryHandler getCreatureWorldId
-)
+internal class AcceptQuestCommandHandler(TrpgDbContext context)
 {
     public async Task Handle(
         AcceptQuestCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var playerWorldId = await getCreatureWorldId.Handle(
-            new GetCreatureWorldIdQuery { CreatureId = command.PlayerId },
-            cancellationToken
-        );
-
         var quest = await context.Quests.FirstOrDefaultAsync(
-            quest => quest.Id == command.QuestId && quest.WorldId == playerWorldId,
+            quest => quest.Id == command.QuestId && quest.WorldId == command.WorldId,
             cancellationToken
         );
         if (quest is null)
@@ -62,7 +54,7 @@ internal class AcceptQuestCommandHandler(
                 QuestId = quest.Id,
                 Status = QuestStatus.Accepted,
                 IsTracked = true,
-                WorldId = playerWorldId,
+                WorldId = command.WorldId,
             }
         );
         context.CreatureQuestObjectives.AddRange(
@@ -71,7 +63,7 @@ internal class AcceptQuestCommandHandler(
                 CreatureId = command.PlayerId,
                 ObjectiveId = objectiveId,
                 Amount = 0,
-                WorldId = playerWorldId,
+                WorldId = command.WorldId,
             })
         );
 

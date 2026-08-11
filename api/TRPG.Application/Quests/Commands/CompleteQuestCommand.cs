@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
@@ -12,31 +11,23 @@ internal class CompleteQuestCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid QuestId { get; init; }
+    public required Guid WorldId { get; init; }
 }
 
-internal class CompleteQuestCommandHandler(
-    TrpgDbContext context,
-    AddGoldCommandHandler addGold,
-    GetCreatureWorldIdQueryHandler getCreatureWorldId
-)
+internal class CompleteQuestCommandHandler(TrpgDbContext context, AddGoldCommandHandler addGold)
 {
     public async Task Handle(
         CompleteQuestCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var playerWorldId = await getCreatureWorldId.Handle(
-            new GetCreatureWorldIdQuery { CreatureId = command.PlayerId },
-            cancellationToken
-        );
-
         var creatureQuest = await context
             .CreatureQuests.Include(quest => quest.Quest)
             .FirstOrDefaultAsync(
                 quest =>
                     quest.CreatureId == command.PlayerId
                     && quest.QuestId == command.QuestId
-                    && quest.WorldId == playerWorldId,
+                    && quest.WorldId == command.WorldId,
                 cancellationToken
             );
         if (creatureQuest is null)
@@ -54,7 +45,7 @@ internal class CompleteQuestCommandHandler(
             {
                 Amount = creatureQuest.Quest.GoldReward,
                 Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
-                WorldId = playerWorldId,
+                WorldId = command.WorldId,
             },
             cancellationToken
         );
