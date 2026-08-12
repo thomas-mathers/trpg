@@ -109,7 +109,8 @@ public class CityGenerator(
                 UsedBuildingNames = usedBuildingNames,
             },
             IdleCandidates = input
-                .Districts.Select(d => new IdleCandidate(
+                .Districts.Where(d => d.DistrictType != DistrictType.CityEntrance)
+                .Select(d => new IdleCandidate(
                     d.LocationId,
                     int.MaxValue,
                     DistrictGenerator.Popularity[d.DistrictType],

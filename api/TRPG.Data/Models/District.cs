@@ -5,6 +5,7 @@ public enum DistrictType
     Residential,
     Scientific,
     CityCenter,
+    CityEntrance,
     Governmental,
     HolySite,
     Encampment,

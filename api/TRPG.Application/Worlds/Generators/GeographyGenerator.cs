@@ -201,6 +201,7 @@ public class GeographyGenerator(
     [
         DistrictType.Residential,
         DistrictType.CityCenter,
+        DistrictType.CityEntrance,
     ];
 
     private static readonly DistrictType[] OptionalDistrictTypes =
@@ -366,7 +367,10 @@ public class GeographyGenerator(
                 var state = new State
                 {
                     CountryId = country.Id,
-                    Name = $"Wilderness {j + 1}",
+                    Name = SettlementNameGenerator.GenerateWildernessName(
+                        dominantRace,
+                        GetConnectedStateNames(mapState.Id, context.Map.Roads, stateById)
+                    ),
                     Description = "An untamed wilderness region.",
                     Width = CityTileSize,
                     Height = CityTileSize,
@@ -393,6 +397,23 @@ public class GeographyGenerator(
         );
     }
 
+    private static HashSet<string> GetConnectedStateNames(
+        Guid mapStateId,
+        IReadOnlyCollection<MapRoad> roads,
+        IReadOnlyDictionary<Guid, State> stateById
+    ) =>
+        roads
+            .Where(road =>
+                road.OriginStateId == mapStateId || road.DestinationStateId == mapStateId
+            )
+            .Select(road =>
+                road.OriginStateId == mapStateId ? road.DestinationStateId : road.OriginStateId
+            )
+            .Select(stateById.GetValueOrDefault)
+            .Where(state => state is not null)
+            .Select(state => state!.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
     private static string CreateCityDescription(
         string cityName,
         Country country,
@@ -414,6 +435,7 @@ public class GeographyGenerator(
             DistrictType.Residential => "a residential district",
             DistrictType.Scientific => "a scientific district",
             DistrictType.CityCenter => "a city center",
+            DistrictType.CityEntrance => "a city entrance",
             DistrictType.Governmental => "a governmental district",
             DistrictType.HolySite => "a holy site",
             DistrictType.Encampment => "an encampment",

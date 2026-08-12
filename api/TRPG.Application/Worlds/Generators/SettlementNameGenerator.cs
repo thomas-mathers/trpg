@@ -16,6 +16,16 @@ internal static class SettlementNameGenerator
         "Crossing",
     ];
 
+    private static readonly string[] WildernessNouns =
+    [
+        "Wilds",
+        "Reach",
+        "Marches",
+        "Hinterlands",
+        "Woods",
+        "Moors",
+    ];
+
     private static readonly Dictionary<BuildingType, string[]> BuildingNouns = new()
     {
         [BuildingType.ArcaneShop] = ["Sigil", "Grimoire", "Rune", "Relic", "Ward", "Charm", "Tome"],
@@ -346,6 +356,30 @@ internal static class SettlementNameGenerator
         var fallback = $"Road {existingNames.Count + 1}";
         existingNames.Add(fallback);
         return fallback;
+    }
+
+    public static string GenerateWildernessName(CreatureType race, ISet<string> excludedNames)
+    {
+        var pool = Pools[race];
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            var prefix = pool.Prefixes[Random.Shared.Next(pool.Prefixes.Length)];
+            var noun = WildernessNouns[Random.Shared.Next(WildernessNouns.Length)];
+            var name = $"{prefix} {noun}";
+            if (!excludedNames.Contains(name))
+            {
+                return name;
+            }
+        }
+
+        for (var index = 1; ; index++)
+        {
+            var fallback = $"The {pool.Prefixes[0]} Wilds {index}";
+            if (!excludedNames.Contains(fallback))
+            {
+                return fallback;
+            }
+        }
     }
 
     private record NamePool(string[] Prefixes, string[] Suffixes);

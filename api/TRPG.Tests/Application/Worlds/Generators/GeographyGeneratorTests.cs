@@ -59,7 +59,37 @@ public class GeographyGeneratorTests
                     StringComparison.Ordinal
                 );
                 Assert.Contains("a city center", city.Description, StringComparison.Ordinal);
+                Assert.Contains("a city entrance", city.Description, StringComparison.Ordinal);
+                Assert.Contains(
+                    result.Districts,
+                    district =>
+                        district.CityId == city.Id
+                        && district.DistrictType == DistrictType.CityEntrance
+                );
+
+                var cityEntrance = result.Districts.Single(district =>
+                    district.CityId == city.Id && district.DistrictType == DistrictType.CityEntrance
+                );
+                var cityCenter = result.Districts.Single(district =>
+                    district.CityId == city.Id && district.DistrictType == DistrictType.CityCenter
+                );
+                Assert.Contains(
+                    result.LocationConnectors,
+                    connector =>
+                        connector.OriginLocationId == cityEntrance.LocationId
+                        && connector.DestinationLocationId == cityCenter.LocationId
+                );
+                Assert.Contains(
+                    result.LocationConnectors,
+                    connector =>
+                        connector.OriginLocationId == cityCenter.LocationId
+                        && connector.DestinationLocationId == cityEntrance.LocationId
+                );
             }
+        );
+        Assert.All(
+            result.States.Where(state => result.Cities.All(city => city.StateId != state.Id)),
+            state => Assert.False(state.Name.StartsWith("Wilderness ", StringComparison.Ordinal))
         );
     }
 

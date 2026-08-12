@@ -7,7 +7,8 @@ internal static class WildernessConnectorGenerator
     private const int TravelTimeHours = 1;
 
     public static WildernessConnectorGeneratorResult Generate(
-        District cityCenterDistrict,
+        City city,
+        District cityEntranceDistrict,
         Location wildernessLocation,
         Guid worldId
     )
@@ -16,7 +17,7 @@ internal static class WildernessConnectorGenerator
         [
             new LocationConnector
             {
-                OriginLocationId = cityCenterDistrict.LocationId,
+                OriginLocationId = cityEntranceDistrict.LocationId,
                 DestinationLocationId = wildernessLocation.Id,
                 Name = "Path",
                 Description = "A path leading into the wilderness.",
@@ -26,10 +27,10 @@ internal static class WildernessConnectorGenerator
             new LocationConnector
             {
                 OriginLocationId = wildernessLocation.Id,
-                DestinationLocationId = cityCenterDistrict.LocationId,
+                DestinationLocationId = cityEntranceDistrict.LocationId,
                 Name = "Path",
-                Description = $"A path leading back to {cityCenterDistrict.Name}.",
-                DestinationLabel = cityCenterDistrict.Name,
+                Description = $"A path leading back to {city.Name}.",
+                DestinationLabel = city.Name,
                 WorldId = worldId,
             },
         ];
