@@ -25,9 +25,7 @@ internal class GetStaticPropsByLocationIdQueryHandler(TrpgDbContext context, IMe
                         .Props.AsNoTracking()
                         .Where(p => p.LocationId == query.LocationId)
                         .ToArrayAsync(cancellationToken)
-                )
-                    .Where(p => p is not LocationConnector)
-                    .ToArray()
+                ).ToArray()
         );
         return props ?? [];
     }

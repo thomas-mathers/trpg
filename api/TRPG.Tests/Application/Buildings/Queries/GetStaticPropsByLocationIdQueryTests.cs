@@ -46,7 +46,8 @@ public sealed class GetStaticPropsByLocationIdQueryTests(DatabaseFixture db) : I
             Description = "A test prop",
         };
         var connector = Builders.MakeLocationConnector(room.LocationId);
-        _context.Props.AddRange(prop, connector);
+        _context.Props.Add(prop);
+        _context.LocationConnectors.Add(connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

@@ -25,10 +25,12 @@ public class CityGeneratorResult
     public required IReadOnlyList<Item> Items { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
     public required IReadOnlyList<Location> Locations { get; init; }
+    public required IReadOnlyList<LocationConnector> LocationConnectors { get; init; }
+    public required IReadOnlyList<DoorConnector> DoorConnectors { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<CreatureSkill> Skills { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
-    public required IReadOnlyList<LocationConnectorKey> LocationConnectorKeys { get; init; }
+    public required IReadOnlyList<DoorConnectorKey> DoorConnectorKeys { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
 }
 
@@ -57,10 +59,12 @@ public class CityGenerator(
         public List<Item> Items { get; } = [];
         public List<Room> Rooms { get; } = [];
         public List<Location> Locations { get; } = [];
+        public List<LocationConnector> LocationConnectors { get; } = [];
+        public List<DoorConnector> DoorConnectors { get; } = [];
         public List<Prop> Props { get; } = [];
         public List<CreatureSkill> Skills { get; } = [];
         public List<CreatureJob> Jobs { get; } = [];
-        public List<LocationConnectorKey> LocationConnectorKeys { get; } = [];
+        public List<DoorConnectorKey> DoorConnectorKeys { get; } = [];
         public List<Relationship> Relationships { get; } = [];
         public List<ShopEmploymentSlot> OpenShopSlots { get; } = [];
         public List<StaffDayOff> ShopOwnerAssignments { get; } = [];
@@ -167,10 +171,12 @@ public class CityGenerator(
             Items = workspace.Items.ToArray(),
             Rooms = workspace.Rooms.ToArray(),
             Locations = workspace.Locations.ToArray(),
+            LocationConnectors = workspace.LocationConnectors.ToArray(),
+            DoorConnectors = workspace.DoorConnectors.ToArray(),
             Props = workspace.Props.ToArray(),
             Skills = workspace.Skills.ToArray(),
             Jobs = workspace.Jobs.ToArray(),
-            LocationConnectorKeys = workspace.LocationConnectorKeys.ToArray(),
+            DoorConnectorKeys = workspace.DoorConnectorKeys.ToArray(),
             Relationships = workspace.Relationships.ToArray(),
         };
     }
@@ -262,6 +268,8 @@ public class CityGenerator(
         workspace.Rooms.AddRange(buildingResult.Rooms);
         workspace.Locations.AddRange(buildingResult.Locations);
         workspace.Props.AddRange(buildingResult.Props);
+        workspace.LocationConnectors.AddRange(buildingResult.LocationConnectors);
+        workspace.DoorConnectors.Add(buildingResult.FrontDoor);
     }
 
     private IReadOnlyList<CreatureGeneratorResult> GenerateGuildMembers(
@@ -322,11 +330,11 @@ public class CityGenerator(
                 },
             };
             workspace.Items.Add(keyItem);
-            workspace.LocationConnectorKeys.Add(
-                new LocationConnectorKey
+            workspace.DoorConnectorKeys.Add(
+                new DoorConnectorKey
                 {
                     ItemId = keyItem.Id,
-                    LocationConnectorId = frontDoor.Id,
+                    DoorConnectorId = frontDoor.Id,
                     WorldId = worldId,
                 }
             );
@@ -511,7 +519,7 @@ public class CityGenerator(
         }
 
         workspace.Items.AddRange(household.KeyItems);
-        workspace.LocationConnectorKeys.AddRange(household.KeyConnectorKeys);
+        workspace.DoorConnectorKeys.AddRange(household.DoorConnectorKeys);
         workspace.Jobs.AddRange(household.Jobs);
 
         foreach (var member in household.Members)
@@ -545,5 +553,7 @@ public class CityGenerator(
         workspace.Rooms.AddRange(household.House.Rooms);
         workspace.Locations.AddRange(household.House.Locations);
         workspace.Props.AddRange(household.House.Props);
+        workspace.LocationConnectors.AddRange(household.House.LocationConnectors);
+        workspace.DoorConnectors.Add(household.House.FrontDoor);
     }
 }

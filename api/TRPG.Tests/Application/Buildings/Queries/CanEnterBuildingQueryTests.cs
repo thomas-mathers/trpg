@@ -17,7 +17,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private Room _entranceRoom = null!;
-    private LocationConnector _frontDoor = null!;
+    private DoorConnector _frontDoor = null!;
     private CanEnterBuildingQueryHandler _handler = null!;
     private Guid _stateId;
 
@@ -35,17 +35,19 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         _building = Builders.MakeBuilding();
         _entranceRoom = Builders.MakeRoom(_building.Id);
         var outsideLocation = Builders.MakeLocation(stateId: _stateId);
-        _frontDoor = Builders.MakeLocationConnector(
+        var frontDoorConnector = Builders.MakeLocationConnector(
             _entranceRoom.LocationId,
             destinationLocationId: outsideLocation.Id,
             name: "Front Door",
             description: "The door leading outside."
         );
+        _frontDoor = Builders.MakeDoorConnector(frontDoorConnector.Id);
 
         _context.Buildings.Add(_building);
         _context.Rooms.Add(_entranceRoom);
         _context.Locations.Add(outsideLocation);
-        _context.Props.Add(_frontDoor);
+        _context.LocationConnectors.Add(frontDoorConnector);
+        _context.DoorConnectors.Add(_frontDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -69,16 +71,12 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         return creature;
     }
 
-    private async Task<Item> SeedKey(Guid locationConnectorId, string name = "Test Key")
+    private async Task<Item> SeedKey(Guid doorConnectorId, string name = "Test Key")
     {
         var keyItem = new Item { Name = name, Description = "A test key." };
         _context.Items.Add(keyItem);
-        _context.LocationConnectorKeys.Add(
-            new LocationConnectorKey
-            {
-                ItemId = keyItem.Id,
-                LocationConnectorId = locationConnectorId,
-            }
+        _context.DoorConnectorKeys.Add(
+            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = doorConnectorId }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return keyItem;
@@ -211,17 +209,18 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         var keylessBuilding = Builders.MakeBuilding();
         var keylessDoorRoom = Builders.MakeRoom(keylessBuilding.Id);
         var keylessDoorOutsideLocation = Builders.MakeLocation(stateId: _stateId);
-        var keylessDoor = Builders.MakeLocationConnector(
+        var keylessDoorConnector = Builders.MakeLocationConnector(
             keylessDoorRoom.LocationId,
             destinationLocationId: keylessDoorOutsideLocation.Id,
-            isLocked: true,
             name: "Front Door",
             description: "The door leading outside."
         );
+        var keylessDoor = Builders.MakeDoorConnector(keylessDoorConnector.Id, isLocked: true);
         _context.Buildings.Add(keylessBuilding);
         _context.Rooms.Add(keylessDoorRoom);
         _context.Locations.Add(keylessDoorOutsideLocation);
-        _context.Props.Add(keylessDoor);
+        _context.LocationConnectors.Add(keylessDoorConnector);
+        _context.DoorConnectors.Add(keylessDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

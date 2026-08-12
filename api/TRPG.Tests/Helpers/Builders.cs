@@ -68,10 +68,8 @@ internal static class Builders
         new(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, hour);
 
     public static LocationConnector MakeLocationConnector(
-        Guid locationId,
+        Guid originLocationId,
         Guid? destinationLocationId = null,
-        LocationDestinationType destinationType = LocationDestinationType.Wilderness,
-        bool isLocked = false,
         Guid? worldId = null,
         string name = "Door",
         string description = "A door.",
@@ -79,14 +77,24 @@ internal static class Builders
     ) =>
         new()
         {
-            LocationId = locationId,
+            OriginLocationId = originLocationId,
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
             Description = description,
             DestinationLocationId = destinationLocationId ?? Guid.NewGuid(),
             DestinationLabel = destinationLabel,
-            DestinationType = destinationType,
+        };
+
+    public static DoorConnector MakeDoorConnector(
+        Guid connectorId,
+        bool isLocked = false,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            ConnectorId = connectorId,
             IsLocked = isLocked,
+            WorldId = worldId ?? Guid.NewGuid(),
         };
 
     public static CombatantState MakeCombatantState(

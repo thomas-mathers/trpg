@@ -22,7 +22,7 @@ public class HouseholdGeneratorResult
     public required Guid HouseOwnerId { get; init; }
     public required Guid HomeLocationId { get; init; }
     public required IReadOnlyList<Item> KeyItems { get; init; }
-    public required IReadOnlyList<LocationConnectorKey> KeyConnectorKeys { get; init; }
+    public required IReadOnlyList<DoorConnectorKey> DoorConnectorKeys { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required Creature? DesignatedWorker { get; init; }
     public required Guid? FatherId { get; init; }
@@ -101,7 +101,7 @@ public class HouseholdGenerator(
         );
 
         var keyItems = new List<Item>();
-        var keyConnectorKeys = new List<LocationConnectorKey>();
+        var doorConnectorKeys = new List<DoorConnectorKey>();
         var houseFrontDoor = houseResult.FrontDoor;
         foreach (var resident in household)
         {
@@ -118,11 +118,11 @@ public class HouseholdGenerator(
                 },
             };
             keyItems.Add(houseKeyItem);
-            keyConnectorKeys.Add(
-                new LocationConnectorKey
+            doorConnectorKeys.Add(
+                new DoorConnectorKey
                 {
                     ItemId = houseKeyItem.Id,
-                    LocationConnectorId = houseFrontDoor.Id,
+                    DoorConnectorId = houseFrontDoor.Id,
                     WorldId = input.WorldId,
                 }
             );
@@ -159,7 +159,7 @@ public class HouseholdGenerator(
             HouseOwnerId = houseOwner.Creature.Id,
             HomeLocationId = homeLocationId,
             KeyItems = keyItems.ToArray(),
-            KeyConnectorKeys = keyConnectorKeys.ToArray(),
+            DoorConnectorKeys = doorConnectorKeys.ToArray(),
             Jobs = jobs.ToArray(),
             DesignatedWorker = designatedWorker?.Creature,
             FatherId = fatherId,

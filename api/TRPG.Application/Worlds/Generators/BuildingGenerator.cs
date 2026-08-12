@@ -15,7 +15,8 @@ public record BuildingGeneratorResult(
     IReadOnlyList<Room> Rooms,
     IReadOnlyList<Prop> Props,
     IReadOnlyList<Location> Locations,
-    LocationConnector FrontDoor
+    IReadOnlyList<LocationConnector> LocationConnectors,
+    DoorConnector FrontDoor
 );
 
 public class BuildingGenerator
@@ -351,6 +352,7 @@ public class BuildingGenerator
         var specs = GetSpecs(input.Type, input.OwnerId, input.MemberIds, input.BedroomGroups);
 
         var locations = new List<Location>();
+        var locationConnectors = new List<LocationConnector>();
         var rooms = specs
             .Select(s =>
             {
@@ -391,48 +393,57 @@ public class BuildingGenerator
             var roomAbove = roomsByFloor[i + 1].First();
             var roomBelow = roomsByFloor[i].First();
 
-            props.Add(
+            locationConnectors.Add(
                 new LocationConnector
                 {
-                    LocationId = roomBelow.LocationId,
+                    OriginLocationId = roomBelow.LocationId,
                     Name = "Staircase",
                     Description = "A staircase leading up.",
                     DestinationLocationId = roomAbove.LocationId,
                     DestinationLabel = roomAbove.Name,
-                    DestinationType = LocationDestinationType.Room,
                     WorldId = worldId,
                 }
             );
 
-            props.Add(
+            locationConnectors.Add(
                 new LocationConnector
                 {
-                    LocationId = roomAbove.LocationId,
+                    OriginLocationId = roomAbove.LocationId,
                     Name = "Staircase",
                     Description = "A staircase leading down.",
                     DestinationLocationId = roomBelow.LocationId,
                     DestinationLabel = roomBelow.Name,
-                    DestinationType = LocationDestinationType.Room,
                     WorldId = worldId,
                 }
             );
         }
 
         var entranceRoom = rooms.First(r => r.FloorNumber == 0);
-        var frontDoor = new LocationConnector
+        var frontDoorConnector = new LocationConnector
         {
-            LocationId = entranceRoom.LocationId,
+            OriginLocationId = entranceRoom.LocationId,
             Name = "Front Door",
             Description = "The door leading outside.",
             DestinationLocationId = input.ExteriorLocation.Id,
             DestinationLabel = "Outside",
-            DestinationType = LocationDestinationType.District,
+            WorldId = worldId,
+        };
+        locationConnectors.Add(frontDoorConnector);
+        var frontDoor = new DoorConnector
+        {
+            ConnectorId = frontDoorConnector.Id,
             IsLocked = input.IsLockable,
             WorldId = worldId,
         };
-        props.Add(frontDoor);
 
-        return new BuildingGeneratorResult(building, rooms, props, locations, frontDoor);
+        return new BuildingGeneratorResult(
+            building,
+            rooms,
+            props,
+            locations,
+            locationConnectors,
+            frontDoor
+        );
     }
 
     private static RoomSpec[] GetSpecs(

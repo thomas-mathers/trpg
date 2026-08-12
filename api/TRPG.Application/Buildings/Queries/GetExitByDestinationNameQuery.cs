@@ -20,9 +20,8 @@ internal class GetExitByDestinationNameQueryHandler(TrpgDbContext context)
     )
     {
         var match = await context
-            .Props.AsNoTracking()
-            .Where(p => p.LocationId == query.LocationId)
-            .OfType<LocationConnector>()
+            .LocationConnectors.AsNoTracking()
+            .Where(c => c.OriginLocationId == query.LocationId)
             .FirstOrDefaultAsync(
                 c => EF.Functions.ILike(c.DestinationLabel, query.DestinationName),
                 cancellationToken

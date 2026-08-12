@@ -12,7 +12,8 @@ internal record DungeonGeneratorResult(
     Building Building,
     Room Room,
     Location Location,
-    IReadOnlyList<Prop> Props
+    LocationConnector FrontDoor,
+    DoorConnector Door
 );
 
 internal static class DungeonGenerator
@@ -144,14 +145,14 @@ internal static class DungeonGenerator
         };
         var frontDoor = new LocationConnector
         {
-            LocationId = room.LocationId,
+            OriginLocationId = room.LocationId,
             Name = "Front Door",
             Description = "The way back outside.",
             DestinationLocationId = input.WildernessLocation.Id,
             DestinationLabel = "Outside",
-            DestinationType = LocationDestinationType.Wilderness,
             WorldId = input.WorldId,
         };
-        return new DungeonGeneratorResult(building, room, location, [frontDoor]);
+        var door = new DoorConnector { ConnectorId = frontDoor.Id, WorldId = input.WorldId };
+        return new DungeonGeneratorResult(building, room, location, frontDoor, door);
     }
 }

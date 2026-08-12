@@ -25,7 +25,16 @@ public class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache)
         );
 
         await context
-            .LocationConnectorKeys.Where(x => x.WorldId == worldId)
+            .DoorConnectorKeys.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
+            .DoorConnectors.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
+            .TravelConnectors.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
+            .LocationConnectors.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
         await context.Props.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.Rooms.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
@@ -80,7 +89,6 @@ public class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache)
             .Districts.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
         await context.Cities.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
-        await context.Roads.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context.States.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
         await context
             .Countries.Where(x => x.WorldId == worldId)

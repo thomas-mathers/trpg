@@ -37,8 +37,10 @@ public class WorldGeneratorResult
     public required IReadOnlyList<Location> Locations { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
-    public required IReadOnlyList<Road> Roads { get; init; }
-    public required IReadOnlyList<LocationConnectorKey> LocationConnectorKeys { get; init; }
+    public required IReadOnlyList<LocationConnector> LocationConnectors { get; init; }
+    public required IReadOnlyList<DoorConnector> DoorConnectors { get; init; }
+    public required IReadOnlyList<TravelConnector> TravelConnectors { get; init; }
+    public required IReadOnlyList<DoorConnectorKey> DoorConnectorKeys { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
     public required IReadOnlyCollection<CreatureSkill> Skills { get; init; }
     public required IReadOnlyList<State> States { get; init; }
@@ -120,9 +122,12 @@ public class WorldGenerator(
         var rooms = new List<Room>();
         var locations = new List<Location>(geography.Locations);
         var props = new List<Prop>(geography.Props);
+        var locationConnectors = new List<LocationConnector>(geography.LocationConnectors);
+        var doorConnectors = new List<DoorConnector>();
+        var travelConnectors = new List<TravelConnector>();
         var skills = new List<CreatureSkill>();
         var jobs = new List<CreatureJob>();
-        var locationConnectorKeys = new List<LocationConnectorKey>();
+        var doorConnectorKeys = new List<DoorConnectorKey>();
         var relationships = new List<Relationship>();
 
         var stateById = geography.States.ToDictionary(s => s.Id);
@@ -159,26 +164,25 @@ public class WorldGenerator(
             rooms.AddRange(cityResult.Rooms);
             locations.AddRange(cityResult.Locations);
             props.AddRange(cityResult.Props);
+            locationConnectors.AddRange(cityResult.LocationConnectors);
+            doorConnectors.AddRange(cityResult.DoorConnectors);
             skills.AddRange(cityResult.Skills);
             jobs.AddRange(cityResult.Jobs);
-            locationConnectorKeys.AddRange(cityResult.LocationConnectorKeys);
+            doorConnectorKeys.AddRange(cityResult.DoorConnectorKeys);
             relationships.AddRange(cityResult.Relationships);
         }
 
         var monsters = new List<Creature>();
+        var wildernessLocationByStateId = new Dictionary<Guid, Location>();
         foreach (var state in geography.States)
         {
             var count = Random.Shared.Next(
                 generatorInput.MinBuildingsPerState,
                 generatorInput.MaxBuildingsPerState + 1
             );
-            if (count == 0)
-            {
-                continue;
-            }
-
             var wildernessLocation = LocationGenerator.Generate(worldId, state.Id);
             locations.Add(wildernessLocation);
+            wildernessLocationByStateId[state.Id] = wildernessLocation;
 
             if (citiesByStateId.TryGetValue(state.Id, out var citiesInState))
             {
@@ -186,14 +190,19 @@ public class WorldGenerator(
                 {
                     var cityCenterDistrict = districtsByCityId[city.Id]
                         .First(d => d.DistrictType == DistrictType.CityCenter);
-                    props.AddRange(
-                        WildernessConnectorGenerator.Generate(
-                            cityCenterDistrict,
-                            wildernessLocation,
-                            worldId
-                        )
+                    var connectorResult = WildernessConnectorGenerator.Generate(
+                        cityCenterDistrict,
+                        wildernessLocation,
+                        worldId
                     );
+                    locationConnectors.AddRange(connectorResult.LocationConnectors);
+                    travelConnectors.AddRange(connectorResult.TravelConnectors);
                 }
+            }
+
+            if (count == 0)
+            {
+                continue;
             }
 
             var usedNames = new HashSet<string>();
@@ -206,7 +215,8 @@ public class WorldGenerator(
                 buildings.Add(result.Building);
                 rooms.Add(result.Room);
                 locations.Add(result.Location);
-                props.AddRange(result.Props);
+                locationConnectors.Add(result.FrontDoor);
+                doorConnectors.Add(result.Door);
 
                 var dungeonMonsters = dungeonPopulator.Generate(
                     new DungeonPopulatorInput
@@ -220,6 +230,12 @@ public class WorldGenerator(
                 items.AddRange(dungeonMonsters.SelectMany(m => m.Items));
                 skills.AddRange(dungeonMonsters.SelectMany(m => m.Skills));
             }
+        }
+
+        foreach (var link in geography.StateTravelLinks)
+        {
+            AddTravelConnector(link.OriginStateId, link.DestinationStateId, link);
+            AddTravelConnector(link.DestinationStateId, link.OriginStateId, link);
         }
 
         BiographyGenerator.AssignBiographies(
@@ -271,7 +287,9 @@ public class WorldGenerator(
             States = geography.States,
             Cities = geography.Cities,
             Districts = geography.Districts,
-            Roads = geography.Roads,
+            LocationConnectors = locationConnectors,
+            DoorConnectors = doorConnectors,
+            TravelConnectors = travelConnectors,
             Factions = factions,
             Buildings = buildings,
             Creatures = creatures,
@@ -284,8 +302,33 @@ public class WorldGenerator(
             Skills = skills,
             Jobs = jobs,
             Knowledge = knowledge,
-            LocationConnectorKeys = locationConnectorKeys,
+            DoorConnectorKeys = doorConnectorKeys,
             Relationships = relationships,
         };
+
+        void AddTravelConnector(Guid originStateId, Guid destinationStateId, StateTravelLink link)
+        {
+            var destinationState = stateById[destinationStateId];
+            var connector = new LocationConnector
+            {
+                OriginLocationId = wildernessLocationByStateId[originStateId].Id,
+                DestinationLocationId = wildernessLocationByStateId[destinationStateId].Id,
+                Name = link.Name,
+                Description = $"{link.Name} leads into {destinationState.Name}.",
+                DestinationLabel = $"{destinationState.Name} Wilderness",
+                WorldId = worldId,
+            };
+            locationConnectors.Add(connector);
+            travelConnectors.Add(
+                new TravelConnector
+                {
+                    ConnectorId = connector.Id,
+                    Distance = link.Distance,
+                    DangerLevel = link.DangerLevel,
+                    TravelTimeHours = link.TravelTimeHours,
+                    WorldId = worldId,
+                }
+            );
+        }
     }
 }

@@ -17,9 +17,8 @@ internal class GetConnectorsByLocationIdQueryHandler(TrpgDbContext context)
     )
     {
         return await context
-            .Props.AsNoTracking()
-            .Where(p => p.LocationId == query.LocationId)
-            .OfType<LocationConnector>()
+            .LocationConnectors.AsNoTracking()
+            .Where(c => c.OriginLocationId == query.LocationId)
             .ToArrayAsync(cancellationToken);
     }
 }
