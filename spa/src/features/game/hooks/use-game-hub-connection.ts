@@ -15,6 +15,7 @@ import {
   gameEventBus,
   type CharacterLevelUp,
   type ConnectionStatus,
+  type QuestDialogRequested,
   type SkillLevelUp,
 } from '@/lib/game-event-bus';
 
@@ -96,6 +97,13 @@ export function useGameHubConnection(sessionId: string | null) {
     connection.on('CharacterLevelUp', (payload: CharacterLevelUp) =>
       gameEventBus.emit('CharacterLevelUp', payload),
     );
+    connection.on('QuestDialogRequested', (payload: QuestDialogRequested) =>
+      gameEventBus.emit('QuestDialogRequested', payload),
+    );
+    connection.on('QuestObjectiveCompleted', (payload) =>
+      gameEventBus.emit('QuestObjectiveCompleted', payload),
+    );
+    connection.on('QuestJournalUpdated', () => gameEventBus.emit('QuestJournalUpdated'));
 
     connection
       .start()

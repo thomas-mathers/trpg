@@ -16,132 +16,208 @@ public class QuestGenerator
                 creature.StateId == stateId
                 && CreatureTypes.Humanoid.Contains(creature.CreatureType)
             )
-            .Take(2)
             .ToArray();
+        var giver = residents.FirstOrDefault();
+
+        if (giver is null)
+        {
+            return new QuestGeneratorResult([], []);
+        }
+
+        var firstQuest = CreateFirstQuest(world.World.Id, giver.Id);
+        var firstObjectives = CreateFirstObjectives(world, stateId, firstQuest.Id);
+        var secondQuest = CreateSecondQuest(
+            world.World.Id,
+            giver.Id,
+            firstObjectives.Count > 0 ? [firstQuest.Id] : []
+        );
+        var secondObjectives = CreateSecondObjectives(world, stateId, residents, secondQuest.Id);
+        var quests = new List<Quest>();
+        var objectives = new List<QuestObjective>();
+
+        if (firstObjectives.Count > 0)
+        {
+            quests.Add(firstQuest);
+            objectives.AddRange(firstObjectives);
+        }
+
+        if (secondObjectives.Count > 0)
+        {
+            quests.Add(secondQuest);
+            objectives.AddRange(secondObjectives);
+        }
+
+        return new QuestGeneratorResult(quests, objectives);
+    }
+
+    private static Quest CreateFirstQuest(Guid worldId, Guid giverId) =>
+        new()
+        {
+            WorldId = worldId,
+            GiverId = giverId,
+            Name = "A Dangerous Delivery",
+            Description = "Help with a dangerous errand.",
+            GoldReward = 100,
+        };
+
+    private static Quest CreateSecondQuest(
+        Guid worldId,
+        Guid giverId,
+        IReadOnlyCollection<Guid> prerequisiteQuestIds
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            GiverId = giverId,
+            Name = "The Trail Continues",
+            Description = "Follow the remaining leads.",
+            GoldReward = 150,
+            PrerequisiteQuestIds = prerequisiteQuestIds.ToList(),
+        };
+
+    private static List<QuestObjective> CreateFirstObjectives(
+        WorldGeneratorResult world,
+        Guid stateId,
+        Guid questId
+    )
+    {
+        var objectives = new List<QuestObjective>();
+        var target = world.Creatures.FirstOrDefault(creature =>
+            creature.StateId == stateId && !CreatureTypes.Humanoid.Contains(creature.CreatureType)
+        );
+
+        if (target is not null)
+        {
+            objectives.Add(
+                new KillCreatureObjective
+                {
+                    WorldId = world.World.Id,
+                    QuestId = questId,
+                    Name = $"Defeat {target.Name}",
+                    Description = $"Defeat {EntityReference(target.Name, "Creature", target.Id)}.",
+                    CreatureId = target.Id,
+                    LocationId = target.LocationId,
+                }
+            );
+
+            var item = world.Items.FirstOrDefault(item => item.Ownership.OwnerId == target.Id);
+            if (item is not null)
+            {
+                objectives.Add(
+                    new CollectItemObjective
+                    {
+                        WorldId = world.World.Id,
+                        QuestId = questId,
+                        Name = $"Recover {item.Name}",
+                        Description = $"Recover {EntityReference(item.Name, "Item", item.Id)}.",
+                        ItemId = item.Id,
+                        LocationId = target.LocationId,
+                    }
+                );
+            }
+        }
+
+        var building = world.Buildings.FirstOrDefault(building =>
+            building.StateId == stateId && building.CityId is not null
+        );
+        var locationId = building is null
+            ? null
+            : world.Rooms.FirstOrDefault(room => room.BuildingId == building.Id)?.LocationId;
+
+        if (building is not null && locationId is not null)
+        {
+            objectives.Add(
+                new ExploreBuildingObjective
+                {
+                    WorldId = world.World.Id,
+                    QuestId = questId,
+                    Name = $"Visit {building.Name}",
+                    Description =
+                        $"Visit {EntityReference(building.Name, "Building", building.Id)}.",
+                    BuildingId = building.Id,
+                    LocationId = locationId,
+                }
+            );
+        }
+
+        return objectives;
+    }
+
+    private static List<QuestObjective> CreateSecondObjectives(
+        WorldGeneratorResult world,
+        Guid stateId,
+        IReadOnlyList<Creature> residents,
+        Guid questId
+    )
+    {
+        var objectives = new List<QuestObjective>();
+        var monsterGroup = world
+            .Creatures.Where(creature =>
+                creature.StateId == stateId
+                && !CreatureTypes.Humanoid.Contains(creature.CreatureType)
+            )
+            .GroupBy(creature => creature.CreatureType)
+            .FirstOrDefault()
+            ?.ToArray();
+
+        if (monsterGroup is not null)
+        {
+            var target = monsterGroup[0];
+            objectives.Add(
+                new KillCreatureTypeObjective
+                {
+                    WorldId = world.World.Id,
+                    QuestId = questId,
+                    Name = $"Defeat a {target.CreatureType}",
+                    Description = $"Defeat a {target.CreatureType}.",
+                    CreatureType = target.CreatureType,
+                    LocationId = target.LocationId,
+                }
+            );
+        }
+
+        var speaker = residents.Skip(1).FirstOrDefault();
+        if (speaker is not null)
+        {
+            objectives.Add(
+                new SpeakToCreatureObjective
+                {
+                    WorldId = world.World.Id,
+                    QuestId = questId,
+                    Name = $"Speak to {speaker.Name}",
+                    Description =
+                        $"Speak to {EntityReference(speaker.Name, "Creature", speaker.Id)}.",
+                    CreatureId = speaker.Id,
+                    LocationId = speaker.LocationId,
+                }
+            );
+        }
+
         var city = world.Cities.FirstOrDefault(city => city.StateId == stateId);
         var cityCenter = city is null
             ? null
             : world.Districts.FirstOrDefault(district =>
                 district.CityId == city.Id && district.DistrictType == DistrictType.CityCenter
             );
-        var building = world.Buildings.FirstOrDefault(building =>
-            building.StateId == stateId && building.CityId is not null
-        );
-        var buildingLocation = building is null
-            ? null
-            : world.Rooms.FirstOrDefault(room => room.BuildingId == building.Id)?.LocationId;
-        var monstersByType = world
-            .Creatures.Where(creature =>
-                creature.StateId == stateId
-                && !CreatureTypes.Humanoid.Contains(creature.CreatureType)
-            )
-            .GroupBy(creature => creature.CreatureType)
-            .FirstOrDefault(group => group.Count() >= 2)
-            ?.ToArray();
 
-        if (
-            residents.Length < 2
-            || city is null
-            || cityCenter is null
-            || building is null
-            || buildingLocation is null
-            || monstersByType is null
-        )
+        if (city is not null && cityCenter is not null)
         {
-            return new QuestGeneratorResult([], []);
-        }
-
-        var assassinationTarget = monstersByType[0];
-        var creatureTypeTarget = monstersByType[1];
-        var item = world.Items.FirstOrDefault(item =>
-            item.Ownership.OwnerId == assassinationTarget.Id
-        );
-        if (item is null)
-        {
-            return new QuestGeneratorResult([], []);
-        }
-
-        var giver = residents[0];
-        var speaker = residents[1];
-        var firstQuest = new Quest
-        {
-            WorldId = world.World.Id,
-            GiverId = giver.Id,
-            Name = "A Dangerous Delivery",
-            Description = $"Recover {item.Name} from {assassinationTarget.Name}.",
-            GoldReward = 100,
-        };
-        var secondQuest = new Quest
-        {
-            WorldId = world.World.Id,
-            GiverId = giver.Id,
-            Name = "The Trail Continues",
-            Description = $"Follow the remaining leads for {giver.Name}.",
-            GoldReward = 150,
-            PrerequisiteQuestIds = [firstQuest.Id],
-        };
-
-        return new QuestGeneratorResult(
-            Quests: [firstQuest, secondQuest],
-            Objectives:
-            [
-                new KillCreatureObjective
-                {
-                    WorldId = world.World.Id,
-                    QuestId = firstQuest.Id,
-                    Name = $"Defeat {assassinationTarget.Name}",
-                    Description = $"Defeat {assassinationTarget.Name}.",
-                    CreatureId = assassinationTarget.Id,
-                    LocationId = assassinationTarget.LocationId,
-                },
-                new CollectItemObjective
-                {
-                    WorldId = world.World.Id,
-                    QuestId = firstQuest.Id,
-                    Name = $"Recover {item.Name}",
-                    Description = $"Recover {item.Name}.",
-                    ItemId = item.Id,
-                    LocationId = assassinationTarget.LocationId,
-                    RequiredAmount = 1,
-                },
-                new ExploreBuildingObjective
-                {
-                    WorldId = world.World.Id,
-                    QuestId = firstQuest.Id,
-                    Name = $"Visit {building.Name}",
-                    Description = $"Visit {building.Name}.",
-                    BuildingId = building.Id,
-                    LocationId = buildingLocation,
-                },
-                new KillCreatureTypeObjective
-                {
-                    WorldId = world.World.Id,
-                    QuestId = secondQuest.Id,
-                    Name = $"Defeat a {creatureTypeTarget.CreatureType}",
-                    Description = $"Defeat a {creatureTypeTarget.CreatureType}.",
-                    CreatureType = creatureTypeTarget.CreatureType,
-                    LocationId = creatureTypeTarget.LocationId,
-                    RequiredAmount = 1,
-                },
-                new SpeakToCreatureObjective
-                {
-                    WorldId = world.World.Id,
-                    QuestId = secondQuest.Id,
-                    Name = $"Speak to {speaker.Name}",
-                    Description = $"Speak to {speaker.Name}.",
-                    CreatureId = speaker.Id,
-                    LocationId = speaker.LocationId,
-                },
+            objectives.Add(
                 new ExploreCityObjective
                 {
                     WorldId = world.World.Id,
-                    QuestId = secondQuest.Id,
+                    QuestId = questId,
                     Name = $"Visit {city.Name}",
-                    Description = $"Visit {city.Name}.",
+                    Description = $"Visit {EntityReference(city.Name, "City", city.Id)}.",
                     CityId = city.Id,
                     LocationId = cityCenter.LocationId,
-                },
-            ]
-        );
+                }
+            );
+        }
+
+        return objectives;
     }
+
+    private static string EntityReference(string name, string entityType, Guid id) =>
+        $"[{name}](entity://{entityType}/{id})";
 }

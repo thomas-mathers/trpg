@@ -24,10 +24,10 @@ internal static class GameSessionEndpoints
         app.MapPost("/sessions/{sessionId:guid}/combat-actions", ResolveCombatAction)
             .WithName("ResolveCombatAction");
         app.MapGet("/sessions/{sessionId:guid}/scene", GetScene).WithName("GetSessionScene");
-        app.MapGet("/sessions/{sessionId:guid}/named-entities", GetNamedEntities)
-            .WithName("ListSessionNamedEntities");
-        app.MapGet("/sessions/{sessionId:guid}/named-entities/{entityId:guid}", GetNamedEntityById)
-            .WithName("GetSessionNamedEntity");
+        app.MapGet("/sessions/{sessionId:guid}/lore-anchors", GetLoreAnchors)
+            .WithName("ListSessionLoreAnchors");
+        app.MapGet("/sessions/{sessionId:guid}/lore-anchors/{anchorId:guid}", GetLoreAnchorById)
+            .WithName("GetSessionLoreAnchor");
     }
 
     private static async Task<Ok<CombatActionResponse>> ResolveCombatAction(
@@ -124,10 +124,10 @@ internal static class GameSessionEndpoints
         return TypedResults.Ok(SceneSnapshotMapper.ToSnapshot(scene));
     }
 
-    private static async Task<Ok<NamedEntity[]>> GetNamedEntities(
+    private static async Task<Ok<LoreAnchor[]>> GetLoreAnchors(
         Guid sessionId,
         GetGameSessionQueryHandler getGameSession,
-        GetNamedEntitiesByWorldQueryHandler getNamedEntitiesByWorld,
+        GetLoreAnchorsByWorldQueryHandler getLoreAnchorsByWorld,
         CancellationToken cancellationToken
     )
     {
@@ -136,19 +136,19 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        var entities = await getNamedEntitiesByWorld.Handle(
-            new GetNamedEntitiesByWorldQuery { WorldId = session.WorldId },
+        var anchors = await getLoreAnchorsByWorld.Handle(
+            new GetLoreAnchorsByWorldQuery { WorldId = session.WorldId },
             cancellationToken
         );
 
-        return TypedResults.Ok(entities.Select(ToNamedEntity).ToArray());
+        return TypedResults.Ok(anchors.Select(ToLoreAnchor).ToArray());
     }
 
-    private static async Task<Results<NotFound, Ok<NamedEntity>>> GetNamedEntityById(
+    private static async Task<Results<NotFound, Ok<LoreAnchor>>> GetLoreAnchorById(
         Guid sessionId,
-        Guid entityId,
+        Guid anchorId,
         GetGameSessionQueryHandler getGameSession,
-        GetNamedEntitiesByWorldQueryHandler getNamedEntitiesByWorld,
+        GetLoreAnchorsByWorldQueryHandler getLoreAnchorsByWorld,
         CancellationToken cancellationToken
     )
     {
@@ -157,31 +157,31 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        var entities = await getNamedEntitiesByWorld.Handle(
-            new GetNamedEntitiesByWorldQuery { WorldId = session.WorldId },
+        var anchors = await getLoreAnchorsByWorld.Handle(
+            new GetLoreAnchorsByWorldQuery { WorldId = session.WorldId },
             cancellationToken
         );
 
-        var entity = entities.FirstOrDefault(e => e.Id == entityId);
-        return entity == null ? TypedResults.NotFound() : TypedResults.Ok(ToNamedEntity(entity));
+        var anchor = anchors.FirstOrDefault(anchor => anchor.Id == anchorId);
+        return anchor == null ? TypedResults.NotFound() : TypedResults.Ok(ToLoreAnchor(anchor));
     }
 
-    private static NamedEntity ToNamedEntity(NamedEntitySummary entity) =>
+    private static LoreAnchor ToLoreAnchor(LoreAnchorSummary anchor) =>
         new(
-            entity.Id,
-            entity.Name,
-            entity.Type switch
+            anchor.Id,
+            anchor.Name,
+            anchor.Type switch
             {
-                NamedEntityType.Creature => EntityType.Creature,
-                NamedEntityType.Building => EntityType.Building,
-                NamedEntityType.District => EntityType.District,
-                NamedEntityType.World => EntityType.World,
-                NamedEntityType.Country => EntityType.Country,
-                NamedEntityType.State => EntityType.State,
-                NamedEntityType.City => EntityType.City,
-                _ => throw new ArgumentOutOfRangeException(nameof(entity)),
+                LoreAnchorType.Creature => EntityType.Creature,
+                LoreAnchorType.Building => EntityType.Building,
+                LoreAnchorType.District => EntityType.District,
+                LoreAnchorType.World => EntityType.World,
+                LoreAnchorType.Country => EntityType.Country,
+                LoreAnchorType.State => EntityType.State,
+                LoreAnchorType.City => EntityType.City,
+                _ => throw new ArgumentOutOfRangeException(nameof(anchor)),
             },
-            entity.Subtype,
-            entity.Description
+            anchor.Subtype,
+            anchor.Description
         );
 }

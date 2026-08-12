@@ -8,4 +8,5 @@ export const ENTITY_TYPE_COLORS: Record<EntityType, string> = {
   Country: '#5B9BD9',
   State: '#A67BD9',
   City: '#D97BB0',
+  Item: '#C8B6FF',
 };

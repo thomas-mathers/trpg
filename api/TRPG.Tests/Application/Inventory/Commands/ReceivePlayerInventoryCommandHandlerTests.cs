@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Quests;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -54,6 +55,37 @@ public sealed class ReceivePlayerInventoryCommandHandlerTests(DatabaseFixture db
         _context.Items.Add(item);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return item;
+    }
+
+    private async Task<CreatureQuestObjective> SeedCollectItemObjective(Guid itemId)
+    {
+        var quest = Builders.MakeQuest(_fromCreature.Id, WorldId);
+        var objective = new CollectItemObjective
+        {
+            WorldId = WorldId,
+            QuestId = quest.Id,
+            ItemId = itemId,
+        };
+        var progress = new CreatureQuestObjective
+        {
+            CreatureId = _player.Id,
+            ObjectiveId = objective.Id,
+            WorldId = WorldId,
+        };
+        var creatureQuest = new CreatureQuest
+        {
+            CreatureId = _player.Id,
+            QuestId = quest.Id,
+            Status = QuestStatus.Accepted,
+            WorldId = WorldId,
+        };
+
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        _context.CreatureQuestObjectives.Add(progress);
+        _context.CreatureQuests.Add(creatureQuest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return progress;
     }
 
     private async Task<Gold> SeedGoldOnFromCreature(int quantity)
@@ -170,6 +202,35 @@ public sealed class ReceivePlayerInventoryCommandHandlerTests(DatabaseFixture db
         );
         Assert.Equal(_player.Id, movedItem.Ownership.OwnerId);
         Assert.Equal(3, movedItem.Quantity);
+    }
+
+    [Fact]
+    public async Task Handle_UpdatesCollectObjectiveAndPublishesJournalEvent_WhenPlayerReceivesQuestItem()
+    {
+        // Arrange
+        var item = await SeedItemOnFromCreature(quantity: 1);
+        var progress = await SeedCollectItemObjective(item.Id);
+
+        // Act
+        await _receiveHandler.Handle(
+            new ReceivePlayerInventoryCommand
+            {
+                From = new ItemOwnerReference(_fromCreature.Id, OwnerType.Creature),
+                Items = [new ItemSelection(item.Id, 1)],
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(1, progress.Amount);
+        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventPublisher>();
+        Assert.Collection(
+            gameEvents.PublishedEvents,
+            gameEvent => Assert.IsType<QuestObjectiveCompletedEvent>(gameEvent),
+            gameEvent => Assert.IsType<QuestJournalUpdatedEvent>(gameEvent)
+        );
     }
 
     [Fact]

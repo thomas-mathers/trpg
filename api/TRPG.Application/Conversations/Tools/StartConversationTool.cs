@@ -7,16 +7,23 @@ using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
+using TRPG.Application.Quests.Queries;
 
 namespace TRPG.Application.Conversations.Tools;
 
-internal record StartConversationResult(string Summary, string Biography);
+internal record StartConversationResult(
+    string Summary,
+    string Biography,
+    IReadOnlyCollection<QuestConversationDetail> AvailableQuests,
+    IReadOnlyCollection<QuestConversationDetail> ReadyToCompleteQuests
+);
 
 internal class StartConversationTool(
     GameTurnContext turnContext,
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
     GetConversationSummaryQueryHandler getConversationSummary,
+    GetQuestInteractionsForGiverQueryHandler getQuestInteractions,
     OpenConversationCommandHandler openConversation,
     ILogger<StartConversationTool> logger
 ) : IGameTool
@@ -79,8 +86,22 @@ internal class StartConversationTool(
             new GetConversationSummaryQuery { CreatureId = player!.Id, NpcId = npc.Id },
             cancellationToken
         );
+        var questInteractions = await getQuestInteractions.Handle(
+            new GetQuestInteractionsForGiverQuery
+            {
+                GiverId = npc.Id,
+                PlayerId = player.Id,
+                WorldId = turnContext.WorldId,
+            },
+            cancellationToken
+        );
 
-        var result = new StartConversationResult(summary, npc.Biography);
+        var result = new StartConversationResult(
+            summary,
+            npc.Biography,
+            questInteractions.AvailableQuests,
+            questInteractions.ReadyToCompleteQuests
+        );
         logger.LogInformation(
             "[perf] [start_conversation] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,

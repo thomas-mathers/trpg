@@ -64,7 +64,11 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
         Assert.Equal(1, progress.Amount);
         Assert.Equal(QuestStatus.ReadyToComplete, quest.Status);
         var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventPublisher>();
-        Assert.IsType<QuestJournalUpdatedEvent>(Assert.Single(gameEvents.PublishedEvents));
+        Assert.Collection(
+            gameEvents.PublishedEvents,
+            gameEvent => Assert.IsType<QuestObjectiveCompletedEvent>(gameEvent),
+            gameEvent => Assert.IsType<QuestJournalUpdatedEvent>(gameEvent)
+        );
     }
 
     [Fact]

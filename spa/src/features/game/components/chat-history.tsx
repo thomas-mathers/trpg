@@ -1,4 +1,3 @@
-import type { EntityType } from '@/api/client';
 import { Message, MessageContent, MessageHeader } from '@/components/ui/message';
 import {
   MessageScroller,
@@ -11,9 +10,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-import { ENTITY_TYPE_COLORS } from '../entity-type-colors';
 import type { NarrationSegment } from '../narration-markup';
-import { EntityTooltip } from './entity-tooltip';
+import { NarrationText } from './narration-text';
 
 export type ChatMarkerVariant =
   | 'location'
@@ -46,48 +44,6 @@ export function ChatMarker({ text, variant = 'location' }: ChatMarkerProps) {
       <span className="shrink-0 font-medium">{text}</span>
       <Separator className={cn('flex-1 bg-current opacity-30', colorClass)} />
     </div>
-  );
-}
-
-interface EntityLinkProps {
-  id: string;
-  name: string;
-  entityType: EntityType;
-}
-
-export function EntityLink({ id, name, entityType }: EntityLinkProps) {
-  return (
-    <EntityTooltip id={id} name={name} entityType={entityType}>
-      <span
-        className="cursor-help font-bold whitespace-nowrap not-italic"
-        style={{ color: ENTITY_TYPE_COLORS[entityType] }}
-      >
-        [{name}]
-      </span>
-    </EntityTooltip>
-  );
-}
-
-interface NarrationTextProps {
-  segments: NarrationSegment[];
-}
-
-function NarrationText({ segments }: NarrationTextProps) {
-  return (
-    <>
-      {segments.map((segment, index) =>
-        segment.type === 'entity' ? (
-          <EntityLink
-            key={index}
-            id={segment.id}
-            name={segment.name}
-            entityType={segment.entityType}
-          />
-        ) : (
-          <span key={index}>{segment.text}</span>
-        ),
-      )}
-    </>
   );
 }
 

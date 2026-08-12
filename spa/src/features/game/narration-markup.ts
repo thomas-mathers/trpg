@@ -17,6 +17,7 @@ export interface EntitySegment {
 export type NarrationSegment = TextSegment | EntitySegment;
 
 const ENTITY_MARKUP_PATTERN = /^\[([^\]]+)\]\(entity:\/\/(\w+)\/([^)]+)\)$/;
+const ENTITY_MARKUP_TOKEN_PATTERN = /(\[[^\]]+\]\(entity:\/\/\w+\/[^)]+\))/;
 
 function appendText(
   segments: NarrationSegment[],
@@ -71,4 +72,13 @@ export function appendTokenToNarrationSegments(
   }
 
   return result;
+}
+
+export function parseNarrationMarkup(markup: string): NarrationSegment[] {
+  return markup
+    .split(ENTITY_MARKUP_TOKEN_PATTERN)
+    .reduce<NarrationSegment[]>(
+      (segments, token) => appendTokenToNarrationSegments(segments, token),
+      [],
+    );
 }

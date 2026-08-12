@@ -34,6 +34,7 @@ import { useItemTable } from '@/features/inventory/hooks/use-item-table';
 export interface TradeDialogProps {
   open: boolean;
   playerId: string;
+  worldId: string;
   workstationId: string;
   workerName: string;
   shopName: string;
@@ -57,6 +58,7 @@ function toTradeRequest(playerOffer: readonly ItemDetail[], shopOffer: readonly 
 
 export function TradeDialog({
   playerId,
+  worldId,
   workstationId,
   workerName,
   shopName,
@@ -113,6 +115,7 @@ export function TradeDialog({
   const completeTrade = async () => {
     await complete.mutateAsync({
       path: { playerId, workstationId },
+      query: { worldId },
       body: toTradeRequest(playerOffer, shopOffer),
     });
     await queryClient.invalidateQueries({

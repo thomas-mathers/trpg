@@ -300,6 +300,7 @@ export type CreatureStatusSnapshot = {
     poisonResistance: number;
     magicResistance: number;
     tradeWorkstationId: null | string;
+    questMarker: null | QuestMarker;
 };
 
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
@@ -332,7 +333,7 @@ export type EnqueueJobResponse = {
     jobId: string;
 };
 
-export type EntityType = 'Creature' | 'Building' | 'District' | 'World' | 'Country' | 'State' | 'City';
+export type EntityType = 'Creature' | 'Building' | 'District' | 'World' | 'Country' | 'State' | 'City' | 'Item';
 
 export type EquipItemRequest = {
     itemId: string;
@@ -389,6 +390,7 @@ export type ItemDetailAccessoryDetail = {
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
     isStackable: boolean;
+    isQuestItem?: boolean;
 };
 
 export type ItemDetailAmmunitionDetail = {
@@ -404,6 +406,7 @@ export type ItemDetailAmmunitionDetail = {
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
     isStackable: boolean;
+    isQuestItem?: boolean;
 };
 
 export type ItemDetailArmorDetail = {
@@ -423,6 +426,7 @@ export type ItemDetailArmorDetail = {
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
     isStackable: boolean;
+    isQuestItem?: boolean;
 };
 
 export type ItemDetailConsumableItemDetail = {
@@ -441,6 +445,7 @@ export type ItemDetailConsumableItemDetail = {
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
     isStackable: boolean;
+    isQuestItem?: boolean;
 };
 
 export type ItemDetailGoldDetail = {
@@ -456,6 +461,7 @@ export type ItemDetailGoldDetail = {
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
     isStackable: boolean;
+    isQuestItem?: boolean;
 };
 
 export type ItemDetailKeyDetail = {
@@ -471,6 +477,7 @@ export type ItemDetailKeyDetail = {
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
     isStackable: boolean;
+    isQuestItem?: boolean;
 };
 
 export type ItemDetailShieldDetail = {
@@ -490,6 +497,7 @@ export type ItemDetailShieldDetail = {
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
     isStackable: boolean;
+    isQuestItem?: boolean;
 };
 
 export type ItemDetailWeaponDetail = {
@@ -512,6 +520,7 @@ export type ItemDetailWeaponDetail = {
     goldValue: number;
     modifiers: Array<ItemModifierSummary>;
     isStackable: boolean;
+    isQuestItem?: boolean;
 };
 
 export type ItemModifierSummary = ({
@@ -595,7 +604,7 @@ export type JobStatusResponse = {
 
 export type LeechType = 'Life' | 'Mana';
 
-export type NamedEntity = {
+export type LoreAnchor = {
     id: string;
     name: string;
     type: EntityType;
@@ -691,11 +700,32 @@ export type ProcTrigger = 'OnStriking' | 'WhenStruck' | 'OnKill';
 
 export type Profession = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric' | 'Mercenary' | 'Alchemist' | 'Blacksmith' | 'Scholar' | 'Merchant' | 'Politician' | 'StableMaster' | 'Bartender' | 'Guard' | 'Baker' | 'Innkeeper' | 'Tailor' | 'Carpenter' | 'Jeweler' | 'Homemaker' | 'Unemployed';
 
+export type QuestJournalEntrySnapshot = {
+    id: string;
+    name: string;
+    description: string;
+    goldReward: number;
+    status: string;
+    isTracked: boolean;
+    objectives: Array<QuestObjectiveProgressSnapshot>;
+};
+
+export type QuestMarker = 'Available' | 'ReadyToTurnIn';
+
+export type QuestObjectiveProgressSnapshot = {
+    name: string;
+    description: string;
+    amount: number;
+    requiredAmount: number;
+    locationName: null | string;
+};
+
 export type Race = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome';
 
 export type ResourceType = 'Hp' | 'Ap' | 'Mp';
 
 export type SceneSnapshot = {
+    worldId: string;
     stateName: string;
     cityName: null | string;
     districtName: null | string;
@@ -716,6 +746,10 @@ export type SceneSnapshot = {
 export type SessionCreatedResponse = {
     sessionId: string;
     playerId: string;
+};
+
+export type SetQuestTrackingRequest = {
+    isTracked: boolean;
 };
 
 export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Destruction' | 'Illusion' | 'Archery' | 'Restoration' | 'Alteration' | 'General' | 'Blocking';
@@ -1236,49 +1270,49 @@ export type GetSessionSceneResponses = {
 
 export type GetSessionSceneResponse = GetSessionSceneResponses[keyof GetSessionSceneResponses];
 
-export type ListSessionNamedEntitiesData = {
+export type ListSessionLoreAnchorsData = {
     body?: never;
     path: {
         sessionId: string;
     };
     query?: never;
-    url: '/sessions/{sessionId}/named-entities';
+    url: '/sessions/{sessionId}/lore-anchors';
 };
 
-export type ListSessionNamedEntitiesResponses = {
+export type ListSessionLoreAnchorsResponses = {
     /**
      * OK
      */
-    200: Array<NamedEntity>;
+    200: Array<LoreAnchor>;
 };
 
-export type ListSessionNamedEntitiesResponse = ListSessionNamedEntitiesResponses[keyof ListSessionNamedEntitiesResponses];
+export type ListSessionLoreAnchorsResponse = ListSessionLoreAnchorsResponses[keyof ListSessionLoreAnchorsResponses];
 
-export type GetSessionNamedEntityData = {
+export type GetSessionLoreAnchorData = {
     body?: never;
     path: {
         sessionId: string;
-        entityId: string;
+        anchorId: string;
     };
     query?: never;
-    url: '/sessions/{sessionId}/named-entities/{entityId}';
+    url: '/sessions/{sessionId}/lore-anchors/{anchorId}';
 };
 
-export type GetSessionNamedEntityErrors = {
+export type GetSessionLoreAnchorErrors = {
     /**
      * Not Found
      */
     404: unknown;
 };
 
-export type GetSessionNamedEntityResponses = {
+export type GetSessionLoreAnchorResponses = {
     /**
      * OK
      */
-    200: NamedEntity;
+    200: LoreAnchor;
 };
 
-export type GetSessionNamedEntityResponse = GetSessionNamedEntityResponses[keyof GetSessionNamedEntityResponses];
+export type GetSessionLoreAnchorResponse = GetSessionLoreAnchorResponses[keyof GetSessionLoreAnchorResponses];
 
 export type GetJobData = {
     body?: never;
@@ -1372,9 +1406,11 @@ export type EndSessionResponse = EndSessionResponses[keyof EndSessionResponses];
 
 export type TransferInventoryData = {
     body: InventoryTransferRequest;
-    path?: never;
+    path: {
+        playerId: string;
+    };
     query?: never;
-    url: '/inventory-transfers';
+    url: '/players/{playerId}/inventory-transfers';
 };
 
 export type TransferInventoryErrors = {
@@ -1450,7 +1486,9 @@ export type CompleteTradeData = {
         playerId: string;
         workstationId: string;
     };
-    query?: never;
+    query: {
+        worldId: string;
+    };
     url: '/players/{playerId}/trades/{workstationId}/complete';
 };
 
@@ -1462,3 +1500,139 @@ export type CompleteTradeResponses = {
 };
 
 export type CompleteTradeResponse = CompleteTradeResponses[keyof CompleteTradeResponses];
+
+export type GetSessionItemData = {
+    body?: never;
+    path: {
+        sessionId: string;
+        itemId: string;
+    };
+    query?: never;
+    url: '/sessions/{sessionId}/items/{itemId}';
+};
+
+export type GetSessionItemErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type GetSessionItemResponses = {
+    /**
+     * OK
+     */
+    200: ItemDetail;
+};
+
+export type GetSessionItemResponse = GetSessionItemResponses[keyof GetSessionItemResponses];
+
+export type GetQuestJournalData = {
+    body?: never;
+    path: {
+        playerId: string;
+    };
+    query: {
+        worldId: string;
+    };
+    url: '/players/{playerId}/quests';
+};
+
+export type GetQuestJournalResponses = {
+    /**
+     * OK
+     */
+    200: Array<QuestJournalEntrySnapshot>;
+};
+
+export type GetQuestJournalResponse = GetQuestJournalResponses[keyof GetQuestJournalResponses];
+
+export type AcceptQuestData = {
+    body?: never;
+    path: {
+        playerId: string;
+        questId: string;
+    };
+    query: {
+        worldId: string;
+    };
+    url: '/players/{playerId}/quests/{questId}/accept';
+};
+
+export type AcceptQuestErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetails;
+};
+
+export type AcceptQuestError = AcceptQuestErrors[keyof AcceptQuestErrors];
+
+export type AcceptQuestResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type AcceptQuestResponse = AcceptQuestResponses[keyof AcceptQuestResponses];
+
+export type CompleteQuestData = {
+    body?: never;
+    path: {
+        playerId: string;
+        questId: string;
+    };
+    query: {
+        worldId: string;
+    };
+    url: '/players/{playerId}/quests/{questId}/complete';
+};
+
+export type CompleteQuestErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetails;
+};
+
+export type CompleteQuestError = CompleteQuestErrors[keyof CompleteQuestErrors];
+
+export type CompleteQuestResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type CompleteQuestResponse = CompleteQuestResponses[keyof CompleteQuestResponses];
+
+export type SetQuestTrackingData = {
+    body: SetQuestTrackingRequest;
+    path: {
+        playerId: string;
+        questId: string;
+    };
+    query: {
+        worldId: string;
+    };
+    url: '/players/{playerId}/quests/{questId}/tracking';
+};
+
+export type SetQuestTrackingErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetails;
+};
+
+export type SetQuestTrackingError = SetQuestTrackingErrors[keyof SetQuestTrackingErrors];
+
+export type SetQuestTrackingResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type SetQuestTrackingResponse = SetQuestTrackingResponses[keyof SetQuestTrackingResponses];

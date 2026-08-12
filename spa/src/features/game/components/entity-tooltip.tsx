@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { getSessionNamedEntityOptions } from '@/api/client';
+import { getSessionItemOptions, getSessionLoreAnchorOptions } from '@/api/client';
 import type { EntityType } from '@/api/client';
 import {
   HoverPopover,
@@ -9,6 +9,7 @@ import {
   HoverPopoverTrigger,
 } from '@/components/ui/hover-popover';
 import { useSessionId } from '@/features/game/contexts/scene-context';
+import { ItemTooltip } from '@/features/inventory/components/item-tooltip';
 
 import { ENTITY_TYPE_COLORS } from '../entity-type-colors';
 
@@ -32,11 +33,14 @@ export function EntityTooltip({
   const sessionId = useSessionId();
   const [open, setOpen] = useState(false);
   const isOpen = open && !forceClosed;
-  const query = useQuery({
-    ...getSessionNamedEntityOptions({
-      path: { sessionId, entityId: id },
-    }),
-    enabled: isOpen,
+  const loreAnchor = useQuery({
+    ...getSessionLoreAnchorOptions({ path: { sessionId, anchorId: id } }),
+    enabled: isOpen && entityType !== 'Item',
+    staleTime: Infinity,
+  });
+  const item = useQuery({
+    ...getSessionItemOptions({ path: { sessionId, itemId: id } }),
+    enabled: isOpen && entityType === 'Item',
     staleTime: Infinity,
   });
 
@@ -47,16 +51,18 @@ export function EntityTooltip({
         side={side}
         className="flex flex-col items-start gap-1 text-left whitespace-normal"
       >
-        <span className="font-bold" style={{ color: ENTITY_TYPE_COLORS[entityType] }}>
-          {name}
-        </span>
-        {query.data ? (
+        {item.data ? (
+          <ItemTooltip item={item.data} />
+        ) : loreAnchor.data ? (
           <>
+            <span className="font-bold" style={{ color: ENTITY_TYPE_COLORS[entityType] }}>
+              {name}
+            </span>
             <span className="text-background/70 text-[10px]">
               {entityType}
-              {query.data.subtype ? ` · ${query.data.subtype}` : ''}
+              {loreAnchor.data.subtype ? ` · ${loreAnchor.data.subtype}` : ''}
             </span>
-            {query.data.description && <span>{query.data.description}</span>}
+            {loreAnchor.data.description && <span>{loreAnchor.data.description}</span>}
           </>
         ) : (
           <span className="text-background/70 text-[10px] italic">Loading…</span>

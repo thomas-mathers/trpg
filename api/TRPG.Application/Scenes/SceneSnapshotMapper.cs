@@ -10,6 +10,7 @@ public static class SceneSnapshotMapper
     public static SceneSnapshot ToSnapshot(SceneResult scene)
     {
         return new SceneSnapshot(
+            WorldId: scene.WorldId,
             StateName: scene.State?.Name ?? "",
             CityName: scene.City?.Name,
             DistrictName: scene.District?.Name,
@@ -95,6 +96,12 @@ public static class SceneSnapshotMapper
             LightningResistance: creature.LightningResistance,
             PoisonResistance: creature.PoisonResistance,
             MagicResistance: creature.MagicResistance,
-            TradeWorkstationId: creature.TradeWorkstationId
+            TradeWorkstationId: creature.TradeWorkstationId,
+            QuestMarker: creature.QuestMarker switch
+            {
+                Quests.Queries.QuestMarker.Available => QuestMarker.Available,
+                Quests.Queries.QuestMarker.ReadyToTurnIn => QuestMarker.ReadyToTurnIn,
+                _ => null,
+            }
         );
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
@@ -87,12 +88,14 @@ public record SceneCreatureInfo(
     float LightningResistance,
     float PoisonResistance,
     float MagicResistance,
-    Guid? TradeWorkstationId
+    Guid? TradeWorkstationId,
+    QuestMarker? QuestMarker
 );
 
 public record SceneNearbyBuildingInfo(Guid Id, string Name, BuildingType Type);
 
 public record SceneResult(
+    Guid WorldId,
     SceneDateInfo CurrentDate,
     SceneStateInfo? State,
     SceneCityInfo? City,
@@ -126,6 +129,7 @@ internal class GetSceneQueryHandler(
     GetAllBuildingsByLocationQueryHandler getAllBuildingsByLocation,
     GetNearbyCreaturesQueryHandler getNearbyCreatures,
     GetEffectiveReputationsQueryHandler getEffectiveReputations,
+    GetQuestMarkersForGiversQueryHandler getQuestMarkersForGivers,
     GetTotalCharacterXpFromSkillsQueryHandler getTotalCharacterXpFromSkills,
     ILogger<GetSceneQueryHandler> logger
 )
@@ -175,6 +179,7 @@ internal class GetSceneQueryHandler(
         );
 
         return new SceneResult(
+            query.WorldId,
             new SceneDateInfo(
                 query.CurrentDate.Year,
                 query.CurrentDate.MonthName,
@@ -224,7 +229,8 @@ internal class GetSceneQueryHandler(
         CreatureState? state,
         int? reputation,
         int totalCharacterXp,
-        Guid? tradeWorkstationId = null
+        Guid? tradeWorkstationId = null,
+        QuestMarker? questMarker = null
     )
     {
         var experienceProgress = SkillFormulas.GetExperienceProgress(
@@ -266,7 +272,8 @@ internal class GetSceneQueryHandler(
             creature.LightningResistance,
             creature.PoisonResistance,
             creature.MagicResistance,
-            tradeWorkstationId
+            tradeWorkstationId,
+            questMarker
         );
     }
 
@@ -425,6 +432,15 @@ internal class GetSceneQueryHandler(
                 && w.WorkstationType == WorkstationType.Trade
             )
             .ToDictionaryAsync(w => w.OccupantId!.Value, w => (Guid?)w.Id, cancellationToken);
+        var questMarkersByGiver = await getQuestMarkersForGivers.Handle(
+            new GetQuestMarkersForGiversQuery
+            {
+                PlayerId = query.PlayerId,
+                WorldId = query.WorldId,
+                GiverIds = nearbyCreatureIds,
+            },
+            cancellationToken
+        );
 
         return nearby
             .Select(x =>
@@ -435,7 +451,10 @@ internal class GetSceneQueryHandler(
                     state: x.State,
                     reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
                     totalCharacterXp: 0,
-                    tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id)
+                    tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),
+                    questMarker: questMarkersByGiver.TryGetValue(x.Id, out var marker)
+                        ? marker
+                        : null
                 )
             )
             .ToArray();

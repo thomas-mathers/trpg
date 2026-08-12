@@ -15,6 +15,24 @@ export interface CharacterLevelUp {
   level: number;
 }
 
+export interface QuestDialogRequested {
+  worldId: string;
+  questId: string;
+  name: string;
+  description: string;
+  goldReward: number;
+  objectives: Array<{
+    name: string;
+    description: string;
+    requiredAmount: number;
+  }>;
+  mode: 'Offer' | 'TurnIn';
+}
+
+export interface QuestObjectiveCompleted {
+  objectiveName: string;
+}
+
 interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
   CombatStarted: FightState;
@@ -23,6 +41,9 @@ interface GameEventMap {
   CombatResolved: CombatOutcome;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;
+  QuestDialogRequested: QuestDialogRequested;
+  QuestObjectiveCompleted: QuestObjectiveCompleted;
+  QuestJournalUpdated: undefined;
   ConnectionStatusChanged: ConnectionStatus;
 }
 

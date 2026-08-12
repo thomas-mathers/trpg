@@ -455,4 +455,78 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
         Assert.Null(remainingCorpse);
     }
+
+    [Fact]
+    public async Task Handle_KeepsCorpse_WhenItHoldsAnActiveQuestItem()
+    {
+        // Arrange
+        var oldLocation = Builders.MakeLocation(WorldId, StateId);
+        var newLocation = Builders.MakeLocation(WorldId, StateId);
+        var player = Builders.MakeCreature(WorldId, stateId: StateId, locationId: oldLocation.Id);
+        var corpse = Builders.MakeCreature(
+            WorldId,
+            stateId: StateId,
+            locationId: oldLocation.Id,
+            state: CreatureState.Dead
+        );
+        var quest = Builders.MakeQuest(corpse.Id, WorldId);
+        var item = Builders.MakeWeaponItem(WorldId);
+        item.Ownership.OwnerId = corpse.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        var objective = new CollectItemObjective
+        {
+            WorldId = WorldId,
+            QuestId = quest.Id,
+            ItemId = item.Id,
+        };
+        var connector = Builders.MakeLocationConnector(
+            oldLocation.Id,
+            destinationLocationId: newLocation.Id,
+            destinationLabel: "Elsewhere"
+        );
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.AddRange(player, corpse);
+        _context.Quests.Add(quest);
+        _context.Items.Add(item);
+        _context.QuestObjectives.Add(objective);
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = player.Id,
+                QuestId = quest.Id,
+                Status = QuestStatus.Accepted,
+                WorldId = WorldId,
+            }
+        );
+        _context.CreatureQuestObjectives.Add(
+            new CreatureQuestObjective
+            {
+                CreatureId = player.Id,
+                ObjectiveId = objective.Id,
+                WorldId = WorldId,
+            }
+        );
+        _context.Props.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Elsewhere",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        Assert.NotNull(
+            await verifyContext.Creatures.FindAsync(
+                [corpse.Id],
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
 }

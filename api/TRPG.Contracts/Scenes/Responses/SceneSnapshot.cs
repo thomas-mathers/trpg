@@ -109,6 +109,7 @@ public enum BuildingType
 }
 
 public record SceneSnapshot(
+    Guid WorldId,
     string StateName,
     string? CityName,
     string? DistrictName,
@@ -160,8 +161,15 @@ public record CreatureStatusSnapshot(
     float LightningResistance,
     float PoisonResistance,
     float MagicResistance,
-    Guid? TradeWorkstationId
+    Guid? TradeWorkstationId,
+    QuestMarker? QuestMarker
 );
+
+public enum QuestMarker
+{
+    Available,
+    ReadyToTurnIn,
+}
 
 public record NearbyBuildingSnapshot(
     Guid Id,

@@ -4,7 +4,8 @@ public record QuestObjectiveProgressSnapshot(
     string Name,
     string Description,
     int Amount,
-    int RequiredAmount
+    int RequiredAmount,
+    string? LocationName
 );
 
 public record QuestJournalEntrySnapshot(

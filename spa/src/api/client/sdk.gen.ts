@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AdvanceSessionTimeData, AdvanceSessionTimeErrors, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldData, DropWorldResponses, EndSessionData, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillData, GetAbilitiesBySkillResponses, GetCreatureAbilitiesData, GetCreatureAbilitiesResponses, GetCreatureAttributePointsData, GetCreatureAttributePointsResponses, GetCreatureAttributesData, GetCreatureAttributesResponses, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesData, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponses, GetCreatureInventoryData, GetCreatureInventoryResponses, GetCreatureLevelData, GetCreatureLevelResponses, GetCreatureSkillsData, GetCreatureSkillsResponses, GetJobData, GetJobErrors, GetJobResponses, GetNearbyCorpsesData, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponses, GetPlayerFightData, GetPlayerFightErrors, GetPlayerFightResponses, GetSessionNamedEntityData, GetSessionNamedEntityErrors, GetSessionNamedEntityResponses, GetSessionSceneData, GetSessionSceneErrors, GetSessionSceneResponses, GetTradeData, GetTradeResponses, ListSessionNamedEntitiesData, ListSessionNamedEntitiesResponses, ListWorldsData, ListWorldsResponses, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeErrors, ProposeTradeResponses, ResolveCombatActionData, ResolveCombatActionResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryErrors, TransferInventoryResponses, UnequipCreatureItemData, UnequipCreatureItemResponses } from './types.gen';
+import type { AcceptQuestData, AcceptQuestErrors, AcceptQuestResponses, AdvanceSessionTimeData, AdvanceSessionTimeErrors, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, CompleteQuestData, CompleteQuestErrors, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldData, DropWorldResponses, EndSessionData, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillData, GetAbilitiesBySkillResponses, GetCreatureAbilitiesData, GetCreatureAbilitiesResponses, GetCreatureAttributePointsData, GetCreatureAttributePointsResponses, GetCreatureAttributesData, GetCreatureAttributesResponses, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesData, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponses, GetCreatureInventoryData, GetCreatureInventoryResponses, GetCreatureLevelData, GetCreatureLevelResponses, GetCreatureSkillsData, GetCreatureSkillsResponses, GetJobData, GetJobErrors, GetJobResponses, GetNearbyCorpsesData, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponses, GetPlayerFightData, GetPlayerFightErrors, GetPlayerFightResponses, GetQuestJournalData, GetQuestJournalResponses, GetSessionItemData, GetSessionItemErrors, GetSessionItemResponses, GetSessionLoreAnchorData, GetSessionLoreAnchorErrors, GetSessionLoreAnchorResponses, GetSessionSceneData, GetSessionSceneErrors, GetSessionSceneResponses, GetTradeData, GetTradeResponses, ListSessionLoreAnchorsData, ListSessionLoreAnchorsResponses, ListWorldsData, ListWorldsResponses, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeErrors, ProposeTradeResponses, ResolveCombatActionData, ResolveCombatActionResponses, SendAdminChatData, SendAdminChatResponses, SetQuestTrackingData, SetQuestTrackingErrors, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryErrors, TransferInventoryResponses, UnequipCreatureItemData, UnequipCreatureItemResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -103,9 +103,9 @@ export const resolveCombatAction = <ThrowOnError extends boolean = false>(option
 
 export const getSessionScene = <ThrowOnError extends boolean = false>(options: Options<GetSessionSceneData, ThrowOnError>): RequestResult<GetSessionSceneResponses, GetSessionSceneErrors, ThrowOnError> => (options.client ?? client).get<GetSessionSceneResponses, GetSessionSceneErrors, ThrowOnError>({ url: '/sessions/{sessionId}/scene', ...options });
 
-export const listSessionNamedEntities = <ThrowOnError extends boolean = false>(options: Options<ListSessionNamedEntitiesData, ThrowOnError>): RequestResult<ListSessionNamedEntitiesResponses, unknown, ThrowOnError> => (options.client ?? client).get<ListSessionNamedEntitiesResponses, unknown, ThrowOnError>({ url: '/sessions/{sessionId}/named-entities', ...options });
+export const listSessionLoreAnchors = <ThrowOnError extends boolean = false>(options: Options<ListSessionLoreAnchorsData, ThrowOnError>): RequestResult<ListSessionLoreAnchorsResponses, unknown, ThrowOnError> => (options.client ?? client).get<ListSessionLoreAnchorsResponses, unknown, ThrowOnError>({ url: '/sessions/{sessionId}/lore-anchors', ...options });
 
-export const getSessionNamedEntity = <ThrowOnError extends boolean = false>(options: Options<GetSessionNamedEntityData, ThrowOnError>): RequestResult<GetSessionNamedEntityResponses, GetSessionNamedEntityErrors, ThrowOnError> => (options.client ?? client).get<GetSessionNamedEntityResponses, GetSessionNamedEntityErrors, ThrowOnError>({ url: '/sessions/{sessionId}/named-entities/{entityId}', ...options });
+export const getSessionLoreAnchor = <ThrowOnError extends boolean = false>(options: Options<GetSessionLoreAnchorData, ThrowOnError>): RequestResult<GetSessionLoreAnchorResponses, GetSessionLoreAnchorErrors, ThrowOnError> => (options.client ?? client).get<GetSessionLoreAnchorResponses, GetSessionLoreAnchorErrors, ThrowOnError>({ url: '/sessions/{sessionId}/lore-anchors/{anchorId}', ...options });
 
 export const getJob = <ThrowOnError extends boolean = false>(options: Options<GetJobData, ThrowOnError>): RequestResult<GetJobResponses, GetJobErrors, ThrowOnError> => (options.client ?? client).get<GetJobResponses, GetJobErrors, ThrowOnError>({ url: '/jobs/{id}', ...options });
 
@@ -130,7 +130,7 @@ export const advanceSessionTime = <ThrowOnError extends boolean = false>(options
 export const endSession = <ThrowOnError extends boolean = false>(options: Options<EndSessionData, ThrowOnError>): RequestResult<EndSessionResponses, unknown, ThrowOnError> => (options.client ?? client).delete<EndSessionResponses, unknown, ThrowOnError>({ url: '/admin/sessions/{sessionId}', ...options });
 
 export const transferInventory = <ThrowOnError extends boolean = false>(options: Options<TransferInventoryData, ThrowOnError>): RequestResult<TransferInventoryResponses, TransferInventoryErrors, ThrowOnError> => (options.client ?? client).post<TransferInventoryResponses, TransferInventoryErrors, ThrowOnError>({
-    url: '/inventory-transfers',
+    url: '/players/{playerId}/inventory-transfers',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -151,6 +151,23 @@ export const proposeTrade = <ThrowOnError extends boolean = false>(options: Opti
 
 export const completeTrade = <ThrowOnError extends boolean = false>(options: Options<CompleteTradeData, ThrowOnError>): RequestResult<CompleteTradeResponses, unknown, ThrowOnError> => (options.client ?? client).post<CompleteTradeResponses, unknown, ThrowOnError>({
     url: '/players/{playerId}/trades/{workstationId}/complete',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const getSessionItem = <ThrowOnError extends boolean = false>(options: Options<GetSessionItemData, ThrowOnError>): RequestResult<GetSessionItemResponses, GetSessionItemErrors, ThrowOnError> => (options.client ?? client).get<GetSessionItemResponses, GetSessionItemErrors, ThrowOnError>({ url: '/sessions/{sessionId}/items/{itemId}', ...options });
+
+export const getQuestJournal = <ThrowOnError extends boolean = false>(options: Options<GetQuestJournalData, ThrowOnError>): RequestResult<GetQuestJournalResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetQuestJournalResponses, unknown, ThrowOnError>({ url: '/players/{playerId}/quests', ...options });
+
+export const acceptQuest = <ThrowOnError extends boolean = false>(options: Options<AcceptQuestData, ThrowOnError>): RequestResult<AcceptQuestResponses, AcceptQuestErrors, ThrowOnError> => (options.client ?? client).post<AcceptQuestResponses, AcceptQuestErrors, ThrowOnError>({ url: '/players/{playerId}/quests/{questId}/accept', ...options });
+
+export const completeQuest = <ThrowOnError extends boolean = false>(options: Options<CompleteQuestData, ThrowOnError>): RequestResult<CompleteQuestResponses, CompleteQuestErrors, ThrowOnError> => (options.client ?? client).post<CompleteQuestResponses, CompleteQuestErrors, ThrowOnError>({ url: '/players/{playerId}/quests/{questId}/complete', ...options });
+
+export const setQuestTracking = <ThrowOnError extends boolean = false>(options: Options<SetQuestTrackingData, ThrowOnError>): RequestResult<SetQuestTrackingResponses, SetQuestTrackingErrors, ThrowOnError> => (options.client ?? client).put<SetQuestTrackingResponses, SetQuestTrackingErrors, ThrowOnError>({
+    url: '/players/{playerId}/quests/{questId}/tracking',
     ...options,
     headers: {
         'Content-Type': 'application/json',

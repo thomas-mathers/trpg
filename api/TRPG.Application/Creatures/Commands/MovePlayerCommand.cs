@@ -6,7 +6,9 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests;
+using TRPG.Application.Quests.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.Models;
@@ -27,6 +29,8 @@ internal class MovePlayerCommandHandler(
     GetCreatureByIdQueryHandler getCreatureById,
     GetLocationByIdQueryHandler getLocationById,
     GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
+    GetActiveQuestItemIdsQueryHandler getActiveQuestItemIds,
+    GetCreatureIdsHoldingItemsQueryHandler getCreatureIdsHoldingItems,
     UpdateCreaturesCommandHandler updateCreatures,
     DeleteCreaturesCommandHandler deleteCreatures,
     GetBuildingByNameAtLocationQueryHandler getBuildingByNameAtLocation,
@@ -66,7 +70,7 @@ internal class MovePlayerCommandHandler(
             return new MovePlayerResult(outcome, player);
         }
 
-        await CleanUpDeadCreatures(player.WorldId, oldLocationId, cancellationToken);
+        await CleanUpDeadCreatures(player, oldLocationId, cancellationToken);
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
@@ -90,13 +94,17 @@ internal class MovePlayerCommandHandler(
     }
 
     private async Task CleanUpDeadCreatures(
-        Guid worldId,
+        Creature player,
         Guid oldLocationId,
         CancellationToken cancellationToken
     )
     {
         var nearby = await getCreaturesAtLocation.Handle(
-            new GetCreaturesAtLocationQuery { WorldId = worldId, LocationId = oldLocationId },
+            new GetCreaturesAtLocationQuery
+            {
+                WorldId = player.WorldId,
+                LocationId = oldLocationId,
+            },
             cancellationToken
         );
 
@@ -110,14 +118,29 @@ internal class MovePlayerCommandHandler(
             return;
         }
 
+        var questItemIds = await getActiveQuestItemIds.Handle(
+            new GetActiveQuestItemIdsQuery { PlayerId = player.Id },
+            cancellationToken
+        );
+        var questItemOwnerIds = await getCreatureIdsHoldingItems.Handle(
+            new GetCreatureIdsHoldingItemsQuery { ItemIds = questItemIds },
+            cancellationToken
+        );
+        var removableCreatureIds = deadCreatureIds.Except(questItemOwnerIds).ToArray();
+
+        if (removableCreatureIds.Length == 0)
+        {
+            return;
+        }
+
         logger.LogInformation(
             "[move] deleting {Count} dead creature(s) left behind: {CreatureIds}",
-            deadCreatureIds.Length,
-            string.Join(", ", deadCreatureIds)
+            removableCreatureIds.Length,
+            string.Join(", ", removableCreatureIds)
         );
 
         await deleteCreatures.Handle(
-            new DeleteCreaturesCommand { CreatureIds = deadCreatureIds },
+            new DeleteCreaturesCommand { CreatureIds = removableCreatureIds },
             cancellationToken
         );
     }

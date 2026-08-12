@@ -14,7 +14,8 @@ internal record QuestObjectiveProgress(
     string Name,
     string Description,
     int Amount,
-    int RequiredAmount
+    int RequiredAmount,
+    string? LocationName
 );
 
 internal record QuestJournalEntry(
@@ -44,9 +45,37 @@ internal class GetQuestJournalQueryHandler(TrpgDbContext context)
             .ThenBy(creatureQuest => creatureQuest.Quest.Name)
             .ToArrayAsync(cancellationToken);
         var objectives = await GetObjectives(query.PlayerId, query.WorldId, cancellationToken);
+        var locationIds = objectives
+            .Select(objective => objective.Objective.LocationId)
+            .OfType<Guid>()
+            .Distinct()
+            .ToArray();
+
+        var locationNamesById = await context
+            .Locations.AsNoTracking()
+            .Where(location => locationIds.AsEnumerable().Contains(location.Id))
+            .ToDictionaryAsync(
+                location => location.Id,
+                location => location.Name,
+                cancellationToken
+            );
+
         var objectivesByQuestId = objectives
             .GroupBy(objective => objective.Objective.QuestId)
-            .ToDictionary(group => group.Key, group => group.Select(ToProgress).ToArray());
+            .ToDictionary(
+                group => group.Key,
+                group =>
+                    group
+                        .Select(objective =>
+                            ToProgress(
+                                objective,
+                                objective.Objective.LocationId is Guid locationId
+                                    ? locationNamesById.GetValueOrDefault(locationId)
+                                    : null
+                            )
+                        )
+                        .ToArray()
+            );
 
         return quests
             .Select(quest => new QuestJournalEntry(
@@ -72,11 +101,15 @@ internal class GetQuestJournalQueryHandler(TrpgDbContext context)
             .Where(objective => objective.CreatureId == playerId && objective.WorldId == worldId)
             .ToArrayAsync(cancellationToken);
 
-    private static QuestObjectiveProgress ToProgress(CreatureQuestObjective objective) =>
+    private static QuestObjectiveProgress ToProgress(
+        CreatureQuestObjective objective,
+        string? locationName
+    ) =>
         new(
             objective.Objective.Name,
             objective.Objective.Description,
             objective.Amount,
-            objective.Objective.RequiredAmount
+            objective.Objective.RequiredAmount,
+            locationName
         );
 }

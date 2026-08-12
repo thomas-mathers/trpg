@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
@@ -12,7 +14,9 @@ using TRPG.Contracts.Inventory.Responses;
 using TRPG.Contracts.Trading.Requests;
 using TRPG.Contracts.Trading.Responses;
 using TRPG.Creatures.Endpoints;
+using TRPG.Data;
 using TRPG.Data.Models;
+using TRPG.GameSessions.Hubs;
 
 namespace TRPG.Inventory.Endpoints;
 
@@ -29,6 +33,8 @@ internal static class InventoryEndpoints
             .WithName("ProposeTrade");
         app.MapPost("/players/{playerId:guid}/trades/{workstationId:guid}/complete", CompleteTrade)
             .WithName("CompleteTrade");
+        app.MapGet("/sessions/{sessionId:guid}/items/{itemId:guid}", GetItemById)
+            .WithName("GetSessionItem");
     }
 
     private static async Task<Results<NotFound, ProblemHttpResult, NoContent>> InventoryTransfer(
@@ -37,6 +43,7 @@ internal static class InventoryEndpoints
         GetCreatureByIdQueryHandler getCreatureById,
         ReceivePlayerInventoryCommandHandler receiveInventory,
         TransferPlayerInventoryCommandHandler transferInventory,
+        GameClientEventDispatcher eventDispatcher,
         CancellationToken cancellationToken
     )
     {
@@ -108,7 +115,33 @@ internal static class InventoryEndpoints
             );
         }
 
+        await eventDispatcher.FlushAsync(fromCreature.WorldId, cancellationToken);
+
         return TypedResults.NoContent();
+    }
+
+    private static async Task<Results<NotFound, Ok<ItemDetail>>> GetItemById(
+        Guid sessionId,
+        Guid itemId,
+        GetGameSessionQueryHandler getGameSession,
+        TrpgDbContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var session = await getGameSession.Handle(
+            new GetGameSessionQuery { SessionId = sessionId },
+            cancellationToken
+        );
+        var item = await context
+            .Items.AsNoTracking()
+            .FirstOrDefaultAsync(
+                item => item.Id == itemId && item.WorldId == session.WorldId,
+                cancellationToken
+            );
+
+        return item is null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(CreatureEndpoints.ToItemDetail(item));
     }
 
     private static async Task<Ok<TradeSnapshot>> GetTrade(

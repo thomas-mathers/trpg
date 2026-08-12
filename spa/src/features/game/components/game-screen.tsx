@@ -1,14 +1,22 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
+import { getQuestJournalQueryKey } from '@/api/client';
 import { CharacterDialog } from '@/features/character/components/character-dialog';
 
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
-import { gameEventBus, type ConnectionStatus } from '../../../lib/game-event-bus';
+import {
+  gameEventBus,
+  type ConnectionStatus,
+  type QuestDialogRequested,
+} from '../../../lib/game-event-bus';
 import { clearStoredMessages } from '../../../lib/session-storage';
 import { InventoryDialog } from '../../inventory/components/inventory-dialog';
+import { QuestDialog } from '../../quests/components/quest-dialog';
+import { QuestJournalDialog } from '../../quests/components/quest-journal-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
-import { usePlayerId } from '../contexts/scene-context';
+import { usePlayerId, useScene } from '../contexts/scene-context';
 import { GameChatContext } from '../game-chat-context';
 import { useGameChat } from '../hooks/use-game-chat';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
@@ -21,7 +29,7 @@ import { NearbySidebar } from './nearby-sidebar';
 import { NearbyToggleButton } from './nearby-toggle-button';
 import { StatusBar } from './status-bar';
 
-type OpenDialog = 'character' | 'inventory' | 'skillTree' | null;
+type OpenDialog = 'character' | 'inventory' | 'questJournal' | 'skillTree' | null;
 
 function GameScreen() {
   const navigate = useNavigate();
@@ -101,6 +109,36 @@ function GameScreenContent({
   onConnectionLostClose,
 }: GameScreenContentProps) {
   const playerId = usePlayerId();
+  const scene = useScene();
+  const queryClient = useQueryClient();
+  const [questDialog, setQuestDialog] = useState<QuestDialogRequested | null>(null);
+
+  useEffect(() => gameEventBus.on('QuestDialogRequested', setQuestDialog), []);
+
+  useEffect(
+    () =>
+      gameEventBus.on('ConnectionStatusChanged', (status) => {
+        if (status === 'reconnected') {
+          void queryClient.invalidateQueries();
+        }
+      }),
+    [queryClient],
+  );
+
+  useEffect(
+    () =>
+      gameEventBus.on('QuestJournalUpdated', () => {
+        if (playerId && scene) {
+          void queryClient.invalidateQueries({
+            queryKey: getQuestJournalQueryKey({
+              path: { playerId },
+              query: { worldId: scene.worldId },
+            }),
+          });
+        }
+      }),
+    [playerId, queryClient, scene],
+  );
 
   return (
     <SidebarProvider
@@ -118,6 +156,7 @@ function GameScreenContent({
               <GameMenu
                 onOpenCharacterDialog={() => onOpenDialog('character')}
                 onOpenInventoryDialog={() => onOpenDialog('inventory')}
+                onOpenQuestJournal={() => onOpenDialog('questJournal')}
                 onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
                 onQuit={onQuit}
               />
@@ -131,7 +170,7 @@ function GameScreenContent({
           <GameChat />
         </SidebarInset>
 
-        <NearbySidebar />
+        <NearbySidebar onOpenQuestJournal={() => onOpenDialog('questJournal')} />
       </div>
 
       {playerId && (
@@ -147,6 +186,19 @@ function GameScreenContent({
             open={openDialog === 'skillTree'}
             onClose={() => onOpenDialog(null)}
           />
+          <QuestDialog
+            playerId={playerId}
+            quest={questDialog}
+            onClose={() => setQuestDialog(null)}
+          />
+          {scene && (
+            <QuestJournalDialog
+              playerId={playerId}
+              worldId={scene.worldId}
+              open={openDialog === 'questJournal'}
+              onClose={() => onOpenDialog(null)}
+            />
+          )}
         </>
       )}
 

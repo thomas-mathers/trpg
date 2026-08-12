@@ -3,11 +3,15 @@ import { NearbyPanel } from '@/features/game/components/nearby-panel';
 import { useScene } from '@/features/game/contexts/scene-context';
 import { cn } from '@/lib/utils';
 
-export function NearbySidebar() {
+interface NearbySidebarProps {
+  onOpenQuestJournal: () => void;
+}
+
+export function NearbySidebar({ onOpenQuestJournal }: NearbySidebarProps) {
   const scene = useScene();
   const { open, isMobile } = useSidebar();
 
-  const panel = scene && <NearbyPanel scene={scene} />;
+  const panel = scene && <NearbyPanel scene={scene} onOpenQuestJournal={onOpenQuestJournal} />;
 
   if (isMobile) {
     return (

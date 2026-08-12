@@ -40,6 +40,8 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db) : IAsyn
     {
         // Arrange
         var creatureQuest = await SeedQuest(QuestStatus.ReadyToComplete);
+        creatureQuest.IsTracked = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         await _handler.Handle(
@@ -54,6 +56,7 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db) : IAsyn
 
         // Assert
         Assert.Equal(QuestStatus.Completed, creatureQuest.Status);
+        Assert.False(creatureQuest.IsTracked);
         var gold = await _context
             .Items.OfType<Gold>()
             .SingleAsync(

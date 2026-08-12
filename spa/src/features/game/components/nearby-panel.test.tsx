@@ -1,9 +1,9 @@
 import { screen, waitFor } from '@testing-library/react';
 import { HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { SceneSnapshot, TradeSnapshot } from '@/api/client';
-import { handleGetTrade } from '@/api/client/msw.gen';
+import type { QuestJournalEntrySnapshot, SceneSnapshot, TradeSnapshot } from '@/api/client';
+import { handleGetQuestJournal, handleGetTrade } from '@/api/client/msw.gen';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 
@@ -11,6 +11,7 @@ import { NearbyPanel } from './nearby-panel';
 
 function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
   return {
+    worldId: 'world-id',
     buildingName: 'The General Store',
     exits: [],
     nearbyBuildings: [],
@@ -33,7 +34,13 @@ const emptyTrade: TradeSnapshot = {
   shopInventory: { gold: 0, items: [] },
 };
 
+const emptyJournal: QuestJournalEntrySnapshot[] = [];
+
 describe('NearbyPanel', () => {
+  beforeEach(() => {
+    server.use(handleGetQuestJournal({ body: emptyJournal }));
+  });
+
   it('opens trade for a worker assigned to a trade workstation', async () => {
     let requestedPath: { playerId: string; workstationId: string } | undefined;
     server.use(
@@ -42,7 +49,9 @@ describe('NearbyPanel', () => {
         return HttpResponse.json(emptyTrade);
       }),
     );
-    const { user } = renderWithProviders(<NearbyPanel scene={scene('workstation-id')} />);
+    const { user } = renderWithProviders(
+      <NearbyPanel scene={scene('workstation-id')} onOpenQuestJournal={() => {}} />,
+    );
 
     await user.click(screen.getByRole('button', { name: 'Trade' }));
 
@@ -56,7 +65,7 @@ describe('NearbyPanel', () => {
   });
 
   it('does not show trade when a scene snapshot omits the trade workstation ID', () => {
-    renderWithProviders(<NearbyPanel scene={scene(undefined)} />);
+    renderWithProviders(<NearbyPanel scene={scene(undefined)} onOpenQuestJournal={() => {}} />);
 
     expect(screen.queryByRole('button', { name: 'Trade' })).not.toBeInTheDocument();
   });

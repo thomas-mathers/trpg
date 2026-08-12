@@ -61,6 +61,7 @@ function renderDialog(onClose = vi.fn()) {
   return renderWithProviders(
     <TradeDialog
       playerId="player-id"
+      worldId="world-id"
       workstationId="workstation-id"
       workerName="Tessa"
       shopName="The General Store"
