@@ -9,16 +9,25 @@ public class DungeonGeneratorTests
     private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _wildernessLocationId = Guid.NewGuid();
 
+    private Location WildernessLocation =>
+        new()
+        {
+            Id = _wildernessLocationId,
+            StateId = _stateId,
+            WorldId = _worldId,
+            Kind = LocationKind.Wilderness,
+        };
+
     [Fact]
     public void Generate_ReturnsBuildingAndGroundFloorRoom()
     {
         // Act
         var result = DungeonGenerator.Generate(
-            new DungeonGeneratorInput(_stateId, [], _wildernessLocationId, _worldId)
+            new DungeonGeneratorInput([], WildernessLocation, _worldId)
         );
 
         // Assert
-        Assert.Equal(_stateId, result.Building.StateId);
+        Assert.Equal(_wildernessLocationId, result.Building.ExteriorLocationId);
         Assert.Equal(_worldId, result.Building.WorldId);
         Assert.Equal(result.Building.Id, result.Room.BuildingId);
         Assert.Equal(0, result.Room.FloorNumber);
@@ -32,7 +41,7 @@ public class DungeonGeneratorTests
     {
         // Act
         var result = DungeonGenerator.Generate(
-            new DungeonGeneratorInput(_stateId, [], _wildernessLocationId, _worldId)
+            new DungeonGeneratorInput([], WildernessLocation, _worldId)
         );
 
         // Assert
@@ -46,17 +55,12 @@ public class DungeonGeneratorTests
     {
         // Arrange
         var result = DungeonGenerator.Generate(
-            new DungeonGeneratorInput(_stateId, [], _wildernessLocationId, _worldId)
+            new DungeonGeneratorInput([], WildernessLocation, _worldId)
         );
 
         // Act
         var next = DungeonGenerator.Generate(
-            new DungeonGeneratorInput(
-                _stateId,
-                [result.Building.Name],
-                _wildernessLocationId,
-                _worldId
-            )
+            new DungeonGeneratorInput([result.Building.Name], WildernessLocation, _worldId)
         );
 
         // Assert
@@ -71,7 +75,7 @@ public class DungeonGeneratorTests
         for (var i = 0; i < DungeonGenerator.TotalNameCount; i++)
         {
             var result = DungeonGenerator.Generate(
-                new DungeonGeneratorInput(_stateId, usedNames, _wildernessLocationId, _worldId)
+                new DungeonGeneratorInput(usedNames, WildernessLocation, _worldId)
             );
             usedNames.Add(result.Building.Name);
         }
@@ -79,7 +83,7 @@ public class DungeonGeneratorTests
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
             DungeonGenerator.Generate(
-                new DungeonGeneratorInput(_stateId, usedNames, _wildernessLocationId, _worldId)
+                new DungeonGeneratorInput(usedNames, WildernessLocation, _worldId)
             )
         );
     }

@@ -197,7 +197,7 @@ internal class MovePlayerCommandHandler(
         var building = await getBuildingByNameAtLocation.Handle(
             new GetBuildingByNameAtLocationQuery
             {
-                Location = currentLocation,
+                LocationId = currentLocation.Id,
                 Name = command.DestinationName,
             },
             cancellationToken

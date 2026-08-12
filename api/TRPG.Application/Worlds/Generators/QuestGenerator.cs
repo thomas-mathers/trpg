@@ -11,9 +11,11 @@ public class QuestGenerator
 {
     public QuestGeneratorResult Generate(WorldGeneratorResult world, Guid stateId)
     {
+        var locationById = world.Locations.ToDictionary(location => location.Id);
         var residents = world
             .Creatures.Where(creature =>
-                creature.StateId == stateId
+                locationById.TryGetValue(creature.LocationId, out var location)
+                && location.StateId == stateId
                 && CreatureTypes.Humanoid.Contains(creature.CreatureType)
             )
             .ToArray();
@@ -25,13 +27,19 @@ public class QuestGenerator
         }
 
         var firstQuest = CreateFirstQuest(world.World.Id, giver.Id);
-        var firstObjectives = CreateFirstObjectives(world, stateId, firstQuest.Id);
+        var firstObjectives = CreateFirstObjectives(world, stateId, locationById, firstQuest.Id);
         var secondQuest = CreateSecondQuest(
             world.World.Id,
             giver.Id,
             firstObjectives.Count > 0 ? [firstQuest.Id] : []
         );
-        var secondObjectives = CreateSecondObjectives(world, stateId, residents, secondQuest.Id);
+        var secondObjectives = CreateSecondObjectives(
+            world,
+            stateId,
+            locationById,
+            residents,
+            secondQuest.Id
+        );
         var quests = new List<Quest>();
         var objectives = new List<QuestObjective>();
 
@@ -78,12 +86,15 @@ public class QuestGenerator
     private static List<QuestObjective> CreateFirstObjectives(
         WorldGeneratorResult world,
         Guid stateId,
+        IReadOnlyDictionary<Guid, Location> locationById,
         Guid questId
     )
     {
         var objectives = new List<QuestObjective>();
         var target = world.Creatures.FirstOrDefault(creature =>
-            creature.StateId == stateId && !CreatureTypes.Humanoid.Contains(creature.CreatureType)
+            locationById.TryGetValue(creature.LocationId, out var location)
+            && location.StateId == stateId
+            && !CreatureTypes.Humanoid.Contains(creature.CreatureType)
         );
 
         if (target is not null)
@@ -118,7 +129,9 @@ public class QuestGenerator
         }
 
         var building = world.Buildings.FirstOrDefault(building =>
-            building.StateId == stateId && building.CityId is not null
+            locationById.TryGetValue(building.ExteriorLocationId, out var location)
+            && location.StateId == stateId
+            && location.CityId is not null
         );
         var locationId = building is null
             ? null
@@ -127,15 +140,14 @@ public class QuestGenerator
         if (building is not null && locationId is not null)
         {
             objectives.Add(
-                new ExploreBuildingObjective
+                new ExploreLocationObjective
                 {
                     WorldId = world.World.Id,
                     QuestId = questId,
                     Name = $"Visit {building.Name}",
                     Description =
                         $"Visit {EntityReference(building.Name, "Building", building.Id)}.",
-                    BuildingId = building.Id,
-                    LocationId = locationId,
+                    LocationId = locationId.Value,
                 }
             );
         }
@@ -146,6 +158,7 @@ public class QuestGenerator
     private static List<QuestObjective> CreateSecondObjectives(
         WorldGeneratorResult world,
         Guid stateId,
+        IReadOnlyDictionary<Guid, Location> locationById,
         IReadOnlyList<Creature> residents,
         Guid questId
     )
@@ -153,7 +166,8 @@ public class QuestGenerator
         var objectives = new List<QuestObjective>();
         var monsterGroup = world
             .Creatures.Where(creature =>
-                creature.StateId == stateId
+                locationById.TryGetValue(creature.LocationId, out var location)
+                && location.StateId == stateId
                 && !CreatureTypes.Humanoid.Contains(creature.CreatureType)
             )
             .GroupBy(creature => creature.CreatureType)
@@ -203,13 +217,12 @@ public class QuestGenerator
         if (city is not null && cityCenter is not null)
         {
             objectives.Add(
-                new ExploreCityObjective
+                new ExploreLocationObjective
                 {
                     WorldId = world.World.Id,
                     QuestId = questId,
                     Name = $"Visit {city.Name}",
                     Description = $"Visit {EntityReference(city.Name, "City", city.Id)}.",
-                    CityId = city.Id,
                     LocationId = cityCenter.LocationId,
                 }
             );

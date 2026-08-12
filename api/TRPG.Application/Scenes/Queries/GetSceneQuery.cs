@@ -355,12 +355,7 @@ internal class GetSceneQueryHandler(
     )
     {
         var buildings = await getAllBuildingsByLocation.Handle(
-            new GetAllBuildingsByLocationQuery
-            {
-                StateId = player.StateId,
-                CityId = player.CityId,
-                DistrictId = player.DistrictId,
-            },
+            new GetAllBuildingsByLocationQuery { LocationId = player.LocationId },
             cancellationToken
         );
 

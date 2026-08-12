@@ -132,6 +132,7 @@ public class WorldGenerator(
         var citiesByStateId = geography
             .Cities.GroupBy(c => c.StateId)
             .ToDictionary(g => g.Key, g => g.ToList());
+        var locationsById = geography.Locations.ToDictionary(location => location.Id);
 
         foreach (var city in geography.Cities)
         {
@@ -143,6 +144,7 @@ public class WorldGenerator(
                     State = stateById[city.StateId],
                     DominantRace = geography.DominantRaceByCountryId[city.CountryId],
                     Districts = districtsByCityId[city.Id],
+                    LocationsById = locationsById,
                     NamedFactions = namedFactions,
                     GeneratorInput = generatorInput,
                 }
@@ -198,7 +200,7 @@ public class WorldGenerator(
             for (var i = 0; i < count; i++)
             {
                 var result = DungeonGenerator.Generate(
-                    new DungeonGeneratorInput(state.Id, usedNames, wildernessLocation.Id, worldId)
+                    new DungeonGeneratorInput(usedNames, wildernessLocation, worldId)
                 );
                 usedNames.Add(result.Building.Name);
                 buildings.Add(result.Building);
@@ -209,7 +211,6 @@ public class WorldGenerator(
                 var dungeonMonsters = dungeonPopulator.Generate(
                     new DungeonPopulatorInput
                     {
-                        StateId = state.Id,
                         LocationId = result.Location.Id,
                         WorldId = worldId,
                         DungeonType = result.Building.BuildingType,
@@ -224,7 +225,7 @@ public class WorldGenerator(
         BiographyGenerator.AssignBiographies(
             new BiographyGeneratorInput(
                 creatures,
-                stateById,
+                locations.ToDictionary(location => location.Id),
                 factionMembers,
                 factions,
                 relationships,

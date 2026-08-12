@@ -7,9 +7,7 @@ namespace TRPG.Application.Buildings.Queries;
 
 internal class GetAllBuildingsByLocationQuery
 {
-    public required Guid StateId { get; init; }
-    public required Guid? CityId { get; init; }
-    public required Guid? DistrictId { get; init; }
+    public required Guid LocationId { get; init; }
 }
 
 internal class GetAllBuildingsByLocationQueryHandler(TrpgDbContext context, IMemoryCache cache)
@@ -20,15 +18,11 @@ internal class GetAllBuildingsByLocationQueryHandler(TrpgDbContext context, IMem
     )
     {
         var buildings = await cache.GetOrCreateAsync<Building[]>(
-            $"nearbyBuildings:{query.StateId}:{query.CityId}:{query.DistrictId}",
+            $"nearbyBuildings:{query.LocationId}",
             async _ =>
                 await context
                     .Buildings.AsNoTracking()
-                    .Where(b =>
-                        b.StateId == query.StateId
-                        && b.CityId == query.CityId
-                        && b.DistrictId == query.DistrictId
-                    )
+                    .Where(b => b.ExteriorLocationId == query.LocationId)
                     .ToArrayAsync(cancellationToken)
         );
         return buildings ?? [];

@@ -10,7 +10,6 @@ public class HouseholdGeneratorTests
 {
     private const int EpochYear = GameClock.EpochYear;
     private readonly Guid _worldId = Guid.NewGuid();
-    private readonly Guid _stateId = Guid.NewGuid();
     private readonly City _city = new()
     {
         WorldId = Guid.NewGuid(),
@@ -24,6 +23,7 @@ public class HouseholdGeneratorTests
         Name = "Old Town",
         DistrictType = DistrictType.Residential,
     };
+    private readonly Location _residentialLocation;
     private readonly WorldGeneratorInput _generatorInput = new()
     {
         Description = "test",
@@ -31,6 +31,17 @@ public class HouseholdGeneratorTests
         MaxHouseholdSize = 4,
     };
     private readonly HouseholdGenerator _householdGenerator = MakeHouseholdGenerator();
+
+    public HouseholdGeneratorTests()
+    {
+        _residentialLocation = Builders.MakeLocation(
+            _worldId,
+            _city.StateId,
+            cityId: _city.Id,
+            districtId: _residentialDistrict.Id,
+            id: _residentialDistrict.LocationId
+        );
+    }
 
     private static HouseholdGenerator MakeHouseholdGenerator()
     {
@@ -55,8 +66,8 @@ public class HouseholdGeneratorTests
         {
             WorldId = _worldId,
             City = _city,
-            StateId = _stateId,
             ResidentialDistrict = _residentialDistrict,
+            ResidentialLocation = _residentialLocation,
             DominantRace = CreatureType.Human,
             GeneratorInput = _generatorInput,
             UsedBuildingNames = [],
@@ -72,7 +83,7 @@ public class HouseholdGeneratorTests
             var household = _householdGenerator.GenerateSingleHousehold(
                 CreatureType.Human,
                 _worldId,
-                _stateId
+                _residentialDistrict.LocationId
             );
 
             // Assert
@@ -91,7 +102,7 @@ public class HouseholdGeneratorTests
         var household = _householdGenerator.GenerateFamilyHousehold(
             CreatureType.Human,
             _worldId,
-            _stateId,
+            _residentialDistrict.LocationId,
             _generatorInput
         );
 

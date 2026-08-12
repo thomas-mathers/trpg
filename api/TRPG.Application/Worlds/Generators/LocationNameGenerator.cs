@@ -23,6 +23,7 @@ internal static class LocationNameGenerator
             .Select(location => new Location
             {
                 Id = location.Id,
+                Kind = location.Kind,
                 Name = FormatName(
                     location,
                     statesById,
@@ -31,6 +32,7 @@ internal static class LocationNameGenerator
                     roomsById,
                     buildingsById
                 ),
+                Description = location.Description,
                 WorldId = location.WorldId,
                 StateId = location.StateId,
                 CityId = location.CityId,

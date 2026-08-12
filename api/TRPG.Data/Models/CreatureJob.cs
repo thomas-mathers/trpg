@@ -23,6 +23,5 @@ public class CreatureJob
     public int Priority { get; init; }
     public DayOfWeek? SpecificDay { get; init; }
     public int StartHour { get; init; }
-    public Guid StateId { get; init; }
     public Guid WorldId { get; init; }
 }

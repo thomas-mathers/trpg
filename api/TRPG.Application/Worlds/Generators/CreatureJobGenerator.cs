@@ -13,7 +13,6 @@ internal static class CreatureJobGenerator
     private const int UnemployedActivityPriority = 10;
 
     public static CreatureJob GenerateSleep(
-        Guid stateId,
         Guid creatureId,
         Guid locationId,
         Guid worldId,
@@ -23,7 +22,6 @@ internal static class CreatureJobGenerator
         var window = hours ?? DefaultSleepHours;
         return new CreatureJob
         {
-            StateId = stateId,
             CreatureId = creatureId,
             Action = CreatureJobAction.Sleep,
             StartHour = window.Start,
@@ -34,16 +32,10 @@ internal static class CreatureJobGenerator
         };
     }
 
-    public static CreatureJob GenerateIdle(
-        Guid stateId,
-        Guid creatureId,
-        Guid locationId,
-        Guid worldId
-    )
+    public static CreatureJob GenerateIdle(Guid creatureId, Guid locationId, Guid worldId)
     {
         return new CreatureJob
         {
-            StateId = stateId,
             CreatureId = creatureId,
             Action = CreatureJobAction.Idle,
             StartHour = IdleHours.Start,
@@ -55,7 +47,6 @@ internal static class CreatureJobGenerator
     }
 
     public static CreatureJob GenerateWork(
-        Guid stateId,
         Guid creatureId,
         Guid locationId,
         Guid worldId,
@@ -65,7 +56,6 @@ internal static class CreatureJobGenerator
         var window = hours ?? DefaultWorkHours;
         return new CreatureJob
         {
-            StateId = stateId,
             CreatureId = creatureId,
             Action = CreatureJobAction.Work,
             StartHour = window.Start,
@@ -77,7 +67,6 @@ internal static class CreatureJobGenerator
     }
 
     public static CreatureJob GenerateDayOff(
-        Guid stateId,
         Guid creatureId,
         CreatureJobAction action,
         Guid locationId,
@@ -89,7 +78,6 @@ internal static class CreatureJobGenerator
         var window = hours ?? DefaultWorkHours;
         return new CreatureJob
         {
-            StateId = stateId,
             CreatureId = creatureId,
             Action = action,
             StartHour = window.Start,
@@ -102,7 +90,6 @@ internal static class CreatureJobGenerator
     }
 
     public static CreatureJob GenerateUnemployedDayActivity(
-        Guid stateId,
         Guid creatureId,
         CreatureJobAction action,
         Guid locationId,
@@ -114,7 +101,6 @@ internal static class CreatureJobGenerator
         var window = hours ?? IdleHours;
         return new CreatureJob
         {
-            StateId = stateId,
             CreatureId = creatureId,
             Action = action,
             StartHour = window.Start,
@@ -129,7 +115,6 @@ internal static class CreatureJobGenerator
     public static void ApplySleepOverride(
         Guid creatureId,
         HourWindow? sleepHours,
-        Guid stateId,
         Guid worldId,
         List<CreatureJob> jobs
     )
@@ -143,11 +128,10 @@ internal static class CreatureJobGenerator
             j.CreatureId == creatureId && j.Action == CreatureJobAction.Sleep
         );
         jobs.Remove(existingSleep);
-        jobs.Add(GenerateSleep(stateId, creatureId, existingSleep.LocationId, worldId, sleepHours));
+        jobs.Add(GenerateSleep(creatureId, existingSleep.LocationId, worldId, sleepHours));
     }
 
     public static IReadOnlyList<CreatureJob> Generate(
-        Guid stateId,
         Guid creatureId,
         Guid sleepLocationId,
         Guid? workLocationId,
@@ -157,13 +141,13 @@ internal static class CreatureJobGenerator
     {
         var jobs = new List<CreatureJob>
         {
-            GenerateSleep(stateId, creatureId, sleepLocationId, worldId),
-            GenerateIdle(stateId, creatureId, idleLocationId, worldId),
+            GenerateSleep(creatureId, sleepLocationId, worldId),
+            GenerateIdle(creatureId, idleLocationId, worldId),
         };
 
         if (workLocationId != null)
         {
-            jobs.Add(GenerateWork(stateId, creatureId, workLocationId.Value, worldId));
+            jobs.Add(GenerateWork(creatureId, workLocationId.Value, worldId));
         }
 
         return jobs;

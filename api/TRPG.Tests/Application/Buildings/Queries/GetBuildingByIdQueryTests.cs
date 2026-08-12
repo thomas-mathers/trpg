@@ -9,12 +9,10 @@ namespace TRPG.Tests.Application.Buildings.Queries;
 [Collection("Database")]
 public sealed class GetBuildingByIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private static readonly Guid StateId = Guid.NewGuid();
-
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private GetBuildingByIdQueryHandler _handler = null!;
-    private readonly Building _building = Builders.MakeBuilding(StateId);
+    private readonly Building _building = Builders.MakeBuilding();
 
     public async ValueTask InitializeAsync()
     {

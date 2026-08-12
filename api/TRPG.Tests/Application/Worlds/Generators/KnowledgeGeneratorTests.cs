@@ -173,7 +173,8 @@ public class KnowledgeGeneratorTests
         var otherState = Builders.MakeState(otherCountry.Id, _worldId);
         var homeCity = Builders.MakeCity(homeState.Id, homeCountry.Id, worldId: _worldId);
         var otherCity = Builders.MakeCity(otherState.Id, otherCountry.Id, worldId: _worldId);
-        var creature = Builders.MakeCreature(_worldId, stateId: homeState.Id);
+        var homeLocation = Builders.MakeLocation(_worldId, stateId: homeState.Id);
+        var creature = Builders.MakeCreature(_worldId, locationId: homeLocation.Id);
 
         // Act
         var knowledge = KnowledgeGenerator.Generate(
@@ -181,7 +182,8 @@ public class KnowledgeGeneratorTests
                 creatures: [creature],
                 cities: [homeCity, otherCity],
                 states: [homeState, otherState],
-                countries: [homeCountry, otherCountry]
+                countries: [homeCountry, otherCountry],
+                locations: [homeLocation]
             )
         );
 
@@ -219,10 +221,11 @@ public class KnowledgeGeneratorTests
             Name = $"Faction-{Guid.NewGuid():N}",
             Description = "A test faction",
         };
+        var merchantLocation = Builders.MakeLocation(_worldId, stateId: state.Id);
         var merchant = Builders.MakeCreature(
             _worldId,
             profession: Profession.Merchant,
-            stateId: state.Id
+            locationId: merchantLocation.Id
         );
 
         // Act
@@ -232,7 +235,8 @@ public class KnowledgeGeneratorTests
                 factions: [faction],
                 cities: [farCity],
                 states: [state, farState],
-                countries: [country, farCountry]
+                countries: [country, farCountry],
+                locations: [merchantLocation]
             )
         );
 

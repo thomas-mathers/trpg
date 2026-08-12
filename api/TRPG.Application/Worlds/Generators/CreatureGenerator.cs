@@ -13,8 +13,7 @@ public record CreatureGeneratorInput(
     CreatureType CreatureType,
     CreatureArchetype Archetype,
     Guid WorldId,
-    Guid BirthStateId,
-    Guid StateId,
+    Guid BirthLocationId,
     int MinLevel,
     int MaxLevel,
     string? Name = null,
@@ -1194,12 +1193,11 @@ public class CreatureGenerator(
             Gender = gender,
             Profession = archetype.Profession,
             Biography = archetype.Biography ?? "",
-            BirthStateId = generatorInput.BirthStateId,
+            BirthLocationId = generatorInput.BirthLocationId,
             BirthYear = Random.Shared.Next(
                 generatorInput.MinBirthYear ?? 900,
                 generatorInput.MaxBirthYear ?? 975
             ),
-            StateId = generatorInput.StateId,
             BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
             Level = level,

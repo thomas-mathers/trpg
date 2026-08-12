@@ -79,9 +79,7 @@ internal sealed class QuestEventHandler(
                 == killed.CreatureId,
             (KillCreatureTypeObjective kill, CreatureKilledEvent killed) => kill.CreatureType
                 == killed.CreatureType,
-            (ExploreBuildingObjective explore, PlayerMovedEvent entered) => explore.LocationId
-                == entered.LocationId,
-            (ExploreCityObjective explore, PlayerMovedEvent entered) => explore.LocationId
+            (ExploreLocationObjective explore, PlayerMovedEvent entered) => explore.LocationId
                 == entered.LocationId,
             (SpeakToCreatureObjective speak, ConversationStartedEvent conversation) =>
                 speak.CreatureId == conversation.CreatureId,

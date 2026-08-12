@@ -5,7 +5,6 @@ namespace TRPG.Application.Worlds.Generators;
 
 public class DungeonPopulatorInput
 {
-    public required Guid StateId { get; init; }
     public required Guid LocationId { get; init; }
     public required Guid WorldId { get; init; }
     public required BuildingType DungeonType { get; init; }
@@ -74,8 +73,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
                 CreatureType: archetype.CreatureType!.Value,
                 Archetype: archetype,
                 WorldId: input.WorldId,
-                BirthStateId: input.StateId,
-                StateId: input.StateId,
+                BirthLocationId: input.LocationId,
                 MinLevel: level,
                 MaxLevel: level,
                 MinBirthYear: birthYear,

@@ -111,7 +111,6 @@ internal static class ShopStaffingPolicy
     }
 
     internal static void GenerateInnStaffing(
-        Guid stateId,
         Guid worldId,
         Guid ownerId,
         Guid groundFloorLocationId,
@@ -126,7 +125,6 @@ internal static class ShopStaffingPolicy
 
         jobs.Add(
             CreatureJobGenerator.GenerateWork(
-                stateId,
                 ownerId,
                 groundFloorLocationId,
                 worldId,

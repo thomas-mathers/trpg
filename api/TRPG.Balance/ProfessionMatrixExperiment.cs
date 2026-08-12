@@ -96,7 +96,6 @@ internal static class ProfessionMatrixExperiment
             archetype,
             Guid.NewGuid(),
             Guid.NewGuid(),
-            Guid.NewGuid(),
             level,
             level,
             StartingAttributeAllocation: BuildRealisticAllocation(archetype, level)
@@ -153,7 +152,6 @@ internal static class ProfessionMatrixExperiment
         var input = new CreatureGeneratorInput(
             creatureType,
             archetype,
-            Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
             level,

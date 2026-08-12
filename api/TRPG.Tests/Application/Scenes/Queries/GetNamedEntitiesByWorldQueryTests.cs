@@ -29,11 +29,7 @@ public sealed class GetNamedEntitiesByWorldQueryTests(DatabaseFixture db) : IAsy
     {
         // Arrange
         var creature = Builders.MakeCreature(WorldId, creatureType: CreatureType.Orc);
-        var building = Builders.MakeBuilding(
-            Guid.NewGuid(),
-            worldId: WorldId,
-            buildingType: BuildingType.Tavern
-        );
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.Tavern);
         var district = Builders.MakeDistrict(
             Guid.NewGuid(),
             worldId: WorldId,

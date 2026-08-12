@@ -11,6 +11,7 @@ public class CityGeneratorTests
     private readonly City _city;
     private readonly State _state;
     private readonly IReadOnlyList<District> _districts;
+    private readonly IReadOnlyDictionary<Guid, Location> _locationsById;
     private readonly WorldGeneratorInput _generatorInput = new()
     {
         Description = "test",
@@ -32,6 +33,17 @@ public class CityGeneratorTests
             Builders.MakeDistrict(_city.Id, DistrictType.Residential, worldId: _worldId),
             Builders.MakeDistrict(_city.Id, worldId: _worldId),
         ];
+        _locationsById = _districts.ToDictionary(
+            district => district.LocationId,
+            district =>
+                Builders.MakeLocation(
+                    _worldId,
+                    _state.Id,
+                    cityId: _city.Id,
+                    districtId: district.Id,
+                    id: district.LocationId
+                )
+        );
     }
 
     private static CityGenerator MakeCityGenerator()
@@ -61,6 +73,7 @@ public class CityGeneratorTests
             State = _state,
             DominantRace = CreatureType.Human,
             Districts = _districts,
+            LocationsById = _locationsById,
             NamedFactions = namedFactions,
             GeneratorInput = _generatorInput,
         };

@@ -6,7 +6,7 @@ namespace TRPG.Application.Worlds.Generators;
 
 internal record BiographyGeneratorInput(
     IReadOnlyList<Creature> Creatures,
-    IReadOnlyDictionary<Guid, State> StateById,
+    IReadOnlyDictionary<Guid, Location> LocationsById,
     IReadOnlyList<FactionMember> FactionMembers,
     IReadOnlyList<Faction> Factions,
     IReadOnlyList<Relationship> Relationships,
@@ -182,7 +182,7 @@ internal static class BiographyGenerator
                 && ownedBuildingIds.Contains(workplace.Value.BuildingId);
             daysOffByCreatureId.TryGetValue(creature.Id, out var daysOff);
             var daysOffOrNull = workJob != null ? daysOff : null;
-            var birthplaceName = input.StateById[creature.BirthStateId].Name;
+            var birthplaceName = input.LocationsById[creature.BirthLocationId].Name;
             creature.Biography = BuildBiography(
                 creature,
                 birthplaceName,

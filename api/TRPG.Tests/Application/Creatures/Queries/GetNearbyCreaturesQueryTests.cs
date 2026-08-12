@@ -30,8 +30,9 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     {
         // Arrange - GetSceneQueryHandler relies on this to fold the player's own row into the
         // same result set instead of fetching it separately
-        var locationId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, locationId: locationId);
+        var location = Builders.MakeLocation(WorldId);
+        var player = Builders.MakeCreature(WorldId, locationId: location.Id);
+        _context.Locations.Add(location);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -49,10 +50,12 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_ReturnsCreaturesAtTheSameLocation()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, locationId: locationId);
-        var atLocation = Builders.MakeCreature(WorldId, locationId: locationId);
-        var elsewhere = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
+        var location = Builders.MakeLocation(WorldId);
+        var elsewhereLocation = Builders.MakeLocation(WorldId);
+        var player = Builders.MakeCreature(WorldId, locationId: location.Id);
+        var atLocation = Builders.MakeCreature(WorldId, locationId: location.Id);
+        var elsewhere = Builders.MakeCreature(WorldId, locationId: elsewhereLocation.Id);
+        _context.Locations.AddRange(location, elsewhereLocation);
         _context.Creatures.AddRange(player, atLocation, elsewhere);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -71,9 +74,10 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_ExcludesGivenCreature()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, locationId: locationId);
-        var other = Builders.MakeCreature(WorldId, locationId: locationId);
+        var location = Builders.MakeLocation(WorldId);
+        var player = Builders.MakeCreature(WorldId, locationId: location.Id);
+        var other = Builders.MakeCreature(WorldId, locationId: location.Id);
+        _context.Locations.Add(location);
         _context.Creatures.AddRange(player, other);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -92,13 +96,14 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_ExcludesDeadCreatures_WhenIncludeDeadIsFalse()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, locationId: locationId);
+        var location = Builders.MakeLocation(WorldId);
+        var player = Builders.MakeCreature(WorldId, locationId: location.Id);
         var corpse = Builders.MakeCreature(
             WorldId,
-            locationId: locationId,
+            locationId: location.Id,
             state: CreatureState.Dead
         );
+        _context.Locations.Add(location);
         _context.Creatures.AddRange(player, corpse);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -117,13 +122,14 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     public async Task Handle_FiltersByCreatureTypes_WhenProvided()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, locationId: locationId);
+        var location = Builders.MakeLocation(WorldId);
+        var player = Builders.MakeCreature(WorldId, locationId: location.Id);
         var goblin = Builders.MakeCreature(
             WorldId,
-            locationId: locationId,
+            locationId: location.Id,
             creatureType: CreatureType.Goblin
         );
+        _context.Locations.Add(location);
         _context.Creatures.AddRange(player, goblin);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

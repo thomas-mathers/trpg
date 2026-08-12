@@ -40,7 +40,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
             cityId: city.Id,
             districtId: district.Id
         );
-        var player = Builders.MakeCreature(world.Id, stateId: state.Id, locationId: location.Id);
+        var player = Builders.MakeCreature(world.Id, locationId: location.Id);
         world.PlayerId = player.Id;
 
         context.Worlds.Add(world);
@@ -87,7 +87,6 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         var creature = Builders.MakeCreature(
             _worldId,
             creatureType: CreatureType.Beast,
-            stateId: _stateId,
             locationId: _locationId
         );
         context.Creatures.Add(creature);

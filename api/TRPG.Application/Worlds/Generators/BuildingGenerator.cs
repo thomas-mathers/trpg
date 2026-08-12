@@ -2,15 +2,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
 
-public record BuildingGeneratorInput(
-    Guid StateId,
-    Guid CityId,
-    Guid DistrictId,
-    Guid DistrictLocationId,
-    Guid? OwnerId,
-    BuildingType Type,
-    Guid WorldId
-)
+public record BuildingGeneratorInput(Location ExteriorLocation, Guid? OwnerId, BuildingType Type)
 {
     public IReadOnlyList<IReadOnlyList<Guid>>? BedroomGroups { get; init; }
     public bool IsLockable { get; init; }
@@ -347,15 +339,14 @@ public class BuildingGenerator
             throw new InvalidOperationException($"{input.Type} cannot be placed in a city.");
         }
 
+        var worldId = input.ExteriorLocation.WorldId;
         var names = Names[input.Type];
         var building = new Building
         {
-            StateId = input.StateId,
-            CityId = input.CityId,
-            DistrictId = input.DistrictId,
+            ExteriorLocationId = input.ExteriorLocation.Id,
             BuildingType = input.Type,
             Name = input.Name ?? names[Random.Shared.Next(names.Length)],
-            WorldId = input.WorldId,
+            WorldId = worldId,
         };
         var specs = GetSpecs(input.Type, input.OwnerId, input.MemberIds, input.BedroomGroups);
 
@@ -365,10 +356,10 @@ public class BuildingGenerator
             {
                 var roomId = Guid.NewGuid();
                 var location = LocationGenerator.Generate(
-                    input.WorldId,
-                    input.StateId,
-                    input.CityId,
-                    input.DistrictId,
+                    worldId,
+                    input.ExteriorLocation.StateId,
+                    input.ExteriorLocation.CityId,
+                    input.ExteriorLocation.DistrictId,
                     roomId
                 );
                 locations.Add(location);
@@ -381,7 +372,7 @@ public class BuildingGenerator
                     Description = s.Description,
                     FloorNumber = s.FloorNumber,
                     Name = s.Name,
-                    WorldId = input.WorldId,
+                    WorldId = worldId,
                 };
             })
             .ToArray();
@@ -389,7 +380,7 @@ public class BuildingGenerator
         var props = specs
             .Zip(rooms)
             .SelectMany(pair =>
-                pair.First.Props.Select(p => p.Factory(pair.Second.LocationId, input.WorldId))
+                pair.First.Props.Select(p => p.Factory(pair.Second.LocationId, worldId))
             )
             .ToList();
 
@@ -409,7 +400,7 @@ public class BuildingGenerator
                     DestinationLocationId = roomAbove.LocationId,
                     DestinationLabel = roomAbove.Name,
                     DestinationType = LocationDestinationType.Room,
-                    WorldId = input.WorldId,
+                    WorldId = worldId,
                 }
             );
 
@@ -422,7 +413,7 @@ public class BuildingGenerator
                     DestinationLocationId = roomBelow.LocationId,
                     DestinationLabel = roomBelow.Name,
                     DestinationType = LocationDestinationType.Room,
-                    WorldId = input.WorldId,
+                    WorldId = worldId,
                 }
             );
         }
@@ -433,11 +424,11 @@ public class BuildingGenerator
             LocationId = entranceRoom.LocationId,
             Name = "Front Door",
             Description = "The door leading outside.",
-            DestinationLocationId = input.DistrictLocationId,
+            DestinationLocationId = input.ExteriorLocation.Id,
             DestinationLabel = "Outside",
             DestinationType = LocationDestinationType.District,
             IsLocked = input.IsLockable,
-            WorldId = input.WorldId,
+            WorldId = worldId,
         };
         props.Add(frontDoor);
 

@@ -31,15 +31,9 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         _state = Builders.MakeState(country.Id);
         var sharedLocation = Builders.MakeLocation(WorldId, _state.Id);
 
-        _player = Builders.MakeCreature(
-            WorldId,
-            stateId: _state.Id,
-            birthYear: 950,
-            locationId: sharedLocation.Id
-        );
+        _player = Builders.MakeCreature(WorldId, birthYear: 950, locationId: sharedLocation.Id);
         _nearbyCreature = Builders.MakeCreature(
             WorldId,
-            stateId: _state.Id,
             birthYear: 900,
             locationId: sharedLocation.Id
         );
@@ -145,7 +139,9 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange - moving the player off the shared Location isolates them from _nearbyCreature,
         // exercising BuildNearbyPeopleInfos's early return when nobody's nearby instead of running
         // the faction/reputation queries for nothing
-        _player.LocationId = Guid.NewGuid();
+        var isolatedLocation = Builders.MakeLocation(WorldId, _state.Id);
+        _context.Locations.Add(isolatedLocation);
+        _player.LocationId = isolatedLocation.Id;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -177,7 +173,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
-        // Assert — the wire date mirrors the in-game date, minus the internal DayOfWeek
+        // Assert â€” the wire date mirrors the in-game date, minus the internal DayOfWeek
         Assert.Equal(new SceneDateInfo(975, "Thawmoon", 14, "Stormday", 21), result.CurrentDate);
     }
 
@@ -185,7 +181,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     public async Task Handle_ReturnsRoomAndExitToDestinationName_WhenIndoors()
     {
         // Arrange
-        var building = Builders.MakeBuilding(_state.Id);
+        var building = Builders.MakeBuilding();
         var roomId = Guid.NewGuid();
         var location = Builders.MakeLocation(WorldId, _state.Id, roomId: roomId);
         var room = Builders.MakeRoom(
@@ -349,7 +345,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_ComputesExperienceProgress_ForThePlayer()
     {
-        // Arrange — a single skill at level 2 contributes CalculateExperienceFromSkillLevel(2) = 2
+        // Arrange â€” a single skill at level 2 contributes CalculateExperienceFromSkillLevel(2) = 2
         // toward character level. Level 1 floor is CalculateExperienceFromLevel(1) = 0, next level
         // floor is CalculateExperienceFromLevel(2) = 2, so this sits at Current = 2, ToNextLevel = 2.
         _player.Level = 1;
@@ -383,7 +379,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_UsesZeroExperienceProgress_ForNearbyCreatures_RegardlessOfSkillLevels()
     {
-        // Arrange — nearby creatures never accumulate tracked skill XP the way the player does, so
+        // Arrange â€” nearby creatures never accumulate tracked skill XP the way the player does, so
         // GetSceneQueryHandler doesn't query for it at all; a skill row here should have no effect.
         _nearbyCreature.Level = 1;
         _context.CreatureSkills.Add(
@@ -418,12 +414,12 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Arrange
         var shop = Builders.MakeBuilding(
-            _state.Id,
+            exteriorLocationId: _player.LocationId,
             worldId: WorldId,
             buildingType: BuildingType.Blacksmith
         );
         var cave = Builders.MakeBuilding(
-            _state.Id,
+            exteriorLocationId: _player.LocationId,
             worldId: WorldId,
             buildingType: BuildingType.Cave
         );

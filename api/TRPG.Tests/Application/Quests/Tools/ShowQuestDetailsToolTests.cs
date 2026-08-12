@@ -53,13 +53,13 @@ public sealed class ShowQuestDetailsToolTests(DatabaseFixture db) : IAsyncLifeti
     public async Task Invoke_PublishesOfferDialog_WhenQuestIsAvailableFromNpc()
     {
         // Arrange
-        var objective = new ExploreCityObjective
+        var objective = new ExploreLocationObjective
         {
+            LocationId = Guid.NewGuid(),
             QuestId = _quest.Id,
             WorldId = WorldId,
             Name = "Visit the city",
             Description = "Visit the city.",
-            CityId = Guid.NewGuid(),
         };
         _context.QuestObjectives.Add(objective);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

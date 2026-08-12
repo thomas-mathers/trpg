@@ -47,7 +47,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         _context.QuestObjectives.Add(questObjective);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: worldId);
+        var building = Builders.MakeBuilding(worldId: worldId);
         var room = Builders.MakeRoom(building.Id, worldId: worldId);
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);

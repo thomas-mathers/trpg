@@ -9,13 +9,11 @@ namespace TRPG.Tests.Application.Buildings.Commands;
 [Collection("Database")]
 public sealed class RemoveBuildingOwnerCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private static readonly Guid StateId = Guid.NewGuid();
-
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private TrpgDbContext _context = null!;
     private GetAllOwnersByBuildingIdQueryHandler _getAllOwnersByBuildingId = null!;
     private RemoveBuildingOwnerCommandHandler _handler = null!;
-    private readonly Building _building = Builders.MakeBuilding(StateId);
+    private readonly Building _building = Builders.MakeBuilding();
 
     public async ValueTask InitializeAsync()
     {

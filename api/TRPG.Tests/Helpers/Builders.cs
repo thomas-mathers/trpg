@@ -190,8 +190,7 @@ internal static class Builders
         Guid? worldId = null,
         CreatureType creatureType = CreatureType.Human,
         Profession? profession = Profession.Knight,
-        Guid? birthStateId = null,
-        Guid? stateId = null,
+        Guid? birthLocationId = null,
         Guid? locationId = null,
         int birthYear = 1000,
         string name = "Test Creature",
@@ -212,10 +211,9 @@ internal static class Builders
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
             CreatureType = creatureType,
-            BirthStateId = birthStateId ?? Guid.NewGuid(),
+            BirthLocationId = birthLocationId ?? Guid.NewGuid(),
             BirthYear = birthYear,
             Profession = profession,
-            StateId = stateId ?? Guid.NewGuid(),
             LocationId = locationId ?? Guid.NewGuid(),
             Level = level,
             State = state,
@@ -582,11 +580,13 @@ internal static class Builders
         Guid? stateId = null,
         Guid? cityId = null,
         Guid? districtId = null,
-        Guid? roomId = null
+        Guid? roomId = null,
+        Guid? id = null
     )
     {
         return new Location
         {
+            Id = id ?? Guid.NewGuid(),
             WorldId = worldId ?? Guid.NewGuid(),
             StateId = stateId ?? Guid.NewGuid(),
             CityId = cityId,
@@ -596,9 +596,7 @@ internal static class Builders
     }
 
     public static Building MakeBuilding(
-        Guid stateId,
-        Guid? cityId = null,
-        Guid? districtId = null,
+        Guid? exteriorLocationId = null,
         Guid? worldId = null,
         string? name = null,
         BuildingType buildingType = BuildingType.House
@@ -606,9 +604,7 @@ internal static class Builders
     {
         return new Building
         {
-            StateId = stateId,
-            CityId = cityId,
-            DistrictId = districtId,
+            ExteriorLocationId = exteriorLocationId ?? Guid.NewGuid(),
             Name = name ?? $"Building-{Guid.NewGuid():N}",
             Description = "A test building",
             BuildingType = buildingType,
@@ -635,13 +631,12 @@ internal static class Builders
             EndHour = endHour,
             SpecificDay = specificDay,
             Priority = priority,
-            StateId = Guid.NewGuid(),
             LocationId = locationId ?? Guid.NewGuid(),
             WorldId = worldId ?? Guid.NewGuid(),
         };
     }
 
-    public static WorldEvent MakeWorldEvent(Guid worldId, Guid? stateId = null)
+    public static WorldEvent MakeWorldEvent(Guid worldId, Guid? locationId = null)
     {
         return new WorldEvent
         {
@@ -649,7 +644,7 @@ internal static class Builders
             Description = "A test world event",
             Date = DateTime.UtcNow,
             Tags = [],
-            StateId = stateId,
+            LocationId = locationId,
         };
     }
 

@@ -5,7 +5,6 @@ namespace TRPG.Tests.Application.Worlds.Generators;
 
 public class CreatureJobGeneratorTests
 {
-    private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _personId = Guid.NewGuid();
     private readonly Guid _worldId = Guid.NewGuid();
 
@@ -18,7 +17,6 @@ public class CreatureJobGeneratorTests
 
         // Act
         var jobs = CreatureJobGenerator.Generate(
-            _stateId,
             _personId,
             sleepLocationId,
             null,
@@ -49,7 +47,6 @@ public class CreatureJobGeneratorTests
 
         // Act
         var jobs = CreatureJobGenerator.Generate(
-            _stateId,
             _personId,
             sleepLocationId,
             null,
@@ -71,7 +68,6 @@ public class CreatureJobGeneratorTests
 
         // Act
         var jobs = CreatureJobGenerator.Generate(
-            _stateId,
             _personId,
             sleepLocationId,
             workLocationId,
@@ -96,7 +92,6 @@ public class CreatureJobGeneratorTests
 
         // Act
         var job = CreatureJobGenerator.GenerateDayOff(
-            _stateId,
             _personId,
             CreatureJobAction.Sit,
             locationId,
@@ -124,7 +119,6 @@ public class CreatureJobGeneratorTests
 
         // Act
         var job = CreatureJobGenerator.GenerateUnemployedDayActivity(
-            _stateId,
             _personId,
             CreatureJobAction.Study,
             locationId,

@@ -10,6 +10,7 @@ public class CityGeneratorInput
     public required State State { get; init; }
     public required CreatureType DominantRace { get; init; }
     public required IReadOnlyList<District> Districts { get; init; }
+    public required IReadOnlyDictionary<Guid, Location> LocationsById { get; init; }
     public required IReadOnlyList<Faction> NamedFactions { get; init; }
     public required WorldGeneratorInput GeneratorInput { get; init; }
 }
@@ -95,8 +96,10 @@ public class CityGenerator(
             {
                 WorldId = input.WorldId,
                 City = input.City,
-                StateId = input.State.Id,
                 ResidentialDistrict = districtsByType[DistrictType.Residential],
+                ResidentialLocation = input.LocationsById[
+                    districtsByType[DistrictType.Residential].LocationId
+                ],
                 DominantRace = input.DominantRace,
                 GeneratorInput = input.GeneratorInput,
                 UsedBuildingNames = usedBuildingNames,
@@ -149,7 +152,6 @@ public class CityGenerator(
                 HomeLocationIdByMemberId = workspace.HomeLocationIdByMemberId,
                 FatherIds = workspace.FatherIds,
                 CityIdleCandidates = workspace.IdleCandidates,
-                StateId = input.State.Id,
                 WorldId = input.WorldId,
                 Jobs = workspace.Jobs,
             }
@@ -200,15 +202,7 @@ public class CityGenerator(
         );
 
         var buildingResult = buildingGenerator.Generate(
-            new BuildingGeneratorInput(
-                input.State.Id,
-                input.City.Id,
-                district.Id,
-                district.LocationId,
-                owner.Id,
-                type,
-                input.WorldId
-            )
+            new BuildingGeneratorInput(input.LocationsById[district.LocationId], owner.Id, type)
             {
                 Name = buildingName,
                 MemberIds = memberIds,
@@ -290,8 +284,7 @@ public class CityGenerator(
                     memberRace,
                     CreatureArchetype.For(Profession.Mercenary),
                     input.WorldId,
-                    input.State.Id,
-                    input.State.Id,
+                    district.LocationId,
                     MinLevel: 5,
                     MaxLevel: 100
                 )
@@ -400,7 +393,6 @@ public class CityGenerator(
                 .LocationId;
             workspace.Jobs.AddRange(
                 CreatureJobGenerator.Generate(
-                    input.State.Id,
                     memberCreature.Creature.Id,
                     memberBedLocationId,
                     null,
@@ -424,7 +416,6 @@ public class CityGenerator(
         if (type == BuildingType.Inn)
         {
             ShopStaffingPolicy.GenerateInnStaffing(
-                input.State.Id,
                 input.WorldId,
                 ownerId,
                 groundFloorLocationId,
@@ -438,12 +429,7 @@ public class CityGenerator(
         if (type == BuildingType.GuildHall)
         {
             workspace.Jobs.Add(
-                CreatureJobGenerator.GenerateWork(
-                    input.State.Id,
-                    ownerId,
-                    groundFloorLocationId,
-                    input.WorldId
-                )
+                CreatureJobGenerator.GenerateWork(ownerId, groundFloorLocationId, input.WorldId)
             );
             return;
         }
@@ -452,20 +438,13 @@ public class CityGenerator(
         var sleepHours = ShopStaffingPolicy.GetSleepHoursForBuilding(type);
         workspace.Jobs.Add(
             CreatureJobGenerator.GenerateWork(
-                input.State.Id,
                 ownerId,
                 groundFloorLocationId,
                 input.WorldId,
                 workHours
             )
         );
-        CreatureJobGenerator.ApplySleepOverride(
-            ownerId,
-            sleepHours,
-            input.State.Id,
-            input.WorldId,
-            workspace.Jobs
-        );
+        CreatureJobGenerator.ApplySleepOverride(ownerId, sleepHours, input.WorldId, workspace.Jobs);
 
         var staffableWorkstationCount = Math.Max(
             1,

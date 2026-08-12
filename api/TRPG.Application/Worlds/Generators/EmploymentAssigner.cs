@@ -20,7 +20,6 @@ internal class CityEmploymentContext
     public required Dictionary<Guid, Guid> HomeLocationIdByMemberId { get; init; }
     public required HashSet<Guid> FatherIds { get; init; }
     public required List<IdleCandidate> CityIdleCandidates { get; init; }
-    public required Guid StateId { get; init; }
     public required Guid WorldId { get; init; }
     public required List<CreatureJob> Jobs { get; init; }
 }
@@ -65,7 +64,6 @@ internal static class EmploymentAssigner
             adult.Profession = slot.EmployeeProfession;
             context.Jobs.Add(
                 CreatureJobGenerator.GenerateWork(
-                    context.StateId,
                     adult.Id,
                     slot.LocationId,
                     context.WorldId,
@@ -75,7 +73,6 @@ internal static class EmploymentAssigner
             CreatureJobGenerator.ApplySleepOverride(
                 adult.Id,
                 slot.SleepHours,
-                context.StateId,
                 context.WorldId,
                 context.Jobs
             );
@@ -223,7 +220,6 @@ internal static class EmploymentAssigner
                     context.Jobs.Add(
                         need.IsUnemployedActivity
                             ? CreatureJobGenerator.GenerateUnemployedDayActivity(
-                                context.StateId,
                                 participantId,
                                 need.Action,
                                 destination.LocationId,
@@ -232,7 +228,6 @@ internal static class EmploymentAssigner
                                 destination.Hours
                             )
                             : CreatureJobGenerator.GenerateDayOff(
-                                context.StateId,
                                 participantId,
                                 need.Action,
                                 destination.LocationId,
