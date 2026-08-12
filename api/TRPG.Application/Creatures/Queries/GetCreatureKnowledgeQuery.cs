@@ -297,12 +297,14 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken
     )
     {
-        var state = await context
-            .States.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == creature.StateId, cancellationToken);
         var location = await context
             .Locations.AsNoTracking()
             .FirstOrDefaultAsync(l => l.Id == creature.LocationId, cancellationToken);
+        var state = location is null
+            ? null
+            : await context
+                .States.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == location.StateId, cancellationToken);
         var city = location?.CityId is { } cityId
             ? await context
                 .Cities.AsNoTracking()

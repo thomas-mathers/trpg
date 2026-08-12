@@ -42,7 +42,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
             cityId: city.Id,
             districtId: district.Id
         );
-        var player = Builders.MakeCreature(world.Id, stateId: state.Id, locationId: location.Id);
+        var player = Builders.MakeCreature(world.Id, locationId: location.Id);
         world.PlayerId = player.Id;
 
         context.Worlds.Add(world);
@@ -89,7 +89,6 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
             _worldId,
             name: "Wraith",
             creatureType: Data.Models.CreatureType.Beast,
-            stateId: _stateId,
             locationId: _locationId
         );
         context.Creatures.Add(creature);
@@ -304,11 +303,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
             description: $"A path leading to {destination.Name}.",
             destinationLabel: destination.Name
         );
-        var player = Builders.MakeCreature(
-            world.Id,
-            stateId: state.Id,
-            locationId: origin.LocationId
-        );
+        var player = Builders.MakeCreature(world.Id, locationId: origin.LocationId);
         world.PlayerId = player.Id;
 
         context.Worlds.Add(world);

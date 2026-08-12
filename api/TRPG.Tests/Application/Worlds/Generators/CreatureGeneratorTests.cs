@@ -10,7 +10,7 @@ namespace TRPG.Tests.Application.Worlds.Generators;
 public class CreatureGeneratorTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
-    private readonly Guid _stateId = Guid.NewGuid();
+    private readonly Guid _locationId = Guid.NewGuid();
     private readonly CreatureGenerator _creatureGenerator = Builders.MakeCreatureGenerator();
 
     private CreatureGeneratorInput MakeInput(
@@ -23,8 +23,7 @@ public class CreatureGeneratorTests
             CreatureType.Human,
             CreatureArchetype.For(profession),
             _worldId,
-            _stateId,
-            _stateId,
+            _locationId,
             MinLevel: level,
             MaxLevel: level,
             StartingAttributeAllocation: startingAttributeAllocation
@@ -37,8 +36,7 @@ public class CreatureGeneratorTests
             CreatureType.Human,
             archetype,
             _worldId,
-            _stateId,
-            _stateId,
+            _locationId,
             MinLevel: level,
             MaxLevel: level
         );

@@ -29,15 +29,17 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
     public async Task Handle_ReturnsCreaturesAtLocation()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
-        var atLocation = Builders.MakeCreature(WorldId, locationId: locationId);
-        var elsewhere = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
+        var location = Builders.MakeLocation(WorldId);
+        var elsewhereLocation = Builders.MakeLocation(WorldId);
+        var atLocation = Builders.MakeCreature(WorldId, locationId: location.Id);
+        var elsewhere = Builders.MakeCreature(WorldId, locationId: elsewhereLocation.Id);
+        _context.Locations.AddRange(location, elsewhereLocation);
         _context.Creatures.AddRange(atLocation, elsewhere);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new GetCreaturesAtLocationQuery { WorldId = WorldId, LocationId = locationId },
+            new GetCreaturesAtLocationQuery { WorldId = WorldId, LocationId = location.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -50,9 +52,10 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
     public async Task Handle_ExcludesGivenCreature()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
-        var player = Builders.MakeCreature(WorldId, locationId: locationId);
-        var other = Builders.MakeCreature(WorldId, locationId: locationId);
+        var location = Builders.MakeLocation(WorldId);
+        var player = Builders.MakeCreature(WorldId, locationId: location.Id);
+        var other = Builders.MakeCreature(WorldId, locationId: location.Id);
+        _context.Locations.Add(location);
         _context.Creatures.AddRange(player, other);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -61,7 +64,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
             new GetCreaturesAtLocationQuery
             {
                 WorldId = WorldId,
-                LocationId = locationId,
+                LocationId = location.Id,
                 ExcludingCreatureId = player.Id,
             },
             TestContext.Current.CancellationToken
@@ -76,18 +79,19 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
     public async Task Handle_IncludesDeadCreatures_ByDefault()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
+        var location = Builders.MakeLocation(WorldId);
         var corpse = Builders.MakeCreature(
             WorldId,
-            locationId: locationId,
+            locationId: location.Id,
             state: CreatureState.Dead
         );
+        _context.Locations.Add(location);
         _context.Creatures.Add(corpse);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new GetCreaturesAtLocationQuery { WorldId = WorldId, LocationId = locationId },
+            new GetCreaturesAtLocationQuery { WorldId = WorldId, LocationId = location.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -99,17 +103,18 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
     public async Task Handle_ReturnsCurrentAndMaximumHp()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
-        var creature = Builders.MakeCreature(WorldId, locationId: locationId, currentHp: 5);
+        var location = Builders.MakeLocation(WorldId);
+        var creature = Builders.MakeCreature(WorldId, locationId: location.Id, currentHp: 5);
         // Simulate gear-boosted cached Maximum diverging from base Attributes.MaximumHp,
         // to prove the query reads the cached column rather than the base value.
         creature.MaximumHp += 50;
+        _context.Locations.Add(location);
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new GetCreaturesAtLocationQuery { WorldId = WorldId, LocationId = locationId },
+            new GetCreaturesAtLocationQuery { WorldId = WorldId, LocationId = location.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -124,14 +129,15 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
     public async Task Handle_ReturnsNullProfession_WhenCreatureHasNoProfession()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
-        var minor = Builders.MakeCreature(WorldId, locationId: locationId, profession: null);
+        var location = Builders.MakeLocation(WorldId);
+        var minor = Builders.MakeCreature(WorldId, locationId: location.Id, profession: null);
+        _context.Locations.Add(location);
         _context.Creatures.Add(minor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new GetCreaturesAtLocationQuery { WorldId = WorldId, LocationId = locationId },
+            new GetCreaturesAtLocationQuery { WorldId = WorldId, LocationId = location.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -144,13 +150,14 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
     public async Task Handle_ExcludesDeadCreatures_WhenIncludeDeadIsFalse()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
+        var location = Builders.MakeLocation(WorldId);
         var corpse = Builders.MakeCreature(
             WorldId,
-            locationId: locationId,
+            locationId: location.Id,
             state: CreatureState.Dead
         );
-        var alive = Builders.MakeCreature(WorldId, locationId: locationId);
+        var alive = Builders.MakeCreature(WorldId, locationId: location.Id);
+        _context.Locations.Add(location);
         _context.Creatures.AddRange(corpse, alive);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -159,7 +166,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db) : IAsyn
             new GetCreaturesAtLocationQuery
             {
                 WorldId = WorldId,
-                LocationId = locationId,
+                LocationId = location.Id,
                 IncludeDead = false,
             },
             TestContext.Current.CancellationToken

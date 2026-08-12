@@ -13,9 +13,6 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifet
     // Guids here keep every test's location isolated from every other test's seeded
     // creatures — there's no transaction rollback between tests on the shared Postgres container.
     private readonly Guid _worldId = Guid.NewGuid();
-    private readonly Guid _stateId = Guid.NewGuid();
-    private readonly Guid _locationId = Guid.NewGuid();
-    private readonly Guid _otherLocationId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
@@ -40,20 +37,20 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsOnlyDeadCreatures_AtThePlayersLocation()
     {
         // Arrange
-        var player = Builders.MakeCreature(_worldId, stateId: _stateId, locationId: _locationId);
+        var location = Builders.MakeLocation(_worldId);
+        var player = Builders.MakeCreature(_worldId, locationId: location.Id);
         var corpse = Builders.MakeCreature(
             _worldId,
-            stateId: _stateId,
-            locationId: _locationId,
+            locationId: location.Id,
             state: CreatureState.Dead,
             name: "Corpse"
         );
         var livingCreature = Builders.MakeCreature(
             _worldId,
-            stateId: _stateId,
-            locationId: _locationId,
+            locationId: location.Id,
             name: "Living"
         );
+        _context.Locations.Add(location);
         _context.Creatures.AddRange(player, corpse, livingCreature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -72,12 +69,13 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ExcludesTheQueryingPlayer()
     {
         // Arrange — the player themselves is dead too, but must never appear in their own list
+        var location = Builders.MakeLocation(_worldId);
         var player = Builders.MakeCreature(
             _worldId,
-            stateId: _stateId,
-            locationId: _locationId,
+            locationId: location.Id,
             state: CreatureState.Dead
         );
+        _context.Locations.Add(location);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -95,13 +93,15 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ExcludesCorpsesAtADifferentLocation()
     {
         // Arrange
-        var player = Builders.MakeCreature(_worldId, stateId: _stateId, locationId: _locationId);
+        var location = Builders.MakeLocation(_worldId);
+        var otherLocation = Builders.MakeLocation(_worldId);
+        var player = Builders.MakeCreature(_worldId, locationId: location.Id);
         var farCorpse = Builders.MakeCreature(
             _worldId,
-            stateId: _stateId,
-            locationId: _otherLocationId,
+            locationId: otherLocation.Id,
             state: CreatureState.Dead
         );
+        _context.Locations.AddRange(location, otherLocation);
         _context.Creatures.AddRange(player, farCorpse);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

@@ -86,7 +86,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             )
         );
 
-        // Act — hour 23 falls inside the wraparound Sleep window
+        // Act â€” hour 23 falls inside the wraparound Sleep window
         await _handler.Handle(
             new SyncCommand
             {
@@ -134,7 +134,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             )
         );
 
-        // Act — hour 10 is inside Work, and the creature is discovered via their stale Sleep-location assignment
+        // Act â€” hour 10 is inside Work, and the creature is discovered via their stale Sleep-location assignment
         await _handler.Handle(
             new SyncCommand
             {
@@ -211,7 +211,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             )
         );
 
-        // Act — hour 12 is inside Idle; the district catch-up discovers the creature via its
+        // Act â€” hour 12 is inside Idle; the district catch-up discovers the creature via its
         // current (indoor) location, which shares the same district as the outdoor idle spot
         await _handler.Handle(
             new SyncCommand
@@ -291,7 +291,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
 
-        // Assert — both workstations get staffed, by two different people
+        // Assert â€” both workstations get staffed, by two different people
         var workstations = await _getWorkstationsByLocationId.Handle(
             new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
@@ -354,7 +354,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
 
-        // Assert — the lone worker always gets the counter, and the unstaffed production station is cleared
+        // Assert â€” the lone worker always gets the counter, and the unstaffed production station is cleared
         var workstations = await _getWorkstationsByLocationId.Handle(
             new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
@@ -384,7 +384,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             )
         );
 
-        // Act — hour 23 falls inside the wraparound Sleep window
+        // Act â€” hour 23 falls inside the wraparound Sleep window
         await _handler.Handle(
             new SyncCommand
             {
@@ -405,7 +405,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
 
     private async Task<Building> SeedBuilding(Guid ownerId)
     {
-        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: WorldId);
+        var building = Builders.MakeBuilding(worldId: WorldId);
         _context.Buildings.Add(building);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await _addBuildingOwner.Handle(

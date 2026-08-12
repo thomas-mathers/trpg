@@ -41,8 +41,7 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
     [InlineData(ObjectiveKind.KillCreature)]
     [InlineData(ObjectiveKind.KillCreatureType)]
     [InlineData(ObjectiveKind.CollectItem)]
-    [InlineData(ObjectiveKind.ExploreBuilding)]
-    [InlineData(ObjectiveKind.ExploreCity)]
+    [InlineData(ObjectiveKind.ExploreLocation)]
     [InlineData(ObjectiveKind.SpeakToCreature)]
     public async Task Handle_AdvancesAndMarksReady_WhenEventMatchesObjective(ObjectiveKind kind)
     {
@@ -146,18 +145,10 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
                 QuestId = questId,
                 ItemId = targetId,
             },
-            ObjectiveKind.ExploreBuilding => new ExploreBuildingObjective
+            ObjectiveKind.ExploreLocation => new ExploreLocationObjective
             {
                 WorldId = WorldId,
                 QuestId = questId,
-                BuildingId = targetId,
-                LocationId = locationId,
-            },
-            ObjectiveKind.ExploreCity => new ExploreCityObjective
-            {
-                WorldId = WorldId,
-                QuestId = questId,
-                CityId = targetId,
                 LocationId = locationId,
             },
             ObjectiveKind.SpeakToCreature => new SpeakToCreatureObjective
@@ -185,11 +176,7 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
                 CreatureType.Beast
             ),
             ObjectiveKind.CollectItem => new ItemAcquiredEvent(_player.Id, WorldId, targetId),
-            ObjectiveKind.ExploreBuilding or ObjectiveKind.ExploreCity => new PlayerMovedEvent(
-                _player.Id,
-                WorldId,
-                locationId
-            ),
+            ObjectiveKind.ExploreLocation => new PlayerMovedEvent(_player.Id, WorldId, locationId),
             ObjectiveKind.SpeakToCreature => new ConversationStartedEvent(
                 _player.Id,
                 WorldId,
@@ -203,8 +190,7 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
         KillCreature,
         KillCreatureType,
         CollectItem,
-        ExploreBuilding,
-        ExploreCity,
+        ExploreLocation,
         SpeakToCreature,
     }
 

@@ -42,7 +42,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
     {
         var creature = Builders.MakeCreature(worldId);
         var faction = Builders.MakeFaction(worldId);
-        var building = Builders.MakeBuilding(Guid.NewGuid(), worldId: worldId);
+        var building = Builders.MakeBuilding(worldId: worldId);
         var room = Builders.MakeRoom(building.Id, worldId: worldId);
         var location = Builders.MakeLocation(worldId, roomId: room.Id);
         var bed = new Bed

@@ -87,6 +87,7 @@ internal static class CreatureLocationFiltering
                     .Locations.Where(l => p.LocationId == l.Id)
                     .Select(l => new
                     {
+                        l.StateId,
                         l.CityId,
                         l.DistrictId,
                         l.RoomId,
@@ -99,6 +100,8 @@ internal static class CreatureLocationFiltering
                 ToCreatureSummary(
                     r.Creature,
                     r.Gold ?? 0,
+                    r.Location?.StateId
+                        ?? throw new InvalidOperationException("Creature location was not found."),
                     r.Location?.CityId,
                     r.Location?.DistrictId,
                     r.Location?.RoomId
@@ -110,6 +113,7 @@ internal static class CreatureLocationFiltering
     private static CreatureSummary ToCreatureSummary(
         Creature p,
         int gold,
+        Guid stateId,
         Guid? cityId,
         Guid? districtId,
         Guid? roomId
@@ -124,7 +128,7 @@ internal static class CreatureLocationFiltering
             p.BirthYear,
             p.State,
             gold,
-            p.StateId,
+            stateId,
             p.LocationId,
             districtId,
             roomId,

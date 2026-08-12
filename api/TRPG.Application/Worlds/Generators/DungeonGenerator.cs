@@ -3,9 +3,8 @@ using TRPG.Data.Models;
 namespace TRPG.Application.Worlds.Generators;
 
 internal record DungeonGeneratorInput(
-    Guid StateId,
     IReadOnlyCollection<string> ExcludedNames,
-    Guid WildernessLocationId,
+    Location WildernessLocation,
     Guid WorldId
 );
 
@@ -114,7 +113,7 @@ internal static class DungeonGenerator
         if (availablePairs.Length == 0)
         {
             throw new InvalidOperationException(
-                $"No dungeon names left for state {input.StateId} — the name pool ({TotalNameCount}) is exhausted."
+                $"No dungeon names left for wilderness location {input.WildernessLocation.Id} — the name pool ({TotalNameCount}) is exhausted."
             );
         }
 
@@ -122,13 +121,17 @@ internal static class DungeonGenerator
 
         var building = new Building
         {
-            StateId = input.StateId,
+            ExteriorLocationId = input.WildernessLocation.Id,
             BuildingType = type,
             Name = name,
             WorldId = input.WorldId,
         };
         var roomId = Guid.NewGuid();
-        var location = LocationGenerator.Generate(input.WorldId, input.StateId, roomId: roomId);
+        var location = LocationGenerator.Generate(
+            input.WorldId,
+            input.WildernessLocation.StateId,
+            roomId: roomId
+        );
         var room = new Room
         {
             Id = roomId,
@@ -144,7 +147,7 @@ internal static class DungeonGenerator
             LocationId = room.LocationId,
             Name = "Front Door",
             Description = "The way back outside.",
-            DestinationLocationId = input.WildernessLocationId,
+            DestinationLocationId = input.WildernessLocation.Id,
             DestinationLabel = "Outside",
             DestinationType = LocationDestinationType.Wilderness,
             WorldId = input.WorldId,

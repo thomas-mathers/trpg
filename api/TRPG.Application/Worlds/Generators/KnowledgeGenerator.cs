@@ -56,12 +56,17 @@ internal static class KnowledgeGenerator
         {
             Add(creature.Id, creature.Id, KnowledgeSubjectType.Creature);
 
-            if (countryIdByStateId.TryGetValue(creature.StateId, out var countryId))
+            if (!locationsById.TryGetValue(creature.LocationId, out var creatureLocation))
+            {
+                continue;
+            }
+
+            if (countryIdByStateId.TryGetValue(creatureLocation.StateId, out var countryId))
             {
                 Add(creature.Id, countryId, KnowledgeSubjectType.Country);
             }
 
-            if (cityIdsByStateId.TryGetValue(creature.StateId, out var stateCityIds))
+            if (cityIdsByStateId.TryGetValue(creatureLocation.StateId, out var stateCityIds))
             {
                 foreach (var cityId in stateCityIds)
                 {

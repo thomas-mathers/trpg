@@ -14,22 +14,20 @@ public sealed class QuestGeneratorTests
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: world.Id);
         var cityCenter = Builders.MakeDistrict(city.Id, worldId: world.Id);
-        var building = Builders.MakeBuilding(stateId, city.Id, worldId: world.Id);
+        var building = Builders.MakeBuilding(worldId: world.Id);
         var room = Builders.MakeRoom(building.Id, worldId: world.Id);
-        var giver = Builders.MakeCreature(world.Id, stateId: stateId, name: "Giver");
-        var speaker = Builders.MakeCreature(world.Id, stateId: stateId, name: "Speaker");
+        var giver = Builders.MakeCreature(world.Id, name: "Giver");
+        var speaker = Builders.MakeCreature(world.Id, name: "Speaker");
         var firstMonster = Builders.MakeCreature(
             world.Id,
             CreatureType.Beast,
             profession: null,
-            stateId: stateId,
             name: "Wolf One"
         );
         var secondMonster = Builders.MakeCreature(
             world.Id,
             CreatureType.Beast,
             profession: null,
-            stateId: stateId,
             name: "Wolf Two"
         );
         var item = new Item
@@ -68,10 +66,10 @@ public sealed class QuestGeneratorTests
             result.Objectives,
             objective => Assert.IsType<KillCreatureObjective>(objective),
             objective => Assert.IsType<CollectItemObjective>(objective),
-            objective => Assert.IsType<ExploreBuildingObjective>(objective),
+            objective => Assert.IsType<ExploreLocationObjective>(objective),
             objective => Assert.IsType<KillCreatureTypeObjective>(objective),
             objective => Assert.IsType<SpeakToCreatureObjective>(objective),
-            objective => Assert.IsType<ExploreCityObjective>(objective)
+            objective => Assert.IsType<ExploreLocationObjective>(objective)
         );
     }
 
@@ -83,16 +81,11 @@ public sealed class QuestGeneratorTests
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: world.Id);
         var cityCenter = Builders.MakeDistrict(city.Id, worldId: world.Id);
-        var building = Builders.MakeBuilding(stateId, city.Id, worldId: world.Id);
+        var building = Builders.MakeBuilding(worldId: world.Id);
         var room = Builders.MakeRoom(building.Id, worldId: world.Id);
-        var giver = Builders.MakeCreature(world.Id, stateId: stateId);
-        var speaker = Builders.MakeCreature(world.Id, stateId: stateId);
-        var monster = Builders.MakeCreature(
-            world.Id,
-            CreatureType.Beast,
-            profession: null,
-            stateId: stateId
-        );
+        var giver = Builders.MakeCreature(world.Id);
+        var speaker = Builders.MakeCreature(world.Id);
+        var monster = Builders.MakeCreature(world.Id, CreatureType.Beast, profession: null);
         var generator = new QuestGenerator();
 
         // Act
@@ -130,7 +123,42 @@ public sealed class QuestGeneratorTests
             Items = items,
             Jobs = [],
             Knowledge = [],
-            Locations = [],
+            Locations =
+            [
+                new Location
+                {
+                    Id = cityCenter.LocationId,
+                    WorldId = world.Id,
+                    StateId = city.StateId,
+                    CityId = city.Id,
+                    DistrictId = cityCenter.Id,
+                    Kind = LocationKind.District,
+                },
+                new Location
+                {
+                    Id = building.ExteriorLocationId,
+                    WorldId = world.Id,
+                    StateId = city.StateId,
+                    CityId = city.Id,
+                    Kind = LocationKind.District,
+                },
+                new Location
+                {
+                    Id = room.LocationId,
+                    WorldId = world.Id,
+                    StateId = city.StateId,
+                    CityId = city.Id,
+                    RoomId = room.Id,
+                    Kind = LocationKind.Room,
+                },
+                .. creatures.Select(creature => new Location
+                {
+                    Id = creature.LocationId,
+                    WorldId = world.Id,
+                    StateId = city.StateId,
+                    Kind = LocationKind.Wilderness,
+                }),
+            ],
             Props = [],
             Relationships = [],
             Roads = [],

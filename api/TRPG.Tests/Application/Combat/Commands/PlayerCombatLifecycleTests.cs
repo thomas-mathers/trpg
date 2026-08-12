@@ -58,21 +58,20 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
     {
         // Arrange — generate and persist a player exactly like real character creation does
         var worldId = Guid.NewGuid();
-        var stateId = Guid.NewGuid();
+        var birthLocationId = Guid.NewGuid();
         var generator = Builders.MakeCreatureGenerator();
         var playerResult = generator.Generate(
             new CreatureGeneratorInput(
                 CreatureType.Human,
                 CreatureArchetype.For(Profession.Knight),
                 worldId,
-                stateId,
-                stateId,
+                birthLocationId,
                 MinLevel: 1,
                 MaxLevel: 1
             )
         );
 
-        var location = Builders.MakeLocation(worldId, stateId);
+        var location = Builders.MakeLocation(worldId, birthLocationId);
         playerResult.Creature.LocationId = location.Id;
         _context.Creatures.Add(playerResult.Creature);
         _context.Items.AddRange(playerResult.Items);
@@ -81,7 +80,6 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         var enemy = Builders.MakeCreature(
             worldId,
             creatureType: CreatureType.Beast,
-            stateId: stateId,
             locationId: location.Id
         );
         var session = Builders.MakeGameSession(worldId, playerResult.Creature.Id);

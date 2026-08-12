@@ -121,11 +121,7 @@ public class TradeStockGeneratorTests
 
     private static TradeCounterScenario CreateTradeCounter(BuildingType buildingType)
     {
-        var building = Builders.MakeBuilding(
-            stateId: Guid.NewGuid(),
-            worldId: WorldId,
-            buildingType: buildingType
-        );
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: buildingType);
         var room = Builders.MakeRoom(building.Id, worldId: WorldId);
         var workstation = Builders.MakeWorkstation(worldId: WorldId, locationId: room.LocationId);
 

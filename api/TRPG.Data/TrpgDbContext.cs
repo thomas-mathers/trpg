@@ -246,6 +246,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<Location>(entity =>
         {
             entity.HasIndex(l => l.WorldId);
+            entity.HasIndex(l => l.StateId);
             entity.HasIndex(l => l.RoomId).IsUnique();
             entity.HasIndex(l => l.DistrictId).IsUnique().HasFilter("room_id IS NULL");
         });
@@ -279,8 +280,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<KillCreatureObjective>("KillCreature")
                 .HasValue<KillCreatureTypeObjective>("KillCreatureType")
                 .HasValue<CollectItemObjective>("CollectItem")
-                .HasValue<ExploreBuildingObjective>("ExploreBuilding")
-                .HasValue<ExploreCityObjective>("ExploreCity")
+                .HasValue<ExploreLocationObjective>("ExploreLocation")
                 .HasValue<SpeakToCreatureObjective>("SpeakToCreature");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
@@ -329,7 +329,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
 
         modelBuilder.Entity<Building>(entity =>
         {
-            entity.HasIndex(b => new { b.StateId, b.Name }).IsUnique();
+            entity.HasIndex(b => b.ExteriorLocationId);
             entity.HasIndex(b => b.WorldId);
         });
 
@@ -345,7 +345,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(c => new { c.NpcId, c.CreatureId }).IsUnique();
         });
 
-        modelBuilder.Entity<WorldEvent>().HasIndex(e => e.WorldId);
+        modelBuilder.Entity<WorldEvent>(entity =>
+        {
+            entity.HasIndex(e => e.WorldId);
+            entity.HasIndex(e => e.LocationId);
+        });
 
         modelBuilder.Entity<Reputation>(entity =>
         {

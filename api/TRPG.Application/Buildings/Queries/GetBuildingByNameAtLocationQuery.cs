@@ -6,7 +6,7 @@ namespace TRPG.Application.Buildings.Queries;
 
 internal class GetBuildingByNameAtLocationQuery
 {
-    public required Location Location { get; init; }
+    public required Guid LocationId { get; init; }
     public required string Name { get; init; }
 }
 
@@ -21,9 +21,7 @@ internal class GetBuildingByNameAtLocationQueryHandler(TrpgDbContext context)
             .Buildings.AsNoTracking()
             .FirstOrDefaultAsync(
                 b =>
-                    b.StateId == query.Location.StateId
-                    && b.CityId == query.Location.CityId
-                    && b.DistrictId == query.Location.DistrictId
+                    b.ExteriorLocationId == query.LocationId
                     && EF.Functions.ILike(b.Name, query.Name),
                 cancellationToken
             );

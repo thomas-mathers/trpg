@@ -7,7 +7,6 @@ namespace TRPG.Tests.Application.Worlds.Generators;
 public class DungeonPopulatorTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
-    private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _locationId = Guid.NewGuid();
     private readonly DungeonPopulator _dungeonPopulator = new(Builders.MakeCreatureGenerator());
 
@@ -15,7 +14,6 @@ public class DungeonPopulatorTests
     {
         return new DungeonPopulatorInput
         {
-            StateId = _stateId,
             LocationId = _locationId,
             WorldId = _worldId,
             DungeonType = dungeonType,

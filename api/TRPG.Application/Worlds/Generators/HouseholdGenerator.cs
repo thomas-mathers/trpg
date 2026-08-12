@@ -7,8 +7,8 @@ public class HouseholdGeneratorInput
 {
     public required Guid WorldId { get; init; }
     public required City City { get; init; }
-    public required Guid StateId { get; init; }
     public required District ResidentialDistrict { get; init; }
+    public required Location ResidentialLocation { get; init; }
     public required CreatureType DominantRace { get; init; }
     public required WorldGeneratorInput GeneratorInput { get; init; }
     public required HashSet<string> UsedBuildingNames { get; init; }
@@ -57,10 +57,14 @@ public class HouseholdGenerator(
                 ? GenerateFamilyHousehold(
                     input.DominantRace,
                     input.WorldId,
-                    input.StateId,
+                    input.ResidentialLocation.Id,
                     input.GeneratorInput
                 )
-                : GenerateSingleHousehold(input.DominantRace, input.WorldId, input.StateId);
+                : GenerateSingleHousehold(
+                    input.DominantRace,
+                    input.WorldId,
+                    input.ResidentialLocation.Id
+                );
         var household = householdResult.Members;
 
         var fatherId = household.Count >= 2 ? household[1].Creature.Id : (Guid?)null;
@@ -84,13 +88,9 @@ public class HouseholdGenerator(
         );
         var houseResult = buildingGenerator.Generate(
             new BuildingGeneratorInput(
-                input.StateId,
-                input.City.Id,
-                input.ResidentialDistrict.Id,
-                input.ResidentialDistrict.LocationId,
+                input.ResidentialLocation,
                 houseOwner.Creature.Id,
-                BuildingType.House,
-                input.WorldId
+                BuildingType.House
             )
             {
                 Name = houseName,
@@ -140,19 +140,13 @@ public class HouseholdGenerator(
                 .LocationId;
             jobs.Add(
                 CreatureJobGenerator.GenerateSleep(
-                    input.StateId,
                     member.Creature.Id,
                     memberBedLocationId,
                     input.WorldId
                 )
             );
             jobs.Add(
-                CreatureJobGenerator.GenerateIdle(
-                    input.StateId,
-                    member.Creature.Id,
-                    homeLocationId,
-                    input.WorldId
-                )
+                CreatureJobGenerator.GenerateIdle(member.Creature.Id, homeLocationId, input.WorldId)
             );
             member.Creature.LocationId = homeLocationId;
         }
@@ -179,7 +173,7 @@ public class HouseholdGenerator(
     internal HouseholdResult GenerateFamilyHousehold(
         CreatureType dominantRace,
         Guid worldId,
-        Guid stateId,
+        Guid birthLocationId,
         WorldGeneratorInput generatorInput
     )
     {
@@ -192,8 +186,7 @@ public class HouseholdGenerator(
                 creatureType,
                 CreatureArchetype.For(Profession.Unemployed),
                 worldId,
-                stateId,
-                stateId,
+                birthLocationId,
                 MinLevel: 1,
                 MaxLevel: 20
             )
@@ -215,8 +208,7 @@ public class HouseholdGenerator(
                 creatureType,
                 CreatureArchetype.For(Profession.Unemployed),
                 worldId,
-                stateId,
-                stateId,
+                birthLocationId,
                 MinLevel: 1,
                 MaxLevel: 20
             )
@@ -251,8 +243,7 @@ public class HouseholdGenerator(
                     creatureType,
                     CreatureArchetype.For(Profession.Unemployed),
                     worldId,
-                    stateId,
-                    stateId,
+                    birthLocationId,
                     MinLevel: 1,
                     MaxLevel: 20
                 )
@@ -297,7 +288,7 @@ public class HouseholdGenerator(
     internal HouseholdResult GenerateSingleHousehold(
         CreatureType dominantRace,
         Guid worldId,
-        Guid stateId
+        Guid birthLocationId
     )
     {
         var creatureType = CreatureGenerator.PickCreatureType(dominantRace);
@@ -306,8 +297,7 @@ public class HouseholdGenerator(
                 creatureType,
                 CreatureArchetype.For(Profession.Unemployed),
                 worldId,
-                stateId,
-                stateId,
+                birthLocationId,
                 MinLevel: 1,
                 MaxLevel: 20
             )

@@ -26,15 +26,7 @@ public sealed class CollectItemObjective : QuestObjective
     public Guid ItemId { get; init; }
 }
 
-public sealed class ExploreBuildingObjective : QuestObjective
-{
-    public Guid BuildingId { get; init; }
-}
-
-public sealed class ExploreCityObjective : QuestObjective
-{
-    public Guid CityId { get; init; }
-}
+public sealed class ExploreLocationObjective : QuestObjective { }
 
 public sealed class SpeakToCreatureObjective : QuestObjective
 {

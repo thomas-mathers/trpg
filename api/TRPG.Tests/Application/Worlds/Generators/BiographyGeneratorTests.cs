@@ -14,16 +14,25 @@ public class BiographyGeneratorTests
         _state = Builders.MakeState(Guid.NewGuid(), _worldId);
     }
 
+    private IReadOnlyDictionary<Guid, Location> BirthLocations(Creature creature) =>
+        new Dictionary<Guid, Location>
+        {
+            [creature.BirthLocationId] = new Location
+            {
+                Id = creature.BirthLocationId,
+                Name = _state.Name,
+                StateId = _state.Id,
+                WorldId = _worldId,
+                Kind = LocationKind.Wilderness,
+            },
+        };
+
     [Fact]
     public void AssignBiographies_IncludesWorkplaceAndHours_WhenCreatureHasAWorkJob()
     {
         // Arrange
-        var creature = Builders.MakeCreature(_worldId, birthStateId: _state.Id, birthYear: 950);
-        var building = Builders.MakeBuilding(
-            _state.Id,
-            worldId: _worldId,
-            name: "The Rising Crust"
-        );
+        var creature = Builders.MakeCreature(_worldId, birthYear: 950);
+        var building = Builders.MakeBuilding(worldId: _worldId, name: "The Rising Crust");
         var room = Builders.MakeRoom(building.Id, worldId: _worldId);
         var workJob = Builders.MakeCreatureJob(
             creature.Id,
@@ -38,7 +47,7 @@ public class BiographyGeneratorTests
         BiographyGenerator.AssignBiographies(
             new BiographyGeneratorInput(
                 [creature],
-                new Dictionary<Guid, State> { [_state.Id] = _state },
+                BirthLocations(creature),
                 [],
                 [],
                 [],
@@ -61,12 +70,8 @@ public class BiographyGeneratorTests
     public void AssignBiographies_SaysTheyOwnTheWorkplace_WhenTheyOwnTheBuildingTheyWorkAt()
     {
         // Arrange
-        var creature = Builders.MakeCreature(_worldId, birthStateId: _state.Id, birthYear: 950);
-        var building = Builders.MakeBuilding(
-            _state.Id,
-            worldId: _worldId,
-            name: "The Stitched Hem"
-        );
+        var creature = Builders.MakeCreature(_worldId, birthYear: 950);
+        var building = Builders.MakeBuilding(worldId: _worldId, name: "The Stitched Hem");
         var room = Builders.MakeRoom(building.Id, worldId: _worldId);
         var workJob = Builders.MakeCreatureJob(
             creature.Id,
@@ -87,7 +92,7 @@ public class BiographyGeneratorTests
         BiographyGenerator.AssignBiographies(
             new BiographyGeneratorInput(
                 [creature],
-                new Dictionary<Guid, State> { [_state.Id] = _state },
+                BirthLocations(creature),
                 [],
                 [],
                 [],
@@ -111,12 +116,8 @@ public class BiographyGeneratorTests
     public void AssignBiographies_IncludesDaysOff_WhenCreatureHasASpecificDayJob()
     {
         // Arrange
-        var creature = Builders.MakeCreature(_worldId, birthStateId: _state.Id, birthYear: 950);
-        var building = Builders.MakeBuilding(
-            _state.Id,
-            worldId: _worldId,
-            name: "The Rising Crust"
-        );
+        var creature = Builders.MakeCreature(_worldId, birthYear: 950);
+        var building = Builders.MakeBuilding(worldId: _worldId, name: "The Rising Crust");
         var room = Builders.MakeRoom(building.Id, worldId: _worldId);
         var workJob = Builders.MakeCreatureJob(
             creature.Id,
@@ -143,7 +144,7 @@ public class BiographyGeneratorTests
         BiographyGenerator.AssignBiographies(
             new BiographyGeneratorInput(
                 [creature],
-                new Dictionary<Guid, State> { [_state.Id] = _state },
+                BirthLocations(creature),
                 [],
                 [],
                 [],
@@ -155,7 +156,7 @@ public class BiographyGeneratorTests
         );
 
         // Assert
-        // GameClock's in-world day names, not .NET's — Monday and Tuesday are Ashday and Ironday
+        // GameClock's in-world day names, not .NET's â€” Monday and Tuesday are Ashday and Ironday
         Assert.Contains(
             "Their days off are Ashday and Ironday.",
             creature.Biography,
@@ -166,10 +167,9 @@ public class BiographyGeneratorTests
     [Fact]
     public void AssignBiographies_OmitsDaysOff_WhenCreatureIsUnemployed()
     {
-        // Arrange — unemployed adults get a SpecificDay job for every weekday, but that's not a "day off"
+        // Arrange â€” unemployed adults get a SpecificDay job for every weekday, but that's not a "day off"
         var creature = Builders.MakeCreature(
             _worldId,
-            birthStateId: _state.Id,
             birthYear: 950,
             profession: Profession.Unemployed
         );
@@ -188,7 +188,7 @@ public class BiographyGeneratorTests
         BiographyGenerator.AssignBiographies(
             new BiographyGeneratorInput(
                 [creature],
-                new Dictionary<Guid, State> { [_state.Id] = _state },
+                BirthLocations(creature),
                 [],
                 [],
                 [],
@@ -207,12 +207,8 @@ public class BiographyGeneratorTests
     public void AssignBiographies_IncludesHome_WhenCreatureHasASleepJob()
     {
         // Arrange
-        var creature = Builders.MakeCreature(_worldId, birthStateId: _state.Id, birthYear: 950);
-        var building = Builders.MakeBuilding(
-            _state.Id,
-            worldId: _worldId,
-            name: "Winterbough House"
-        );
+        var creature = Builders.MakeCreature(_worldId, birthYear: 950);
+        var building = Builders.MakeBuilding(worldId: _worldId, name: "Winterbough House");
         var room = Builders.MakeRoom(building.Id, worldId: _worldId);
         var sleepJob = Builders.MakeCreatureJob(
             creature.Id,
@@ -227,7 +223,7 @@ public class BiographyGeneratorTests
         BiographyGenerator.AssignBiographies(
             new BiographyGeneratorInput(
                 [creature],
-                new Dictionary<Guid, State> { [_state.Id] = _state },
+                BirthLocations(creature),
                 [],
                 [],
                 [],
@@ -252,7 +248,6 @@ public class BiographyGeneratorTests
         // Arrange
         var creature = Builders.MakeCreature(
             _worldId,
-            birthStateId: _state.Id,
             birthYear: 950,
             profession: Profession.Unemployed
         );
@@ -261,7 +256,7 @@ public class BiographyGeneratorTests
         BiographyGenerator.AssignBiographies(
             new BiographyGeneratorInput(
                 [creature],
-                new Dictionary<Guid, State> { [_state.Id] = _state },
+                BirthLocations(creature),
                 [],
                 [],
                 [],

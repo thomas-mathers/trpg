@@ -103,7 +103,7 @@ public class Creature
 {
     public Attributes BaseAttributes { get; set; } = null!;
     public string Biography { get; set; } = "";
-    public Guid BirthStateId { get; init; }
+    public Guid BirthLocationId { get; init; }
     public int BirthYear { get; init; }
     public CreatureType CreatureType { get; init; }
     public int CurrentAp { get; set; }
@@ -117,7 +117,6 @@ public class Creature
     public string Name { get; init; } = "";
     public Profession? Profession { get; set; }
     public CreatureState State { get; set; }
-    public Guid StateId { get; set; }
     public Guid WorldId { get; init; }
 
     public int Strength { get; set; }

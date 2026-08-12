@@ -345,7 +345,6 @@ public class EmploymentAssignerTests
                 ?? new Dictionary<Guid, Guid>(),
             FatherIds = fatherIds?.ToHashSet() ?? [],
             CityIdleCandidates = cityIdleCandidates?.ToList() ?? [],
-            StateId = Guid.NewGuid(),
             WorldId = _worldId,
             Jobs = [],
         };

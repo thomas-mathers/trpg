@@ -15,7 +15,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private GetExitByDestinationNameQueryHandler _handler = null!;
-    private readonly Building _building = Builders.MakeBuilding(StateId, worldId: WorldId);
+    private readonly Building _building = Builders.MakeBuilding(worldId: WorldId);
 
     public async ValueTask InitializeAsync()
     {

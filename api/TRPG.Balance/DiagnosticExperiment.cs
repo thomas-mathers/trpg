@@ -32,7 +32,6 @@ internal static class DiagnosticExperiment
             playerArchetype,
             Guid.NewGuid(),
             Guid.NewGuid(),
-            Guid.NewGuid(),
             level,
             level,
             StartingAttributeAllocation: ProfessionMatrixExperiment.BuildRealisticAllocation(
@@ -46,7 +45,6 @@ internal static class DiagnosticExperiment
         var monsterInput = new CreatureGeneratorInput(
             monsterCreatureType,
             monsterArchetype,
-            Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
             level,

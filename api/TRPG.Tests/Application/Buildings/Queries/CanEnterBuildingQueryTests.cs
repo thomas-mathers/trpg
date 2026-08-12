@@ -32,7 +32,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
         _handler = _serviceProvider.GetRequiredService<CanEnterBuildingQueryHandler>();
 
         _stateId = Guid.NewGuid();
-        _building = Builders.MakeBuilding(_stateId);
+        _building = Builders.MakeBuilding();
         _entranceRoom = Builders.MakeRoom(_building.Id);
         var outsideLocation = Builders.MakeLocation(stateId: _stateId);
         _frontDoor = Builders.MakeLocationConnector(
@@ -63,7 +63,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
 
     private async Task<Creature> SeedCreature()
     {
-        var creature = Builders.MakeCreature(stateId: _stateId);
+        var creature = Builders.MakeCreature();
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return creature;
@@ -117,7 +117,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     [Fact]
     public async Task Handle_ReturnsDoorLocked_WhenLockedAndNoKey()
     {
-        // Arrange — a key exists for this door, just not in the entering creature's inventory
+        // Arrange â€” a key exists for this door, just not in the entering creature's inventory
         await LockFrontDoor();
         await SeedKey(_frontDoor.Id);
 
@@ -159,7 +159,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     [Fact]
     public async Task Handle_ReturnsEntered_WhenCarryingTheFirstOfTwoKeysRegisteredToTheDoor()
     {
-        // Arrange — two distinct key items are registered to the same door; the first must work too
+        // Arrange â€” two distinct key items are registered to the same door; the first must work too
         await LockFrontDoor();
         var resident = await SeedCreature();
         var keyA = await SeedKey(_frontDoor.Id, "Key A");
@@ -183,7 +183,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     [Fact]
     public async Task Handle_ReturnsEntered_WhenCarryingTheSecondOfTwoKeysRegisteredToTheDoor()
     {
-        // Arrange — two distinct key items are registered to the same door; the second must work too
+        // Arrange â€” two distinct key items are registered to the same door; the second must work too
         await LockFrontDoor();
         var resident = await SeedCreature();
         await SeedKey(_frontDoor.Id, "Key A");
@@ -207,8 +207,8 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     [Fact]
     public async Task Handle_ReturnsEntered_WhenLockedButNoKeyConfigured()
     {
-        // Arrange — a separate building, since _building's floor-0 room is already taken
-        var keylessBuilding = Builders.MakeBuilding(_stateId);
+        // Arrange â€” a separate building, since _building's floor-0 room is already taken
+        var keylessBuilding = Builders.MakeBuilding();
         var keylessDoorRoom = Builders.MakeRoom(keylessBuilding.Id);
         var keylessDoorOutsideLocation = Builders.MakeLocation(stateId: _stateId);
         var keylessDoor = Builders.MakeLocationConnector(
@@ -243,7 +243,7 @@ public sealed class CanEnterBuildingQueryTests(DatabaseFixture db) : IAsyncLifet
     public async Task Handle_ReturnsNoEntrance_WhenBuildingHasNoRoomAtFloorZero()
     {
         // Arrange
-        var emptyBuilding = Builders.MakeBuilding(_stateId);
+        var emptyBuilding = Builders.MakeBuilding();
         _context.Buildings.Add(emptyBuilding);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

@@ -261,7 +261,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
     [Fact]
     public async Task Handle_LocksShop_WhenEveryWorkerIsOnADayOff()
     {
-        // Arrange — the Work window covers this hour, but a higher-priority day-off job overrides it
+        // Arrange â€” the Work window covers this hour, but a higher-priority day-off job overrides it
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
@@ -318,11 +318,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         BuildingType buildingType = BuildingType.House
     )
     {
-        var building = Builders.MakeBuilding(
-            Guid.NewGuid(),
-            worldId: WorldId,
-            buildingType: buildingType
-        );
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: buildingType);
         _context.Buildings.Add(building);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await _addBuildingOwner.Handle(
