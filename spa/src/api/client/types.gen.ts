@@ -307,7 +307,7 @@ export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gno
 
 export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 'Magic';
 
-export type DistrictType = 'Residential' | 'Scientific' | 'CityCenter' | 'Governmental' | 'HolySite' | 'Encampment';
+export type DistrictType = 'Residential' | 'Scientific' | 'CityCenter' | 'CityEntrance' | 'Governmental' | 'HolySite' | 'Encampment';
 
 export type EffectiveAttributesResponse = {
     strength: number;

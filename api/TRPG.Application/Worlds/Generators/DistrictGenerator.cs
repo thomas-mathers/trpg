@@ -62,6 +62,14 @@ internal static class DistrictGenerator
             "The Merchant Quarter",
             "The Grand Bazaar",
         ],
+        [DistrictType.CityEntrance] =
+        [
+            "The City Gates",
+            "The Gate District",
+            "The Outer Gate",
+            "The Arrival Square",
+            "The Wayfarer's Gate",
+        ],
         [DistrictType.Governmental] =
         [
             "The Chancellery Ward",

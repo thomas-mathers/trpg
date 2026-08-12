@@ -119,6 +119,7 @@ internal static class ResponseEnumMappers
             DataDistrictType.Residential => ContractDistrictType.Residential,
             DataDistrictType.Scientific => ContractDistrictType.Scientific,
             DataDistrictType.CityCenter => ContractDistrictType.CityCenter,
+            DataDistrictType.CityEntrance => ContractDistrictType.CityEntrance,
             DataDistrictType.Governmental => ContractDistrictType.Governmental,
             DataDistrictType.HolySite => ContractDistrictType.HolySite,
             DataDistrictType.Encampment => ContractDistrictType.Encampment,

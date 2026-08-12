@@ -188,10 +188,11 @@ public class WorldGenerator(
             {
                 foreach (var city in citiesInState)
                 {
-                    var cityCenterDistrict = districtsByCityId[city.Id]
-                        .First(d => d.DistrictType == DistrictType.CityCenter);
+                    var cityEntranceDistrict = districtsByCityId[city.Id]
+                        .First(d => d.DistrictType == DistrictType.CityEntrance);
                     var connectorResult = WildernessConnectorGenerator.Generate(
-                        cityCenterDistrict,
+                        city,
+                        cityEntranceDistrict,
                         wildernessLocation,
                         worldId
                     );
@@ -315,7 +316,7 @@ public class WorldGenerator(
                 DestinationLocationId = wildernessLocationByStateId[destinationStateId].Id,
                 Name = link.Name,
                 Description = $"{link.Name} leads into {destinationState.Name}.",
-                DestinationLabel = $"{destinationState.Name} Wilderness",
+                DestinationLabel = destinationState.Name,
                 WorldId = worldId,
             };
             locationConnectors.Add(connector);

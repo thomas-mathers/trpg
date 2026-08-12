@@ -69,6 +69,9 @@ public enum DistrictType
 
     [Description("City Center")]
     CityCenter,
+
+    [Description("City Entrance")]
+    CityEntrance,
     Governmental,
 
     [Description("Holy Site")]
