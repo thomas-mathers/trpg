@@ -235,6 +235,15 @@ public class WorldGenerator(
             )
         );
 
+        var namedLocations = LocationNameGenerator.Generate(
+            locations,
+            geography.States,
+            geography.Cities,
+            geography.Districts,
+            buildings,
+            rooms
+        );
+
         var knowledge = KnowledgeGenerator.Generate(
             new KnowledgeGeneratorInput
             {
@@ -244,7 +253,7 @@ public class WorldGenerator(
                 FactionMembers = factionMembers,
                 Factions = factions,
                 Cities = geography.Cities,
-                Locations = locations,
+                Locations = namedLocations,
                 States = geography.States,
                 Countries = geography.Countries,
             }
@@ -269,7 +278,7 @@ public class WorldGenerator(
             FactionMembers = factionMembers,
             Items = items,
             Rooms = rooms,
-            Locations = locations,
+            Locations = namedLocations,
             Props = props,
             Skills = skills,
             Jobs = jobs,

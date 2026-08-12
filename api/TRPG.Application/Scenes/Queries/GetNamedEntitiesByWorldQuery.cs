@@ -6,6 +6,25 @@ using TRPG.Data;
 
 namespace TRPG.Application.Scenes.Queries;
 
+internal enum LoreAnchorType
+{
+    Creature,
+    Building,
+    District,
+    World,
+    Country,
+    State,
+    City,
+}
+
+internal record LoreAnchorSummary(
+    Guid Id,
+    string Name,
+    LoreAnchorType Type,
+    string? Subtype,
+    string Description
+);
+
 internal enum NamedEntityType
 {
     Creature,
@@ -25,17 +44,17 @@ internal record NamedEntitySummary(
     string Description
 );
 
-internal class GetNamedEntitiesByWorldQuery
+internal class GetLoreAnchorsByWorldQuery
 {
     public required Guid WorldId { get; init; }
 }
 
-internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
 {
     public static string CacheKey(Guid worldId) => $"namedEntities:{worldId}";
 
-    public async Task<IReadOnlyCollection<NamedEntitySummary>> Handle(
-        GetNamedEntitiesByWorldQuery query,
+    public async Task<IReadOnlyCollection<LoreAnchorSummary>> Handle(
+        GetLoreAnchorsByWorldQuery query,
         CancellationToken cancellationToken = default
     )
     {
@@ -46,7 +65,7 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
         return entities ?? [];
     }
 
-    private async Task<NamedEntitySummary[]> BuildEntities(
+    private async Task<LoreAnchorSummary[]> BuildEntities(
         Guid worldId,
         CancellationToken cancellationToken
     )
@@ -54,10 +73,10 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
         var creatures = await context
             .Creatures.AsNoTracking()
             .Where(c => c.WorldId == worldId)
-            .Select(c => new NamedEntitySummary(
+            .Select(c => new LoreAnchorSummary(
                 c.Id,
                 c.Name,
-                NamedEntityType.Creature,
+                LoreAnchorType.Creature,
                 c.CreatureType.ToString(),
                 c.Biography
             ))
@@ -75,10 +94,10 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
             })
             .ToArrayAsync(cancellationToken);
         var buildings = buildingRows
-            .Select(b => new NamedEntitySummary(
+            .Select(b => new LoreAnchorSummary(
                 b.Id,
                 b.Name,
-                NamedEntityType.Building,
+                LoreAnchorType.Building,
                 b.BuildingType.ToContract().ToDisplayName(),
                 b.Description
             ))
@@ -96,10 +115,10 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
             })
             .ToArrayAsync(cancellationToken);
         var districts = districtRows
-            .Select(d => new NamedEntitySummary(
+            .Select(d => new LoreAnchorSummary(
                 d.Id,
                 d.Name,
-                NamedEntityType.District,
+                LoreAnchorType.District,
                 d.DistrictType.ToContract().ToDisplayName(),
                 d.Description
             ))
@@ -108,10 +127,10 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
         var world = await context
             .Worlds.AsNoTracking()
             .Where(w => w.Id == worldId)
-            .Select(w => new NamedEntitySummary(
+            .Select(w => new LoreAnchorSummary(
                 w.Id,
                 w.Name,
-                NamedEntityType.World,
+                LoreAnchorType.World,
                 null,
                 w.Description
             ))
@@ -120,10 +139,10 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
         var countries = await context
             .Countries.AsNoTracking()
             .Where(c => c.WorldId == worldId)
-            .Select(c => new NamedEntitySummary(
+            .Select(c => new LoreAnchorSummary(
                 c.Id,
                 c.Name,
-                NamedEntityType.Country,
+                LoreAnchorType.Country,
                 c.Focus.ToString(),
                 c.Description
             ))
@@ -132,10 +151,10 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
         var states = await context
             .States.AsNoTracking()
             .Where(s => s.WorldId == worldId)
-            .Select(s => new NamedEntitySummary(
+            .Select(s => new LoreAnchorSummary(
                 s.Id,
                 s.Name,
-                NamedEntityType.State,
+                LoreAnchorType.State,
                 null,
                 s.Description
             ))
@@ -144,10 +163,10 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
         var cities = await context
             .Cities.AsNoTracking()
             .Where(c => c.WorldId == worldId)
-            .Select(c => new NamedEntitySummary(
+            .Select(c => new LoreAnchorSummary(
                 c.Id,
                 c.Name,
-                NamedEntityType.City,
+                LoreAnchorType.City,
                 null,
                 c.Description
             ))
@@ -162,4 +181,45 @@ internal class GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemor
             .Concat(cities)
             .ToArray();
     }
+}
+
+internal class GetNamedEntitiesByWorldQueryHandler
+{
+    private readonly GetLoreAnchorsByWorldQueryHandler _getLoreAnchors;
+
+    public GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
+        : this(new GetLoreAnchorsByWorldQueryHandler(context, cache)) { }
+
+    public GetNamedEntitiesByWorldQueryHandler(GetLoreAnchorsByWorldQueryHandler getLoreAnchors)
+    {
+        _getLoreAnchors = getLoreAnchors;
+    }
+
+    public static string CacheKey(Guid worldId) =>
+        GetLoreAnchorsByWorldQueryHandler.CacheKey(worldId);
+
+    public async Task<IReadOnlyCollection<NamedEntitySummary>> Handle(
+        GetNamedEntitiesByWorldQuery query,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var anchors = await _getLoreAnchors.Handle(
+            new GetLoreAnchorsByWorldQuery { WorldId = query.WorldId },
+            cancellationToken
+        );
+        return anchors
+            .Select(anchor => new NamedEntitySummary(
+                anchor.Id,
+                anchor.Name,
+                (NamedEntityType)anchor.Type,
+                anchor.Subtype,
+                anchor.Description
+            ))
+            .ToArray();
+    }
+}
+
+internal class GetNamedEntitiesByWorldQuery
+{
+    public required Guid WorldId { get; init; }
 }

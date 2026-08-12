@@ -2,7 +2,7 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AdvanceSessionTimeData, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetSessionNamedEntityResponses, GetSessionSceneResponses, GetTradeResponses, ListSessionNamedEntitiesResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ResolveCombatActionData, ResolveCombatActionResponses, SendAdminChatData, SendAdminChatResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AcceptQuestResponses, AdvanceSessionTimeData, AdvanceSessionTimeResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EndSessionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTradeResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ResolveCombatActionData, ResolveCombatActionResponses, SendAdminChatData, SendAdminChatResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
@@ -770,20 +770,20 @@ export function handleGetSessionScene(response?: HandleGetSessionSceneResponse |
     }, options);
 }
 
-export type HandleListSessionNamedEntitiesResponse = {
-    body: ListSessionNamedEntitiesResponses[200];
+export type HandleListSessionLoreAnchorsResponse = {
+    body: ListSessionLoreAnchorsResponses[200];
     status?: 200;
 };
 
 /**
- * Handler for the `GET /sessions/{sessionId}/named-entities` operation.
+ * Handler for the `GET /sessions/{sessionId}/lore-anchors` operation.
  */
-export function handleListSessionNamedEntities(response?: HandleListSessionNamedEntitiesResponse | HttpResponseResolver<{
+export function handleListSessionLoreAnchors(response?: HandleListSessionLoreAnchorsResponse | HttpResponseResolver<{
     sessionId: string;
 }, never>, options?: RequestHandlerOptions): HttpHandler {
     return http.get<{
         sessionId: string;
-    }, never>(`${options?.baseUrl ?? '*'}/sessions/:sessionId/named-entities`, info => {
+    }, never>(`${options?.baseUrl ?? '*'}/sessions/:sessionId/lore-anchors`, info => {
         if (typeof response === 'function') {
             return response(info);
         }
@@ -801,22 +801,22 @@ export function handleListSessionNamedEntities(response?: HandleListSessionNamed
     }, options);
 }
 
-export type HandleGetSessionNamedEntityResponse = {
-    body: GetSessionNamedEntityResponses[200];
+export type HandleGetSessionLoreAnchorResponse = {
+    body: GetSessionLoreAnchorResponses[200];
     status?: 200;
 };
 
 /**
- * Handler for the `GET /sessions/{sessionId}/named-entities/{entityId}` operation.
+ * Handler for the `GET /sessions/{sessionId}/lore-anchors/{anchorId}` operation.
  */
-export function handleGetSessionNamedEntity(response?: HandleGetSessionNamedEntityResponse | HttpResponseResolver<{
+export function handleGetSessionLoreAnchor(response?: HandleGetSessionLoreAnchorResponse | HttpResponseResolver<{
     sessionId: string;
-    entityId: string;
+    anchorId: string;
 }, never>, options?: RequestHandlerOptions): HttpHandler {
     return http.get<{
         sessionId: string;
-        entityId: string;
-    }, never>(`${options?.baseUrl ?? '*'}/sessions/:sessionId/named-entities/:entityId`, info => {
+        anchorId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/sessions/:sessionId/lore-anchors/:anchorId`, info => {
         if (typeof response === 'function') {
             return response(info);
         }
@@ -964,10 +964,14 @@ export type HandleTransferInventoryResponse = {
 };
 
 /**
- * Handler for the `POST /inventory-transfers` operation.
+ * Handler for the `POST /players/{playerId}/inventory-transfers` operation.
  */
-export function handleTransferInventory(response?: HandleTransferInventoryResponse | HttpResponseResolver<never, TransferInventoryData['body']>, options?: RequestHandlerOptions): HttpHandler {
-    return http.post<never, TransferInventoryData['body']>(`${options?.baseUrl ?? '*'}/inventory-transfers`, info => {
+export function handleTransferInventory(response?: HandleTransferInventoryResponse | HttpResponseResolver<{
+    playerId: string;
+}, TransferInventoryData['body']>, options?: RequestHandlerOptions): HttpHandler {
+    return http.post<{
+        playerId: string;
+    }, TransferInventoryData['body']>(`${options?.baseUrl ?? '*'}/players/:playerId/inventory-transfers`, info => {
         if (typeof response === 'function') {
             return response(info);
         }
@@ -1067,6 +1071,169 @@ export function handleCompleteTrade(response?: HandleCompleteTradeResponse | Htt
         playerId: string;
         workstationId: string;
     }, CompleteTradeData['body']>(`${options?.baseUrl ?? '*'}/players/:playerId/trades/:workstationId/complete`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleGetSessionItemResponse = {
+    body: GetSessionItemResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `GET /sessions/{sessionId}/items/{itemId}` operation.
+ */
+export function handleGetSessionItem(response?: HandleGetSessionItemResponse | HttpResponseResolver<{
+    sessionId: string;
+    itemId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.get<{
+        sessionId: string;
+        itemId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/sessions/:sessionId/items/:itemId`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleGetQuestJournalResponse = {
+    body: GetQuestJournalResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `GET /players/{playerId}/quests` operation.
+ */
+export function handleGetQuestJournal(response?: HandleGetQuestJournalResponse | HttpResponseResolver<{
+    playerId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.get<{
+        playerId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/quests`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleAcceptQuestResponse = {
+    body: AcceptQuestResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `POST /players/{playerId}/quests/{questId}/accept` operation.
+ */
+export function handleAcceptQuest(response?: HandleAcceptQuestResponse | HttpResponseResolver<{
+    playerId: string;
+    questId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.post<{
+        playerId: string;
+        questId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/quests/:questId/accept`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleCompleteQuestResponse = {
+    body: CompleteQuestResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `POST /players/{playerId}/quests/{questId}/complete` operation.
+ */
+export function handleCompleteQuest(response?: HandleCompleteQuestResponse | HttpResponseResolver<{
+    playerId: string;
+    questId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.post<{
+        playerId: string;
+        questId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/quests/:questId/complete`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleSetQuestTrackingResponse = {
+    body: SetQuestTrackingResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `PUT /players/{playerId}/quests/{questId}/tracking` operation.
+ */
+export function handleSetQuestTracking(response?: HandleSetQuestTrackingResponse | HttpResponseResolver<{
+    playerId: string;
+    questId: string;
+}, SetQuestTrackingData['body']>, options?: RequestHandlerOptions): HttpHandler {
+    return http.put<{
+        playerId: string;
+        questId: string;
+    }, SetQuestTrackingData['body']>(`${options?.baseUrl ?? '*'}/players/:playerId/quests/:questId/tracking`, info => {
         if (typeof response === 'function') {
             return response(info);
         }
@@ -1186,13 +1353,13 @@ export type MswHandlerFactories = {
      */
     getSessionScene: typeof handleGetSessionScene;
     /**
-     * Handler for the `GET /sessions/{sessionId}/named-entities` operation.
+     * Handler for the `GET /sessions/{sessionId}/lore-anchors` operation.
      */
-    listSessionNamedEntities: typeof handleListSessionNamedEntities;
+    listSessionLoreAnchors: typeof handleListSessionLoreAnchors;
     /**
-     * Handler for the `GET /sessions/{sessionId}/named-entities/{entityId}` operation.
+     * Handler for the `GET /sessions/{sessionId}/lore-anchors/{anchorId}` operation.
      */
-    getSessionNamedEntity: typeof handleGetSessionNamedEntity;
+    getSessionLoreAnchor: typeof handleGetSessionLoreAnchor;
     /**
      * Handler for the `GET /jobs/{id}` operation.
      */
@@ -1210,7 +1377,7 @@ export type MswHandlerFactories = {
      */
     endSession: typeof handleEndSession;
     /**
-     * Handler for the `POST /inventory-transfers` operation.
+     * Handler for the `POST /players/{playerId}/inventory-transfers` operation.
      */
     transferInventory: typeof handleTransferInventory;
     /**
@@ -1225,6 +1392,26 @@ export type MswHandlerFactories = {
      * Handler for the `POST /players/{playerId}/trades/{workstationId}/complete` operation.
      */
     completeTrade: typeof handleCompleteTrade;
+    /**
+     * Handler for the `GET /sessions/{sessionId}/items/{itemId}` operation.
+     */
+    getSessionItem: typeof handleGetSessionItem;
+    /**
+     * Handler for the `GET /players/{playerId}/quests` operation.
+     */
+    getQuestJournal: typeof handleGetQuestJournal;
+    /**
+     * Handler for the `POST /players/{playerId}/quests/{questId}/accept` operation.
+     */
+    acceptQuest: typeof handleAcceptQuest;
+    /**
+     * Handler for the `POST /players/{playerId}/quests/{questId}/complete` operation.
+     */
+    completeQuest: typeof handleCompleteQuest;
+    /**
+     * Handler for the `PUT /players/{playerId}/quests/{questId}/tracking` operation.
+     */
+    setQuestTracking: typeof handleSetQuestTracking;
 };
 
 export type CreateMswHandlersResult = {
@@ -1267,8 +1454,8 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         createSession: wrap(handleCreateSession),
         resolveCombatAction: wrap(handleResolveCombatAction),
         getSessionScene: wrap(handleGetSessionScene),
-        listSessionNamedEntities: wrap(handleListSessionNamedEntities),
-        getSessionNamedEntity: wrap(handleGetSessionNamedEntity),
+        listSessionLoreAnchors: wrap(handleListSessionLoreAnchors),
+        getSessionLoreAnchor: wrap(handleGetSessionLoreAnchor),
         getJob: wrap(handleGetJob),
         sendAdminChat: wrap(handleSendAdminChat),
         advanceSessionTime: wrap(handleAdvanceSessionTime),
@@ -1276,7 +1463,12 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         transferInventory: wrap(handleTransferInventory),
         getTrade: wrap(handleGetTrade),
         proposeTrade: wrap(handleProposeTrade),
-        completeTrade: wrap(handleCompleteTrade)
+        completeTrade: wrap(handleCompleteTrade),
+        getSessionItem: wrap(handleGetSessionItem),
+        getQuestJournal: wrap(handleGetQuestJournal),
+        acceptQuest: wrap(handleAcceptQuest),
+        completeQuest: wrap(handleCompleteQuest),
+        setQuestTracking: wrap(handleSetQuestTracking)
     };
     const all: CreateMswHandlersResult['all'] = (options = {}) => {
         type OverrideValue<R> = R | [
@@ -1291,13 +1483,17 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
             invoke(pick.previewCreatureBasicAttackDamage, overrides.previewCreatureBasicAttackDamage),
             invoke(pick.proposeTrade, overrides.proposeTrade),
             invoke(pick.completeTrade, overrides.completeTrade),
+            invoke(pick.acceptQuest, overrides.acceptQuest),
+            invoke(pick.completeQuest, overrides.completeQuest),
+            invoke(pick.setQuestTracking, overrides.setQuestTracking),
             invoke(pick.sendAdminChat, overrides.sendAdminChat),
             invoke(pick.advanceSessionTime, overrides.advanceSessionTime),
             invoke(pick.previewCreatureEquipment, overrides.previewCreatureEquipment),
             invoke(pick.getPlayerFightAbilities, overrides.getPlayerFightAbilities),
             invoke(pick.unequipCreatureItem, overrides.unequipCreatureItem),
-            invoke(pick.getSessionNamedEntity, overrides.getSessionNamedEntity),
+            invoke(pick.getSessionLoreAnchor, overrides.getSessionLoreAnchor),
             invoke(pick.getTrade, overrides.getTrade),
+            invoke(pick.getSessionItem, overrides.getSessionItem),
             invoke(pick.endSession, overrides.endSession),
             invoke(pick.getCreatureAbilities, overrides.getCreatureAbilities),
             invoke(pick.getCreatureInventory, overrides.getCreatureInventory),
@@ -1314,15 +1510,16 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
             invoke(pick.getPlayerFight, overrides.getPlayerFight),
             invoke(pick.resolveCombatAction, overrides.resolveCombatAction),
             invoke(pick.getSessionScene, overrides.getSessionScene),
-            invoke(pick.listSessionNamedEntities, overrides.listSessionNamedEntities),
+            invoke(pick.listSessionLoreAnchors, overrides.listSessionLoreAnchors),
+            invoke(pick.transferInventory, overrides.transferInventory),
+            invoke(pick.getQuestJournal, overrides.getQuestJournal),
             invoke(pick.getCreatureGenerationOptions, overrides.getCreatureGenerationOptions),
             invoke(pick.dropWorld, overrides.dropWorld),
             invoke(pick.getAbilitiesBySkill, overrides.getAbilitiesBySkill),
             invoke(pick.getJob, overrides.getJob),
             invoke(pick.listWorlds, overrides.listWorlds),
             invoke(pick.createWorld, overrides.createWorld),
-            invoke(pick.createSession, overrides.createSession),
-            invoke(pick.transferInventory, overrides.transferInventory)
+            invoke(pick.createSession, overrides.createSession)
         ];
     };
     return { all, pick };

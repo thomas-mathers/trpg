@@ -1,4 +1,4 @@
-import { Award, BookOpen, Trophy } from 'lucide-react';
+import { Award, BookOpen, CircleCheck, Trophy } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -52,10 +52,27 @@ export function GameNotifications() {
         { duration: 3800 },
       );
     });
+    const unsubscribeQuestObjective = gameEventBus.on(
+      'QuestObjectiveCompleted',
+      ({ objectiveName }) => {
+        toast.custom(
+          (toastId) => (
+            <GameToast
+              toastId={toastId}
+              icon={CircleCheck}
+              title="Objective complete"
+              description={objectiveName}
+            />
+          ),
+          { duration: 3200 },
+        );
+      },
+    );
     return () => {
       unsubscribeSkill();
       unsubscribeCharacter();
       unsubscribeCombatEnded();
+      unsubscribeQuestObjective();
     };
   }, []);
 

@@ -76,7 +76,7 @@ public sealed class QuestGeneratorTests
     }
 
     [Fact]
-    public void Generate_ReturnsNoQuests_WhenNoCreatureTypeHasTwoMonsters()
+    public void Generate_SkipsUnavailableObjectives_WhenStateHasOnlyOneMonster()
     {
         // Arrange
         var world = Builders.MakeWorld();
@@ -102,8 +102,10 @@ public sealed class QuestGeneratorTests
         );
 
         // Assert
-        Assert.Empty(result.Quests);
-        Assert.Empty(result.Objectives);
+        Assert.Equal(2, result.Quests.Count);
+        Assert.Contains(result.Objectives, objective => objective is KillCreatureObjective);
+        Assert.Contains(result.Objectives, objective => objective is KillCreatureTypeObjective);
+        Assert.DoesNotContain(result.Objectives, objective => objective is CollectItemObjective);
     }
 
     private static WorldGeneratorResult MakeWorld(

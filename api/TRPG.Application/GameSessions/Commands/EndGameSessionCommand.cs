@@ -53,7 +53,7 @@ internal class EndGameSessionCommandHandler(
             cancellationToken
         );
 
-        cache.Remove(GetNamedEntitiesByWorldQueryHandler.CacheKey(snapshot.WorldId));
+        cache.Remove(GetLoreAnchorsByWorldQueryHandler.CacheKey(snapshot.WorldId));
         cache.Remove(GetEntityNameAutomatonByWorldQueryHandler.CacheKey(snapshot.WorldId));
     }
 }

@@ -1,4 +1,4 @@
-import { Crown, Skull } from 'lucide-react';
+import { CircleHelp, Crown, Skull } from 'lucide-react';
 import {
   Anvil,
   BedDouble,
@@ -39,6 +39,7 @@ import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
+import { QuestTracker } from '@/features/quests/components/quest-tracker';
 import { cn } from '@/lib/utils';
 
 const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
@@ -78,9 +79,10 @@ const DISTRICT_TYPE_ICONS: Record<DistrictType, LucideIcon> = {
 
 interface NearbyPanelProps {
   scene: SceneSnapshot;
+  onOpenQuestJournal: () => void;
 }
 
-export function NearbyPanel({ scene }: NearbyPanelProps) {
+export function NearbyPanel({ scene, onOpenQuestJournal }: NearbyPanelProps) {
   const [inventoryTarget, setInventoryTarget] = useState<{
     id: string;
     name: string;
@@ -99,6 +101,11 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
 
   return (
     <div className="flex flex-col gap-6 p-4 text-sm">
+      <QuestTracker
+        playerId={scene.playerStatus.id}
+        worldId={scene.worldId}
+        onOpenJournal={onOpenQuestJournal}
+      />
       <Section title="Nearby Exits">
         {scene.exits.length === 0 ? (
           <EmptyState />
@@ -182,6 +189,7 @@ export function NearbyPanel({ scene }: NearbyPanelProps) {
       {tradeWorker && (
         <TradeDialog
           playerId={scene.playerStatus.id}
+          worldId={scene.worldId}
           workstationId={tradeWorker.workstationId}
           workerName={tradeWorker.name}
           shopName={scene.buildingName ?? 'Shop'}
@@ -227,6 +235,18 @@ function CreatureRow({
         <span className="flex h-[15px] w-[15px] shrink-0 items-center justify-center">
           {dead ? (
             <Skull className="h-[15px] w-[15px]" aria-label="Dead" />
+          ) : creature.questMarker === 'Available' ? (
+            <CircleHelp
+              className="h-[15px] w-[15px] text-amber-500"
+              aria-label="Has a quest available"
+            />
+          ) : creature.questMarker === 'ReadyToTurnIn' ? (
+            <span
+              className="text-sm font-bold text-amber-500"
+              aria-label="Has a quest ready to turn in"
+            >
+              !
+            </span>
           ) : (
             dangerous && (
               <Crown className="h-[15px] w-[15px]" aria-label="Much more powerful than you" />

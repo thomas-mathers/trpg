@@ -60,6 +60,7 @@ internal class CompleteQuestCommandHandler(TrpgDbContext context, AddGoldCommand
         );
 
         creatureQuest.Status = QuestStatus.Completed;
+        creatureQuest.IsTracked = false;
 
         await context.SaveChangesAsync(cancellationToken);
         transaction.Complete();

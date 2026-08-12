@@ -8,13 +8,23 @@ internal sealed class EntityNameAutomaton
 
     private EntityNameAutomaton() { }
 
-    public static EntityNameAutomaton Build(IReadOnlyCollection<NamedEntitySummary> entities)
+    public static EntityNameAutomaton Build(IReadOnlyCollection<LoreAnchorSummary> entities)
     {
         var automaton = new EntityNameAutomaton();
         automaton.Root.Fail = automaton.Root;
+        var ambiguousNames = entities
+            .GroupBy(entity => entity.Name, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var entity in entities)
         {
+            if (ambiguousNames.Contains(entity.Name))
+            {
+                continue;
+            }
+
             var node = automaton.Root;
             foreach (var character in entity.Name)
             {
@@ -26,6 +36,19 @@ internal sealed class EntityNameAutomaton
         automaton.ComputeFailureLinks();
         return automaton;
     }
+
+    public static EntityNameAutomaton Build(IReadOnlyCollection<NamedEntitySummary> entities) =>
+        Build(
+            entities
+                .Select(entity => new LoreAnchorSummary(
+                    entity.Id,
+                    entity.Name,
+                    (LoreAnchorType)entity.Type,
+                    entity.Subtype,
+                    entity.Description
+                ))
+                .ToArray()
+        );
 
     private void ComputeFailureLinks()
     {
@@ -55,7 +78,7 @@ internal sealed class EntityNameAutomaton
     public sealed class Node(int depth)
     {
         public int Depth { get; } = depth;
-        public NamedEntitySummary? Match { get; internal set; }
+        public LoreAnchorSummary? Match { get; internal set; }
         internal Dictionary<char, Node> Children { get; } = new();
         internal Node Fail { get; set; } = null!;
 

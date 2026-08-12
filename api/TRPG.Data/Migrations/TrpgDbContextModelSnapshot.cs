@@ -959,6 +959,11 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("district_id");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
                     b.Property<Guid?>("RoomId")
                         .HasColumnType("uuid")
                         .HasColumnName("room_id");

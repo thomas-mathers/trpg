@@ -31,7 +31,7 @@ internal static class NarrationEntityLinker
         }
     }
 
-    private sealed record Checkpoint(int Length, NamedEntitySummary Entity);
+    private sealed record Checkpoint(int Length, LoreAnchorSummary Entity);
 
     private sealed class MatchState(EntityNameAutomaton automaton)
     {
@@ -168,6 +168,6 @@ internal static class NarrationEntityLinker
         }
     }
 
-    private static string ToMarkup(NamedEntitySummary entity) =>
+    private static string ToMarkup(LoreAnchorSummary entity) =>
         $"[{entity.Name}](entity://{entity.Type}/{entity.Id})";
 }

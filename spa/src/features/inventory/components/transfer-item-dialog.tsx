@@ -77,6 +77,7 @@ function TransferDialogBody({
   const handleConfirm = async () => {
     if (transferDraft.playerToOther.size > 0) {
       await transfer.mutateAsync({
+        path: { playerId },
         body: {
           fromId: playerId,
           toId: target.id,
@@ -89,6 +90,7 @@ function TransferDialogBody({
     }
     if (transferDraft.otherToPlayer.size > 0) {
       await transfer.mutateAsync({
+        path: { playerId },
         body: {
           fromId: target.id,
           toId: playerId,

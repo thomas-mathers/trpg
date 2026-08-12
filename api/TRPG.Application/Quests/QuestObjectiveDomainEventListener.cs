@@ -57,6 +57,15 @@ internal sealed class QuestEventHandler(
 
         await context.SaveChangesAsync(cancellationToken);
 
+        foreach (
+            var objective in progressedObjectives.Where(objective =>
+                objective.Amount == objective.Objective.RequiredAmount
+            )
+        )
+        {
+            gameEvents.Publish(new QuestObjectiveCompletedEvent(objective.Objective.Name));
+        }
+
         gameEvents.Publish(new QuestJournalUpdatedEvent());
     }
 

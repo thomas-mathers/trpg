@@ -9,7 +9,7 @@ internal class GetEntityNameAutomatonByWorldQuery
 }
 
 internal class GetEntityNameAutomatonByWorldQueryHandler(
-    GetNamedEntitiesByWorldQueryHandler getNamedEntitiesByWorld,
+    GetLoreAnchorsByWorldQueryHandler getLoreAnchorsByWorld,
     IMemoryCache cache
 )
 {
@@ -20,8 +20,8 @@ internal class GetEntityNameAutomatonByWorldQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var entities = await getNamedEntitiesByWorld.Handle(
-            new GetNamedEntitiesByWorldQuery { WorldId = query.WorldId },
+        var entities = await getLoreAnchorsByWorld.Handle(
+            new GetLoreAnchorsByWorldQuery { WorldId = query.WorldId },
             cancellationToken
         );
 

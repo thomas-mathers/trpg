@@ -26,6 +26,7 @@ using TRPG.Application.Inventory.Tools;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Quests.Tools;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Scenes.Commands;
@@ -69,6 +70,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<UnequipInventoryItemCommandHandler>()
             .AddTransient<RemoveInventoryItemCommandHandler>()
             .AddTransient<GetInventoryByOwnerQueryHandler>()
+            .AddTransient<GetCreatureIdsHoldingItemsQueryHandler>()
             .AddTransient<GetInventorySummaryByOwnerQueryHandler>()
             .AddTransient<PreviewEquipItemStatsQueryHandler>()
             .AddTransient<PreviewEquipItemBasicAttackDamageQueryHandler>()
@@ -135,13 +137,15 @@ public static class ServiceCollectionExtensions
             .AddTransient<MarkQuestsReadyToCompleteCommandHandler>()
             .AddTransient<GetQuestJournalQueryHandler>()
             .AddTransient<GetActiveQuestItemIdsQueryHandler>()
+            .AddTransient<GetQuestInteractionsForGiverQueryHandler>()
+            .AddTransient<GetQuestMarkersForGiversQueryHandler>()
             .AddTransient<QuestEventHandler>()
             .AddTransient<GetAllReputationsByCreatureIdQueryHandler>()
             .AddTransient<GetEffectiveReputationQueryHandler>()
             .AddTransient<GetEffectiveReputationsQueryHandler>()
             .AddTransient<GetSceneQueryHandler>()
             .AddTransient<GetSceneWithCatchUpQueryHandler>()
-            .AddTransient<GetNamedEntitiesByWorldQueryHandler>()
+            .AddTransient<GetLoreAnchorsByWorldQueryHandler>()
             .AddTransient<GetEntityNameAutomatonByWorldQueryHandler>()
             .AddTransient<GetWorldQueryHandler>()
             .AddTransient<GetAllWorldsQueryHandler>()
@@ -199,6 +203,7 @@ public static class ServiceCollectionExtensions
             .AddGameTool<CreatureInspectTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
+            .AddGameTool<ShowQuestDetailsTool>()
             .AddGameTool<LookupTool>()
             .AddGameTool<StartFightTool>();
     }

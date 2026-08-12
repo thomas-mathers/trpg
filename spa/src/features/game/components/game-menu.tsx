@@ -13,6 +13,7 @@ import { useScene } from '@/features/game/contexts/scene-context';
 interface GameMenuProps {
   onOpenCharacterDialog: () => void;
   onOpenInventoryDialog: () => void;
+  onOpenQuestJournal: () => void;
   onOpenSkillTreeDialog: () => void;
   onQuit: () => void;
 }
@@ -20,6 +21,7 @@ interface GameMenuProps {
 export function GameMenu({
   onOpenCharacterDialog,
   onOpenInventoryDialog,
+  onOpenQuestJournal,
   onOpenSkillTreeDialog,
   onQuit,
 }: GameMenuProps) {
@@ -38,6 +40,9 @@ export function GameMenu({
         </DropdownMenuItem>
         <DropdownMenuItem disabled={!scene} onClick={onOpenInventoryDialog}>
           Inventory
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={!scene} onClick={onOpenQuestJournal}>
+          Quest Journal
         </DropdownMenuItem>
         <DropdownMenuItem disabled={!scene} onClick={onOpenSkillTreeDialog}>
           Skills

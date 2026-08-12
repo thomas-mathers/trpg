@@ -185,6 +185,8 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Let EF Core throw `DbUpdateException` on violations — no pre-check queries
 
 ### Query tracking
+- Call `.AsEnumerable()` before using a local collection in an EF Core predicate, such as `.Where(x => ids.AsEnumerable().Contains(x.Id))`.
+- Separate each database query/load phase in a method with a blank line.
 - Project only the fields a query needs; do not materialize an entity solely to read one of its values.
 - Use `AnyAsync` when a lookup only needs to establish existence; do not select or materialize an identifier already supplied to the operation.
 - Public **query methods** (read-only, never call `SaveChangesAsync`) use `.AsNoTracking()`

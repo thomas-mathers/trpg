@@ -502,6 +502,23 @@ public class NarrationEntityLinkerTests
         Assert.Equal($"You spot the lone {ToMarkup(target)} nearby.", string.Concat(result));
     }
 
+    [Fact]
+    public async Task Link_DoesNotLink_WhenNameIsAmbiguous()
+    {
+        // Arrange
+        var first = MakeEntity("The Common Name", NamedEntityType.Building);
+        var second = MakeEntity("The Common Name", NamedEntityType.Building);
+        var tokens = ToAsyncEnumerable("You see The Common Name.");
+
+        // Act
+        var linked = await NarrationEntityLinker
+            .Link(tokens, MakeMatcher(first, second), TestContext.Current.CancellationToken)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("You see The Common Name.", string.Concat(linked));
+    }
+
     private static NamedEntitySummary MakeEntity(string name, NamedEntityType type) =>
         new(Guid.NewGuid(), name, type, Subtype: null, Description: "");
 

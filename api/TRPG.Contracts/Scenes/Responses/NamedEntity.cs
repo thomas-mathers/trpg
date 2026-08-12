@@ -9,9 +9,10 @@ public enum EntityType
     Country,
     State,
     City,
+    Item,
 }
 
-public record NamedEntity(
+public record LoreAnchor(
     Guid Id,
     string Name,
     EntityType Type,

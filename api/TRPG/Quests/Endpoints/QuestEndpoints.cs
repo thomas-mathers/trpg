@@ -49,7 +49,8 @@ internal static class QuestEndpoints
                             objective.Name,
                             objective.Description,
                             objective.Amount,
-                            objective.RequiredAmount
+                            objective.RequiredAmount,
+                            objective.LocationName
                         ))
                         .ToArray()
                 ))
