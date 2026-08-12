@@ -86,7 +86,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             )
         );
 
-        // Act â€” hour 23 falls inside the wraparound Sleep window
+        // Act Ã¢â‚¬â€ hour 23 falls inside the wraparound Sleep window
         await _handler.Handle(
             new SyncCommand
             {
@@ -134,7 +134,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             )
         );
 
-        // Act â€” hour 10 is inside Work, and the creature is discovered via their stale Sleep-location assignment
+        // Act Ã¢â‚¬â€ hour 10 is inside Work, and the creature is discovered via their stale Sleep-location assignment
         await _handler.Handle(
             new SyncCommand
             {
@@ -211,7 +211,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             )
         );
 
-        // Act â€” hour 12 is inside Idle; the district catch-up discovers the creature via its
+        // Act Ã¢â‚¬â€ hour 12 is inside Idle; the district catch-up discovers the creature via its
         // current (indoor) location, which shares the same district as the outdoor idle spot
         await _handler.Handle(
             new SyncCommand
@@ -291,7 +291,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
 
-        // Assert â€” both workstations get staffed, by two different people
+        // Assert Ã¢â‚¬â€ both workstations get staffed, by two different people
         var workstations = await _getWorkstationsByLocationId.Handle(
             new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
@@ -354,7 +354,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
 
-        // Assert â€” the lone worker always gets the counter, and the unstaffed production station is cleared
+        // Assert Ã¢â‚¬â€ the lone worker always gets the counter, and the unstaffed production station is cleared
         var workstations = await _getWorkstationsByLocationId.Handle(
             new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
@@ -384,7 +384,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             )
         );
 
-        // Act â€” hour 23 falls inside the wraparound Sleep window
+        // Act Ã¢â‚¬â€ hour 23 falls inside the wraparound Sleep window
         await _handler.Handle(
             new SyncCommand
             {
@@ -397,8 +397,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
 
         // Assert
         var updatedDoor = await _context
-            .Props.AsNoTracking()
-            .OfType<LocationConnector>()
+            .DoorConnectors.AsNoTracking()
             .FirstAsync(c => c.Id == frontDoor.Id, TestContext.Current.CancellationToken);
         Assert.True(updatedDoor.IsLocked);
     }
@@ -423,7 +422,7 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
         return entranceRoom;
     }
 
-    private async Task<LocationConnector> SeedFrontDoor(Room entranceRoom)
+    private async Task<DoorConnector> SeedFrontDoor(Room entranceRoom)
     {
         var outsideLocation = Builders.MakeLocation(WorldId);
         var frontDoor = Builders.MakeLocationConnector(
@@ -433,9 +432,11 @@ public sealed class SyncCommandTests(DatabaseFixture db) : IAsyncLifetime
             name: "Front Door",
             description: "The door leading outside."
         );
+        var door = Builders.MakeDoorConnector(frontDoor.Id, worldId: WorldId);
         _context.Locations.Add(outsideLocation);
-        _context.Props.Add(frontDoor);
+        _context.LocationConnectors.Add(frontDoor);
+        _context.DoorConnectors.Add(door);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return frontDoor;
+        return door;
     }
 }

@@ -5,7 +5,7 @@ namespace TRPG.Application.Buildings.Queries;
 
 internal class GetKeyItemIdsQuery
 {
-    public required Guid LocationConnectorId { get; init; }
+    public required Guid DoorConnectorId { get; init; }
 }
 
 internal class GetKeyItemIdsQueryHandler(TrpgDbContext context)
@@ -16,7 +16,7 @@ internal class GetKeyItemIdsQueryHandler(TrpgDbContext context)
     )
     {
         return await context
-            .LocationConnectorKeys.Where(k => k.LocationConnectorId == query.LocationConnectorId)
+            .DoorConnectorKeys.Where(k => k.DoorConnectorId == query.DoorConnectorId)
             .Select(k => k.ItemId)
             .ToArrayAsync(cancellationToken);
     }

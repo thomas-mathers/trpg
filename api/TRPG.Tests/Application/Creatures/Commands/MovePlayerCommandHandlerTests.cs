@@ -74,7 +74,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_ReturnsDestinationNotFound_WhenTheBuildingIsInAnotherDistrict()
     {
-        // Arrange â€” the building exists in the state but in a district the player isn't standing in
+        // Arrange Ã¢â‚¬â€ the building exists in the state but in a district the player isn't standing in
         var district = Builders.MakeLocation(WorldId, StateId, districtId: Guid.NewGuid());
         var farLocation = Builders.MakeLocation(WorldId, StateId, districtId: Guid.NewGuid());
         var player = Builders.MakeCreature(WorldId, locationId: district.Id);
@@ -144,19 +144,20 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         var frontDoor = Builders.MakeLocationConnector(
             entranceRoom.LocationId,
             destinationLocationId: outsideLocation.Id,
-            isLocked: true,
             name: "Front Door",
             description: "The door leading outside."
         );
+        var door = Builders.MakeDoorConnector(frontDoor.Id, isLocked: true);
         var keyItem = new Item { Name = "Vault Key", Description = "A test key." };
         _context.Creatures.Add(player);
         _context.Buildings.Add(building);
         _context.Rooms.Add(entranceRoom);
         _context.Locations.Add(outsideLocation);
-        _context.Props.Add(frontDoor);
+        _context.LocationConnectors.Add(frontDoor);
+        _context.DoorConnectors.Add(door);
         _context.Items.Add(keyItem);
-        _context.LocationConnectorKeys.Add(
-            new LocationConnectorKey { ItemId = keyItem.Id, LocationConnectorId = frontDoor.Id }
+        _context.DoorConnectorKeys.Add(
+            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = door.Id }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -229,7 +230,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(currentRoom, nextRoom);
         _context.Locations.AddRange(currentLocation, nextLocation);
-        _context.Props.Add(connector);
+        _context.LocationConnectors.Add(connector);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -285,7 +286,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_MovesThroughAHubConnector_WhenAlreadyPlacedInAConnectedDistrict()
     {
-        // Arrange â€” a placed (non-unplaced) player travels via a real hub LocationConnector, not the
+        // Arrange Ã¢â‚¬â€ a placed (non-unplaced) player travels via a real hub LocationConnector, not the
         // unplaced-bootstrap GetDistrictByNameInCityQuery fallback the other district-move tests use
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: WorldId);
@@ -329,7 +330,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         _context.Cities.Add(city);
         _context.Districts.AddRange(cityCenter, residential);
         _context.Locations.AddRange(cityCenterLocation, residentialLocation);
-        _context.Props.Add(connector);
+        _context.LocationConnectors.Add(connector);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -359,7 +360,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_DeletesDeadCreaturesLeftBehindInTheOldDistrict()
     {
-        // Arrange â€” the player is already placed in a real district connected to the destination
+        // Arrange Ã¢â‚¬â€ the player is already placed in a real district connected to the destination
         // by a hub connector, exercising the normal (non-bootstrap) district-to-district move
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: WorldId);
@@ -408,7 +409,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         _context.Cities.Add(city);
         _context.Districts.AddRange(oldDistrict, newDistrict);
         _context.Locations.AddRange(oldLocation, newLocation);
-        _context.Props.Add(connector);
+        _context.LocationConnectors.Add(connector);
         _context.Creatures.AddRange(player, corpse);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -481,7 +482,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
                 WorldId = WorldId,
             }
         );
-        _context.Props.Add(connector);
+        _context.LocationConnectors.Add(connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

@@ -44,7 +44,7 @@ internal class CanEnterBuildingQueryHandler(
         }
 
         var validKeyItemIds = await getKeyItemIds.Handle(
-            new GetKeyItemIdsQuery { LocationConnectorId = door.Id },
+            new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
             cancellationToken
         );
         if (validKeyItemIds.Count == 0)
@@ -68,14 +68,15 @@ internal class CanEnterBuildingQueryHandler(
             : new BuildingEntryResult(EntryOutcome.Locked, null);
     }
 
-    private async Task<LocationConnector?> GetFrontDoor(
+    private async Task<DoorConnector?> GetFrontDoor(
         Guid locationId,
         CancellationToken cancellationToken
     ) =>
-        await context
-            .Props.AsNoTracking()
-            .Where(p => p.LocationId == locationId)
-            .OfType<LocationConnector>()
-            .WhereLeadsOutside(context)
-            .FirstOrDefaultAsync(cancellationToken);
+        await (
+            from door in context.DoorConnectors.AsNoTracking()
+            join connector in context.LocationConnectors.WhereLeadsOutside(context)
+                on door.ConnectorId equals connector.Id
+            where connector.OriginLocationId == locationId
+            select door
+        ).FirstOrDefaultAsync(cancellationToken);
 }

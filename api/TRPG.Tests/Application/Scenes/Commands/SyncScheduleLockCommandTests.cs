@@ -47,11 +47,16 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             TestContext.Current.CancellationToken
         );
 
-    private Task<LocationConnector> GetFrontDoor(Guid locationConnectorId) =>
+    private Task<DoorConnector> GetFrontDoor(Guid doorConnectorId) =>
         _context
-            .Props.AsNoTracking()
-            .OfType<LocationConnector>()
-            .FirstAsync(c => c.Id == locationConnectorId, TestContext.Current.CancellationToken);
+            .DoorConnectors.AsNoTracking()
+            .FirstAsync(c => c.Id == doorConnectorId, TestContext.Current.CancellationToken);
+
+    private Task<Guid> GetOriginLocationId(Guid connectorId) =>
+        _context
+            .LocationConnectors.Where(connector => connector.Id == connectorId)
+            .Select(connector => connector.OriginLocationId)
+            .FirstAsync(TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task Handle_Locks_DuringSleepHours()
@@ -186,7 +191,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
-        var workLocationId = frontDoor.LocationId;
+        var workLocationId = await GetOriginLocationId(frontDoor.ConnectorId);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -221,7 +226,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
-        var workLocationId = frontDoor.LocationId;
+        var workLocationId = await GetOriginLocationId(frontDoor.ConnectorId);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -261,11 +266,11 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
     [Fact]
     public async Task Handle_LocksShop_WhenEveryWorkerIsOnADayOff()
     {
-        // Arrange â€” the Work window covers this hour, but a higher-priority day-off job overrides it
+        // Arrange ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the Work window covers this hour, but a higher-priority day-off job overrides it
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
-        var workLocationId = frontDoor.LocationId;
+        var workLocationId = await GetOriginLocationId(frontDoor.ConnectorId);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -328,7 +333,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         return building;
     }
 
-    private async Task<LocationConnector> SeedFrontDoor(Guid buildingId)
+    private async Task<DoorConnector> SeedFrontDoor(Guid buildingId)
     {
         var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
         var outsideLocation = Builders.MakeLocation(WorldId);
@@ -339,10 +344,12 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             name: "Front Door",
             description: "The door leading outside."
         );
+        var door = Builders.MakeDoorConnector(frontDoor.Id, worldId: WorldId);
         _context.Rooms.Add(entranceRoom);
         _context.Locations.Add(outsideLocation);
-        _context.Props.Add(frontDoor);
+        _context.LocationConnectors.Add(frontDoor);
+        _context.DoorConnectors.Add(door);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return frontDoor;
+        return door;
     }
 }

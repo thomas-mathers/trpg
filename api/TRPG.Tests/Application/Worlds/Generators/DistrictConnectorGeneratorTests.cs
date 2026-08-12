@@ -45,13 +45,13 @@ public class DistrictConnectorGeneratorTests
         Assert.Contains(
             result,
             c =>
-                c.LocationId == residential.LocationId
+                c.OriginLocationId == residential.LocationId
                 && c.DestinationLocationId == cityCenter.LocationId
         );
         Assert.Contains(
             result,
             c =>
-                c.LocationId == cityCenter.LocationId
+                c.OriginLocationId == cityCenter.LocationId
                 && c.DestinationLocationId == residential.LocationId
         );
     }

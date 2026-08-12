@@ -4,34 +4,50 @@ namespace TRPG.Application.Worlds.Generators;
 
 internal static class WildernessConnectorGenerator
 {
-    public static IReadOnlyList<LocationConnector> Generate(
+    private const int TravelTimeHours = 1;
+
+    public static WildernessConnectorGeneratorResult Generate(
         District cityCenterDistrict,
         Location wildernessLocation,
         Guid worldId
     )
     {
-        return
+        LocationConnector[] connectors =
         [
             new LocationConnector
             {
-                LocationId = cityCenterDistrict.LocationId,
+                OriginLocationId = cityCenterDistrict.LocationId,
                 DestinationLocationId = wildernessLocation.Id,
                 Name = "Path",
                 Description = "A path leading into the wilderness.",
                 DestinationLabel = "Wilderness",
-                DestinationType = LocationDestinationType.Wilderness,
                 WorldId = worldId,
             },
             new LocationConnector
             {
-                LocationId = wildernessLocation.Id,
+                OriginLocationId = wildernessLocation.Id,
                 DestinationLocationId = cityCenterDistrict.LocationId,
                 Name = "Path",
                 Description = $"A path leading back to {cityCenterDistrict.Name}.",
                 DestinationLabel = cityCenterDistrict.Name,
-                DestinationType = LocationDestinationType.District,
                 WorldId = worldId,
             },
         ];
+        var travelConnectors = connectors
+            .Select(connector => new TravelConnector
+            {
+                ConnectorId = connector.Id,
+                Distance = 1,
+                TravelTimeHours = TravelTimeHours,
+                WorldId = worldId,
+            })
+            .ToArray();
+
+        return new WildernessConnectorGeneratorResult(connectors, travelConnectors);
     }
 }
+
+internal record WildernessConnectorGeneratorResult(
+    IReadOnlyList<LocationConnector> LocationConnectors,
+    IReadOnlyList<TravelConnector> TravelConnectors
+);

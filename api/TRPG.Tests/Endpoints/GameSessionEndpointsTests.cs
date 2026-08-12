@@ -312,7 +312,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         context.Cities.Add(city);
         context.Districts.AddRange(origin, destination);
         context.Locations.AddRange(originLocation, destinationLocation);
-        context.Props.Add(connector);
+        context.LocationConnectors.Add(connector);
         context.Creatures.Add(player);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

@@ -82,7 +82,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
             description: "A hallway.",
             destinationLabel: destinationRoom.Name
         );
-        _context.Props.Add(connector);
+        _context.LocationConnectors.Add(connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -103,7 +103,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
     [Fact]
     public async Task Handle_MatchesOutside_ForABuildingFrontDoor_LeadingToItsOwnDistrict()
     {
-        // Arrange — the front door's destination is a district's real outdoor Location; the
+        // Arrange â€” the front door's destination is a district's real outdoor Location; the
         // player is indoors, so the label is the generic "Outside", not the district's own name
         var room = await SeedRoom();
         var district = await SeedDistrict("Market Row");
@@ -114,7 +114,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
             name: "Front Door",
             description: "The door leading outside."
         );
-        _context.Props.Add(frontDoor);
+        _context.LocationConnectors.Add(frontDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -135,7 +135,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
     [Fact]
     public async Task Handle_MatchesOutside_ForADungeonFrontDoor_LeadingToTheWilderness()
     {
-        // Arrange — dungeons have no district, so the front door leads to a shared
+        // Arrange â€” dungeons have no district, so the front door leads to a shared
         // state-level wilderness Location (no city/district/room) rather than a district
         var room = await SeedRoom();
         var wilderness = Builders.MakeLocation(WorldId, StateId);
@@ -147,7 +147,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
             description: "The way back outside."
         );
         _context.Locations.Add(wilderness);
-        _context.Props.Add(frontDoor);
+        _context.LocationConnectors.Add(frontDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -168,7 +168,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
     [Fact]
     public async Task Handle_MatchesByAdjacentDistrictName_ForAHubConnector()
     {
-        // Arrange — outdoors, a hub connector leads to another district; the label is that
+        // Arrange â€” outdoors, a hub connector leads to another district; the label is that
         // district's real name, not "Outside"
         var origin = await SeedDistrict("Docks");
         var cityCenter = await SeedDistrict("City Center");
@@ -180,7 +180,7 @@ public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAs
             description: "A path leading to City Center.",
             destinationLabel: cityCenter.Name
         );
-        _context.Props.Add(connector);
+        _context.LocationConnectors.Add(connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

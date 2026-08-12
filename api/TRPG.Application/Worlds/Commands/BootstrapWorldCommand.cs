@@ -31,7 +31,6 @@ public class BootstrapWorldCommandHandler(
         context.Districts.AddRange(world.Districts);
         context.Factions.AddRange(world.Factions);
         context.FactionMembers.AddRange(world.FactionMembers);
-        context.Roads.AddRange(world.Roads);
         context.Buildings.AddRange(world.Buildings);
         context.Creatures.AddRange(world.Creatures);
         context.BuildingOwners.AddRange(world.BuildingOwners);
@@ -39,13 +38,16 @@ public class BootstrapWorldCommandHandler(
         context.Rooms.AddRange(world.Rooms);
         context.Locations.AddRange(world.Locations);
         context.Props.AddRange(world.Props);
+        context.LocationConnectors.AddRange(world.LocationConnectors);
+        context.DoorConnectors.AddRange(world.DoorConnectors);
+        context.TravelConnectors.AddRange(world.TravelConnectors);
         context.Items.AddRange(
             tradeStockGenerator.Generate(world.Props, world.Rooms, world.Buildings, world.World.Id)
         );
         context.CreatureSkills.AddRange(world.Skills);
         context.CreatureJobs.AddRange(world.Jobs);
         context.CreatureKnowledge.AddRange(world.Knowledge);
-        context.LocationConnectorKeys.AddRange(world.LocationConnectorKeys);
+        context.DoorConnectorKeys.AddRange(world.DoorConnectorKeys);
         context.Relationships.AddRange(world.Relationships);
         context.Quests.AddRange(quests.Quests);
         context.QuestObjectives.AddRange(quests.Objectives);

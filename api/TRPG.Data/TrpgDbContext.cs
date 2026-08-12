@@ -61,16 +61,18 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<Item> Items => Set<Item>();
     public DbSet<CreatureJob> CreatureJobs => Set<CreatureJob>();
     public DbSet<Location> Locations => Set<Location>();
+    public DbSet<LocationConnector> LocationConnectors => Set<LocationConnector>();
+    public DbSet<DoorConnector> DoorConnectors => Set<DoorConnector>();
     public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
     public DbSet<Relationship> Relationships => Set<Relationship>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
-    public DbSet<Road> Roads => Set<Road>();
-    public DbSet<LocationConnectorKey> LocationConnectorKeys => Set<LocationConnectorKey>();
+    public DbSet<DoorConnectorKey> DoorConnectorKeys => Set<DoorConnectorKey>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<State> States => Set<State>();
+    public DbSet<TravelConnector> TravelConnectors => Set<TravelConnector>();
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
     public DbSet<World> Worlds => Set<World>();
     public DbSet<GameSession> GameSessions => Set<GameSession>();
@@ -179,9 +181,9 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<Ammunition>().Property(a => a.Type).HasColumnName("ammo_type");
         modelBuilder.Entity<Accessory>().Property(a => a.Type).HasColumnName("accessory_type");
 
-        modelBuilder.Entity<LocationConnectorKey>(entity =>
+        modelBuilder.Entity<DoorConnectorKey>(entity =>
         {
-            entity.HasIndex(k => k.LocationConnectorId);
+            entity.HasIndex(k => k.DoorConnectorId);
             entity.HasIndex(k => k.ItemId);
             entity.HasIndex(k => k.WorldId);
         });
@@ -251,6 +253,26 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(l => l.DistrictId).IsUnique().HasFilter("room_id IS NULL");
         });
 
+        modelBuilder.Entity<LocationConnector>(entity =>
+        {
+            entity.HasIndex(c => c.OriginLocationId);
+            entity.HasIndex(c => c.DestinationLocationId);
+            entity.HasIndex(c => new { c.OriginLocationId, c.DestinationLocationId });
+            entity.HasIndex(c => c.WorldId);
+        });
+
+        modelBuilder.Entity<DoorConnector>(entity =>
+        {
+            entity.HasIndex(c => c.ConnectorId).IsUnique();
+            entity.HasIndex(c => c.WorldId);
+        });
+
+        modelBuilder.Entity<TravelConnector>(entity =>
+        {
+            entity.HasIndex(c => c.ConnectorId).IsUnique();
+            entity.HasIndex(c => c.WorldId);
+        });
+
         modelBuilder.Entity<Prop>(entity =>
         {
             entity
@@ -259,8 +281,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasValue<Workstation>("Workstation")
                 .HasValue<Bed>("Bed")
                 .HasValue<Container>("Container")
-                .HasValue<LocationConnector>("LocationConnector")
                 .HasValue<Trigger>("Trigger");
+            entity.Property<string>("behavior_type").HasColumnType("text");
             entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.WorldId);
         });
@@ -331,12 +353,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         {
             entity.HasIndex(b => b.ExteriorLocationId);
             entity.HasIndex(b => b.WorldId);
-        });
-
-        modelBuilder.Entity<Road>(entity =>
-        {
-            entity.HasIndex(r => new { r.OriginStateId, r.DestinationStateId }).IsUnique();
-            entity.HasIndex(r => r.WorldId);
         });
 
         modelBuilder.Entity<NpcConversation>(entity =>

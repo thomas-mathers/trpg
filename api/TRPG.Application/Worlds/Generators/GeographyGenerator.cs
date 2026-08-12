@@ -28,7 +28,8 @@ public class GeographyGeneratorResult
     public required IReadOnlyDictionary<Guid, CreatureType> DominantRaceByCountryId { get; init; }
     public required IReadOnlyList<Location> Locations { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
-    public required IReadOnlyList<Road> Roads { get; init; }
+    public required IReadOnlyList<LocationConnector> LocationConnectors { get; init; }
+    public required IReadOnlyList<StateTravelLink> StateTravelLinks { get; init; }
     public required IReadOnlyList<State> States { get; init; }
     public required World World { get; init; }
 }
@@ -77,8 +78,8 @@ public class GeographyGenerator(
             new GenerateStatesInput(context, world, countries),
             cancellationToken
         );
-        var roads = GenerateRoadEntities(
-            new GenerateRoadsInput(context, world, states, countries.DominantRaceByCountryId)
+        var stateTravelLinks = GenerateStateTravelLinks(
+            new GenerateStateTravelLinksInput(context, states, countries.DominantRaceByCountryId)
         );
 
         logger.LogDebug(
@@ -95,7 +96,8 @@ public class GeographyGenerator(
             Districts = states.Districts,
             Locations = states.Locations,
             Props = states.Props,
-            Roads = roads,
+            LocationConnectors = states.LocationConnectors,
+            StateTravelLinks = stateTravelLinks,
             DominantRaceByCountryId = countries.DominantRaceByCountryId,
         };
     }
@@ -263,6 +265,7 @@ public class GeographyGenerator(
         var districts = new List<District>();
         var locations = new List<Location>();
         var props = new List<Prop>();
+        var locationConnectors = new List<LocationConnector>();
         var stateById = new Dictionary<Guid, State>();
 
         foreach (var (countryLayoutId, country) in countries.CountryById)
@@ -346,7 +349,7 @@ public class GeographyGenerator(
                     var cityCenterDistrict = cityDistricts.First(d =>
                         d.DistrictType == DistrictType.CityCenter
                     );
-                    props.AddRange(
+                    locationConnectors.AddRange(
                         DistrictConnectorGenerator.Generate(
                             cityCenterDistrict,
                             cityDistricts
@@ -379,7 +382,15 @@ public class GeographyGenerator(
             }
         }
 
-        return new GeneratedStates(states, cities, districts, locations, props, stateById);
+        return new GeneratedStates(
+            states,
+            cities,
+            districts,
+            locations,
+            props,
+            locationConnectors,
+            stateById
+        );
     }
 
     private static string CreateCityDescription(
@@ -417,10 +428,11 @@ public class GeographyGenerator(
             _ => $"{string.Join(", ", phrases.Take(phrases.Count - 1))}, and {phrases[^1]}",
         };
 
-    private static List<Road> GenerateRoadEntities(GenerateRoadsInput input)
+    private static List<StateTravelLink> GenerateStateTravelLinks(
+        GenerateStateTravelLinksInput input
+    )
     {
         var context = input.Context;
-        var world = input.World;
         var states = input.States;
         var usedRoadNames = new HashSet<string>();
 
@@ -440,16 +452,14 @@ public class GeographyGenerator(
                     originState.CountryId,
                     CreatureType.Human
                 );
-                return new Road
-                {
-                    Name = SettlementNameGenerator.GenerateRoadName(dominantRace, usedRoadNames),
-                    OriginStateId = originState.Id,
-                    DestinationStateId = destState.Id,
-                    Distance = distance,
-                    TravelTime = Math.Max(1, (int)(distance / 50)),
-                    DangerLevel = (float)Random.Shared.NextDouble() * 0.5f,
-                    WorldId = world.Id,
-                };
+                return new StateTravelLink(
+                    SettlementNameGenerator.GenerateRoadName(dominantRace, usedRoadNames),
+                    originState.Id,
+                    destState.Id,
+                    distance,
+                    Math.Max(1, (int)(distance / 50)),
+                    (float)Random.Shared.NextDouble() * 0.5f
+                );
             })
             .ToList();
     }
@@ -473,6 +483,7 @@ internal record GeneratedStates(
     List<District> Districts,
     List<Location> Locations,
     List<Prop> Props,
+    List<LocationConnector> LocationConnectors,
     Dictionary<Guid, State> StateById
 );
 
@@ -482,11 +493,19 @@ internal record GenerateStatesInput(
     GeneratedCountries Countries
 );
 
-internal record GenerateRoadsInput(
+internal record GenerateStateTravelLinksInput(
     GeographyGenerationContext Context,
-    World World,
     GeneratedStates States,
     IReadOnlyDictionary<Guid, CreatureType> DominantRaceByCountryId
+);
+
+public record StateTravelLink(
+    string Name,
+    Guid OriginStateId,
+    Guid DestinationStateId,
+    float Distance,
+    int TravelTimeHours,
+    float DangerLevel
 );
 
 internal class GeographyEntitySchema

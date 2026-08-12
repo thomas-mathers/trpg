@@ -16,24 +16,22 @@ internal static class DistrictConnectorGenerator
             connectors.Add(
                 new LocationConnector
                 {
-                    LocationId = district.LocationId,
+                    OriginLocationId = district.LocationId,
                     DestinationLocationId = cityCenterDistrict.LocationId,
                     Name = "Path",
                     Description = $"A path leading to {cityCenterDistrict.Name}.",
                     DestinationLabel = cityCenterDistrict.Name,
-                    DestinationType = LocationDestinationType.District,
                     WorldId = worldId,
                 }
             );
             connectors.Add(
                 new LocationConnector
                 {
-                    LocationId = cityCenterDistrict.LocationId,
+                    OriginLocationId = cityCenterDistrict.LocationId,
                     DestinationLocationId = district.LocationId,
                     Name = "Path",
                     Description = $"A path leading to {district.Name}.",
                     DestinationLabel = district.Name,
-                    DestinationType = LocationDestinationType.District,
                     WorldId = worldId,
                 }
             );

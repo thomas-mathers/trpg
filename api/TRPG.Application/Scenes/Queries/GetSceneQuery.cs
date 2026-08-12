@@ -461,28 +461,23 @@ internal class GetSceneQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var typedConnectors = connectors
-            .Where(connector => connector.DestinationType != LocationDestinationType.Wilderness)
-            .ToArray();
-        var destinationLocationIds = typedConnectors
+        var destinationLocationIds = connectors
             .Select(connector => connector.DestinationLocationId)
             .ToArray();
         var destinations = await context
             .Locations.AsNoTracking()
             .Where(location => destinationLocationIds.Contains(location.Id))
             .ToDictionaryAsync(location => location.Id, cancellationToken);
-        var districtIds = typedConnectors
-            .Where(connector => connector.DestinationType == LocationDestinationType.District)
-            .Select(connector => destinations[connector.DestinationLocationId].DistrictId)
+        var districtIds = destinations
+            .Values.Select(location => location.DistrictId)
             .OfType<Guid>()
             .ToArray();
         var districts = await context
             .Districts.AsNoTracking()
             .Where(district => districtIds.Contains(district.Id))
             .ToDictionaryAsync(district => district.Id, cancellationToken);
-        var roomIds = typedConnectors
-            .Where(connector => connector.DestinationType == LocationDestinationType.Room)
-            .Select(connector => destinations[connector.DestinationLocationId].RoomId)
+        var roomIds = destinations
+            .Values.Select(location => location.RoomId)
             .OfType<Guid>()
             .ToArray();
         var rooms = await context
@@ -494,6 +489,12 @@ internal class GetSceneQueryHandler(
             .Buildings.AsNoTracking()
             .Where(building => buildingIds.Contains(building.Id))
             .ToDictionaryAsync(building => building.Id, cancellationToken);
+        var connectorIds = connectors.Select(connector => connector.Id).ToArray();
+        var lockedConnectorIds = await context
+            .DoorConnectors.AsNoTracking()
+            .Where(door => connectorIds.AsEnumerable().Contains(door.ConnectorId) && door.IsLocked)
+            .Select(door => door.ConnectorId)
+            .ToArrayAsync(cancellationToken);
 
         return connectors
             .Select(connector => new SceneExitInfo(
@@ -506,7 +507,7 @@ internal class GetSceneQueryHandler(
                     buildings,
                     sourceIsRoom
                 ),
-                connector.IsLocked
+                lockedConnectorIds.Contains(connector.Id)
             ))
             .ToArray();
     }
@@ -520,9 +521,8 @@ internal class GetSceneQueryHandler(
         bool sourceIsRoom
     )
     {
-        if (connector.DestinationType == LocationDestinationType.District)
+        if (location?.DistrictId is { } districtId)
         {
-            var districtId = location!.DistrictId!.Value;
             var district = districts[districtId];
             return new SceneDistrictExitDestination(
                 connector.DestinationLabel,
@@ -530,9 +530,8 @@ internal class GetSceneQueryHandler(
             );
         }
 
-        if (connector.DestinationType == LocationDestinationType.Room)
+        if (location?.RoomId is { } roomId)
         {
-            var roomId = location!.RoomId!.Value;
             var building = buildings[rooms[roomId].BuildingId];
             return sourceIsRoom
                 ? new SceneRoomExitDestination(connector.DestinationLabel, building.BuildingType)

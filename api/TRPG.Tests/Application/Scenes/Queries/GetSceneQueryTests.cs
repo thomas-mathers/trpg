@@ -173,7 +173,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
-        // Assert â€” the wire date mirrors the in-game date, minus the internal DayOfWeek
+        // Assert Ã¢â‚¬â€ the wire date mirrors the in-game date, minus the internal DayOfWeek
         Assert.Equal(new SceneDateInfo(975, "Thawmoon", 14, "Stormday", 21), result.CurrentDate);
     }
 
@@ -205,7 +205,6 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var connector = Builders.MakeLocationConnector(
             room.LocationId,
             destinationLocationId: destinationRoom.LocationId,
-            destinationType: LocationDestinationType.Room,
             worldId: WorldId,
             name: "Wooden Door",
             description: "A creaking wooden door.",
@@ -214,7 +213,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(room, destinationRoom);
         _context.Locations.AddRange(location, destinationLocation);
-        _context.Props.Add(connector);
+        _context.LocationConnectors.Add(connector);
         _player.LocationId = room.LocationId;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -258,7 +257,6 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var connector = Builders.MakeLocationConnector(
             _player.LocationId,
             destinationLocationId: cityCenter.LocationId,
-            destinationType: LocationDestinationType.District,
             worldId: WorldId,
             name: "Path",
             description: "A path leading to City Center.",
@@ -266,7 +264,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         );
         _context.Districts.Add(cityCenter);
         _context.Locations.Add(cityCenterLocation);
-        _context.Props.Add(connector);
+        _context.LocationConnectors.Add(connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -345,7 +343,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_ComputesExperienceProgress_ForThePlayer()
     {
-        // Arrange â€” a single skill at level 2 contributes CalculateExperienceFromSkillLevel(2) = 2
+        // Arrange Ã¢â‚¬â€ a single skill at level 2 contributes CalculateExperienceFromSkillLevel(2) = 2
         // toward character level. Level 1 floor is CalculateExperienceFromLevel(1) = 0, next level
         // floor is CalculateExperienceFromLevel(2) = 2, so this sits at Current = 2, ToNextLevel = 2.
         _player.Level = 1;
@@ -379,7 +377,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_UsesZeroExperienceProgress_ForNearbyCreatures_RegardlessOfSkillLevels()
     {
-        // Arrange â€” nearby creatures never accumulate tracked skill XP the way the player does, so
+        // Arrange Ã¢â‚¬â€ nearby creatures never accumulate tracked skill XP the way the player does, so
         // GetSceneQueryHandler doesn't query for it at all; a skill row here should have no effect.
         _nearbyCreature.Level = 1;
         _context.CreatureSkills.Add(
