@@ -4,7 +4,7 @@ using TRPG.Application.Common.Mappers;
 using TRPG.Contracts;
 using TRPG.Data;
 
-namespace TRPG.Application.Scenes.Queries;
+namespace TRPG.Application.Narration.Queries;
 
 internal enum LoreAnchorType
 {
@@ -21,25 +21,6 @@ internal record LoreAnchorSummary(
     Guid Id,
     string Name,
     LoreAnchorType Type,
-    string? Subtype,
-    string Description
-);
-
-internal enum NamedEntityType
-{
-    Creature,
-    Building,
-    District,
-    World,
-    Country,
-    State,
-    City,
-}
-
-internal record NamedEntitySummary(
-    Guid Id,
-    string Name,
-    NamedEntityType Type,
     string? Subtype,
     string Description
 );
@@ -181,45 +162,4 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
             .Concat(cities)
             .ToArray();
     }
-}
-
-internal class GetNamedEntitiesByWorldQueryHandler
-{
-    private readonly GetLoreAnchorsByWorldQueryHandler _getLoreAnchors;
-
-    public GetNamedEntitiesByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
-        : this(new GetLoreAnchorsByWorldQueryHandler(context, cache)) { }
-
-    public GetNamedEntitiesByWorldQueryHandler(GetLoreAnchorsByWorldQueryHandler getLoreAnchors)
-    {
-        _getLoreAnchors = getLoreAnchors;
-    }
-
-    public static string CacheKey(Guid worldId) =>
-        GetLoreAnchorsByWorldQueryHandler.CacheKey(worldId);
-
-    public async Task<IReadOnlyCollection<NamedEntitySummary>> Handle(
-        GetNamedEntitiesByWorldQuery query,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var anchors = await _getLoreAnchors.Handle(
-            new GetLoreAnchorsByWorldQuery { WorldId = query.WorldId },
-            cancellationToken
-        );
-        return anchors
-            .Select(anchor => new NamedEntitySummary(
-                anchor.Id,
-                anchor.Name,
-                (NamedEntityType)anchor.Type,
-                anchor.Subtype,
-                anchor.Description
-            ))
-            .ToArray();
-    }
-}
-
-internal class GetNamedEntitiesByWorldQuery
-{
-    public required Guid WorldId { get; init; }
 }

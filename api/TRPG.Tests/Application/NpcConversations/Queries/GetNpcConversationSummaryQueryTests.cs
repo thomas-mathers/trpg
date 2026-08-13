@@ -1,18 +1,18 @@
-using TRPG.Application.Conversations.Queries;
+using TRPG.Application.NpcConversations.Queries;
 using TRPG.Data;
 
-namespace TRPG.Tests.Application.Conversations.Queries;
+namespace TRPG.Tests.Application.NpcConversations.Queries;
 
 [Collection("Database")]
-public sealed class GetConversationSummaryQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetNpcConversationSummaryQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private GetConversationSummaryQueryHandler _handler = null!;
+    private GetNpcConversationSummaryQueryHandler _handler = null!;
 
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetConversationSummaryQueryHandler(_context);
+        _handler = new GetNpcConversationSummaryQueryHandler(_context);
         return ValueTask.CompletedTask;
     }
 
@@ -30,7 +30,7 @@ public sealed class GetConversationSummaryQueryTests(DatabaseFixture db) : IAsyn
 
         // Act
         var summary = await _handler.Handle(
-            new GetConversationSummaryQuery { CreatureId = creatureId, NpcId = npcId },
+            new GetNpcConversationSummaryQuery { CreatureId = creatureId, NpcId = npcId },
             TestContext.Current.CancellationToken
         );
 

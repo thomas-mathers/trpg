@@ -111,13 +111,13 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Handle_ClearsTheNamedEntityCaches_ForTheDroppedWorld()
+    public async Task Handle_ClearsTheLoreAnchorCaches_ForTheDroppedWorld()
     {
         // Arrange
         var cache = _serviceProvider.GetRequiredService<IMemoryCache>();
-        var namedEntitiesKey = GetNamedEntitiesByWorldQueryHandler.CacheKey(WorldId);
-        var automatonKey = GetEntityNameAutomatonByWorldQueryHandler.CacheKey(WorldId);
-        cache.Set(namedEntitiesKey, Array.Empty<object>());
+        var loreAnchorsKey = GetLoreAnchorsByWorldQueryHandler.CacheKey(WorldId);
+        var automatonKey = GetLoreAnchorAutomatonByWorldQueryHandler.CacheKey(WorldId);
+        cache.Set(loreAnchorsKey, Array.Empty<object>());
         cache.Set(automatonKey, new object());
 
         // Act
@@ -127,7 +127,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
 
         // Assert
-        Assert.False(cache.TryGetValue(namedEntitiesKey, out _));
+        Assert.False(cache.TryGetValue(loreAnchorsKey, out _));
         Assert.False(cache.TryGetValue(automatonKey, out _));
     }
 

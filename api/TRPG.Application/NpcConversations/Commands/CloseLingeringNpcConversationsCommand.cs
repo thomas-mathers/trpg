@@ -3,27 +3,35 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Chat;
 using TRPG.Application.Chat.Commands;
 using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.NpcConversations.Queries;
 using TRPG.Data;
 
-namespace TRPG.Application.GameTurns;
+namespace TRPG.Application.NpcConversations.Commands;
 
-internal class LingeringConversationCloser(
-    GameChatCompletionStreamer chatCompletionStreamer,
+internal class CloseLingeringNpcConversationsCommand
+{
+    public required Guid SessionId { get; init; }
+    public required int CurrentTurnStart { get; init; }
+}
+
+internal class CloseLingeringNpcConversationsCommandHandler(
+    LlmConversationClient llmConversationClient,
     TrpgDbContext context,
-    GameTurnContext turnContext,
-    GetOpenConversationsQueryHandler getOpenConversations,
+    GetOpenNpcConversationsQueryHandler getOpenNpcConversations,
     UpdateGameSessionCommandHandler updateGameSession,
     ClearChatMessagesCommandHandler clearChatMessages,
-    ILogger<LingeringConversationCloser> logger
+    ILogger<CloseLingeringNpcConversationsCommandHandler> logger
 )
 {
-    public async Task CloseAll(int currentTurnStart, CancellationToken cancellationToken)
+    public async Task Handle(
+        CloseLingeringNpcConversationsCommand command,
+        CancellationToken cancellationToken = default
+    )
     {
         var stopwatch = Stopwatch.StartNew();
 
-        var openConversations = await getOpenConversations.Handle(
-            new GetOpenConversationsQuery { SessionId = turnContext.SessionId },
+        var openConversations = await getOpenNpcConversations.Handle(
+            new GetOpenNpcConversationsQuery { SessionId = command.SessionId },
             cancellationToken
         );
 
@@ -32,8 +40,8 @@ internal class LingeringConversationCloser(
             await ForceEndConversation(npcName, cancellationToken);
         }
 
-        var stillOpenConversations = await getOpenConversations.Handle(
-            new GetOpenConversationsQuery { SessionId = turnContext.SessionId },
+        var stillOpenConversations = await getOpenNpcConversations.Handle(
+            new GetOpenNpcConversationsQuery { SessionId = command.SessionId },
             cancellationToken
         );
 
@@ -49,7 +57,7 @@ internal class LingeringConversationCloser(
         await updateGameSession.Handle(
             new UpdateGameSessionCommand
             {
-                SessionId = turnContext.SessionId,
+                SessionId = command.SessionId,
                 OpenConversationCreatureIdsByName = [],
             },
             cancellationToken
@@ -58,8 +66,8 @@ internal class LingeringConversationCloser(
         await clearChatMessages.Handle(
             new ClearChatMessagesCommand
             {
-                SessionId = turnContext.SessionId,
-                KeepFromOrdinal = currentTurnStart,
+                SessionId = command.SessionId,
+                KeepFromOrdinal = command.CurrentTurnStart,
             },
             cancellationToken
         );
@@ -69,7 +77,7 @@ internal class LingeringConversationCloser(
         if (openConversations.Count > 0)
         {
             logger.LogInformation(
-                "[perf] CloseAll closed {Count} conversation(s) in {ElapsedMs}ms",
+                "[perf] CloseLingeringNpcConversationsCommand closed {Count} conversation(s) in {ElapsedMs}ms",
                 openConversations.Count,
                 stopwatch.ElapsedMilliseconds
             );
@@ -82,7 +90,7 @@ internal class LingeringConversationCloser(
 
         var prompt =
             $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
-        var reply = await chatCompletionStreamer.StreamReply(
+        var reply = await llmConversationClient.StreamReply(
             prompt,
             includeTools: true,
             cancellationToken

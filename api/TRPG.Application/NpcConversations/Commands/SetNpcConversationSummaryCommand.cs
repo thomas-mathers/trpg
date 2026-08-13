@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Conversations.Commands;
+namespace TRPG.Application.NpcConversations.Commands;
 
-internal class SetConversationSummaryCommand
+internal class SetNpcConversationSummaryCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid CreatureId { get; init; }
@@ -12,10 +12,10 @@ internal class SetConversationSummaryCommand
     public required string Summary { get; init; }
 }
 
-internal class SetConversationSummaryCommandHandler(TrpgDbContext context)
+internal class SetNpcConversationSummaryCommandHandler(TrpgDbContext context)
 {
     public async Task Handle(
-        SetConversationSummaryCommand command,
+        SetNpcConversationSummaryCommand command,
         CancellationToken cancellationToken = default
     )
     {

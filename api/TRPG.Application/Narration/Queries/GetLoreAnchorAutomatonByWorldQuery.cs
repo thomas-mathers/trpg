@@ -1,22 +1,21 @@
 using Microsoft.Extensions.Caching.Memory;
-using TRPG.Application.Scenes.Queries;
 
 namespace TRPG.Application.Narration.Queries;
 
-internal class GetEntityNameAutomatonByWorldQuery
+internal class GetLoreAnchorAutomatonByWorldQuery
 {
     public required Guid WorldId { get; init; }
 }
 
-internal class GetEntityNameAutomatonByWorldQueryHandler(
+internal class GetLoreAnchorAutomatonByWorldQueryHandler(
     GetLoreAnchorsByWorldQueryHandler getLoreAnchorsByWorld,
     IMemoryCache cache
 )
 {
     public static string CacheKey(Guid worldId) => $"namedEntityAutomaton:{worldId}";
 
-    public async Task<EntityNameAutomaton> Handle(
-        GetEntityNameAutomatonByWorldQuery query,
+    public async Task<LoreAnchorAutomaton> Handle(
+        GetLoreAnchorAutomatonByWorldQuery query,
         CancellationToken cancellationToken = default
     )
     {
@@ -27,7 +26,7 @@ internal class GetEntityNameAutomatonByWorldQueryHandler(
 
         return cache.GetOrCreate(
             CacheKey(query.WorldId),
-            _ => EntityNameAutomaton.Build(entities)
+            _ => LoreAnchorAutomaton.Build(entities)
         )!;
     }
 }

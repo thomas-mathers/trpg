@@ -5,6 +5,7 @@ using TRPG.Application.Chat.Queries;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.NpcConversations.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
 
@@ -17,7 +18,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     private ServiceProvider _serviceProvider = null!;
     private CreateGameSessionCommandHandler _createGameSession = null!;
     private GetGameSessionQueryHandler _getGameSession = null!;
-    private GetOpenConversationsQueryHandler _getOpenConversations = null!;
+    private GetOpenNpcConversationsQueryHandler _getOpenNpcConversations = null!;
     private GetPlaytimeQueryHandler _getPlaytime = null!;
     private AdvanceTimeCommandHandler _advanceTime = null!;
     private UpdateGameSessionCommandHandler _updateGameSession = null!;
@@ -36,8 +37,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
             .BuildServiceProvider();
         _createGameSession = _serviceProvider.GetRequiredService<CreateGameSessionCommandHandler>();
         _getGameSession = _serviceProvider.GetRequiredService<GetGameSessionQueryHandler>();
-        _getOpenConversations =
-            _serviceProvider.GetRequiredService<GetOpenConversationsQueryHandler>();
+        _getOpenNpcConversations =
+            _serviceProvider.GetRequiredService<GetOpenNpcConversationsQueryHandler>();
         _getPlaytime = _serviceProvider.GetRequiredService<GetPlaytimeQueryHandler>();
         _updateGameSession = _serviceProvider.GetRequiredService<UpdateGameSessionCommandHandler>();
         _advanceTime = _serviceProvider.GetRequiredService<AdvanceTimeCommandHandler>();
@@ -209,8 +210,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     {
         // Act & Assert
         await Assert.ThrowsAsync<EntityNotFoundException>(() =>
-            _getOpenConversations.Handle(
-                new GetOpenConversationsQuery { SessionId = Guid.NewGuid() },
+            _getOpenNpcConversations.Handle(
+                new GetOpenNpcConversationsQuery { SessionId = Guid.NewGuid() },
                 TestContext.Current.CancellationToken
             )
         );
@@ -245,8 +246,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         );
 
         // Assert
-        var openConversations = await _getOpenConversations.Handle(
-            new GetOpenConversationsQuery { SessionId = sessionId },
+        var openConversations = await _getOpenNpcConversations.Handle(
+            new GetOpenNpcConversationsQuery { SessionId = sessionId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(npcId, openConversations["Some NPC"]);

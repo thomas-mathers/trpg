@@ -11,9 +11,6 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Combat.Tools;
 using TRPG.Application.Common.Tools;
-using TRPG.Application.Conversations.Commands;
-using TRPG.Application.Conversations.Queries;
-using TRPG.Application.Conversations.Tools;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures;
@@ -29,6 +26,9 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Tools;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.NpcConversations.Commands;
+using TRPG.Application.NpcConversations.Queries;
+using TRPG.Application.NpcConversations.Tools;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
@@ -105,10 +105,10 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetCityByStateIdQueryHandler>()
             .AddTransient<GetDistrictByIdQueryHandler>()
             .AddTransient<GetLocationByIdQueryHandler>()
-            .AddTransient<GetConversationSummaryQueryHandler>()
-            .AddTransient<SetConversationSummaryCommandHandler>()
-            .AddTransient<OpenConversationCommandHandler>()
-            .AddTransient<CloseConversationCommandHandler>()
+            .AddTransient<GetNpcConversationSummaryQueryHandler>()
+            .AddTransient<SetNpcConversationSummaryCommandHandler>()
+            .AddTransient<OpenNpcConversationCommandHandler>()
+            .AddTransient<CloseNpcConversationCommandHandler>()
             .AddTransient<AddCreatureCommandHandler>()
             .AddTransient<UpdateCreaturesCommandHandler>()
             .AddTransient<MovePlayerCommandHandler>()
@@ -155,7 +155,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetCurrentSceneQueryHandler>()
             .AddTransient<GetSceneWithCatchUpQueryHandler>()
             .AddTransient<GetLoreAnchorsByWorldQueryHandler>()
-            .AddTransient<GetEntityNameAutomatonByWorldQueryHandler>()
+            .AddTransient<GetLoreAnchorAutomatonByWorldQueryHandler>()
             .AddTransient<GetWorldQueryHandler>()
             .AddTransient<GetAllWorldsQueryHandler>()
             .AddTransient<SetWorldPlaytimeCommandHandler>()
@@ -179,8 +179,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<CreateWorldCommandHandler>()
             .AddTransient<BootstrapWorldCommandHandler>()
             .AddTransient<DropWorldCommandHandler>()
-            .AddTransient<GameChatCompletionStreamer>()
-            .AddTransient<LingeringConversationCloser>()
+            .AddTransient<LlmConversationClient>()
+            .AddTransient<CloseLingeringNpcConversationsCommandHandler>()
             .AddTransient<GameTurnStreamer>()
             .AddTransient<StreamOpeningTurnHandler>()
             .AddTransient<StreamWaitTurnHandler>()
@@ -190,7 +190,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ResolveCombatActionHandler>()
             .AddTransient<CreateGameSessionCommandHandler>()
             .AddTransient<GetGameSessionQueryHandler>()
-            .AddTransient<GetOpenConversationsQueryHandler>()
+            .AddTransient<GetOpenNpcConversationsQueryHandler>()
             .AddTransient<GetPlaytimeQueryHandler>()
             .AddTransient<AdvanceTimeCommandHandler>()
             .AddTransient<UpdateGameSessionCommandHandler>()

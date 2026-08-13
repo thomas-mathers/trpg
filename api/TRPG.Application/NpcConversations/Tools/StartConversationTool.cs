@@ -3,15 +3,15 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Tools;
-using TRPG.Application.Conversations.Commands;
-using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameTurns;
+using TRPG.Application.NpcConversations.Commands;
+using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Worlds.Encounters.Queries;
 
-namespace TRPG.Application.Conversations.Tools;
+namespace TRPG.Application.NpcConversations.Tools;
 
 internal record StartConversationResult(
     string Summary,
@@ -25,9 +25,9 @@ internal class StartConversationTool(
     GetActiveEncounterQueryHandler getActiveEncounter,
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
-    GetConversationSummaryQueryHandler getConversationSummary,
+    GetNpcConversationSummaryQueryHandler getNpcConversationSummary,
     GetQuestInteractionsForGiverQueryHandler getQuestInteractions,
-    OpenConversationCommandHandler openConversation,
+    OpenNpcConversationCommandHandler openNpcConversation,
     ILogger<StartConversationTool> logger
 ) : IGameTool
 {
@@ -80,8 +80,8 @@ internal class StartConversationTool(
             );
         }
 
-        var outcome = await openConversation.Handle(
-            new OpenConversationCommand
+        var outcome = await openNpcConversation.Handle(
+            new OpenNpcConversationCommand
             {
                 SessionId = turnContext.SessionId,
                 NpcId = npc.Id,
@@ -89,15 +89,15 @@ internal class StartConversationTool(
             },
             cancellationToken
         );
-        if (outcome == OpenConversationOutcome.AlreadyOpen)
+        if (outcome == OpenNpcConversationOutcome.AlreadyOpen)
         {
             return new ToolError(
                 $"You are already in conversation with {npcName}; no need to call this again for them. If the dialogue has turned to someone else, call lookup instead."
             );
         }
 
-        var summary = await getConversationSummary.Handle(
-            new GetConversationSummaryQuery { CreatureId = player!.Id, NpcId = npc.Id },
+        var summary = await getNpcConversationSummary.Handle(
+            new GetNpcConversationSummaryQuery { CreatureId = player!.Id, NpcId = npc.Id },
             cancellationToken
         );
         var questInteractions = await getQuestInteractions.Handle(
