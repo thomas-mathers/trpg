@@ -5,7 +5,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using TRPG.Data;
 
-namespace TRPG.Application.GameSessions.Queries;
+namespace TRPG.Application.Chat.Queries;
 
 internal class GetChatMessagesQuery
 {

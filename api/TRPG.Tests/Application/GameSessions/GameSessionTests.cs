@@ -1,5 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Chat.Commands;
+using TRPG.Application.Chat.Queries;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;

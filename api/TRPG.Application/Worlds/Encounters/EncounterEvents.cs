@@ -1,4 +1,4 @@
-using TRPG.Application.GameSessions;
+using TRPG.Application.Common.Events;
 using TRPG.Contracts.Encounters.Responses;
 
 namespace TRPG.Application.Worlds.Encounters;

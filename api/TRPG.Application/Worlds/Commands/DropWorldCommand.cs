@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Data;
 

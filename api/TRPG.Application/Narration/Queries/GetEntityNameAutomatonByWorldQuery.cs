@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Scenes.Queries;
 
-namespace TRPG.Application.GameSessions.Queries;
+namespace TRPG.Application.Narration.Queries;
 
 internal class GetEntityNameAutomatonByWorldQuery
 {

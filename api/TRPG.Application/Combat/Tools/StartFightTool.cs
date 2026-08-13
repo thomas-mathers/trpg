@@ -3,10 +3,11 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions;
+using TRPG.Application.GameTurns;
 using TRPG.Application.Worlds.Encounters.Queries;
 using TRPG.Data.Models;
 

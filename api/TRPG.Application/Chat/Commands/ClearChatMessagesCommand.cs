@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Data;
 
-namespace TRPG.Application.GameSessions.Commands;
+namespace TRPG.Application.Chat.Commands;
 
 internal class ClearChatMessagesCommand
 {

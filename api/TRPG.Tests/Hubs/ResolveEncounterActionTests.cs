@@ -7,7 +7,6 @@ using TRPG.Contracts.Encounters.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
-using TRPG.GameSessions.Requests;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Hubs;

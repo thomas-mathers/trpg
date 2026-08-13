@@ -1,6 +1,6 @@
 using TRPG.Application.Scenes.Queries;
 
-namespace TRPG.Application.GameSessions;
+namespace TRPG.Application.Narration;
 
 internal sealed class EntityNameAutomaton
 {

@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Chat;
+using TRPG.Application.Chat.Commands;
+using TRPG.Application.Chat.Queries;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
@@ -19,10 +22,13 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.GameTurns;
+using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Tools;
+using TRPG.Application.Narration.Queries;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
@@ -146,6 +152,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetEffectiveReputationQueryHandler>()
             .AddTransient<GetEffectiveReputationsQueryHandler>()
             .AddTransient<GetSceneQueryHandler>()
+            .AddTransient<GetCurrentSceneQueryHandler>()
             .AddTransient<GetSceneWithCatchUpQueryHandler>()
             .AddTransient<GetLoreAnchorsByWorldQueryHandler>()
             .AddTransient<GetEntityNameAutomatonByWorldQueryHandler>()
@@ -172,7 +179,15 @@ public static class ServiceCollectionExtensions
             .AddTransient<CreateWorldCommandHandler>()
             .AddTransient<BootstrapWorldCommandHandler>()
             .AddTransient<DropWorldCommandHandler>()
-            .AddTransient<GameTurnRunner>()
+            .AddTransient<GameChatCompletionStreamer>()
+            .AddTransient<LingeringConversationCloser>()
+            .AddTransient<GameTurnStreamer>()
+            .AddTransient<StreamOpeningTurnHandler>()
+            .AddTransient<StreamWaitTurnHandler>()
+            .AddTransient<StreamChatTurnHandler>()
+            .AddTransient<StreamFleeTurnHandler>()
+            .AddTransient<StreamEncounterActionTurnHandler>()
+            .AddTransient<ResolveCombatActionHandler>()
             .AddTransient<CreateGameSessionCommandHandler>()
             .AddTransient<GetGameSessionQueryHandler>()
             .AddTransient<GetOpenConversationsQueryHandler>()
@@ -198,6 +213,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetEncounterGroupContextQueryHandler>()
             .AddTransient<EvaluateLocationEncountersCommandHandler>()
             .AddTransient<CompleteEncounterCommandHandler>()
+            .AddTransient<ResolveEncounterActionCommandHandler>()
+            .AddTransient<PublishSessionStateCommandHandler>()
             .AddTransient<GetAllWeaponProficienciesQueryHandler>()
             .AddTransient<AdjustWeaponProficienciesCommandHandler>()
             .AddTransient<HitCalculator>()

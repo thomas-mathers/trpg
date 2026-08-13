@@ -1,7 +1,7 @@
 using System.Transactions;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.GameSessions;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Quests;
 using TRPG.Application.WeaponProficiency.Commands;

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Data;
 using ChatMessageRow = TRPG.Data.Models.ChatMessage;
 
-namespace TRPG.Application.GameSessions.Commands;
+namespace TRPG.Application.Chat.Commands;
 
 internal class AppendChatMessagesCommand
 {

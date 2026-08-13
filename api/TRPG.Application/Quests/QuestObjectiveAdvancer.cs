@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.GameSessions;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Quests.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;

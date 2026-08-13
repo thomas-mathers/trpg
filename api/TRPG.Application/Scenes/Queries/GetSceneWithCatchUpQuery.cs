@@ -1,5 +1,5 @@
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions;
 using TRPG.Application.Scenes.Commands;
 
 namespace TRPG.Application.Scenes.Queries;

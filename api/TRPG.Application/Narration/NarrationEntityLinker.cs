@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using TRPG.Application.Scenes.Queries;
 
-namespace TRPG.Application.GameSessions;
+namespace TRPG.Application.Narration;
 
 internal static class NarrationEntityLinker
 {

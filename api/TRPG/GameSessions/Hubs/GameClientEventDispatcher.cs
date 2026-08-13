@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.SignalR;
+using TRPG.Application.Common.Events;
 
 namespace TRPG.GameSessions.Hubs;
 
 internal sealed class GameClientEventDispatcher(
     IGameClientEventBuffer eventBuffer,
     IHubContext<ChatHub> hubContext
-)
+) : IGameClientEventDispatcher
 {
     public async Task FlushAsync(Guid worldId, CancellationToken cancellationToken = default)
     {

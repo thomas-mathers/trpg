@@ -1,7 +1,7 @@
-using TRPG.Application.GameSessions;
+using TRPG.Application.Narration;
 using TRPG.Application.Scenes.Queries;
 
-namespace TRPG.Tests.Application.GameSessions;
+namespace TRPG.Tests.Application.Narration;
 
 public class NarrationEntityLinkerTests
 {

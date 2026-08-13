@@ -1,5 +1,5 @@
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Mappers;
-using TRPG.Application.GameSessions;
 using TRPG.Contracts.Combat.Responses;
 
 namespace TRPG.Application.Combat;

@@ -1,4 +1,4 @@
-using TRPG.Application.GameSessions;
+using TRPG.Application.Common.Events;
 
 namespace TRPG.GameSessions.Hubs;
 

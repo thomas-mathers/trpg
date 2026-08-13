@@ -1,9 +1,4 @@
-namespace TRPG.Application.GameSessions;
-
-public interface IGameClientEventSink
-{
-    void Enqueue(GameClientEvent gameEvent);
-}
+namespace TRPG.Application.GameTurns;
 
 public sealed class GameTurnContext
 {

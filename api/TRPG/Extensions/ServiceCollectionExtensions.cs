@@ -16,9 +16,9 @@ using TickerQ.DependencyInjection;
 using TickerQ.EntityFrameworkCore.DependencyInjection;
 using TickerQ.Utilities.Enums;
 using TRPG.Application.Common;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
-using TRPG.Application.GameSessions;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Configuration;
 using TRPG.Contracts;
@@ -186,6 +186,9 @@ internal static class ServiceCollectionExtensions
             .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<GameClientEventBuffer>())
             .AddScoped<IGameClientEventBuffer>(sp => sp.GetRequiredService<GameClientEventBuffer>())
             .AddScoped<GameClientEventDispatcher>()
+            .AddScoped<IGameClientEventDispatcher>(sp =>
+                sp.GetRequiredService<GameClientEventDispatcher>()
+            )
             .AddSingleton<PendingSessionEndRegistry>();
     }
 

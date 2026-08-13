@@ -7,6 +7,7 @@ using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
+using TRPG.Application.GameTurns;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Worlds.Encounters.Queries;
 
