@@ -3,13 +3,18 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.GameSessions;
+using TRPG.Application.GameTurns;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Worlds.Encounters;
+using TRPG.Contracts.Encounters.Responses;
 
 namespace TRPG.Application.Tools;
+
+internal record MoveToolResult(SceneResult Scene, HostileEncounterState? Encounter);
 
 internal class MoveTool(
     GameTurnContext turnContext,
@@ -54,7 +59,7 @@ internal class MoveTool(
 
         turnContext.PlayerMoved = true;
 
-        var result = await getSceneWithCatchUp.Handle(
+        var scene = await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {
                 WorldId = turnContext.WorldId,
@@ -65,8 +70,16 @@ internal class MoveTool(
         );
 
         gameEvents.Enqueue(
-            new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(result!), SceneUpdateReason.Moved)
+            new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(scene!), SceneUpdateReason.Moved)
         );
+
+        if (moveResult.Encounter != null)
+        {
+            gameEvents.Enqueue(new EncounterStartedEvent(moveResult.Encounter));
+        }
+
+        var result = new MoveToolResult(scene!, moveResult.Encounter);
+
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,
@@ -88,6 +101,9 @@ internal class MoveTool(
             ),
             EntryOutcome.ExitNotFound => new ToolError(
                 $"No exit named '{destinationName}' found here. Call look to see the available exits."
+            ),
+            EntryOutcome.EncounterActive => new ToolError(
+                "A hostile encounter is already underway — resolve it before moving."
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
         };

@@ -70,6 +70,9 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<Relationship> Relationships => Set<Relationship>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<DoorConnectorKey> DoorConnectorKeys => Set<DoorConnectorKey>();
+    public DbSet<Encounter> Encounters => Set<Encounter>();
+    public DbSet<EncounterGroup> EncounterGroups => Set<EncounterGroup>();
+    public DbSet<EncounterGroupMember> EncounterGroupMembers => Set<EncounterGroupMember>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<State> States => Set<State>();
     public DbSet<TravelConnector> TravelConnectors => Set<TravelConnector>();
@@ -121,8 +124,34 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         {
             entity.HasIndex(f => f.WorldId);
             entity.HasIndex(f => f.PlayerId);
+            entity.HasIndex(f => f.EncounterId);
             entity.Property(f => f.CombatantIds).HasColumnType("uuid[]");
         });
+
+        modelBuilder.Entity<Encounter>(entity =>
+        {
+            entity.HasIndex(e => e.WorldId);
+            entity.HasIndex(e => new { e.PlayerId, e.State });
+            entity.HasDiscriminator<string>("encounter_type").HasValue<HostileEncounter>("Hostile");
+        });
+
+        modelBuilder.Entity<EncounterGroup>(entity =>
+        {
+            entity.HasIndex(g => g.WorldId);
+            entity.HasIndex(g => new { g.WorldId, g.LocationId });
+        });
+
+        modelBuilder.Entity<EncounterGroupMember>(entity =>
+        {
+            entity.HasKey(m => new { m.EncounterGroupId, m.CreatureId });
+            entity.HasIndex(m => m.CreatureId).IsUnique();
+            entity.HasIndex(m => m.WorldId);
+        });
+
+        modelBuilder
+            .Entity<Faction>()
+            .Property(f => f.Temperament)
+            .HasDefaultValue(FactionTemperament.Authoritative);
 
         modelBuilder.Entity<Item>(entity =>
         {

@@ -1,40 +1,32 @@
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Common.Mappers;
 using TRPG.Application.Configuration;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Queries;
-using TRPG.Data.Models;
+using TRPG.Application.GameTurns;
+using TRPG.Application.GameTurns.Commands;
+using TRPG.Contracts.Encounters.Requests;
 
 namespace TRPG.GameSessions.Hubs;
 
 internal sealed class ChatHub(
-    GameTurnRunner turnRunner,
-    GameTurnContext turnContext,
-    IGameClientEventSink gameEvents,
-    GameClientEventDispatcher eventDispatcher,
+    StreamOpeningTurnHandler streamOpeningTurn,
+    StreamChatTurnHandler streamChatTurn,
+    StreamWaitTurnHandler streamWaitTurn,
+    StreamFleeTurnHandler streamFleeTurn,
+    StreamEncounterActionTurnHandler streamEncounterActionTurn,
+    PublishSessionStateCommandHandler publishSessionState,
     GetGameSessionQueryHandler getGameSession,
     EndGameSessionCommandHandler endGameSession,
-    GetEntityNameAutomatonByWorldQueryHandler getEntityNameAutomatonByWorld,
-    PendingSessionEndRegistry pendingSessionEnds,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetActiveFightCombatantsQueryHandler getActiveFightCombatants,
-    GetSceneQueryHandler getScene,
-    GetPlaytimeQueryHandler getPlaytime
+    PendingSessionEndRegistry pendingSessionEnds
 ) : Hub
 {
-    private const string GameSessionKey = "GameSession";
+    private const string SessionKey = "Session";
 
     public override async Task OnConnectedAsync()
     {
@@ -44,49 +36,32 @@ internal sealed class ChatHub(
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = sessionId }
         );
-        Context.Items[GameSessionKey] = snapshot;
+        var session = new GameSessionIdentity(snapshot.Id, snapshot.WorldId, snapshot.PlayerId);
+        Context.Items[SessionKey] = session;
 
         await Groups.AddToGroupAsync(
             Context.ConnectionId,
-            GameClientGroups.ForWorld(snapshot.WorldId)
+            GameClientGroups.ForWorld(session.WorldId)
         );
 
         await base.OnConnectedAsync();
 
-        await PushSceneSnapshot(snapshot);
-        await PushActiveCombatState(snapshot.PlayerId);
-    }
-
-    private async Task PushSceneSnapshot(GameSession gameSession)
-    {
-        var scene = await GetCurrentScene(gameSession, Context.ConnectionAborted);
-        await Clients.Caller.SendAsync(
-            "SceneSnapshot",
-            SceneSnapshotMapper.ToSnapshot(scene),
+        await publishSessionState.Handle(
+            new PublishSessionStateCommand
+            {
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                SessionId = session.SessionId,
+            },
             Context.ConnectionAborted
         );
     }
 
-    private async Task PushActiveCombatState(Guid playerId)
-    {
-        var combatants = await getActiveFightCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = playerId }
-        );
-
-        if (combatants.Count > 0)
-        {
-            await Clients.Caller.SendAsync(
-                "CombatStarted",
-                FightStateMapper.ToFightState(combatants)
-            );
-        }
-    }
-
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        if (Context.Items[GameSessionKey] is GameSession gameSession)
+        if (Context.Items[SessionKey] is GameSessionIdentity session)
         {
-            pendingSessionEnds.Schedule(gameSession.Id);
+            pendingSessionEnds.Schedule(session.SessionId);
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -94,12 +69,13 @@ internal sealed class ChatHub(
 
     public async Task EndSession()
     {
-        var gameSession = (GameSession)Context.Items[GameSessionKey]!;
-        pendingSessionEnds.Cancel(gameSession.Id);
+        pendingSessionEnds.Cancel(Session.SessionId);
 
         try
         {
-            await endGameSession.Handle(new EndGameSessionCommand { SessionId = gameSession.Id });
+            await endGameSession.Handle(
+                new EndGameSessionCommand { SessionId = Session.SessionId }
+            );
         }
         catch (EntityNotFoundException)
         {
@@ -107,101 +83,24 @@ internal sealed class ChatHub(
         }
     }
 
-    private async Task<bool> IsPlayerDead(Guid playerId, CancellationToken cancellationToken)
-    {
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = playerId },
-            cancellationToken
-        );
-        return player?.State == CreatureState.Dead;
-    }
-
     public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken) =>
-        RunTurn(turnRunner.StreamOpeningResponse(cancellationToken), cancellationToken);
+        streamOpeningTurn.Handle(Session, cancellationToken);
 
     public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken) =>
-        RunTurn(turnRunner.StreamResponse(message, cancellationToken), cancellationToken);
+        streamChatTurn.Handle(Session, message, cancellationToken);
 
     public IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken) =>
-        RunTurn(turnRunner.StreamWaitResponse(hours, cancellationToken), cancellationToken);
+        streamWaitTurn.Handle(Session, hours, cancellationToken);
 
     public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
-        RunTurn(turnRunner.StreamFleeResponse(cancellationToken), cancellationToken);
+        streamFleeTurn.Handle(Session, cancellationToken);
 
-    private IAsyncEnumerable<string> RunTurn(
-        IAsyncEnumerable<string> tokens,
+    public IAsyncEnumerable<string> ResolveEncounterAction(
+        PlayerEncounterAction action,
         CancellationToken cancellationToken
-    )
-    {
-        var gameSession = (GameSession)Context.Items[GameSessionKey]!;
-        turnContext.SessionId = gameSession.Id;
-        return StreamTurn(gameSession, tokens, cancellationToken);
-    }
+    ) => streamEncounterActionTurn.Handle(Session, action, cancellationToken);
 
-    private async IAsyncEnumerable<string> StreamTurn(
-        GameSession gameSession,
-        IAsyncEnumerable<string> tokens,
-        [EnumeratorCancellation] CancellationToken cancellationToken
-    )
-    {
-        if (await IsPlayerDead(gameSession.PlayerId, cancellationToken))
-        {
-            yield return "You have died. This adventure has come to an end.";
-            yield break;
-        }
-
-        var before = await GetCurrentScene(gameSession, cancellationToken);
-
-        var automaton = await getEntityNameAutomatonByWorld.Handle(
-            new GetEntityNameAutomatonByWorldQuery { WorldId = gameSession.WorldId },
-            cancellationToken
-        );
-
-        var linkedTokens = NarrationEntityLinker.Link(tokens, automaton, cancellationToken);
-
-        await foreach (var token in linkedTokens)
-        {
-            await eventDispatcher.FlushAsync(gameSession.WorldId, cancellationToken);
-
-            yield return token;
-        }
-
-        var after = await GetCurrentScene(gameSession, cancellationToken);
-
-        if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
-        {
-            gameEvents.Enqueue(
-                new SceneUpdatedEvent(
-                    SceneSnapshotMapper.ToSnapshot(after),
-                    SceneUpdateReason.Synced
-                )
-            );
-        }
-
-        await eventDispatcher.FlushAsync(gameSession.WorldId, cancellationToken);
-    }
-
-    private async Task<SceneResult> GetCurrentScene(
-        GameSession gameSession,
-        CancellationToken cancellationToken
-    )
-    {
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = gameSession.Id },
-            cancellationToken
-        );
-        var currentDate = GameClock.GetCurrentInGameDate(playtime);
-
-        return await getScene.Handle(
-            new GetSceneQuery
-            {
-                WorldId = gameSession.WorldId,
-                PlayerId = gameSession.PlayerId,
-                CurrentDate = currentDate,
-            },
-            cancellationToken
-        );
-    }
+    private GameSessionIdentity Session => (GameSessionIdentity)Context.Items[SessionKey]!;
 
     private Guid GetSessionIdFromQuery()
     {

@@ -118,6 +118,8 @@ public sealed class QuestGeneratorTests
             Countries = [],
             Creatures = creatures,
             Districts = [cityCenter],
+            EncounterGroups = [],
+            EncounterGroupMembers = [],
             FactionMembers = [],
             Factions = [],
             Items = items,

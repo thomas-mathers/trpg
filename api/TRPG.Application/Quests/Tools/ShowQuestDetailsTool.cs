@@ -2,9 +2,10 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions;
+using TRPG.Application.GameTurns;
 using TRPG.Application.Quests.Queries;
 
 namespace TRPG.Application.Quests.Tools;

@@ -29,6 +29,8 @@ public class WorldGeneratorResult
     public required IReadOnlyList<Country> Countries { get; init; }
     public required IReadOnlyList<Creature> Creatures { get; init; }
     public required IReadOnlyList<District> Districts { get; init; }
+    public required IReadOnlyList<EncounterGroup> EncounterGroups { get; init; }
+    public required IReadOnlyList<EncounterGroupMember> EncounterGroupMembers { get; init; }
     public required IReadOnlyList<FactionMember> FactionMembers { get; init; }
     public required IReadOnlyList<Faction> Factions { get; init; }
     public required IReadOnlyList<Item> Items { get; init; }
@@ -52,6 +54,7 @@ public class WorldGenerator(
     GeographyGenerator geographyGenerator,
     CityGenerator cityGenerator,
     DungeonPopulator dungeonPopulator,
+    WildernessPopulator wildernessPopulator,
     ILogger<WorldGenerator> logger
 )
 {
@@ -114,6 +117,8 @@ public class WorldGenerator(
         );
 
         var factions = new List<Faction>(namedFactions);
+        var encounterFactionsByCreatureType = EncounterFactionGenerator.Generate(worldId);
+        factions.AddRange(encounterFactionsByCreatureType.Values);
         var buildings = new List<Building>();
         var creatures = new List<Creature>();
         var buildingOwners = new List<BuildingOwner>();
@@ -129,6 +134,8 @@ public class WorldGenerator(
         var jobs = new List<CreatureJob>();
         var doorConnectorKeys = new List<DoorConnectorKey>();
         var relationships = new List<Relationship>();
+        var encounterGroups = new List<EncounterGroup>();
+        var encounterGroupMembers = new List<EncounterGroupMember>();
 
         var stateById = geography.States.ToDictionary(s => s.Id);
         var districtsByCityId = geography
@@ -184,6 +191,20 @@ public class WorldGenerator(
             locations.Add(wildernessLocation);
             wildernessLocationByStateId[state.Id] = wildernessLocation;
 
+            var wildernessGroups = wildernessPopulator.Generate(
+                new WildernessPopulatorInput
+                {
+                    LocationId = wildernessLocation.Id,
+                    WorldId = worldId,
+                    FactionsByCreatureType = encounterFactionsByCreatureType,
+                }
+            );
+            monsters.AddRange(wildernessGroups.Monsters.Select(monster => monster.Creature));
+            items.AddRange(wildernessGroups.Monsters.SelectMany(monster => monster.Items));
+            skills.AddRange(wildernessGroups.Monsters.SelectMany(monster => monster.Skills));
+            encounterGroups.AddRange(wildernessGroups.EncounterGroups);
+            encounterGroupMembers.AddRange(wildernessGroups.EncounterGroupMembers);
+
             if (citiesByStateId.TryGetValue(state.Id, out var citiesInState))
             {
                 foreach (var city in citiesInState)
@@ -225,11 +246,14 @@ public class WorldGenerator(
                         LocationId = result.Location.Id,
                         WorldId = worldId,
                         DungeonType = result.Building.BuildingType,
+                        FactionsByCreatureType = encounterFactionsByCreatureType,
                     }
                 );
-                monsters.AddRange(dungeonMonsters.Select(m => m.Creature));
-                items.AddRange(dungeonMonsters.SelectMany(m => m.Items));
-                skills.AddRange(dungeonMonsters.SelectMany(m => m.Skills));
+                monsters.AddRange(dungeonMonsters.Monsters.Select(monster => monster.Creature));
+                items.AddRange(dungeonMonsters.Monsters.SelectMany(monster => monster.Items));
+                skills.AddRange(dungeonMonsters.Monsters.SelectMany(monster => monster.Skills));
+                encounterGroups.AddRange(dungeonMonsters.EncounterGroups);
+                encounterGroupMembers.AddRange(dungeonMonsters.EncounterGroupMembers);
             }
         }
 
@@ -288,6 +312,8 @@ public class WorldGenerator(
             States = geography.States,
             Cities = geography.Cities,
             Districts = geography.Districts,
+            EncounterGroups = encounterGroups,
+            EncounterGroupMembers = encounterGroupMembers,
             LocationConnectors = locationConnectors,
             DoorConnectors = doorConnectors,
             TravelConnectors = travelConnectors,

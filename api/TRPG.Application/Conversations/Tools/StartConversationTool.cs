@@ -7,7 +7,9 @@ using TRPG.Application.Conversations.Commands;
 using TRPG.Application.Conversations.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
+using TRPG.Application.GameTurns;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Worlds.Encounters.Queries;
 
 namespace TRPG.Application.Conversations.Tools;
 
@@ -20,6 +22,7 @@ internal record StartConversationResult(
 
 internal class StartConversationTool(
     GameTurnContext turnContext,
+    GetActiveEncounterQueryHandler getActiveEncounter,
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
     GetConversationSummaryQueryHandler getConversationSummary,
@@ -44,6 +47,17 @@ internal class StartConversationTool(
     {
         logger.LogInformation("[start_conversation] npcName={NpcName}", npcName);
         var stopwatch = Stopwatch.StartNew();
+
+        var activeEncounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = turnContext.PlayerId },
+            cancellationToken
+        );
+        if (activeEncounter != null)
+        {
+            return new ToolError(
+                "A hostile encounter is underway — resolve it before starting a conversation."
+            );
+        }
 
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = turnContext.PlayerId },

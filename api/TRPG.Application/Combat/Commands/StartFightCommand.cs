@@ -1,6 +1,5 @@
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,61 +10,26 @@ internal class StartFightCommand
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required string TargetName { get; init; }
+    public required IReadOnlyCollection<Guid> EnemyCreatureIds { get; init; }
+    public Guid? EncounterId { get; init; }
 }
 
 internal class StartFightCommandHandler(
     TrpgDbContext context,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
     GetCombatantQueryHandler getCombatant,
     ApplyPassiveRegenCommandHandler applyPassiveRegen
 )
 {
-    private static readonly IReadOnlyCollection<CreatureType> HostileCreatureTypes =
-        Enum.GetValues<CreatureType>().Except(CreatureTypes.Humanoid).ToArray();
-
     public async Task<IReadOnlyList<Combatant>> Handle(
         StartFightCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = command.PlayerId },
-            cancellationToken
-        );
-
-        var nearby = await getCreaturesAtLocation.Handle(
-            new GetCreaturesAtLocationQuery
-            {
-                WorldId = player!.WorldId,
-                LocationId = player.LocationId,
-                ExcludingCreatureId = player.Id,
-                CreatureTypes = HostileCreatureTypes,
-                IncludeDead = false,
-            },
-            cancellationToken
-        );
-
-        if (nearby.Count == 0)
-        {
-            throw new InvalidOperationException("There's nothing here to attack.");
-        }
-
-        if (nearby.All(c => c.Name != command.TargetName))
-        {
-            throw new InvalidOperationException(
-                $"No '{command.TargetName}' found nearby to attack. Call look to see what's around."
-            );
-        }
-
-        var enemyIds = nearby.Select(summary => summary.Id).ToArray();
-
         var regeneratedCreatures = await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand
             {
                 SessionId = command.SessionId,
-                CreatureIds = [player.Id, .. enemyIds],
+                CreatureIds = [command.PlayerId, .. command.EnemyCreatureIds],
             },
             cancellationToken
         );
@@ -75,7 +39,11 @@ internal class StartFightCommandHandler(
         foreach (var creature in regeneratedCreatures.Values)
         {
             var combatant = await getCombatant.Handle(
-                new GetCombatantQuery { Creature = creature, IsPlayer = creature.Id == player.Id },
+                new GetCombatantQuery
+                {
+                    Creature = creature,
+                    IsPlayer = creature.Id == command.PlayerId,
+                },
                 cancellationToken
             );
             combatants.Add(combatant);
@@ -88,6 +56,7 @@ internal class StartFightCommandHandler(
                 PlayerId = command.PlayerId,
                 CombatantIds = combatants.Select(c => c.CreatureId).ToList(),
                 StartedAt = DateTime.UtcNow,
+                EncounterId = command.EncounterId,
             }
         );
         await context.SaveChangesAsync(cancellationToken);

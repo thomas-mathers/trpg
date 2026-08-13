@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Commands;
 

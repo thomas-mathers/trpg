@@ -1,8 +1,5 @@
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Commands;
 
 namespace TRPG.Application.Scenes.Queries;
@@ -16,12 +13,9 @@ internal class GetSceneWithCatchUpQuery
 
 internal class GetSceneWithCatchUpQueryHandler(
     GetCreatureByIdQueryHandler getCreatureById,
-    GetPlaytimeQueryHandler getPlaytime,
-    SyncCommandHandler sync,
+    EnsureLocationCatchUpCommandHandler ensureLocationCatchUp,
     GetSceneQueryHandler getScene,
-    IMemoryCache cache,
-    IGameClientEventSink gameEvents,
-    ILogger<GetSceneWithCatchUpQueryHandler> logger
+    IGameClientEventSink gameEvents
 )
 {
     public async Task<SceneResult?> Handle(
@@ -39,61 +33,27 @@ internal class GetSceneWithCatchUpQueryHandler(
             return null;
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = query.SessionId },
+        var catchUp = await ensureLocationCatchUp.Handle(
+            new EnsureLocationCatchUpCommand
+            {
+                WorldId = query.WorldId,
+                LocationId = player.LocationId,
+                SessionId = query.SessionId,
+            },
             cancellationToken
         );
-
-        var currentDate = GameClock.GetCurrentInGameDate(playtime);
-
-        var cacheKey = $"catchup:{query.WorldId}:{player.LocationId}:{currentDate.Hour}";
-
-        var catchUpRan = false;
-
-        if (cache.TryGetValue(cacheKey, out bool _))
-        {
-            logger.LogInformation("[perf] Catch-up cache hit for {CacheKey}", cacheKey);
-        }
-        else
-        {
-            logger.LogInformation(
-                "[perf] Catch-up cache miss for {CacheKey}, running catch-up",
-                cacheKey
-            );
-
-            await sync.Handle(
-                new SyncCommand
-                {
-                    WorldId = query.WorldId,
-                    LocationId = player.LocationId,
-                    CurrentDate = currentDate,
-                },
-                cancellationToken
-            );
-
-            cache.Set(
-                cacheKey,
-                true,
-                new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = GameClock.RealTimePerInGameHour,
-                }
-            );
-
-            catchUpRan = true;
-        }
 
         var scene = await getScene.Handle(
             new GetSceneQuery
             {
                 WorldId = query.WorldId,
                 PlayerId = query.PlayerId,
-                CurrentDate = currentDate,
+                CurrentDate = catchUp.CurrentDate,
             },
             cancellationToken
         );
 
-        if (catchUpRan)
+        if (catchUp.CatchUpRan)
         {
             gameEvents.Enqueue(
                 new SceneUpdatedEvent(

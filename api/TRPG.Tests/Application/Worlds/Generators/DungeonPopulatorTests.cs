@@ -9,6 +9,8 @@ public class DungeonPopulatorTests
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _locationId = Guid.NewGuid();
     private readonly DungeonPopulator _dungeonPopulator = new(Builders.MakeCreatureGenerator());
+    private readonly IReadOnlyDictionary<CreatureType, Faction> _factionsByCreatureType =
+        EncounterFactionGenerator.Generate(Guid.NewGuid());
 
     private DungeonPopulatorInput MakeInput(BuildingType dungeonType)
     {
@@ -17,6 +19,7 @@ public class DungeonPopulatorTests
             LocationId = _locationId,
             WorldId = _worldId,
             DungeonType = dungeonType,
+            FactionsByCreatureType = _factionsByCreatureType,
         };
     }
 
@@ -26,12 +29,12 @@ public class DungeonPopulatorTests
         for (var i = 0; i < 20; i++)
         {
             // Act
-            var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Cave));
+            var result = _dungeonPopulator.Generate(MakeInput(BuildingType.Cave));
 
             // Assert
-            Assert.InRange(monsters.Count, 1, 3);
-            Assert.All(monsters, m => Assert.Equal(_locationId, m.Creature.LocationId));
-            Assert.All(monsters, m => Assert.InRange(m.Creature.Level, 1, 3));
+            Assert.InRange(result.Monsters.Count, 1, 3);
+            Assert.All(result.Monsters, m => Assert.Equal(_locationId, m.Creature.LocationId));
+            Assert.All(result.Monsters, m => Assert.InRange(m.Creature.Level, 1, 3));
         }
     }
 
@@ -41,11 +44,11 @@ public class DungeonPopulatorTests
         for (var i = 0; i < 20; i++)
         {
             // Act
-            var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Cave));
+            var result = _dungeonPopulator.Generate(MakeInput(BuildingType.Cave));
 
             // Assert
             Assert.All(
-                monsters,
+                result.Monsters,
                 m =>
                     Assert.Contains(
                         m.Creature.CreatureType,
@@ -61,11 +64,11 @@ public class DungeonPopulatorTests
         for (var i = 0; i < 20; i++)
         {
             // Act
-            var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Crypt));
+            var result = _dungeonPopulator.Generate(MakeInput(BuildingType.Crypt));
 
             // Assert
             Assert.All(
-                monsters,
+                result.Monsters,
                 m =>
                     Assert.Contains(
                         m.Creature.CreatureType,
@@ -84,7 +87,8 @@ public class DungeonPopulatorTests
         {
             Assert.All(
                 BuildingTypes.Dungeon,
-                dungeonType => Assert.NotEmpty(_dungeonPopulator.Generate(MakeInput(dungeonType)))
+                dungeonType =>
+                    Assert.NotEmpty(_dungeonPopulator.Generate(MakeInput(dungeonType)).Monsters)
             );
         }
     }
@@ -93,11 +97,29 @@ public class DungeonPopulatorTests
     public void Generate_LeavesMonstersInertToTheLivingWorld()
     {
         // Act
-        var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Tower));
+        var monsters = _dungeonPopulator.Generate(MakeInput(BuildingType.Tower)).Monsters;
 
         // Assert — no profession, and a fixed description instead of a generated life story
         Assert.All(monsters, m => Assert.Null(m.Creature.Profession));
         Assert.All(monsters, m => Assert.False(string.IsNullOrWhiteSpace(m.Creature.Biography)));
+    }
+
+    [Fact]
+    public void Generate_CreatesOneFactionAlignedGroup_ContainingEveryMonster()
+    {
+        // Act
+        var result = _dungeonPopulator.Generate(MakeInput(BuildingType.Cave));
+
+        // Assert
+        var group = Assert.Single(result.EncounterGroups);
+        Assert.Equal(
+            result.Monsters.Select(monster => monster.Creature.Id).OrderBy(id => id),
+            result.EncounterGroupMembers.Select(member => member.CreatureId).OrderBy(id => id)
+        );
+        var creatureType = Assert.Single(
+            result.Monsters.Select(monster => monster.Creature.CreatureType).Distinct()
+        );
+        Assert.Equal(_factionsByCreatureType[creatureType].Id, group.FactionId);
     }
 
     [Fact]

@@ -31,6 +31,8 @@ public class BootstrapWorldCommandHandler(
         context.Districts.AddRange(world.Districts);
         context.Factions.AddRange(world.Factions);
         context.FactionMembers.AddRange(world.FactionMembers);
+        context.EncounterGroups.AddRange(world.EncounterGroups);
+        context.EncounterGroupMembers.AddRange(world.EncounterGroupMembers);
         context.Buildings.AddRange(world.Buildings);
         context.Creatures.AddRange(world.Creatures);
         context.BuildingOwners.AddRange(world.BuildingOwners);

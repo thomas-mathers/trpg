@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts;
@@ -9,8 +11,6 @@ using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
-using TRPG.GameSessions.Requests;
-using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;
@@ -96,6 +96,31 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         return creature;
     }
 
+    private async Task<HubConnection> Connect(Guid sessionId)
+    {
+        var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        return connection;
+    }
+
+    private static async Task<string> Drain(IAsyncEnumerable<string> tokens)
+    {
+        var builder = new StringBuilder();
+        await foreach (var token in tokens)
+        {
+            builder.Append(token);
+        }
+        return builder.ToString();
+    }
+
+    private async Task<string> SendChat(Guid sessionId, string message)
+    {
+        await using var gameHub = await Connect(sessionId);
+        return await Drain(
+            gameHub.StreamAsync<string>("SendChat", message, TestContext.Current.CancellationToken)
+        );
+    }
+
     private async Task StartFight(Guid sessionId, Creature enemy)
     {
         fixture.ChatClient.PendingToolCallName = "attack";
@@ -104,13 +129,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
             ["abilityName"] = "Strike",
             ["targetName"] = enemy.Name,
         };
-        using var response = await _client.PostAsJsonAsync(
-            "SendAdminChat",
-            new ChatRequest("I look around."),
-            routeValues: new { sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-        response.EnsureSuccessStatusCode();
+        await SendChat(sessionId, "I look around.");
     }
 
     private async Task<CombatActionResponse> ResolveCombatAction(
@@ -159,21 +178,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         var sessionId = await StartSession();
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            "SendAdminChat",
-            new ChatRequest("look around"),
-            routeValues: new { sessionId = sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
+        var narration = await SendChat(sessionId, "look around");
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ChatResponse>(
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(result);
-        Assert.False(string.IsNullOrWhiteSpace(result.Response));
-        Assert.Null(result.Metrics);
+        Assert.False(string.IsNullOrWhiteSpace(narration));
     }
 
     [Fact]
@@ -326,20 +334,10 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         fixture.ChatClient.ChatResponseText = "You arrive at the new district.";
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            "SendAdminChat",
-            new ChatRequest($"I head to {destination.Name}"),
-            routeValues: new { sessionId = sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
+        var narration = await SendChat(sessionId, $"I head to {destination.Name}");
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<ChatResponse>(
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(result);
-        Assert.Equal("You arrive at the new district.", result.Response);
+        Assert.Equal("You arrive at the new district.", narration);
 
         await using var verifyScope = fixture.CreateScope();
         var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -429,88 +427,6 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     }
 
     [Fact]
-    public async Task Wait_AdvancesTimeAndReturnsMessage_WhenSessionExists()
-    {
-        // Arrange
-        var sessionId = await StartSession();
-
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            "AdvanceSessionTime",
-            new WaitRequest(5),
-            routeValues: new { sessionId = sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<WaitResponse>(
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(result);
-        Assert.Contains("Time passes", result.Message, StringComparison.Ordinal);
-        Assert.Contains("hour 13", result.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task EndSession_ReturnsNoContent_AndKeepsPlaytimeAtZero_WhenNoMessagesWereSent()
-    {
-        // Arrange
-        var sessionId = await StartSession();
-
-        // Act
-        var response = await _client.DeleteAsync(
-            "EndSession",
-            new { sessionId = sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
-        // Assert — in-game time only advances from messages/waits, never from real time alone
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var world = await context.Worlds.FindAsync(
-            [_worldId],
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(world);
-        Assert.Equal(TimeSpan.Zero, world.Playtime);
-    }
-
-    [Fact]
-    public async Task EndSession_SavesAdvancedPlaytime_AfterChatting()
-    {
-        // Arrange
-        var sessionId = await StartSession();
-        await _client.PostAsJsonAsync(
-            "SendAdminChat",
-            new ChatRequest("look around"),
-            routeValues: new { sessionId = sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
-        // Act
-        var response = await _client.DeleteAsync(
-            "EndSession",
-            new { sessionId = sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var world = await context.Worlds.FindAsync(
-            [_worldId],
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(world);
-        Assert.True(world.Playtime > TimeSpan.Zero);
-    }
-
-    [Fact]
     public async Task StartSession_ReturnsNotFound_WhenWorldHasNoPlayer()
     {
         // Arrange
@@ -524,68 +440,6 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         var response = await _client.PostAsync(
             "CreateSession",
             body: new { WorldId = world.Id },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task SendChat_ReturnsNotFound_WhenSessionDoesNotExist()
-    {
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            "SendAdminChat",
-            new ChatRequest("look around"),
-            routeValues: new { sessionId = Guid.NewGuid() },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Wait_ReturnsNotFound_WhenSessionDoesNotExist()
-    {
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            "AdvanceSessionTime",
-            new WaitRequest(5),
-            routeValues: new { sessionId = Guid.NewGuid() },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Wait_ReturnsBadRequest_WhenHoursIsNotPositive()
-    {
-        // Arrange
-        var sessionId = await StartSession();
-
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            "AdvanceSessionTime",
-            new WaitRequest(0),
-            routeValues: new { sessionId = sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task EndSession_ReturnsNotFound_WhenSessionDoesNotExist()
-    {
-        // Act
-        var response = await _client.DeleteAsync(
-            "EndSession",
-            new { sessionId = Guid.NewGuid() },
             cancellationToken: TestContext.Current.CancellationToken
         );
 

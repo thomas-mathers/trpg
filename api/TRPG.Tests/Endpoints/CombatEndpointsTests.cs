@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
@@ -8,7 +10,6 @@ using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
-using TRPG.GameSessions.Requests;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;
@@ -94,13 +95,30 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         return creature;
     }
 
-    private Task<HttpResponseMessage> SendChat(Guid sessionId, string message) =>
-        _client.PostAsJsonAsync(
-            "SendAdminChat",
-            new ChatRequest(message),
-            routeValues: new { sessionId = sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
+    private async Task<HubConnection> Connect(Guid sessionId)
+    {
+        var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        return connection;
+    }
+
+    private static async Task<string> Drain(IAsyncEnumerable<string> tokens)
+    {
+        var builder = new StringBuilder();
+        await foreach (var token in tokens)
+        {
+            builder.Append(token);
+        }
+        return builder.ToString();
+    }
+
+    private async Task<string> SendChat(Guid sessionId, string message)
+    {
+        await using var gameHub = await Connect(sessionId);
+        return await Drain(
+            gameHub.StreamAsync<string>("SendChat", message, TestContext.Current.CancellationToken)
         );
+    }
 
     private async Task ResolveFleeDirectly(Guid sessionId)
     {
@@ -145,10 +163,10 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         };
 
         // Act
-        var response = await SendChat(sessionId, $"I attack {enemy.Name}");
+        var narration = await SendChat(sessionId, $"I attack {enemy.Name}");
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace(narration));
     }
 
     [Fact]
@@ -165,10 +183,10 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         };
 
         // Act
-        var response = await SendChat(sessionId, "I attack the nearest enemy");
+        var narration = await SendChat(sessionId, "I attack the nearest enemy");
 
         // Assert — the tool has nothing to fight; this must be a graceful error, not a crash
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace(narration));
     }
 
     [Fact]
@@ -186,10 +204,10 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         };
 
         // Act
-        var response = await SendChat(sessionId, "I attack someone who isn't there");
+        var narration = await SendChat(sessionId, "I attack someone who isn't there");
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace(narration));
     }
 
     [Fact]
@@ -207,10 +225,10 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         };
 
         // Act — exercises CombatEngine's ability-not-found validation, not just the early return paths
-        var response = await SendChat(sessionId, $"I use a fake ability on {enemy.Name}");
+        var narration = await SendChat(sessionId, $"I use a fake ability on {enemy.Name}");
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace(narration));
     }
 
     [Fact]
@@ -229,10 +247,10 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         await SendChat(sessionId, $"I attack {enemy.Name}");
 
         // Act — the tool must refuse rather than silently resolving another round outside the menu
-        var response = await SendChat(sessionId, $"I attack {enemy.Name} again");
+        var narration = await SendChat(sessionId, $"I attack {enemy.Name} again");
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace(narration));
     }
 
     [Fact]

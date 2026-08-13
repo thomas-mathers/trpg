@@ -109,7 +109,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
                 SessionId = session.Id,
                 WorldId = worldId,
                 PlayerId = playerResult.Creature.Id,
-                TargetName = enemy.Name,
+                EnemyCreatureIds = [enemy.Id],
             },
             TestContext.Current.CancellationToken
         );

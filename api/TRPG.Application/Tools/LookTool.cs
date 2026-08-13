@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
+using TRPG.Application.GameTurns;
 using TRPG.Application.Scenes.Queries;
 
 namespace TRPG.Application.Tools;

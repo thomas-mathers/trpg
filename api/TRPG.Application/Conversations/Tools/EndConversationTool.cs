@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Conversations.Commands;
 using TRPG.Application.GameSessions;
+using TRPG.Application.GameTurns;
 
 namespace TRPG.Application.Conversations.Tools;
 

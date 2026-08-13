@@ -783,12 +783,132 @@ namespace TRPG.Migrations
                     b.ToTable("door_connector_keys", (string)null);
                 });
 
+            modelBuilder.Entity("TRPG.Data.Models.Encounter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ArrivalOriginLocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("arrival_origin_location_id");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<Guid>("PlayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("player_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.Property<string>("encounter_type")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)")
+                        .HasColumnName("encounter_type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_encounters");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_encounters_world_id");
+
+                    b.HasIndex("PlayerId", "State")
+                        .HasDatabaseName("ix_encounters_player_id_state");
+
+                    b.ToTable("encounters", (string)null);
+
+                    b.HasDiscriminator<string>("encounter_type").HasValue("Encounter");
+
+                    b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.EncounterGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("FactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("faction_id");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_encounter_groups");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_encounter_groups_world_id");
+
+                    b.HasIndex("WorldId", "LocationId")
+                        .HasDatabaseName("ix_encounter_groups_world_id_location_id");
+
+                    b.ToTable("encounter_groups", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.EncounterGroupMember", b =>
+                {
+                    b.Property<Guid>("EncounterGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("encounter_group_id");
+
+                    b.Property<Guid>("CreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creature_id");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("EncounterGroupId", "CreatureId")
+                        .HasName("pk_encounter_group_members");
+
+                    b.HasIndex("CreatureId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_encounter_group_members_creature_id");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_encounter_group_members_world_id");
+
+                    b.ToTable("encounter_group_members", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Data.Models.Faction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<int>("Aggression")
+                        .HasColumnType("integer")
+                        .HasColumnName("aggression");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -803,6 +923,21 @@ namespace TRPG.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
+
+                    b.Property<int>("ReputationSensitivity")
+                        .HasColumnType("integer")
+                        .HasColumnName("reputation_sensitivity");
+
+                    b.Property<int>("RiskAversion")
+                        .HasColumnType("integer")
+                        .HasColumnName("risk_aversion");
+
+                    b.Property<string>("Temperament")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("Authoritative")
+                        .HasColumnName("temperament");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -874,6 +1009,10 @@ namespace TRPG.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
 
+                    b.Property<Guid?>("EncounterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("encounter_id");
+
                     b.Property<string>("Outcome")
                         .IsRequired()
                         .HasColumnType("text")
@@ -893,6 +1032,9 @@ namespace TRPG.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_fights");
+
+                    b.HasIndex("EncounterId")
+                        .HasDatabaseName("ix_fights_encounter_id");
 
                     b.HasIndex("PlayerId")
                         .HasDatabaseName("ix_fights_player_id");
@@ -1594,6 +1736,19 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_world_events_world_id");
 
                     b.ToTable("world_events", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Data.Models.HostileEncounter", b =>
+                {
+                    b.HasBaseType("TRPG.Data.Models.Encounter");
+
+                    b.Property<Guid>("EncounterGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("encounter_group_id");
+
+                    b.ToTable("encounters", (string)null);
+
+                    b.HasDiscriminator().HasValue("Hostile");
                 });
 
             modelBuilder.Entity("TRPG.Data.Models.Accessory", b =>

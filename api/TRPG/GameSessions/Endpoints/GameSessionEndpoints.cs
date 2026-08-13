@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.GameTurns;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
@@ -33,8 +34,7 @@ internal static class GameSessionEndpoints
     private static async Task<Ok<CombatActionResponse>> ResolveCombatAction(
         Guid sessionId,
         PlayerCombatAction action,
-        GameTurnRunner turnRunner,
-        GameTurnContext turnContext,
+        ResolveCombatActionHandler resolveCombatAction,
         GameClientEventDispatcher eventDispatcher,
         GetGameSessionQueryHandler getGameSession,
         GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
@@ -45,9 +45,12 @@ internal static class GameSessionEndpoints
             new GetGameSessionQuery { SessionId = sessionId },
             cancellationToken
         );
-        turnContext.SessionId = session.Id;
 
-        var response = await turnRunner.ResolveCombatAction(action, cancellationToken);
+        var response = await resolveCombatAction.Handle(
+            new GameSessionIdentity(session.Id, session.WorldId, session.PlayerId),
+            action,
+            cancellationToken
+        );
         var scene = await getSceneWithCatchUp.Handle(
             new GetSceneWithCatchUpQuery
             {

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Data;
 
@@ -24,6 +25,15 @@ public class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache)
             cancellationToken
         );
 
+        await context
+            .EncounterGroupMembers.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
+            .EncounterGroups.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
+            .Encounters.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
         await context
             .DoorConnectorKeys.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);

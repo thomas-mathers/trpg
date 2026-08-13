@@ -2,6 +2,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;

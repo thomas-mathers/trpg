@@ -137,6 +137,78 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
     }
 
     [Fact]
+    public async Task Handle_ClampsScoreToOneHundred_WhenDeltaWouldExceedIt()
+    {
+        // Arrange
+        var creatureId = await SeedCreatureId();
+        await _handler.Handle(
+            new AdjustReputationCommand
+            {
+                CreatureId = creatureId,
+                TargetId = _faction.Id,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = 90,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _handler.Handle(
+            new AdjustReputationCommand
+            {
+                CreatureId = creatureId,
+                TargetId = _faction.Id,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = 90,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var reputations = await _getAllByCreatureId.Handle(
+            new GetAllReputationsByCreatureIdQuery { CreatureId = creatureId },
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(100, reputations.First().Score);
+    }
+
+    [Fact]
+    public async Task Handle_ClampsScoreToNegativeOneHundred_WhenDeltaWouldExceedIt()
+    {
+        // Arrange
+        var creatureId = await SeedCreatureId();
+        await _handler.Handle(
+            new AdjustReputationCommand
+            {
+                CreatureId = creatureId,
+                TargetId = _faction.Id,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = -90,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _handler.Handle(
+            new AdjustReputationCommand
+            {
+                CreatureId = creatureId,
+                TargetId = _faction.Id,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = -90,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var reputations = await _getAllByCreatureId.Handle(
+            new GetAllReputationsByCreatureIdQuery { CreatureId = creatureId },
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(-100, reputations.First().Score);
+    }
+
+    [Fact]
     public async Task Handle_Throws_WhenFactionTargetDoesNotExist()
     {
         // Act & Assert

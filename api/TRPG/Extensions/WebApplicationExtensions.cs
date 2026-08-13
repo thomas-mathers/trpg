@@ -4,7 +4,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TickerQ.DependencyInjection;
 using TRPG.Abilities.Endpoints;
-using TRPG.Admin.Endpoints;
 using TRPG.CreatureGeneration.Endpoints;
 using TRPG.Creatures.Endpoints;
 using TRPG.Data;
@@ -58,7 +57,6 @@ internal static class WebApplicationExtensions
         app.MapCreatureGenerationEndpoints();
         app.MapGameSessionEndpoints();
         app.MapJobsEndpoints();
-        app.MapAdminEndpoints();
         app.MapInventoryEndpoints();
         app.MapQuestEndpoints();
         app.MapHub<ChatHub>("/hubs/chat");

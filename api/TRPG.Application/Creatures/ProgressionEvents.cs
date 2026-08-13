@@ -1,4 +1,4 @@
-using TRPG.Application.GameSessions;
+using TRPG.Application.Common.Events;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Creatures;

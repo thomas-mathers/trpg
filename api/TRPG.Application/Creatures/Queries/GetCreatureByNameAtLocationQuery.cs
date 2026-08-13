@@ -9,6 +9,7 @@ internal class GetCreatureByNameAtLocationQuery
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
     public required string Name { get; init; }
+    public Guid? ExcludingCreatureId { get; init; }
 }
 
 internal class GetCreatureByNameAtLocationQueryHandler(TrpgDbContext context)
@@ -24,7 +25,8 @@ internal class GetCreatureByNameAtLocationQueryHandler(TrpgDbContext context)
                 p =>
                     p.WorldId == query.WorldId
                     && p.LocationId == query.LocationId
-                    && p.Name == query.Name,
+                    && p.Name == query.Name
+                    && p.Id != query.ExcludingCreatureId,
                 cancellationToken
             );
     }

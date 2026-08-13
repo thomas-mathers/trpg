@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
-using TRPG.GameSessions.Requests;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Hubs;
@@ -100,14 +99,6 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         return creature;
     }
 
-    private Task<HttpResponseMessage> SendAdminChat(Guid sessionId, string message) =>
-        _client.PostAsJsonAsync(
-            "SendAdminChat",
-            new ChatRequest(message),
-            routeValues: new { sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
     private async Task StartFight(Guid sessionId, Creature enemy)
     {
         fixture.ChatClient.PendingToolCallName = "attack";
@@ -116,7 +107,16 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             ["abilityName"] = "Strike",
             ["targetName"] = enemy.Name,
         };
-        await SendAdminChat(sessionId, $"I attack {enemy.Name}");
+        await using (var setupHub = await Connect(sessionId))
+        {
+            await Drain(
+                setupHub.StreamAsync<string>(
+                    "SendChat",
+                    $"I attack {enemy.Name}",
+                    TestContext.Current.CancellationToken
+                )
+            );
+        }
         fixture.ChatClient.PendingToolCallName = null;
         fixture.ChatClient.PendingToolCallArguments = null;
     }
@@ -157,6 +157,16 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         return await context.Fights.SingleAsync(
             f => f.PlayerId == _playerId,
+            TestContext.Current.CancellationToken
+        );
+    }
+
+    private async Task<World> GetWorld()
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        return await context.Worlds.SingleAsync(
+            w => w.Id == _worldId,
             TestContext.Current.CancellationToken
         );
     }
@@ -289,6 +299,24 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SendWait_ReturnsAMessage_WhenHoursIsNotPositive()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        // Act
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendWait", 0, TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal("The number of hours to wait must be positive.", narration);
+        var session = await GetGameSession(sessionId);
+        Assert.Equal(TimeSpan.Zero, session.Playtime);
+    }
+
+    [Fact]
     public async Task SendChat_PersistsTheUserMessage_AndNarratesTheReply()
     {
         // Arrange
@@ -406,5 +434,86 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal("There's no fight to flee from right now.", narration);
+    }
+
+    [Fact]
+    public async Task EndSession_KeepsPlaytimeAtZero_WhenNoMessagesWereSent()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        // Act
+        await gameHub.InvokeAsync("EndSession", TestContext.Current.CancellationToken);
+
+        // Assert — in-game time only advances from messages/waits, never from real time alone
+        var world = await GetWorld();
+        Assert.Equal(TimeSpan.Zero, world.Playtime);
+    }
+
+    [Fact]
+    public async Task EndSession_SavesAdvancedPlaytime_AfterChatting()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+        await Drain(
+            gameHub.StreamAsync<string>(
+                "SendChat",
+                "I look around.",
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Act
+        await gameHub.InvokeAsync("EndSession", TestContext.Current.CancellationToken);
+
+        // Assert
+        var world = await GetWorld();
+        Assert.True(world.Playtime > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task Reconnect_PushesEncounterStarted_WhenPlayerHasAnActiveEncounter()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var faction = Builders.MakeFaction(_worldId, aggression: 150);
+        var monster = Builders.MakeCreature(
+            _worldId,
+            name: "Ravenous Wolf",
+            creatureType: CreatureType.Beast,
+            locationId: _locationId,
+            level: 1
+        );
+        var group = Builders.MakeEncounterGroup(_worldId, _locationId, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(_worldId, group.Id, monster.Id);
+        var encounter = Builders.MakeHostileEncounter(_worldId, _playerId, _locationId, group.Id);
+        context.Factions.Add(faction);
+        context.Creatures.Add(monster);
+        context.EncounterGroups.Add(group);
+        context.EncounterGroupMembers.Add(member);
+        context.Encounters.Add(encounter);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sessionId = await StartSession();
+        var encounterStartedReceived =
+            new TaskCompletionSource<TRPG.Contracts.Encounters.Responses.HostileEncounterState>();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        connection.On<TRPG.Contracts.Encounters.Responses.HostileEncounterState>(
+            "EncounterStarted",
+            state => encounterStartedReceived.TrySetResult(state)
+        );
+
+        // Act
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var state = await encounterStartedReceived.Task.WaitAsync(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(faction.Name, state.FactionName);
+        Assert.Equal(monster.Name, Assert.Single(state.Members).Name);
     }
 }
