@@ -8,7 +8,14 @@ public class DungeonPopulatorInput
     public required Guid LocationId { get; init; }
     public required Guid WorldId { get; init; }
     public required BuildingType DungeonType { get; init; }
+    public required IReadOnlyDictionary<CreatureType, Faction> FactionsByCreatureType { get; init; }
 }
+
+public record DungeonPopulatorResult(
+    IReadOnlyList<CreatureGeneratorResult> Monsters,
+    IReadOnlyList<EncounterGroup> EncounterGroups,
+    IReadOnlyList<EncounterGroupMember> EncounterGroupMembers
+);
 
 public class DungeonPopulator(CreatureGenerator creatureGenerator)
 {
@@ -45,7 +52,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
     public static bool SupportsDungeonType(BuildingType buildingType) =>
         ArchetypesByDungeonType.ContainsKey(buildingType);
 
-    public IReadOnlyList<CreatureGeneratorResult> Generate(DungeonPopulatorInput input)
+    public DungeonPopulatorResult Generate(DungeonPopulatorInput input)
     {
         var archetypes = ArchetypesByDungeonType[input.DungeonType];
         var count = Random.Shared.Next(MinimumMonsters, MaximumMonsters + 1);
@@ -57,7 +64,45 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             monsters.Add(GenerateMonster(input, archetype));
         }
 
-        return monsters;
+        var groups = CreateGroups(monsters, input);
+
+        return new DungeonPopulatorResult(
+            monsters,
+            groups.Select(group => group.Group).ToArray(),
+            groups.SelectMany(group => group.Members).ToArray()
+        );
+    }
+
+    private static IReadOnlyList<EncounterGroupWithMembers> CreateGroups(
+        IReadOnlyList<CreatureGeneratorResult> monsters,
+        DungeonPopulatorInput input
+    ) =>
+        monsters
+            .GroupBy(monster => monster.Creature.CreatureType)
+            .Select(group => CreateGroup(group, input))
+            .ToArray();
+
+    private static EncounterGroupWithMembers CreateGroup(
+        IGrouping<CreatureType, CreatureGeneratorResult> monsters,
+        DungeonPopulatorInput input
+    )
+    {
+        var group = new EncounterGroup
+        {
+            WorldId = input.WorldId,
+            LocationId = input.LocationId,
+            FactionId = input.FactionsByCreatureType[monsters.Key].Id,
+        };
+        var members = monsters
+            .Select(monster => new EncounterGroupMember
+            {
+                WorldId = input.WorldId,
+                EncounterGroupId = group.Id,
+                CreatureId = monster.Creature.Id,
+            })
+            .ToArray();
+
+        return new EncounterGroupWithMembers(group, members);
     }
 
     private CreatureGeneratorResult GenerateMonster(
@@ -91,3 +136,8 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
         return result;
     }
 }
+
+public record EncounterGroupWithMembers(
+    EncounterGroup Group,
+    IReadOnlyList<EncounterGroupMember> Members
+);

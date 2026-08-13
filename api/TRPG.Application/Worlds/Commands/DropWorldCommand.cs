@@ -25,6 +25,15 @@ public class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache)
         );
 
         await context
+            .EncounterGroupMembers.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
+            .EncounterGroups.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
+            .Encounters.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
             .DoorConnectorKeys.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
         await context

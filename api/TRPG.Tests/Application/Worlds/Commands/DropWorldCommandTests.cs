@@ -67,6 +67,18 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
             WeaponType = WeaponType.Sword,
             Proficiency = 3,
         };
+        var encounterGroup = Builders.MakeEncounterGroup(worldId, location.Id, faction.Id);
+        var encounterGroupMember = Builders.MakeEncounterGroupMember(
+            worldId,
+            encounterGroup.Id,
+            creature.Id
+        );
+        var encounter = Builders.MakeHostileEncounter(
+            worldId,
+            creature.Id,
+            location.Id,
+            encounterGroup.Id
+        );
 
         _context.Creatures.Add(creature);
         _context.Factions.Add(faction);
@@ -77,6 +89,9 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         _context.Items.Add(item);
         _context.FactionMembers.Add(factionMember);
         _context.CreatureWeaponProficiencies.Add(weaponProficiency);
+        _context.EncounterGroups.Add(encounterGroup);
+        _context.EncounterGroupMembers.Add(encounterGroupMember);
+        _context.Encounters.Add(encounter);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -161,6 +176,24 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
                 x => x.WorldId == worldId,
                 cancellationToken
             )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.EncounterGroups.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.EncounterGroupMembers.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.Encounters.AnyAsync(x => x.WorldId == worldId, cancellationToken)
         );
     }
 }

@@ -10,6 +10,7 @@ public enum CombatOutcome
 
 public class Fight
 {
+    public Guid? EncounterId { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid WorldId { get; init; }
     public Guid PlayerId { get; init; }

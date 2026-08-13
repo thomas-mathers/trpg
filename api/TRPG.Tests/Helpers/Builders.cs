@@ -467,6 +467,44 @@ internal static class Builders
         };
     }
 
+    public static EncounterGroup MakeEncounterGroup(
+        Guid worldId,
+        Guid locationId,
+        Guid factionId
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            LocationId = locationId,
+            FactionId = factionId,
+        };
+
+    public static EncounterGroupMember MakeEncounterGroupMember(
+        Guid worldId,
+        Guid encounterGroupId,
+        Guid creatureId
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            EncounterGroupId = encounterGroupId,
+            CreatureId = creatureId,
+        };
+
+    public static HostileEncounter MakeHostileEncounter(
+        Guid worldId,
+        Guid playerId,
+        Guid locationId,
+        Guid encounterGroupId
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            PlayerId = playerId,
+            LocationId = locationId,
+            EncounterGroupId = encounterGroupId,
+        };
+
     public static World MakeWorld()
     {
         return new World
