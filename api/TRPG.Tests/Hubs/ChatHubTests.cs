@@ -407,4 +407,48 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Assert
         Assert.Equal("There's no fight to flee from right now.", narration);
     }
+
+    [Fact]
+    public async Task Reconnect_PushesEncounterStarted_WhenPlayerHasAnActiveEncounter()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var faction = Builders.MakeFaction(_worldId, aggression: 150);
+        var monster = Builders.MakeCreature(
+            _worldId,
+            name: "Ravenous Wolf",
+            creatureType: CreatureType.Beast,
+            locationId: _locationId,
+            level: 1
+        );
+        var group = Builders.MakeEncounterGroup(_worldId, _locationId, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(_worldId, group.Id, monster.Id);
+        var encounter = Builders.MakeHostileEncounter(_worldId, _playerId, _locationId, group.Id);
+        context.Factions.Add(faction);
+        context.Creatures.Add(monster);
+        context.EncounterGroups.Add(group);
+        context.EncounterGroupMembers.Add(member);
+        context.Encounters.Add(encounter);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sessionId = await StartSession();
+        var encounterStartedReceived =
+            new TaskCompletionSource<TRPG.Contracts.Encounters.Responses.HostileEncounterState>();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        connection.On<TRPG.Contracts.Encounters.Responses.HostileEncounterState>(
+            "EncounterStarted",
+            state => encounterStartedReceived.TrySetResult(state)
+        );
+
+        // Act
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var state = await encounterStartedReceived.Task.WaitAsync(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(faction.Name, state.FactionName);
+        Assert.Equal(monster.Name, Assert.Single(state.Members).Name);
+    }
 }

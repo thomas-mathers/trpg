@@ -14,6 +14,9 @@ internal class AdjustReputationCommand
 
 internal class AdjustReputationCommandHandler(TrpgDbContext context)
 {
+    private const int MinimumScore = -100;
+    private const int MaximumScore = 100;
+
     public async Task Handle(
         AdjustReputationCommand command,
         CancellationToken cancellationToken = default
@@ -54,14 +57,18 @@ internal class AdjustReputationCommandHandler(TrpgDbContext context)
                     CreatureId = command.CreatureId,
                     TargetId = command.TargetId,
                     TargetType = command.TargetType,
-                    Score = command.DeltaScore,
+                    Score = Math.Clamp(command.DeltaScore, MinimumScore, MaximumScore),
                     WorldId = worldId,
                 }
             );
         }
         else
         {
-            reputation.Score += command.DeltaScore;
+            reputation.Score = Math.Clamp(
+                reputation.Score + command.DeltaScore,
+                MinimumScore,
+                MaximumScore
+            );
         }
 
         await context.SaveChangesAsync(cancellationToken);

@@ -15,6 +15,10 @@ using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Worlds.Encounters;
+using TRPG.Application.Worlds.Encounters.Queries;
+using TRPG.Application.Worlds.Queries;
+using TRPG.Contracts.Encounters.Requests;
 using TRPG.Data.Models;
 
 namespace TRPG.GameSessions.Hubs;
@@ -30,6 +34,9 @@ internal sealed class ChatHub(
     PendingSessionEndRegistry pendingSessionEnds,
     GetCreatureByIdQueryHandler getCreatureById,
     GetActiveFightCombatantsQueryHandler getActiveFightCombatants,
+    GetActiveEncounterQueryHandler getActiveEncounter,
+    GetEncounterGroupContextQueryHandler getEncounterGroupContext,
+    GetLocationByIdQueryHandler getLocationById,
     GetSceneQueryHandler getScene,
     GetPlaytimeQueryHandler getPlaytime
 ) : Hub
@@ -55,6 +62,7 @@ internal sealed class ChatHub(
 
         await PushSceneSnapshot(snapshot);
         await PushActiveCombatState(snapshot.PlayerId);
+        await PushActiveEncounterState(snapshot.PlayerId);
     }
 
     private async Task PushSceneSnapshot(GameSession gameSession)
@@ -80,6 +88,35 @@ internal sealed class ChatHub(
                 FightStateMapper.ToFightState(combatants)
             );
         }
+    }
+
+    private async Task PushActiveEncounterState(Guid playerId)
+    {
+        var encounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = playerId }
+        );
+
+        if (encounter == null)
+        {
+            return;
+        }
+
+        var groupContext = await getEncounterGroupContext.Handle(
+            new GetEncounterGroupContextQuery { EncounterGroupId = encounter.EncounterGroupId }
+        );
+        var location = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = encounter.LocationId }
+        );
+
+        await Clients.Caller.SendAsync(
+            "EncounterStarted",
+            HostileEncounterStateMapper.ToState(
+                encounter.Id,
+                groupContext.Faction,
+                groupContext.LivingMembers,
+                location!
+            )
+        );
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -127,6 +164,15 @@ internal sealed class ChatHub(
 
     public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
         RunTurn(turnRunner.StreamFleeResponse(cancellationToken), cancellationToken);
+
+    public IAsyncEnumerable<string> ResolveEncounterAction(
+        PlayerEncounterAction action,
+        CancellationToken cancellationToken
+    ) =>
+        RunTurn(
+            turnRunner.StreamEncounterActionResponse(action, cancellationToken),
+            cancellationToken
+        );
 
     private IAsyncEnumerable<string> RunTurn(
         IAsyncEnumerable<string> tokens,

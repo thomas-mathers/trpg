@@ -36,6 +36,8 @@ using TRPG.Application.Trading;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.Worlds.Encounters.Commands;
+using TRPG.Application.Worlds.Encounters.Queries;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Application.Worlds.Tools;
@@ -90,6 +92,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<ExecuteCreatureJobCommandHandler>()
             .AddTransient<SyncScheduleLockCommandHandler>()
             .AddTransient<SyncCommandHandler>()
+            .AddTransient<EnsureLocationCatchUpCommandHandler>()
             .AddTransient<CanEnterBuildingQueryHandler>()
             .AddTransient<GetStateByIdQueryHandler>()
             .AddTransient<GetCityByIdQueryHandler>()
@@ -158,6 +161,7 @@ public static class ServiceCollectionExtensions
             .AddTransient<TradeStockGenerator>()
             .AddTransient<CreatureGenerator>()
             .AddTransient<DungeonPopulator>()
+            .AddTransient<WildernessPopulator>()
             .AddTransient<HouseholdGenerator>()
             .AddTransient<CityGenerator>()
             .AddTransient<GeographyGenerator>()
@@ -189,6 +193,11 @@ public static class ServiceCollectionExtensions
             .AddTransient<EndFightCommandHandler>()
             .AddTransient<AbandonActiveFightCommandHandler>()
             .AddTransient<ResolveCombatRoundCommandHandler>()
+            .AddTransient<GetActiveEncounterQueryHandler>()
+            .AddTransient<GetEncounterGroupCreatureIdsQueryHandler>()
+            .AddTransient<GetEncounterGroupContextQueryHandler>()
+            .AddTransient<EvaluateLocationEncountersCommandHandler>()
+            .AddTransient<CompleteEncounterCommandHandler>()
             .AddTransient<GetAllWeaponProficienciesQueryHandler>()
             .AddTransient<AdjustWeaponProficienciesCommandHandler>()
             .AddTransient<HitCalculator>()

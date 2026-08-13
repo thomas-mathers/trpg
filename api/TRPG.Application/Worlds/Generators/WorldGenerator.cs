@@ -54,6 +54,7 @@ public class WorldGenerator(
     GeographyGenerator geographyGenerator,
     CityGenerator cityGenerator,
     DungeonPopulator dungeonPopulator,
+    WildernessPopulator wildernessPopulator,
     ILogger<WorldGenerator> logger
 )
 {
@@ -189,6 +190,20 @@ public class WorldGenerator(
             var wildernessLocation = LocationGenerator.Generate(worldId, state.Id);
             locations.Add(wildernessLocation);
             wildernessLocationByStateId[state.Id] = wildernessLocation;
+
+            var wildernessGroups = wildernessPopulator.Generate(
+                new WildernessPopulatorInput
+                {
+                    LocationId = wildernessLocation.Id,
+                    WorldId = worldId,
+                    FactionsByCreatureType = encounterFactionsByCreatureType,
+                }
+            );
+            monsters.AddRange(wildernessGroups.Monsters.Select(monster => monster.Creature));
+            items.AddRange(wildernessGroups.Monsters.SelectMany(monster => monster.Items));
+            skills.AddRange(wildernessGroups.Monsters.SelectMany(monster => monster.Skills));
+            encounterGroups.AddRange(wildernessGroups.EncounterGroups);
+            encounterGroupMembers.AddRange(wildernessGroups.EncounterGroupMembers);
 
             if (citiesByStateId.TryGetValue(state.Id, out var citiesInState))
             {

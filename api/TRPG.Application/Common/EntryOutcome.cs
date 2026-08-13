@@ -7,4 +7,5 @@ internal enum EntryOutcome
     Locked,
     DestinationNotFound,
     ExitNotFound,
+    EncounterActive,
 }

@@ -105,32 +105,21 @@ public class DungeonPopulatorTests
     }
 
     [Fact]
-    public void Generate_CreatesOneFactionAlignedGroup_PerCreatureType()
+    public void Generate_CreatesOneFactionAlignedGroup_ContainingEveryMonster()
     {
         // Act
         var result = _dungeonPopulator.Generate(MakeInput(BuildingType.Cave));
 
         // Assert
-        Assert.All(
-            result.EncounterGroups,
-            group =>
-            {
-                var members = result
-                    .EncounterGroupMembers.Where(member => member.EncounterGroupId == group.Id)
-                    .ToArray();
-                var creatureType = Assert.Single(
-                    result
-                        .Monsters.Where(monster =>
-                            members
-                                .Select(member => member.CreatureId)
-                                .Contains(monster.Creature.Id)
-                        )
-                        .Select(monster => monster.Creature.CreatureType)
-                        .Distinct()
-                );
-                Assert.Equal(_factionsByCreatureType[creatureType].Id, group.FactionId);
-            }
+        var group = Assert.Single(result.EncounterGroups);
+        Assert.Equal(
+            result.Monsters.Select(monster => monster.Creature.Id).OrderBy(id => id),
+            result.EncounterGroupMembers.Select(member => member.CreatureId).OrderBy(id => id)
         );
+        var creatureType = Assert.Single(
+            result.Monsters.Select(monster => monster.Creature.CreatureType).Distinct()
+        );
+        Assert.Equal(_factionsByCreatureType[creatureType].Id, group.FactionId);
     }
 
     [Fact]

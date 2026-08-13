@@ -9,7 +9,10 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Scenes.Commands;
+using TRPG.Application.Worlds.Encounters.Commands;
+using TRPG.Application.Worlds.Encounters.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -21,7 +24,11 @@ internal class MovePlayerCommand
     public required string DestinationName { get; init; }
 }
 
-internal record MovePlayerResult(EntryOutcome Outcome, Creature Player);
+internal record MovePlayerResult(
+    EntryOutcome Outcome,
+    Creature Player,
+    HostileEncounterState? Encounter = null
+);
 
 internal class MovePlayerCommandHandler(
     PlayerMovedQuestEventHandler playerMovedQuestEvents,
@@ -37,6 +44,9 @@ internal class MovePlayerCommandHandler(
     CanEnterBuildingQueryHandler canEnterBuilding,
     SyncScheduleLockCommandHandler syncScheduleLock,
     GetPlaytimeQueryHandler getPlaytime,
+    GetActiveEncounterQueryHandler getActiveEncounter,
+    EnsureLocationCatchUpCommandHandler ensureLocationCatchUp,
+    EvaluateLocationEncountersCommandHandler evaluateLocationEncounters,
     ILogger<MovePlayerCommandHandler> logger
 )
 {
@@ -53,6 +63,17 @@ internal class MovePlayerCommandHandler(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
         );
+
+        var activeEncounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = command.PlayerId },
+            cancellationToken
+        );
+
+        if (activeEncounter != null)
+        {
+            transaction.Complete();
+            return new MovePlayerResult(EntryOutcome.EncounterActive, player!);
+        }
 
         var oldLocationId = player!.LocationId;
 
@@ -88,8 +109,29 @@ internal class MovePlayerCommandHandler(
             ),
             cancellationToken
         );
+
+        await ensureLocationCatchUp.Handle(
+            new EnsureLocationCatchUpCommand
+            {
+                WorldId = player.WorldId,
+                LocationId = player.LocationId,
+                SessionId = command.SessionId,
+            },
+            cancellationToken
+        );
+
+        var encounter = await evaluateLocationEncounters.Handle(
+            new EvaluateLocationEncountersCommand
+            {
+                WorldId = player.WorldId,
+                PlayerId = player.Id,
+                OriginLocationId = oldLocationId,
+            },
+            cancellationToken
+        );
+
         transaction.Complete();
-        return new MovePlayerResult(EntryOutcome.Entered, player);
+        return new MovePlayerResult(EntryOutcome.Entered, player, encounter);
     }
 
     private async Task CleanUpDeadCreatures(

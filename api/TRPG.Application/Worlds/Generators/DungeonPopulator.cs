@@ -1,4 +1,3 @@
-using TRPG.Application.GameSessions;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
@@ -55,35 +54,23 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
     public DungeonPopulatorResult Generate(DungeonPopulatorInput input)
     {
         var archetypes = ArchetypesByDungeonType[input.DungeonType];
+        var archetype = archetypes[Random.Shared.Next(archetypes.Length)];
         var count = Random.Shared.Next(MinimumMonsters, MaximumMonsters + 1);
 
         var monsters = new List<CreatureGeneratorResult>();
         for (var i = 0; i < count; i++)
         {
-            var archetype = archetypes[Random.Shared.Next(archetypes.Length)];
             monsters.Add(GenerateMonster(input, archetype));
         }
 
-        var groups = CreateGroups(monsters, input);
+        var group = CreateGroup(monsters, archetype.CreatureType!.Value, input);
 
-        return new DungeonPopulatorResult(
-            monsters,
-            groups.Select(group => group.Group).ToArray(),
-            groups.SelectMany(group => group.Members).ToArray()
-        );
+        return new DungeonPopulatorResult(monsters, [group.Group], group.Members);
     }
 
-    private static IReadOnlyList<EncounterGroupWithMembers> CreateGroups(
-        IReadOnlyList<CreatureGeneratorResult> monsters,
-        DungeonPopulatorInput input
-    ) =>
-        monsters
-            .GroupBy(monster => monster.Creature.CreatureType)
-            .Select(group => CreateGroup(group, input))
-            .ToArray();
-
     private static EncounterGroupWithMembers CreateGroup(
-        IGrouping<CreatureType, CreatureGeneratorResult> monsters,
+        IReadOnlyList<CreatureGeneratorResult> monsters,
+        CreatureType creatureType,
         DungeonPopulatorInput input
     )
     {
@@ -91,7 +78,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
         {
             WorldId = input.WorldId,
             LocationId = input.LocationId,
-            FactionId = input.FactionsByCreatureType[monsters.Key].Id,
+            FactionId = input.FactionsByCreatureType[creatureType].Id,
         };
         var members = monsters
             .Select(monster => new EncounterGroupMember
@@ -108,33 +95,15 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
     private CreatureGeneratorResult GenerateMonster(
         DungeonPopulatorInput input,
         CreatureArchetype archetype
-    )
-    {
-        var level = Random.Shared.Next(MinimumLevel, MaximumLevel + 1);
-        var birthYear = GameClock.EpochYear - level;
-
-        var result = creatureGenerator.Generate(
-            new CreatureGeneratorInput(
-                CreatureType: archetype.CreatureType!.Value,
-                Archetype: archetype,
-                WorldId: input.WorldId,
-                BirthLocationId: input.LocationId,
-                MinLevel: level,
-                MaxLevel: level,
-                MinBirthYear: birthYear,
-                MaxBirthYear: birthYear
-            )
+    ) =>
+        EncounterMonsterGenerator.Generate(
+            creatureGenerator,
+            input.WorldId,
+            input.LocationId,
+            archetype,
+            MinimumLevel,
+            MaximumLevel
         );
-
-        if (archetype.HasPotions)
-        {
-            result = creatureGenerator.AddStartingPotions(result);
-        }
-
-        result.Creature.LocationId = input.LocationId;
-
-        return result;
-    }
 }
 
 public record EncounterGroupWithMembers(

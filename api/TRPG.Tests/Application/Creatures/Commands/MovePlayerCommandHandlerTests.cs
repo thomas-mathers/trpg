@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
@@ -504,5 +505,101 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
                 TestContext.Current.CancellationToken
             )
         );
+    }
+
+    [Fact]
+    public async Task Handle_CreatesAnActiveEncounter_WhenMovingIntoALocationWithAnEngagingGroup()
+    {
+        // Arrange
+        var oldLocation = Builders.MakeLocation(WorldId, StateId);
+        var newLocation = Builders.MakeLocation(WorldId, StateId);
+        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id, level: 1);
+        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var monster = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: newLocation.Id,
+            level: 1
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, newLocation.Id, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(WorldId, group.Id, monster.Id);
+        var connector = Builders.MakeLocationConnector(
+            oldLocation.Id,
+            destinationLocationId: newLocation.Id,
+            destinationLabel: "Elsewhere"
+        );
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.AddRange(player, monster);
+        _context.Factions.Add(faction);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(member);
+        _context.LocationConnectors.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Elsewhere",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.NotNull(result.Encounter);
+        Assert.Equal(faction.Name, result.Encounter.FactionName);
+
+        await using var verifyContext = db.CreateContext();
+        var encounter = await verifyContext
+            .Encounters.OfType<HostileEncounter>()
+            .SingleAsync(e => e.PlayerId == player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(EncounterState.Active, encounter.State);
+        Assert.Equal(oldLocation.Id, encounter.ArrivalOriginLocationId);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsEncounterActive_WithoutMoving_WhenPlayerHasAnActiveEncounter()
+    {
+        // Arrange
+        var oldLocation = Builders.MakeLocation(WorldId, StateId);
+        var newLocation = Builders.MakeLocation(WorldId, StateId);
+        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
+        var faction = Builders.MakeFaction(WorldId);
+        var group = Builders.MakeEncounterGroup(WorldId, oldLocation.Id, faction.Id);
+        var activeEncounter = Builders.MakeHostileEncounter(
+            WorldId,
+            player.Id,
+            oldLocation.Id,
+            group.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            oldLocation.Id,
+            destinationLocationId: newLocation.Id,
+            destinationLabel: "Elsewhere"
+        );
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.Add(player);
+        _context.Factions.Add(faction);
+        _context.EncounterGroups.Add(group);
+        _context.Encounters.Add(activeEncounter);
+        _context.LocationConnectors.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Elsewhere",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(EntryOutcome.EncounterActive, result.Outcome);
+        Assert.Equal(oldLocation.Id, result.Player.LocationId);
     }
 }

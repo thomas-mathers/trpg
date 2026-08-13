@@ -14,10 +14,19 @@ using TRPG.Application.Common.Mappers;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Worlds.Encounters;
+using TRPG.Application.Worlds.Encounters.Commands;
+using TRPG.Application.Worlds.Encounters.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.Combat.Responses;
+using TRPG.Contracts.Encounters.Requests;
+using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions;
@@ -43,6 +52,15 @@ internal class GameTurnRunner(
     GetActiveFightCombatantsQueryHandler getCombatants,
     CombatEngine combatEngine,
     ResolveCombatRoundCommandHandler resolveCombatRound,
+    GetActiveEncounterQueryHandler getActiveEncounter,
+    GetEncounterGroupContextQueryHandler getEncounterGroupContext,
+    CompleteEncounterCommandHandler completeEncounter,
+    StartFightCommandHandler startFight,
+    GetCreatureByIdQueryHandler getCreatureById,
+    UpdateCreaturesCommandHandler updateCreatures,
+    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
+    GetLocationByIdQueryHandler getLocationById,
+    IGameClientEventSink gameEvents,
     IEnumerable<AIFunction> tools,
     IOptionsMonitor<LlmRoleOptions> optionsMonitor,
     IOptionsSnapshot<GameClockOptions> gameClockOptions,
@@ -274,6 +292,225 @@ internal class GameTurnRunner(
 
         await FinishTurn(inputOrdinal, cancellationToken);
     }
+
+    public async IAsyncEnumerable<string> StreamEncounterActionResponse(
+        PlayerEncounterAction action,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        using var _ = logger.BeginScope(
+            new Dictionary<string, object>
+            {
+                ["SessionId"] = turnContext.SessionId,
+                ["TurnId"] = Guid.NewGuid().ToString("N")[..8],
+            }
+        );
+
+        await BeginTurn(cancellationToken);
+
+        var encounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = turnContext.PlayerId },
+            cancellationToken
+        );
+        if (encounter == null)
+        {
+            yield return "There's no encounter to resolve right now.";
+            yield break;
+        }
+
+        var resolution = await ResolveEncounterActionOutcome(action, encounter, cancellationToken);
+
+        var prompt =
+            $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution.Fact, ToolJsonOptions.Options)}. Narrate the outcome vividly based on this result. Do not call any tools.";
+
+        var inputOrdinal = await AppendUserMessage(prompt, cancellationToken);
+        await foreach (var token in StreamReply(includeTools: false, cancellationToken))
+        {
+            yield return token;
+        }
+
+        EnqueueEncounterResolutionEvents(resolution);
+
+        await FinishTurn(inputOrdinal, cancellationToken);
+    }
+
+    private record EncounterActionResolution(
+        HostileEncounterActionKind ActionKind,
+        EncounterResolutionFact Fact,
+        FightState? FightState,
+        SceneResult? UpdatedScene
+    );
+
+    private record EncounterOutcomeEffects(FightState? FightState, SceneResult? UpdatedScene);
+
+    private async Task<EncounterActionResolution> ResolveEncounterActionOutcome(
+        PlayerEncounterAction action,
+        TRPG.Data.Models.HostileEncounter encounter,
+        CancellationToken cancellationToken
+    )
+    {
+        var groupContext = await getEncounterGroupContext.Handle(
+            new GetEncounterGroupContextQuery { EncounterGroupId = encounter.EncounterGroupId },
+            cancellationToken
+        );
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
+            cancellationToken
+        );
+
+        var groupPower = groupContext.LivingMembers.Sum(member => member.Level);
+        var actionKind = ToActionKind(action);
+        var outcome = HostileEncounterActionResolver.Resolve(
+            actionKind,
+            player!.Level,
+            groupPower,
+            Random.Shared.Next(100)
+        );
+
+        await completeEncounter.Handle(
+            new CompleteEncounterCommand { EncounterId = encounter.Id },
+            cancellationToken
+        );
+
+        var effects = await ApplyEncounterOutcome(
+            outcome,
+            encounter,
+            player,
+            groupContext,
+            cancellationToken
+        );
+
+        var location = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = encounter.LocationId },
+            cancellationToken
+        );
+
+        var fact = new EncounterResolutionFact(
+            EncounterId: encounter.Id,
+            Outcome: ToResolutionOutcome(outcome),
+            FactionName: groupContext.Faction.Name,
+            LocationName: location!.Name,
+            MemberNames: groupContext.LivingMembers.Select(member => member.Name).ToArray()
+        );
+
+        return new EncounterActionResolution(
+            actionKind,
+            fact,
+            effects.FightState,
+            effects.UpdatedScene
+        );
+    }
+
+    private async Task<EncounterOutcomeEffects> ApplyEncounterOutcome(
+        HostileEncounterActionOutcome outcome,
+        TRPG.Data.Models.HostileEncounter encounter,
+        TRPG.Data.Models.Creature player,
+        EncounterGroupContext groupContext,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            outcome == HostileEncounterActionOutcome.Retreated
+            && encounter.ArrivalOriginLocationId is { } originLocationId
+        )
+        {
+            await updateCreatures.Handle(
+                new UpdateCreaturesCommand
+                {
+                    CreatureIds = [player.Id],
+                    LocationId = originLocationId,
+                },
+                cancellationToken
+            );
+            var updatedScene = await getSceneWithCatchUp.Handle(
+                new GetSceneWithCatchUpQuery
+                {
+                    WorldId = turnContext.WorldId,
+                    PlayerId = turnContext.PlayerId,
+                    SessionId = turnContext.SessionId,
+                },
+                cancellationToken
+            );
+            return new EncounterOutcomeEffects(null, updatedScene);
+        }
+
+        var startsFight = outcome switch
+        {
+            HostileEncounterActionOutcome.EvadeFailed
+            or HostileEncounterActionOutcome.RetreatFailed
+            or HostileEncounterActionOutcome.Attacked => true,
+            _ => false,
+        };
+        if (!startsFight)
+        {
+            return new EncounterOutcomeEffects(null, null);
+        }
+
+        var combatants = await startFight.Handle(
+            new StartFightCommand
+            {
+                SessionId = turnContext.SessionId,
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+                EnemyCreatureIds = groupContext.LivingMembers.Select(member => member.Id).ToArray(),
+                EncounterId = encounter.Id,
+            },
+            cancellationToken
+        );
+
+        return new EncounterOutcomeEffects(FightStateMapper.ToFightState(combatants), null);
+    }
+
+    private void EnqueueEncounterResolutionEvents(EncounterActionResolution resolution)
+    {
+        gameEvents.Enqueue(new EncounterResolvedEvent(resolution.Fact));
+
+        if (resolution.UpdatedScene != null)
+        {
+            gameEvents.Enqueue(
+                new SceneUpdatedEvent(
+                    SceneSnapshotMapper.ToSnapshot(resolution.UpdatedScene),
+                    SceneUpdateReason.Moved
+                )
+            );
+        }
+
+        if (resolution.FightState != null)
+        {
+            gameEvents.Enqueue(new CombatStartedEvent(resolution.FightState));
+        }
+    }
+
+    private static HostileEncounterActionKind ToActionKind(PlayerEncounterAction action) =>
+        action switch
+        {
+            AttackEncounterAction => HostileEncounterActionKind.Attack,
+            EvadeEncounterAction => HostileEncounterActionKind.Evade,
+            RetreatEncounterAction => HostileEncounterActionKind.Retreat,
+            _ => throw new ArgumentOutOfRangeException(nameof(action)),
+        };
+
+    private static string DescribeAction(HostileEncounterActionKind actionKind) =>
+        actionKind switch
+        {
+            HostileEncounterActionKind.Attack => "attack",
+            HostileEncounterActionKind.Evade => "evade",
+            HostileEncounterActionKind.Retreat => "retreat from",
+            _ => throw new ArgumentOutOfRangeException(nameof(actionKind)),
+        };
+
+    private static EncounterResolutionOutcome ToResolutionOutcome(
+        HostileEncounterActionOutcome outcome
+    ) =>
+        outcome switch
+        {
+            HostileEncounterActionOutcome.Attacked => EncounterResolutionOutcome.Attacked,
+            HostileEncounterActionOutcome.Evaded => EncounterResolutionOutcome.Evaded,
+            HostileEncounterActionOutcome.EvadeFailed => EncounterResolutionOutcome.EvadeFailed,
+            HostileEncounterActionOutcome.Retreated => EncounterResolutionOutcome.Retreated,
+            HostileEncounterActionOutcome.RetreatFailed => EncounterResolutionOutcome.RetreatFailed,
+            _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
+        };
 
     private async Task BeginTurn(CancellationToken cancellationToken)
     {
