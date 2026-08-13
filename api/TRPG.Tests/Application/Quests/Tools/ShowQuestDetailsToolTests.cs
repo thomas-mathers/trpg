@@ -17,7 +17,7 @@ public sealed class ShowQuestDetailsToolTests(DatabaseFixture db) : IAsyncLifeti
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private ShowQuestDetailsTool _tool = null!;
-    private TestGameClientEventPublisher _events = null!;
+    private TestGameClientEventSink _events = null!;
     private readonly Creature _player = Builders.MakeCreature(WorldId, locationId: LocationId);
     private readonly Creature _giver = Builders.MakeCreature(
         WorldId,
@@ -33,7 +33,7 @@ public sealed class ShowQuestDetailsToolTests(DatabaseFixture db) : IAsyncLifeti
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _tool = _serviceProvider.GetRequiredService<ShowQuestDetailsTool>();
-        _events = _serviceProvider.GetRequiredService<TestGameClientEventPublisher>();
+        _events = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
         var turnContext = _serviceProvider.GetRequiredService<GameTurnContext>();
         turnContext.PlayerId = _player.Id;
         turnContext.WorldId = WorldId;
@@ -70,7 +70,7 @@ public sealed class ShowQuestDetailsToolTests(DatabaseFixture db) : IAsyncLifeti
 
         // Assert
         var gameEvent = Assert.IsType<QuestDialogRequestedEvent>(
-            Assert.Single(_events.PublishedEvents)
+            Assert.Single(_events.EnqueuedEvents)
         );
         Assert.Equal(QuestDialogMode.Offer, gameEvent.Mode);
         var payload = Assert.IsType<QuestDialogSnapshot>(gameEvent.Payload);

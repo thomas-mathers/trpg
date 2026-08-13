@@ -23,7 +23,7 @@ internal record QuestDialogRequestedEvent(
     Guid WorldId,
     QuestConversationDetail Quest,
     QuestDialogMode Mode
-) : GameTurnEvent
+) : GameClientEvent
 {
     public override string MethodName => "QuestDialogRequested";
 

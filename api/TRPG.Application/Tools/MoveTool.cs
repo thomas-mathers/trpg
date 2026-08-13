@@ -13,7 +13,7 @@ namespace TRPG.Application.Tools;
 
 internal class MoveTool(
     GameTurnContext turnContext,
-    IGameClientEventPublisher gameEvents,
+    IGameClientEventSink gameEvents,
     GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
     MovePlayerCommandHandler movePlayer,
     ILogger<MoveTool> logger
@@ -64,7 +64,7 @@ internal class MoveTool(
             cancellationToken
         );
 
-        gameEvents.Publish(
+        gameEvents.Enqueue(
             new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(result!), SceneUpdateReason.Moved)
         );
         logger.LogInformation(

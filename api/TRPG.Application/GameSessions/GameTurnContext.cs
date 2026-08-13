@@ -1,8 +1,8 @@
 namespace TRPG.Application.GameSessions;
 
-public interface IGameClientEventPublisher
+public interface IGameClientEventSink
 {
-    void Publish(GameTurnEvent gameEvent);
+    void Enqueue(GameClientEvent gameEvent);
 }
 
 public sealed class GameTurnContext

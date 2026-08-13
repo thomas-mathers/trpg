@@ -1,4 +1,3 @@
-using TRPG.Application.Common.Events;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Quests;
@@ -21,7 +20,7 @@ internal class OpenConversationCommand
 
 internal class OpenConversationCommandHandler(
     TrpgDbContext context,
-    QuestEventHandler questEvents,
+    ConversationStartedQuestEventHandler conversationStartedQuestEvents,
     GetGameSessionQueryHandler getGameSession,
     UpdateGameSessionCommandHandler updateGameSession
 )
@@ -54,8 +53,8 @@ internal class OpenConversationCommandHandler(
             cancellationToken
         );
 
-        await questEvents.Handle(
-            new ConversationStartedEvent(
+        await conversationStartedQuestEvents.Handle(
+            new ConversationStartedQuestEvent(
                 PlayerId: snapshot.PlayerId,
                 WorldId: snapshot.WorldId,
                 CreatureId: command.NpcId

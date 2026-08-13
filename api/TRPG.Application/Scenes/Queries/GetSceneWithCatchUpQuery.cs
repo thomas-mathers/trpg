@@ -20,7 +20,7 @@ internal class GetSceneWithCatchUpQueryHandler(
     SyncCommandHandler sync,
     GetSceneQueryHandler getScene,
     IMemoryCache cache,
-    IGameClientEventPublisher gameEvents,
+    IGameClientEventSink gameEvents,
     ILogger<GetSceneWithCatchUpQueryHandler> logger
 )
 {
@@ -95,7 +95,7 @@ internal class GetSceneWithCatchUpQueryHandler(
 
         if (catchUpRan)
         {
-            gameEvents.Publish(
+            gameEvents.Enqueue(
                 new SceneUpdatedEvent(
                     SceneSnapshotMapper.ToSnapshot(scene),
                     SceneUpdateReason.CatchUp

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Quests;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -9,13 +8,12 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Quests;
 
 [Collection("Database")]
-public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private QuestEventHandler _handler = null!;
     private readonly Creature _player = Builders.MakeCreature(WorldId);
     private readonly Creature _giver = Builders.MakeCreature(WorldId);
 
@@ -25,8 +23,6 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<QuestEventHandler>();
-
         _context.Creatures.AddRange(_player, _giver);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -49,7 +45,7 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
         var seeded = await SeedObjective(kind);
 
         // Act
-        await _handler.Handle(seeded.Event, TestContext.Current.CancellationToken);
+        await seeded.Act(TestContext.Current.CancellationToken);
 
         // Assert
         var progress = await _context.CreatureQuestObjectives.SingleAsync(
@@ -62,9 +58,9 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
         );
         Assert.Equal(1, progress.Amount);
         Assert.Equal(QuestStatus.ReadyToComplete, quest.Status);
-        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventPublisher>();
+        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
         Assert.Collection(
-            gameEvents.PublishedEvents,
+            gameEvents.EnqueuedEvents,
             gameEvent => Assert.IsType<QuestObjectiveCompletedEvent>(gameEvent),
             gameEvent => Assert.IsType<QuestJournalUpdatedEvent>(gameEvent)
         );
@@ -77,7 +73,7 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
         var seeded = await SeedObjective(ObjectiveKind.CollectItem, amount: 1);
 
         // Act
-        await _handler.Handle(seeded.Event, TestContext.Current.CancellationToken);
+        await seeded.Act(TestContext.Current.CancellationToken);
 
         // Assert
         var progress = await _context.CreatureQuestObjectives.SingleAsync(
@@ -85,8 +81,8 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(1, progress.Amount);
-        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventPublisher>();
-        Assert.Empty(gameEvents.PublishedEvents);
+        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
+        Assert.Empty(gameEvents.EnqueuedEvents);
     }
 
     private async Task<SeededObjective> SeedObjective(ObjectiveKind kind, int amount = 0)
@@ -116,7 +112,7 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
         _context.CreatureQuests.Add(creatureQuest);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        return new SeededObjective(progress, creatureQuest, MakeEvent(kind, targetId, locationId));
+        return new SeededObjective(progress, creatureQuest, MakeAct(kind, targetId, locationId));
     }
 
     private QuestObjective MakeObjective(
@@ -160,28 +156,58 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
             _ => throw new InvalidOperationException(),
         };
 
-    private GameEvent MakeEvent(ObjectiveKind kind, Guid targetId, Guid locationId) =>
+    private Func<CancellationToken, Task> MakeAct(
+        ObjectiveKind kind,
+        Guid targetId,
+        Guid locationId
+    ) =>
         kind switch
         {
-            ObjectiveKind.KillCreature => new CreatureKilledEvent(
-                _player.Id,
-                WorldId,
-                targetId,
-                CreatureType.Beast
-            ),
-            ObjectiveKind.KillCreatureType => new CreatureKilledEvent(
-                _player.Id,
-                WorldId,
-                Guid.NewGuid(),
-                CreatureType.Beast
-            ),
-            ObjectiveKind.CollectItem => new ItemAcquiredEvent(_player.Id, WorldId, targetId),
-            ObjectiveKind.ExploreLocation => new PlayerMovedEvent(_player.Id, WorldId, locationId),
-            ObjectiveKind.SpeakToCreature => new ConversationStartedEvent(
-                _player.Id,
-                WorldId,
-                targetId
-            ),
+            ObjectiveKind.KillCreature => cancellationToken =>
+                _serviceProvider
+                    .GetRequiredService<CreatureKilledQuestEventHandler>()
+                    .Handle(
+                        new CreatureKilledQuestEvent(
+                            _player.Id,
+                            WorldId,
+                            targetId,
+                            CreatureType.Beast
+                        ),
+                        cancellationToken
+                    ),
+            ObjectiveKind.KillCreatureType => cancellationToken =>
+                _serviceProvider
+                    .GetRequiredService<CreatureKilledQuestEventHandler>()
+                    .Handle(
+                        new CreatureKilledQuestEvent(
+                            _player.Id,
+                            WorldId,
+                            Guid.NewGuid(),
+                            CreatureType.Beast
+                        ),
+                        cancellationToken
+                    ),
+            ObjectiveKind.CollectItem => cancellationToken =>
+                _serviceProvider
+                    .GetRequiredService<ItemAcquiredQuestEventHandler>()
+                    .Handle(
+                        new ItemAcquiredQuestEvent(_player.Id, WorldId, targetId),
+                        cancellationToken
+                    ),
+            ObjectiveKind.ExploreLocation => cancellationToken =>
+                _serviceProvider
+                    .GetRequiredService<PlayerMovedQuestEventHandler>()
+                    .Handle(
+                        new PlayerMovedQuestEvent(_player.Id, WorldId, locationId),
+                        cancellationToken
+                    ),
+            ObjectiveKind.SpeakToCreature => cancellationToken =>
+                _serviceProvider
+                    .GetRequiredService<ConversationStartedQuestEventHandler>()
+                    .Handle(
+                        new ConversationStartedQuestEvent(_player.Id, WorldId, targetId),
+                        cancellationToken
+                    ),
             _ => throw new InvalidOperationException(),
         };
 
@@ -197,6 +223,6 @@ public sealed class QuestEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
     private sealed record SeededObjective(
         CreatureQuestObjective Progress,
         CreatureQuest CreatureQuest,
-        GameEvent Event
+        Func<CancellationToken, Task> Act
     );
 }

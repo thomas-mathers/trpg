@@ -22,7 +22,7 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class ChatHub(
     GameTurnRunner turnRunner,
     GameTurnContext turnContext,
-    IGameClientEventPublisher gameEvents,
+    IGameClientEventSink gameEvents,
     GameClientEventDispatcher eventDispatcher,
     GetGameSessionQueryHandler getGameSession,
     EndGameSessionCommandHandler endGameSession,
@@ -170,7 +170,7 @@ internal sealed class ChatHub(
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
-            gameEvents.Publish(
+            gameEvents.Enqueue(
                 new SceneUpdatedEvent(
                     SceneSnapshotMapper.ToSnapshot(after),
                     SceneUpdateReason.Synced

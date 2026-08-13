@@ -1,5 +1,4 @@
 using System.Transactions;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
@@ -26,8 +25,8 @@ internal class ResolveCombatRoundCommandHandler(
     AdjustCreatureSkillsCommandHandler adjustCreatureSkills,
     RemoveInventoryItemCommandHandler removeInventoryItem,
     EndFightCommandHandler endFight,
-    IGameClientEventPublisher gameEvents,
-    QuestEventHandler questEvents
+    IGameClientEventSink gameEvents,
+    CreatureKilledQuestEventHandler creatureKilledQuestEvents
 )
 {
     public async Task<CombatResult> Handle(
@@ -48,7 +47,7 @@ internal class ResolveCombatRoundCommandHandler(
 
         if (command.PublishEvents)
         {
-            gameEvents.Publish(
+            gameEvents.Enqueue(
                 new CombatUpdatedEvent(
                     FightStateMapper.ToFightState(command.Combatants),
                     CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
@@ -111,7 +110,7 @@ internal class ResolveCombatRoundCommandHandler(
             );
             if (command.PublishEvents)
             {
-                gameEvents.Publish(new CombatEndedEvent(state.Outcome));
+                gameEvents.Enqueue(new CombatEndedEvent(state.Outcome));
             }
         }
 
@@ -121,8 +120,8 @@ internal class ResolveCombatRoundCommandHandler(
             )
         )
         {
-            await questEvents.Handle(
-                new CreatureKilledEvent(
+            await creatureKilledQuestEvents.Handle(
+                new CreatureKilledQuestEvent(
                     command.PlayerId,
                     command.WorldId,
                     combatant.CreatureId,

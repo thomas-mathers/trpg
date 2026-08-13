@@ -8,13 +8,13 @@ public record SkillLevelUpEvent(
     int Level,
     int CharacterExperienceCurrent,
     int CharacterExperienceToNextLevel
-) : GameTurnEvent
+) : GameClientEvent
 {
     public override string MethodName => "SkillLevelUp";
     public override object? Payload => this;
 }
 
-public record CharacterLevelUpEvent(int Level) : GameTurnEvent
+public record CharacterLevelUpEvent(int Level) : GameClientEvent
 {
     public override string MethodName => "CharacterLevelUp";
     public override object? Payload => this;

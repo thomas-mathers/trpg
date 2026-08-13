@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Common.Events;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Quests.Commands;
 using TRPG.Data;
@@ -7,21 +6,26 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests;
 
-internal sealed class QuestEventHandler(
+internal sealed class QuestObjectiveAdvancer(
     MarkQuestsReadyToCompleteCommandHandler markQuestsReadyToComplete,
-    IGameClientEventPublisher gameEvents,
+    IGameClientEventSink gameEvents,
     TrpgDbContext context
 )
 {
-    public async Task Handle(GameEvent gameEvent, CancellationToken cancellationToken = default)
+    public async Task Advance(
+        Guid playerId,
+        Guid worldId,
+        Func<QuestObjective, bool> matches,
+        CancellationToken cancellationToken
+    )
     {
         var objectives = await context
             .CreatureQuestObjectives.Include(progress => progress.Objective)
             .Where(progress =>
-                progress.CreatureId == gameEvent.PlayerId
-                && progress.WorldId == gameEvent.WorldId
+                progress.CreatureId == playerId
+                && progress.WorldId == worldId
                 && context.CreatureQuests.Any(quest =>
-                    quest.CreatureId == gameEvent.PlayerId
+                    quest.CreatureId == playerId
                     && quest.QuestId == progress.Objective.QuestId
                     && quest.Status == QuestStatus.Accepted
                 )
@@ -29,7 +33,7 @@ internal sealed class QuestEventHandler(
             .ToListAsync(cancellationToken);
 
         var progressedObjectives = objectives
-            .Where(objective => Matches(objective.Objective, gameEvent))
+            .Where(objective => matches(objective.Objective))
             .Where(CanAdvance)
             .ToArray();
 
@@ -46,11 +50,11 @@ internal sealed class QuestEventHandler(
         await markQuestsReadyToComplete.Handle(
             new MarkQuestsReadyToCompleteCommand
             {
-                PlayerId = gameEvent.PlayerId,
+                PlayerId = playerId,
                 QuestIds = progressedObjectives
                     .Select(objective => objective.Objective.QuestId)
                     .ToArray(),
-                WorldId = gameEvent.WorldId,
+                WorldId = worldId,
             },
             cancellationToken
         );
@@ -63,28 +67,12 @@ internal sealed class QuestEventHandler(
             )
         )
         {
-            gameEvents.Publish(new QuestObjectiveCompletedEvent(objective.Objective.Name));
+            gameEvents.Enqueue(new QuestObjectiveCompletedEvent(objective.Objective.Name));
         }
 
-        gameEvents.Publish(new QuestJournalUpdatedEvent());
+        gameEvents.Enqueue(new QuestJournalUpdatedEvent());
     }
 
     private static bool CanAdvance(CreatureQuestObjective objective) =>
         objective.Amount < objective.Objective.RequiredAmount;
-
-    private static bool Matches(QuestObjective objective, GameEvent gameEvent) =>
-        (objective, gameEvent) switch
-        {
-            (KillCreatureObjective kill, CreatureKilledEvent killed) => kill.CreatureId
-                == killed.CreatureId,
-            (KillCreatureTypeObjective kill, CreatureKilledEvent killed) => kill.CreatureType
-                == killed.CreatureType,
-            (ExploreLocationObjective explore, PlayerMovedEvent entered) => explore.LocationId
-                == entered.LocationId,
-            (SpeakToCreatureObjective speak, ConversationStartedEvent conversation) =>
-                speak.CreatureId == conversation.CreatureId,
-            (CollectItemObjective collect, ItemAcquiredEvent acquired) => collect.ItemId
-                == acquired.ItemId,
-            _ => false,
-        };
 }
