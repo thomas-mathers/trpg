@@ -114,6 +114,6 @@ public class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache)
         await transaction.CommitAsync(cancellationToken);
 
         cache.Remove(GetLoreAnchorsByWorldQueryHandler.CacheKey(worldId));
-        cache.Remove(GetEntityNameAutomatonByWorldQueryHandler.CacheKey(worldId));
+        cache.Remove(GetLoreAnchorAutomatonByWorldQueryHandler.CacheKey(worldId));
     }
 }

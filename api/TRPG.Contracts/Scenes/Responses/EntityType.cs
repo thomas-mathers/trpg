@@ -11,11 +11,3 @@ public enum EntityType
     City,
     Item,
 }
-
-public record LoreAnchor(
-    Guid Id,
-    string Name,
-    EntityType Type,
-    string? Subtype,
-    string Description
-);

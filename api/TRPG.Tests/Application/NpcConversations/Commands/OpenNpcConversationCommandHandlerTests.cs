@@ -1,20 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Conversations.Commands;
+using TRPG.Application.NpcConversations.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Conversations.Commands;
+namespace TRPG.Tests.Application.NpcConversations.Commands;
 
 [Collection("Database")]
-public sealed class OpenConversationCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private OpenConversationCommandHandler _handler = null!;
+    private OpenNpcConversationCommandHandler _handler = null!;
     private GameSession _session = null!;
 
     public async ValueTask InitializeAsync()
@@ -24,7 +24,7 @@ public sealed class OpenConversationCommandHandlerTests(DatabaseFixture db) : IA
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<OpenConversationCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<OpenNpcConversationCommandHandler>();
 
         _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
         _context.GameSessions.Add(_session);
@@ -42,7 +42,7 @@ public sealed class OpenConversationCommandHandlerTests(DatabaseFixture db) : IA
     {
         // Act
         var outcome = await _handler.Handle(
-            new OpenConversationCommand
+            new OpenNpcConversationCommand
             {
                 SessionId = _session.Id,
                 NpcId = Guid.NewGuid(),
@@ -52,7 +52,7 @@ public sealed class OpenConversationCommandHandlerTests(DatabaseFixture db) : IA
         );
 
         // Assert
-        Assert.Equal(OpenConversationOutcome.Opened, outcome);
+        Assert.Equal(OpenNpcConversationOutcome.Opened, outcome);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class OpenConversationCommandHandlerTests(DatabaseFixture db) : IA
 
         // Act
         await _handler.Handle(
-            new OpenConversationCommand
+            new OpenNpcConversationCommand
             {
                 SessionId = _session.Id,
                 NpcId = npcId,
@@ -84,7 +84,7 @@ public sealed class OpenConversationCommandHandlerTests(DatabaseFixture db) : IA
     {
         // Arrange
         await _handler.Handle(
-            new OpenConversationCommand
+            new OpenNpcConversationCommand
             {
                 SessionId = _session.Id,
                 NpcId = Guid.NewGuid(),
@@ -95,7 +95,7 @@ public sealed class OpenConversationCommandHandlerTests(DatabaseFixture db) : IA
 
         // Act
         var outcome = await _handler.Handle(
-            new OpenConversationCommand
+            new OpenNpcConversationCommand
             {
                 SessionId = _session.Id,
                 NpcId = Guid.NewGuid(),
@@ -105,6 +105,6 @@ public sealed class OpenConversationCommandHandlerTests(DatabaseFixture db) : IA
         );
 
         // Assert
-        Assert.Equal(OpenConversationOutcome.AlreadyOpen, outcome);
+        Assert.Equal(OpenNpcConversationOutcome.AlreadyOpen, outcome);
     }
 }

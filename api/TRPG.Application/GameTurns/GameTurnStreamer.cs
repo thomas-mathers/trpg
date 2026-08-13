@@ -2,12 +2,16 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Chat;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
+using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 
@@ -21,14 +25,16 @@ internal abstract record GameTurnPrompt
 }
 
 internal class GameTurnStreamer(
-    GameChatCompletionStreamer chatCompletionStreamer,
-    LingeringConversationCloser conversationCloser,
+    LlmConversationClient llmConversationClient,
+    CloseLingeringNpcConversationsCommandHandler closeLingeringConversations,
     GameTurnContext turnContext,
     ApplyPassiveRegenCommandHandler applyPassiveRegen,
-    GetEntityNameAutomatonByWorldQueryHandler getEntityNameAutomatonByWorld,
+    AdvanceTimeCommandHandler advanceTime,
+    GetLoreAnchorAutomatonByWorldQueryHandler getLoreAnchorAutomatonByWorld,
     GetCurrentSceneQueryHandler getCurrentScene,
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
+    IOptionsSnapshot<GameClockOptions> gameClockOptions,
     ILogger<GameTurnStreamer> logger
 )
 {
@@ -50,7 +56,16 @@ internal class GameTurnStreamer(
         {
             await BeginTurn(session, cancellationToken);
 
-            var streamedReply = await chatCompletionStreamer.StreamReply(
+            await advanceTime.Handle(
+                new AdvanceTimeCommand
+                {
+                    SessionId = session.SessionId,
+                    Delta = gameClockOptions.Value.RealTimePerMessage,
+                },
+                cancellationToken
+            );
+
+            var streamedReply = await llmConversationClient.StreamReply(
                 narrate.Text,
                 narrate.IncludeTools,
                 cancellationToken
@@ -80,12 +95,12 @@ internal class GameTurnStreamer(
             cancellationToken
         );
 
-        var automaton = await getEntityNameAutomatonByWorld.Handle(
-            new GetEntityNameAutomatonByWorldQuery { WorldId = turnContext.WorldId },
+        var automaton = await getLoreAnchorAutomatonByWorld.Handle(
+            new GetLoreAnchorAutomatonByWorldQuery { WorldId = turnContext.WorldId },
             cancellationToken
         );
 
-        var linkedTokens = NarrationEntityLinker.Link(tokens, automaton, cancellationToken);
+        var linkedTokens = LoreAnchorLinker.Link(tokens, automaton, cancellationToken);
 
         await foreach (var token in linkedTokens)
         {
@@ -138,7 +153,14 @@ internal class GameTurnStreamer(
 
         if (turnContext.PlayerMoved)
         {
-            await conversationCloser.CloseAll(currentTurnStart, cancellationToken);
+            await closeLingeringConversations.Handle(
+                new CloseLingeringNpcConversationsCommand
+                {
+                    SessionId = turnContext.SessionId,
+                    CurrentTurnStart = currentTurnStart,
+                },
+                cancellationToken
+            );
         }
 
         logger.LogInformation(

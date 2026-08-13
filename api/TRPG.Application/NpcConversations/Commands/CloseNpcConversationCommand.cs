@@ -1,15 +1,15 @@
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 
-namespace TRPG.Application.Conversations.Commands;
+namespace TRPG.Application.NpcConversations.Commands;
 
-internal enum CloseConversationOutcome
+internal enum CloseNpcConversationOutcome
 {
     Closed,
     NotOpen,
 }
 
-internal class CloseConversationCommand
+internal class CloseNpcConversationCommand
 {
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
@@ -18,14 +18,14 @@ internal class CloseConversationCommand
     public required string Summary { get; init; }
 }
 
-internal class CloseConversationCommandHandler(
+internal class CloseNpcConversationCommandHandler(
     GetGameSessionQueryHandler getGameSession,
-    SetConversationSummaryCommandHandler setConversationSummary,
+    SetNpcConversationSummaryCommandHandler setNpcConversationSummary,
     UpdateGameSessionCommandHandler updateGameSession
 )
 {
-    public async Task<CloseConversationOutcome> Handle(
-        CloseConversationCommand command,
+    public async Task<CloseNpcConversationOutcome> Handle(
+        CloseNpcConversationCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -35,11 +35,11 @@ internal class CloseConversationCommandHandler(
         );
         if (!snapshot.OpenConversationCreatureIdsByName.TryGetValue(command.NpcName, out var npcId))
         {
-            return CloseConversationOutcome.NotOpen;
+            return CloseNpcConversationOutcome.NotOpen;
         }
 
-        await setConversationSummary.Handle(
-            new SetConversationSummaryCommand
+        await setNpcConversationSummary.Handle(
+            new SetNpcConversationSummaryCommand
             {
                 WorldId = command.WorldId,
                 CreatureId = command.PlayerId,
@@ -59,6 +59,6 @@ internal class CloseConversationCommandHandler(
             cancellationToken
         );
 
-        return CloseConversationOutcome.Closed;
+        return CloseNpcConversationOutcome.Closed;
     }
 }

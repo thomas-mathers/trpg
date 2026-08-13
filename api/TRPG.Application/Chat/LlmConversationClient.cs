@@ -9,25 +9,20 @@ using TRPG.Application.Chat.Commands;
 using TRPG.Application.Chat.Queries;
 using TRPG.Application.Common;
 using TRPG.Application.Configuration;
-using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameTurns;
-using TRPG.Data;
 
 namespace TRPG.Application.Chat;
 
 internal sealed record StreamedReply(int InputOrdinal, IAsyncEnumerable<string> Tokens);
 
-internal class GameChatCompletionStreamer(
+internal class LlmConversationClient(
     [FromKeyedServices(LlmRoleKeys.Gameplay)] IChatClient chatClient,
-    TrpgDbContext context,
     GameTurnContext turnContext,
     GetChatMessagesQueryHandler getChatMessages,
     AppendChatMessagesCommandHandler appendChatMessages,
-    AdvanceTimeCommandHandler advanceTime,
     IEnumerable<AIFunction> tools,
     IOptionsMonitor<LlmRoleOptions> optionsMonitor,
-    IOptionsSnapshot<GameClockOptions> gameClockOptions,
-    ILogger<GameChatCompletionStreamer> logger
+    ILogger<LlmConversationClient> logger
 )
 {
     public async Task<StreamedReply> StreamReply(
@@ -49,10 +44,6 @@ internal class GameChatCompletionStreamer(
 
         var stopwatch = Stopwatch.StartNew();
 
-        await using var transaction = await context.Database.BeginTransactionAsync(
-            cancellationToken
-        );
-
         var inputOrdinal = await appendChatMessages.Handle(
             new AppendChatMessagesCommand
             {
@@ -62,19 +53,8 @@ internal class GameChatCompletionStreamer(
             cancellationToken
         );
 
-        await advanceTime.Handle(
-            new AdvanceTimeCommand
-            {
-                SessionId = turnContext.SessionId,
-                Delta = gameClockOptions.Value.RealTimePerMessage,
-            },
-            cancellationToken
-        );
-
-        await transaction.CommitAsync(cancellationToken);
-
         logger.LogInformation(
-            "[perf] AppendUserMessage (append + advance time) took {ElapsedMs}ms",
+            "[perf] AppendUserMessage took {ElapsedMs}ms",
             stopwatch.ElapsedMilliseconds
         );
 

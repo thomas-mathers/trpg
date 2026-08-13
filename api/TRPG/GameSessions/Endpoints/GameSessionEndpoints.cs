@@ -5,6 +5,7 @@ using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
+using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
@@ -12,6 +13,7 @@ using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
+using TRPG.Contracts.Narration.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.GameSessions.Hubs;
 

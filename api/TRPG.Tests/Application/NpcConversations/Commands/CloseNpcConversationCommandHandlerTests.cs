@@ -1,23 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Conversations.Commands;
-using TRPG.Application.Conversations.Queries;
+using TRPG.Application.NpcConversations.Commands;
+using TRPG.Application.NpcConversations.Queries;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Conversations.Commands;
+namespace TRPG.Tests.Application.NpcConversations.Commands;
 
 [Collection("Database")]
-public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid PlayerId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private CloseConversationCommandHandler _handler = null!;
-    private GetConversationSummaryQueryHandler _getSummary = null!;
+    private CloseNpcConversationCommandHandler _handler = null!;
+    private GetNpcConversationSummaryQueryHandler _getSummary = null!;
     private GameSession _session = null!;
 
     public async ValueTask InitializeAsync()
@@ -27,8 +27,8 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _getSummary = _serviceProvider.GetRequiredService<GetConversationSummaryQueryHandler>();
-        _handler = _serviceProvider.GetRequiredService<CloseConversationCommandHandler>();
+        _getSummary = _serviceProvider.GetRequiredService<GetNpcConversationSummaryQueryHandler>();
+        _handler = _serviceProvider.GetRequiredService<CloseNpcConversationCommandHandler>();
 
         _session = Builders.MakeGameSession(WorldId, PlayerId);
         _context.GameSessions.Add(_session);
@@ -61,7 +61,7 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
     {
         // Act
         var outcome = await _handler.Handle(
-            new CloseConversationCommand
+            new CloseNpcConversationCommand
             {
                 SessionId = _session.Id,
                 WorldId = WorldId,
@@ -73,7 +73,7 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
         );
 
         // Assert
-        Assert.Equal(CloseConversationOutcome.NotOpen, outcome);
+        Assert.Equal(CloseNpcConversationOutcome.NotOpen, outcome);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
 
         // Act
         var outcome = await _handler.Handle(
-            new CloseConversationCommand
+            new CloseNpcConversationCommand
             {
                 SessionId = _session.Id,
                 WorldId = WorldId,
@@ -97,7 +97,7 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
         );
 
         // Assert
-        Assert.Equal(CloseConversationOutcome.Closed, outcome);
+        Assert.Equal(CloseNpcConversationOutcome.Closed, outcome);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
 
         // Act
         await _handler.Handle(
-            new CloseConversationCommand
+            new CloseNpcConversationCommand
             {
                 SessionId = _session.Id,
                 WorldId = WorldId,
@@ -122,7 +122,7 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
 
         // Assert
         var summary = await _getSummary.Handle(
-            new GetConversationSummaryQuery { CreatureId = PlayerId, NpcId = npcId },
+            new GetNpcConversationSummaryQuery { CreatureId = PlayerId, NpcId = npcId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal("They fought briefly.", summary);
@@ -137,7 +137,7 @@ public sealed class CloseConversationCommandHandlerTests(DatabaseFixture db) : I
 
         // Act
         await _handler.Handle(
-            new CloseConversationCommand
+            new CloseNpcConversationCommand
             {
                 SessionId = _session.Id,
                 WorldId = WorldId,

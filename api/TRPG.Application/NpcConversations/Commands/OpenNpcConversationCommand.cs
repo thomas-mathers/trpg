@@ -3,30 +3,30 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Quests;
 using TRPG.Data;
 
-namespace TRPG.Application.Conversations.Commands;
+namespace TRPG.Application.NpcConversations.Commands;
 
-internal enum OpenConversationOutcome
+internal enum OpenNpcConversationOutcome
 {
     Opened,
     AlreadyOpen,
 }
 
-internal class OpenConversationCommand
+internal class OpenNpcConversationCommand
 {
     public required Guid SessionId { get; init; }
     public required Guid NpcId { get; init; }
     public required string NpcName { get; init; }
 }
 
-internal class OpenConversationCommandHandler(
+internal class OpenNpcConversationCommandHandler(
     TrpgDbContext context,
     ConversationStartedQuestEventHandler conversationStartedQuestEvents,
     GetGameSessionQueryHandler getGameSession,
     UpdateGameSessionCommandHandler updateGameSession
 )
 {
-    public async Task<OpenConversationOutcome> Handle(
-        OpenConversationCommand command,
+    public async Task<OpenNpcConversationOutcome> Handle(
+        OpenNpcConversationCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -40,7 +40,7 @@ internal class OpenConversationCommandHandler(
         if (snapshot.OpenConversationCreatureIdsByName.ContainsKey(command.NpcName))
         {
             await transaction.CommitAsync(cancellationToken);
-            return OpenConversationOutcome.AlreadyOpen;
+            return OpenNpcConversationOutcome.AlreadyOpen;
         }
 
         snapshot.OpenConversationCreatureIdsByName[command.NpcName] = command.NpcId;
@@ -62,6 +62,6 @@ internal class OpenConversationCommandHandler(
             cancellationToken
         );
         await transaction.CommitAsync(cancellationToken);
-        return OpenConversationOutcome.Opened;
+        return OpenNpcConversationOutcome.Opened;
     }
 }

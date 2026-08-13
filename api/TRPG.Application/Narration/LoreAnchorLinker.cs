@@ -1,14 +1,14 @@
 using System.Runtime.CompilerServices;
 using System.Text;
-using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Narration.Queries;
 
 namespace TRPG.Application.Narration;
 
-internal static class NarrationEntityLinker
+internal static class LoreAnchorLinker
 {
     public static async IAsyncEnumerable<string> Link(
         IAsyncEnumerable<string> tokens,
-        EntityNameAutomaton automaton,
+        LoreAnchorAutomaton automaton,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )
     {
@@ -33,12 +33,12 @@ internal static class NarrationEntityLinker
 
     private sealed record Checkpoint(int Length, LoreAnchorSummary Entity);
 
-    private sealed class MatchState(EntityNameAutomaton automaton)
+    private sealed class MatchState(LoreAnchorAutomaton automaton)
     {
         private readonly StringBuilder _pendingText = new();
         private readonly StringBuilder _activeSpan = new();
         private readonly Queue<char> _requeue = new();
-        private EntityNameAutomaton.Node _node = automaton.Root;
+        private LoreAnchorAutomaton.Node _node = automaton.Root;
         private Checkpoint? _checkpoint;
 
         public IEnumerable<string> Advance(char c)

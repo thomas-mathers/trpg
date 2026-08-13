@@ -1,18 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 
-namespace TRPG.Application.Conversations.Queries;
+namespace TRPG.Application.NpcConversations.Queries;
 
-internal class GetConversationSummaryQuery
+internal class GetNpcConversationSummaryQuery
 {
     public required Guid CreatureId { get; init; }
     public required Guid NpcId { get; init; }
 }
 
-internal class GetConversationSummaryQueryHandler(TrpgDbContext context)
+internal class GetNpcConversationSummaryQueryHandler(TrpgDbContext context)
 {
     public async Task<string> Handle(
-        GetConversationSummaryQuery query,
+        GetNpcConversationSummaryQuery query,
         CancellationToken cancellationToken = default
     )
     {

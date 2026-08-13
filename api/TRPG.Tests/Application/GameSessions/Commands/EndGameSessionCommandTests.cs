@@ -43,13 +43,13 @@ public sealed class EndGameSessionCommandTests(DatabaseFixture db) : IAsyncLifet
     }
 
     [Fact]
-    public async Task Handle_ClearsTheNamedEntityCaches_ForTheSessionsWorld()
+    public async Task Handle_ClearsTheLoreAnchorCaches_ForTheSessionsWorld()
     {
         // Arrange
         var cache = _serviceProvider.GetRequiredService<IMemoryCache>();
-        var namedEntitiesKey = GetNamedEntitiesByWorldQueryHandler.CacheKey(_world.Id);
-        var automatonKey = GetEntityNameAutomatonByWorldQueryHandler.CacheKey(_world.Id);
-        cache.Set(namedEntitiesKey, Array.Empty<object>());
+        var loreAnchorsKey = GetLoreAnchorsByWorldQueryHandler.CacheKey(_world.Id);
+        var automatonKey = GetLoreAnchorAutomatonByWorldQueryHandler.CacheKey(_world.Id);
+        cache.Set(loreAnchorsKey, Array.Empty<object>());
         cache.Set(automatonKey, new object());
 
         // Act
@@ -59,7 +59,7 @@ public sealed class EndGameSessionCommandTests(DatabaseFixture db) : IAsyncLifet
         );
 
         // Assert
-        Assert.False(cache.TryGetValue(namedEntitiesKey, out _));
+        Assert.False(cache.TryGetValue(loreAnchorsKey, out _));
         Assert.False(cache.TryGetValue(automatonKey, out _));
     }
 

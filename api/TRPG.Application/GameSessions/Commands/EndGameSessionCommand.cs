@@ -55,6 +55,6 @@ internal class EndGameSessionCommandHandler(
         );
 
         cache.Remove(GetLoreAnchorsByWorldQueryHandler.CacheKey(snapshot.WorldId));
-        cache.Remove(GetEntityNameAutomatonByWorldQueryHandler.CacheKey(snapshot.WorldId));
+        cache.Remove(GetLoreAnchorAutomatonByWorldQueryHandler.CacheKey(snapshot.WorldId));
     }
 }

@@ -1,16 +1,16 @@
-using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Narration.Queries;
 
 namespace TRPG.Application.Narration;
 
-internal sealed class EntityNameAutomaton
+internal sealed class LoreAnchorAutomaton
 {
     public Node Root { get; } = new(depth: 0);
 
-    private EntityNameAutomaton() { }
+    private LoreAnchorAutomaton() { }
 
-    public static EntityNameAutomaton Build(IReadOnlyCollection<LoreAnchorSummary> entities)
+    public static LoreAnchorAutomaton Build(IReadOnlyCollection<LoreAnchorSummary> entities)
     {
-        var automaton = new EntityNameAutomaton();
+        var automaton = new LoreAnchorAutomaton();
         automaton.Root.Fail = automaton.Root;
         var ambiguousNames = entities
             .GroupBy(entity => entity.Name, StringComparer.OrdinalIgnoreCase)
@@ -36,19 +36,6 @@ internal sealed class EntityNameAutomaton
         automaton.ComputeFailureLinks();
         return automaton;
     }
-
-    public static EntityNameAutomaton Build(IReadOnlyCollection<NamedEntitySummary> entities) =>
-        Build(
-            entities
-                .Select(entity => new LoreAnchorSummary(
-                    entity.Id,
-                    entity.Name,
-                    (LoreAnchorType)entity.Type,
-                    entity.Subtype,
-                    entity.Description
-                ))
-                .ToArray()
-        );
 
     private void ComputeFailureLinks()
     {

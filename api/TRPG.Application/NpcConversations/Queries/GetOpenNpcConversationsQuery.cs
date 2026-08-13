@@ -2,17 +2,17 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Data;
 
-namespace TRPG.Application.GameSessions.Queries;
+namespace TRPG.Application.NpcConversations.Queries;
 
-internal class GetOpenConversationsQuery
+internal class GetOpenNpcConversationsQuery
 {
     public required Guid SessionId { get; init; }
 }
 
-internal class GetOpenConversationsQueryHandler(TrpgDbContext context)
+internal class GetOpenNpcConversationsQueryHandler(TrpgDbContext context)
 {
     public async Task<Dictionary<string, Guid>> Handle(
-        GetOpenConversationsQuery query,
+        GetOpenNpcConversationsQuery query,
         CancellationToken cancellationToken = default
     )
     {
