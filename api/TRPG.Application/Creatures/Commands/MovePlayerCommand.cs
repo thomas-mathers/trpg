@@ -2,7 +2,6 @@ using System.Transactions;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
@@ -25,7 +24,7 @@ internal class MovePlayerCommand
 internal record MovePlayerResult(EntryOutcome Outcome, Creature Player);
 
 internal class MovePlayerCommandHandler(
-    QuestEventHandler questEvents,
+    PlayerMovedQuestEventHandler playerMovedQuestEvents,
     GetCreatureByIdQueryHandler getCreatureById,
     GetLocationByIdQueryHandler getLocationById,
     GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
@@ -81,8 +80,8 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        await questEvents.Handle(
-            new PlayerMovedEvent(
+        await playerMovedQuestEvents.Handle(
+            new PlayerMovedQuestEvent(
                 PlayerId: player.Id,
                 WorldId: player.WorldId,
                 LocationId: player.LocationId

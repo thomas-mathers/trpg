@@ -17,7 +17,7 @@ internal class AdjustCreatureSkillsCommand
 internal class AdjustCreatureSkillsCommandHandler(
     TrpgDbContext context,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot,
-    IGameClientEventPublisher gameEvents
+    IGameClientEventSink gameEvents
 )
 {
     public async Task Handle(
@@ -91,7 +91,7 @@ internal class AdjustCreatureSkillsCommandHandler(
 
         foreach (var (skill, level) in skillLevelUps)
         {
-            gameEvents.Publish(
+            gameEvents.Enqueue(
                 new SkillLevelUpEvent(
                     skill,
                     level,
@@ -102,7 +102,7 @@ internal class AdjustCreatureSkillsCommandHandler(
         }
         foreach (var characterLevelUp in characterLevelUps)
         {
-            gameEvents.Publish(characterLevelUp);
+            gameEvents.Enqueue(characterLevelUp);
         }
     }
 }

@@ -11,7 +11,7 @@ namespace TRPG.Application.Quests.Tools;
 
 internal class ShowQuestDetailsTool(
     GameTurnContext turnContext,
-    IGameClientEventPublisher gameEvents,
+    IGameClientEventSink gameEvents,
     GetCreatureByIdQueryHandler getCreatureById,
     GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
     GetQuestInteractionsForGiverQueryHandler getQuestInteractions,
@@ -80,7 +80,7 @@ internal class ShowQuestDetailsTool(
 
         if (availableQuest is not null)
         {
-            gameEvents.Publish(
+            gameEvents.Enqueue(
                 new QuestDialogRequestedEvent(
                     turnContext.WorldId,
                     availableQuest,
@@ -90,7 +90,7 @@ internal class ShowQuestDetailsTool(
         }
         else if (readyQuest is not null)
         {
-            gameEvents.Publish(
+            gameEvents.Enqueue(
                 new QuestDialogRequestedEvent(
                     turnContext.WorldId,
                     readyQuest,

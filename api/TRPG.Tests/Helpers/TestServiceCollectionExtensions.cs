@@ -16,18 +16,16 @@ internal static class TestServiceCollectionExtensions
     ) =>
         services
             .AddTrpgApplicationServices()
-            .AddScoped<TestGameClientEventPublisher>()
-            .AddScoped<IGameClientEventPublisher>(sp =>
-                sp.GetRequiredService<TestGameClientEventPublisher>()
-            )
+            .AddScoped<TestGameClientEventSink>()
+            .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<TestGameClientEventSink>())
             .AddSingleton(context)
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddSingleton(typeof(IOptionsSnapshot<>), typeof(DefaultOptionsSnapshot<>));
 }
 
-internal sealed class TestGameClientEventPublisher : IGameClientEventPublisher
+internal sealed class TestGameClientEventSink : IGameClientEventSink
 {
-    public List<GameTurnEvent> PublishedEvents { get; } = [];
+    public List<GameClientEvent> EnqueuedEvents { get; } = [];
 
-    public void Publish(GameTurnEvent gameEvent) => PublishedEvents.Add(gameEvent);
+    public void Enqueue(GameClientEvent gameEvent) => EnqueuedEvents.Add(gameEvent);
 }

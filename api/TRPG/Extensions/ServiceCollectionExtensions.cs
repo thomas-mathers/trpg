@@ -183,9 +183,7 @@ internal static class ServiceCollectionExtensions
     {
         return serviceCollection
             .AddScoped<GameClientEventBuffer>()
-            .AddScoped<IGameClientEventPublisher>(sp =>
-                sp.GetRequiredService<GameClientEventBuffer>()
-            )
+            .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<GameClientEventBuffer>())
             .AddScoped<IGameClientEventBuffer>(sp => sp.GetRequiredService<GameClientEventBuffer>())
             .AddScoped<GameClientEventDispatcher>()
             .AddSingleton<PendingSessionEndRegistry>();

@@ -11,7 +11,7 @@ namespace TRPG.Application.Combat.Tools;
 
 internal class StartFightTool(
     GameTurnContext turnContext,
-    IGameClientEventPublisher gameEvents,
+    IGameClientEventSink gameEvents,
     GetActiveFightQueryHandler getActiveFight,
     StartFightCommandHandler startFight,
     ILogger<StartFightTool> logger
@@ -56,7 +56,7 @@ internal class StartFightTool(
             cancellationToken
         );
 
-        gameEvents.Publish(new CombatStartedEvent(FightStateMapper.ToFightState(combatants)));
+        gameEvents.Enqueue(new CombatStartedEvent(FightStateMapper.ToFightState(combatants)));
 
         logger.LogInformation(
             "[perf] [attack] combat started in {ElapsedMs}ms",

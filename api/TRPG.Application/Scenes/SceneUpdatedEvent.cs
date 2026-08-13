@@ -10,7 +10,7 @@ public enum SceneUpdateReason
     Synced,
 }
 
-public record SceneUpdatedEvent(SceneSnapshot Scene, SceneUpdateReason Reason) : GameTurnEvent
+public record SceneUpdatedEvent(SceneSnapshot Scene, SceneUpdateReason Reason) : GameClientEvent
 {
     public override string MethodName => "SceneSnapshot";
     public override object? Payload => Scene;

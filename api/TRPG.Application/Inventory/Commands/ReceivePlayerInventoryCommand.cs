@@ -1,5 +1,4 @@
 using System.Transactions;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Quests;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
@@ -18,7 +17,7 @@ internal class ReceivePlayerInventoryCommand
 internal class ReceivePlayerInventoryCommandHandler(
     TrpgDbContext context,
     InventoryItemTransfer itemTransfer,
-    QuestEventHandler questEvents
+    ItemAcquiredQuestEventHandler itemAcquiredQuestEvents
 )
 {
     public async Task Handle(
@@ -44,8 +43,8 @@ internal class ReceivePlayerInventoryCommandHandler(
 
         foreach (var item in command.Items)
         {
-            await questEvents.Handle(
-                new ItemAcquiredEvent(command.PlayerId, command.WorldId, item.ItemId),
+            await itemAcquiredQuestEvents.Handle(
+                new ItemAcquiredQuestEvent(command.PlayerId, command.WorldId, item.ItemId),
                 cancellationToken
             );
         }

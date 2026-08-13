@@ -225,9 +225,9 @@ public sealed class ReceivePlayerInventoryCommandHandlerTests(DatabaseFixture db
 
         // Assert
         Assert.Equal(1, progress.Amount);
-        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventPublisher>();
+        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
         Assert.Collection(
-            gameEvents.PublishedEvents,
+            gameEvents.EnqueuedEvents,
             gameEvent => Assert.IsType<QuestObjectiveCompletedEvent>(gameEvent),
             gameEvent => Assert.IsType<QuestJournalUpdatedEvent>(gameEvent)
         );
