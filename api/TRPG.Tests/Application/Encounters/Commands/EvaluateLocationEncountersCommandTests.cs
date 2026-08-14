@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Worlds.Encounters.Commands;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Worlds.Encounters.Commands;
+namespace TRPG.Tests.Application.Encounters.Commands;
 
 [Collection("Database")]
 public sealed class EvaluateLocationEncountersCommandTests(DatabaseFixture db) : IAsyncLifetime

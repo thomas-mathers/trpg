@@ -4,12 +4,12 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameTurns;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests.Queries;
-using TRPG.Application.Worlds.Encounters.Queries;
 
 namespace TRPG.Application.NpcConversations.Tools;
 

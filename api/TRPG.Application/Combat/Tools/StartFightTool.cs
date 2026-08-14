@@ -7,8 +7,8 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Worlds.Encounters.Queries;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Tools;

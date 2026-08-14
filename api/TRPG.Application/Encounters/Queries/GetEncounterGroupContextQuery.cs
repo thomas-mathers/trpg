@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Worlds.Encounters.Queries;
+namespace TRPG.Application.Encounters.Queries;
 
 internal record EncounterGroupContext(
     EncounterGroup Group,

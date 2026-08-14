@@ -1,4 +1,4 @@
-namespace TRPG.Application.Worlds.Encounters;
+namespace TRPG.Application.Encounters;
 
 internal enum HostileEncounterActionKind
 {

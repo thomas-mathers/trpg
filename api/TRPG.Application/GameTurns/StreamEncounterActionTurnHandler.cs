@@ -2,10 +2,10 @@ using System.Text.Json;
 using TRPG.Application.Combat;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
+using TRPG.Application.Encounters;
+using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions;
-using TRPG.Application.Worlds.Encounters;
-using TRPG.Application.Worlds.Encounters.Commands;
-using TRPG.Application.Worlds.Encounters.Queries;
 using TRPG.Contracts.Encounters.Requests;
 
 namespace TRPG.Application.GameTurns;

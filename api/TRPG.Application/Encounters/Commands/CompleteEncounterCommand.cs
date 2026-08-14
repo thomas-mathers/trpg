@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Worlds.Encounters.Commands;
+namespace TRPG.Application.Encounters.Commands;
 
 internal class CompleteEncounterCommand
 {

@@ -1,6 +1,6 @@
-using TRPG.Application.Worlds.Encounters;
+using TRPG.Application.Encounters;
 
-namespace TRPG.Tests.Application.Worlds.Encounters;
+namespace TRPG.Tests.Application.Encounters;
 
 public class HostileEncounterInitiationResolverTests
 {
