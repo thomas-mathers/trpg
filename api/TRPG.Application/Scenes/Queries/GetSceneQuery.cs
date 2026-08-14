@@ -423,7 +423,7 @@ internal class GetSceneQueryHandler(
             .Props.AsNoTracking()
             .OfType<Workstation>()
             .Where(w =>
-                nearbyCreatureIds.Contains(w.OccupantId ?? Guid.Empty)
+                nearbyCreatureIds.AsEnumerable().Contains(w.OccupantId ?? Guid.Empty)
                 && w.WorkstationType == WorkstationType.Trade
             )
             .ToDictionaryAsync(w => w.OccupantId!.Value, w => (Guid?)w.Id, cancellationToken);
@@ -466,7 +466,7 @@ internal class GetSceneQueryHandler(
             .ToArray();
         var destinations = await context
             .Locations.AsNoTracking()
-            .Where(location => destinationLocationIds.Contains(location.Id))
+            .Where(location => destinationLocationIds.AsEnumerable().Contains(location.Id))
             .ToDictionaryAsync(location => location.Id, cancellationToken);
         var districtIds = destinations
             .Values.Select(location => location.DistrictId)
@@ -474,7 +474,7 @@ internal class GetSceneQueryHandler(
             .ToArray();
         var districts = await context
             .Districts.AsNoTracking()
-            .Where(district => districtIds.Contains(district.Id))
+            .Where(district => districtIds.AsEnumerable().Contains(district.Id))
             .ToDictionaryAsync(district => district.Id, cancellationToken);
         var roomIds = destinations
             .Values.Select(location => location.RoomId)
@@ -487,7 +487,7 @@ internal class GetSceneQueryHandler(
         var buildingIds = rooms.Values.Select(room => room.BuildingId).ToArray();
         var buildings = await context
             .Buildings.AsNoTracking()
-            .Where(building => buildingIds.Contains(building.Id))
+            .Where(building => buildingIds.AsEnumerable().Contains(building.Id))
             .ToDictionaryAsync(building => building.Id, cancellationToken);
         var connectorIds = connectors.Select(connector => connector.Id).ToArray();
         var lockedConnectorIds = await context

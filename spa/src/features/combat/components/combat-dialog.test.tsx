@@ -6,7 +6,6 @@ import type {
   AbilitySummary,
   CombatantState,
   ConsumableSummary,
-  FightState,
   SceneSnapshot,
 } from '@/api/client';
 import {
@@ -42,7 +41,7 @@ const player: CombatantState = {
 };
 
 const goblin: CombatantState = { ...player, id: 'goblin-id', name: 'Goblin', isPlayer: false };
-const fight: FightState = { combatants: [player, goblin] };
+const fight: CombatantState[] = [player, goblin];
 
 const ui = {
   attack: byRole('button', { name: 'Attack' }),

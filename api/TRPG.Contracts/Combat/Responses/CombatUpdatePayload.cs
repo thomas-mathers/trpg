@@ -1,7 +1,7 @@
 namespace TRPG.Contracts.Combat.Responses;
 
 public record CombatUpdatePayload(
-    FightState FightState,
+    IReadOnlyCollection<CombatantState> Combatants,
     IReadOnlyList<CombatRoundEvent> Events,
-    CombatOutcome? Outcome = null
+    CombatOutcome Outcome
 );

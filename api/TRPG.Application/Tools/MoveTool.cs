@@ -7,7 +7,6 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Encounters;
 using TRPG.Contracts.Encounters.Responses;
@@ -19,7 +18,6 @@ internal record MoveToolResult(SceneResult Scene, HostileEncounterState? Encount
 internal class MoveTool(
     GameTurnContext turnContext,
     IGameClientEventSink gameEvents,
-    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
     MovePlayerCommandHandler movePlayer,
     ILogger<MoveTool> logger
 ) : IGameTool
@@ -59,26 +57,14 @@ internal class MoveTool(
 
         turnContext.PlayerMoved = true;
 
-        var scene = await getSceneWithCatchUp.Handle(
-            new GetSceneWithCatchUpQuery
-            {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-                SessionId = turnContext.SessionId,
-            },
-            cancellationToken
-        );
-
-        gameEvents.Enqueue(
-            new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(scene!), SceneUpdateReason.Moved)
-        );
+        var scene = moveResult.Scene!;
 
         if (moveResult.Encounter != null)
         {
             gameEvents.Enqueue(new EncounterStartedEvent(moveResult.Encounter));
         }
 
-        var result = new MoveToolResult(scene!, moveResult.Encounter);
+        var result = new MoveToolResult(scene, moveResult.Encounter);
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",

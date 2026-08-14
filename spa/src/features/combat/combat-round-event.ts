@@ -1,4 +1,4 @@
-import type { DamageType, FightState } from '@/api/client';
+import type { CombatantState, DamageType } from '@/api/client';
 import type { CombatOutcome } from '@/features/combat/combat-outcome';
 
 export type CombatActionEvent = CombatHitEvent | CombatMissEvent | CombatBlockEvent;
@@ -59,7 +59,7 @@ export interface CombatResourceStateUpdatedEvent {
 }
 
 export interface CombatUpdatePayload {
-  fightState: FightState;
+  combatants: CombatantState[];
   events: CombatRoundEvent[];
-  outcome?: CombatOutcome | null;
+  outcome: CombatOutcome;
 }

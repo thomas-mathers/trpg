@@ -3,11 +3,9 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
-using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts.Combat.Requests;
 
 namespace TRPG.Application.GameTurns;
@@ -17,9 +15,7 @@ internal class ResolveCombatActionHandler(
     GetActiveFightCombatantsQueryHandler getCombatants,
     CombatEngine combatEngine,
     ResolveCombatRoundCommandHandler resolveCombatRound,
-    GetCreatureByIdQueryHandler getCreatureById,
-    EnsureLocationCatchUpCommandHandler ensureLocationCatchUp,
-    GetSceneQueryHandler getScene,
+    RefreshSceneCommandHandler refreshScene,
     IGameClientEventSink gameEvents
 )
 {
@@ -69,39 +65,20 @@ internal class ResolveCombatActionHandler(
             cancellationToken
         );
 
-        // GetSceneWithCatchUpQuery also pushes a SceneUpdatedEvent when a catch-up ran, so its
-        // pieces are composed directly here to avoid a duplicate push alongside this one.
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = session.PlayerId },
+        var refreshed = await refreshScene.Handle(
+            new RefreshSceneCommand
+            {
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                SessionId = session.SessionId,
+            },
             cancellationToken
         );
-
-        if (player is not null)
-        {
-            var catchUp = await ensureLocationCatchUp.Handle(
-                new EnsureLocationCatchUpCommand
-                {
-                    WorldId = session.WorldId,
-                    LocationId = player.LocationId,
-                    SessionId = session.SessionId,
-                },
-                cancellationToken
-            );
-            var scene = await getScene.Handle(
-                new GetSceneQuery
-                {
-                    WorldId = session.WorldId,
-                    PlayerId = session.PlayerId,
-                    CurrentDate = catchUp.CurrentDate,
-                },
-                cancellationToken
-            );
-            gameEvents.Enqueue(
-                new SceneUpdatedEvent(
-                    SceneSnapshotMapper.ToSnapshot(scene),
-                    SceneUpdateReason.Synced
-                )
-            );
-        }
+        gameEvents.Enqueue(
+            new SceneUpdatedEvent(
+                SceneSnapshotMapper.ToSnapshot(refreshed.Scene),
+                SceneUpdateReason.Synced
+            )
+        );
     }
 }

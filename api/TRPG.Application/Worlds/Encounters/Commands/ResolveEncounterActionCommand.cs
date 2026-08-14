@@ -2,7 +2,6 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Encounters.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.Combat.Responses;
@@ -27,8 +26,7 @@ internal class ResolveEncounterActionCommand
 internal record EncounterActionResolution(
     HostileEncounterActionKind ActionKind,
     EncounterResolutionFact Fact,
-    FightState? FightState,
-    SceneResult? UpdatedScene
+    IReadOnlyCollection<CombatantState>? Combatants
 );
 
 internal class ResolveEncounterActionCommandHandler(
@@ -36,7 +34,6 @@ internal class ResolveEncounterActionCommandHandler(
     GetCreatureByIdQueryHandler getCreatureById,
     CompleteEncounterCommandHandler completeEncounter,
     UpdateCreaturesCommandHandler updateCreatures,
-    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
     StartFightCommandHandler startFight,
     GetLocationByIdQueryHandler getLocationById
 )
@@ -90,12 +87,7 @@ internal class ResolveEncounterActionCommandHandler(
             MemberNames: groupContext.LivingMembers.Select(member => member.Name).ToArray()
         );
 
-        return new EncounterActionResolution(
-            actionKind,
-            fact,
-            effects.FightState,
-            effects.UpdatedScene
-        );
+        return new EncounterActionResolution(actionKind, fact, effects.Combatants);
     }
 
     private async Task<EncounterOutcomeEffects> ApplyEncounterOutcome(
@@ -119,16 +111,7 @@ internal class ResolveEncounterActionCommandHandler(
                 },
                 cancellationToken
             );
-            var updatedScene = await getSceneWithCatchUp.Handle(
-                new GetSceneWithCatchUpQuery
-                {
-                    WorldId = command.WorldId,
-                    PlayerId = command.PlayerId,
-                    SessionId = command.SessionId,
-                },
-                cancellationToken
-            );
-            return new EncounterOutcomeEffects(null, updatedScene);
+            return new EncounterOutcomeEffects(null);
         }
 
         var startsFight = outcome switch
@@ -140,7 +123,7 @@ internal class ResolveEncounterActionCommandHandler(
         };
         if (!startsFight)
         {
-            return new EncounterOutcomeEffects(null, null);
+            return new EncounterOutcomeEffects(null);
         }
 
         var combatants = await startFight.Handle(
@@ -155,7 +138,7 @@ internal class ResolveEncounterActionCommandHandler(
             cancellationToken
         );
 
-        return new EncounterOutcomeEffects(FightStateMapper.ToFightState(combatants), null);
+        return new EncounterOutcomeEffects(CombatantStateMapper.ToCombatantStates(combatants));
     }
 
     private static HostileEncounterActionKind ToActionKind(PlayerEncounterAction action) =>
@@ -181,4 +164,4 @@ internal class ResolveEncounterActionCommandHandler(
         };
 }
 
-internal record EncounterOutcomeEffects(FightState? FightState, SceneResult? UpdatedScene);
+internal record EncounterOutcomeEffects(IReadOnlyCollection<CombatantState>? Combatants);

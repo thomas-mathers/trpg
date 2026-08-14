@@ -17,7 +17,7 @@ internal static class PlayerEndpoints
             .WithName("GetPlayerFightAbilities");
     }
 
-    private static async Task<Results<NotFound, Ok<FightState>>> GetFight(
+    private static async Task<Results<NotFound, Ok<IReadOnlyCollection<CombatantState>>>> GetFight(
         Guid playerId,
         GetActiveFightCombatantsQueryHandler getCombatants,
         CancellationToken cancellationToken
@@ -32,7 +32,7 @@ internal static class PlayerEndpoints
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(FightStateMapper.ToFightState(combatants));
+        return TypedResults.Ok(CombatantStateMapper.ToCombatantStates(combatants));
     }
 
     private static async Task<Ok<AbilityAvailability[]>> GetAbilityAvailability(

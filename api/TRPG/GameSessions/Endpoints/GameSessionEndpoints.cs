@@ -6,7 +6,7 @@ using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
@@ -59,7 +59,7 @@ internal static class GameSessionEndpoints
     private static async Task<Results<NotFound, Ok<SceneSnapshot>>> GetScene(
         Guid sessionId,
         GetGameSessionQueryHandler getGameSession,
-        GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
+        RefreshSceneCommandHandler refreshScene,
         CancellationToken cancellationToken
     )
     {
@@ -68,8 +68,8 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        var scene = await getSceneWithCatchUp.Handle(
-            new GetSceneWithCatchUpQuery
+        var refreshed = await refreshScene.Handle(
+            new RefreshSceneCommand
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
@@ -77,12 +77,8 @@ internal static class GameSessionEndpoints
             },
             cancellationToken
         );
-        if (scene == null)
-        {
-            return TypedResults.NotFound();
-        }
 
-        return TypedResults.Ok(SceneSnapshotMapper.ToSnapshot(scene));
+        return TypedResults.Ok(SceneSnapshotMapper.ToSnapshot(refreshed.Scene));
     }
 
     private static async Task<Ok<LoreAnchor[]>> GetLoreAnchors(

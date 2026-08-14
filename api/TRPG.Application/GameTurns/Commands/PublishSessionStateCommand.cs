@@ -54,7 +54,9 @@ internal class PublishSessionStateCommandHandler(
         );
         if (combatants.Count > 0)
         {
-            gameEvents.Enqueue(new CombatStartedEvent(FightStateMapper.ToFightState(combatants)));
+            gameEvents.Enqueue(
+                new CombatStartedEvent(CombatantStateMapper.ToCombatantStates(combatants))
+            );
         }
 
         var encounter = await getActiveEncounter.Handle(

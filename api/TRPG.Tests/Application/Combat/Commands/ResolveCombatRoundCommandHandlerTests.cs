@@ -332,7 +332,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
         var turnEvent = Assert.Single(gameEvents.EnqueuedEvents);
         var combatUpdated = Assert.IsType<CombatUpdatedEvent>(turnEvent);
-        Assert.Equal(33, combatUpdated.FightState.Combatants.Single(c => c.IsPlayer).CurrentHp);
+        Assert.Equal(33, combatUpdated.Combatants.Single(c => c.IsPlayer).CurrentHp);
     }
 
     [Fact]

@@ -62,9 +62,9 @@ internal class ResolveCombatRoundCommandHandler(
 
         gameEvents.Enqueue(
             new CombatUpdatedEvent(
-                FightStateMapper.ToFightState(command.Combatants),
+                CombatantStateMapper.ToCombatantStates(command.Combatants),
                 CombatRoundEventMapper.ToCombatRoundEvents(state.Events),
-                isFightEnding ? state.Outcome : null
+                state.Outcome
             )
         );
 

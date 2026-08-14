@@ -197,8 +197,8 @@ export function CombatDialog() {
   }
 
   const currentPlayerId = playerId;
-  const player = fight.combatants.find((c) => c.isPlayer);
-  const enemies = fight.combatants.filter((c) => !c.isPlayer);
+  const player = fight.find((c) => c.isPlayer);
+  const enemies = fight.filter((c) => !c.isPlayer);
   const playerLevel = player ? Number(player.level) : 1;
 
   if (!player) {
@@ -328,7 +328,7 @@ export function CombatDialog() {
               </span>
             </header>
 
-            <InitiativeTrack combatants={fight.combatants} activeAttackerId={activeAttackerId} />
+            <InitiativeTrack combatants={fight} activeAttackerId={activeAttackerId} />
 
             <div className="relative min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 md:px-10">
               <div className="grid min-h-full grid-cols-1 gap-5 pt-14 md:grid-cols-[16rem_16rem] md:justify-between md:pt-12">

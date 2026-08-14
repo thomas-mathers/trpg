@@ -1,5 +1,5 @@
-import type { FightState, SceneSnapshot } from '@/api/client';
-import type { CombatOutcome } from '@/features/combat/combat-outcome';
+import type { CombatantState, SceneSnapshot } from '@/api/client';
+import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
 import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
 import type {
   EncounterResolutionFact,
@@ -39,9 +39,9 @@ export interface QuestObjectiveCompleted {
 
 interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
-  CombatStarted: FightState;
+  CombatStarted: CombatantState[];
   CombatUpdated: CombatUpdatePayload;
-  CombatResolved: CombatOutcome;
+  CombatResolved: TerminalCombatOutcome;
   EncounterStarted: HostileEncounterState;
   EncounterResolved: EncounterResolutionFact;
   SkillLevelUp: SkillLevelUp;

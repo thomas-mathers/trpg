@@ -238,10 +238,6 @@ export type EquipItemRequest = {
 
 export type EquipmentSlot = 'Helm' | 'Chest' | 'LeftHand' | 'RightHand' | 'Boots' | 'Necklace' | 'Gloves' | 'LeftRing' | 'RightRing' | 'Belt';
 
-export type FightState = {
-    combatants: Array<CombatantState>;
-};
-
 export type Gender = 'Male' | 'Female';
 
 export type InventorySummary = {
@@ -1029,7 +1025,7 @@ export type GetPlayerFightResponses = {
     /**
      * OK
      */
-    200: FightState;
+    200: Array<CombatantState>;
 };
 
 export type GetPlayerFightResponse = GetPlayerFightResponses[keyof GetPlayerFightResponses];

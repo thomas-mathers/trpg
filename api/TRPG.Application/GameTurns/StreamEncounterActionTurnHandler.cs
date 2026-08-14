@@ -3,7 +3,6 @@ using TRPG.Application.Combat;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
-using TRPG.Application.Scenes;
 using TRPG.Application.Worlds.Encounters;
 using TRPG.Application.Worlds.Encounters.Commands;
 using TRPG.Application.Worlds.Encounters.Queries;
@@ -67,19 +66,9 @@ internal class StreamEncounterActionTurnHandler(
     {
         gameEvents.Enqueue(new EncounterResolvedEvent(resolution.Fact));
 
-        if (resolution.UpdatedScene != null)
+        if (resolution.Combatants != null)
         {
-            gameEvents.Enqueue(
-                new SceneUpdatedEvent(
-                    SceneSnapshotMapper.ToSnapshot(resolution.UpdatedScene),
-                    SceneUpdateReason.Moved
-                )
-            );
-        }
-
-        if (resolution.FightState != null)
-        {
-            gameEvents.Enqueue(new CombatStartedEvent(resolution.FightState));
+            gameEvents.Enqueue(new CombatStartedEvent(resolution.Combatants));
         }
     }
 

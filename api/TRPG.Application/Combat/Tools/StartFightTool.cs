@@ -111,7 +111,9 @@ internal class StartFightTool(
             cancellationToken
         );
 
-        gameEvents.Enqueue(new CombatStartedEvent(FightStateMapper.ToFightState(combatants)));
+        gameEvents.Enqueue(
+            new CombatStartedEvent(CombatantStateMapper.ToCombatantStates(combatants))
+        );
 
         logger.LogInformation(
             "[perf] [attack] combat started in {ElapsedMs}ms",

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { PlayerCombatAction } from '@/features/combat/combat-action';
-import type { CombatOutcome } from '@/features/combat/combat-outcome';
+import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
 import type { PlayerEncounterAction } from '@/features/encounters/encounter';
 import { gameEventBus, type ConnectionStatus } from '@/lib/game-event-bus';
 import { loadStoredMessages, saveMessages } from '@/lib/session-storage';
@@ -11,7 +11,7 @@ import { appendTokenToNarrationSegments } from '../narration-markup';
 import { formatLocation, locationKey } from '../scene-format';
 import { useGameHubConnection } from './use-game-hub-connection';
 
-const OUTCOME_MARKER: Record<CombatOutcome, string> = {
+const OUTCOME_MARKER: Record<TerminalCombatOutcome, string> = {
   Victory: 'Victory!',
   Defeat: 'You have died',
   Fled: 'You escaped',

@@ -9,6 +9,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Scenes.Commands;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Encounters.Commands;
 using TRPG.Application.Worlds.Encounters.Queries;
 using TRPG.Application.Worlds.Queries;
@@ -27,7 +28,8 @@ internal class MovePlayerCommand
 internal record MovePlayerResult(
     EntryOutcome Outcome,
     Creature Player,
-    HostileEncounterState? Encounter = null
+    HostileEncounterState? Encounter = null,
+    SceneResult? Scene = null
 );
 
 internal class MovePlayerCommandHandler(
@@ -45,7 +47,7 @@ internal class MovePlayerCommandHandler(
     SyncScheduleLockCommandHandler syncScheduleLock,
     GetPlaytimeQueryHandler getPlaytime,
     GetActiveEncounterQueryHandler getActiveEncounter,
-    EnsureLocationCatchUpCommandHandler ensureLocationCatchUp,
+    RefreshSceneCommandHandler refreshScene,
     EvaluateLocationEncountersCommandHandler evaluateLocationEncounters,
     ILogger<MovePlayerCommandHandler> logger
 )
@@ -110,11 +112,11 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        await ensureLocationCatchUp.Handle(
-            new EnsureLocationCatchUpCommand
+        var refreshed = await refreshScene.Handle(
+            new RefreshSceneCommand
             {
                 WorldId = player.WorldId,
-                LocationId = player.LocationId,
+                PlayerId = player.Id,
                 SessionId = command.SessionId,
             },
             cancellationToken
@@ -131,7 +133,7 @@ internal class MovePlayerCommandHandler(
         );
 
         transaction.Complete();
-        return new MovePlayerResult(EntryOutcome.Entered, player, encounter);
+        return new MovePlayerResult(EntryOutcome.Entered, player, encounter, refreshed.Scene);
     }
 
     private async Task CleanUpDeadCreatures(

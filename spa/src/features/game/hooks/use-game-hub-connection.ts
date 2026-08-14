@@ -8,7 +8,7 @@ import {
 } from '@microsoft/signalr';
 import { useRef, useEffect, useState, useCallback } from 'react';
 
-import type { FightState, SceneSnapshot } from '@/api/client';
+import type { CombatantState, SceneSnapshot } from '@/api/client';
 import type { PlayerCombatAction } from '@/features/combat/combat-action';
 import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
 import type {
@@ -87,7 +87,7 @@ export function useGameHubConnection(sessionId: string | null) {
     connection.on('SceneSnapshot', (payload: SceneSnapshot) =>
       gameEventBus.emit('SceneSnapshot', payload),
     );
-    connection.on('CombatStarted', (payload: FightState) =>
+    connection.on('CombatStarted', (payload: CombatantState[]) =>
       gameEventBus.emit('CombatStarted', payload),
     );
     connection.on('CombatUpdated', (payload: CombatUpdatePayload) =>
