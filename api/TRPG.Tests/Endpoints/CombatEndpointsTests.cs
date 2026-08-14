@@ -291,12 +291,12 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var fight = await response.Content.ReadFromJsonAsync<FightState>(
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(fight);
-        Assert.Contains(fight.Combatants, c => c.IsPlayer);
-        Assert.Contains(fight.Combatants, c => c.Name == enemy.Name);
+        var combatants = await response.Content.ReadFromJsonAsync<
+            IReadOnlyCollection<TRPG.Contracts.Combat.Responses.CombatantState>
+        >(TestContext.Current.CancellationToken);
+        Assert.NotNull(combatants);
+        Assert.Contains(combatants, c => c.IsPlayer);
+        Assert.Contains(combatants, c => c.Name == enemy.Name);
     }
 
     [Fact]

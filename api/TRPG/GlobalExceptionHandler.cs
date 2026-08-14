@@ -1,23 +1,36 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Common.Exceptions;
 
 namespace TRPG;
 
 internal class GlobalExceptionHandler : IExceptionHandler
 {
-    public ValueTask<bool> TryHandleAsync(
+    public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
         CancellationToken cancellationToken
     )
     {
-        if (exception is not EntityNotFoundException)
+        switch (exception)
         {
-            return ValueTask.FromResult(false);
+            case EntityNotFoundException:
+                httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                return true;
+            case InvalidOperationException invalidOperationException:
+                httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await httpContext.Response.WriteAsJsonAsync(
+                    new ProblemDetails
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Title = invalidOperationException.Message,
+                    },
+                    cancellationToken
+                );
+                return true;
+            default:
+                return false;
         }
-
-        httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-        return ValueTask.FromResult(true);
     }
 }

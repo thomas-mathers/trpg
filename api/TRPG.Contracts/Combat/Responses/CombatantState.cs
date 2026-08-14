@@ -73,12 +73,11 @@ public enum ConditionType
 
 public enum CombatOutcome
 {
+    Ongoing,
     Victory,
     Defeat,
     Fled,
 }
-
-public record FightState(IReadOnlyCollection<CombatantState> Combatants);
 
 public record CombatantState(
     Guid Id,

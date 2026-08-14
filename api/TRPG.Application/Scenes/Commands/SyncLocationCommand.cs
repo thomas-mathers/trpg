@@ -11,14 +11,14 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Scenes.Commands;
 
-internal class SyncCommand
+internal class SyncLocationCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
     public required InGameDate CurrentDate { get; init; }
 }
 
-internal class SyncCommandHandler(
+internal class SyncLocationCommandHandler(
     GetLocationByIdQueryHandler getLocationById,
     GetCreatureIdsWithCreatureJobInLocationQueryHandler getCreatureIdsWithJobInLocation,
     GetAllCreatureJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
@@ -29,10 +29,13 @@ internal class SyncCommandHandler(
     SetWorkstationOccupantCommandHandler setWorkstationOccupant,
     GetRoomSummaryQueryHandler getRoomSummary,
     SyncScheduleLockCommandHandler syncScheduleLock,
-    ILogger<SyncCommandHandler> logger
+    ILogger<SyncLocationCommandHandler> logger
 )
 {
-    public async Task Handle(SyncCommand command, CancellationToken cancellationToken = default)
+    public async Task Handle(
+        SyncLocationCommand command,
+        CancellationToken cancellationToken = default
+    )
     {
         var location = await getLocationById.Handle(
             new GetLocationByIdQuery { Id = command.LocationId },
@@ -45,12 +48,12 @@ internal class SyncCommandHandler(
 
         if (location.RoomId != null)
         {
-            await CatchUpRoom(command.LocationId, command.CurrentDate, cancellationToken);
+            await AdvanceDueJobsInRoom(command.LocationId, command.CurrentDate, cancellationToken);
             await SyncFrontDoorLock(location.RoomId.Value, command.CurrentDate, cancellationToken);
         }
         else if (location.DistrictId != null)
         {
-            await CatchUpDistrict(
+            await AdvanceDueJobsInDistrict(
                 command.WorldId,
                 location.DistrictId.Value,
                 command.CurrentDate,
@@ -59,7 +62,7 @@ internal class SyncCommandHandler(
         }
     }
 
-    private async Task CatchUpRoom(
+    private async Task AdvanceDueJobsInRoom(
         Guid locationId,
         InGameDate currentDate,
         CancellationToken cancellationToken
@@ -69,10 +72,10 @@ internal class SyncCommandHandler(
             new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = locationId },
             cancellationToken
         );
-        await CatchUp("Room", creatureIds, currentDate, cancellationToken);
+        await AdvanceDueJobs("Room", creatureIds, currentDate, cancellationToken);
     }
 
-    private async Task CatchUpDistrict(
+    private async Task AdvanceDueJobsInDistrict(
         Guid worldId,
         Guid districtId,
         InGameDate currentDate,
@@ -83,10 +86,10 @@ internal class SyncCommandHandler(
             new GetCreatureIdsByDistrictQuery { WorldId = worldId, DistrictId = districtId },
             cancellationToken
         );
-        await CatchUp("District", creatureIds, currentDate, cancellationToken);
+        await AdvanceDueJobs("District", creatureIds, currentDate, cancellationToken);
     }
 
-    private async Task CatchUp(
+    private async Task AdvanceDueJobs(
         string scope,
         IReadOnlyCollection<Guid> creatureIds,
         InGameDate currentDate,
@@ -150,7 +153,7 @@ internal class SyncCommandHandler(
         stopwatch.Stop();
 
         logger.LogInformation(
-            "[perf] CatchUp{Scope} processed {CreatureCount} people in {ElapsedMs}ms",
+            "[perf] AdvanceDueJobs{Scope} processed {CreatureCount} people in {ElapsedMs}ms",
             scope,
             creatureIds.Count,
             stopwatch.ElapsedMilliseconds

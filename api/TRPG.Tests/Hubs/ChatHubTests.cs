@@ -1,8 +1,10 @@
 using System.Net.Http.Json;
 using System.Text;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -17,6 +19,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     private Guid _worldId;
     private Guid _playerId;
     private Guid _stateId;
+    private Guid _cityId;
     private Guid _locationId;
 
     public async ValueTask InitializeAsync()
@@ -52,6 +55,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         _worldId = world.Id;
         _playerId = player.Id;
         _stateId = state.Id;
+        _cityId = city.Id;
         _locationId = location.Id;
     }
 
@@ -418,6 +422,203 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var fight = await GetFight();
         Assert.Equal(CombatOutcome.Fled, fight.Outcome);
         Assert.NotNull(fight.CompletedAt);
+    }
+
+    [Fact]
+    public async Task SendFlee_PublishesCombatUpdatedWithFledOutcome_WhenFleeSucceeds()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+        var connection = fixture.CreateHubConnection(sessionId);
+        var combatUpdatedReceived =
+            new TaskCompletionSource<TRPG.Contracts.Combat.Responses.CombatUpdatePayload>();
+        connection.On<TRPG.Contracts.Combat.Responses.CombatUpdatePayload>(
+            "CombatUpdated",
+            payload => combatUpdatedReceived.TrySetResult(payload)
+        );
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await using var gameHub = connection;
+
+        // Act
+        await Drain(gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken));
+
+        // Assert
+        var updated = await combatUpdatedReceived.Task.WaitAsync(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
+        Assert.Equal(TRPG.Contracts.Combat.Responses.CombatOutcome.Fled, updated.Outcome);
+    }
+
+    [Fact]
+    public async Task ResolveCombatAction_PublishesCombatUpdatedAndSceneSnapshot_WhenTheAttackChangesNearbyCreatureState()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+        var connection = fixture.CreateHubConnection(sessionId);
+        var combatUpdatedReceived =
+            new TaskCompletionSource<TRPG.Contracts.Combat.Responses.CombatUpdatePayload>();
+        var initialSnapshotReceived =
+            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        var sceneSnapshots = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        connection.On<TRPG.Contracts.Combat.Responses.CombatUpdatePayload>(
+            "CombatUpdated",
+            payload => combatUpdatedReceived.TrySetResult(payload)
+        );
+        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            "SceneSnapshot",
+            snapshot =>
+            {
+                sceneSnapshots.Add(snapshot);
+                initialSnapshotReceived.TrySetResult(snapshot);
+            }
+        );
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
+        sceneSnapshots.Clear();
+        await using var gameHub = connection;
+
+        // Act
+        await gameHub.InvokeAsync(
+            "ResolveCombatAction",
+            new UseAbilityAction(enemy.Id, "Strike"),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = await combatUpdatedReceived.Task.WaitAsync(
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var freshEnemy = await context.Creatures.SingleAsync(
+            c => c.Id == enemy.Id,
+            TestContext.Current.CancellationToken
+        );
+        var scene = Assert.Single(sceneSnapshots);
+        var updatedEnemy = Assert.Single(scene.NearbyCreatures, c => c.Id == enemy.Id);
+        Assert.Equal(freshEnemy.CurrentHp, updatedEnemy.CurrentHp);
+    }
+
+    [Fact]
+    public async Task SendChat_PublishesExactlyOneSceneSnapshot_WhenMovingTriggersCatchUp()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var destinationDistrictId = Guid.NewGuid();
+        var destinationLocation = Builders.MakeLocation(
+            _worldId,
+            _stateId,
+            districtId: destinationDistrictId
+        );
+        var destinationDistrict = Builders.MakeDistrict(
+            _cityId,
+            DistrictType.Residential,
+            worldId: _worldId,
+            name: "Market Row",
+            id: destinationDistrictId,
+            locationId: destinationLocation.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            _locationId,
+            destinationLocationId: destinationDistrict.LocationId,
+            worldId: _worldId,
+            name: "Path",
+            description: "A path leading to Market Row.",
+            destinationLabel: destinationDistrict.Name
+        );
+        context.Districts.Add(destinationDistrict);
+        context.Locations.Add(destinationLocation);
+        context.LocationConnectors.Add(connector);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sessionId = await StartSession();
+        var connection = fixture.CreateHubConnection(sessionId);
+        var sceneSnapshots = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        var initialSnapshotReceived =
+            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            "SceneSnapshot",
+            snapshot =>
+            {
+                sceneSnapshots.Add(snapshot);
+                initialSnapshotReceived.TrySetResult(snapshot);
+            }
+        );
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
+        sceneSnapshots.Clear();
+        await using var gameHub = connection;
+
+        fixture.ChatClient.PendingToolCallName = "move";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["destinationName"] = destinationDistrict.Name,
+        };
+
+        // Act
+        await Drain(
+            gameHub.StreamAsync<string>(
+                "SendChat",
+                $"I head to {destinationDistrict.Name}",
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Single(sceneSnapshots);
+    }
+
+    [Fact]
+    public async Task ResolveCombatAction_ThrowsHubException_WhenNoFightIsActive()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<HubException>(() =>
+            gameHub.InvokeAsync(
+                "ResolveCombatAction",
+                new UseAbilityAction(Guid.NewGuid(), "Strike"),
+                TestContext.Current.CancellationToken
+            )
+        );
+        Assert.Contains(
+            "There's no fight to act in right now.",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task ResolveCombatAction_ThrowsHubException_WhenActionIsInvalid()
+    {
+        // Arrange
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+        await using var gameHub = await Connect(sessionId);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<HubException>(() =>
+            gameHub.InvokeAsync(
+                "ResolveCombatAction",
+                new UseAbilityAction(enemy.Id, "Nonexistent Move"),
+                TestContext.Current.CancellationToken
+            )
+        );
+        Assert.Contains(
+            "Ability Nonexistent Move not found",
+            exception.Message,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]

@@ -11,7 +11,6 @@ import type {
   CombatantState,
   ConsumableSummary,
   DamageType,
-  FightState,
 } from '@/api/client';
 import {
   handleGetCreatureAbilities,
@@ -213,20 +212,24 @@ function WorkbenchProviders({
   const [isStreaming, setIsStreaming] = useState(initiallyStreaming);
 
   useEffect(() => {
+    setFight(initialFight);
     gameEventBus.emit('CombatStarted', initialFight);
   }, [initialFight]);
 
-  const resolveAction = useCallback((action: PlayerCombatAction) => {
-    setIsStreaming(true);
-    window.setTimeout(() => {
-      setFight((current) => {
-        const round = simulateRound(current, action);
-        gameEventBus.emit('CombatUpdated', round);
-        return round.fightState;
-      });
-      setIsStreaming(false);
-    }, 650);
-  }, []);
+  const resolveAction = useCallback(
+    (action: PlayerCombatAction) =>
+      new Promise<void>((resolve) => {
+        window.setTimeout(() => {
+          setFight((current) => {
+            const round = simulateRound(current, action);
+            gameEventBus.emit('CombatUpdated', round);
+            return round.combatants;
+          });
+          resolve();
+        }, 650);
+      }),
+    [],
+  );
 
   const gameChat: GameChat = {
     messages: [],
@@ -234,11 +237,16 @@ function WorkbenchProviders({
     connectionStatus: 'connected',
     isStreaming,
     submitChatMessage: () => undefined,
+    submitEncounterAction: () => undefined,
     submitCombatAction: resolveAction,
     submitFlee: () => {
       setIsStreaming(true);
       window.setTimeout(() => {
-        gameEventBus.emit('CombatEnded', 'Fled');
+        gameEventBus.emit('CombatUpdated', {
+          combatants: initialFight,
+          events: [],
+          outcome: 'Fled',
+        });
         setIsStreaming(false);
       }, 650);
     },
@@ -260,12 +268,12 @@ function WorkbenchProviders({
 
 interface WorkbenchProvidersProps {
   children: ReactNode;
-  initialFight: FightState;
+  initialFight: CombatantState[];
   initiallyStreaming: boolean;
 }
 
 interface CombatDialogStoryProps {
-  fight: FightState;
+  fight: CombatantState[];
   isStreaming?: boolean;
 }
 
@@ -277,7 +285,7 @@ function CombatDialogStory({ fight, isStreaming = false }: CombatDialogStoryProp
   );
 }
 
-function simulateRound(fight: FightState, action: PlayerCombatAction) {
+function simulateRound(fight: CombatantState[], action: PlayerCombatAction) {
   const playerAction = (combatant: CombatantState) => {
     if (action.type === 'UseItemAction') {
       const item = consumables.find((entry) => entry.name === action.itemName);
@@ -302,7 +310,7 @@ function simulateRound(fight: FightState, action: PlayerCombatAction) {
     return { ...combatant, currentHp, isAlive: currentHp > 0 };
   };
 
-  const afterPlayerAction = fight.combatants.map(playerAction);
+  const afterPlayerAction = fight.map(playerAction);
   const playerAfterAction = afterPlayerAction.find((combatant) => combatant.isPlayer)!;
   const playerTarget =
     action.type === 'UseAbilityAction'
@@ -343,14 +351,11 @@ function simulateRound(fight: FightState, action: PlayerCombatAction) {
   }
 
   return {
-    fightState: {
-      combatants: afterPlayerAction.map((combatant) =>
-        combatant.isPlayer
-          ? { ...combatant, currentHp: playerHp, isAlive: playerHp > 0 }
-          : combatant,
-      ),
-    },
+    combatants: afterPlayerAction.map((combatant) =>
+      combatant.isPlayer ? { ...combatant, currentHp: playerHp, isAlive: playerHp > 0 } : combatant,
+    ),
     events,
+    outcome: 'Ongoing' as const,
   };
 }
 
@@ -410,68 +415,64 @@ function restoreResource(
   }
 }
 
-const standardFight: FightState = {
-  combatants: [
-    player,
-    {
-      ...player,
-      id: 'goblin-id',
-      name: 'Goblin Skirmisher',
-      level: 7,
-      isPlayer: false,
-      currentHp: 35,
-      maximumHp: 45,
-    },
-  ],
-};
+const standardFight: CombatantState[] = [
+  player,
+  {
+    ...player,
+    id: 'goblin-id',
+    name: 'Goblin Skirmisher',
+    level: 7,
+    isPlayer: false,
+    currentHp: 35,
+    maximumHp: 45,
+  },
+];
 
-const crowdedFight: FightState = {
-  combatants: [
-    {
-      ...player,
-      activeConditions: { burning: 2 },
-      activeHots: [{ abilityName: 'Regeneration', amount: 4, remainingTurns: 3 }],
-    },
-    {
-      ...player,
-      id: 'goblin-id',
-      name: 'Goblin Skirmisher',
-      level: 7,
-      isPlayer: false,
-      currentHp: 35,
-      maximumHp: 45,
-    },
-    {
-      ...player,
-      id: 'cultist-id',
-      name: 'Ashen Cultist',
-      level: 10,
-      isPlayer: false,
-      currentHp: 51,
-      maximumHp: 60,
-      activeDots: [{ abilityName: 'Burning', amount: 6, damageType: 'Fire', remainingTurns: 2 }],
-    },
-    {
-      ...player,
-      id: 'hound-id',
-      name: 'Dire Hound',
-      level: 12,
-      isPlayer: false,
-      currentHp: 0,
-      maximumHp: 52,
-      isAlive: false,
-    },
-    {
-      ...player,
-      id: 'raider-id',
-      name: 'Raider Captain With An Intentionally Long Name',
-      level: 14,
-      isPlayer: false,
-      currentHp: 88,
-      maximumHp: 100,
-    },
-  ],
-};
+const crowdedFight: CombatantState[] = [
+  {
+    ...player,
+    activeConditions: { burning: 2 },
+    activeHots: [{ abilityName: 'Regeneration', amount: 4, remainingTurns: 3 }],
+  },
+  {
+    ...player,
+    id: 'goblin-id',
+    name: 'Goblin Skirmisher',
+    level: 7,
+    isPlayer: false,
+    currentHp: 35,
+    maximumHp: 45,
+  },
+  {
+    ...player,
+    id: 'cultist-id',
+    name: 'Ashen Cultist',
+    level: 10,
+    isPlayer: false,
+    currentHp: 51,
+    maximumHp: 60,
+    activeDots: [{ abilityName: 'Burning', amount: 6, damageType: 'Fire', remainingTurns: 2 }],
+  },
+  {
+    ...player,
+    id: 'hound-id',
+    name: 'Dire Hound',
+    level: 12,
+    isPlayer: false,
+    currentHp: 0,
+    maximumHp: 52,
+    isAlive: false,
+  },
+  {
+    ...player,
+    id: 'raider-id',
+    name: 'Raider Captain With An Intentionally Long Name',
+    level: 14,
+    isPlayer: false,
+    currentHp: 88,
+    maximumHp: 100,
+  },
+];
 
 const meta = {
   title: 'Combat/Combat Console',
@@ -618,11 +619,11 @@ function CombatEncounterDialogMock({
   fight,
   outcome,
 }: {
-  fight: FightState;
+  fight: CombatantState[];
   outcome?: PlayerAttackOutcome;
 }) {
-  const player = fight.combatants.find((combatant) => combatant.isPlayer)!;
-  const enemies = fight.combatants.filter((combatant) => !combatant.isPlayer);
+  const player = fight.find((combatant) => combatant.isPlayer)!;
+  const enemies = fight.filter((combatant) => !combatant.isPlayer);
   const [phase, setPhase] = useState<PlayerAttackPhase>('idle');
   const [cycle, setCycle] = useState(0);
   const [popoverContainer, setPopoverContainer] = useState<HTMLDivElement | null>(null);
@@ -697,7 +698,7 @@ function CombatEncounterDialogMock({
             <span className="text-muted-foreground text-xs">Round 4</span>
           </header>
 
-          <InitiativePreview combatants={fight.combatants} />
+          <InitiativePreview combatants={fight} />
 
           <div className="relative min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 md:px-10">
             {showToast && (
@@ -783,10 +784,10 @@ type FullRoundPhase =
   | 'attackerRecovery'
   | 'roundRegen';
 
-function FullRoundDialogMock({ fight }: { fight: FightState }) {
+function FullRoundDialogMock({ fight }: { fight: CombatantState[] }) {
   const turnOrder = useMemo(() => {
-    const player = fight.combatants.find((combatant) => combatant.isPlayer)!;
-    const enemies = fight.combatants.filter((combatant) => !combatant.isPlayer);
+    const player = fight.find((combatant) => combatant.isPlayer)!;
+    const enemies = fight.filter((combatant) => !combatant.isPlayer);
     return [
       {
         actorId: player.id,
@@ -818,7 +819,7 @@ function FullRoundDialogMock({ fight }: { fight: FightState }) {
       },
     ];
   }, [fight]);
-  const [combatants, setCombatants] = useState(fight.combatants);
+  const [combatants, setCombatants] = useState(fight);
   const [turnIndex, setTurnIndex] = useState(0);
   const [phase, setPhase] = useState<FullRoundPhase>('windup');
   const [cycle, setCycle] = useState(0);
@@ -857,11 +858,11 @@ function FullRoundDialogMock({ fight }: { fight: FightState }) {
         }
 
         setPhase('roundRegen');
-        setCombatants((current) => regenerateAllCombatants(current, fight.combatants));
+        setCombatants((current) => regenerateAllCombatants(current, fight));
       }, 2400),
       window.setTimeout(() => {
         if (turnIndex === turnOrder.length - 1) {
-          setCombatants(fight.combatants);
+          setCombatants(fight);
           setTurnIndex(0);
           setCycle((current) => current + 1);
         }
@@ -869,7 +870,7 @@ function FullRoundDialogMock({ fight }: { fight: FightState }) {
     ];
 
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [cycle, fight.combatants, turn, turnIndex, turnOrder.length]);
+  }, [cycle, fight, turn, turnIndex, turnOrder.length]);
 
   const player = combatants.find((combatant) => combatant.isPlayer)!;
   const enemies = combatants.filter((combatant) => !combatant.isPlayer);

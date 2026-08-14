@@ -4,21 +4,21 @@ using TRPG.Contracts.Combat.Responses;
 
 namespace TRPG.Application.Combat;
 
-public record CombatStartedEvent(FightState FightState) : GameClientEvent
+public record CombatStartedEvent(
+    IReadOnlyCollection<TRPG.Contracts.Combat.Responses.CombatantState> Combatants
+) : GameClientEvent
 {
     public override string MethodName => "CombatStarted";
-    public override object? Payload => FightState;
+    public override object? Payload => Combatants;
 }
 
-public record CombatUpdatedEvent(FightState FightState, IReadOnlyList<CombatRoundEvent> Events)
-    : GameClientEvent
+public record CombatUpdatedEvent(
+    IReadOnlyCollection<TRPG.Contracts.Combat.Responses.CombatantState> Combatants,
+    IReadOnlyList<CombatRoundEvent> Events,
+    TRPG.Data.Models.CombatOutcome Outcome
+) : GameClientEvent
 {
     public override string MethodName => "CombatUpdated";
-    public override object? Payload => new CombatUpdatePayload(FightState, Events);
-}
-
-public record CombatEndedEvent(TRPG.Data.Models.CombatOutcome Outcome) : GameClientEvent
-{
-    public override string MethodName => "CombatEnded";
-    public override object? Payload => Outcome.ToContract();
+    public override object? Payload =>
+        new CombatUpdatePayload(Combatants, Events, Outcome.ToContract());
 }

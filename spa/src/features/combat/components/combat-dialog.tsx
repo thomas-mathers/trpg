@@ -12,21 +12,15 @@ import type {
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import {
-  formatCombatAction,
-  type UseAbilityAction,
-  type UseItemAction,
-} from '@/features/combat/combat-action';
 import { AbilityPicker } from '@/features/combat/components/ability-picker';
 import { CombatantCard } from '@/features/combat/components/combatant-card';
 import { ItemPicker } from '@/features/combat/components/item-picker';
 import { PickerHeader } from '@/features/combat/components/picker-header';
 import { usePlayerId, useScene } from '@/features/game/contexts/scene-context';
-import { useGameActions } from '@/features/game/game-chat-context';
 import { formatLocation } from '@/features/game/scene-format';
 
 import { GameToast } from '../../game/components/game-toast';
-import { useCombatState, type CombatFlash } from '../hooks/use-combat-state';
+import { useCombat, type CombatFlash } from '../hooks/use-combat';
 
 type Mode = 'topmenu' | 'target';
 
@@ -134,32 +128,23 @@ export function CombatDialog() {
     activeDefenderId,
     activeCombatEvent,
     combatFlashes,
-    isPlayingBack,
-  } = useCombatState();
-  const { isStreaming, submitCombatAction, submitFlee } = useGameActions();
+    isRevealed,
+    disabled,
+    submitCombatAction,
+    submitFlee,
+  } = useCombat();
   const playerId = usePlayerId();
   const scene = useScene();
   const [mode, setMode] = useState<Mode>('topmenu');
   const [pendingAbility, setPendingAbility] = useState<AbilitySummary | null>(null);
   const [openMenu, setOpenMenu] = useState<'attack' | 'defend' | 'item' | null>(null);
   const [popoverContainer, setPopoverContainer] = useState<HTMLDivElement | null>(null);
-  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
-
-  const isResolvingRound = isPlayingBack || isSubmittingAction;
-  const disabled = isResolvingRound || isStreaming;
 
   useEffect(() => {
     if (!disabled) {
       setMode('topmenu');
     }
   }, [disabled]);
-
-  useEffect(() => {
-    if (isStreaming) {
-      return;
-    }
-    setIsSubmittingAction(false);
-  }, [isStreaming]);
 
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const shouldFocusInitialAttackRef = useRef(false);
@@ -207,13 +192,13 @@ export function CombatDialog() {
     );
   }, [activeCombatEvent]);
 
-  if (!fight || !playerId) {
+  if (!fight || !playerId || !isRevealed) {
     return null;
   }
 
   const currentPlayerId = playerId;
-  const player = fight.combatants.find((c) => c.isPlayer);
-  const enemies = fight.combatants.filter((c) => !c.isPlayer);
+  const player = fight.find((c) => c.isPlayer);
+  const enemies = fight.filter((c) => !c.isPlayer);
   const playerLevel = player ? Number(player.level) : 1;
 
   if (!player) {
@@ -225,28 +210,20 @@ export function CombatDialog() {
 
   function chooseTarget(targetId: string) {
     if (!pendingAbility) return;
-    const action: UseAbilityAction = {
-      type: 'UseAbilityAction',
-      targetId,
-      abilityName: pendingAbility.name,
-    };
-    setIsSubmittingAction(true);
-    submitCombatAction(action, formatCombatAction(action, fight));
+    submitCombatAction({ type: 'UseAbilityAction', targetId, abilityName: pendingAbility.name });
     setPendingAbility(null);
   }
 
   function chooseSupportAbility(ability: AbilitySummary) {
-    const action: UseAbilityAction = {
+    submitCombatAction({
       type: 'UseAbilityAction',
       targetId: player!.id,
       abilityName: ability.name,
-    };
-    submitCombatAction(action, formatCombatAction(action, fight));
+    });
   }
 
   function chooseItem(item: ConsumableSummary) {
-    const action: UseItemAction = { type: 'UseItemAction', itemName: item.name };
-    submitCombatAction(action, formatCombatAction(action, fight));
+    submitCombatAction({ type: 'UseItemAction', itemName: item.name });
   }
 
   function renderMode() {
@@ -351,7 +328,7 @@ export function CombatDialog() {
               </span>
             </header>
 
-            <InitiativeTrack combatants={fight.combatants} activeAttackerId={activeAttackerId} />
+            <InitiativeTrack combatants={fight} activeAttackerId={activeAttackerId} />
 
             <div className="relative min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 md:px-10">
               <div className="grid min-h-full grid-cols-1 gap-5 pt-14 md:grid-cols-[16rem_16rem] md:justify-between md:pt-12">

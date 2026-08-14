@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 
 import type { CombatantState } from '@/api/client';
 import { EffectBadge } from '@/features/combat/components/effect-badge';
-import type { CombatFlash } from '@/features/combat/hooks/use-combat-state';
+import type { CombatFlash } from '@/features/combat/hooks/use-combat';
 import { useStatDelta } from '@/features/combat/hooks/use-stat-delta';
 import { isDangerous } from '@/features/combat/threat-level';
 import { cn } from '@/lib/utils';

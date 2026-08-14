@@ -241,6 +241,7 @@ internal static class ResponseEnumMappers
     public static ContractCombatOutcome ToContract(this DataCombatOutcome outcome) =>
         outcome switch
         {
+            DataCombatOutcome.Ongoing => ContractCombatOutcome.Ongoing,
             DataCombatOutcome.Victory => ContractCombatOutcome.Victory,
             DataCombatOutcome.Defeat => ContractCombatOutcome.Defeat,
             DataCombatOutcome.Fled => ContractCombatOutcome.Fled,

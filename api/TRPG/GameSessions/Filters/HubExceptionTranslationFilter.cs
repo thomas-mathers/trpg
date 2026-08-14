@@ -3,14 +3,27 @@ using TRPG.Application.Common.Exceptions;
 
 namespace TRPG.GameSessions.Filters;
 
-internal class GameSessionNotFoundHubFilter : IHubFilter
+internal class HubExceptionTranslationFilter : IHubFilter
 {
     public async ValueTask<object?> InvokeMethodAsync(
         HubInvocationContext invocationContext,
         Func<HubInvocationContext, ValueTask<object?>> next
     )
     {
-        var result = await next(invocationContext);
+        object? result;
+        try
+        {
+            result = await next(invocationContext);
+        }
+        catch (EntityNotFoundException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+
         return result is IAsyncEnumerable<string> stream ? Wrap(stream) : result;
     }
 
@@ -38,6 +51,10 @@ internal class GameSessionNotFoundHubFilter : IHubFilter
                 hasNext = await enumerator.MoveNextAsync();
             }
             catch (EntityNotFoundException ex)
+            {
+                throw new HubException(ex.Message);
+            }
+            catch (InvalidOperationException ex)
             {
                 throw new HubException(ex.Message);
             }

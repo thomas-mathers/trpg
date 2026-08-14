@@ -96,22 +96,6 @@ export type BasicAttackDamageResponse = {
 
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
 
-export type ChatRequest = {
-    message: string;
-};
-
-export type ChatResponse = {
-    response: string;
-    metrics: null | TurnMetricsDto;
-};
-
-export type CombatActionResponse = {
-    update: null | CombatUpdatePayload;
-    errorMessage: null | string;
-    outcome: null | CombatOutcome;
-    scene?: null | SceneSnapshot;
-};
-
 export type CombatantState = {
     id: string;
     name: string;
@@ -130,95 +114,7 @@ export type CombatantState = {
     activeBuffs: Array<ActiveBuff>;
 };
 
-export type CombatOutcome = 'Victory' | 'Defeat' | 'Fled';
-
-export type CombatRoundEvent = ({
-    type: 'CombatHitEvent';
-} & CombatRoundEventCombatHitEvent) | ({
-    type: 'CombatMissEvent';
-} & CombatRoundEventCombatMissEvent) | ({
-    type: 'CombatBlockEvent';
-} & CombatRoundEventCombatBlockEvent) | ({
-    type: 'CombatRegeneratedEvent';
-} & CombatRoundEventCombatRegeneratedEvent) | ({
-    type: 'CombatResourceStateUpdatedEvent';
-} & CombatRoundEventCombatResourceStateUpdatedEvent);
-
-export type CombatRoundEventCombatBlockEvent = {
-    type?: 'CombatBlockEvent';
-    attackerId: string;
-    attackerName: string;
-    abilityName: string;
-    targetId: string;
-    targetName: string;
-    narration?: null | string;
-};
-
-export type CombatRoundEventCombatHitEvent = {
-    type?: 'CombatHitEvent';
-    damage: number;
-    damageType: DamageType;
-    isCritical: boolean;
-    killed: boolean;
-    targetRemainingHp: number;
-    targetMaximumHp: number;
-    appliedConditions: Array<ConditionType>;
-    attackerId: string;
-    attackerName: string;
-    abilityName: string;
-    targetId: string;
-    targetName: string;
-    narration?: null | string;
-};
-
-export type CombatRoundEventCombatMissEvent = {
-    type?: 'CombatMissEvent';
-    attackerId: string;
-    attackerName: string;
-    abilityName: string;
-    targetId: string;
-    targetName: string;
-    narration?: null | string;
-};
-
-export type CombatRoundEventCombatRegeneratedEvent = {
-    type?: 'CombatRegeneratedEvent';
-    previousAp: number;
-    currentAp: number;
-    maximumAp: number;
-    previousMp: number;
-    currentMp: number;
-    maximumMp: number;
-    attackerId: string;
-    attackerName: string;
-    abilityName?: string;
-    targetId?: string;
-    targetName?: string;
-    narration?: null | string;
-};
-
-export type CombatRoundEventCombatResourceStateUpdatedEvent = {
-    type?: 'CombatResourceStateUpdatedEvent';
-    currentAp: number;
-    maximumAp: number;
-    currentMp: number;
-    maximumMp: number;
-    attackerId: string;
-    attackerName: string;
-    abilityName?: string;
-    targetId?: string;
-    targetName?: string;
-    narration?: null | string;
-};
-
 export type CombatSpeedType = 'IncreasedAttackSpeed' | 'FasterCastRate' | 'FasterHitRecovery';
-
-export type CombatUpdatePayload = {
-    fightState: FightState;
-    events: Array<CombatRoundEvent>;
-};
-
-export type ConditionType = 'Blinded' | 'Bleeding' | 'Burning' | 'Disarmed' | 'Frozen' | 'Poisoned' | 'Silenced' | 'Snared' | 'Stunned';
 
 export type ConsumableSummary = {
     itemId: string;
@@ -341,10 +237,6 @@ export type EquipItemRequest = {
 };
 
 export type EquipmentSlot = 'Helm' | 'Chest' | 'LeftHand' | 'RightHand' | 'Boots' | 'Necklace' | 'Gloves' | 'LeftRing' | 'RightRing' | 'Belt';
-
-export type FightState = {
-    combatants: Array<CombatantState>;
-};
 
 export type Gender = 'Male' | 'Female';
 
@@ -671,23 +563,6 @@ export type NearbyPropSnapshot = {
 
 export type PlayerClass = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric';
 
-export type PlayerCombatAction = ({
-    type: 'UseAbilityAction';
-} & PlayerCombatActionUseAbilityAction) | ({
-    type: 'UseItemAction';
-} & PlayerCombatActionUseItemAction);
-
-export type PlayerCombatActionUseAbilityAction = {
-    type?: 'UseAbilityAction';
-    targetId: string;
-    abilityName: string;
-};
-
-export type PlayerCombatActionUseItemAction = {
-    type?: 'UseItemAction';
-    itemName: string;
-};
-
 export type ProblemDetails = {
     type?: null | string;
     title?: null | string;
@@ -777,21 +652,6 @@ export type TradeRequest = {
 export type TradeSnapshot = {
     playerInventory: InventorySummary;
     shopInventory: InventorySummary;
-};
-
-export type TurnMetricsDto = {
-    firstTokenMs: number;
-    totalMs: number;
-    tokenCount: number;
-    tokensPerSecond: number;
-};
-
-export type WaitRequest = {
-    hours: number;
-};
-
-export type WaitResponse = {
-    message: string;
 };
 
 export type WorldSummary = {
@@ -1165,7 +1025,7 @@ export type GetPlayerFightResponses = {
     /**
      * OK
      */
-    200: FightState;
+    200: Array<CombatantState>;
 };
 
 export type GetPlayerFightResponse = GetPlayerFightResponses[keyof GetPlayerFightResponses];
@@ -1226,24 +1086,6 @@ export type CreateSessionResponses = {
 };
 
 export type CreateSessionResponse = CreateSessionResponses[keyof CreateSessionResponses];
-
-export type ResolveCombatActionData = {
-    body: PlayerCombatAction;
-    path: {
-        sessionId: string;
-    };
-    query?: never;
-    url: '/sessions/{sessionId}/combat-actions';
-};
-
-export type ResolveCombatActionResponses = {
-    /**
-     * OK
-     */
-    200: CombatActionResponse;
-};
-
-export type ResolveCombatActionResponse = ResolveCombatActionResponses[keyof ResolveCombatActionResponses];
 
 export type GetSessionSceneData = {
     body?: never;
@@ -1338,71 +1180,6 @@ export type GetJobResponses = {
 };
 
 export type GetJobResponse = GetJobResponses[keyof GetJobResponses];
-
-export type SendAdminChatData = {
-    body: ChatRequest;
-    path: {
-        sessionId: string;
-    };
-    query?: {
-        includeMetrics?: boolean;
-    };
-    url: '/admin/sessions/{sessionId}/chat';
-};
-
-export type SendAdminChatResponses = {
-    /**
-     * OK
-     */
-    200: ChatResponse;
-};
-
-export type SendAdminChatResponse = SendAdminChatResponses[keyof SendAdminChatResponses];
-
-export type AdvanceSessionTimeData = {
-    body: WaitRequest;
-    path: {
-        sessionId: string;
-    };
-    query?: never;
-    url: '/admin/sessions/{sessionId}/wait';
-};
-
-export type AdvanceSessionTimeErrors = {
-    /**
-     * Bad Request
-     */
-    400: ProblemDetails;
-};
-
-export type AdvanceSessionTimeError = AdvanceSessionTimeErrors[keyof AdvanceSessionTimeErrors];
-
-export type AdvanceSessionTimeResponses = {
-    /**
-     * OK
-     */
-    200: WaitResponse;
-};
-
-export type AdvanceSessionTimeResponse = AdvanceSessionTimeResponses[keyof AdvanceSessionTimeResponses];
-
-export type EndSessionData = {
-    body?: never;
-    path: {
-        sessionId: string;
-    };
-    query?: never;
-    url: '/admin/sessions/{sessionId}';
-};
-
-export type EndSessionResponses = {
-    /**
-     * No Content
-     */
-    204: void;
-};
-
-export type EndSessionResponse = EndSessionResponses[keyof EndSessionResponses];
 
 export type TransferInventoryData = {
     body: InventoryTransferRequest;

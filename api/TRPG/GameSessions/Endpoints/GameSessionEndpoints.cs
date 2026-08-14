@@ -4,18 +4,14 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.GameTurns;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Contracts.Combat.Requests;
-using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Narration.Responses;
 using TRPG.Contracts.Scenes.Responses;
-using TRPG.GameSessions.Hubs;
 
 namespace TRPG.GameSessions.Endpoints;
 
@@ -24,51 +20,11 @@ internal static class GameSessionEndpoints
     public static void MapGameSessionEndpoints(this WebApplication app)
     {
         app.MapPost("/sessions", StartSession).WithName("CreateSession");
-        app.MapPost("/sessions/{sessionId:guid}/combat-actions", ResolveCombatAction)
-            .WithName("ResolveCombatAction");
         app.MapGet("/sessions/{sessionId:guid}/scene", GetScene).WithName("GetSessionScene");
         app.MapGet("/sessions/{sessionId:guid}/lore-anchors", GetLoreAnchors)
             .WithName("ListSessionLoreAnchors");
         app.MapGet("/sessions/{sessionId:guid}/lore-anchors/{anchorId:guid}", GetLoreAnchorById)
             .WithName("GetSessionLoreAnchor");
-    }
-
-    private static async Task<Ok<CombatActionResponse>> ResolveCombatAction(
-        Guid sessionId,
-        PlayerCombatAction action,
-        ResolveCombatActionHandler resolveCombatAction,
-        GameClientEventDispatcher eventDispatcher,
-        GetGameSessionQueryHandler getGameSession,
-        GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
-        CancellationToken cancellationToken
-    )
-    {
-        var session = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = sessionId },
-            cancellationToken
-        );
-
-        var response = await resolveCombatAction.Handle(
-            new GameSessionIdentity(session.Id, session.WorldId, session.PlayerId),
-            action,
-            cancellationToken
-        );
-        var scene = await getSceneWithCatchUp.Handle(
-            new GetSceneWithCatchUpQuery
-            {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-                SessionId = session.Id,
-            },
-            cancellationToken
-        );
-        await eventDispatcher.FlushAsync(session.WorldId, cancellationToken);
-        return TypedResults.Ok(
-            response with
-            {
-                Scene = scene is null ? null : SceneSnapshotMapper.ToSnapshot(scene),
-            }
-        );
     }
 
     private static async Task<Results<NotFound, Ok<SessionCreatedResponse>>> StartSession(
@@ -103,7 +59,7 @@ internal static class GameSessionEndpoints
     private static async Task<Results<NotFound, Ok<SceneSnapshot>>> GetScene(
         Guid sessionId,
         GetGameSessionQueryHandler getGameSession,
-        GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
+        RefreshSceneCommandHandler refreshScene,
         CancellationToken cancellationToken
     )
     {
@@ -112,8 +68,8 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        var scene = await getSceneWithCatchUp.Handle(
-            new GetSceneWithCatchUpQuery
+        var refreshed = await refreshScene.Handle(
+            new RefreshSceneCommand
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
@@ -121,12 +77,8 @@ internal static class GameSessionEndpoints
             },
             cancellationToken
         );
-        if (scene == null)
-        {
-            return TypedResults.NotFound();
-        }
 
-        return TypedResults.Ok(SceneSnapshotMapper.ToSnapshot(scene));
+        return TypedResults.Ok(SceneSnapshotMapper.ToSnapshot(refreshed.Scene));
     }
 
     private static async Task<Ok<LoreAnchor[]>> GetLoreAnchors(

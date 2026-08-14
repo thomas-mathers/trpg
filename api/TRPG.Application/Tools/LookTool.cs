@@ -2,16 +2,19 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Commands;
 
 namespace TRPG.Application.Tools;
 
 internal class LookTool(
     GameTurnContext turnContext,
-    GetSceneWithCatchUpQueryHandler getSceneWithCatchUp,
+    IGameClientEventSink gameEvents,
+    RefreshSceneCommandHandler refreshScene,
     ILogger<LookTool> logger
 ) : IGameTool
 {
@@ -26,8 +29,8 @@ internal class LookTool(
         logger.LogInformation("[look] tool invoked");
         var stopwatch = Stopwatch.StartNew();
 
-        var result = await getSceneWithCatchUp.Handle(
-            new GetSceneWithCatchUpQuery
+        var refreshed = await refreshScene.Handle(
+            new RefreshSceneCommand
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
@@ -36,11 +39,21 @@ internal class LookTool(
             cancellationToken
         );
 
+        if (refreshed.Refreshed)
+        {
+            gameEvents.Enqueue(
+                new SceneUpdatedEvent(
+                    SceneSnapshotMapper.ToSnapshot(refreshed.Scene),
+                    SceneUpdateReason.CatchUp
+                )
+            );
+        }
+
         logger.LogInformation(
             "[perf] [look] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,
-            JsonSerializer.Serialize(result, ToolJsonOptions.Options)
+            JsonSerializer.Serialize(refreshed.Scene, ToolJsonOptions.Options)
         );
-        return result;
+        return refreshed.Scene;
     }
 }

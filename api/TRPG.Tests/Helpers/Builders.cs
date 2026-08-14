@@ -548,10 +548,11 @@ internal static class Builders
         };
     }
 
-    public static State MakeState(Guid countryId, Guid? worldId = null)
+    public static State MakeState(Guid countryId, Guid? worldId = null, Guid? id = null)
     {
         return new State
         {
+            Id = id ?? Guid.NewGuid(),
             CountryId = countryId,
             Name = $"State-{Guid.NewGuid():N}",
             Description = "A test state",

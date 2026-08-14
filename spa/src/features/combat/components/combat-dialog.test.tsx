@@ -1,11 +1,11 @@
+import { act, configure, screen, waitFor } from '@testing-library/react';
 import { byRole } from 'testing-library-selector';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type {
   AbilitySummary,
   CombatantState,
   ConsumableSummary,
-  FightState,
   SceneSnapshot,
 } from '@/api/client';
 import {
@@ -41,7 +41,7 @@ const player: CombatantState = {
 };
 
 const goblin: CombatantState = { ...player, id: 'goblin-id', name: 'Goblin', isPlayer: false };
-const fight: FightState = { combatants: [player, goblin] };
+const fight: CombatantState[] = [player, goblin];
 
 const ui = {
   attack: byRole('button', { name: 'Attack' }),
@@ -67,19 +67,27 @@ function ability(name: string, category: AbilitySummary['category']): AbilitySum
   };
 }
 
-function renderConsole({ isStreaming = false } = {}) {
-  const submitCombatAction = vi.fn();
-  const submitFlee = vi.fn();
-  const gameChat: GameChat = {
+function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
+  return {
     messages: [],
     isConnected: true,
     connectionStatus: 'connected',
-    isStreaming,
+    isStreaming: false,
     submitChatMessage: vi.fn(),
-    submitCombatAction,
-    submitFlee,
+    submitEncounterAction: vi.fn(),
+    submitFlee: vi.fn(),
+    submitCombatAction: vi.fn().mockResolvedValue(undefined),
     endSession: vi.fn(),
+    ...overrides,
   };
+}
+
+// The combat dialog waits past its reveal delay before appearing, so give findBy/waitFor more time.
+beforeAll(() => configure({ asyncUtilTimeout: 2000 }));
+afterAll(() => configure({ asyncUtilTimeout: 1000 }));
+
+function renderConsole(overrides: Partial<GameChat> = {}) {
+  const gameChat = buildGameChat(overrides);
   const result = renderWithProviders(
     <GameChatContext.Provider value={gameChat}>
       <SceneProvider sessionId="session-id">
@@ -91,7 +99,11 @@ function renderConsole({ isStreaming = false } = {}) {
   gameEventBus.emit('SceneSnapshot', { playerStatus: { id: 'player-id' } } as SceneSnapshot);
   gameEventBus.emit('CombatStarted', fight);
 
-  return { submitCombatAction, submitFlee, ...result };
+  return {
+    submitFlee: gameChat.submitFlee,
+    submitCombatAction: gameChat.submitCombatAction,
+    ...result,
+  };
 }
 
 describe('CombatDialog', () => {
@@ -120,10 +132,11 @@ describe('CombatDialog', () => {
     await user.click(await ui.ability('Power Strike').find());
     await user.click(await ui.target('Goblin').find());
 
-    expect(submitCombatAction).toHaveBeenCalledWith(
-      { type: 'UseAbilityAction', targetId: 'goblin-id', abilityName: 'Power Strike' },
-      'Used Power Strike on Goblin',
-    );
+    expect(submitCombatAction).toHaveBeenCalledWith({
+      type: 'UseAbilityAction',
+      targetId: 'goblin-id',
+      abilityName: 'Power Strike',
+    });
   });
 
   it('targets the player when choosing a support ability', async () => {
@@ -136,10 +149,11 @@ describe('CombatDialog', () => {
     await user.click(await ui.defend.find());
     await user.click(await ui.ability('First Aid').find());
 
-    expect(submitCombatAction).toHaveBeenCalledWith(
-      { type: 'UseAbilityAction', targetId: 'player-id', abilityName: 'First Aid' },
-      'Used First Aid',
-    );
+    expect(submitCombatAction).toHaveBeenCalledWith({
+      type: 'UseAbilityAction',
+      targetId: 'player-id',
+      abilityName: 'First Aid',
+    });
   });
 
   it('submits the chosen item', async () => {
@@ -156,15 +170,44 @@ describe('CombatDialog', () => {
     await user.click(await ui.item.find());
     await user.click(await ui.consumable('Healing Potion').find());
 
-    expect(submitCombatAction).toHaveBeenCalledWith(
-      { type: 'UseItemAction', itemName: 'Healing Potion' },
-      'Used Healing Potion',
-    );
+    expect(submitCombatAction).toHaveBeenCalledWith({
+      type: 'UseItemAction',
+      itemName: 'Healing Potion',
+    });
   });
 
-  it('disables actions while the combat-starting chat turn finishes', async () => {
+  it('stays hidden while the combat-starting chat turn finishes', async () => {
     renderConsole({ isStreaming: true });
 
-    expect(await ui.attack.find()).toBeDisabled();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('disables actions during a round submission but keeps the dialog open', async () => {
+    const potion: ConsumableSummary = {
+      itemId: 'potion-id',
+      name: 'Healing Potion',
+      quantity: 1,
+      resource: 'Hp',
+      restoreAmount: 25,
+    };
+    server.use(handleGetCreatureConsumables({ body: [potion] }));
+    let resolveAction: () => void = () => undefined;
+    const submitCombatAction = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveAction = resolve;
+        }),
+    );
+    const { user } = renderConsole({ submitCombatAction });
+
+    await user.click(await ui.item.find());
+    await user.click(await ui.consumable('Healing Potion').find());
+
+    expect(ui.attack.get()).toBeDisabled();
+    expect(screen.getByRole('dialog', { name: 'Combat' })).toBeInTheDocument();
+
+    await act(async () => resolveAction());
+
+    await waitFor(() => expect(ui.attack.get()).not.toBeDisabled());
   });
 });

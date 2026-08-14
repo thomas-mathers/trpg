@@ -1,11 +1,12 @@
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Common.Mappers;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
+using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Commands;
 using TRPG.Contracts.Combat.Requests;
-using TRPG.Contracts.Combat.Responses;
 
 namespace TRPG.Application.GameTurns;
 
@@ -13,10 +14,12 @@ internal class ResolveCombatActionHandler(
     ApplyPassiveRegenCommandHandler applyPassiveRegen,
     GetActiveFightCombatantsQueryHandler getCombatants,
     CombatEngine combatEngine,
-    ResolveCombatRoundCommandHandler resolveCombatRound
+    ResolveCombatRoundCommandHandler resolveCombatRound,
+    RefreshSceneCommandHandler refreshScene,
+    IGameClientEventSink gameEvents
 )
 {
-    public async Task<CombatActionResponse> Handle(
+    public async Task Handle(
         GameSessionIdentity session,
         PlayerCombatAction action,
         CancellationToken cancellationToken = default
@@ -38,14 +41,14 @@ internal class ResolveCombatActionHandler(
 
         if (combatants.Count == 0)
         {
-            return CombatActionResponse.Rejected("There's no fight to act in right now.");
+            throw new InvalidOperationException("There's no fight to act in right now.");
         }
 
         var resolverResult = new PlayerCombatActionResolver(combatants).Resolve(action);
 
         if (resolverResult.ErrorMessage is not null)
         {
-            return CombatActionResponse.Rejected(resolverResult.ErrorMessage);
+            throw new InvalidOperationException(resolverResult.ErrorMessage);
         }
 
         var state = combatEngine.ProcessRound(combatants, resolverResult.Result!);
@@ -58,18 +61,24 @@ internal class ResolveCombatActionHandler(
                 PlayerId = session.PlayerId,
                 Combatants = combatants,
                 State = state,
-                PublishEvents = false,
             },
             cancellationToken
         );
 
-        return new CombatActionResponse(
-            new CombatUpdatePayload(
-                FightStateMapper.ToFightState(combatants),
-                CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
-            ),
-            null,
-            state.Outcome == Data.Models.CombatOutcome.Ongoing ? null : state.Outcome.ToContract()
+        var refreshed = await refreshScene.Handle(
+            new RefreshSceneCommand
+            {
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                SessionId = session.SessionId,
+            },
+            cancellationToken
+        );
+        gameEvents.Enqueue(
+            new SceneUpdatedEvent(
+                SceneSnapshotMapper.ToSnapshot(refreshed.Scene),
+                SceneUpdateReason.Synced
+            )
         );
     }
 }

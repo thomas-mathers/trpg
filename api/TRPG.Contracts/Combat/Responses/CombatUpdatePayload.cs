@@ -1,3 +1,7 @@
 namespace TRPG.Contracts.Combat.Responses;
 
-public record CombatUpdatePayload(FightState FightState, IReadOnlyList<CombatRoundEvent> Events);
+public record CombatUpdatePayload(
+    IReadOnlyCollection<CombatantState> Combatants,
+    IReadOnlyList<CombatRoundEvent> Events,
+    CombatOutcome Outcome
+);

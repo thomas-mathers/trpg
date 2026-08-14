@@ -1,1 +1,3 @@
-export type CombatOutcome = 'Victory' | 'Defeat' | 'Fled';
+export type CombatOutcome = 'Ongoing' | 'Victory' | 'Defeat' | 'Fled';
+
+export type TerminalCombatOutcome = Exclude<CombatOutcome, 'Ongoing'>;

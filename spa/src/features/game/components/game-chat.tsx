@@ -1,15 +1,18 @@
 import { useState } from 'react';
 
 import { CombatDialog } from '@/features/combat/components/combat-dialog';
-import { useGameActions } from '@/features/game/game-chat-context';
+import { HostileEncounterDialog } from '@/features/encounters/components/hostile-encounter-dialog';
+import { useHasActiveEncounter } from '@/features/encounters/hooks/use-encounter-state';
+import { useChatPanel } from '@/features/game/game-chat-context';
 import { useIsInCombat } from '@/features/game/hooks/use-is-in-combat';
 
 import { ChatHistory } from './chat-history';
 import { ChatInput } from './chat-input';
 
 export function GameChat() {
-  const { messages, isConnected, isStreaming, submitChatMessage } = useGameActions();
+  const { messages, isConnected, isStreaming, submitChatMessage } = useChatPanel();
   const isInCombat = useIsInCombat();
+  const hasActiveEncounter = useHasActiveEncounter();
   const [input, setInput] = useState('');
 
   const handleSend = () => {
@@ -28,7 +31,7 @@ export function GameChat() {
       <GameChatControls
         input={input}
         isConnected={isConnected}
-        isInCombat={isInCombat}
+        isInCombat={isInCombat || hasActiveEncounter}
         isStreaming={isStreaming}
         onChange={setInput}
         onSubmit={handleSend}
@@ -57,6 +60,7 @@ function GameChatControls({
   return (
     <div className="mx-auto w-full max-w-2xl p-4">
       <CombatDialog />
+      <HostileEncounterDialog />
       {!isInCombat && (
         <ChatInput
           value={input}

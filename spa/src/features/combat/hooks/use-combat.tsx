@@ -1,7 +1,10 @@
-import { useEffect, useReducer } from 'react';
+import { ShieldAlert } from 'lucide-react';
+import { useEffect, useReducer, useState } from 'react';
+import { toast } from 'sonner';
 
-import type { FightState } from '@/api/client';
-import type { CombatOutcome } from '@/features/combat/combat-outcome';
+import type { CombatantState } from '@/api/client';
+import type { PlayerCombatAction } from '@/features/combat/combat-action';
+import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
 import type {
   CombatActionEvent,
   CombatRegeneratedEvent,
@@ -9,6 +12,9 @@ import type {
   CombatRoundEvent,
   CombatUpdatePayload,
 } from '@/features/combat/combat-round-event';
+import { GameToast } from '@/features/game/components/game-toast';
+import { useCombatChatActions } from '@/features/game/game-chat-context';
+import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 import { gameEventBus } from '@/lib/game-event-bus';
 
 const ATTACK_WINDUP_MS = 220;
@@ -37,26 +43,25 @@ type AnimationStep =
   | { kind: 'attackerRecovery'; delayMs: number }
   | { kind: 'prepareRegeneration'; events: CombatRegeneratedEvent[]; delayMs: number }
   | { kind: 'regenerate'; events: CombatRegeneratedEvent[]; delayMs: number }
-  | { kind: 'settle'; fightState: FightState; delayMs: number };
+  | { kind: 'settle'; combatants: CombatantState[]; delayMs: number };
 
 interface CombatState {
-  fight: FightState | null;
+  fight: CombatantState[] | null;
   activeAttackerId: string | null;
   activeDefenderId: string | null;
   activeCombatEvent: CombatActionEvent | null;
   combatFlashes: Record<string, CombatFlash>;
   isPlayingBack: boolean;
-  combatOutcome: CombatOutcome | null;
+  combatOutcome: TerminalCombatOutcome | null;
   queue: AnimationStep[];
-  pendingOutcome: CombatOutcome | null;
+  pendingOutcome: TerminalCombatOutcome | null;
   eventCounter: number;
 }
 
 type CombatStateAction =
-  | { type: 'FIGHT_STARTED'; fight: FightState }
+  | { type: 'FIGHT_STARTED'; fight: CombatantState[] }
   | { type: 'ROUND_RECEIVED'; payload: CombatUpdatePayload; skipAnimation: boolean }
   | { type: 'STEP_ADVANCED' }
-  | { type: 'OUTCOME_RECEIVED'; outcome: CombatOutcome }
   | { type: 'RESOLVED' };
 
 const initialState: CombatState = {
@@ -72,65 +77,62 @@ const initialState: CombatState = {
   eventCounter: 0,
 };
 
-function applyRoundEventToFight(fight: FightState, event: CombatRoundEvent): FightState {
+function applyRoundEventToFight(
+  fight: CombatantState[],
+  event: CombatRoundEvent,
+): CombatantState[] {
   if (event.type !== 'CombatHitEvent') {
     return fight;
   }
 
-  return {
-    combatants: fight.combatants.map((combatant) =>
-      combatant.id === event.targetId
-        ? {
-            ...combatant,
-            currentHp: event.targetRemainingHp,
-            maximumHp: event.targetMaximumHp,
-            isAlive: !event.killed,
-          }
-        : combatant,
-    ),
-  };
+  return fight.map((combatant) =>
+    combatant.id === event.targetId
+      ? {
+          ...combatant,
+          currentHp: event.targetRemainingHp,
+          maximumHp: event.targetMaximumHp,
+          isAlive: !event.killed,
+        }
+      : combatant,
+  );
 }
 
 function applyRegenerationToFight(
-  fight: FightState,
+  fight: CombatantState[],
   events: CombatRegeneratedEvent[],
   phase: 'before' | 'after',
-): FightState {
+): CombatantState[] {
   const regenerationByCombatantId = new Map(events.map((event) => [event.attackerId, event]));
 
-  return {
-    combatants: fight.combatants.map((combatant) => {
-      const regeneration = regenerationByCombatantId.get(combatant.id);
-      return regeneration
-        ? {
-            ...combatant,
-            currentAp: phase === 'before' ? regeneration.previousAp : regeneration.currentAp,
-            maximumAp: regeneration.maximumAp,
-            currentMp: phase === 'before' ? regeneration.previousMp : regeneration.currentMp,
-            maximumMp: regeneration.maximumMp,
-          }
-        : combatant;
-    }),
-  };
+  return fight.map((combatant) => {
+    const regeneration = regenerationByCombatantId.get(combatant.id);
+    return regeneration
+      ? {
+          ...combatant,
+          currentAp: phase === 'before' ? regeneration.previousAp : regeneration.currentAp,
+          maximumAp: regeneration.maximumAp,
+          currentMp: phase === 'before' ? regeneration.previousMp : regeneration.currentMp,
+          maximumMp: regeneration.maximumMp,
+        }
+      : combatant;
+  });
 }
 
 function applyResourceStateToFight(
-  fight: FightState,
+  fight: CombatantState[],
   resourceState: CombatResourceStateUpdatedEvent,
-): FightState {
-  return {
-    combatants: fight.combatants.map((combatant) =>
-      combatant.id === resourceState.attackerId
-        ? {
-            ...combatant,
-            currentAp: resourceState.currentAp,
-            maximumAp: resourceState.maximumAp,
-            currentMp: resourceState.currentMp,
-            maximumMp: resourceState.maximumMp,
-          }
-        : combatant,
-    ),
-  };
+): CombatantState[] {
+  return fight.map((combatant) =>
+    combatant.id === resourceState.attackerId
+      ? {
+          ...combatant,
+          currentAp: resourceState.currentAp,
+          maximumAp: resourceState.maximumAp,
+          currentMp: resourceState.currentMp,
+          maximumMp: resourceState.maximumMp,
+        }
+      : combatant,
+  );
 }
 
 function toCombatFlash(event: CombatActionEvent, nonce: number): CombatFlash {
@@ -147,7 +149,7 @@ function toCombatFlash(event: CombatActionEvent, nonce: number): CombatFlash {
 function buildRoundSteps(payload: CombatUpdatePayload): AnimationStep[] {
   const steps: AnimationStep[] = [];
   if (payload.events.length === 0) {
-    steps.push({ kind: 'settle', fightState: payload.fightState, delayMs: 0 });
+    steps.push({ kind: 'settle', combatants: payload.combatants, delayMs: 0 });
     return steps;
   }
 
@@ -189,7 +191,7 @@ function buildRoundSteps(payload: CombatUpdatePayload): AnimationStep[] {
     steps.push({ kind: 'regenerate', events: regenerationEvents, delayMs: 280 });
   }
 
-  steps.push({ kind: 'settle', fightState: payload.fightState, delayMs: 0 });
+  steps.push({ kind: 'settle', combatants: payload.combatants, delayMs: 0 });
   return steps;
 }
 
@@ -239,7 +241,7 @@ function reduceStep(state: CombatState, step: AnimationStep): CombatState {
           : state.fight,
       };
     case 'settle':
-      return { ...state, fight: step.fightState };
+      return { ...state, fight: step.combatants };
   }
 }
 
@@ -249,14 +251,21 @@ function combatReducer(state: CombatState, action: CombatStateAction): CombatSta
       return { ...initialState, fight: action.fight };
 
     case 'ROUND_RECEIVED': {
+      const outcome = action.payload.outcome === 'Ongoing' ? undefined : action.payload.outcome;
+
       if (state.fight === null || action.skipAnimation) {
-        return { ...state, fight: action.payload.fightState };
+        return {
+          ...state,
+          fight: action.payload.combatants,
+          combatOutcome: outcome ?? state.combatOutcome,
+        };
       }
 
       return {
         ...state,
         queue: [...state.queue, ...buildRoundSteps(action.payload)],
         isPlayingBack: true,
+        pendingOutcome: outcome ?? state.pendingOutcome,
       };
     }
 
@@ -279,11 +288,6 @@ function combatReducer(state: CombatState, action: CombatStateAction): CombatSta
       };
     }
 
-    case 'OUTCOME_RECEIVED':
-      return state.queue.length === 0
-        ? { ...state, combatOutcome: action.outcome }
-        : { ...state, pendingOutcome: action.outcome };
-
     case 'RESOLVED':
       return { ...state, combatOutcome: null, fight: null };
 
@@ -298,8 +302,15 @@ function prefersReducedMotion() {
   );
 }
 
-export function useCombatState() {
+export function useCombat() {
   const [state, dispatch] = useReducer(combatReducer, initialState);
+  const {
+    isStreaming,
+    submitFlee,
+    submitCombatAction: resolveCombatAction,
+  } = useCombatChatActions();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isRevealed = useDelayedReveal(!!state.fight && !isStreaming);
 
   useEffect(() => {
     if (state.queue.length === 0) {
@@ -317,14 +328,10 @@ export function useCombatState() {
     const unsubscribeCombatUpdated = gameEventBus.on('CombatUpdated', (payload) => {
       dispatch({ type: 'ROUND_RECEIVED', payload, skipAnimation: prefersReducedMotion() });
     });
-    const unsubscribeCombatEnded = gameEventBus.on('CombatEnded', (outcome) => {
-      dispatch({ type: 'OUTCOME_RECEIVED', outcome });
-    });
 
     return () => {
       unsubscribeCombatStarted();
       unsubscribeCombatUpdated();
-      unsubscribeCombatEnded();
     };
   }, []);
 
@@ -337,12 +344,36 @@ export function useCombatState() {
     dispatch({ type: 'RESOLVED' });
   }, [state.combatOutcome]);
 
+  const submitCombatAction = (action: PlayerCombatAction) => {
+    setIsSubmitting(true);
+    resolveCombatAction(action)
+      .catch((error: unknown) => {
+        const description =
+          error instanceof Error ? error.message : 'Combat action could not be resolved.';
+        toast.custom((toastId) => (
+          <GameToast
+            toastId={toastId}
+            icon={ShieldAlert}
+            title="Action rejected"
+            description={description}
+          />
+        ));
+      })
+      .finally(() => setIsSubmitting(false));
+  };
+
+  const isResolvingRound = state.isPlayingBack || isSubmitting;
+  const disabled = isResolvingRound || isStreaming;
+
   return {
     fight: state.fight,
     activeAttackerId: state.activeAttackerId,
     activeDefenderId: state.activeDefenderId,
     activeCombatEvent: state.activeCombatEvent,
     combatFlashes: state.combatFlashes,
-    isPlayingBack: state.isPlayingBack,
+    isRevealed,
+    disabled,
+    submitCombatAction,
+    submitFlee,
   };
 }
