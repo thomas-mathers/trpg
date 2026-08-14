@@ -2,7 +2,7 @@ using TRPG.Application.Common.Mappers;
 using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Worlds.Encounters;
+namespace TRPG.Application.Encounters;
 
 internal static class HostileEncounterStateMapper
 {

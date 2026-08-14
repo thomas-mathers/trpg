@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Worlds.Encounters.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Worlds.Encounters.Commands;
+namespace TRPG.Application.Encounters.Commands;
 
 internal class EvaluateLocationEncountersCommand
 {

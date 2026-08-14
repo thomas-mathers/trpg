@@ -2,14 +2,14 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Worlds.Encounters.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Encounters.Requests;
 using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data.Models;
 
-namespace TRPG.Application.Worlds.Encounters.Commands;
+namespace TRPG.Application.Encounters.Commands;
 
 internal class ResolveEncounterActionCommand
 {

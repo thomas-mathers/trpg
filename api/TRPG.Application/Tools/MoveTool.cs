@@ -6,9 +6,9 @@ using TRPG.Application.Common;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Encounters;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Application.Worlds.Encounters;
 using TRPG.Contracts.Encounters.Responses;
 
 namespace TRPG.Application.Tools;

@@ -2,10 +2,10 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Mappers;
+using TRPG.Application.Encounters;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Application.Worlds.Encounters;
-using TRPG.Application.Worlds.Encounters.Queries;
 using TRPG.Application.Worlds.Queries;
 
 namespace TRPG.Application.GameTurns.Commands;
