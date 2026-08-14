@@ -9,8 +9,13 @@ import {
 import { useRef, useEffect, useState, useCallback } from 'react';
 
 import type { FightState, SceneSnapshot } from '@/api/client';
-import type { CombatOutcome } from '@/features/combat/combat-outcome';
+import type { PlayerCombatAction } from '@/features/combat/combat-action';
 import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
+import type {
+  EncounterResolutionFact,
+  HostileEncounterState,
+  PlayerEncounterAction,
+} from '@/features/encounters/encounter';
 import {
   gameEventBus,
   type CharacterLevelUp,
@@ -88,8 +93,11 @@ export function useGameHubConnection(sessionId: string | null) {
     connection.on('CombatUpdated', (payload: CombatUpdatePayload) =>
       gameEventBus.emit('CombatUpdated', payload),
     );
-    connection.on('CombatEnded', (outcome: CombatOutcome) =>
-      gameEventBus.emit('CombatEnded', outcome),
+    connection.on('EncounterStarted', (payload: HostileEncounterState) =>
+      gameEventBus.emit('EncounterStarted', payload),
+    );
+    connection.on('EncounterResolved', (payload: EncounterResolutionFact) =>
+      gameEventBus.emit('EncounterResolved', payload),
     );
     connection.on('SkillLevelUp', (payload: SkillLevelUp) =>
       gameEventBus.emit('SkillLevelUp', payload),
@@ -185,6 +193,28 @@ export function useGameHubConnection(sessionId: string | null) {
     [streamTokens],
   );
 
+  const streamEncounterAction = useCallback(
+    (
+      action: PlayerEncounterAction,
+      onReceiveToken: (token: string) => void,
+      onComplete?: () => void,
+    ) => streamTokens('ResolveEncounterAction', onReceiveToken, onComplete, action),
+    [streamTokens],
+  );
+
+  const resolveCombatAction = useCallback(
+    (action: PlayerCombatAction) => {
+      const connection = hubConnection.current;
+      if (!connection || !isConnected) {
+        return Promise.reject(
+          new Error('Unable to resolve combat action while disconnected from the hub'),
+        );
+      }
+      return connection.invoke('ResolveCombatAction', action);
+    },
+    [isConnected],
+  );
+
   const endSession = useCallback(async () => {
     const connection = hubConnection.current;
     if (!connection || !isConnected) {
@@ -206,6 +236,8 @@ export function useGameHubConnection(sessionId: string | null) {
     streamChat,
     streamWait,
     streamFlee,
+    streamEncounterAction,
+    resolveCombatAction,
     endSession,
   };
 }

@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts;
-using TRPG.Contracts.Combat.Requests;
-using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data;
@@ -81,21 +79,6 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         return result!.SessionId;
     }
 
-    private async Task<Creature> SeedHostileCreature()
-    {
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var creature = Builders.MakeCreature(
-            _worldId,
-            name: "Wraith",
-            creatureType: Data.Models.CreatureType.Beast,
-            locationId: _locationId
-        );
-        context.Creatures.Add(creature);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return creature;
-    }
-
     private async Task<HubConnection> Connect(Guid sessionId)
     {
         var connection = fixture.CreateHubConnection(sessionId);
@@ -119,37 +102,6 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         return await Drain(
             gameHub.StreamAsync<string>("SendChat", message, TestContext.Current.CancellationToken)
         );
-    }
-
-    private async Task StartFight(Guid sessionId, Creature enemy)
-    {
-        fixture.ChatClient.PendingToolCallName = "attack";
-        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
-        {
-            ["abilityName"] = "Strike",
-            ["targetName"] = enemy.Name,
-        };
-        await SendChat(sessionId, "I look around.");
-    }
-
-    private async Task<CombatActionResponse> ResolveCombatAction(
-        Guid sessionId,
-        UseAbilityAction action
-    )
-    {
-        using var response = await _client.PostAsJsonAsync(
-            "ResolveCombatAction",
-            action,
-            routeValues: new { sessionId },
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-        response.EnsureSuccessStatusCode();
-        return (
-            await _client.ReadContentFromJsonAsync<CombatActionResponse>(
-                response,
-                TestContext.Current.CancellationToken
-            )
-        )!;
     }
 
     [Fact]
@@ -182,93 +134,6 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
 
         // Assert
         Assert.False(string.IsNullOrWhiteSpace(narration));
-    }
-
-    [Fact]
-    public async Task ResolveCombatAction_ReturnsSceneSnapshot_WhenTheAttackChangesNearbyCreatureState()
-    {
-        // Arrange
-        var enemy = await SeedHostileCreature();
-        var sessionId = await StartSession();
-        await StartFight(sessionId, enemy);
-
-        // Act - hit/miss is random each round, so the attack is repeated a fixed number of times.
-        // The final response must include the scene state after whichever round(s) landed a hit.
-        CombatActionResponse? lastResponse = null;
-        for (var i = 0; i < 4; i++)
-        {
-            lastResponse = await ResolveCombatAction(
-                sessionId,
-                new UseAbilityAction(enemy.Id, "Strike")
-            );
-        }
-
-        // Assert
-        var scene = Assert.IsType<SceneSnapshot>(lastResponse?.Scene);
-        var updatedEnemy = Assert.Single(scene.NearbyCreatures, c => c.Id == enemy.Id);
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var freshEnemy = await context.Creatures.SingleAsync(
-            c => c.Id == enemy.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(freshEnemy.CurrentHp, updatedEnemy.CurrentHp);
-    }
-
-    [Fact]
-    public async Task ResolveCombatAction_ResolvesTheAttack_AndReturnsDeterministicNarration()
-    {
-        // Arrange
-        var enemy = await SeedHostileCreature();
-        var sessionId = await StartSession();
-        await StartFight(sessionId, enemy);
-
-        // Act
-        var response = await ResolveCombatAction(
-            sessionId,
-            new UseAbilityAction(enemy.Id, "Strike")
-        );
-
-        // Assert - hit/miss is the only random part here (unarmed damage is a deterministic 3,
-        // both combatants default to 35 max HP), so Outcome staying Ongoing is guaranteed
-        // regardless of which side's roll lands; only the exact HP change is left unasserted.
-        Assert.NotNull(response.Update);
-        Assert.Contains(response.Update.Events, combatEvent => combatEvent.Narration is not null);
-        Assert.Null(response.ErrorMessage);
-    }
-
-    [Fact]
-    public async Task ResolveCombatAction_ReturnsAMessage_WhenNoFightIsActive()
-    {
-        // Arrange
-        var sessionId = await StartSession();
-
-        // Act
-        var response = await ResolveCombatAction(
-            sessionId,
-            new UseAbilityAction(Guid.NewGuid(), "Strike")
-        );
-
-        // Assert
-        Assert.Equal("There's no fight to act in right now.", response.ErrorMessage);
-    }
-
-    [Fact]
-    public async Task ResolveCombatAction_ReturnsTheRejectionReason_WhenActionIsInvalid()
-    {
-        // Arrange
-        var enemy = await SeedHostileCreature();
-        var sessionId = await StartSession();
-        await StartFight(sessionId, enemy);
-
-        // Act
-        var response = await ResolveCombatAction(
-            sessionId,
-            new UseAbilityAction(enemy.Id, "Nonexistent Move")
-        );
-
-        // Assert
-        Assert.Equal("Ability Nonexistent Move not found", response.ErrorMessage);
     }
 
     [Fact]

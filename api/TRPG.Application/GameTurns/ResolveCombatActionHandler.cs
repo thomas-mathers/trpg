@@ -1,11 +1,14 @@
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Common.Mappers;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
+using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Commands;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts.Combat.Requests;
-using TRPG.Contracts.Combat.Responses;
 
 namespace TRPG.Application.GameTurns;
 
@@ -13,10 +16,14 @@ internal class ResolveCombatActionHandler(
     ApplyPassiveRegenCommandHandler applyPassiveRegen,
     GetActiveFightCombatantsQueryHandler getCombatants,
     CombatEngine combatEngine,
-    ResolveCombatRoundCommandHandler resolveCombatRound
+    ResolveCombatRoundCommandHandler resolveCombatRound,
+    GetCreatureByIdQueryHandler getCreatureById,
+    EnsureLocationCatchUpCommandHandler ensureLocationCatchUp,
+    GetSceneQueryHandler getScene,
+    IGameClientEventSink gameEvents
 )
 {
-    public async Task<CombatActionResponse> Handle(
+    public async Task Handle(
         GameSessionIdentity session,
         PlayerCombatAction action,
         CancellationToken cancellationToken = default
@@ -38,14 +45,14 @@ internal class ResolveCombatActionHandler(
 
         if (combatants.Count == 0)
         {
-            return CombatActionResponse.Rejected("There's no fight to act in right now.");
+            throw new InvalidOperationException("There's no fight to act in right now.");
         }
 
         var resolverResult = new PlayerCombatActionResolver(combatants).Resolve(action);
 
         if (resolverResult.ErrorMessage is not null)
         {
-            return CombatActionResponse.Rejected(resolverResult.ErrorMessage);
+            throw new InvalidOperationException(resolverResult.ErrorMessage);
         }
 
         var state = combatEngine.ProcessRound(combatants, resolverResult.Result!);
@@ -58,18 +65,43 @@ internal class ResolveCombatActionHandler(
                 PlayerId = session.PlayerId,
                 Combatants = combatants,
                 State = state,
-                PublishEvents = false,
             },
             cancellationToken
         );
 
-        return new CombatActionResponse(
-            new CombatUpdatePayload(
-                FightStateMapper.ToFightState(combatants),
-                CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
-            ),
-            null,
-            state.Outcome == Data.Models.CombatOutcome.Ongoing ? null : state.Outcome.ToContract()
+        // GetSceneWithCatchUpQuery also pushes a SceneUpdatedEvent when a catch-up ran, so its
+        // pieces are composed directly here to avoid a duplicate push alongside this one.
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = session.PlayerId },
+            cancellationToken
         );
+
+        if (player is not null)
+        {
+            var catchUp = await ensureLocationCatchUp.Handle(
+                new EnsureLocationCatchUpCommand
+                {
+                    WorldId = session.WorldId,
+                    LocationId = player.LocationId,
+                    SessionId = session.SessionId,
+                },
+                cancellationToken
+            );
+            var scene = await getScene.Handle(
+                new GetSceneQuery
+                {
+                    WorldId = session.WorldId,
+                    PlayerId = session.PlayerId,
+                    CurrentDate = catchUp.CurrentDate,
+                },
+                cancellationToken
+            );
+            gameEvents.Enqueue(
+                new SceneUpdatedEvent(
+                    SceneSnapshotMapper.ToSnapshot(scene),
+                    SceneUpdateReason.Synced
+                )
+            );
+        }
     }
 }

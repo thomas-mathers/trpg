@@ -35,7 +35,7 @@ export function GameNotifications() {
         { duration: 3800 },
       );
     });
-    const unsubscribeCombatEnded = gameEventBus.on('CombatEnded', (outcome) => {
+    const unsubscribeCombatResolved = gameEventBus.on('CombatResolved', (outcome) => {
       if (outcome !== 'Victory') {
         return;
       }
@@ -71,7 +71,7 @@ export function GameNotifications() {
     return () => {
       unsubscribeSkill();
       unsubscribeCharacter();
-      unsubscribeCombatEnded();
+      unsubscribeCombatResolved();
       unsubscribeQuestObjective();
     };
   }, []);

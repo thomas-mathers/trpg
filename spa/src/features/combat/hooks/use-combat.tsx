@@ -1,6 +1,9 @@
-import { useEffect, useReducer } from 'react';
+import { ShieldAlert } from 'lucide-react';
+import { useEffect, useReducer, useState } from 'react';
+import { toast } from 'sonner';
 
 import type { FightState } from '@/api/client';
+import type { PlayerCombatAction } from '@/features/combat/combat-action';
 import type { CombatOutcome } from '@/features/combat/combat-outcome';
 import type {
   CombatActionEvent,
@@ -9,6 +12,9 @@ import type {
   CombatRoundEvent,
   CombatUpdatePayload,
 } from '@/features/combat/combat-round-event';
+import { GameToast } from '@/features/game/components/game-toast';
+import { useCombatChatActions } from '@/features/game/game-chat-context';
+import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 import { gameEventBus } from '@/lib/game-event-bus';
 
 const ATTACK_WINDUP_MS = 220;
@@ -56,7 +62,6 @@ type CombatStateAction =
   | { type: 'FIGHT_STARTED'; fight: FightState }
   | { type: 'ROUND_RECEIVED'; payload: CombatUpdatePayload; skipAnimation: boolean }
   | { type: 'STEP_ADVANCED' }
-  | { type: 'OUTCOME_RECEIVED'; outcome: CombatOutcome }
   | { type: 'RESOLVED' };
 
 const initialState: CombatState = {
@@ -250,13 +255,18 @@ function combatReducer(state: CombatState, action: CombatStateAction): CombatSta
 
     case 'ROUND_RECEIVED': {
       if (state.fight === null || action.skipAnimation) {
-        return { ...state, fight: action.payload.fightState };
+        return {
+          ...state,
+          fight: action.payload.fightState,
+          combatOutcome: action.payload.outcome ?? state.combatOutcome,
+        };
       }
 
       return {
         ...state,
         queue: [...state.queue, ...buildRoundSteps(action.payload)],
         isPlayingBack: true,
+        pendingOutcome: action.payload.outcome ?? state.pendingOutcome,
       };
     }
 
@@ -279,11 +289,6 @@ function combatReducer(state: CombatState, action: CombatStateAction): CombatSta
       };
     }
 
-    case 'OUTCOME_RECEIVED':
-      return state.queue.length === 0
-        ? { ...state, combatOutcome: action.outcome }
-        : { ...state, pendingOutcome: action.outcome };
-
     case 'RESOLVED':
       return { ...state, combatOutcome: null, fight: null };
 
@@ -298,8 +303,15 @@ function prefersReducedMotion() {
   );
 }
 
-export function useCombatState() {
+export function useCombat() {
   const [state, dispatch] = useReducer(combatReducer, initialState);
+  const {
+    isStreaming,
+    submitFlee,
+    submitCombatAction: resolveCombatAction,
+  } = useCombatChatActions();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isRevealed = useDelayedReveal(!!state.fight && !isStreaming);
 
   useEffect(() => {
     if (state.queue.length === 0) {
@@ -317,14 +329,10 @@ export function useCombatState() {
     const unsubscribeCombatUpdated = gameEventBus.on('CombatUpdated', (payload) => {
       dispatch({ type: 'ROUND_RECEIVED', payload, skipAnimation: prefersReducedMotion() });
     });
-    const unsubscribeCombatEnded = gameEventBus.on('CombatEnded', (outcome) => {
-      dispatch({ type: 'OUTCOME_RECEIVED', outcome });
-    });
 
     return () => {
       unsubscribeCombatStarted();
       unsubscribeCombatUpdated();
-      unsubscribeCombatEnded();
     };
   }, []);
 
@@ -337,12 +345,36 @@ export function useCombatState() {
     dispatch({ type: 'RESOLVED' });
   }, [state.combatOutcome]);
 
+  const submitCombatAction = (action: PlayerCombatAction) => {
+    setIsSubmitting(true);
+    resolveCombatAction(action)
+      .catch((error: unknown) => {
+        const description =
+          error instanceof Error ? error.message : 'Combat action could not be resolved.';
+        toast.custom((toastId) => (
+          <GameToast
+            toastId={toastId}
+            icon={ShieldAlert}
+            title="Action rejected"
+            description={description}
+          />
+        ));
+      })
+      .finally(() => setIsSubmitting(false));
+  };
+
+  const isResolvingRound = state.isPlayingBack || isSubmitting;
+  const disabled = isResolvingRound || isStreaming;
+
   return {
     fight: state.fight,
     activeAttackerId: state.activeAttackerId,
     activeDefenderId: state.activeDefenderId,
     activeCombatEvent: state.activeCombatEvent,
     combatFlashes: state.combatFlashes,
-    isPlayingBack: state.isPlayingBack,
+    isRevealed,
+    disabled,
+    submitCombatAction,
+    submitFlee,
   };
 }

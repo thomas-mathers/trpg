@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { getQuestJournalQueryKey } from '@/api/client';
 import { CharacterDialog } from '@/features/character/components/character-dialog';
+import { useHasActiveEncounter } from '@/features/encounters/hooks/use-encounter-state';
 
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
 import {
@@ -36,13 +37,15 @@ function GameScreen() {
   const { sessionId } = useParams({ from: '/session/$sessionId' });
   const gameChat = useGameChat(sessionId);
   const isInCombat = useIsInCombat();
+  const hasActiveEncounter = useHasActiveEncounter();
+  const isActionBlocked = isInCombat || hasActiveEncounter;
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
   const [isConnectionLostDialogOpen, setIsConnectionLostDialogOpen] = useState(false);
 
   useEffect(() => {
-    setIsNearbyOpen(!isInCombat);
-  }, [isInCombat]);
+    setIsNearbyOpen(!isActionBlocked);
+  }, [isActionBlocked]);
 
   useEffect(
     () =>
@@ -70,7 +73,7 @@ function GameScreen() {
     <GameChatContext.Provider value={gameChat}>
       <SceneProvider key={sessionId} sessionId={sessionId}>
         <GameScreenContent
-          isInCombat={isInCombat}
+          isInCombat={isActionBlocked}
           isNearbyOpen={isNearbyOpen}
           openDialog={openDialog}
           isConnectionLostDialogOpen={isConnectionLostDialogOpen}

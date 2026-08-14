@@ -1,6 +1,10 @@
 import type { FightState, SceneSnapshot } from '@/api/client';
 import type { CombatOutcome } from '@/features/combat/combat-outcome';
 import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
+import type {
+  EncounterResolutionFact,
+  HostileEncounterState,
+} from '@/features/encounters/encounter';
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'reconnected' | 'disconnected';
 
@@ -37,8 +41,9 @@ interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
   CombatStarted: FightState;
   CombatUpdated: CombatUpdatePayload;
-  CombatEnded: CombatOutcome;
   CombatResolved: CombatOutcome;
+  EncounterStarted: HostileEncounterState;
+  EncounterResolved: EncounterResolutionFact;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;
   QuestDialogRequested: QuestDialogRequested;

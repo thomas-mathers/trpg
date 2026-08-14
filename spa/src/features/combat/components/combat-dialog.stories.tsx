@@ -213,20 +213,24 @@ function WorkbenchProviders({
   const [isStreaming, setIsStreaming] = useState(initiallyStreaming);
 
   useEffect(() => {
+    setFight(initialFight);
     gameEventBus.emit('CombatStarted', initialFight);
   }, [initialFight]);
 
-  const resolveAction = useCallback((action: PlayerCombatAction) => {
-    setIsStreaming(true);
-    window.setTimeout(() => {
-      setFight((current) => {
-        const round = simulateRound(current, action);
-        gameEventBus.emit('CombatUpdated', round);
-        return round.fightState;
-      });
-      setIsStreaming(false);
-    }, 650);
-  }, []);
+  const resolveAction = useCallback(
+    (action: PlayerCombatAction) =>
+      new Promise<void>((resolve) => {
+        window.setTimeout(() => {
+          setFight((current) => {
+            const round = simulateRound(current, action);
+            gameEventBus.emit('CombatUpdated', round);
+            return round.fightState;
+          });
+          resolve();
+        }, 650);
+      }),
+    [],
+  );
 
   const gameChat: GameChat = {
     messages: [],
@@ -234,11 +238,16 @@ function WorkbenchProviders({
     connectionStatus: 'connected',
     isStreaming,
     submitChatMessage: () => undefined,
+    submitEncounterAction: () => undefined,
     submitCombatAction: resolveAction,
     submitFlee: () => {
       setIsStreaming(true);
       window.setTimeout(() => {
-        gameEventBus.emit('CombatEnded', 'Fled');
+        gameEventBus.emit('CombatUpdated', {
+          fightState: initialFight,
+          events: [],
+          outcome: 'Fled',
+        });
         setIsStreaming(false);
       }, 650);
     },

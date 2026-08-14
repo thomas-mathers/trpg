@@ -58,7 +58,7 @@ internal static class ServiceCollectionExtensions
             .AddOpenApi()
             .AddResponseCompression(options => options.EnableForHttps = true)
             .AddTrpgJsonOptions()
-            .AddSignalR(options => options.AddFilter<GameSessionNotFoundHubFilter>())
+            .AddSignalR(options => options.AddFilter<HubExceptionTranslationFilter>())
             .AddJsonProtocol(options => ApplyTrpgJsonOptions(options.PayloadSerializerOptions));
 
         return signalRBuilder.Services;

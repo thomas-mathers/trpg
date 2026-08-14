@@ -16,7 +16,6 @@ internal class ResolveCombatRoundCommand
     public required Guid PlayerId { get; init; }
     public required IReadOnlyList<Combatant> Combatants { get; init; }
     public required CombatState State { get; init; }
-    public bool PublishEvents { get; init; } = true;
 }
 
 internal class ResolveCombatRoundCommandHandler(
@@ -45,15 +44,29 @@ internal class ResolveCombatRoundCommandHandler(
             cancellationToken
         );
 
-        if (command.PublishEvents)
+        var isFightEnding =
+            state.Outcome is CombatOutcome.Victory or CombatOutcome.Defeat or CombatOutcome.Fled;
+
+        if (isFightEnding)
         {
-            gameEvents.Enqueue(
-                new CombatUpdatedEvent(
-                    FightStateMapper.ToFightState(command.Combatants),
-                    CombatRoundEventMapper.ToCombatRoundEvents(state.Events)
-                )
+            await endFight.Handle(
+                new EndFightCommand
+                {
+                    SessionId = command.SessionId,
+                    WorldId = command.WorldId,
+                    State = state,
+                },
+                cancellationToken
             );
         }
+
+        gameEvents.Enqueue(
+            new CombatUpdatedEvent(
+                FightStateMapper.ToFightState(command.Combatants),
+                CombatRoundEventMapper.ToCombatRoundEvents(state.Events),
+                isFightEnding ? state.Outcome : null
+            )
+        );
 
         if (state.WeaponSwingCounts.Count > 0)
         {
@@ -97,26 +110,9 @@ internal class ResolveCombatRoundCommandHandler(
             }
         }
 
-        if (state.Outcome is CombatOutcome.Victory or CombatOutcome.Defeat or CombatOutcome.Fled)
-        {
-            await endFight.Handle(
-                new EndFightCommand
-                {
-                    SessionId = command.SessionId,
-                    WorldId = command.WorldId,
-                    State = state,
-                },
-                cancellationToken
-            );
-            if (command.PublishEvents)
-            {
-                gameEvents.Enqueue(new CombatEndedEvent(state.Outcome));
-            }
-        }
-
         foreach (
             var combatant in command.Combatants.Where(combatant =>
-                !combatant.IsPlayer && !combatant.IsAlive
+                combatant is { IsPlayer: false, IsAlive: false }
             )
         )
         {

@@ -196,7 +196,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     }
 
     [Fact]
-    public async Task Handle_EnqueuesCombatEndedEvent_WithTheOutcome()
+    public async Task Handle_EnqueuesCombatUpdatedEvent_WithTheOutcome_WhenFightEnds()
     {
         // Arrange
         await SeedFight();
@@ -223,8 +223,8 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
 
         // Assert
         var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
-        var combatEnded = Assert.Single(gameEvents.EnqueuedEvents.OfType<CombatEndedEvent>());
-        Assert.Equal(CombatOutcome.Victory, combatEnded.Outcome);
+        var combatUpdated = Assert.Single(gameEvents.EnqueuedEvents.OfType<CombatUpdatedEvent>());
+        Assert.Equal(CombatOutcome.Victory, combatUpdated.Outcome);
     }
 
     [Fact]

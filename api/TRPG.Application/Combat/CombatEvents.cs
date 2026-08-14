@@ -10,15 +10,13 @@ public record CombatStartedEvent(FightState FightState) : GameClientEvent
     public override object? Payload => FightState;
 }
 
-public record CombatUpdatedEvent(FightState FightState, IReadOnlyList<CombatRoundEvent> Events)
-    : GameClientEvent
+public record CombatUpdatedEvent(
+    FightState FightState,
+    IReadOnlyList<CombatRoundEvent> Events,
+    TRPG.Data.Models.CombatOutcome? Outcome = null
+) : GameClientEvent
 {
     public override string MethodName => "CombatUpdated";
-    public override object? Payload => new CombatUpdatePayload(FightState, Events);
-}
-
-public record CombatEndedEvent(TRPG.Data.Models.CombatOutcome Outcome) : GameClientEvent
-{
-    public override string MethodName => "CombatEnded";
-    public override object? Payload => Outcome.ToContract();
+    public override object? Payload =>
+        new CombatUpdatePayload(FightState, Events, Outcome?.ToContract());
 }
