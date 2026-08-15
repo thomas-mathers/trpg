@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -13,6 +14,7 @@ public class RemoveInventoryItemCommand
 }
 
 public class RemoveInventoryItemCommandHandler(TrpgDbContext context)
+    : ICommandHandler<RemoveInventoryItemCommand>
 {
     public async Task Handle(
         RemoveInventoryItemCommand command,

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Chat.Commands;
@@ -14,7 +15,7 @@ public class ClearChatMessagesCommand
 public class ClearChatMessagesCommandHandler(
     TrpgDbContext context,
     ILogger<ClearChatMessagesCommandHandler> logger
-)
+) : ICommandHandler<ClearChatMessagesCommand>
 {
     public async Task Handle(
         ClearChatMessagesCommand command,

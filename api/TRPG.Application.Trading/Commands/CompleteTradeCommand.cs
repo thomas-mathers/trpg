@@ -1,4 +1,5 @@
 using System.Transactions;
+using TRPG.Application.Common.Handling;
 using TRPG.Contracts.Inventory.Requests;
 
 namespace TRPG.Application.Trading.Commands;
@@ -15,8 +16,8 @@ internal class CompleteTradeCommand
 internal class CompleteTradeCommandHandler(
     TradeOfferValidator validator,
     TradeOfferEvaluator evaluator,
-    ReceivePlayerInventoryCommandHandler receiveInventory,
-    TransferPlayerInventoryCommandHandler transferInventory
+    ICommandHandler<ReceivePlayerInventoryCommand> receiveInventory,
+    ICommandHandler<TransferPlayerInventoryCommand> transferInventory
 )
 {
     public async Task Handle(

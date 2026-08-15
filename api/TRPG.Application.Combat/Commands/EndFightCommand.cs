@@ -1,5 +1,6 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
@@ -16,9 +17,9 @@ public class EndFightCommand
 
 public class EndFightCommandHandler(
     TrpgDbContext context,
-    UpdateCreaturesCommandHandler updateCreatures,
-    GetPlaytimeQueryHandler getPlaytime
-)
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+) : ICommandHandler<EndFightCommand>
 {
     public async Task Handle(EndFightCommand command, CancellationToken cancellationToken = default)
     {

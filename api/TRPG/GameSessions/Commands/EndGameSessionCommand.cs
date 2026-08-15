@@ -1,9 +1,11 @@
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Combat.Commands;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Data.Models;
 
 namespace TRPG.GameSessions.Commands;
 
@@ -13,10 +15,10 @@ internal class EndGameSessionCommand
 }
 
 internal class EndGameSessionCommandHandler(
-    SetWorldPlaytimeCommandHandler setWorldPlaytime,
-    GetGameSessionQueryHandler getGameSession,
-    DeleteGameSessionCommandHandler deleteGameSession,
-    AbandonActiveFightCommandHandler abandonActiveFight,
+    ICommandHandler<SetWorldPlaytimeCommand> setWorldPlaytime,
+    IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+    ICommandHandler<DeleteGameSessionCommand> deleteGameSession,
+    ICommandHandler<AbandonActiveFightCommand> abandonActiveFight,
     IMemoryCache cache
 )
 {

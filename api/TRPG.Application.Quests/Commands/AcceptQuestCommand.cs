@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -12,7 +13,7 @@ public class AcceptQuestCommand
     public required Guid WorldId { get; init; }
 }
 
-public class AcceptQuestCommandHandler(TrpgDbContext context)
+public class AcceptQuestCommandHandler(TrpgDbContext context) : ICommandHandler<AcceptQuestCommand>
 {
     public async Task Handle(
         AcceptQuestCommand command,

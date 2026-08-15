@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Narration.Mappers;
 using TRPG.Contracts;
 using TRPG.Data;
@@ -31,6 +32,7 @@ public class GetLoreAnchorsByWorldQuery
 }
 
 public class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetLoreAnchorsByWorldQuery, IReadOnlyCollection<LoreAnchorSummary>>
 {
     public static string CacheKey(Guid worldId) => $"namedEntities:{worldId}";
 

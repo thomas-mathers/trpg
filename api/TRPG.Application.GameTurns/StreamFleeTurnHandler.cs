@@ -1,7 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameSessions;
 
@@ -9,9 +10,9 @@ namespace TRPG.Application.GameTurns;
 
 internal class StreamFleeTurnHandler(
     GameTurnStreamer streamer,
-    GetActiveFightCombatantsQueryHandler getCombatants,
+    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
     CombatEngine combatEngine,
-    ResolveCombatRoundCommandHandler resolveCombatRound
+    ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound
 )
 {
     public IAsyncEnumerable<string> Handle(

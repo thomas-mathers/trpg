@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -12,6 +13,7 @@ public class AdjustWeaponProficienciesCommand
 }
 
 public class AdjustWeaponProficienciesCommandHandler(TrpgDbContext context)
+    : ICommandHandler<AdjustWeaponProficienciesCommand>
 {
     public async Task Handle(
         AdjustWeaponProficienciesCommand command,

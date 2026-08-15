@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
@@ -9,6 +10,7 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests.Queries;
+using TRPG.Data.Models;
 
 namespace TRPG.NpcConversations.Tools;
 
@@ -21,12 +23,15 @@ internal record StartConversationResult(
 
 internal class StartConversationTool(
     GameTurnContext turnContext,
-    GetActiveEncounterQueryHandler getActiveEncounter,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
-    GetNpcConversationSummaryQueryHandler getNpcConversationSummary,
-    GetQuestInteractionsForGiverQueryHandler getQuestInteractions,
-    OpenNpcConversationCommandHandler openNpcConversation,
+    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
+    IQueryHandler<GetNpcConversationSummaryQuery, string> getNpcConversationSummary,
+    IQueryHandler<
+        GetQuestInteractionsForGiverQuery,
+        QuestInteractionsForGiver
+    > getQuestInteractions,
+    ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationOutcome> openNpcConversation,
     ILogger<StartConversationTool> logger
 ) : IGameTool
 {
@@ -34,7 +39,7 @@ internal class StartConversationTool(
 
     [DisplayName("start_conversation")]
     [Description(
-        "Call this when you begin talking to someone, to remember what was discussed the last time you spoke with them and to learn their personality, background, and manner of speech. Returns an empty summary if you've never spoken before — use the biography to voice them consistently regardless."
+        "Call this when you begin talking to someone, to remember what was discussed the last time you spoke with them and to learn their personality, background, and manner of speech. Returns an empty summary if you've never spoken before â€” use the biography to voice them consistently regardless."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -54,7 +59,7 @@ internal class StartConversationTool(
         if (activeEncounter != null)
         {
             return new ToolError(
-                "A hostile encounter is underway — resolve it before starting a conversation."
+                "A hostile encounter is underway â€” resolve it before starting a conversation."
             );
         }
 

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions.Commands;
@@ -9,6 +10,7 @@ public class DeleteGameSessionCommand
 }
 
 public class DeleteGameSessionCommandHandler(TrpgDbContext context)
+    : ICommandHandler<DeleteGameSessionCommand>
 {
     public async Task Handle(
         DeleteGameSessionCommand command,

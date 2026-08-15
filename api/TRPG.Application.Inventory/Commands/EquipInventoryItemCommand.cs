@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -13,6 +14,7 @@ public class EquipInventoryItemCommand
 }
 
 public class EquipInventoryItemCommandHandler(TrpgDbContext context)
+    : ICommandHandler<EquipInventoryItemCommand>
 {
     public async Task Handle(
         EquipInventoryItemCommand command,

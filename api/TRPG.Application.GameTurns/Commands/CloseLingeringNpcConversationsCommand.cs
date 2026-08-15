@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Chat.Commands;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameTurns;
 using TRPG.Application.NpcConversations.Queries;
@@ -17,11 +18,11 @@ public class CloseLingeringNpcConversationsCommand
 public class CloseLingeringNpcConversationsCommandHandler(
     LlmConversationClient llmConversationClient,
     TrpgDbContext context,
-    GetOpenNpcConversationsQueryHandler getOpenNpcConversations,
-    UpdateGameSessionCommandHandler updateGameSession,
-    ClearChatMessagesCommandHandler clearChatMessages,
+    IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
+    ICommandHandler<UpdateGameSessionCommand> updateGameSession,
+    ICommandHandler<ClearChatMessagesCommand> clearChatMessages,
     ILogger<CloseLingeringNpcConversationsCommandHandler> logger
-)
+) : ICommandHandler<CloseLingeringNpcConversationsCommand>
 {
     public async Task Handle(
         CloseLingeringNpcConversationsCommand command,

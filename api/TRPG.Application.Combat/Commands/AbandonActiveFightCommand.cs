@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
@@ -16,10 +17,10 @@ public class AbandonActiveFightCommand
 
 public class AbandonActiveFightCommandHandler(
     TrpgDbContext context,
-    GetActiveFightQueryHandler getActiveFight,
-    GetCreaturesByIdsQueryHandler getCreaturesByIds,
-    UpdateCreaturesCommandHandler updateCreatures
-)
+    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+) : ICommandHandler<AbandonActiveFightCommand>
 {
     public async Task Handle(
         AbandonActiveFightCommand command,

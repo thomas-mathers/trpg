@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -15,7 +16,7 @@ public class GetGameSessionQuery
 public class GetGameSessionQueryHandler(
     TrpgDbContext context,
     ILogger<GetGameSessionQueryHandler> logger
-)
+) : IQueryHandler<GetGameSessionQuery, GameSession>
 {
     public async Task<GameSession> Handle(
         GetGameSessionQuery query,

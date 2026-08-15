@@ -1,5 +1,6 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,6 +12,7 @@ public class DeleteCreaturesCommand
 }
 
 public class DeleteCreaturesCommandHandler(TrpgDbContext context)
+    : ICommandHandler<DeleteCreaturesCommand>
 {
     public async Task Handle(
         DeleteCreaturesCommand command,

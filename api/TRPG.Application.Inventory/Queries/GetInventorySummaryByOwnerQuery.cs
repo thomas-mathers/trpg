@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Handling;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory.Queries;
@@ -10,8 +11,8 @@ public class GetInventorySummaryByOwnerQuery
 public record InventorySnapshot(int Gold, IReadOnlyList<Item> Items);
 
 public class GetInventorySummaryByOwnerQueryHandler(
-    GetInventoryByOwnerQueryHandler getInventoryByOwner
-)
+    IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner
+) : IQueryHandler<GetInventorySummaryByOwnerQuery, InventorySnapshot>
 {
     public async Task<InventorySnapshot> Handle(
         GetInventorySummaryByOwnerQuery query,

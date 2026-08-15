@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions.Commands;
@@ -15,7 +16,7 @@ public class UpdateGameSessionCommand
 public class UpdateGameSessionCommandHandler(
     TrpgDbContext context,
     ILogger<UpdateGameSessionCommandHandler> logger
-)
+) : ICommandHandler<UpdateGameSessionCommand>
 {
     public async Task Handle(
         UpdateGameSessionCommand command,

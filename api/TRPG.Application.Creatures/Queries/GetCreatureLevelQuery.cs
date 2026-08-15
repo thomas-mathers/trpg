@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -9,6 +10,7 @@ public class GetCreatureLevelQuery
 }
 
 public class GetCreatureLevelQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetCreatureLevelQuery, int>
 {
     public async Task<int> Handle(
         GetCreatureLevelQuery query,

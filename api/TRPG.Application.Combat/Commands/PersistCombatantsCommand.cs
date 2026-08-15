@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Combat.Commands;
@@ -9,6 +10,7 @@ public class PersistCombatantsCommand
 }
 
 public class PersistCombatantsCommandHandler(TrpgDbContext context)
+    : ICommandHandler<PersistCombatantsCommand>
 {
     public async Task Handle(
         PersistCombatantsCommand command,

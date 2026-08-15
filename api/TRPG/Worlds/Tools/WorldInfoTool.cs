@@ -2,15 +2,17 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Data.Models;
 
 namespace TRPG.Worlds.Tools;
 
 internal class WorldInfoTool(
     GameTurnContext turnContext,
-    GetWorldQueryHandler getWorld,
+    IQueryHandler<GetWorldQuery, World?> getWorld,
     ILogger<WorldInfoTool> logger
 ) : IGameTool
 {
@@ -18,7 +20,7 @@ internal class WorldInfoTool(
 
     [DisplayName("world")]
     [Description(
-        "Returns the world's name and lore description — its tone, culture, and history. Call this when you need background beyond the current scene, such as narrating rumors, festivals, or a character's cultural origin."
+        "Returns the world's name and lore description â€” its tone, culture, and history. Call this when you need background beyond the current scene, such as narrating rumors, festivals, or a character's cultural origin."
     )]
     private async Task<object?> InvokeAsync(CancellationToken cancellationToken)
     {

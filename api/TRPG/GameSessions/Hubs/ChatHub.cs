@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
@@ -11,6 +12,7 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.Encounters.Requests;
+using TRPG.Data.Models;
 using TRPG.GameSessions.Commands;
 
 namespace TRPG.GameSessions.Hubs;
@@ -23,8 +25,8 @@ internal sealed class ChatHub(
     StreamEncounterActionTurnHandler streamEncounterActionTurn,
     ResolveCombatActionHandler resolveCombatAction,
     GameClientEventDispatcher eventDispatcher,
-    PublishSessionStateCommandHandler publishSessionState,
-    GetGameSessionQueryHandler getGameSession,
+    ICommandHandler<PublishSessionStateCommand> publishSessionState,
+    IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     EndGameSessionCommandHandler endGameSession,
     PendingSessionEndRegistry pendingSessionEnds
 ) : Hub

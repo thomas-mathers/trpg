@@ -3,21 +3,26 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Events;
 using TRPG.Application.Quests.Queries;
+using TRPG.Data.Models;
 
 namespace TRPG.Quests.Tools;
 
 internal class ShowQuestDetailsTool(
     GameTurnContext turnContext,
     IGameClientEventSink gameEvents,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
-    GetQuestInteractionsForGiverQueryHandler getQuestInteractions,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
+    IQueryHandler<
+        GetQuestInteractionsForGiverQuery,
+        QuestInteractionsForGiver
+    > getQuestInteractions,
     ILogger<ShowQuestDetailsTool> logger
 ) : IGameTool
 {

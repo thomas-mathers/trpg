@@ -1,13 +1,18 @@
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.GameTurns;
 
 internal class StreamWaitTurnHandler(
     GameTurnStreamer streamer,
-    ApplyPassiveRegenCommandHandler applyPassiveRegen,
-    AdvanceTimeCommandHandler advanceTime
+    ICommandHandler<
+        ApplyPassiveRegenCommand,
+        IReadOnlyDictionary<Guid, Creature>
+    > applyPassiveRegen,
+    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime
 )
 {
     public IAsyncEnumerable<string> Handle(

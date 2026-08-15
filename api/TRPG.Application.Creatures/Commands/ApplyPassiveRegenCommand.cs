@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
@@ -17,8 +18,8 @@ public class ApplyPassiveRegenCommand
 public class ApplyPassiveRegenCommandHandler(
     TrpgDbContext context,
     IOptionsSnapshot<CreatureRegenOptions> optionsSnapshot,
-    GetPlaytimeQueryHandler getPlaytime
-)
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+) : ICommandHandler<ApplyPassiveRegenCommand, IReadOnlyDictionary<Guid, Creature>>
 {
     public async Task<IReadOnlyDictionary<Guid, Creature>> Handle(
         ApplyPassiveRegenCommand command,

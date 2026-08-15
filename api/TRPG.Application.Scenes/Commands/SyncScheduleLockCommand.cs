@@ -1,5 +1,6 @@
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Worlds.Generators;
@@ -15,11 +16,20 @@ public class SyncScheduleLockCommand
 }
 
 public class SyncScheduleLockCommandHandler(
-    GetAllOwnersByBuildingIdQueryHandler getAllOwnersByBuildingId,
-    GetAllCreatureJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
-    GetCreatureJobsOfBuildingWorkersQueryHandler getJobsOfBuildingWorkers,
-    SetFrontDoorLockedCommandHandler setFrontDoorLocked
-)
+    IQueryHandler<
+        GetAllOwnersByBuildingIdQuery,
+        IReadOnlyCollection<BuildingOwner>
+    > getAllOwnersByBuildingId,
+    IQueryHandler<
+        GetAllCreatureJobsByCreatureIdQuery,
+        IReadOnlyList<CreatureJob>
+    > getAllJobsByCreatureId,
+    IQueryHandler<
+        GetCreatureJobsOfBuildingWorkersQuery,
+        IReadOnlyList<CreatureJob>
+    > getJobsOfBuildingWorkers,
+    ICommandHandler<SetFrontDoorLockedCommand, bool?> setFrontDoorLocked
+) : ICommandHandler<SyncScheduleLockCommand, bool?>
 {
     private static readonly HashSet<BuildingType> NeverLocked =
     [

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -18,6 +19,7 @@ public class GetQuestMarkersForGiversQuery
 }
 
 public class GetQuestMarkersForGiversQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetQuestMarkersForGiversQuery, IReadOnlyDictionary<Guid, QuestMarker>>
 {
     public async Task<IReadOnlyDictionary<Guid, QuestMarker>> Handle(
         GetQuestMarkersForGiversQuery query,

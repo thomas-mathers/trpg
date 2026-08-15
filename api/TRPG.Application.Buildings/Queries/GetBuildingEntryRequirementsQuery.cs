@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -24,8 +25,8 @@ public record BuildingEntryRequirements(
 
 public class GetBuildingEntryRequirementsQueryHandler(
     TrpgDbContext context,
-    GetKeyItemIdsQueryHandler getKeyItemIds
-)
+    IQueryHandler<GetKeyItemIdsQuery, IReadOnlyList<Guid>> getKeyItemIds
+) : IQueryHandler<GetBuildingEntryRequirementsQuery, BuildingEntryRequirements>
 {
     public async Task<BuildingEntryRequirements> Handle(
         GetBuildingEntryRequirementsQuery query,

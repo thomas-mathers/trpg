@@ -28,7 +28,7 @@ internal static class QuestEndpoints
     private static async Task<Ok<QuestJournalEntrySnapshot[]>> GetQuestJournal(
         Guid playerId,
         Guid worldId,
-        GetQuestJournalQueryHandler getQuestJournal,
+        IQueryHandler<GetQuestJournalQuery, IReadOnlyCollection<QuestJournalEntry>> getQuestJournal,
         CancellationToken cancellationToken
     )
     {
@@ -63,7 +63,7 @@ internal static class QuestEndpoints
         Guid playerId,
         Guid questId,
         Guid worldId,
-        AcceptQuestCommandHandler acceptQuest,
+        ICommandHandler<AcceptQuestCommand> acceptQuest,
         CancellationToken cancellationToken
     )
     {
@@ -83,7 +83,7 @@ internal static class QuestEndpoints
         Guid playerId,
         Guid questId,
         Guid worldId,
-        CompleteQuestCommandHandler completeQuest,
+        ICommandHandler<CompleteQuestCommand> completeQuest,
         CancellationToken cancellationToken
     )
     {

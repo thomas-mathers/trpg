@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Buildings.Commands;
@@ -10,6 +11,7 @@ public class RemoveBuildingOwnerCommand
 }
 
 public class RemoveBuildingOwnerCommandHandler(TrpgDbContext context)
+    : ICommandHandler<RemoveBuildingOwnerCommand>
 {
     public async Task Handle(
         RemoveBuildingOwnerCommand command,

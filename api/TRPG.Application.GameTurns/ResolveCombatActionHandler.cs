@@ -2,6 +2,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameTurns.Events;
@@ -9,15 +10,19 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Mappers;
 using TRPG.Contracts.Combat.Requests;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.GameTurns;
 
 internal class ResolveCombatActionHandler(
-    ApplyPassiveRegenCommandHandler applyPassiveRegen,
-    GetActiveFightCombatantsQueryHandler getCombatants,
+    ICommandHandler<
+        ApplyPassiveRegenCommand,
+        IReadOnlyDictionary<Guid, Creature>
+    > applyPassiveRegen,
+    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
     CombatEngine combatEngine,
-    ResolveCombatRoundCommandHandler resolveCombatRound,
-    RefreshSceneCommandHandler refreshScene,
+    ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     IGameClientEventSink gameEvents
 )
 {

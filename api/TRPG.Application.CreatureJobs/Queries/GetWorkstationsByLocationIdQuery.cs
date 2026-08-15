@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -10,6 +11,7 @@ public class GetWorkstationsByLocationIdQuery
 }
 
 public class GetWorkstationsByLocationIdQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetWorkstationsByLocationIdQuery, IReadOnlyCollection<Workstation>>
 {
     public async Task<IReadOnlyCollection<Workstation>> Handle(
         GetWorkstationsByLocationIdQuery query,

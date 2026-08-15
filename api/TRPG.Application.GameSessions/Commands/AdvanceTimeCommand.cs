@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions.Queries;
 
 namespace TRPG.Application.GameSessions.Commands;
@@ -9,9 +10,9 @@ public class AdvanceTimeCommand
 }
 
 public class AdvanceTimeCommandHandler(
-    GetPlaytimeQueryHandler getPlaytime,
-    UpdateGameSessionCommandHandler updateGameSession
-)
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    ICommandHandler<UpdateGameSessionCommand> updateGameSession
+) : ICommandHandler<AdvanceTimeCommand, TimeSpan>
 {
     public async Task<TimeSpan> Handle(
         AdvanceTimeCommand command,

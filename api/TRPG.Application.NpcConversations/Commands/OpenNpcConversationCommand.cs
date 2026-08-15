@@ -1,7 +1,9 @@
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.NpcConversations.Commands;
 
@@ -21,9 +23,9 @@ public class OpenNpcConversationCommand
 public class OpenNpcConversationCommandHandler(
     TrpgDbContext context,
     IDomainEventPublisher<NpcConversationStartedEvent> domainEvents,
-    GetGameSessionQueryHandler getGameSession,
-    UpdateGameSessionCommandHandler updateGameSession
-)
+    IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+    ICommandHandler<UpdateGameSessionCommand> updateGameSession
+) : ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationOutcome>
 {
     public async Task<OpenNpcConversationOutcome> Handle(
         OpenNpcConversationCommand command,

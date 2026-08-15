@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
@@ -18,18 +19,27 @@ public class SyncSceneCommand
 }
 
 public class SyncSceneCommandHandler(
-    GetLocationByIdQueryHandler getLocationById,
-    GetCreatureIdsWithCreatureJobInLocationQueryHandler getCreatureIdsWithJobInLocation,
-    GetAllCreatureJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
-    GetCreatureIdsByDistrictQueryHandler getCreatureIdsByDistrict,
-    GetCreatureByIdQueryHandler getCreatureById,
-    ExecuteCreatureJobCommandHandler executeJob,
-    GetWorkstationsByLocationIdQueryHandler getWorkstationsByLocationId,
-    SetWorkstationOccupantCommandHandler setWorkstationOccupant,
-    GetRoomSummaryQueryHandler getRoomSummary,
-    SyncScheduleLockCommandHandler syncScheduleLock,
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<
+        GetCreatureIdsWithCreatureJobInLocationQuery,
+        IReadOnlyList<Guid>
+    > getCreatureIdsWithJobInLocation,
+    IQueryHandler<
+        GetAllCreatureJobsByCreatureIdQuery,
+        IReadOnlyList<CreatureJob>
+    > getAllJobsByCreatureId,
+    IQueryHandler<GetCreatureIdsByDistrictQuery, IReadOnlyList<Guid>> getCreatureIdsByDistrict,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    ICommandHandler<ExecuteCreatureJobCommand> executeJob,
+    IQueryHandler<
+        GetWorkstationsByLocationIdQuery,
+        IReadOnlyCollection<Workstation>
+    > getWorkstationsByLocationId,
+    ICommandHandler<SetWorkstationOccupantCommand> setWorkstationOccupant,
+    IQueryHandler<GetRoomSummaryQuery, RoomSummary?> getRoomSummary,
+    ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
     ILogger<SyncSceneCommandHandler> logger
-)
+) : ICommandHandler<SyncSceneCommand>
 {
     public async Task Handle(
         SyncSceneCommand command,

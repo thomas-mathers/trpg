@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.NpcConversations.Queries;
@@ -10,6 +11,7 @@ public class GetNpcConversationSummaryQuery
 }
 
 public class GetNpcConversationSummaryQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetNpcConversationSummaryQuery, string>
 {
     public async Task<string> Handle(
         GetNpcConversationSummaryQuery query,

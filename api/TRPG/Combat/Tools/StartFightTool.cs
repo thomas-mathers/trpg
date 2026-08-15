@@ -7,6 +7,7 @@ using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
@@ -19,13 +20,16 @@ namespace TRPG.Combat.Tools;
 internal class StartFightTool(
     GameTurnContext turnContext,
     IGameClientEventSink gameEvents,
-    GetActiveFightQueryHandler getActiveFight,
-    GetActiveEncounterQueryHandler getActiveEncounter,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
-    GetEncounterGroupCreatureIdsQueryHandler getEncounterGroupCreatureIds,
-    StartFightCommandHandler startFight,
-    UpdateCreaturesCommandHandler updateCreatures,
+    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
+    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
+    IQueryHandler<
+        GetEncounterGroupCreatureIdsQuery,
+        IReadOnlyCollection<Guid>
+    > getEncounterGroupCreatureIds,
+    ICommandHandler<StartFightCommand, IReadOnlyList<Combatant>> startFight,
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ILogger<StartFightTool> logger
 ) : IGameTool
 {
@@ -53,7 +57,7 @@ internal class StartFightTool(
         if (activeFight != null)
         {
             return new ToolError(
-                "A fight is already underway — resolve it through the player's combat menu, not this tool."
+                "A fight is already underway â€” resolve it through the player's combat menu, not this tool."
             );
         }
 
@@ -64,7 +68,7 @@ internal class StartFightTool(
         if (activeEncounter != null)
         {
             return new ToolError(
-                "A hostile encounter is already underway — resolve it before attacking."
+                "A hostile encounter is already underway â€” resolve it before attacking."
             );
         }
 

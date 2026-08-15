@@ -1,5 +1,6 @@
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Mappers;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
@@ -8,6 +9,7 @@ using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Encounters.Requests;
 using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data.Models;
+using Combatant = TRPG.Application.Combat.Combatant;
 
 namespace TRPG.Application.Encounters.Commands;
 
@@ -30,13 +32,13 @@ public record EncounterActionResolution(
 );
 
 public class ResolveEncounterActionCommandHandler(
-    GetEncounterGroupContextQueryHandler getEncounterGroupContext,
-    GetCreatureByIdQueryHandler getCreatureById,
-    CompleteEncounterCommandHandler completeEncounter,
-    UpdateCreaturesCommandHandler updateCreatures,
-    StartFightCommandHandler startFight,
-    GetLocationByIdQueryHandler getLocationById
-)
+    IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext> getEncounterGroupContext,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    ICommandHandler<CompleteEncounterCommand> completeEncounter,
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<StartFightCommand, IReadOnlyList<Combatant>> startFight,
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
+) : ICommandHandler<ResolveEncounterActionCommand, EncounterActionResolution>
 {
     public async Task<EncounterActionResolution> Handle(
         ResolveEncounterActionCommand command,

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using TickerQ.Utilities.Base;
 using TickerQ.Utilities.Interfaces;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Contracts;
 using TRPG.Contracts.Worlds.Responses;
@@ -8,8 +9,10 @@ using TRPG.Data;
 
 namespace TRPG.Worlds.Jobs;
 
-public class CreateWorldJob(CreateWorldCommandHandler handler, TrpgTickerQDbContext tickerContext)
-    : ITickerFunction<CreateWorldCommand>
+public class CreateWorldJob(
+    ICommandHandler<CreateWorldCommand, CreateWorldResult> handler,
+    TrpgTickerQDbContext tickerContext
+) : ITickerFunction<CreateWorldCommand>
 {
     public async Task ExecuteAsync(
         TickerFunctionContext<CreateWorldCommand> context,

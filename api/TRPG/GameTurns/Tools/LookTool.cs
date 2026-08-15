@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Events;
@@ -15,7 +16,7 @@ namespace TRPG.GameTurns.Tools;
 internal class LookTool(
     GameTurnContext turnContext,
     IGameClientEventSink gameEvents,
-    RefreshSceneCommandHandler refreshScene,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ILogger<LookTool> logger
 ) : IGameTool
 {
@@ -23,7 +24,7 @@ internal class LookTool(
 
     [DisplayName("look")]
     [Description(
-        "Returns everything currently observable at the player's location: CurrentDate (Year, MonthName, Day, WeekdayName, and a 24-hour Hour where 0 is midnight); the current region; the building and room (with its exits) if indoors; nearby props and people; and nearby buildings, both ordinary (shops, homes, civic buildings) and dungeons (caves, crypts, mines, ruins, towers — hostile, monster-filled sites, identifiable by Type; narrate these as dangerous). NearbyBuildings is only populated outdoors — empty indoors because you can't see outside from in here, not because the city has no buildings. Call this before narrating any location, and again after anything might have changed what's nearby."
+        "Returns everything currently observable at the player's location: CurrentDate (Year, MonthName, Day, WeekdayName, and a 24-hour Hour where 0 is midnight); the current region; the building and room (with its exits) if indoors; nearby props and people; and nearby buildings, both ordinary (shops, homes, civic buildings) and dungeons (caves, crypts, mines, ruins, towers â€” hostile, monster-filled sites, identifiable by Type; narrate these as dangerous). NearbyBuildings is only populated outdoors â€” empty indoors because you can't see outside from in here, not because the city has no buildings. Call this before narrating any location, and again after anything might have changed what's nearby."
     )]
     private async Task<object?> InvokeAsync(CancellationToken cancellationToken)
     {

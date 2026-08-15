@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -13,6 +14,7 @@ public class GetCreatureByNameAtLocationQuery
 }
 
 public class GetCreatureByNameAtLocationQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?>
 {
     public async Task<Creature?> Handle(
         GetCreatureByNameAtLocationQuery query,

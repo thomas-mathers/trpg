@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using TRPG.Application.Abilities;
 using TRPG.Application.Abilities.Mappers;
 using TRPG.Application.Abilities.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Contracts.Abilities.Responses;
 using DataSkill = TRPG.Data.Models.Skill;
 
@@ -17,7 +19,7 @@ internal static class AbilityEndpoints
 
     private static async Task<Ok<AbilitySummary[]>> GetAbilitiesBySkill(
         Skill skill,
-        GetAbilitiesBySkillQueryHandler getAbilitiesBySkill,
+        IQueryHandler<GetAbilitiesBySkillQuery, IReadOnlyCollection<Ability>> getAbilitiesBySkill,
         CancellationToken cancellationToken
     )
     {

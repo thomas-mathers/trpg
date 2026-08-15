@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -13,6 +14,7 @@ public class GetNearbyCreaturesQuery
 }
 
 public class GetNearbyCreaturesQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureSummary>>
 {
     public async Task<IReadOnlyCollection<CreatureSummary>> Handle(
         GetNearbyCreaturesQuery query,

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
@@ -17,13 +18,13 @@ public class RefreshSceneCommand
 public record RefreshSceneResult(SceneResult Scene, bool Refreshed);
 
 public class RefreshSceneCommandHandler(
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetPlaytimeQueryHandler getPlaytime,
-    SyncSceneCommandHandler syncScene,
-    GetSceneQueryHandler getScene,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    ICommandHandler<SyncSceneCommand> syncScene,
+    IQueryHandler<GetSceneQuery, SceneResult> getScene,
     SceneCatchUpCache catchUpCache,
     ILogger<RefreshSceneCommandHandler> logger
-)
+) : ICommandHandler<RefreshSceneCommand, RefreshSceneResult>
 {
     public async Task<RefreshSceneResult> Handle(
         RefreshSceneCommand command,

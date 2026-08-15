@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
 
@@ -11,9 +12,9 @@ public class GetCurrentSceneQuery
 }
 
 public class GetCurrentSceneQueryHandler(
-    GetPlaytimeQueryHandler getPlaytime,
-    GetSceneQueryHandler getScene
-)
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetSceneQuery, SceneResult> getScene
+) : IQueryHandler<GetCurrentSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
         GetCurrentSceneQuery query,

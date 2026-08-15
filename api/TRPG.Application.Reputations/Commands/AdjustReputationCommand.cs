@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -13,6 +14,7 @@ public class AdjustReputationCommand
 }
 
 public class AdjustReputationCommandHandler(TrpgDbContext context)
+    : ICommandHandler<AdjustReputationCommand>
 {
     private const int MinimumScore = -100;
     private const int MaximumScore = 100;

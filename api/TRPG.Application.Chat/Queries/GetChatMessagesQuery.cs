@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Chat.Queries;
@@ -15,7 +16,7 @@ public class GetChatMessagesQuery
 public class GetChatMessagesQueryHandler(
     TrpgDbContext context,
     ILogger<GetChatMessagesQueryHandler> logger
-)
+) : IQueryHandler<GetChatMessagesQuery, IReadOnlyList<ChatMessage>>
 {
     public async Task<IReadOnlyList<ChatMessage>> Handle(
         GetChatMessagesQuery query,

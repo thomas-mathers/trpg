@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions.Queries;
@@ -12,6 +13,7 @@ public class GetPlaytimeQuery
 }
 
 public class GetPlaytimeQueryHandler(TrpgDbContext context, ILogger<GetPlaytimeQueryHandler> logger)
+    : IQueryHandler<GetPlaytimeQuery, TimeSpan>
 {
     public async Task<TimeSpan> Handle(
         GetPlaytimeQuery query,

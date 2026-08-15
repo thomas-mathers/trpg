@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Events;
 using TRPG.Data;
@@ -8,7 +9,7 @@ using TRPG.Data.Models;
 namespace TRPG.Application.Quests;
 
 public sealed class QuestObjectiveAdvancer(
-    MarkQuestsReadyToCompleteCommandHandler markQuestsReadyToComplete,
+    ICommandHandler<MarkQuestsReadyToCompleteCommand> markQuestsReadyToComplete,
     IGameClientEventSink gameEvents,
     TrpgDbContext context
 )

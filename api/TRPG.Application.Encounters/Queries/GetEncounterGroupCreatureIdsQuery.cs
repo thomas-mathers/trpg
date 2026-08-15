@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,6 +12,7 @@ public class GetEncounterGroupCreatureIdsQuery
 }
 
 public class GetEncounterGroupCreatureIdsQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetEncounterGroupCreatureIdsQuery, IReadOnlyCollection<Guid>>
 {
     public async Task<IReadOnlyCollection<Guid>> Handle(
         GetEncounterGroupCreatureIdsQuery query,

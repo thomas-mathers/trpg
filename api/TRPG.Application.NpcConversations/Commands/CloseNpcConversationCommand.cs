@@ -1,5 +1,7 @@
+using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.NpcConversations.Commands;
 
@@ -19,10 +21,10 @@ public class CloseNpcConversationCommand
 }
 
 public class CloseNpcConversationCommandHandler(
-    GetGameSessionQueryHandler getGameSession,
-    SetNpcConversationSummaryCommandHandler setNpcConversationSummary,
-    UpdateGameSessionCommandHandler updateGameSession
-)
+    IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+    ICommandHandler<SetNpcConversationSummaryCommand> setNpcConversationSummary,
+    ICommandHandler<UpdateGameSessionCommand> updateGameSession
+) : ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationOutcome>
 {
     public async Task<CloseNpcConversationOutcome> Handle(
         CloseNpcConversationCommand command,

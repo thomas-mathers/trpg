@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Encounters.Queries;
@@ -18,10 +19,10 @@ public class EvaluateLocationEncountersCommand
 
 public class EvaluateLocationEncountersCommandHandler(
     TrpgDbContext context,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetActiveEncounterQueryHandler getActiveEncounter,
-    GetActiveFightQueryHandler getActiveFight
-)
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight
+) : ICommandHandler<EvaluateLocationEncountersCommand, HostileEncounterState?>
 {
     public async Task<HostileEncounterState?> Handle(
         EvaluateLocationEncountersCommand command,

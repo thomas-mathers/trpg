@@ -1,4 +1,5 @@
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -16,9 +17,9 @@ public class StartFightCommand
 
 public class StartFightCommandHandler(
     TrpgDbContext context,
-    GetCombatantQueryHandler getCombatant,
-    ApplyPassiveRegenCommandHandler applyPassiveRegen
-)
+    IQueryHandler<GetCombatantQuery, Combatant> getCombatant,
+    ICommandHandler<ApplyPassiveRegenCommand, IReadOnlyDictionary<Guid, Creature>> applyPassiveRegen
+) : ICommandHandler<StartFightCommand, IReadOnlyList<Combatant>>
 {
     public async Task<IReadOnlyList<Combatant>> Handle(
         StartFightCommand command,

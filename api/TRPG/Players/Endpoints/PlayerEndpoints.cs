@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Contracts.Combat.Responses;
 using AbilityAvailability = TRPG.Contracts.Combat.Responses.AbilityAvailability;
+using Combatant = TRPG.Application.Combat.Combatant;
 
 namespace TRPG.Players.Endpoints;
 
@@ -19,7 +21,7 @@ internal static class PlayerEndpoints
 
     private static async Task<Results<NotFound, Ok<IReadOnlyCollection<CombatantState>>>> GetFight(
         Guid playerId,
-        GetActiveFightCombatantsQueryHandler getCombatants,
+        IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
         CancellationToken cancellationToken
     )
     {
@@ -37,7 +39,10 @@ internal static class PlayerEndpoints
 
     private static async Task<Ok<AbilityAvailability[]>> GetAbilityAvailability(
         Guid playerId,
-        GetAbilityAvailabilityQueryHandler getAbilityAvailability,
+        IQueryHandler<
+            GetAbilityAvailabilityQuery,
+            IReadOnlyList<AbilityAvailability>
+        > getAbilityAvailability,
         CancellationToken cancellationToken
     )
     {

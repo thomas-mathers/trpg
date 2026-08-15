@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Quests.Queries;
@@ -119,20 +120,38 @@ public record SceneDetails(
 
 public class GetSceneQueryHandler(
     TrpgDbContext context,
-    GetStateByIdQueryHandler getStateById,
-    GetCityByIdQueryHandler getCityById,
-    GetCityByStateIdQueryHandler getCityByStateId,
-    GetDistrictByIdQueryHandler getDistrictById,
-    GetRoomSummaryQueryHandler getRoomSummary,
-    GetStaticPropsByLocationIdQueryHandler getStaticPropsByLocationId,
-    GetConnectorsByLocationIdQueryHandler getConnectorsByLocationId,
-    GetAllBuildingsByLocationQueryHandler getAllBuildingsByLocation,
-    GetNearbyCreaturesQueryHandler getNearbyCreatures,
-    GetEffectiveReputationsQueryHandler getEffectiveReputations,
-    GetQuestMarkersForGiversQueryHandler getQuestMarkersForGivers,
-    GetTotalCharacterXpFromSkillsQueryHandler getTotalCharacterXpFromSkills,
+    IQueryHandler<GetStateByIdQuery, State?> getStateById,
+    IQueryHandler<GetCityByIdQuery, City?> getCityById,
+    IQueryHandler<GetCityByStateIdQuery, City?> getCityByStateId,
+    IQueryHandler<GetDistrictByIdQuery, District?> getDistrictById,
+    IQueryHandler<GetRoomSummaryQuery, RoomSummary?> getRoomSummary,
+    IQueryHandler<
+        GetStaticPropsByLocationIdQuery,
+        IReadOnlyCollection<Prop>
+    > getStaticPropsByLocationId,
+    IQueryHandler<
+        GetConnectorsByLocationIdQuery,
+        IReadOnlyCollection<LocationConnector>
+    > getConnectorsByLocationId,
+    IQueryHandler<
+        GetAllBuildingsByLocationQuery,
+        IReadOnlyCollection<Building>
+    > getAllBuildingsByLocation,
+    IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureSummary>> getNearbyCreatures,
+    IQueryHandler<
+        GetEffectiveReputationsQuery,
+        IReadOnlyDictionary<Guid, int>
+    > getEffectiveReputations,
+    IQueryHandler<
+        GetQuestMarkersForGiversQuery,
+        IReadOnlyDictionary<Guid, QuestMarker>
+    > getQuestMarkersForGivers,
+    IQueryHandler<
+        GetTotalCharacterXpFromSkillsQuery,
+        IReadOnlyDictionary<Guid, int>
+    > getTotalCharacterXpFromSkills,
     ILogger<GetSceneQueryHandler> logger
-)
+) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
         GetSceneQuery query,

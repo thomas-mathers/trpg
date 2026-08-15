@@ -1,4 +1,6 @@
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Queries;
 
@@ -8,10 +10,10 @@ public class GetActiveFightCombatantsQuery
 }
 
 public class GetActiveFightCombatantsQueryHandler(
-    GetActiveFightQueryHandler getActiveFight,
-    GetCreaturesByIdsQueryHandler getCreaturesByIds,
-    GetCombatantQueryHandler getCombatant
-)
+    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
+    IQueryHandler<GetCombatantQuery, Combatant> getCombatant
+) : IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>>
 {
     public async Task<IReadOnlyList<Combatant>> Handle(
         GetActiveFightCombatantsQuery query,

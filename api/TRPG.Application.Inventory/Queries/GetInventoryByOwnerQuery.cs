@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -10,6 +11,7 @@ public class GetInventoryByOwnerQuery
 }
 
 public class GetInventoryByOwnerQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>>
 {
     public async Task<IReadOnlyList<Item>> Handle(
         GetInventoryByOwnerQuery query,

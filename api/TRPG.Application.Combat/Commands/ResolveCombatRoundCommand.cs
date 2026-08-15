@@ -2,6 +2,7 @@ using System.Transactions;
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WeaponProficiency.Commands;
@@ -19,14 +20,14 @@ public class ResolveCombatRoundCommand
 }
 
 public class ResolveCombatRoundCommandHandler(
-    PersistCombatantsCommandHandler persistCombatants,
-    AdjustWeaponProficienciesCommandHandler adjustWeaponProficiencies,
-    AdjustCreatureSkillsCommandHandler adjustCreatureSkills,
-    RemoveInventoryItemCommandHandler removeInventoryItem,
-    EndFightCommandHandler endFight,
+    ICommandHandler<PersistCombatantsCommand> persistCombatants,
+    ICommandHandler<AdjustWeaponProficienciesCommand> adjustWeaponProficiencies,
+    ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
+    ICommandHandler<RemoveInventoryItemCommand> removeInventoryItem,
+    ICommandHandler<EndFightCommand> endFight,
     IGameClientEventSink gameEvents,
     IDomainEventPublisher<CreatureKilledEvent> domainEvents
-)
+) : ICommandHandler<ResolveCombatRoundCommand, CombatResult>
 {
     public async Task<CombatResult> Handle(
         ResolveCombatRoundCommand command,

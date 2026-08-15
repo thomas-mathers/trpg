@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -10,6 +11,7 @@ public class CompleteEncounterCommand
 }
 
 public class CompleteEncounterCommandHandler(TrpgDbContext context)
+    : ICommandHandler<CompleteEncounterCommand>
 {
     public Task Handle(
         CompleteEncounterCommand command,

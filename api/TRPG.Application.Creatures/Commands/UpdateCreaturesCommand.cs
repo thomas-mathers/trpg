@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -13,6 +14,7 @@ public class UpdateCreaturesCommand
 }
 
 public class UpdateCreaturesCommandHandler(TrpgDbContext context)
+    : ICommandHandler<UpdateCreaturesCommand>
 {
     public async Task Handle(
         UpdateCreaturesCommand command,

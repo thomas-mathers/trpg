@@ -44,22 +44,34 @@ public record MovePlayerResult(
 
 public class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetLocationByIdQueryHandler getLocationById,
-    GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
-    GetActiveQuestItemIdsQueryHandler getActiveQuestItemIds,
-    GetCreatureIdsHoldingItemsQueryHandler getCreatureIdsHoldingItems,
-    UpdateCreaturesCommandHandler updateCreatures,
-    DeleteCreaturesCommandHandler deleteCreatures,
-    GetBuildingByNameAtLocationQueryHandler getBuildingByNameAtLocation,
-    GetExitByDestinationNameQueryHandler getExitByDestinationName,
-    GetBuildingEntryRequirementsQueryHandler getBuildingEntryRequirements,
-    GetInventoryByOwnerQueryHandler getInventoryByOwner,
-    SyncScheduleLockCommandHandler syncScheduleLock,
-    GetPlaytimeQueryHandler getPlaytime,
-    GetActiveEncounterQueryHandler getActiveEncounter,
-    RefreshSceneCommandHandler refreshScene,
-    EvaluateLocationEncountersCommandHandler evaluateLocationEncounters,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<
+        GetCreaturesAtLocationQuery,
+        IReadOnlyCollection<CreatureSummary>
+    > getCreaturesAtLocation,
+    IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>> getActiveQuestItemIds,
+    IQueryHandler<
+        GetCreatureIdsHoldingItemsQuery,
+        IReadOnlyCollection<Guid>
+    > getCreatureIdsHoldingItems,
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<DeleteCreaturesCommand> deleteCreatures,
+    IQueryHandler<GetBuildingByNameAtLocationQuery, Building?> getBuildingByNameAtLocation,
+    IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
+    IQueryHandler<
+        GetBuildingEntryRequirementsQuery,
+        BuildingEntryRequirements
+    > getBuildingEntryRequirements,
+    IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner,
+    ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    ICommandHandler<
+        EvaluateLocationEncountersCommand,
+        HostileEncounterState?
+    > evaluateLocationEncounters,
     SceneCatchUpCache catchUpCache,
     ILogger<MovePlayerCommandHandler> logger
 ) : ICommandHandler<MovePlayerCommand, MovePlayerResult>

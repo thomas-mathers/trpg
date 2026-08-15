@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,6 +12,7 @@ public class GetDistrictByIdQuery
 }
 
 public class GetDistrictByIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetDistrictByIdQuery, District?>
 {
     public async Task<District?> Handle(
         GetDistrictByIdQuery query,

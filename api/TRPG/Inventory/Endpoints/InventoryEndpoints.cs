@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
@@ -41,9 +42,9 @@ internal static class InventoryEndpoints
     private static async Task<Results<NotFound, ProblemHttpResult, NoContent>> InventoryTransfer(
         Guid playerId,
         InventoryTransferRequest request,
-        GetCreatureByIdQueryHandler getCreatureById,
-        ReceivePlayerInventoryCommandHandler receiveInventory,
-        TransferPlayerInventoryCommandHandler transferInventory,
+        IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        ICommandHandler<ReceivePlayerInventoryCommand> receiveInventory,
+        ICommandHandler<TransferPlayerInventoryCommand> transferInventory,
         GameClientEventDispatcher eventDispatcher,
         CancellationToken cancellationToken
     )
@@ -124,7 +125,7 @@ internal static class InventoryEndpoints
     private static async Task<Results<NotFound, Ok<ItemDetail>>> GetItemById(
         Guid sessionId,
         Guid itemId,
-        GetGameSessionQueryHandler getGameSession,
+        IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
         TrpgDbContext context,
         CancellationToken cancellationToken
     )
@@ -149,7 +150,7 @@ internal static class InventoryEndpoints
         Guid playerId,
         Guid workstationId,
         GetTradeQueryHandler getTrade,
-        GetActiveQuestItemIdsQueryHandler getActiveQuestItemIds,
+        IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>> getActiveQuestItemIds,
         CancellationToken cancellationToken
     )
     {

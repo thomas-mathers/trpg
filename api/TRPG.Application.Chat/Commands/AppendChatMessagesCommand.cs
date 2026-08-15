@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using ChatMessageRow = TRPG.Data.Models.ChatMessage;
 
@@ -17,7 +18,7 @@ public class AppendChatMessagesCommand
 public class AppendChatMessagesCommandHandler(
     TrpgDbContext context,
     ILogger<AppendChatMessagesCommandHandler> logger
-)
+) : ICommandHandler<AppendChatMessagesCommand, int>
 {
     public async Task<int> Handle(
         AppendChatMessagesCommand command,

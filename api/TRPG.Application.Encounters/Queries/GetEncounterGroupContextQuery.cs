@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -16,6 +17,7 @@ public class GetEncounterGroupContextQuery
 }
 
 public class GetEncounterGroupContextQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext>
 {
     public async Task<EncounterGroupContext> Handle(
         GetEncounterGroupContextQuery query,
