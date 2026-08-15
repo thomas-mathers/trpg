@@ -131,9 +131,9 @@ public static class ApplicationServiceCollectionExtensions
             .AddGameTool<LookupTool>()
             .Decorate(typeof(ICommandHandler<>), typeof(ValidatingCommandHandler<>))
             .Decorate(typeof(ICommandHandler<,>), typeof(ValidatingCommandHandler<,>))
-            .Decorate(typeof(ICommandHandler<>), typeof(TimedCommandHandler<>))
-            .Decorate(typeof(ICommandHandler<,>), typeof(TimedCommandHandler<,>))
-            .Decorate(typeof(IQueryHandler<,>), typeof(TimedQueryHandler<,>));
+            .Decorate(typeof(ICommandHandler<>), typeof(LoggedCommandHandler<>))
+            .Decorate(typeof(ICommandHandler<,>), typeof(LoggedCommandHandler<,>))
+            .Decorate(typeof(IQueryHandler<,>), typeof(LoggedQueryHandler<,>));
     }
 
     internal static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)

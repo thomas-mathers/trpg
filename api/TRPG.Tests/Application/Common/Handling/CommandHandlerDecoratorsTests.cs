@@ -44,21 +44,22 @@ public sealed class CommandHandlerDecoratorsTests
     }
 
     [Fact]
-    public async Task Handle_LogsDuration_WhenValidationFails()
+    public async Task Handle_LogsStartAndFailure_WhenValidationFails()
     {
-        var logger = new RecordingLogger<TimedCommandHandler<ExampleCommand, string>>();
+        var logger = new RecordingLogger<LoggedCommandHandler<ExampleCommand, string>>();
         var inner = new RecordingHandler();
         var validatingHandler = new ValidatingCommandHandler<ExampleCommand, string>(
             [new DataAnnotationsCommandValidator<ExampleCommand>()],
             inner
         );
-        var handler = new TimedCommandHandler<ExampleCommand, string>(validatingHandler, logger);
+        var handler = new LoggedCommandHandler<ExampleCommand, string>(validatingHandler, logger);
 
         await Assert.ThrowsAsync<InputValidationException>(() =>
             handler.Handle(new ExampleCommand { Name = " " }, TestContext.Current.CancellationToken)
         );
 
-        Assert.Single(logger.Messages);
+        Assert.Equal("Handling ExampleCommand", logger.Messages[0]);
+        Assert.StartsWith("Failed ExampleCommand after ", logger.Messages[1]);
         Assert.False(inner.WasHandled);
     }
 
@@ -73,7 +74,7 @@ public sealed class CommandHandlerDecoratorsTests
             >()
             .AddTransient<ICommandHandler<ExampleCommand, string>, RecordingHandler>()
             .Decorate(typeof(ICommandHandler<,>), typeof(ValidatingCommandHandler<,>))
-            .Decorate(typeof(ICommandHandler<,>), typeof(TimedCommandHandler<,>));
+            .Decorate(typeof(ICommandHandler<,>), typeof(LoggedCommandHandler<,>));
         using var serviceProvider = services.BuildServiceProvider();
         var handler = serviceProvider.GetRequiredService<ICommandHandler<ExampleCommand, string>>();
 
@@ -83,10 +84,10 @@ public sealed class CommandHandlerDecoratorsTests
     }
 
     [Fact]
-    public async Task Handle_LogsDuration_ForQuery()
+    public async Task Handle_LogsStartAndCompletion_ForQuery()
     {
-        var logger = new RecordingLogger<TimedQueryHandler<ExampleQuery, string>>();
-        var handler = new TimedQueryHandler<ExampleQuery, string>(
+        var logger = new RecordingLogger<LoggedQueryHandler<ExampleQuery, string>>();
+        var handler = new LoggedQueryHandler<ExampleQuery, string>(
             new RecordingQueryHandler(),
             logger
         );
@@ -97,7 +98,9 @@ public sealed class CommandHandlerDecoratorsTests
         );
 
         Assert.Equal("Move", result);
-        Assert.Single(logger.Messages);
+        Assert.Equal(2, logger.Messages.Count);
+        Assert.Equal("Handling ExampleQuery", logger.Messages[0]);
+        Assert.StartsWith("Handled ExampleQuery in ", logger.Messages[1]);
     }
 
     private sealed class ExampleCommand
