@@ -10,7 +10,7 @@ public class GetActiveQuestItemIdsQuery
     public required Guid PlayerId { get; init; }
 }
 
-public class GetActiveQuestItemIdsQueryHandler(TrpgDbContext context)
+internal class GetActiveQuestItemIdsQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>>
 {
     public async Task<IReadOnlyCollection<Guid>> Handle(

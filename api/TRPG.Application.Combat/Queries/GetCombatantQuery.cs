@@ -16,7 +16,7 @@ public class GetCombatantQuery
     public required bool IsPlayer { get; init; }
 }
 
-public class GetCombatantQueryHandler(
+internal class GetCombatantQueryHandler(
     IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventory,
     IQueryHandler<
         GetAllWeaponProficienciesQuery,

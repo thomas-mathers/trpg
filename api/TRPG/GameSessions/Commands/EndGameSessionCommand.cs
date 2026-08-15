@@ -20,7 +20,7 @@ internal class EndGameSessionCommandHandler(
     ICommandHandler<DeleteGameSessionCommand> deleteGameSession,
     ICommandHandler<AbandonActiveFightCommand> abandonActiveFight,
     IMemoryCache cache
-)
+) : ICommandHandler<EndGameSessionCommand>
 {
     public async Task Handle(
         EndGameSessionCommand command,

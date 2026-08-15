@@ -13,7 +13,7 @@ public class PreviewEquipItemStatsQuery
     public required EquipmentSlot Slot { get; init; }
 }
 
-public class PreviewEquipItemStatsQueryHandler(TrpgDbContext context)
+internal class PreviewEquipItemStatsQueryHandler(TrpgDbContext context)
     : IQueryHandler<PreviewEquipItemStatsQuery, Attributes>
 {
     public async Task<Attributes> Handle(

@@ -27,7 +27,7 @@ internal class EndConversationTool(
         )]
             string npcName,
         [Description(
-            "A concise, third-person, factual summary of what was discussed â€” replaces any previous summary for this person."
+            "A concise, third-person, factual summary of what was discussed — replaces any previous summary for this person."
         )]
             string summary,
         CancellationToken cancellationToken

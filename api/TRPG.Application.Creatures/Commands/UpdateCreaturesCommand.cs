@@ -13,7 +13,7 @@ public class UpdateCreaturesCommand
     public TimeSpan? LastRegenPlaytime { get; init; }
 }
 
-public class UpdateCreaturesCommandHandler(TrpgDbContext context)
+internal class UpdateCreaturesCommandHandler(TrpgDbContext context)
     : ICommandHandler<UpdateCreaturesCommand>
 {
     public async Task Handle(

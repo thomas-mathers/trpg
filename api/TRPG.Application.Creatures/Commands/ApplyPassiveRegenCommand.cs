@@ -15,7 +15,7 @@ public class ApplyPassiveRegenCommand
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
 }
 
-public class ApplyPassiveRegenCommandHandler(
+internal class ApplyPassiveRegenCommandHandler(
     TrpgDbContext context,
     IOptionsSnapshot<CreatureRegenOptions> optionsSnapshot,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime

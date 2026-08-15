@@ -72,7 +72,7 @@ public sealed record PersonLookupResult(
     string? DistrictName
 ) : LookupResult;
 
-public class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
+internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetCreatureKnowledgeQuery, IReadOnlyList<LookupMatch>>
 {
     private const double SimilarityThreshold = 0.35;

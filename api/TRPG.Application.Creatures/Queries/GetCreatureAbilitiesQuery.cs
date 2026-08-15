@@ -10,7 +10,7 @@ public class GetCreatureAbilitiesQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetCreatureAbilitiesQueryHandler(TrpgDbContext context)
+internal class GetCreatureAbilitiesQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>>
 {
     public async Task<IReadOnlyList<Ability>> Handle(

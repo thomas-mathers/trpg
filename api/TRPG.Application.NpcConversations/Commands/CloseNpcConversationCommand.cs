@@ -20,7 +20,7 @@ public class CloseNpcConversationCommand
     public required string Summary { get; init; }
 }
 
-public class CloseNpcConversationCommandHandler(
+internal class CloseNpcConversationCommandHandler(
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<SetNpcConversationSummaryCommand> setNpcConversationSummary,
     ICommandHandler<UpdateGameSessionCommand> updateGameSession

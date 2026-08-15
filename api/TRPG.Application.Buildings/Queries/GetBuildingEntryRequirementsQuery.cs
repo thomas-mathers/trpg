@@ -23,7 +23,7 @@ public record BuildingEntryRequirements(
     IReadOnlyCollection<Guid>? ValidKeyItemIds = null
 );
 
-public class GetBuildingEntryRequirementsQueryHandler(
+internal class GetBuildingEntryRequirementsQueryHandler(
     TrpgDbContext context,
     IQueryHandler<GetKeyItemIdsQuery, IReadOnlyList<Guid>> getKeyItemIds
 ) : IQueryHandler<GetBuildingEntryRequirementsQuery, BuildingEntryRequirements>

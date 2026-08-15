@@ -11,7 +11,7 @@ public class GetStaticPropsByLocationIdQuery
     public required Guid LocationId { get; init; }
 }
 
-public class GetStaticPropsByLocationIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetStaticPropsByLocationIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
     : IQueryHandler<GetStaticPropsByLocationIdQuery, IReadOnlyCollection<Prop>>
 {
     public async Task<IReadOnlyCollection<Prop>> Handle(

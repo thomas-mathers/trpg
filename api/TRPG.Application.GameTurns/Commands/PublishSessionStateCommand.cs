@@ -24,7 +24,7 @@ public class PublishSessionStateCommand
     public required Guid SessionId { get; init; }
 }
 
-public class PublishSessionStateCommandHandler(
+internal class PublishSessionStateCommandHandler(
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,

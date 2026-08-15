@@ -13,7 +13,7 @@ public class AdjustReputationCommand
     public required int DeltaScore { get; init; }
 }
 
-public class AdjustReputationCommandHandler(TrpgDbContext context)
+internal class AdjustReputationCommandHandler(TrpgDbContext context)
     : ICommandHandler<AdjustReputationCommand>
 {
     private const int MinimumScore = -100;

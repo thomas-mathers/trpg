@@ -10,7 +10,7 @@ public class RemoveBuildingOwnerCommand
     public required Guid OwnerId { get; init; }
 }
 
-public class RemoveBuildingOwnerCommandHandler(TrpgDbContext context)
+internal class RemoveBuildingOwnerCommandHandler(TrpgDbContext context)
     : ICommandHandler<RemoveBuildingOwnerCommand>
 {
     public async Task Handle(

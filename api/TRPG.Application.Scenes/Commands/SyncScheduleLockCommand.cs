@@ -15,7 +15,7 @@ public class SyncScheduleLockCommand
     public required InGameDate CurrentDate { get; init; }
 }
 
-public class SyncScheduleLockCommandHandler(
+internal class SyncScheduleLockCommandHandler(
     IQueryHandler<
         GetAllOwnersByBuildingIdQuery,
         IReadOnlyCollection<BuildingOwner>

@@ -9,7 +9,7 @@ public class DropWorldCommand
     public required Guid WorldId { get; init; }
 }
 
-public class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<DropWorldCommand>
+internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<DropWorldCommand>
 {
     public async Task Handle(
         DropWorldCommand command,

@@ -8,7 +8,7 @@ public class GetLoreAnchorAutomatonByWorldQuery
     public required Guid WorldId { get; init; }
 }
 
-public class GetLoreAnchorAutomatonByWorldQueryHandler(
+internal class GetLoreAnchorAutomatonByWorldQueryHandler(
     IQueryHandler<
         GetLoreAnchorsByWorldQuery,
         IReadOnlyCollection<LoreAnchorSummary>

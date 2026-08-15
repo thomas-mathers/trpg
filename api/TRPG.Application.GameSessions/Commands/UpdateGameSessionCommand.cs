@@ -11,7 +11,7 @@ public class UpdateGameSessionCommand
     public Dictionary<string, Guid>? OpenConversationCreatureIdsByName { get; init; }
 }
 
-public class UpdateGameSessionCommandHandler(TrpgDbContext context)
+internal class UpdateGameSessionCommandHandler(TrpgDbContext context)
     : ICommandHandler<UpdateGameSessionCommand>
 {
     public async Task Handle(

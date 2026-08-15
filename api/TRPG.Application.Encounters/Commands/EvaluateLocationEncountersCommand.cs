@@ -17,7 +17,7 @@ public class EvaluateLocationEncountersCommand
     public Guid? OriginLocationId { get; init; }
 }
 
-public class EvaluateLocationEncountersCommandHandler(
+internal class EvaluateLocationEncountersCommandHandler(
     TrpgDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,

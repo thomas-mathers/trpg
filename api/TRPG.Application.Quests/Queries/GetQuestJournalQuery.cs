@@ -29,7 +29,7 @@ public record QuestJournalEntry(
     IReadOnlyCollection<QuestObjectiveProgress> Objectives
 );
 
-public class GetQuestJournalQueryHandler(TrpgDbContext context)
+internal class GetQuestJournalQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetQuestJournalQuery, IReadOnlyCollection<QuestJournalEntry>>
 {
     public async Task<IReadOnlyCollection<QuestJournalEntry>> Handle(

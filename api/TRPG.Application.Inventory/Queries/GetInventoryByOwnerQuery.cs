@@ -10,7 +10,7 @@ public class GetInventoryByOwnerQuery
     public required ItemOwnerReference Owner { get; init; }
 }
 
-public class GetInventoryByOwnerQueryHandler(TrpgDbContext context)
+internal class GetInventoryByOwnerQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>>
 {
     public async Task<IReadOnlyList<Item>> Handle(

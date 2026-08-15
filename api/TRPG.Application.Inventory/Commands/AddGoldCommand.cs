@@ -12,7 +12,7 @@ public class AddGoldCommand
     public required int Amount { get; init; }
 }
 
-public class AddGoldCommandHandler(TrpgDbContext context) : ICommandHandler<AddGoldCommand>
+internal class AddGoldCommandHandler(TrpgDbContext context) : ICommandHandler<AddGoldCommand>
 {
     public async Task Handle(AddGoldCommand command, CancellationToken cancellationToken = default)
     {

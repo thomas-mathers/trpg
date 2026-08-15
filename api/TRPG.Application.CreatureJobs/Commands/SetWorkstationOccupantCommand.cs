@@ -11,7 +11,7 @@ public class SetWorkstationOccupantCommand
     public required Guid? OccupantId { get; init; }
 }
 
-public class SetWorkstationOccupantCommandHandler(TrpgDbContext context)
+internal class SetWorkstationOccupantCommandHandler(TrpgDbContext context)
     : ICommandHandler<SetWorkstationOccupantCommand>
 {
     public async Task Handle(

@@ -15,7 +15,7 @@ public class AbandonActiveFightCommand
     public required TimeSpan Playtime { get; init; }
 }
 
-public class AbandonActiveFightCommandHandler(
+internal class AbandonActiveFightCommandHandler(
     TrpgDbContext context,
     IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,

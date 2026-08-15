@@ -9,7 +9,7 @@ public class GetCreatureIdsWithCreatureJobInLocationQuery
     public required Guid LocationId { get; init; }
 }
 
-public class GetCreatureIdsWithCreatureJobInLocationQueryHandler(TrpgDbContext context)
+internal class GetCreatureIdsWithCreatureJobInLocationQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetCreatureIdsWithCreatureJobInLocationQuery, IReadOnlyList<Guid>>
 {
     public async Task<IReadOnlyList<Guid>> Handle(

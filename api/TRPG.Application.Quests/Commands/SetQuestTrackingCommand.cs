@@ -19,7 +19,7 @@ public class SetQuestTrackingCommand
     public required Guid WorldId { get; init; }
 }
 
-public class SetQuestTrackingCommandHandler(TrpgDbContext context)
+internal class SetQuestTrackingCommandHandler(TrpgDbContext context)
     : ICommandHandler<SetQuestTrackingCommand>
 {
     public async Task Handle(

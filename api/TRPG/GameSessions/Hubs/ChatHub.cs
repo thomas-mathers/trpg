@@ -27,7 +27,7 @@ internal sealed class ChatHub(
     GameClientEventDispatcher eventDispatcher,
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-    EndGameSessionCommandHandler endGameSession,
+    ICommandHandler<EndGameSessionCommand> endGameSession,
     PendingSessionEndRegistry pendingSessionEnds
 ) : Hub
 {
@@ -158,8 +158,9 @@ internal sealed class PendingSessionEndRegistry(
             await Task.Delay(delay, cts.Token);
 
             await using var scope = serviceScopeFactory.CreateAsyncScope();
-            var endGameSession =
-                scope.ServiceProvider.GetRequiredService<EndGameSessionCommandHandler>();
+            var endGameSession = scope.ServiceProvider.GetRequiredService<
+                ICommandHandler<EndGameSessionCommand>
+            >();
             await endGameSession.Handle(
                 new EndGameSessionCommand { SessionId = sessionId },
                 cts.Token

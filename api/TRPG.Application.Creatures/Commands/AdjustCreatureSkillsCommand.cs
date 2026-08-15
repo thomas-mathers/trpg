@@ -17,7 +17,7 @@ public class AdjustCreatureSkillsCommand
     public required IReadOnlyDictionary<Skill, int> UsageCounts { get; init; }
 }
 
-public class AdjustCreatureSkillsCommandHandler(
+internal class AdjustCreatureSkillsCommandHandler(
     TrpgDbContext context,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot,
     IGameClientEventSink gameEvents

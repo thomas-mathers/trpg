@@ -116,7 +116,7 @@ public record SceneDetails(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
-public class GetSceneQueryHandler(
+internal class GetSceneQueryHandler(
     TrpgDbContext context,
     IQueryHandler<GetStateByIdQuery, State?> getStateById,
     IQueryHandler<GetCityByIdQuery, City?> getCityById,

@@ -10,7 +10,7 @@ public class GetCreatureIdsByDistrictQuery
     public required Guid DistrictId { get; init; }
 }
 
-public class GetCreatureIdsByDistrictQueryHandler(TrpgDbContext context)
+internal class GetCreatureIdsByDistrictQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetCreatureIdsByDistrictQuery, IReadOnlyList<Guid>>
 {
     public async Task<IReadOnlyList<Guid>> Handle(

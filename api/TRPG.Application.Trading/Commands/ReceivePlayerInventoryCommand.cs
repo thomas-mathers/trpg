@@ -16,7 +16,7 @@ public class ReceivePlayerInventoryCommand
     public required Guid WorldId { get; init; }
 }
 
-public class ReceivePlayerInventoryCommandHandler(
+internal class ReceivePlayerInventoryCommandHandler(
     TrpgDbContext context,
     InventoryItemTransfer itemTransfer,
     IDomainEventPublisher<ItemAcquiredEvent> domainEvents

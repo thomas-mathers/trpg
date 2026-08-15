@@ -10,7 +10,7 @@ public class GetActiveEncounterQuery
     public required Guid PlayerId { get; init; }
 }
 
-public class GetActiveEncounterQueryHandler(TrpgDbContext context)
+internal class GetActiveEncounterQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetActiveEncounterQuery, HostileEncounter?>
 {
     public async Task<HostileEncounter?> Handle(

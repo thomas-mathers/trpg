@@ -9,7 +9,7 @@ public class AddCreatureJobCommand
     public required CreatureJob CreatureJob { get; init; }
 }
 
-public class AddCreatureJobCommandHandler(TrpgDbContext context)
+internal class AddCreatureJobCommandHandler(TrpgDbContext context)
     : ICommandHandler<AddCreatureJobCommand>
 {
     public async Task Handle(

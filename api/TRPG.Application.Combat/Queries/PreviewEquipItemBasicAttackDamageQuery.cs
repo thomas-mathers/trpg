@@ -19,7 +19,7 @@ public class PreviewEquipItemBasicAttackDamageQuery
     public required EquipmentSlot Slot { get; init; }
 }
 
-public class PreviewEquipItemBasicAttackDamageQueryHandler(
+internal class PreviewEquipItemBasicAttackDamageQueryHandler(
     TrpgDbContext context,
     IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
     IQueryHandler<

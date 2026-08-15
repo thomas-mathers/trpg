@@ -10,7 +10,7 @@ public class GetAllCreatureJobsByCreatureIdQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetAllCreatureJobsByCreatureIdQueryHandler(TrpgDbContext context)
+internal class GetAllCreatureJobsByCreatureIdQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetAllCreatureJobsByCreatureIdQuery, IReadOnlyList<CreatureJob>>
 {
     public async Task<IReadOnlyList<CreatureJob>> Handle(

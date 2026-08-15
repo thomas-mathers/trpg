@@ -10,7 +10,7 @@ public class GetEffectiveReputationQuery
     public required Guid TargetCreatureId { get; init; }
 }
 
-public class GetEffectiveReputationQueryHandler(
+internal class GetEffectiveReputationQueryHandler(
     TrpgDbContext context,
     IQueryHandler<
         GetEffectiveReputationsQuery,

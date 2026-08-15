@@ -31,7 +31,7 @@ public record EncounterActionResolution(
     IReadOnlyCollection<CombatantState>? Combatants
 );
 
-public class ResolveEncounterActionCommandHandler(
+internal class ResolveEncounterActionCommandHandler(
     IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext> getEncounterGroupContext,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<CompleteEncounterCommand> completeEncounter,

@@ -39,7 +39,7 @@ internal class StartConversationTool(
 
     [DisplayName("start_conversation")]
     [Description(
-        "Call this when you begin talking to someone, to remember what was discussed the last time you spoke with them and to learn their personality, background, and manner of speech. Returns an empty summary if you've never spoken before â€” use the biography to voice them consistently regardless."
+        "Call this when you begin talking to someone, to remember what was discussed the last time you spoke with them and to learn their personality, background, and manner of speech. Returns an empty summary if you've never spoken before — use the biography to voice them consistently regardless."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -59,7 +59,7 @@ internal class StartConversationTool(
         if (activeEncounter != null)
         {
             return new ToolError(
-                "A hostile encounter is underway â€” resolve it before starting a conversation."
+                "A hostile encounter is underway — resolve it before starting a conversation."
             );
         }
 

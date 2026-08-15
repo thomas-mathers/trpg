@@ -17,7 +17,7 @@ public class AllocateAttributePointsCommand
     public required IReadOnlyDictionary<AllocatableAttributeName, int> Deltas { get; init; }
 }
 
-public class AllocateAttributePointsCommandHandler(
+internal class AllocateAttributePointsCommandHandler(
     TrpgDbContext context,
     IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot

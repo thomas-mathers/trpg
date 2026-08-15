@@ -24,7 +24,7 @@ public class CreateWorldCommand
 
 public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);
 
-public class CreateWorldCommandHandler(
+internal class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
     QuestGenerator questGenerator,

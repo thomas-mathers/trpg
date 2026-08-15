@@ -20,7 +20,7 @@ internal class WorldInfoTool(
 
     [DisplayName("world")]
     [Description(
-        "Returns the world's name and lore description â€” its tone, culture, and history. Call this when you need background beyond the current scene, such as narrating rumors, festivals, or a character's cultural origin."
+        "Returns the world's name and lore description — its tone, culture, and history. Call this when you need background beyond the current scene, such as narrating rumors, festivals, or a character's cultural origin."
     )]
     private async Task<object?> InvokeAsync(CancellationToken cancellationToken)
     {

@@ -11,7 +11,7 @@ public class GetAllBuildingsByLocationQuery
     public required Guid LocationId { get; init; }
 }
 
-public class GetAllBuildingsByLocationQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetAllBuildingsByLocationQueryHandler(TrpgDbContext context, IMemoryCache cache)
     : IQueryHandler<GetAllBuildingsByLocationQuery, IReadOnlyCollection<Building>>
 {
     public async Task<IReadOnlyCollection<Building>> Handle(

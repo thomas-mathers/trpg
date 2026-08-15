@@ -15,7 +15,7 @@ public class EndFightCommand
     public required CombatState State { get; init; }
 }
 
-public class EndFightCommandHandler(
+internal class EndFightCommandHandler(
     TrpgDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime

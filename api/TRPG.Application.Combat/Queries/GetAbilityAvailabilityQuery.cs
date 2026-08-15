@@ -10,7 +10,7 @@ public class GetAbilityAvailabilityQuery
     public required Guid PlayerId { get; init; }
 }
 
-public class GetAbilityAvailabilityQueryHandler(
+internal class GetAbilityAvailabilityQueryHandler(
     IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getActiveFightCombatants
 ) : IQueryHandler<GetAbilityAvailabilityQuery, IReadOnlyList<AbilityAvailability>>
 {

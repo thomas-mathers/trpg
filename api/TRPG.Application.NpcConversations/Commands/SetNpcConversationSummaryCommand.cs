@@ -13,7 +13,7 @@ public class SetNpcConversationSummaryCommand
     public required string Summary { get; init; }
 }
 
-public class SetNpcConversationSummaryCommandHandler(TrpgDbContext context)
+internal class SetNpcConversationSummaryCommandHandler(TrpgDbContext context)
     : ICommandHandler<SetNpcConversationSummaryCommand>
 {
     public async Task Handle(

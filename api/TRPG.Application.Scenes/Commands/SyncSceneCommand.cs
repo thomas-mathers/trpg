@@ -16,7 +16,7 @@ public class SyncSceneCommand
     public required InGameDate CurrentDate { get; init; }
 }
 
-public class SyncSceneCommandHandler(
+internal class SyncSceneCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<
         GetCreatureIdsWithCreatureJobInLocationQuery,

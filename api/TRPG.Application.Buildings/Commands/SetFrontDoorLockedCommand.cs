@@ -10,7 +10,7 @@ public class SetFrontDoorLockedCommand
     public required bool IsLocked { get; init; }
 }
 
-public class SetFrontDoorLockedCommandHandler(TrpgDbContext context)
+internal class SetFrontDoorLockedCommandHandler(TrpgDbContext context)
     : ICommandHandler<SetFrontDoorLockedCommand, bool?>
 {
     public async Task<bool?> Handle(

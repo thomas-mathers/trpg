@@ -9,7 +9,7 @@ public class AdvanceTimeCommand
     public required TimeSpan Delta { get; init; }
 }
 
-public class AdvanceTimeCommandHandler(
+internal class AdvanceTimeCommandHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<UpdateGameSessionCommand> updateGameSession
 ) : ICommandHandler<AdvanceTimeCommand, TimeSpan>

@@ -11,7 +11,7 @@ public class GetGameSessionQuery
     public required Guid SessionId { get; init; }
 }
 
-public class GetGameSessionQueryHandler(TrpgDbContext context)
+internal class GetGameSessionQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetGameSessionQuery, GameSession>
 {
     public async Task<GameSession> Handle(

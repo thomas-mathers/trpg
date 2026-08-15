@@ -16,7 +16,7 @@ public class GetEncounterGroupContextQuery
     public required Guid EncounterGroupId { get; init; }
 }
 
-public class GetEncounterGroupContextQueryHandler(TrpgDbContext context)
+internal class GetEncounterGroupContextQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext>
 {
     public async Task<EncounterGroupContext> Handle(

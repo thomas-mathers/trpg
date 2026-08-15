@@ -11,7 +11,7 @@ public class GetChatMessagesQuery
     public required Guid SessionId { get; init; }
 }
 
-public class GetChatMessagesQueryHandler(TrpgDbContext context)
+internal class GetChatMessagesQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetChatMessagesQuery, IReadOnlyList<ChatMessage>>
 {
     public async Task<IReadOnlyList<ChatMessage>> Handle(

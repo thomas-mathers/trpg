@@ -11,7 +11,7 @@ public class GetEncounterGroupCreatureIdsQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetEncounterGroupCreatureIdsQueryHandler(TrpgDbContext context)
+internal class GetEncounterGroupCreatureIdsQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetEncounterGroupCreatureIdsQuery, IReadOnlyCollection<Guid>>
 {
     public async Task<IReadOnlyCollection<Guid>> Handle(

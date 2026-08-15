@@ -19,7 +19,7 @@ public class ResolveCombatRoundCommand
     public required CombatState State { get; init; }
 }
 
-public class ResolveCombatRoundCommandHandler(
+internal class ResolveCombatRoundCommandHandler(
     ICommandHandler<PersistCombatantsCommand> persistCombatants,
     ICommandHandler<AdjustWeaponProficienciesCommand> adjustWeaponProficiencies,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,

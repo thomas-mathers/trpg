@@ -28,7 +28,7 @@ public record QuestInteractionsForGiver(
     IReadOnlyCollection<QuestConversationDetail> ReadyToCompleteQuests
 );
 
-public class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
+internal class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsForGiver>
 {
     public async Task<QuestInteractionsForGiver> Handle(

@@ -18,7 +18,7 @@ public class GetCreatureSkillsQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetCreatureSkillsQueryHandler(TrpgDbContext context)
+internal class GetCreatureSkillsQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetCreatureSkillsQuery, IReadOnlyCollection<CreatureSkillProgress>>
 {
     public async Task<IReadOnlyCollection<CreatureSkillProgress>> Handle(

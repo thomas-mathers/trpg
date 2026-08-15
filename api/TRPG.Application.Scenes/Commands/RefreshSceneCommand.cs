@@ -16,7 +16,7 @@ public class RefreshSceneCommand
 
 public record RefreshSceneResult(SceneResult Scene, bool Refreshed);
 
-public class RefreshSceneCommandHandler(
+internal class RefreshSceneCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<SyncSceneCommand> syncScene,

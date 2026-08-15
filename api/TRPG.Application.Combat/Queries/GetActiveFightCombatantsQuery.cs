@@ -9,7 +9,7 @@ public class GetActiveFightCombatantsQuery
     public required Guid PlayerId { get; init; }
 }
 
-public class GetActiveFightCombatantsQueryHandler(
+internal class GetActiveFightCombatantsQueryHandler(
     IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetCombatantQuery, Combatant> getCombatant

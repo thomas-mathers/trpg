@@ -1,8 +1,9 @@
+using TRPG.Application.Common.Handling;
 using TRPG.Contracts.Inventory.Requests;
 
 namespace TRPG.Application.Trading.Commands;
 
-internal class ProposeTradeCommand
+public class ProposeTradeCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid WorkstationId { get; init; }
@@ -13,7 +14,7 @@ internal class ProposeTradeCommand
 internal class ProposeTradeCommandHandler(
     TradeOfferValidator validator,
     TradeOfferEvaluator evaluator
-)
+) : ICommandHandler<ProposeTradeCommand, TradeOutcome>
 {
     public async Task<TradeOutcome> Handle(
         ProposeTradeCommand command,

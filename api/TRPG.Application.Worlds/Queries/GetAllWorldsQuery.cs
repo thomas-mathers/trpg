@@ -7,7 +7,7 @@ namespace TRPG.Application.Worlds.Queries;
 
 public class GetAllWorldsQuery;
 
-public class GetAllWorldsQueryHandler(TrpgDbContext context)
+internal class GetAllWorldsQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetAllWorldsQuery, IReadOnlyList<World>>
 {
     public async Task<IReadOnlyList<World>> Handle(

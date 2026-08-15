@@ -10,7 +10,7 @@ public class GetCreaturesByIdsQuery
     public required IReadOnlyCollection<Guid> Ids { get; init; }
 }
 
-public class GetCreaturesByIdsQueryHandler(TrpgDbContext context)
+internal class GetCreaturesByIdsQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>>
 {
     public async Task<IReadOnlyDictionary<Guid, Creature>> Handle(

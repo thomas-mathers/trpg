@@ -10,7 +10,7 @@ public class GetCreatureBasicAttackDamageQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetCreatureBasicAttackDamageQueryHandler(
+internal class GetCreatureBasicAttackDamageQueryHandler(
     TrpgDbContext context,
     IQueryHandler<GetCombatantQuery, Combatant> getCombatant,
     DamageCalculator damageCalculator

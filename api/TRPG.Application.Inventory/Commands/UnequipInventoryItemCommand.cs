@@ -12,7 +12,7 @@ public class UnequipInventoryItemCommand
     public required EquipmentSlot Slot { get; init; }
 }
 
-public class UnequipInventoryItemCommandHandler(TrpgDbContext context)
+internal class UnequipInventoryItemCommandHandler(TrpgDbContext context)
     : ICommandHandler<UnequipInventoryItemCommand>
 {
     public async Task Handle(

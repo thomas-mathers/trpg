@@ -42,7 +42,7 @@ public record MovePlayerResult(
     SceneResult? Scene = null
 );
 
-public class MovePlayerCommandHandler(
+internal class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,

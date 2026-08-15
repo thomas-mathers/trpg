@@ -10,7 +10,7 @@ public class ClearChatMessagesCommand
     public required int KeepFromOrdinal { get; init; }
 }
 
-public class ClearChatMessagesCommandHandler(TrpgDbContext context)
+internal class ClearChatMessagesCommandHandler(TrpgDbContext context)
     : ICommandHandler<ClearChatMessagesCommand>
 {
     public async Task Handle(

@@ -12,7 +12,7 @@ public class GetNearbyCorpsesQuery
 
 public record CorpseSummary(Guid Id, string Name, int ItemCount);
 
-public class GetNearbyCorpsesQueryHandler(
+internal class GetNearbyCorpsesQueryHandler(
     TrpgDbContext context,
     IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureSummary>> getNearbyCreatures
 ) : IQueryHandler<GetNearbyCorpsesQuery, IReadOnlyList<CorpseSummary>>

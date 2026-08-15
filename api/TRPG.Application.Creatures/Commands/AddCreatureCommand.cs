@@ -9,7 +9,8 @@ public class AddCreatureCommand
     public required Creature Creature { get; init; }
 }
 
-public class AddCreatureCommandHandler(TrpgDbContext context) : ICommandHandler<AddCreatureCommand>
+internal class AddCreatureCommandHandler(TrpgDbContext context)
+    : ICommandHandler<AddCreatureCommand>
 {
     public async Task Handle(
         AddCreatureCommand command,

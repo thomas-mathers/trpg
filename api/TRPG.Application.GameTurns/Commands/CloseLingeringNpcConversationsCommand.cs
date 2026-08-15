@@ -14,7 +14,7 @@ public class CloseLingeringNpcConversationsCommand
     public required int CurrentTurnStart { get; init; }
 }
 
-public class CloseLingeringNpcConversationsCommandHandler(
+internal class CloseLingeringNpcConversationsCommandHandler(
     LlmConversationClient llmConversationClient,
     TrpgDbContext context,
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,

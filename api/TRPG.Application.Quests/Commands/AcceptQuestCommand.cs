@@ -13,7 +13,8 @@ public class AcceptQuestCommand
     public required Guid WorldId { get; init; }
 }
 
-public class AcceptQuestCommandHandler(TrpgDbContext context) : ICommandHandler<AcceptQuestCommand>
+internal class AcceptQuestCommandHandler(TrpgDbContext context)
+    : ICommandHandler<AcceptQuestCommand>
 {
     public async Task Handle(
         AcceptQuestCommand command,

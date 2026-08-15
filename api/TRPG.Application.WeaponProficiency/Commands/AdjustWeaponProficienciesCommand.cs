@@ -12,7 +12,7 @@ public class AdjustWeaponProficienciesCommand
     public required IReadOnlyDictionary<WeaponType, int> ProficiencyDeltas { get; init; }
 }
 
-public class AdjustWeaponProficienciesCommandHandler(TrpgDbContext context)
+internal class AdjustWeaponProficienciesCommandHandler(TrpgDbContext context)
     : ICommandHandler<AdjustWeaponProficienciesCommand>
 {
     public async Task Handle(

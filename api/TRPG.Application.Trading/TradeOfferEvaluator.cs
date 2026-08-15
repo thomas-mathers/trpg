@@ -2,7 +2,7 @@ using TRPG.Application.Inventory;
 
 namespace TRPG.Application.Trading;
 
-internal enum TradeOutcome
+public enum TradeOutcome
 {
     Accepted,
     Rejected,

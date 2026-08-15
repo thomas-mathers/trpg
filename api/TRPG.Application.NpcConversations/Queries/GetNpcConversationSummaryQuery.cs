@@ -10,7 +10,7 @@ public class GetNpcConversationSummaryQuery
     public required Guid NpcId { get; init; }
 }
 
-public class GetNpcConversationSummaryQueryHandler(TrpgDbContext context)
+internal class GetNpcConversationSummaryQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetNpcConversationSummaryQuery, string>
 {
     public async Task<string> Handle(

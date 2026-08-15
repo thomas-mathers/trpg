@@ -10,7 +10,7 @@ public class GetPlaytimeQuery
     public required Guid SessionId { get; init; }
 }
 
-public class GetPlaytimeQueryHandler(TrpgDbContext context)
+internal class GetPlaytimeQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetPlaytimeQuery, TimeSpan>
 {
     public async Task<TimeSpan> Handle(

@@ -25,7 +25,7 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 
 ### Module boundaries
 - A feature module owns its commands, queries, events, mappers, and result types. Keep feature-specific enum/response mapping in that feature's `Mappers/` folder.
-- Commands, command handlers and their responses, queries, query handlers and their responses are public. Keep all other types `internal` unless they are an intentional shared contract or a public API requires them to be public.
+- Commands, queries, and their result/response types are public. Command and query handler implementations (`*CommandHandler`/`*QueryHandler`) are `internal` — callers depend on `ICommandHandler<>`/`IQueryHandler<,>` (`TRPG.Application.Common.Handling`) and never name the concrete handler class, and DI resolves them via assembly scanning (`ApplicationServiceCollectionExtensions`'s `Scan(...)`, which scans non-public types too), so no `InternalsVisibleTo` is needed for this. Keep all other types `internal` unless they are an intentional shared contract or a public API requires them to be public.
 - Do not add `InternalsVisibleTo` preemptively. First make the boundary explicit and compile; add the narrow one-way friendship only when an internal implementation dependency is genuinely required.
 - Prefer a feature-local type or boundary mapping over a new Common dependency. A utility used by only one feature belongs in that feature.
 - Client events belong to the feature/workflow that emits them. `GameClientEvent`, its sink, dispatcher, and `EntityNotFoundException` are public Common infrastructure.
@@ -235,7 +235,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - When validation resolves data needed by a subsequent operation, return that resolved data in the validation result rather than issuing a second query.
 - An execution command throws when revalidation fails; only a proposal-style command returns an accepted/rejected outcome.
 - Primary constructor injection: `public class ReputationService(TrpgDbContext context)`
-- No interfaces — direct concrete classes
+- Default to concrete classes, not interfaces. An interface is justified by genuine polymorphism — a decorator chain, more than one real implementation, or a true external dependency boundary (e.g. `IChatClient`) — never merely to allow mocking in tests or because a class happens to have only one implementation. Command and query handlers implement `ICommandHandler<>`/`IQueryHandler<,>` (`TRPG.Application.Common.Handling`) for this reason: the validation/logging decorator pipeline wraps them, and DI resolves them through the interface
 - Throw `InvalidOperationException` for business rule violations
 - Exception: a pure resolver/validator whose caller needs to turn failure into user-facing output without exception-driven control flow (e.g. a SignalR-streamed response) can return a small Result-style object instead of throwing — see `PlayerCombatActionResolver`'s `PlayerCombatActionResolverResult` (`Result`/`ErrorMessage`/`IsError`). Reserve this for that specific shape of caller, not general command/query handlers
 - No pre-checks for uniqueness — rely on DB constraints

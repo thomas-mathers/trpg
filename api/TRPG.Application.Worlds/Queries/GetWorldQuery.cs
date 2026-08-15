@@ -10,7 +10,7 @@ public class GetWorldQuery
     public required Guid WorldId { get; init; }
 }
 
-public class GetWorldQueryHandler(TrpgDbContext context) : IQueryHandler<GetWorldQuery, World?>
+internal class GetWorldQueryHandler(TrpgDbContext context) : IQueryHandler<GetWorldQuery, World?>
 {
     public async Task<World?> Handle(
         GetWorldQuery query,

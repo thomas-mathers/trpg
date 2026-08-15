@@ -25,15 +25,15 @@ internal class LookupTool(
 
     [DisplayName("lookup")]
     [Description(
-        "Returns background information about a named country, city, faction, or person anywhere in the world â€” automatically figures out which kind of thing the name refers to, so you don't need to know its category in advance. Partial names and misspellings resolve automatically: results come back as a list ranked by Similarity (1.0 = exact), with full details for the best match and name-only stubs for the others â€” to expand a stub, call lookup again with its exact Name. This represents what a specific NPC knows or has heard, not omniscient narrator knowledge â€” call it on behalf of the NPC who would be recalling or sharing this information in dialogue, never to generate the narrator's own scene-setting exposition. Call this whenever dialogue turns to a specific person, place, or faction mentioned by name â€” a family member, acquaintance, distant place, or faction â€” other than the NPC you're currently speaking with about themselves: their family, hometown, faction ties, workplace (and whether they own it), work hours, days off, and home are already given in full by start_conversation's biography, and if it doesn't mention something, that means it doesn't exist, so don't call this tool on yourself to check. Returns an Error if nothing matches the name, or if the speaker wouldn't know about it."
+        "Returns background information about a named country, city, faction, or person anywhere in the world — automatically figures out which kind of thing the name refers to, so you don't need to know its category in advance. Partial names and misspellings resolve automatically: results come back as a list ranked by Similarity (1.0 = exact), with full details for the best match and name-only stubs for the others — to expand a stub, call lookup again with its exact Name. This represents what a specific NPC knows or has heard, not omniscient narrator knowledge — call it on behalf of the NPC who would be recalling or sharing this information in dialogue, never to generate the narrator's own scene-setting exposition. Call this whenever dialogue turns to a specific person, place, or faction mentioned by name — a family member, acquaintance, distant place, or faction — other than the NPC you're currently speaking with about themselves: their family, hometown, faction ties, workplace (and whether they own it), work hours, days off, and home are already given in full by start_conversation's biography, and if it doesn't mention something, that means it doesn't exist, so don't call this tool on yourself to check. Returns an Error if nothing matches the name, or if the speaker wouldn't know about it."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of the NPC whose knowledge this represents â€” the character who would be recalling or sharing this information, copied verbatim from the most recent look or move result."
+            "The exact Name of the NPC whose knowledge this represents — the character who would be recalling or sharing this information, copied verbatim from the most recent look or move result."
         )]
             string askingPersonName,
         [Description(
-            "The name of the country, city, faction, or person to look up â€” a first name or close spelling is fine; the closest matches are returned."
+            "The name of the country, city, faction, or person to look up — a first name or close spelling is fine; the closest matches are returned."
         )]
             string subjectName,
         CancellationToken cancellationToken

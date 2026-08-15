@@ -31,7 +31,7 @@ public class GetLoreAnchorsByWorldQuery
     public required Guid WorldId { get; init; }
 }
 
-public class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
     : IQueryHandler<GetLoreAnchorsByWorldQuery, IReadOnlyCollection<LoreAnchorSummary>>
 {
     public static string CacheKey(Guid worldId) => $"namedEntities:{worldId}";

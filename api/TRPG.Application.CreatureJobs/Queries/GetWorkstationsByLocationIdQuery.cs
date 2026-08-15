@@ -10,7 +10,7 @@ public class GetWorkstationsByLocationIdQuery
     public required Guid LocationId { get; init; }
 }
 
-public class GetWorkstationsByLocationIdQueryHandler(TrpgDbContext context)
+internal class GetWorkstationsByLocationIdQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetWorkstationsByLocationIdQuery, IReadOnlyCollection<Workstation>>
 {
     public async Task<IReadOnlyCollection<Workstation>> Handle(

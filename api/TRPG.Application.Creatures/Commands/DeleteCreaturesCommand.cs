@@ -11,7 +11,7 @@ public class DeleteCreaturesCommand
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
 }
 
-public class DeleteCreaturesCommandHandler(TrpgDbContext context)
+internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
     : ICommandHandler<DeleteCreaturesCommand>
 {
     public async Task Handle(

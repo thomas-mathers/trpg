@@ -10,7 +10,7 @@ public class GetInventorySummaryByOwnerQuery
 
 public record InventorySnapshot(int Gold, IReadOnlyList<Item> Items);
 
-public class GetInventorySummaryByOwnerQueryHandler(
+internal class GetInventorySummaryByOwnerQueryHandler(
     IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner
 ) : IQueryHandler<GetInventorySummaryByOwnerQuery, InventorySnapshot>
 {

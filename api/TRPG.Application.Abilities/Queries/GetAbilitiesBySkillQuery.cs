@@ -8,7 +8,7 @@ public class GetAbilitiesBySkillQuery
     public required Skill Skill { get; init; }
 }
 
-public class GetAbilitiesBySkillQueryHandler
+internal class GetAbilitiesBySkillQueryHandler
     : IQueryHandler<GetAbilitiesBySkillQuery, IReadOnlyCollection<Ability>>
 {
     public Task<IReadOnlyCollection<Ability>> Handle(

@@ -36,8 +36,6 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Trading;
-using TRPG.Application.Trading.Commands;
-using TRPG.Application.Trading.Queries;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Application.Worlds.Commands;
@@ -61,22 +59,28 @@ public static class ApplicationServiceCollectionExtensions
             .AddTransient(typeof(IDomainEventPublisher<>), typeof(DomainEventPublisher<>))
             .Scan(scan =>
                 scan.FromApplicationDependencies()
-                    .AddClasses(classes => classes.AssignableTo(typeof(ICommandHandler<>)))
+                    .AddClasses(
+                        classes => classes.AssignableTo(typeof(ICommandHandler<>)),
+                        publicOnly: false
+                    )
                     .AsSelfWithInterfaces()
                     .WithTransientLifetime()
-                    .AddClasses(classes => classes.AssignableTo(typeof(ICommandHandler<,>)))
+                    .AddClasses(
+                        classes => classes.AssignableTo(typeof(ICommandHandler<,>)),
+                        publicOnly: false
+                    )
                     .AsSelfWithInterfaces()
                     .WithTransientLifetime()
-                    .AddClasses(classes => classes.AssignableTo(typeof(IQueryHandler<,>)))
+                    .AddClasses(
+                        classes => classes.AssignableTo(typeof(IQueryHandler<,>)),
+                        publicOnly: false
+                    )
                     .AsSelfWithInterfaces()
                     .WithTransientLifetime()
             )
             .AddTransient<InventoryItemTransfer>()
             .AddTransient<TradeOfferValidator>()
             .AddTransient<TradeOfferEvaluator>()
-            .AddTransient<ProposeTradeCommandHandler>()
-            .AddTransient<CompleteTradeCommandHandler>()
-            .AddTransient<GetTradeQueryHandler>()
             .AddTransient<SceneCatchUpCache>()
             .AddTransient<QuestObjectiveAdvancer>()
             .AddTransient<CreatureKilledQuestEventHandler>()

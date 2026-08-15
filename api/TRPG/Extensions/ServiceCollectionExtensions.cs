@@ -26,7 +26,6 @@ using TRPG.Configuration;
 using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.GameSessions.ChatClients;
-using TRPG.GameSessions.Commands;
 using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Tools;
@@ -66,7 +65,6 @@ internal static class ServiceCollectionExtensions
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
-            .AddTransient<EndGameSessionCommandHandler>()
             .AddExceptionHandler<GlobalExceptionHandler>()
             .AddProblemDetails()
             .AddOpenApi()

@@ -15,7 +15,7 @@ public class TransferPlayerInventoryCommand
     public required Guid PlayerId { get; init; }
 }
 
-public class TransferPlayerInventoryCommandHandler(
+internal class TransferPlayerInventoryCommandHandler(
     TrpgDbContext context,
     InventoryItemTransfer itemTransfer,
     IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>> getActiveQuestItemIds

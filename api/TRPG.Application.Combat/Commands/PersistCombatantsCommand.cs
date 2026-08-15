@@ -9,7 +9,7 @@ public class PersistCombatantsCommand
     public required IReadOnlyList<Combatant> Combatants { get; init; }
 }
 
-public class PersistCombatantsCommandHandler(TrpgDbContext context)
+internal class PersistCombatantsCommandHandler(TrpgDbContext context)
     : ICommandHandler<PersistCombatantsCommand>
 {
     public async Task Handle(

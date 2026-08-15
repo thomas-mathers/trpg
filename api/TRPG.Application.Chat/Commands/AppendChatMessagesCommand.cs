@@ -13,7 +13,7 @@ public class AppendChatMessagesCommand
     public required IReadOnlyList<ChatMessage> Messages { get; init; }
 }
 
-public class AppendChatMessagesCommandHandler(TrpgDbContext context)
+internal class AppendChatMessagesCommandHandler(TrpgDbContext context)
     : ICommandHandler<AppendChatMessagesCommand, int>
 {
     public async Task<int> Handle(

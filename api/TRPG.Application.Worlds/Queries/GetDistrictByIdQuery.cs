@@ -11,7 +11,7 @@ public class GetDistrictByIdQuery
     public required Guid Id { get; init; }
 }
 
-public class GetDistrictByIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetDistrictByIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
     : IQueryHandler<GetDistrictByIdQuery, District?>
 {
     public async Task<District?> Handle(

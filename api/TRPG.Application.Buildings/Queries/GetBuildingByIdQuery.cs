@@ -11,7 +11,7 @@ public class GetBuildingByIdQuery
     public required Guid Id { get; init; }
 }
 
-public class GetBuildingByIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetBuildingByIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
     : IQueryHandler<GetBuildingByIdQuery, Building?>
 {
     public async Task<Building?> Handle(

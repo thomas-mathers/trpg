@@ -9,7 +9,7 @@ public class GetCreatureLevelQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetCreatureLevelQueryHandler(TrpgDbContext context)
+internal class GetCreatureLevelQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetCreatureLevelQuery, int>
 {
     public async Task<int> Handle(

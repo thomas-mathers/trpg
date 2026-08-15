@@ -16,7 +16,7 @@ public class CompleteQuestCommand
     public required Guid WorldId { get; init; }
 }
 
-public class CompleteQuestCommandHandler(
+internal class CompleteQuestCommandHandler(
     TrpgDbContext context,
     ICommandHandler<AddGoldCommand> addGold
 ) : ICommandHandler<CompleteQuestCommand>

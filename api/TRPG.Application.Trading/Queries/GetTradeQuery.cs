@@ -5,20 +5,17 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Trading.Queries;
 
-internal class GetTradeQuery
+public class GetTradeQuery
 {
     public required Guid PlayerId { get; init; }
     public required Guid WorkstationId { get; init; }
 }
 
-internal record TradeSnapshotInfo(
-    InventorySnapshot PlayerInventory,
-    InventorySnapshot ShopInventory
-);
+public record TradeSnapshotInfo(InventorySnapshot PlayerInventory, InventorySnapshot ShopInventory);
 
 internal class GetTradeQueryHandler(
     IQueryHandler<GetInventorySummaryByOwnerQuery, InventorySnapshot> getInventorySummary
-)
+) : IQueryHandler<GetTradeQuery, TradeSnapshotInfo>
 {
     public async Task<TradeSnapshotInfo> Handle(
         GetTradeQuery query,

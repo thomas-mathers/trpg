@@ -14,7 +14,7 @@ public class ExecuteCreatureJobCommand
     public required Guid JobLocationId { get; init; }
 }
 
-public class ExecuteCreatureJobCommandHandler(TrpgDbContext context)
+internal class ExecuteCreatureJobCommandHandler(TrpgDbContext context)
     : ICommandHandler<ExecuteCreatureJobCommand>
 {
     public async Task Handle(

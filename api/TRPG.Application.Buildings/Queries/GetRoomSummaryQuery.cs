@@ -23,7 +23,7 @@ public record RoomSummary(
     string? FactionDescription
 );
 
-public class GetRoomSummaryQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetRoomSummaryQueryHandler(TrpgDbContext context, IMemoryCache cache)
     : IQueryHandler<GetRoomSummaryQuery, RoomSummary?>
 {
     public async Task<RoomSummary?> Handle(

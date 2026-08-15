@@ -11,7 +11,7 @@ public class GetCurrentSceneQuery
     public required Guid SessionId { get; init; }
 }
 
-public class GetCurrentSceneQueryHandler(
+internal class GetCurrentSceneQueryHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetSceneQuery, SceneResult> getScene
 ) : IQueryHandler<GetCurrentSceneQuery, SceneResult>

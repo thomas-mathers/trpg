@@ -10,7 +10,7 @@ public class GetActiveFightQuery
     public required Guid PlayerId { get; init; }
 }
 
-public class GetActiveFightQueryHandler(TrpgDbContext context)
+internal class GetActiveFightQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetActiveFightQuery, Fight?>
 {
     public async Task<Fight?> Handle(

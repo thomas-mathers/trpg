@@ -11,7 +11,7 @@ public class GetAllWeaponProficienciesQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetAllWeaponProficienciesQueryHandler(TrpgDbContext context)
+internal class GetAllWeaponProficienciesQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetAllWeaponProficienciesQuery, IReadOnlyDictionary<WeaponType, int>>
 {
     public async Task<IReadOnlyDictionary<WeaponType, int>> Handle(

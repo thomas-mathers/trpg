@@ -57,7 +57,7 @@ internal class StartFightTool(
         if (activeFight != null)
         {
             return new ToolError(
-                "A fight is already underway â€” resolve it through the player's combat menu, not this tool."
+                "A fight is already underway — resolve it through the player's combat menu, not this tool."
             );
         }
 
@@ -68,7 +68,7 @@ internal class StartFightTool(
         if (activeEncounter != null)
         {
             return new ToolError(
-                "A hostile encounter is already underway â€” resolve it before attacking."
+                "A hostile encounter is already underway — resolve it before attacking."
             );
         }
 

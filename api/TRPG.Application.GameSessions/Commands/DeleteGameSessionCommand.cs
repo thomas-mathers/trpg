@@ -9,7 +9,7 @@ public class DeleteGameSessionCommand
     public required Guid SessionId { get; init; }
 }
 
-public class DeleteGameSessionCommandHandler(TrpgDbContext context)
+internal class DeleteGameSessionCommandHandler(TrpgDbContext context)
     : ICommandHandler<DeleteGameSessionCommand>
 {
     public async Task Handle(

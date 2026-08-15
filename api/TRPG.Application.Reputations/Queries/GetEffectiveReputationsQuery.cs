@@ -12,7 +12,7 @@ public class GetEffectiveReputationsQuery
     public required IReadOnlyDictionary<Guid, Guid[]> FactionIdsByCreature { get; init; }
 }
 
-public class GetEffectiveReputationsQueryHandler(TrpgDbContext context)
+internal class GetEffectiveReputationsQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetEffectiveReputationsQuery, IReadOnlyDictionary<Guid, int>>
 {
     public async Task<IReadOnlyDictionary<Guid, int>> Handle(

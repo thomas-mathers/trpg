@@ -13,7 +13,7 @@ public class RemoveInventoryItemCommand
     public required int Quantity { get; init; }
 }
 
-public class RemoveInventoryItemCommandHandler(TrpgDbContext context)
+internal class RemoveInventoryItemCommandHandler(TrpgDbContext context)
     : ICommandHandler<RemoveInventoryItemCommand>
 {
     public async Task Handle(

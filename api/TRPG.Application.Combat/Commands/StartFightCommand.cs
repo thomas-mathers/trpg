@@ -15,7 +15,7 @@ public class StartFightCommand
     public Guid? EncounterId { get; init; }
 }
 
-public class StartFightCommandHandler(
+internal class StartFightCommandHandler(
     TrpgDbContext context,
     IQueryHandler<GetCombatantQuery, Combatant> getCombatant,
     ICommandHandler<ApplyPassiveRegenCommand, IReadOnlyDictionary<Guid, Creature>> applyPassiveRegen

@@ -10,7 +10,7 @@ public class GetCreatureEffectiveStatsQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetCreatureEffectiveStatsQueryHandler(TrpgDbContext context)
+internal class GetCreatureEffectiveStatsQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetCreatureEffectiveStatsQuery, Attributes>
 {
     public async Task<Attributes> Handle(

@@ -20,7 +20,7 @@ public class OpenNpcConversationCommand
     public required string NpcName { get; init; }
 }
 
-public class OpenNpcConversationCommandHandler(
+internal class OpenNpcConversationCommandHandler(
     TrpgDbContext context,
     IDomainEventPublisher<NpcConversationStartedEvent> domainEvents,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,

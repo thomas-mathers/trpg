@@ -150,7 +150,7 @@ internal static class InventoryEndpoints
     private static async Task<Ok<TradeSnapshot>> GetTrade(
         Guid playerId,
         Guid workstationId,
-        GetTradeQueryHandler getTrade,
+        [FromServices] IQueryHandler<GetTradeQuery, TradeSnapshotInfo> getTrade,
         [FromServices]
             IQueryHandler<
             GetActiveQuestItemIdsQuery,
@@ -180,7 +180,7 @@ internal static class InventoryEndpoints
         Guid playerId,
         Guid workstationId,
         TradeRequest request,
-        ProposeTradeCommandHandler proposeTrade,
+        [FromServices] ICommandHandler<ProposeTradeCommand, TradeOutcome> proposeTrade,
         CancellationToken cancellationToken
     )
     {
@@ -208,7 +208,7 @@ internal static class InventoryEndpoints
         Guid workstationId,
         Guid worldId,
         TradeRequest request,
-        CompleteTradeCommandHandler completeTrade,
+        [FromServices] ICommandHandler<CompleteTradeCommand> completeTrade,
         CancellationToken cancellationToken
     )
     {
