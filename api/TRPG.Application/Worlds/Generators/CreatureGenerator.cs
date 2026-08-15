@@ -1201,6 +1201,7 @@ public class CreatureGenerator(
             BaseAttributes = attributes,
             LastRegenPlaytime = TimeSpan.Zero,
             Level = level,
+            State = CreatureState.Idle,
             NaturalWeaponMinDamage = Roll(
                 level,
                 archetype.NaturalWeaponDamage.MinDamageLow,

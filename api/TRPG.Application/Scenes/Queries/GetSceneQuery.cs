@@ -109,7 +109,7 @@ public record SceneResult(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
-internal record SceneLocationDetails(
+internal record SceneDetails(
     SceneBuildingInfo? Building,
     SceneRoomInfo? Room,
     string? RegionDescription,
@@ -314,7 +314,7 @@ internal class GetSceneQueryHandler(
             : null;
     }
 
-    private async Task<SceneLocationDetails> BuildIndoorScene(
+    private async Task<SceneDetails> BuildIndoorScene(
         CreatureSummary player,
         CancellationToken cancellationToken
     )
@@ -345,10 +345,10 @@ internal class GetSceneQueryHandler(
             .Select(p => new ScenePropInfo(p.Id, p.Name, p.Description, GetPropType(p)))
             .ToArray();
 
-        return new SceneLocationDetails(buildingInfo, roomInfo, null, nearbyProps, []);
+        return new SceneDetails(buildingInfo, roomInfo, null, nearbyProps, []);
     }
 
-    private async Task<SceneLocationDetails> BuildOutdoorScene(
+    private async Task<SceneDetails> BuildOutdoorScene(
         CreatureSummary player,
         State? state,
         CancellationToken cancellationToken
@@ -363,7 +363,7 @@ internal class GetSceneQueryHandler(
             .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
             .ToArray();
 
-        return new SceneLocationDetails(null, null, state?.Description, [], nearbyBuildings);
+        return new SceneDetails(null, null, state?.Description, [], nearbyBuildings);
     }
 
     private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(

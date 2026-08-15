@@ -1,10 +1,34 @@
 using TRPG.Application.GameSessions;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
 
+internal record MonsterGenerationResult(
+    CreatureGeneratorResult Result,
+    IReadOnlyList<CreatureJob> Jobs
+);
+
 internal static class EncounterMonsterGenerator
 {
-    public static CreatureGeneratorResult Generate(
+    private static readonly HourWindow DiurnalSleepHours = new(22, 6);
+    private static readonly HourWindow DiurnalIdleHours = new(6, 22);
+    private static readonly HourWindow NocturnalSleepHours = new(6, 22);
+    private static readonly HourWindow NocturnalIdleHours = new(22, 6);
+
+    private static readonly HashSet<CreatureType> NocturnalTypes =
+    [
+        CreatureType.Undead,
+        CreatureType.Wraith,
+        CreatureType.Demon,
+    ];
+
+    private static readonly HashSet<CreatureType> NeverSleepsTypes =
+    [
+        CreatureType.Construct,
+        CreatureType.Elemental,
+    ];
+
+    public static MonsterGenerationResult Generate(
         CreatureGenerator creatureGenerator,
         Guid worldId,
         Guid locationId,
@@ -36,6 +60,36 @@ internal static class EncounterMonsterGenerator
 
         result.Creature.LocationId = locationId;
 
-        return result;
+        var jobs = GenerateSleepSchedule(
+            result.Creature.Id,
+            locationId,
+            worldId,
+            archetype.CreatureType.Value
+        );
+
+        return new MonsterGenerationResult(result, jobs);
+    }
+
+    private static IReadOnlyList<CreatureJob> GenerateSleepSchedule(
+        Guid creatureId,
+        Guid locationId,
+        Guid worldId,
+        CreatureType creatureType
+    )
+    {
+        if (NeverSleepsTypes.Contains(creatureType))
+        {
+            return [];
+        }
+
+        var (sleepHours, idleHours) = NocturnalTypes.Contains(creatureType)
+            ? (NocturnalSleepHours, NocturnalIdleHours)
+            : (DiurnalSleepHours, DiurnalIdleHours);
+
+        return
+        [
+            CreatureJobGenerator.GenerateSleep(creatureId, locationId, worldId, sleepHours),
+            CreatureJobGenerator.GenerateIdle(creatureId, locationId, worldId, idleHours),
+        ];
     }
 }

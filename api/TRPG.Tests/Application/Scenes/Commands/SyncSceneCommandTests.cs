@@ -12,7 +12,7 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Scenes.Commands;
 
 [Collection("Database")]
-public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
@@ -22,7 +22,7 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private GetWorkstationsByLocationIdQueryHandler _getWorkstationsByLocationId = null!;
-    private SyncLocationCommandHandler _handler = null!;
+    private SyncSceneCommandHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -36,7 +36,7 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
         _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
         _getWorkstationsByLocationId =
             _serviceProvider.GetRequiredService<GetWorkstationsByLocationIdQueryHandler>();
-        _handler = _serviceProvider.GetRequiredService<SyncLocationCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<SyncSceneCommandHandler>();
     }
 
     public async ValueTask DisposeAsync()
@@ -86,9 +86,9 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
             )
         );
 
-        // Act Ã¢â‚¬â€ hour 23 falls inside the wraparound Sleep window
+        // Act — hour 23 falls inside the wraparound Sleep window
         await _handler.Handle(
-            new SyncLocationCommand
+            new SyncSceneCommand
             {
                 WorldId = WorldId,
                 LocationId = sleepLocation.Id,
@@ -134,9 +134,9 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
             )
         );
 
-        // Act Ã¢â‚¬â€ hour 10 is inside Work, and the creature is discovered via their stale Sleep-location assignment
+        // Act — hour 10 is inside Work, and the creature is discovered via their stale Sleep-location assignment
         await _handler.Handle(
-            new SyncLocationCommand
+            new SyncSceneCommand
             {
                 WorldId = WorldId,
                 LocationId = sleepLocation.Id,
@@ -164,7 +164,7 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
 
         // Act
         await _handler.Handle(
-            new SyncLocationCommand
+            new SyncSceneCommand
             {
                 WorldId = WorldId,
                 LocationId = emptyLocation.Id,
@@ -211,10 +211,10 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
             )
         );
 
-        // Act Ã¢â‚¬â€ hour 12 is inside Idle; the district catch-up discovers the creature via its
+        // Act — hour 12 is inside Idle; the district catch-up discovers the creature via its
         // current (indoor) location, which shares the same district as the outdoor idle spot
         await _handler.Handle(
-            new SyncLocationCommand
+            new SyncSceneCommand
             {
                 WorldId = WorldId,
                 LocationId = idleLocation.Id,
@@ -282,7 +282,7 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
 
         // Act
         await _handler.Handle(
-            new SyncLocationCommand
+            new SyncSceneCommand
             {
                 WorldId = WorldId,
                 LocationId = shopLocation.Id,
@@ -291,7 +291,7 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
             TestContext.Current.CancellationToken
         );
 
-        // Assert Ã¢â‚¬â€ both workstations get staffed, by two different people
+        // Assert — both workstations get staffed, by two different people
         var workstations = await _getWorkstationsByLocationId.Handle(
             new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
@@ -345,7 +345,7 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
 
         // Act
         await _handler.Handle(
-            new SyncLocationCommand
+            new SyncSceneCommand
             {
                 WorldId = WorldId,
                 LocationId = shopLocation.Id,
@@ -354,7 +354,7 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
             TestContext.Current.CancellationToken
         );
 
-        // Assert Ã¢â‚¬â€ the lone worker always gets the counter, and the unstaffed production station is cleared
+        // Assert — the lone worker always gets the counter, and the unstaffed production station is cleared
         var workstations = await _getWorkstationsByLocationId.Handle(
             new GetWorkstationsByLocationIdQuery { LocationId = shopLocation.Id },
             TestContext.Current.CancellationToken
@@ -363,6 +363,45 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
         var updatedOven = workstations.First(w => w.Id == oven.Id);
         Assert.Equal(owner.Id, updatedCounter.OccupantId);
         Assert.Null(updatedOven.OccupantId);
+    }
+
+    [Fact]
+    public async Task Handle_AdvancesDueJobs_ForWildernessLocation()
+    {
+        // Arrange
+        var wildernessLocation = Builders.MakeLocation(WorldId, kind: LocationKind.Wilderness);
+        _context.Locations.Add(wildernessLocation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var creature = await SeedCreature(wildernessLocation.Id);
+        await AddJob(
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Sleep,
+                startHour: 6,
+                endHour: 22,
+                locationId: wildernessLocation.Id,
+                priority: 100
+            )
+        );
+
+        // Act — hour 12 falls inside the nocturnal Sleep window
+        await _handler.Handle(
+            new SyncSceneCommand
+            {
+                WorldId = WorldId,
+                LocationId = wildernessLocation.Id,
+                CurrentDate = Builders.MakeDate(12),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CreatureState.Sleeping, updated!.State);
     }
 
     [Fact]
@@ -384,9 +423,9 @@ public sealed class SyncLocationCommandTests(DatabaseFixture db) : IAsyncLifetim
             )
         );
 
-        // Act Ã¢â‚¬â€ hour 23 falls inside the wraparound Sleep window
+        // Act — hour 23 falls inside the wraparound Sleep window
         await _handler.Handle(
-            new SyncLocationCommand
+            new SyncSceneCommand
             {
                 WorldId = WorldId,
                 LocationId = doorLocation.Id,

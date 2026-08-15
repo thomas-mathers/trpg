@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
@@ -20,9 +19,9 @@ internal record RefreshSceneResult(SceneResult Scene, bool Refreshed);
 internal class RefreshSceneCommandHandler(
     GetCreatureByIdQueryHandler getCreatureById,
     GetPlaytimeQueryHandler getPlaytime,
-    SyncLocationCommandHandler syncLocation,
+    SyncSceneCommandHandler syncScene,
     GetSceneQueryHandler getScene,
-    IMemoryCache cache,
+    SceneCatchUpCache catchUpCache,
     ILogger<RefreshSceneCommandHandler> logger
 )
 {
@@ -43,7 +42,7 @@ internal class RefreshSceneCommandHandler(
 
         var currentDate = GameClock.GetCurrentInGameDate(playtime);
 
-        var refreshed = await RefreshLocation(
+        var refreshed = await CatchUpScene(
             command.WorldId,
             player!.LocationId,
             currentDate,
@@ -63,28 +62,33 @@ internal class RefreshSceneCommandHandler(
         return new RefreshSceneResult(scene, refreshed);
     }
 
-    private async Task<bool> RefreshLocation(
+    private async Task<bool> CatchUpScene(
         Guid worldId,
         Guid locationId,
         InGameDate currentDate,
         CancellationToken cancellationToken
     )
     {
-        var cacheKey = $"catchup:{worldId}:{locationId}:{currentDate.Hour}";
-
-        if (cache.TryGetValue(cacheKey, out bool _))
+        if (catchUpCache.HasCaughtUp(worldId, locationId, currentDate.Hour))
         {
-            logger.LogInformation("[perf] Catch-up cache hit for {CacheKey}", cacheKey);
+            logger.LogInformation(
+                "[perf] Catch-up cache hit for {WorldId}:{LocationId}:{Hour}",
+                worldId,
+                locationId,
+                currentDate.Hour
+            );
             return false;
         }
 
         logger.LogInformation(
-            "[perf] Catch-up cache miss for {CacheKey}, running catch-up",
-            cacheKey
+            "[perf] Catch-up cache miss for {WorldId}:{LocationId}:{Hour}, running catch-up",
+            worldId,
+            locationId,
+            currentDate.Hour
         );
 
-        await syncLocation.Handle(
-            new SyncLocationCommand
+        await syncScene.Handle(
+            new SyncSceneCommand
             {
                 WorldId = worldId,
                 LocationId = locationId,
@@ -93,14 +97,7 @@ internal class RefreshSceneCommandHandler(
             cancellationToken
         );
 
-        cache.Set(
-            cacheKey,
-            true,
-            new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = GameClock.RealTimePerInGameHour,
-            }
-        );
+        catchUpCache.MarkCaughtUp(worldId, locationId, currentDate.Hour);
 
         return true;
     }

@@ -202,6 +202,7 @@ public class WorldGenerator(
             monsters.AddRange(wildernessGroups.Monsters.Select(monster => monster.Creature));
             items.AddRange(wildernessGroups.Monsters.SelectMany(monster => monster.Items));
             skills.AddRange(wildernessGroups.Monsters.SelectMany(monster => monster.Skills));
+            jobs.AddRange(wildernessGroups.Jobs);
             encounterGroups.AddRange(wildernessGroups.EncounterGroups);
             encounterGroupMembers.AddRange(wildernessGroups.EncounterGroupMembers);
 
@@ -252,6 +253,7 @@ public class WorldGenerator(
                 monsters.AddRange(dungeonMonsters.Monsters.Select(monster => monster.Creature));
                 items.AddRange(dungeonMonsters.Monsters.SelectMany(monster => monster.Items));
                 skills.AddRange(dungeonMonsters.Monsters.SelectMany(monster => monster.Skills));
+                jobs.AddRange(dungeonMonsters.Jobs);
                 encounterGroups.AddRange(dungeonMonsters.EncounterGroups);
                 encounterGroupMembers.AddRange(dungeonMonsters.EncounterGroupMembers);
             }

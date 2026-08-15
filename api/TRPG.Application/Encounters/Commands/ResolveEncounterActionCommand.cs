@@ -126,13 +126,24 @@ internal class ResolveEncounterActionCommandHandler(
             return new EncounterOutcomeEffects(null);
         }
 
+        var enemyCreatureIds = groupContext.LivingMembers.Select(member => member.Id).ToArray();
+
+        await updateCreatures.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = enemyCreatureIds,
+                State = CreatureState.Alerted,
+            },
+            cancellationToken
+        );
+
         var combatants = await startFight.Handle(
             new StartFightCommand
             {
                 SessionId = command.SessionId,
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                EnemyCreatureIds = groupContext.LivingMembers.Select(member => member.Id).ToArray(),
+                EnemyCreatureIds = enemyCreatureIds,
                 EncounterId = command.EncounterId,
             },
             cancellationToken

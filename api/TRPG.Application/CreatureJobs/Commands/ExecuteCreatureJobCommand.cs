@@ -19,6 +19,11 @@ internal class ExecuteCreatureJobCommandHandler(UpdateCreaturesCommandHandler up
         CancellationToken cancellationToken = default
     )
     {
+        if (command.CurrentState == CreatureState.Alerted)
+        {
+            return;
+        }
+
         var targetState = command.CreatureJobAction switch
         {
             CreatureJobAction.Sleep => CreatureState.Sleeping,

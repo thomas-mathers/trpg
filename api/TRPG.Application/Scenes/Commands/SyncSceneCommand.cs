@@ -11,14 +11,14 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Scenes.Commands;
 
-internal class SyncLocationCommand
+internal class SyncSceneCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
     public required InGameDate CurrentDate { get; init; }
 }
 
-internal class SyncLocationCommandHandler(
+internal class SyncSceneCommandHandler(
     GetLocationByIdQueryHandler getLocationById,
     GetCreatureIdsWithCreatureJobInLocationQueryHandler getCreatureIdsWithJobInLocation,
     GetAllCreatureJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
@@ -29,11 +29,11 @@ internal class SyncLocationCommandHandler(
     SetWorkstationOccupantCommandHandler setWorkstationOccupant,
     GetRoomSummaryQueryHandler getRoomSummary,
     SyncScheduleLockCommandHandler syncScheduleLock,
-    ILogger<SyncLocationCommandHandler> logger
+    ILogger<SyncSceneCommandHandler> logger
 )
 {
     public async Task Handle(
-        SyncLocationCommand command,
+        SyncSceneCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -48,7 +48,12 @@ internal class SyncLocationCommandHandler(
 
         if (location.RoomId != null)
         {
-            await AdvanceDueJobsInRoom(command.LocationId, command.CurrentDate, cancellationToken);
+            await AdvanceDueJobsDirectly(
+                command.LocationId,
+                "Room",
+                command.CurrentDate,
+                cancellationToken
+            );
             await SyncFrontDoorLock(location.RoomId.Value, command.CurrentDate, cancellationToken);
         }
         else if (location.DistrictId != null)
@@ -60,10 +65,20 @@ internal class SyncLocationCommandHandler(
                 cancellationToken
             );
         }
+        else if (location.Kind == LocationKind.Wilderness)
+        {
+            await AdvanceDueJobsDirectly(
+                command.LocationId,
+                "Wilderness",
+                command.CurrentDate,
+                cancellationToken
+            );
+        }
     }
 
-    private async Task AdvanceDueJobsInRoom(
+    private async Task AdvanceDueJobsDirectly(
         Guid locationId,
+        string scope,
         InGameDate currentDate,
         CancellationToken cancellationToken
     )
@@ -72,7 +87,7 @@ internal class SyncLocationCommandHandler(
             new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = locationId },
             cancellationToken
         );
-        await AdvanceDueJobs("Room", creatureIds, currentDate, cancellationToken);
+        await AdvanceDueJobs(scope, creatureIds, currentDate, cancellationToken);
     }
 
     private async Task AdvanceDueJobsInDistrict(

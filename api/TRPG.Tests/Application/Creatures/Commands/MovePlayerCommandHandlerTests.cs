@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Scenes;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -576,6 +577,46 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             .SingleAsync(e => e.PlayerId == player.Id, TestContext.Current.CancellationToken);
         Assert.Equal(EncounterState.Active, encounter.State);
         Assert.Equal(oldLocation.Id, encounter.ArrivalOriginLocationId);
+    }
+
+    [Fact]
+    public async Task Handle_EvictsCatchUpCache_WhenLeavingALocationWithAnAlertedCreature()
+    {
+        // Arrange — the session's fresh Playtime maps to in-game hour 8
+        var oldLocation = Builders.MakeLocation(WorldId, _stateId);
+        var newLocation = Builders.MakeLocation(WorldId, _stateId);
+        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
+        var alertedMonster = Builders.MakeCreature(
+            WorldId,
+            locationId: oldLocation.Id,
+            state: CreatureState.Alerted
+        );
+        var connector = Builders.MakeLocationConnector(
+            oldLocation.Id,
+            destinationLocationId: newLocation.Id,
+            destinationLabel: "Elsewhere"
+        );
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.AddRange(player, alertedMonster);
+        _context.LocationConnectors.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var catchUpCache = _serviceProvider.GetRequiredService<SceneCatchUpCache>();
+        catchUpCache.MarkCaughtUp(WorldId, oldLocation.Id, hour: 8);
+
+        // Act
+        await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Elsewhere",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(catchUpCache.HasCaughtUp(WorldId, oldLocation.Id, hour: 8));
     }
 
     [Fact]
