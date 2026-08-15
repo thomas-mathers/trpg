@@ -7,7 +7,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="TRPG.Application.Scenes" />
     <InternalsVisibleTo Include="TRPG.Tests" />
-    <InternalsVisibleTo Include="TRPG" />
     <InternalsVisibleTo Include="TRPG.Balance" />
   </ItemGroup>
   <ItemGroup>

@@ -38,8 +38,7 @@ using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Trading;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Application.WeaponProficiency.Queries;
-using TRPG.Application.Worlds.Commands;
-using TRPG.Application.Worlds.Generators;
+using TRPG.Application.Worlds;
 using TRPG.Application.Worlds.Queries;
 using TRPG.GameTurns.Tools;
 using TRPG.Handling;
@@ -78,9 +77,7 @@ public static class ApplicationServiceCollectionExtensions
                     .AsSelfWithInterfaces()
                     .WithTransientLifetime()
             )
-            .AddTransient<InventoryItemTransfer>()
-            .AddTransient<TradeOfferValidator>()
-            .AddTransient<TradeOfferEvaluator>()
+            .AddTradingServices()
             .AddTransient<SceneCatchUpCache>()
             .AddTransient<QuestObjectiveAdvancer>()
             .AddTransient<CreatureKilledQuestEventHandler>()
@@ -99,24 +96,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedQuestEventHandler>()
             )
-            .AddTransient<WeaponGenerator>()
-            .AddTransient<ArmorGenerator>()
-            .AddTransient<AccessoryGenerator>()
-            .AddTransient<ConsumableGenerator>()
-            .AddTransient<AmmoGenerator>()
-            .AddTransient<ItemGenerator>()
-            .AddTransient<TradeStockGenerator>()
-            .AddTransient<CreatureGenerator>()
-            .AddTransient<DungeonPopulator>()
-            .AddTransient<WildernessPopulator>()
-            .AddTransient<HouseholdGenerator>()
-            .AddTransient<CityGenerator>()
-            .AddTransient<GeographyGenerator>()
-            .AddTransient<BuildingGenerator>()
-            .AddTransient<FactionsGenerator>()
-            .AddTransient<QuestGenerator>()
-            .AddTransient<WorldGenerator>()
-            .AddTransient<BootstrapWorldCommandHandler>()
+            .AddWorldsServices()
             .AddTransient<LlmConversationClient>()
             .AddTransient<GameTurnStreamer>()
             .AddTransient<StreamOpeningTurnHandler>()
