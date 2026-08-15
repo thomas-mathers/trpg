@@ -1,7 +1,7 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
-using TRPG.Application.Creatures;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Inventory;
 using TRPG.Data.Models;
 using PersistedActiveBuff = TRPG.Data.Models.ActiveBuff;
@@ -11,7 +11,7 @@ namespace TRPG.Tests.Helpers;
 internal sealed class CombatantBuilder
 {
     private static readonly AttackAbility BasicAttack = AbilityCatalog.Strike;
-    private static readonly StatFormulas Formulas = Builders.MakeStatFormulas();
+    private static readonly CreatureGeneratorOptions Options = new();
 
     private readonly List<Item> _items = [];
     private readonly Dictionary<WeaponType, int> _weaponProficiencies = [];
@@ -212,9 +212,18 @@ internal sealed class CombatantBuilder
         creature.BaseAttributes.Intelligence = _intelligence;
         creature.BaseAttributes.FireResistance = _fireResistance;
         creature.BaseAttributes.PoisonResistance = _poisonResistance;
-        creature.BaseAttributes.MaximumHp = Formulas.CalculateMaximumHp(creature.BaseAttributes);
-        creature.BaseAttributes.MaximumAp = Formulas.CalculateMaximumAp(creature.BaseAttributes);
-        creature.BaseAttributes.MaximumMp = Formulas.CalculateMaximumMp(creature.BaseAttributes);
+        creature.BaseAttributes.MaximumHp = StatFormulas.CalculateMaximumHp(
+            creature.BaseAttributes,
+            Options
+        );
+        creature.BaseAttributes.MaximumAp = StatFormulas.CalculateMaximumAp(
+            creature.BaseAttributes,
+            Options
+        );
+        creature.BaseAttributes.MaximumMp = StatFormulas.CalculateMaximumMp(
+            creature.BaseAttributes,
+            Options
+        );
         creature.CurrentHp = _currentHp ?? creature.BaseAttributes.MaximumHp;
         creature.CurrentAp = _currentAp ?? creature.BaseAttributes.MaximumAp;
         creature.CurrentMp = _currentMp ?? creature.BaseAttributes.MaximumMp;

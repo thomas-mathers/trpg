@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TRPG.Tests" />
+    <InternalsVisibleTo Include="TRPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
+    <ProjectReference Include="..\TRPG.Application.GameSessions\TRPG.Application.GameSessions.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
+    <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
+  </ItemGroup>
+</Project>

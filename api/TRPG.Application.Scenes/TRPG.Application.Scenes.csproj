@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TRPG.Application.GameTurns" />
+    <InternalsVisibleTo Include="TRPG.Tests" />
+    <InternalsVisibleTo Include="TRPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TRPG.Application.Buildings\TRPG.Application.Buildings.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
+    <ProjectReference Include="..\TRPG.Application.CreatureFormulas\TRPG.Application.CreatureFormulas.csproj" />
+    <ProjectReference Include="..\TRPG.Application.CreatureJobs\TRPG.Application.CreatureJobs.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
+    <ProjectReference Include="..\TRPG.Application.GameSessions\TRPG.Application.GameSessions.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Reputations\TRPG.Application.Reputations.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
+    <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
+    <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
+  </ItemGroup>
+</Project>

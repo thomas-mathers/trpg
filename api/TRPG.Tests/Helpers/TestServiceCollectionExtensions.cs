@@ -3,8 +3,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Common.Extensions;
+using TRPG.Combat.Tools;
 using TRPG.Data;
+using TRPG.Extensions;
+using TRPG.GameSessions.Commands;
+using TRPG.Quests.Tools;
 
 namespace TRPG.Tests.Helpers;
 
@@ -16,6 +19,9 @@ internal static class TestServiceCollectionExtensions
     ) =>
         services
             .AddTrpgApplicationServices()
+            .AddGameTool<StartFightTool>()
+            .AddGameTool<ShowQuestDetailsTool>()
+            .AddTransient<EndGameSessionCommandHandler>()
             .AddScoped<TestGameClientEventSink>()
             .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<TestGameClientEventSink>())
             .AddSingleton(context)

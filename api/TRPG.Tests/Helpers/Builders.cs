@@ -1,7 +1,8 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
+using TRPG.Application.Combat.Events;
 using TRPG.Application.Configuration;
-using TRPG.Application.Creatures;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
 using Profession = TRPG.Data.Models.Profession;
@@ -10,13 +11,6 @@ namespace TRPG.Tests.Helpers;
 
 internal static class Builders
 {
-    public static StatFormulas MakeStatFormulas(CreatureGeneratorOptions? options = null) =>
-        new(
-            new TestOptionsSnapshot<CreatureGeneratorOptions>(
-                options ?? new CreatureGeneratorOptions()
-            )
-        );
-
     public static CreatureGenerator MakeCreatureGenerator(CreatureGeneratorOptions? options = null)
     {
         var itemGenerator = new ItemGenerator(
@@ -30,8 +24,7 @@ internal static class Builders
             itemGenerator,
             new TestOptionsSnapshot<CreatureGeneratorOptions>(
                 options ?? new CreatureGeneratorOptions()
-            ),
-            MakeStatFormulas(options)
+            )
         );
     }
 
@@ -288,12 +281,12 @@ internal static class Builders
             Intelligence = 9,
         };
 
-        var statFormulas = MakeStatFormulas();
+        var options = new CreatureGeneratorOptions();
         return baseAttributes with
         {
-            MaximumHp = statFormulas.CalculateMaximumHp(baseAttributes),
-            MaximumAp = statFormulas.CalculateMaximumAp(baseAttributes),
-            MaximumMp = statFormulas.CalculateMaximumMp(baseAttributes),
+            MaximumHp = StatFormulas.CalculateMaximumHp(baseAttributes, options),
+            MaximumAp = StatFormulas.CalculateMaximumAp(baseAttributes, options),
+            MaximumMp = StatFormulas.CalculateMaximumMp(baseAttributes, options),
         };
     }
 

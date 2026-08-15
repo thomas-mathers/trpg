@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Narration.Queries;
 using TRPG.Contracts;
 using TRPG.Contracts.Jobs.Responses;
 using TRPG.Contracts.Worlds.Requests;
@@ -240,5 +242,34 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         Assert.Null(
             await verifyContext.Worlds.FindAsync([world.Id], TestContext.Current.CancellationToken)
         );
+    }
+
+    [Fact]
+    public async Task DropWorld_ClearsTheLoreAnchorCaches_ForTheDroppedWorld()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var world = Builders.MakeWorld();
+        context.Worlds.Add(world);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var cache = scope.ServiceProvider.GetRequiredService<IMemoryCache>();
+        var loreAnchorsKey = GetLoreAnchorsByWorldQueryHandler.CacheKey(world.Id);
+        var automatonKey = GetLoreAnchorAutomatonByWorldQueryHandler.CacheKey(world.Id);
+        cache.Set(loreAnchorsKey, Array.Empty<object>());
+        cache.Set(automatonKey, new object());
+
+        // Act
+        var response = await _client.SendAsync(
+            "DropWorld",
+            new { worldId = world.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.False(cache.TryGetValue(loreAnchorsKey, out _));
+        Assert.False(cache.TryGetValue(automatonKey, out _));
     }
 }

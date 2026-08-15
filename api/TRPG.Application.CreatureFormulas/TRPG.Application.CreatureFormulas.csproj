@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TRPG.Application.Inventory" />
+    <InternalsVisibleTo Include="TRPG.Application.Creatures" />
+    <InternalsVisibleTo Include="TRPG.Application.Combat" />
+    <InternalsVisibleTo Include="TRPG.Application.Trading" />
+    <InternalsVisibleTo Include="TRPG.Application.Worlds" />
+    <InternalsVisibleTo Include="TRPG.Application.Scenes" />
+    <InternalsVisibleTo Include="TRPG.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TRPG.Application.Configuration\TRPG.Application.Configuration.csproj" />
+    <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
+  </ItemGroup>
+</Project>

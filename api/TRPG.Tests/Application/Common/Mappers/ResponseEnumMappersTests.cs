@@ -1,4 +1,7 @@
-using TRPG.Application.Common.Mappers;
+using TRPG.Application.Abilities.Mappers;
+using TRPG.Application.Combat.Mappers;
+using TRPG.Application.Inventory.Mappers;
+using TRPG.Application.Scenes.Mappers;
 using AbilitiesConditionType = TRPG.Application.Abilities.ConditionType;
 using DataAmountType = TRPG.Data.Models.AmountType;
 using DataAttributeName = TRPG.Data.Models.AttributeName;

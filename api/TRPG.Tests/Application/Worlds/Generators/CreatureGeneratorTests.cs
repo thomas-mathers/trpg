@@ -1,5 +1,5 @@
 using TRPG.Application.Configuration;
-using TRPG.Application.Creatures;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data.Models;

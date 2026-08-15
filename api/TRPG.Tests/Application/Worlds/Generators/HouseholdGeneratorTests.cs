@@ -1,5 +1,5 @@
 using TRPG.Application.Configuration;
-using TRPG.Application.GameSessions;
+using TRPG.Application.Worlds;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
@@ -8,7 +8,7 @@ namespace TRPG.Tests.Application.Worlds.Generators;
 
 public class HouseholdGeneratorTests
 {
-    private const int EpochYear = GameClock.EpochYear;
+    private const int EpochYear = WorldEpoch.Year;
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly City _city = new()
     {
@@ -54,8 +54,7 @@ public class HouseholdGeneratorTests
         );
         var creatureGenerator = new CreatureGenerator(
             itemGenerator,
-            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions()),
-            Builders.MakeStatFormulas()
+            new TestOptionsSnapshot<CreatureGeneratorOptions>(new CreatureGeneratorOptions())
         );
         return new HouseholdGenerator(new BuildingGenerator(), creatureGenerator);
     }

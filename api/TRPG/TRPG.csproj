@@ -20,8 +20,29 @@
     <InternalsVisibleTo Include="TRPG.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\TRPG.Application\TRPG.Application.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Abilities\TRPG.Application.Abilities.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Buildings\TRPG.Application.Buildings.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Chat\TRPG.Application.Chat.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Combat\TRPG.Application.Combat.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Configuration\TRPG.Application.Configuration.csproj" />
+    <ProjectReference Include="..\TRPG.Application.CreatureFormulas\TRPG.Application.CreatureFormulas.csproj" />
+    <ProjectReference Include="..\TRPG.Application.CreatureJobs\TRPG.Application.CreatureJobs.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Encounters\TRPG.Application.Encounters.csproj" />
+    <ProjectReference Include="..\TRPG.Application.GameSessions\TRPG.Application.GameSessions.csproj" />
+    <ProjectReference Include="..\TRPG.Application.GameTurns\TRPG.Application.GameTurns.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Narration\TRPG.Application.Narration.csproj" />
+    <ProjectReference Include="..\TRPG.Application.NpcConversations\TRPG.Application.NpcConversations.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Reputations\TRPG.Application.Reputations.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Scenes\TRPG.Application.Scenes.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Trading\TRPG.Application.Trading.csproj" />
+    <ProjectReference Include="..\TRPG.Application.WeaponProficiency\TRPG.Application.WeaponProficiency.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
+    <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Anthropic" Version="12.35.1" />

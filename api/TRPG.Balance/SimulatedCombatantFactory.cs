@@ -1,6 +1,7 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 
@@ -11,15 +12,15 @@ internal static class SimulatedCombatantFactory
     public static Combatant Build(
         CombatantSpec spec,
         bool isPlayer,
-        StatFormulas statFormulas,
+        CreatureGeneratorOptions creatureGeneratorOptions,
         CombatOptions combatOptions
     )
     {
         var attributes = spec.Attributes with
         {
-            MaximumHp = statFormulas.CalculateMaximumHp(spec.Attributes),
-            MaximumAp = statFormulas.CalculateMaximumAp(spec.Attributes),
-            MaximumMp = statFormulas.CalculateMaximumMp(spec.Attributes),
+            MaximumHp = StatFormulas.CalculateMaximumHp(spec.Attributes, creatureGeneratorOptions),
+            MaximumAp = StatFormulas.CalculateMaximumAp(spec.Attributes, creatureGeneratorOptions),
+            MaximumMp = StatFormulas.CalculateMaximumMp(spec.Attributes, creatureGeneratorOptions),
         };
 
         var creature = new Creature

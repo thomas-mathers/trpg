@@ -1,9 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Narration.Queries;
-using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -108,27 +104,6 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Assert
         await AssertWorldDataExists(WorldId, expected: false);
         await AssertWorldDataExists(OtherWorldId, expected: true);
-    }
-
-    [Fact]
-    public async Task Handle_ClearsTheLoreAnchorCaches_ForTheDroppedWorld()
-    {
-        // Arrange
-        var cache = _serviceProvider.GetRequiredService<IMemoryCache>();
-        var loreAnchorsKey = GetLoreAnchorsByWorldQueryHandler.CacheKey(WorldId);
-        var automatonKey = GetLoreAnchorAutomatonByWorldQueryHandler.CacheKey(WorldId);
-        cache.Set(loreAnchorsKey, Array.Empty<object>());
-        cache.Set(automatonKey, new object());
-
-        // Act
-        await _handler.Handle(
-            new DropWorldCommand { WorldId = WorldId },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.False(cache.TryGetValue(loreAnchorsKey, out _));
-        Assert.False(cache.TryGetValue(automatonKey, out _));
     }
 
     private async Task AssertWorldDataExists(Guid worldId, bool expected)

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Common.Mappers;
 using TRPG.Contracts.Combat.Responses;
 using AbilityAvailability = TRPG.Contracts.Combat.Responses.AbilityAvailability;
 

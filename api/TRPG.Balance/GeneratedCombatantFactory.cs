@@ -1,7 +1,6 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
-using TRPG.Application.Creatures;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data.Models;
 
@@ -23,8 +22,7 @@ public static class GeneratedCombatantFactory
         var generatorOptions = options ?? new CreatureGeneratorOptions();
         var generator = new CreatureGenerator(
             itemGenerator,
-            new FixedOptionsSnapshot<CreatureGeneratorOptions>(generatorOptions),
-            new StatFormulas(new FixedOptionsSnapshot<CreatureGeneratorOptions>(generatorOptions))
+            new FixedOptionsSnapshot<CreatureGeneratorOptions>(generatorOptions)
         );
 
         return new GeneratedCombatantContext(generator);

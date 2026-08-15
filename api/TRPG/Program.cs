@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Builder;
-using TRPG.Application.Common.Extensions;
 using TRPG.Extensions;
 
 var builder = WebApplication.CreateBuilder(

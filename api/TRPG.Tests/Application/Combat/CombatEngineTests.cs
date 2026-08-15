@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
+using TRPG.Application.Combat.Events;
 using TRPG.Application.Configuration;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Data.Models;

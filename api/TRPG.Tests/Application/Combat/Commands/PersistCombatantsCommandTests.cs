@@ -3,7 +3,7 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
+using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 using ActiveDot = TRPG.Application.Combat.ActiveDot;
 using ActiveHot = TRPG.Application.Combat.ActiveHot;
 
