@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -10,7 +11,8 @@ public class GetAllWeaponProficienciesQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetAllWeaponProficienciesQueryHandler(TrpgDbContext context)
+internal class GetAllWeaponProficienciesQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetAllWeaponProficienciesQuery, IReadOnlyDictionary<WeaponType, int>>
 {
     public async Task<IReadOnlyDictionary<WeaponType, int>> Handle(
         GetAllWeaponProficienciesQuery query,

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -22,7 +23,8 @@ public record RoomSummary(
     string? FactionDescription
 );
 
-public class GetRoomSummaryQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetRoomSummaryQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetRoomSummaryQuery, RoomSummary?>
 {
     public async Task<RoomSummary?> Handle(
         GetRoomSummaryQuery query,

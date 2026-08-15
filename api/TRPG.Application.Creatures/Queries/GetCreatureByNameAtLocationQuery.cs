@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -12,7 +13,8 @@ public class GetCreatureByNameAtLocationQuery
     public Guid? ExcludingCreatureId { get; init; }
 }
 
-public class GetCreatureByNameAtLocationQueryHandler(TrpgDbContext context)
+internal class GetCreatureByNameAtLocationQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?>
 {
     public async Task<Creature?> Handle(
         GetCreatureByNameAtLocationQuery query,

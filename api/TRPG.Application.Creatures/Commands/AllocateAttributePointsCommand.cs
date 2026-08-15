@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Inventory;
@@ -16,11 +17,11 @@ public class AllocateAttributePointsCommand
     public required IReadOnlyDictionary<AllocatableAttributeName, int> Deltas { get; init; }
 }
 
-public class AllocateAttributePointsCommandHandler(
+internal class AllocateAttributePointsCommandHandler(
     TrpgDbContext context,
-    GetInventoryByOwnerQueryHandler getInventoryByOwner,
+    IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
-)
+) : ICommandHandler<AllocateAttributePointsCommand>
 {
     public async Task Handle(
         AllocateAttributePointsCommand command,

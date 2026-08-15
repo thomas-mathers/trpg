@@ -1,6 +1,5 @@
-using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -13,10 +12,8 @@ public class GetEffectiveReputationsQuery
     public required IReadOnlyDictionary<Guid, Guid[]> FactionIdsByCreature { get; init; }
 }
 
-public class GetEffectiveReputationsQueryHandler(
-    TrpgDbContext context,
-    ILogger<GetEffectiveReputationsQueryHandler> logger
-)
+internal class GetEffectiveReputationsQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetEffectiveReputationsQuery, IReadOnlyDictionary<Guid, int>>
 {
     public async Task<IReadOnlyDictionary<Guid, int>> Handle(
         GetEffectiveReputationsQuery query,
@@ -27,8 +24,6 @@ public class GetEffectiveReputationsQueryHandler(
         {
             return new Dictionary<Guid, int>();
         }
-
-        var stopwatch = Stopwatch.StartNew();
 
         var allFactionIds = query
             .TargetCreatureIds.SelectMany(id =>
@@ -70,12 +65,6 @@ public class GetEffectiveReputationsQueryHandler(
                     .Sum(factionId => reputationByFactionId.GetValueOrDefault(factionId, 0));
                 return directScore + factionScore;
             }
-        );
-
-        logger.LogInformation(
-            "[perf] GetEffectiveReputations for {CreatureCount} people took {ElapsedMs}ms",
-            query.TargetCreatureIds.Count,
-            stopwatch.ElapsedMilliseconds
         );
 
         return result;

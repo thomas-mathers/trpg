@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -9,7 +10,8 @@ public class GetAllOwnersByBuildingIdQuery
     public required Guid BuildingId { get; init; }
 }
 
-public class GetAllOwnersByBuildingIdQueryHandler(TrpgDbContext context)
+internal class GetAllOwnersByBuildingIdQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetAllOwnersByBuildingIdQuery, IReadOnlyCollection<BuildingOwner>>
 {
     public async Task<IReadOnlyCollection<BuildingOwner>> Handle(
         GetAllOwnersByBuildingIdQuery query,

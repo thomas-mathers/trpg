@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -12,7 +13,8 @@ public class EquipInventoryItemCommand
     public required EquipmentSlot Slot { get; init; }
 }
 
-public class EquipInventoryItemCommandHandler(TrpgDbContext context)
+internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
+    : ICommandHandler<EquipInventoryItemCommand>
 {
     public async Task Handle(
         EquipInventoryItemCommand command,

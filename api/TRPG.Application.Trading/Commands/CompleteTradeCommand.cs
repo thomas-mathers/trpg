@@ -1,9 +1,10 @@
 using System.Transactions;
+using TRPG.Application.Common.Handling;
 using TRPG.Contracts.Inventory.Requests;
 
 namespace TRPG.Application.Trading.Commands;
 
-internal class CompleteTradeCommand
+public class CompleteTradeCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
@@ -15,9 +16,9 @@ internal class CompleteTradeCommand
 internal class CompleteTradeCommandHandler(
     TradeOfferValidator validator,
     TradeOfferEvaluator evaluator,
-    ReceivePlayerInventoryCommandHandler receiveInventory,
-    TransferPlayerInventoryCommandHandler transferInventory
-)
+    ICommandHandler<ReceivePlayerInventoryCommand> receiveInventory,
+    ICommandHandler<TransferPlayerInventoryCommand> transferInventory
+) : ICommandHandler<CompleteTradeCommand>
 {
     public async Task Handle(
         CompleteTradeCommand command,

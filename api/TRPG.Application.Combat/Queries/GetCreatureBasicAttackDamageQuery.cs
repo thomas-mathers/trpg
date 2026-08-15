@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Combat;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Combat.Queries;
@@ -9,11 +10,11 @@ public class GetCreatureBasicAttackDamageQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetCreatureBasicAttackDamageQueryHandler(
+internal class GetCreatureBasicAttackDamageQueryHandler(
     TrpgDbContext context,
-    GetCombatantQueryHandler getCombatant,
+    IQueryHandler<GetCombatantQuery, Combatant> getCombatant,
     DamageCalculator damageCalculator
-)
+) : IQueryHandler<GetCreatureBasicAttackDamageQuery, float>
 {
     public async Task<float> Handle(
         GetCreatureBasicAttackDamageQuery query,

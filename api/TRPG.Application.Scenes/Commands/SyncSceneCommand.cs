@@ -1,6 +1,5 @@
-using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
@@ -17,19 +16,27 @@ public class SyncSceneCommand
     public required InGameDate CurrentDate { get; init; }
 }
 
-public class SyncSceneCommandHandler(
-    GetLocationByIdQueryHandler getLocationById,
-    GetCreatureIdsWithCreatureJobInLocationQueryHandler getCreatureIdsWithJobInLocation,
-    GetAllCreatureJobsByCreatureIdQueryHandler getAllJobsByCreatureId,
-    GetCreatureIdsByDistrictQueryHandler getCreatureIdsByDistrict,
-    GetCreatureByIdQueryHandler getCreatureById,
-    ExecuteCreatureJobCommandHandler executeJob,
-    GetWorkstationsByLocationIdQueryHandler getWorkstationsByLocationId,
-    SetWorkstationOccupantCommandHandler setWorkstationOccupant,
-    GetRoomSummaryQueryHandler getRoomSummary,
-    SyncScheduleLockCommandHandler syncScheduleLock,
-    ILogger<SyncSceneCommandHandler> logger
-)
+internal class SyncSceneCommandHandler(
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<
+        GetCreatureIdsWithCreatureJobInLocationQuery,
+        IReadOnlyList<Guid>
+    > getCreatureIdsWithJobInLocation,
+    IQueryHandler<
+        GetAllCreatureJobsByCreatureIdQuery,
+        IReadOnlyList<CreatureJob>
+    > getAllJobsByCreatureId,
+    IQueryHandler<GetCreatureIdsByDistrictQuery, IReadOnlyList<Guid>> getCreatureIdsByDistrict,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    ICommandHandler<ExecuteCreatureJobCommand> executeJob,
+    IQueryHandler<
+        GetWorkstationsByLocationIdQuery,
+        IReadOnlyCollection<Workstation>
+    > getWorkstationsByLocationId,
+    ICommandHandler<SetWorkstationOccupantCommand> setWorkstationOccupant,
+    IQueryHandler<GetRoomSummaryQuery, RoomSummary?> getRoomSummary,
+    ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock
+) : ICommandHandler<SyncSceneCommand>
 {
     public async Task Handle(
         SyncSceneCommand command,
@@ -110,7 +117,6 @@ public class SyncSceneCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var stopwatch = Stopwatch.StartNew();
         var workingCreaturesByLocationId = new Dictionary<Guid, List<Guid>>();
 
         foreach (var creatureId in creatureIds)
@@ -163,15 +169,6 @@ public class SyncSceneCommandHandler(
         {
             await AssignWorkstations(locationId, presentCreatureIds, cancellationToken);
         }
-
-        stopwatch.Stop();
-
-        logger.LogInformation(
-            "[perf] AdvanceDueJobs{Scope} processed {CreatureCount} people in {ElapsedMs}ms",
-            scope,
-            creatureIds.Count,
-            stopwatch.ElapsedMilliseconds
-        );
     }
 
     private async Task AssignWorkstations(

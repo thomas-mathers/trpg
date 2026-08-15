@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Chat.Commands;
 using TRPG.Application.Chat.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Configuration;
 
 namespace TRPG.Application.GameTurns;
@@ -16,8 +17,8 @@ internal sealed record StreamedReply(int InputOrdinal, IAsyncEnumerable<string> 
 public class LlmConversationClient(
     [FromKeyedServices(LlmRoleKeys.Gameplay)] IChatClient chatClient,
     GameTurnContext turnContext,
-    GetChatMessagesQueryHandler getChatMessages,
-    AppendChatMessagesCommandHandler appendChatMessages,
+    IQueryHandler<GetChatMessagesQuery, IReadOnlyList<ChatMessage>> getChatMessages,
+    ICommandHandler<AppendChatMessagesCommand, int> appendChatMessages,
     IEnumerable<AIFunction> tools,
     IOptionsMonitor<LlmRoleOptions> optionsMonitor,
     ILogger<LlmConversationClient> logger

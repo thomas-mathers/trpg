@@ -3,6 +3,7 @@ using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Mappers;
@@ -12,6 +13,7 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.GameTurns.Commands;
 
@@ -22,15 +24,15 @@ public class PublishSessionStateCommand
     public required Guid SessionId { get; init; }
 }
 
-public class PublishSessionStateCommandHandler(
+internal class PublishSessionStateCommandHandler(
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
-    GetCurrentSceneQueryHandler getCurrentScene,
-    GetActiveFightCombatantsQueryHandler getActiveFightCombatants,
-    GetActiveEncounterQueryHandler getActiveEncounter,
-    GetEncounterGroupContextQueryHandler getEncounterGroupContext,
-    GetLocationByIdQueryHandler getLocationById
-)
+    IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
+    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getActiveFightCombatants,
+    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext> getEncounterGroupContext,
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
+) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
         PublishSessionStateCommand command,

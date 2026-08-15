@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -13,7 +14,8 @@ public class ExecuteCreatureJobCommand
     public required Guid JobLocationId { get; init; }
 }
 
-public class ExecuteCreatureJobCommandHandler(TrpgDbContext context)
+internal class ExecuteCreatureJobCommandHandler(TrpgDbContext context)
+    : ICommandHandler<ExecuteCreatureJobCommand>
 {
     public async Task Handle(
         ExecuteCreatureJobCommand command,

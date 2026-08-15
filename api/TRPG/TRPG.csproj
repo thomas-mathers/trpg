@@ -54,6 +54,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.OpenApi" Version="2.7.6" />
     <PackageReference Include="OllamaSharp" Version="5.4.25" />
+    <PackageReference Include="Scrutor" Version="7.0.0" />
     <PackageReference Include="TickerQ" Version="10.4.0" />
     <PackageReference Include="TickerQ.EntityFrameworkCore" Version="10.4.0" />
     <PackageReference Include="ZLogger" Version="2.5.10" />

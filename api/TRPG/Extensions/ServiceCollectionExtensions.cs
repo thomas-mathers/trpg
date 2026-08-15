@@ -16,6 +16,7 @@ using TickerQ.DependencyInjection;
 using TickerQ.EntityFrameworkCore.DependencyInjection;
 using TickerQ.Utilities.Enums;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Extensions;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
@@ -25,7 +26,6 @@ using TRPG.Configuration;
 using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.GameSessions.ChatClients;
-using TRPG.GameSessions.Commands;
 using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Tools;
@@ -65,7 +65,6 @@ internal static class ServiceCollectionExtensions
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
-            .AddTransient<EndGameSessionCommandHandler>()
             .AddExceptionHandler<GlobalExceptionHandler>()
             .AddProblemDetails()
             .AddOpenApi()
@@ -288,7 +287,11 @@ internal static class ServiceCollectionExtensions
                                         return result;
                                     }
                                     catch (Exception ex)
-                                        when (ex is InvalidOperationException or ArgumentException)
+                                        when (ex
+                                                is InputValidationException
+                                                    or InvalidOperationException
+                                                    or ArgumentException
+                                        )
                                     {
                                         toolLogger.LogWarning(
                                             ex,

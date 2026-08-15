@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Queries;
@@ -12,6 +14,7 @@ using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Narration.Responses;
 using TRPG.Contracts.Scenes.Responses;
+using TRPG.Data.Models;
 
 namespace TRPG.GameSessions.Endpoints;
 
@@ -29,8 +32,8 @@ internal static class GameSessionEndpoints
 
     private static async Task<Results<NotFound, Ok<SessionCreatedResponse>>> StartSession(
         CreateSessionRequest request,
-        GetWorldQueryHandler getWorld,
-        CreateGameSessionCommandHandler createGameSession,
+        [FromServices] IQueryHandler<GetWorldQuery, World?> getWorld,
+        [FromServices] ICommandHandler<CreateGameSessionCommand, Guid> createGameSession,
         CancellationToken cancellationToken
     )
     {
@@ -58,8 +61,8 @@ internal static class GameSessionEndpoints
 
     private static async Task<Results<NotFound, Ok<SceneSnapshot>>> GetScene(
         Guid sessionId,
-        GetGameSessionQueryHandler getGameSession,
-        RefreshSceneCommandHandler refreshScene,
+        [FromServices] IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+        [FromServices] ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
         CancellationToken cancellationToken
     )
     {
@@ -83,8 +86,12 @@ internal static class GameSessionEndpoints
 
     private static async Task<Ok<LoreAnchor[]>> GetLoreAnchors(
         Guid sessionId,
-        GetGameSessionQueryHandler getGameSession,
-        GetLoreAnchorsByWorldQueryHandler getLoreAnchorsByWorld,
+        [FromServices] IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+        [FromServices]
+            IQueryHandler<
+            GetLoreAnchorsByWorldQuery,
+            IReadOnlyCollection<LoreAnchorSummary>
+        > getLoreAnchorsByWorld,
         CancellationToken cancellationToken
     )
     {
@@ -104,8 +111,12 @@ internal static class GameSessionEndpoints
     private static async Task<Results<NotFound, Ok<LoreAnchor>>> GetLoreAnchorById(
         Guid sessionId,
         Guid anchorId,
-        GetGameSessionQueryHandler getGameSession,
-        GetLoreAnchorsByWorldQueryHandler getLoreAnchorsByWorld,
+        [FromServices] IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+        [FromServices]
+            IQueryHandler<
+            GetLoreAnchorsByWorldQuery,
+            IReadOnlyCollection<LoreAnchorSummary>
+        > getLoreAnchorsByWorld,
         CancellationToken cancellationToken
     )
     {

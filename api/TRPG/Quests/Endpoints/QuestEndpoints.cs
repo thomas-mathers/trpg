@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
 using TRPG.Contracts.Quests.Requests;
@@ -27,7 +29,11 @@ internal static class QuestEndpoints
     private static async Task<Ok<QuestJournalEntrySnapshot[]>> GetQuestJournal(
         Guid playerId,
         Guid worldId,
-        GetQuestJournalQueryHandler getQuestJournal,
+        [FromServices]
+            IQueryHandler<
+            GetQuestJournalQuery,
+            IReadOnlyCollection<QuestJournalEntry>
+        > getQuestJournal,
         CancellationToken cancellationToken
     )
     {
@@ -62,7 +68,7 @@ internal static class QuestEndpoints
         Guid playerId,
         Guid questId,
         Guid worldId,
-        AcceptQuestCommandHandler acceptQuest,
+        [FromServices] ICommandHandler<AcceptQuestCommand> acceptQuest,
         CancellationToken cancellationToken
     )
     {
@@ -82,7 +88,7 @@ internal static class QuestEndpoints
         Guid playerId,
         Guid questId,
         Guid worldId,
-        CompleteQuestCommandHandler completeQuest,
+        [FromServices] ICommandHandler<CompleteQuestCommand> completeQuest,
         CancellationToken cancellationToken
     )
     {
@@ -103,7 +109,7 @@ internal static class QuestEndpoints
         Guid questId,
         Guid worldId,
         SetQuestTrackingRequest request,
-        SetQuestTrackingCommandHandler setQuestTracking,
+        [FromServices] ICommandHandler<SetQuestTrackingCommand> setQuestTracking,
         CancellationToken cancellationToken
     )
     {

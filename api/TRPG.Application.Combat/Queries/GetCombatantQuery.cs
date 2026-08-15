@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Options;
+using TRPG.Application.Abilities;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
@@ -14,12 +16,15 @@ public class GetCombatantQuery
     public required bool IsPlayer { get; init; }
 }
 
-public class GetCombatantQueryHandler(
-    GetInventoryByOwnerQueryHandler getInventory,
-    GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
-    GetCreatureAbilitiesQueryHandler getCreatureAbilities,
+internal class GetCombatantQueryHandler(
+    IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventory,
+    IQueryHandler<
+        GetAllWeaponProficienciesQuery,
+        IReadOnlyDictionary<WeaponType, int>
+    > getAllWeaponProficiencies,
+    IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
     IOptionsSnapshot<CombatOptions> optionsSnapshot
-)
+) : IQueryHandler<GetCombatantQuery, Combatant>
 {
     public async Task<Combatant> Handle(
         GetCombatantQuery query,

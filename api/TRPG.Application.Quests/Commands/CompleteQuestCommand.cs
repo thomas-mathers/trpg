@@ -1,6 +1,7 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
@@ -15,7 +16,10 @@ public class CompleteQuestCommand
     public required Guid WorldId { get; init; }
 }
 
-public class CompleteQuestCommandHandler(TrpgDbContext context, AddGoldCommandHandler addGold)
+internal class CompleteQuestCommandHandler(
+    TrpgDbContext context,
+    ICommandHandler<AddGoldCommand> addGold
+) : ICommandHandler<CompleteQuestCommand>
 {
     public async Task Handle(
         CompleteQuestCommand command,

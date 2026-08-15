@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Events;
@@ -15,7 +16,7 @@ namespace TRPG.GameTurns.Tools;
 internal class LookTool(
     GameTurnContext turnContext,
     IGameClientEventSink gameEvents,
-    RefreshSceneCommandHandler refreshScene,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ILogger<LookTool> logger
 ) : IGameTool
 {

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
@@ -9,6 +10,7 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests.Queries;
+using TRPG.Data.Models;
 
 namespace TRPG.NpcConversations.Tools;
 
@@ -21,12 +23,15 @@ internal record StartConversationResult(
 
 internal class StartConversationTool(
     GameTurnContext turnContext,
-    GetActiveEncounterQueryHandler getActiveEncounter,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
-    GetNpcConversationSummaryQueryHandler getNpcConversationSummary,
-    GetQuestInteractionsForGiverQueryHandler getQuestInteractions,
-    OpenNpcConversationCommandHandler openNpcConversation,
+    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
+    IQueryHandler<GetNpcConversationSummaryQuery, string> getNpcConversationSummary,
+    IQueryHandler<
+        GetQuestInteractionsForGiverQuery,
+        QuestInteractionsForGiver
+    > getQuestInteractions,
+    ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationOutcome> openNpcConversation,
     ILogger<StartConversationTool> logger
 ) : IGameTool
 {

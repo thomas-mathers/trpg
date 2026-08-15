@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Reputations.Queries;
@@ -9,10 +10,13 @@ public class GetEffectiveReputationQuery
     public required Guid TargetCreatureId { get; init; }
 }
 
-public class GetEffectiveReputationQueryHandler(
+internal class GetEffectiveReputationQueryHandler(
     TrpgDbContext context,
-    GetEffectiveReputationsQueryHandler getEffectiveReputations
-)
+    IQueryHandler<
+        GetEffectiveReputationsQuery,
+        IReadOnlyDictionary<Guid, int>
+    > getEffectiveReputations
+) : IQueryHandler<GetEffectiveReputationQuery, int>
 {
     public async Task<int> Handle(
         GetEffectiveReputationQuery query,

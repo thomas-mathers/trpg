@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
@@ -15,6 +16,7 @@ using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Data.Models;
 
 namespace TRPG.Application.GameTurns;
 
@@ -27,12 +29,18 @@ internal abstract record GameTurnPrompt
 
 internal class GameTurnStreamer(
     LlmConversationClient llmConversationClient,
-    CloseLingeringNpcConversationsCommandHandler closeLingeringConversations,
+    ICommandHandler<CloseLingeringNpcConversationsCommand> closeLingeringConversations,
     GameTurnContext turnContext,
-    ApplyPassiveRegenCommandHandler applyPassiveRegen,
-    AdvanceTimeCommandHandler advanceTime,
-    GetLoreAnchorAutomatonByWorldQueryHandler getLoreAnchorAutomatonByWorld,
-    GetCurrentSceneQueryHandler getCurrentScene,
+    ICommandHandler<
+        ApplyPassiveRegenCommand,
+        IReadOnlyDictionary<Guid, Creature>
+    > applyPassiveRegen,
+    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
+    IQueryHandler<
+        GetLoreAnchorAutomatonByWorldQuery,
+        LoreAnchorAutomaton
+    > getLoreAnchorAutomatonByWorld,
+    IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
     IOptionsSnapshot<GameClockOptions> gameClockOptions,

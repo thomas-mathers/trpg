@@ -2,20 +2,22 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
+using TRPG.Data.Models;
 
 namespace TRPG.GameTurns.Tools;
 
 internal class LookupTool(
     GameTurnContext turnContext,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
-    GetCreatureKnowledgeQueryHandler getCreatureKnowledge,
-    GetPlaytimeQueryHandler getPlaytime,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
+    IQueryHandler<GetCreatureKnowledgeQuery, IReadOnlyList<LookupMatch>> getCreatureKnowledge,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ILogger<LookupTool> logger
 ) : IGameTool
 {

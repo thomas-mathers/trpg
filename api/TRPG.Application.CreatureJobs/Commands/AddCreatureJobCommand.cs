@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -8,7 +9,8 @@ public class AddCreatureJobCommand
     public required CreatureJob CreatureJob { get; init; }
 }
 
-public class AddCreatureJobCommandHandler(TrpgDbContext context)
+internal class AddCreatureJobCommandHandler(TrpgDbContext context)
+    : ICommandHandler<AddCreatureJobCommand>
 {
     public async Task Handle(
         AddCreatureJobCommand command,

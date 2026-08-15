@@ -1,5 +1,6 @@
 using System.Transactions;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Inventory;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
@@ -15,11 +16,11 @@ public class ReceivePlayerInventoryCommand
     public required Guid WorldId { get; init; }
 }
 
-public class ReceivePlayerInventoryCommandHandler(
+internal class ReceivePlayerInventoryCommandHandler(
     TrpgDbContext context,
     InventoryItemTransfer itemTransfer,
     IDomainEventPublisher<ItemAcquiredEvent> domainEvents
-)
+) : ICommandHandler<ReceivePlayerInventoryCommand>
 {
     public async Task Handle(
         ReceivePlayerInventoryCommand command,

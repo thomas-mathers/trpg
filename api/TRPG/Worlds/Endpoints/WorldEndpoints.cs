@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using TickerQ.Utilities;
 using TickerQ.Utilities.Interfaces.Managers;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
@@ -12,6 +14,7 @@ using TRPG.Contracts.Jobs.Responses;
 using TRPG.Contracts.Worlds.Requests;
 using TRPG.Contracts.Worlds.Responses;
 using TRPG.Data;
+using TRPG.Data.Models;
 using TRPG.Worlds.Jobs;
 
 namespace TRPG.Worlds.Endpoints;
@@ -74,7 +77,7 @@ internal static class WorldEndpoints
     }
 
     private static async Task<Ok<WorldSummary[]>> ListWorlds(
-        GetAllWorldsQueryHandler getAllWorlds,
+        [FromServices] IQueryHandler<GetAllWorldsQuery, IReadOnlyList<World>> getAllWorlds,
         CancellationToken cancellationToken
     )
     {
@@ -86,7 +89,7 @@ internal static class WorldEndpoints
 
     private static async Task<NoContent> DropWorld(
         Guid worldId,
-        DropWorldCommandHandler dropHandler,
+        [FromServices] ICommandHandler<DropWorldCommand> dropHandler,
         IMemoryCache cache,
         CancellationToken cancellationToken
     )

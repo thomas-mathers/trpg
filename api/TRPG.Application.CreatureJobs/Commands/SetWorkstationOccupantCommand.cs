@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -10,7 +11,8 @@ public class SetWorkstationOccupantCommand
     public required Guid? OccupantId { get; init; }
 }
 
-public class SetWorkstationOccupantCommandHandler(TrpgDbContext context)
+internal class SetWorkstationOccupantCommandHandler(TrpgDbContext context)
+    : ICommandHandler<SetWorkstationOccupantCommand>
 {
     public async Task Handle(
         SetWorkstationOccupantCommand command,

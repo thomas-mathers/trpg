@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Events;
@@ -19,7 +20,7 @@ internal record MoveToolResult(SceneResult Scene, HostileEncounterState? Encount
 internal class MoveTool(
     GameTurnContext turnContext,
     IGameClientEventSink gameEvents,
-    MovePlayerCommandHandler movePlayer,
+    ICommandHandler<MovePlayerCommand, MovePlayerResult> movePlayer,
     ILogger<MoveTool> logger
 ) : IGameTool
 {

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -9,7 +10,8 @@ public class GetActiveQuestItemIdsQuery
     public required Guid PlayerId { get; init; }
 }
 
-public class GetActiveQuestItemIdsQueryHandler(TrpgDbContext context)
+internal class GetActiveQuestItemIdsQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>>
 {
     public async Task<IReadOnlyCollection<Guid>> Handle(
         GetActiveQuestItemIdsQuery query,

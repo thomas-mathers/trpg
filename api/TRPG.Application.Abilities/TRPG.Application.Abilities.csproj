@@ -13,6 +13,7 @@
     <InternalsVisibleTo Include="TRPG.Balance" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
     <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>

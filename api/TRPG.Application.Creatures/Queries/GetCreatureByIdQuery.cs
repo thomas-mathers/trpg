@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -9,7 +10,8 @@ public class GetCreatureByIdQuery
     public required Guid Id { get; init; }
 }
 
-public class GetCreatureByIdQueryHandler(TrpgDbContext context)
+internal class GetCreatureByIdQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetCreatureByIdQuery, Creature?>
 {
     public async Task<Creature?> Handle(
         GetCreatureByIdQuery query,

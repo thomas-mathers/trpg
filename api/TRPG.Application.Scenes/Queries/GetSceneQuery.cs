@@ -1,7 +1,6 @@
-using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Quests.Queries;
@@ -117,30 +116,45 @@ public record SceneDetails(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
-public class GetSceneQueryHandler(
+internal class GetSceneQueryHandler(
     TrpgDbContext context,
-    GetStateByIdQueryHandler getStateById,
-    GetCityByIdQueryHandler getCityById,
-    GetCityByStateIdQueryHandler getCityByStateId,
-    GetDistrictByIdQueryHandler getDistrictById,
-    GetRoomSummaryQueryHandler getRoomSummary,
-    GetStaticPropsByLocationIdQueryHandler getStaticPropsByLocationId,
-    GetConnectorsByLocationIdQueryHandler getConnectorsByLocationId,
-    GetAllBuildingsByLocationQueryHandler getAllBuildingsByLocation,
-    GetNearbyCreaturesQueryHandler getNearbyCreatures,
-    GetEffectiveReputationsQueryHandler getEffectiveReputations,
-    GetQuestMarkersForGiversQueryHandler getQuestMarkersForGivers,
-    GetTotalCharacterXpFromSkillsQueryHandler getTotalCharacterXpFromSkills,
-    ILogger<GetSceneQueryHandler> logger
-)
+    IQueryHandler<GetStateByIdQuery, State?> getStateById,
+    IQueryHandler<GetCityByIdQuery, City?> getCityById,
+    IQueryHandler<GetCityByStateIdQuery, City?> getCityByStateId,
+    IQueryHandler<GetDistrictByIdQuery, District?> getDistrictById,
+    IQueryHandler<GetRoomSummaryQuery, RoomSummary?> getRoomSummary,
+    IQueryHandler<
+        GetStaticPropsByLocationIdQuery,
+        IReadOnlyCollection<Prop>
+    > getStaticPropsByLocationId,
+    IQueryHandler<
+        GetConnectorsByLocationIdQuery,
+        IReadOnlyCollection<LocationConnector>
+    > getConnectorsByLocationId,
+    IQueryHandler<
+        GetAllBuildingsByLocationQuery,
+        IReadOnlyCollection<Building>
+    > getAllBuildingsByLocation,
+    IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureSummary>> getNearbyCreatures,
+    IQueryHandler<
+        GetEffectiveReputationsQuery,
+        IReadOnlyDictionary<Guid, int>
+    > getEffectiveReputations,
+    IQueryHandler<
+        GetQuestMarkersForGiversQuery,
+        IReadOnlyDictionary<Guid, QuestMarker>
+    > getQuestMarkersForGivers,
+    IQueryHandler<
+        GetTotalCharacterXpFromSkillsQuery,
+        IReadOnlyDictionary<Guid, int>
+    > getTotalCharacterXpFromSkills
+) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
         GetSceneQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var stopwatch = Stopwatch.StartNew();
-
         var creaturesHere = await getNearbyCreatures.Handle(
             new GetNearbyCreaturesQuery { PlayerId = query.PlayerId },
             cancellationToken
@@ -170,13 +184,6 @@ public class GetSceneQueryHandler(
                 ? await BuildIndoorScene(player, cancellationToken)
                 : await BuildOutdoorScene(player, state, cancellationToken);
         var playerCreatureInfo = await BuildPlayerCreatureInfo(query, player, cancellationToken);
-
-        logger.LogInformation(
-            "[perf] GetScene ({Branch}) took {ElapsedMs}ms, {CreatureCount} nearby people",
-            player.RoomId != null ? "indoor" : "outdoor",
-            stopwatch.ElapsedMilliseconds,
-            nearbyPeople.Count
-        );
 
         return new SceneResult(
             query.WorldId,

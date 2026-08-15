@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Combat.Commands;
@@ -8,7 +9,8 @@ public class PersistCombatantsCommand
     public required IReadOnlyList<Combatant> Combatants { get; init; }
 }
 
-public class PersistCombatantsCommandHandler(TrpgDbContext context)
+internal class PersistCombatantsCommandHandler(TrpgDbContext context)
+    : ICommandHandler<PersistCombatantsCommand>
 {
     public async Task Handle(
         PersistCombatantsCommand command,

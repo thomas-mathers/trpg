@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.GameSessions.Commands;
@@ -8,7 +9,8 @@ public class DeleteGameSessionCommand
     public required Guid SessionId { get; init; }
 }
 
-public class DeleteGameSessionCommandHandler(TrpgDbContext context)
+internal class DeleteGameSessionCommandHandler(TrpgDbContext context)
+    : ICommandHandler<DeleteGameSessionCommand>
 {
     public async Task Handle(
         DeleteGameSessionCommand command,

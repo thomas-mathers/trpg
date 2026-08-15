@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,7 +12,8 @@ public class MarkQuestsReadyToCompleteCommand
     public required Guid WorldId { get; init; }
 }
 
-public class MarkQuestsReadyToCompleteCommandHandler(TrpgDbContext context)
+internal class MarkQuestsReadyToCompleteCommandHandler(TrpgDbContext context)
+    : ICommandHandler<MarkQuestsReadyToCompleteCommand>
 {
     public async Task Handle(
         MarkQuestsReadyToCompleteCommand command,

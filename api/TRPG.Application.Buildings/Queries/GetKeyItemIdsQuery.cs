@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Buildings.Queries;
@@ -8,7 +9,8 @@ public class GetKeyItemIdsQuery
     public required Guid DoorConnectorId { get; init; }
 }
 
-public class GetKeyItemIdsQueryHandler(TrpgDbContext context)
+internal class GetKeyItemIdsQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetKeyItemIdsQuery, IReadOnlyList<Guid>>
 {
     public async Task<IReadOnlyList<Guid>> Handle(
         GetKeyItemIdsQuery query,

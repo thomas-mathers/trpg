@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -11,7 +12,7 @@ public class AddGoldCommand
     public required int Amount { get; init; }
 }
 
-public class AddGoldCommandHandler(TrpgDbContext context)
+internal class AddGoldCommandHandler(TrpgDbContext context) : ICommandHandler<AddGoldCommand>
 {
     public async Task Handle(AddGoldCommand command, CancellationToken cancellationToken = default)
     {

@@ -1,4 +1,5 @@
 using TRPG.Application.Abilities;
+using TRPG.Application.Common.Handling;
 
 namespace TRPG.Application.Combat.Queries;
 
@@ -9,9 +10,9 @@ public class GetAbilityAvailabilityQuery
     public required Guid PlayerId { get; init; }
 }
 
-public class GetAbilityAvailabilityQueryHandler(
-    GetActiveFightCombatantsQueryHandler getActiveFightCombatants
-)
+internal class GetAbilityAvailabilityQueryHandler(
+    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getActiveFightCombatants
+) : IQueryHandler<GetAbilityAvailabilityQuery, IReadOnlyList<AbilityAvailability>>
 {
     public async Task<IReadOnlyList<AbilityAvailability>> Handle(
         GetAbilityAvailabilityQuery query,

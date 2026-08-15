@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -10,7 +11,8 @@ public class GetAllBuildingsByLocationQuery
     public required Guid LocationId { get; init; }
 }
 
-public class GetAllBuildingsByLocationQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetAllBuildingsByLocationQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetAllBuildingsByLocationQuery, IReadOnlyCollection<Building>>
 {
     public async Task<IReadOnlyCollection<Building>> Handle(
         GetAllBuildingsByLocationQuery query,

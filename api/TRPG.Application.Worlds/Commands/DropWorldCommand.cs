@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Worlds.Commands;
@@ -8,7 +9,7 @@ public class DropWorldCommand
     public required Guid WorldId { get; init; }
 }
 
-public class DropWorldCommandHandler(TrpgDbContext context)
+internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<DropWorldCommand>
 {
     public async Task Handle(
         DropWorldCommand command,

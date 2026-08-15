@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -15,7 +16,8 @@ public class GetEncounterGroupContextQuery
     public required Guid EncounterGroupId { get; init; }
 }
 
-public class GetEncounterGroupContextQueryHandler(TrpgDbContext context)
+internal class GetEncounterGroupContextQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext>
 {
     public async Task<EncounterGroupContext> Handle(
         GetEncounterGroupContextQuery query,

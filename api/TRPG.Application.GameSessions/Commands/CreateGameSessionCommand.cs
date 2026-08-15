@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.AI;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using ChatMessageRow = TRPG.Data.Models.ChatMessage;
 using GameSession = TRPG.Data.Models.GameSession;
@@ -13,7 +14,8 @@ public class CreateGameSessionCommand
     public required TimeSpan Playtime { get; init; }
 }
 
-public class CreateGameSessionCommandHandler(TrpgDbContext context)
+internal class CreateGameSessionCommandHandler(TrpgDbContext context)
+    : ICommandHandler<CreateGameSessionCommand, Guid>
 {
     private const string SystemPrompt = """
         You are the game master of a living fantasy world. Your role is to narrate the player's experience and interpret their actions to advance the story.

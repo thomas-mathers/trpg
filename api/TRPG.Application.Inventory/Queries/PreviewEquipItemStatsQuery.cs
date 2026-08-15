@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -12,7 +13,8 @@ public class PreviewEquipItemStatsQuery
     public required EquipmentSlot Slot { get; init; }
 }
 
-public class PreviewEquipItemStatsQueryHandler(TrpgDbContext context)
+internal class PreviewEquipItemStatsQueryHandler(TrpgDbContext context)
+    : IQueryHandler<PreviewEquipItemStatsQuery, Attributes>
 {
     public async Task<Attributes> Handle(
         PreviewEquipItemStatsQuery query,

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -28,7 +29,8 @@ public record QuestJournalEntry(
     IReadOnlyCollection<QuestObjectiveProgress> Objectives
 );
 
-public class GetQuestJournalQueryHandler(TrpgDbContext context)
+internal class GetQuestJournalQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetQuestJournalQuery, IReadOnlyCollection<QuestJournalEntry>>
 {
     public async Task<IReadOnlyCollection<QuestJournalEntry>> Handle(
         GetQuestJournalQuery query,

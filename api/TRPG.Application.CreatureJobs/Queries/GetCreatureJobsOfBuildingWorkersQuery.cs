@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -9,7 +10,8 @@ public class GetCreatureJobsOfBuildingWorkersQuery
     public required Guid BuildingId { get; init; }
 }
 
-public class GetCreatureJobsOfBuildingWorkersQueryHandler(TrpgDbContext context)
+internal class GetCreatureJobsOfBuildingWorkersQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetCreatureJobsOfBuildingWorkersQuery, IReadOnlyList<CreatureJob>>
 {
     public async Task<IReadOnlyList<CreatureJob>> Handle(
         GetCreatureJobsOfBuildingWorkersQuery query,

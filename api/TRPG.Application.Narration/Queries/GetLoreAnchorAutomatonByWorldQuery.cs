@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Common.Handling;
 
 namespace TRPG.Application.Narration.Queries;
 
@@ -7,10 +8,13 @@ public class GetLoreAnchorAutomatonByWorldQuery
     public required Guid WorldId { get; init; }
 }
 
-public class GetLoreAnchorAutomatonByWorldQueryHandler(
-    GetLoreAnchorsByWorldQueryHandler getLoreAnchorsByWorld,
+internal class GetLoreAnchorAutomatonByWorldQueryHandler(
+    IQueryHandler<
+        GetLoreAnchorsByWorldQuery,
+        IReadOnlyCollection<LoreAnchorSummary>
+    > getLoreAnchorsByWorld,
     IMemoryCache cache
-)
+) : IQueryHandler<GetLoreAnchorAutomatonByWorldQuery, LoreAnchorAutomaton>
 {
     public static string CacheKey(Guid worldId) => $"namedEntityAutomaton:{worldId}";
 

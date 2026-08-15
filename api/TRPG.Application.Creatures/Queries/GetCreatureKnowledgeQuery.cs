@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -71,7 +72,8 @@ public sealed record PersonLookupResult(
     string? DistrictName
 ) : LookupResult;
 
-public class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
+internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetCreatureKnowledgeQuery, IReadOnlyList<LookupMatch>>
 {
     private const double SimilarityThreshold = 0.35;
     private const int MaxMatches = 5;

@@ -19,6 +19,10 @@ internal class HubExceptionTranslationFilter : IHubFilter
         {
             throw new HubException(ex.Message);
         }
+        catch (InputValidationException ex)
+        {
+            throw new HubException(ex.Message);
+        }
         catch (InvalidOperationException ex)
         {
             throw new HubException(ex.Message);
@@ -51,6 +55,10 @@ internal class HubExceptionTranslationFilter : IHubFilter
                 hasNext = await enumerator.MoveNextAsync();
             }
             catch (EntityNotFoundException ex)
+            {
+                throw new HubException(ex.Message);
+            }
+            catch (InputValidationException ex)
             {
                 throw new HubException(ex.Message);
             }

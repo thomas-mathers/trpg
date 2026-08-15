@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -9,7 +10,8 @@ public class GetActiveFightQuery
     public required Guid PlayerId { get; init; }
 }
 
-public class GetActiveFightQueryHandler(TrpgDbContext context)
+internal class GetActiveFightQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetActiveFightQuery, Fight?>
 {
     public async Task<Fight?> Handle(
         GetActiveFightQuery query,

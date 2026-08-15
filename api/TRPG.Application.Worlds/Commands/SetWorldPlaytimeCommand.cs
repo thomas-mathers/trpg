@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.Worlds.Commands;
@@ -9,7 +10,8 @@ public class SetWorldPlaytimeCommand
     public required TimeSpan Playtime { get; init; }
 }
 
-public class SetWorldPlaytimeCommandHandler(TrpgDbContext context)
+internal class SetWorldPlaytimeCommandHandler(TrpgDbContext context)
+    : ICommandHandler<SetWorldPlaytimeCommand>
 {
     public async Task Handle(
         SetWorldPlaytimeCommand command,

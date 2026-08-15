@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -10,7 +11,8 @@ public class GetStateByIdQuery
     public required Guid Id { get; init; }
 }
 
-public class GetStateByIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetStateByIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetStateByIdQuery, State?>
 {
     public async Task<State?> Handle(
         GetStateByIdQuery query,

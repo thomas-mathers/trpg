@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Mappers;
 using TRPG.Contracts.Creatures.Requests;
@@ -23,12 +24,12 @@ public class CreateWorldCommand
 
 public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);
 
-public class CreateWorldCommandHandler(
+internal class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
     QuestGenerator questGenerator,
     BootstrapWorldCommandHandler bootstrapWorld
-)
+) : ICommandHandler<CreateWorldCommand, CreateWorldResult>
 {
     public async Task<CreateWorldResult> Handle(
         CreateWorldCommand command,

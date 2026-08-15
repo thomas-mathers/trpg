@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -10,7 +11,8 @@ public class GetBuildingByNameAtLocationQuery
     public required string Name { get; init; }
 }
 
-public class GetBuildingByNameAtLocationQueryHandler(TrpgDbContext context)
+internal class GetBuildingByNameAtLocationQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetBuildingByNameAtLocationQuery, Building?>
 {
     public async Task<Building?> Handle(
         GetBuildingByNameAtLocationQuery query,

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -9,7 +10,8 @@ public class CompleteEncounterCommand
     public required Guid EncounterId { get; init; }
 }
 
-public class CompleteEncounterCommandHandler(TrpgDbContext context)
+internal class CompleteEncounterCommandHandler(TrpgDbContext context)
+    : ICommandHandler<CompleteEncounterCommand>
 {
     public Task Handle(
         CompleteEncounterCommand command,

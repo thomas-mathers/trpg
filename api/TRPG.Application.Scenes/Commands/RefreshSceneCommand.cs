@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
@@ -16,14 +16,13 @@ public class RefreshSceneCommand
 
 public record RefreshSceneResult(SceneResult Scene, bool Refreshed);
 
-public class RefreshSceneCommandHandler(
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetPlaytimeQueryHandler getPlaytime,
-    SyncSceneCommandHandler syncScene,
-    GetSceneQueryHandler getScene,
-    SceneCatchUpCache catchUpCache,
-    ILogger<RefreshSceneCommandHandler> logger
-)
+internal class RefreshSceneCommandHandler(
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    ICommandHandler<SyncSceneCommand> syncScene,
+    IQueryHandler<GetSceneQuery, SceneResult> getScene,
+    SceneCatchUpCache catchUpCache
+) : ICommandHandler<RefreshSceneCommand, RefreshSceneResult>
 {
     public async Task<RefreshSceneResult> Handle(
         RefreshSceneCommand command,
@@ -71,21 +70,8 @@ public class RefreshSceneCommandHandler(
     {
         if (catchUpCache.HasCaughtUp(worldId, locationId, currentDate.Hour))
         {
-            logger.LogInformation(
-                "[perf] Catch-up cache hit for {WorldId}:{LocationId}:{Hour}",
-                worldId,
-                locationId,
-                currentDate.Hour
-            );
             return false;
         }
-
-        logger.LogInformation(
-            "[perf] Catch-up cache miss for {WorldId}:{LocationId}:{Hour}, running catch-up",
-            worldId,
-            locationId,
-            currentDate.Hour
-        );
 
         await syncScene.Handle(
             new SyncSceneCommand

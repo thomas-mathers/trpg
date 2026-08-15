@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
@@ -24,8 +25,13 @@ namespace TRPG.Application.GameTurns.Commands;
 
 public class MovePlayerCommand
 {
+    [NotEmptyGuid]
     public required Guid PlayerId { get; init; }
+
+    [NotEmptyGuid]
     public required Guid SessionId { get; init; }
+
+    [NotBlank]
     public required string DestinationName { get; init; }
 }
 
@@ -36,27 +42,39 @@ public record MovePlayerResult(
     SceneResult? Scene = null
 );
 
-public class MovePlayerCommandHandler(
+internal class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
-    GetCreatureByIdQueryHandler getCreatureById,
-    GetLocationByIdQueryHandler getLocationById,
-    GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
-    GetActiveQuestItemIdsQueryHandler getActiveQuestItemIds,
-    GetCreatureIdsHoldingItemsQueryHandler getCreatureIdsHoldingItems,
-    UpdateCreaturesCommandHandler updateCreatures,
-    DeleteCreaturesCommandHandler deleteCreatures,
-    GetBuildingByNameAtLocationQueryHandler getBuildingByNameAtLocation,
-    GetExitByDestinationNameQueryHandler getExitByDestinationName,
-    GetBuildingEntryRequirementsQueryHandler getBuildingEntryRequirements,
-    GetInventoryByOwnerQueryHandler getInventoryByOwner,
-    SyncScheduleLockCommandHandler syncScheduleLock,
-    GetPlaytimeQueryHandler getPlaytime,
-    GetActiveEncounterQueryHandler getActiveEncounter,
-    RefreshSceneCommandHandler refreshScene,
-    EvaluateLocationEncountersCommandHandler evaluateLocationEncounters,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<
+        GetCreaturesAtLocationQuery,
+        IReadOnlyCollection<CreatureSummary>
+    > getCreaturesAtLocation,
+    IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>> getActiveQuestItemIds,
+    IQueryHandler<
+        GetCreatureIdsHoldingItemsQuery,
+        IReadOnlyCollection<Guid>
+    > getCreatureIdsHoldingItems,
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<DeleteCreaturesCommand> deleteCreatures,
+    IQueryHandler<GetBuildingByNameAtLocationQuery, Building?> getBuildingByNameAtLocation,
+    IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
+    IQueryHandler<
+        GetBuildingEntryRequirementsQuery,
+        BuildingEntryRequirements
+    > getBuildingEntryRequirements,
+    IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner,
+    ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    ICommandHandler<
+        EvaluateLocationEncountersCommand,
+        HostileEncounterState?
+    > evaluateLocationEncounters,
     SceneCatchUpCache catchUpCache,
     ILogger<MovePlayerCommandHandler> logger
-)
+) : ICommandHandler<MovePlayerCommand, MovePlayerResult>
 {
     public async Task<MovePlayerResult> Handle(
         MovePlayerCommand command,

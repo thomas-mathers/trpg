@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Data;
@@ -11,10 +12,10 @@ public class GetUnallocatedAttributePointsQuery
     public required Guid CreatureId { get; init; }
 }
 
-public class GetUnallocatedAttributePointsQueryHandler(
+internal class GetUnallocatedAttributePointsQueryHandler(
     TrpgDbContext context,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
-)
+) : IQueryHandler<GetUnallocatedAttributePointsQuery, int>
 {
     public async Task<int> Handle(
         GetUnallocatedAttributePointsQuery query,

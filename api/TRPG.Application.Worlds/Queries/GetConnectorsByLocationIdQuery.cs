@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -9,7 +10,8 @@ public class GetConnectorsByLocationIdQuery
     public required Guid LocationId { get; init; }
 }
 
-public class GetConnectorsByLocationIdQueryHandler(TrpgDbContext context)
+internal class GetConnectorsByLocationIdQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetConnectorsByLocationIdQuery, IReadOnlyCollection<LocationConnector>>
 {
     public async Task<IReadOnlyCollection<LocationConnector>> Handle(
         GetConnectorsByLocationIdQuery query,

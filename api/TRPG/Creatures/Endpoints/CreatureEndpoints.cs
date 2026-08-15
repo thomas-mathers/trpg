@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using TRPG.Application.Abilities;
 using TRPG.Application.Abilities.Mappers;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
@@ -60,7 +63,8 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<AbilitySummary[]>> GetAbilities(
         Guid creatureId,
-        GetCreatureAbilitiesQueryHandler getCreatureAbilities,
+        [FromServices]
+            IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
         CancellationToken cancellationToken
     )
     {
@@ -74,8 +78,16 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<InventorySummary>> GetInventory(
         Guid creatureId,
-        GetInventorySummaryByOwnerQueryHandler getInventorySummaryByOwner,
-        GetActiveQuestItemIdsQueryHandler getActiveQuestItemIds,
+        [FromServices]
+            IQueryHandler<
+            GetInventorySummaryByOwnerQuery,
+            InventorySnapshot
+        > getInventorySummaryByOwner,
+        [FromServices]
+            IQueryHandler<
+            GetActiveQuestItemIdsQuery,
+            IReadOnlyCollection<Guid>
+        > getActiveQuestItemIds,
         CancellationToken cancellationToken
     )
     {
@@ -99,7 +111,8 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<ConsumableSummary[]>> GetConsumables(
         Guid creatureId,
-        GetInventoryByOwnerQueryHandler getInventoryByOwner,
+        [FromServices]
+            IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner,
         CancellationToken cancellationToken
     )
     {
@@ -116,7 +129,8 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<NearbyCorpseSummary[]>> GetNearbyCorpses(
         Guid playerId,
-        GetNearbyCorpsesQueryHandler getNearbyCorpses,
+        [FromServices]
+            IQueryHandler<GetNearbyCorpsesQuery, IReadOnlyList<CorpseSummary>> getNearbyCorpses,
         CancellationToken cancellationToken
     )
     {
@@ -132,7 +146,8 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<AttributePointsResponse>> GetAttributePoints(
         Guid creatureId,
-        GetUnallocatedAttributePointsQueryHandler getUnallocatedAttributePoints,
+        [FromServices]
+            IQueryHandler<GetUnallocatedAttributePointsQuery, int> getUnallocatedAttributePoints,
         CancellationToken cancellationToken
     )
     {
@@ -147,7 +162,7 @@ internal static class CreatureEndpoints
     private static async Task<NoContent> AllocateAttributePoints(
         Guid creatureId,
         AllocateAttributePointsRequest request,
-        AllocateAttributePointsCommandHandler allocateAttributePoints,
+        [FromServices] ICommandHandler<AllocateAttributePointsCommand> allocateAttributePoints,
         CancellationToken cancellationToken
     )
     {
@@ -166,7 +181,7 @@ internal static class CreatureEndpoints
     private static async Task<NoContent> EquipItem(
         Guid creatureId,
         EquipItemRequest request,
-        EquipInventoryItemCommandHandler equipInventoryItem,
+        [FromServices] ICommandHandler<EquipInventoryItemCommand> equipInventoryItem,
         CancellationToken cancellationToken
     )
     {
@@ -186,7 +201,7 @@ internal static class CreatureEndpoints
     private static async Task<NoContent> UnequipItem(
         Guid creatureId,
         Contracts.Inventory.Responses.EquipmentSlot slot,
-        UnequipInventoryItemCommandHandler unequipInventoryItem,
+        [FromServices] ICommandHandler<UnequipInventoryItemCommand> unequipInventoryItem,
         CancellationToken cancellationToken
     )
     {
@@ -200,7 +215,8 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<BaseAttributesResponse>> GetBaseAttributes(
         Guid creatureId,
-        GetCreatureBaseAttributesQueryHandler getCreatureBaseAttributes,
+        [FromServices]
+            IQueryHandler<GetCreatureBaseAttributesQuery, Attributes> getCreatureBaseAttributes,
         CancellationToken cancellationToken
     )
     {
@@ -224,7 +240,8 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<EffectiveAttributesResponse>> GetEffectiveStats(
         Guid creatureId,
-        GetCreatureEffectiveStatsQueryHandler getCreatureEffectiveStats,
+        [FromServices]
+            IQueryHandler<GetCreatureEffectiveStatsQuery, Attributes> getCreatureEffectiveStats,
         CancellationToken cancellationToken
     )
     {
@@ -240,7 +257,7 @@ internal static class CreatureEndpoints
         Guid creatureId,
         Guid itemId,
         Contracts.Inventory.Responses.EquipmentSlot slot,
-        PreviewEquipItemStatsQueryHandler previewEquipItemStats,
+        [FromServices] IQueryHandler<PreviewEquipItemStatsQuery, Attributes> previewEquipItemStats,
         CancellationToken cancellationToken
     )
     {
@@ -259,7 +276,8 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<BasicAttackDamageResponse>> GetBasicAttackDamage(
         Guid creatureId,
-        GetCreatureBasicAttackDamageQueryHandler getCreatureBasicAttackDamage,
+        [FromServices]
+            IQueryHandler<GetCreatureBasicAttackDamageQuery, float> getCreatureBasicAttackDamage,
         CancellationToken cancellationToken
     )
     {
@@ -275,7 +293,11 @@ internal static class CreatureEndpoints
         Guid creatureId,
         Guid itemId,
         Contracts.Inventory.Responses.EquipmentSlot slot,
-        PreviewEquipItemBasicAttackDamageQueryHandler previewEquipItemBasicAttackDamage,
+        [FromServices]
+            IQueryHandler<
+            PreviewEquipItemBasicAttackDamageQuery,
+            float
+        > previewEquipItemBasicAttackDamage,
         CancellationToken cancellationToken
     )
     {
@@ -317,7 +339,11 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<SkillProgressSummary[]>> GetSkills(
         Guid creatureId,
-        GetCreatureSkillsQueryHandler getCreatureSkills,
+        [FromServices]
+            IQueryHandler<
+            GetCreatureSkillsQuery,
+            IReadOnlyCollection<CreatureSkillProgress>
+        > getCreatureSkills,
         CancellationToken cancellationToken
     )
     {
@@ -331,7 +357,7 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<CreatureLevelResponse>> GetLevel(
         Guid creatureId,
-        GetCreatureLevelQueryHandler getCreatureLevel,
+        [FromServices] IQueryHandler<GetCreatureLevelQuery, int> getCreatureLevel,
         CancellationToken cancellationToken
     )
     {

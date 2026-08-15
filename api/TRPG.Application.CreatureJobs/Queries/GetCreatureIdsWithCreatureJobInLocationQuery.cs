@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
 namespace TRPG.Application.CreatureJobs.Queries;
@@ -8,7 +9,8 @@ public class GetCreatureIdsWithCreatureJobInLocationQuery
     public required Guid LocationId { get; init; }
 }
 
-public class GetCreatureIdsWithCreatureJobInLocationQueryHandler(TrpgDbContext context)
+internal class GetCreatureIdsWithCreatureJobInLocationQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetCreatureIdsWithCreatureJobInLocationQuery, IReadOnlyList<Guid>>
 {
     public async Task<IReadOnlyList<Guid>> Handle(
         GetCreatureIdsWithCreatureJobInLocationQuery query,

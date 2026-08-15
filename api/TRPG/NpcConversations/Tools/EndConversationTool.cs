@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameTurns;
 using TRPG.Application.NpcConversations.Commands;
@@ -10,7 +11,7 @@ namespace TRPG.NpcConversations.Tools;
 
 internal class EndConversationTool(
     GameTurnContext turnContext,
-    CloseNpcConversationCommandHandler closeNpcConversation,
+    ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationOutcome> closeNpcConversation,
     ILogger<EndConversationTool> logger
 ) : IGameTool
 {

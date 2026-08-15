@@ -2,15 +2,17 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Data.Models;
 
 namespace TRPG.Worlds.Tools;
 
 internal class WorldInfoTool(
     GameTurnContext turnContext,
-    GetWorldQueryHandler getWorld,
+    IQueryHandler<GetWorldQuery, World?> getWorld,
     ILogger<WorldInfoTool> logger
 ) : IGameTool
 {

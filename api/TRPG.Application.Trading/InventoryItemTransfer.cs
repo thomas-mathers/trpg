@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
@@ -8,7 +9,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Trading;
 
-public class InventoryItemTransfer(TrpgDbContext context, AddGoldCommandHandler addGold)
+public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGoldCommand> addGold)
 {
     public async Task Transfer(
         ItemOwnerReference from,

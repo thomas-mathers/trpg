@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
@@ -17,13 +19,16 @@ public class PreviewEquipItemBasicAttackDamageQuery
     public required EquipmentSlot Slot { get; init; }
 }
 
-public class PreviewEquipItemBasicAttackDamageQueryHandler(
+internal class PreviewEquipItemBasicAttackDamageQueryHandler(
     TrpgDbContext context,
-    GetCreatureAbilitiesQueryHandler getCreatureAbilities,
-    GetAllWeaponProficienciesQueryHandler getAllWeaponProficiencies,
+    IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
+    IQueryHandler<
+        GetAllWeaponProficienciesQuery,
+        IReadOnlyDictionary<WeaponType, int>
+    > getAllWeaponProficiencies,
     DamageCalculator damageCalculator,
     IOptionsSnapshot<CombatOptions> optionsSnapshot
-)
+) : IQueryHandler<PreviewEquipItemBasicAttackDamageQuery, float>
 {
     public async Task<float> Handle(
         PreviewEquipItemBasicAttackDamageQuery query,
