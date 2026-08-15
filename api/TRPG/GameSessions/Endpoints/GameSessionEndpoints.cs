@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
@@ -31,8 +32,8 @@ internal static class GameSessionEndpoints
 
     private static async Task<Results<NotFound, Ok<SessionCreatedResponse>>> StartSession(
         CreateSessionRequest request,
-        IQueryHandler<GetWorldQuery, World?> getWorld,
-        ICommandHandler<CreateGameSessionCommand, Guid> createGameSession,
+        [FromServices] IQueryHandler<GetWorldQuery, World?> getWorld,
+        [FromServices] ICommandHandler<CreateGameSessionCommand, Guid> createGameSession,
         CancellationToken cancellationToken
     )
     {
@@ -60,8 +61,8 @@ internal static class GameSessionEndpoints
 
     private static async Task<Results<NotFound, Ok<SceneSnapshot>>> GetScene(
         Guid sessionId,
-        IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-        ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+        [FromServices] IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+        [FromServices] ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
         CancellationToken cancellationToken
     )
     {
@@ -85,8 +86,9 @@ internal static class GameSessionEndpoints
 
     private static async Task<Ok<LoreAnchor[]>> GetLoreAnchors(
         Guid sessionId,
-        IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-        IQueryHandler<
+        [FromServices] IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+        [FromServices]
+            IQueryHandler<
             GetLoreAnchorsByWorldQuery,
             IReadOnlyCollection<LoreAnchorSummary>
         > getLoreAnchorsByWorld,
@@ -109,8 +111,9 @@ internal static class GameSessionEndpoints
     private static async Task<Results<NotFound, Ok<LoreAnchor>>> GetLoreAnchorById(
         Guid sessionId,
         Guid anchorId,
-        IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-        IQueryHandler<
+        [FromServices] IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+        [FromServices]
+            IQueryHandler<
             GetLoreAnchorsByWorldQuery,
             IReadOnlyCollection<LoreAnchorSummary>
         > getLoreAnchorsByWorld,

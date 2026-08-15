@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using TickerQ.Utilities;
 using TickerQ.Utilities.Interfaces.Managers;
@@ -76,7 +77,7 @@ internal static class WorldEndpoints
     }
 
     private static async Task<Ok<WorldSummary[]>> ListWorlds(
-        IQueryHandler<GetAllWorldsQuery, IReadOnlyList<World>> getAllWorlds,
+        [FromServices] IQueryHandler<GetAllWorldsQuery, IReadOnlyList<World>> getAllWorlds,
         CancellationToken cancellationToken
     )
     {
@@ -88,7 +89,7 @@ internal static class WorldEndpoints
 
     private static async Task<NoContent> DropWorld(
         Guid worldId,
-        ICommandHandler<DropWorldCommand> dropHandler,
+        [FromServices] ICommandHandler<DropWorldCommand> dropHandler,
         IMemoryCache cache,
         CancellationToken cancellationToken
     )

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Abilities;
 using TRPG.Application.Abilities.Mappers;
 using TRPG.Application.Abilities.Queries;
@@ -19,7 +20,11 @@ internal static class AbilityEndpoints
 
     private static async Task<Ok<AbilitySummary[]>> GetAbilitiesBySkill(
         Skill skill,
-        IQueryHandler<GetAbilitiesBySkillQuery, IReadOnlyCollection<Ability>> getAbilitiesBySkill,
+        [FromServices]
+            IQueryHandler<
+            GetAbilitiesBySkillQuery,
+            IReadOnlyCollection<Ability>
+        > getAbilitiesBySkill,
         CancellationToken cancellationToken
     )
     {
