@@ -1,6 +1,4 @@
-using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
-using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
@@ -28,7 +26,10 @@ internal class PublishSessionStateCommandHandler(
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
-    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getActiveFightCombatants,
+    IQueryHandler<
+        GetActiveFightCombatantDetailsQuery,
+        IReadOnlyCollection<TRPG.Contracts.Combat.Responses.CombatantState>
+    > getActiveFightCombatants,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
     IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext> getEncounterGroupContext,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
@@ -51,14 +52,12 @@ internal class PublishSessionStateCommandHandler(
         gameEvents.Enqueue(new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(scene)));
 
         var combatants = await getActiveFightCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = command.PlayerId },
+            new GetActiveFightCombatantDetailsQuery { PlayerId = command.PlayerId },
             cancellationToken
         );
         if (combatants.Count > 0)
         {
-            gameEvents.Enqueue(
-                new CombatStartedEvent(CombatantStateMapper.ToCombatantStates(combatants))
-            );
+            gameEvents.Enqueue(new CombatStartedEvent(combatants));
         }
 
         var encounter = await getActiveEncounter.Handle(

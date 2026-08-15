@@ -1,6 +1,5 @@
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
@@ -19,9 +18,7 @@ internal class ResolveCombatActionHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
-    CombatEngine combatEngine,
-    ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound,
+    ICommandHandler<ResolvePlayerCombatActionCommand, CombatResult> resolvePlayerCombatAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     IGameClientEventSink gameEvents
 )
@@ -41,33 +38,13 @@ internal class ResolveCombatActionHandler(
             cancellationToken
         );
 
-        var combatants = await getCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = session.PlayerId },
-            cancellationToken
-        );
-
-        if (combatants.Count == 0)
-        {
-            throw new InvalidOperationException("There's no fight to act in right now.");
-        }
-
-        var resolverResult = new PlayerCombatActionResolver(combatants).Resolve(action);
-
-        if (resolverResult.ErrorMessage is not null)
-        {
-            throw new InvalidOperationException(resolverResult.ErrorMessage);
-        }
-
-        var state = combatEngine.ProcessRound(combatants, resolverResult.Result!);
-
-        await resolveCombatRound.Handle(
-            new ResolveCombatRoundCommand
+        await resolvePlayerCombatAction.Handle(
+            new ResolvePlayerCombatActionCommand
             {
                 SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                Combatants = combatants,
-                State = state,
+                Action = action,
             },
             cancellationToken
         );

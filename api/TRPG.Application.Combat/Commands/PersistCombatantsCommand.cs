@@ -4,7 +4,7 @@ using TRPG.Data;
 
 namespace TRPG.Application.Combat.Commands;
 
-public class PersistCombatantsCommand
+internal class PersistCombatantsCommand
 {
     public required IReadOnlyList<Combatant> Combatants { get; init; }
 }

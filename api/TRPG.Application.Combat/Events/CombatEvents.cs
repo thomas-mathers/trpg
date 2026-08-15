@@ -4,7 +4,7 @@ using TRPG.Contracts.Combat.Responses;
 
 namespace TRPG.Application.Combat.Events;
 
-internal record CombatStartedEvent(
+public record CombatStartedEvent(
     IReadOnlyCollection<TRPG.Contracts.Combat.Responses.CombatantState> Combatants
 ) : GameClientEvent
 {

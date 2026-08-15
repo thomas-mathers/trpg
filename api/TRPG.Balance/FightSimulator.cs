@@ -70,7 +70,7 @@ public class FightSimulator
         return RunFight(trial, player, enemy, maxRounds);
     }
 
-    public IReadOnlyList<RoundSnapshot> RunFight(
+    internal IReadOnlyList<RoundSnapshot> RunFight(
         int trial,
         Combatant player,
         Combatant enemy,

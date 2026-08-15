@@ -1,4 +1,7 @@
+using TRPG.Application.Combat.Events;
+using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
@@ -18,10 +21,14 @@ public class StartFightCommand
 internal class StartFightCommandHandler(
     TrpgDbContext context,
     IQueryHandler<GetCombatantQuery, Combatant> getCombatant,
-    ICommandHandler<ApplyPassiveRegenCommand, IReadOnlyDictionary<Guid, Creature>> applyPassiveRegen
-) : ICommandHandler<StartFightCommand, IReadOnlyList<Combatant>>
+    ICommandHandler<
+        ApplyPassiveRegenCommand,
+        IReadOnlyDictionary<Guid, Creature>
+    > applyPassiveRegen,
+    IGameClientEventSink gameEvents
+) : ICommandHandler<StartFightCommand>
 {
-    public async Task<IReadOnlyList<Combatant>> Handle(
+    public async Task Handle(
         StartFightCommand command,
         CancellationToken cancellationToken = default
     )
@@ -62,6 +69,8 @@ internal class StartFightCommandHandler(
         );
         await context.SaveChangesAsync(cancellationToken);
 
-        return combatants;
+        gameEvents.Enqueue(
+            new CombatStartedEvent(CombatantStateMapper.ToCombatantStates(combatants))
+        );
     }
 }

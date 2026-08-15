@@ -10,7 +10,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Commands;
 
-public class ResolveCombatRoundCommand
+internal class ResolveCombatRoundCommand
 {
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }

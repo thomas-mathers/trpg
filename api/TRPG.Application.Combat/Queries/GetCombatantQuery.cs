@@ -10,7 +10,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Queries;
 
-public class GetCombatantQuery
+internal class GetCombatantQuery
 {
     public required Creature Creature { get; init; }
     public required bool IsPlayer { get; init; }

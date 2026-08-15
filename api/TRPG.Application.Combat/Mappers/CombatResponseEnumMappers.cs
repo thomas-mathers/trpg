@@ -13,7 +13,7 @@ using DataResourceType = TRPG.Data.Models.ResourceType;
 
 namespace TRPG.Application.Combat.Mappers;
 
-internal static class CombatResponseEnumMappers
+public static class CombatResponseEnumMappers
 {
     public static ContractDamageType ToContract(this DataDamageType type) =>
         type switch

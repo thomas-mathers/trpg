@@ -1,6 +1,4 @@
 using System.Text.Json;
-using TRPG.Application.Combat;
-using TRPG.Application.Combat.Events;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
@@ -61,22 +59,12 @@ internal class StreamEncounterActionTurnHandler(
             cancellationToken
         );
 
-        EnqueueEncounterResolutionEvents(resolution);
+        gameEvents.Enqueue(new EncounterResolvedEvent(resolution.Fact));
 
         return new GameTurnPrompt.Narrate(
             $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution.Fact, TRPG.Contracts.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
             IncludeTools: false
         );
-    }
-
-    private void EnqueueEncounterResolutionEvents(EncounterActionResolution resolution)
-    {
-        gameEvents.Enqueue(new EncounterResolvedEvent(resolution.Fact));
-
-        if (resolution.Combatants != null)
-        {
-            gameEvents.Enqueue(new CombatStartedEvent(resolution.Combatants));
-        }
     }
 
     private static string DescribeAction(HostileEncounterActionKind actionKind) =>

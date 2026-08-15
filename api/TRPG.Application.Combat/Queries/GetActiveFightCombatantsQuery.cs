@@ -4,7 +4,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Combat.Queries;
 
-public class GetActiveFightCombatantsQuery
+internal class GetActiveFightCombatantsQuery
 {
     public required Guid PlayerId { get; init; }
 }

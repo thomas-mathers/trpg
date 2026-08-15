@@ -1,12 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Combat.Events;
-using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Creatures.Commands;
@@ -19,7 +15,6 @@ namespace TRPG.Combat.Tools;
 
 internal class StartFightTool(
     GameTurnContext turnContext,
-    IGameClientEventSink gameEvents,
     IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
@@ -28,7 +23,7 @@ internal class StartFightTool(
         GetEncounterGroupCreatureIdsQuery,
         IReadOnlyCollection<Guid>
     > getEncounterGroupCreatureIds,
-    ICommandHandler<StartFightCommand, IReadOnlyList<Combatant>> startFight,
+    ICommandHandler<StartFightCommand> startFight,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ILogger<StartFightTool> logger
 ) : IGameTool
@@ -117,7 +112,7 @@ internal class StartFightTool(
             cancellationToken
         );
 
-        var combatants = await startFight.Handle(
+        await startFight.Handle(
             new StartFightCommand
             {
                 SessionId = turnContext.SessionId,
@@ -126,10 +121,6 @@ internal class StartFightTool(
                 EnemyCreatureIds = enemyCreatureIds,
             },
             cancellationToken
-        );
-
-        gameEvents.Enqueue(
-            new CombatStartedEvent(CombatantStateMapper.ToCombatantStates(combatants))
         );
 
         logger.LogInformation(

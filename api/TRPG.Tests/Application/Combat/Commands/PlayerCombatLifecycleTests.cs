@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Contracts.Combat.Requests;
@@ -17,6 +18,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private StartFightCommandHandler _startFight = null!;
+    private GetActiveFightCombatantsQueryHandler _getCombatants = null!;
     private CombatEngine _combatEngine = null!;
     private PersistCombatantsCommandHandler _persistCombatants = null!;
 
@@ -41,6 +43,8 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
             .BuildServiceProvider();
 
         _startFight = _serviceProvider.GetRequiredService<StartFightCommandHandler>();
+        _getCombatants =
+            _serviceProvider.GetRequiredService<GetActiveFightCombatantsQueryHandler>();
         _combatEngine = _serviceProvider.GetRequiredService<CombatEngine>();
         _persistCombatants = _serviceProvider.GetRequiredService<PersistCombatantsCommandHandler>();
 
@@ -103,7 +107,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         var currentHpAtCreation = playerResult.Creature.CurrentHp;
 
         // Act — start a fight exactly like StartFightTool does before the player chooses an action
-        var combatants = await _startFight.Handle(
+        await _startFight.Handle(
             new StartFightCommand
             {
                 SessionId = session.Id,
@@ -111,6 +115,10 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
                 PlayerId = playerResult.Creature.Id,
                 EnemyCreatureIds = [enemy.Id],
             },
+            TestContext.Current.CancellationToken
+        );
+        var combatants = await _getCombatants.Handle(
+            new GetActiveFightCombatantsQuery { PlayerId = playerResult.Creature.Id },
             TestContext.Current.CancellationToken
         );
 

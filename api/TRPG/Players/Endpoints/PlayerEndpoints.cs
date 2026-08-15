@@ -2,12 +2,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Handling;
 using TRPG.Contracts.Combat.Responses;
 using AbilityAvailability = TRPG.Contracts.Combat.Responses.AbilityAvailability;
-using Combatant = TRPG.Application.Combat.Combatant;
 
 namespace TRPG.Players.Endpoints;
 
@@ -23,12 +21,15 @@ internal static class PlayerEndpoints
     private static async Task<Results<NotFound, Ok<IReadOnlyCollection<CombatantState>>>> GetFight(
         Guid playerId,
         [FromServices]
-            IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
+            IQueryHandler<
+            GetActiveFightCombatantDetailsQuery,
+            IReadOnlyCollection<CombatantState>
+        > getCombatants,
         CancellationToken cancellationToken
     )
     {
         var combatants = await getCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = playerId },
+            new GetActiveFightCombatantDetailsQuery { PlayerId = playerId },
             cancellationToken
         );
         if (combatants.Count == 0)
@@ -36,7 +37,7 @@ internal static class PlayerEndpoints
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(CombatantStateMapper.ToCombatantStates(combatants));
+        return TypedResults.Ok(combatants);
     }
 
     private static async Task<Ok<AbilityAvailability[]>> GetAbilityAvailability(
