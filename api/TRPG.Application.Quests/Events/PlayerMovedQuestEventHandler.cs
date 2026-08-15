@@ -1,21 +1,21 @@
+﻿using TRPG.Application.Common.Events;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests.Events;
 
-public sealed record PlayerMovedQuestEvent(Guid PlayerId, Guid WorldId, Guid LocationId);
-
 public sealed class PlayerMovedQuestEventHandler(QuestObjectiveAdvancer questObjectiveAdvancer)
+    : IDomainEventConsumer<PlayerMovedEvent>
 {
     public Task Handle(
-        PlayerMovedQuestEvent questEvent,
+        PlayerMovedEvent domainEvent,
         CancellationToken cancellationToken = default
     ) =>
         questObjectiveAdvancer.Advance(
-            questEvent.PlayerId,
-            questEvent.WorldId,
+            domainEvent.PlayerId,
+            domainEvent.WorldId,
             objective =>
                 objective is ExploreLocationObjective explore
-                && explore.LocationId == questEvent.LocationId,
+                && explore.LocationId == domainEvent.LocationId,
             cancellationToken
         );
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Events;
 using TRPG.Data;
@@ -168,19 +169,14 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db) : IAsync
                 _serviceProvider
                     .GetRequiredService<CreatureKilledQuestEventHandler>()
                     .Handle(
-                        new CreatureKilledQuestEvent(
-                            _player.Id,
-                            WorldId,
-                            targetId,
-                            CreatureType.Beast
-                        ),
+                        new CreatureKilledEvent(_player.Id, WorldId, targetId, CreatureType.Beast),
                         cancellationToken
                     ),
             ObjectiveKind.KillCreatureType => cancellationToken =>
                 _serviceProvider
                     .GetRequiredService<CreatureKilledQuestEventHandler>()
                     .Handle(
-                        new CreatureKilledQuestEvent(
+                        new CreatureKilledEvent(
                             _player.Id,
                             WorldId,
                             Guid.NewGuid(),
@@ -192,21 +188,21 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db) : IAsync
                 _serviceProvider
                     .GetRequiredService<ItemAcquiredQuestEventHandler>()
                     .Handle(
-                        new ItemAcquiredQuestEvent(_player.Id, WorldId, targetId),
+                        new ItemAcquiredEvent(_player.Id, WorldId, targetId),
                         cancellationToken
                     ),
             ObjectiveKind.ExploreLocation => cancellationToken =>
                 _serviceProvider
                     .GetRequiredService<PlayerMovedQuestEventHandler>()
                     .Handle(
-                        new PlayerMovedQuestEvent(_player.Id, WorldId, locationId),
+                        new PlayerMovedEvent(_player.Id, WorldId, locationId),
                         cancellationToken
                     ),
             ObjectiveKind.SpeakToCreature => cancellationToken =>
                 _serviceProvider
                     .GetRequiredService<ConversationStartedQuestEventHandler>()
                     .Handle(
-                        new ConversationStartedQuestEvent(_player.Id, WorldId, targetId),
+                        new NpcConversationStartedEvent(_player.Id, WorldId, targetId),
                         cancellationToken
                     ),
             _ => throw new InvalidOperationException(),

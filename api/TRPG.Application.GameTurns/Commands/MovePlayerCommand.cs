@@ -2,6 +2,7 @@ using System.Transactions;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
@@ -11,7 +12,6 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests;
-using TRPG.Application.Quests.Events;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
@@ -37,7 +37,7 @@ public record MovePlayerResult(
 );
 
 public class MovePlayerCommandHandler(
-    PlayerMovedQuestEventHandler playerMovedQuestEvents,
+    IDomainEventPublisher<PlayerMovedEvent> domainEvents,
     GetCreatureByIdQueryHandler getCreatureById,
     GetLocationByIdQueryHandler getLocationById,
     GetCreaturesAtLocationQueryHandler getCreaturesAtLocation,
@@ -115,8 +115,8 @@ public class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        await playerMovedQuestEvents.Handle(
-            new PlayerMovedQuestEvent(
+        await domainEvents.Publish(
+            new PlayerMovedEvent(
                 PlayerId: player.Id,
                 WorldId: player.WorldId,
                 LocationId: player.LocationId

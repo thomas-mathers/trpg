@@ -1,4 +1,4 @@
-using Microsoft.Extensions.AI;
+﻿using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Buildings.Commands;
@@ -8,6 +8,7 @@ using TRPG.Application.Chat.Queries;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
@@ -54,6 +55,7 @@ public static class ApplicationServiceCollectionExtensions
         return serviceCollection
             .AddMemoryCache()
             .AddScoped<GameTurnContext>()
+            .AddTransient(typeof(IDomainEventPublisher<>), typeof(DomainEventPublisher<>))
             .AddTransient<AddBuildingOwnerCommandHandler>()
             .AddTransient<RemoveBuildingOwnerCommandHandler>()
             .AddTransient<SetWorkstationOccupantCommandHandler>()
@@ -140,9 +142,21 @@ public static class ApplicationServiceCollectionExtensions
             .AddTransient<GetQuestMarkersForGiversQueryHandler>()
             .AddTransient<QuestObjectiveAdvancer>()
             .AddTransient<CreatureKilledQuestEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreatureKilledQuestEventHandler>()
+            )
             .AddTransient<PlayerMovedQuestEventHandler>()
             .AddTransient<ConversationStartedQuestEventHandler>()
+            .AddTransient<IDomainEventConsumer<NpcConversationStartedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<ConversationStartedQuestEventHandler>()
+            )
             .AddTransient<ItemAcquiredQuestEventHandler>()
+            .AddTransient<IDomainEventConsumer<ItemAcquiredEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<ItemAcquiredQuestEventHandler>()
+            )
+            .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<PlayerMovedQuestEventHandler>()
+            )
             .AddTransient<GetAllReputationsByCreatureIdQueryHandler>()
             .AddTransient<GetEffectiveReputationQueryHandler>()
             .AddTransient<GetEffectiveReputationsQueryHandler>()

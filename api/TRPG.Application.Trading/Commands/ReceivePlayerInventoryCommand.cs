@@ -1,6 +1,6 @@
 using System.Transactions;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Inventory;
-using TRPG.Application.Quests.Events;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
@@ -18,7 +18,7 @@ public class ReceivePlayerInventoryCommand
 public class ReceivePlayerInventoryCommandHandler(
     TrpgDbContext context,
     InventoryItemTransfer itemTransfer,
-    ItemAcquiredQuestEventHandler itemAcquiredQuestEvents
+    IDomainEventPublisher<ItemAcquiredEvent> domainEvents
 )
 {
     public async Task Handle(
@@ -44,8 +44,8 @@ public class ReceivePlayerInventoryCommandHandler(
 
         foreach (var item in command.Items)
         {
-            await itemAcquiredQuestEvents.Handle(
-                new ItemAcquiredQuestEvent(command.PlayerId, command.WorldId, item.ItemId),
+            await domainEvents.Publish(
+                new ItemAcquiredEvent(command.PlayerId, command.WorldId, item.ItemId),
                 cancellationToken
             );
         }

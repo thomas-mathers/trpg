@@ -1,23 +1,22 @@
+﻿using TRPG.Application.Common.Events;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests.Events;
 
-public sealed record ConversationStartedQuestEvent(Guid PlayerId, Guid WorldId, Guid CreatureId);
-
 public sealed class ConversationStartedQuestEventHandler(
     QuestObjectiveAdvancer questObjectiveAdvancer
-)
+) : IDomainEventConsumer<NpcConversationStartedEvent>
 {
     public Task Handle(
-        ConversationStartedQuestEvent questEvent,
+        NpcConversationStartedEvent domainEvent,
         CancellationToken cancellationToken = default
     ) =>
         questObjectiveAdvancer.Advance(
-            questEvent.PlayerId,
-            questEvent.WorldId,
+            domainEvent.PlayerId,
+            domainEvent.WorldId,
             objective =>
                 objective is SpeakToCreatureObjective speak
-                && speak.CreatureId == questEvent.CreatureId,
+                && speak.CreatureId == domainEvent.NpcId,
             cancellationToken
         );
 }

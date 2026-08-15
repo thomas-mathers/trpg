@@ -4,8 +4,6 @@ using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Application.Quests;
-using TRPG.Application.Quests.Events;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Data.Models;
 
@@ -27,7 +25,7 @@ public class ResolveCombatRoundCommandHandler(
     RemoveInventoryItemCommandHandler removeInventoryItem,
     EndFightCommandHandler endFight,
     IGameClientEventSink gameEvents,
-    CreatureKilledQuestEventHandler creatureKilledQuestEvents
+    IDomainEventPublisher<CreatureKilledEvent> domainEvents
 )
 {
     public async Task<CombatResult> Handle(
@@ -118,8 +116,8 @@ public class ResolveCombatRoundCommandHandler(
             )
         )
         {
-            await creatureKilledQuestEvents.Handle(
-                new CreatureKilledQuestEvent(
+            await domainEvents.Publish(
+                new CreatureKilledEvent(
                     command.PlayerId,
                     command.WorldId,
                     combatant.CreatureId,

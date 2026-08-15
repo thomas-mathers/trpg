@@ -1,20 +1,20 @@
+﻿using TRPG.Application.Common.Events;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests.Events;
 
-public sealed record ItemAcquiredQuestEvent(Guid PlayerId, Guid WorldId, Guid ItemId);
-
 public sealed class ItemAcquiredQuestEventHandler(QuestObjectiveAdvancer questObjectiveAdvancer)
+    : IDomainEventConsumer<ItemAcquiredEvent>
 {
     public Task Handle(
-        ItemAcquiredQuestEvent questEvent,
+        ItemAcquiredEvent domainEvent,
         CancellationToken cancellationToken = default
     ) =>
         questObjectiveAdvancer.Advance(
-            questEvent.PlayerId,
-            questEvent.WorldId,
+            domainEvent.PlayerId,
+            domainEvent.WorldId,
             objective =>
-                objective is CollectItemObjective collect && collect.ItemId == questEvent.ItemId,
+                objective is CollectItemObjective collect && collect.ItemId == domainEvent.ItemId,
             cancellationToken
         );
 }
