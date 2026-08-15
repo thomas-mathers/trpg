@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Caching.Memory;
 using TickerQ.Utilities;
 using TickerQ.Utilities.Interfaces.Managers;
+using TRPG.Application.Narration.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
@@ -85,10 +87,15 @@ internal static class WorldEndpoints
     private static async Task<NoContent> DropWorld(
         Guid worldId,
         DropWorldCommandHandler dropHandler,
+        IMemoryCache cache,
         CancellationToken cancellationToken
     )
     {
         await dropHandler.Handle(new DropWorldCommand { WorldId = worldId }, cancellationToken);
+
+        cache.Remove(GetLoreAnchorsByWorldQueryHandler.CacheKey(worldId));
+        cache.Remove(GetLoreAnchorAutomatonByWorldQueryHandler.CacheKey(worldId));
+
         return TypedResults.NoContent();
     }
 }

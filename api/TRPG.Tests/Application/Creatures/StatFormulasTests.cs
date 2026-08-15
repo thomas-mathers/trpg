@@ -1,7 +1,8 @@
-using TRPG.Application.Creatures;
+using TRPG.Application.Configuration;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
-using ActiveBuff = TRPG.Application.Creatures.ActiveBuff;
+using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 
 namespace TRPG.Tests.Application.Creatures;
 
@@ -214,13 +215,13 @@ public class StatFormulasTests
     public void MaximumMeters_DeriveFromAttributes_WithSensibleFloors()
     {
         // Arrange
-        var statFormulas = Builders.MakeStatFormulas();
+        var options = new CreatureGeneratorOptions();
 
         // Act & Assert — zero endurance still yields a killable 1 HP; zero mana yields no pool
-        Assert.Equal(50, statFormulas.CalculateMaximumHp(MakeAttributes(endurance: 10)));
-        Assert.Equal(1, statFormulas.CalculateMaximumHp(MakeAttributes(endurance: 0)));
-        Assert.Equal(20, statFormulas.CalculateMaximumAp(MakeAttributes(stamina: 10)));
-        Assert.Equal(20, statFormulas.CalculateMaximumMp(MakeAttributes(mana: 10)));
-        Assert.Equal(0, statFormulas.CalculateMaximumMp(MakeAttributes(mana: 0)));
+        Assert.Equal(50, StatFormulas.CalculateMaximumHp(MakeAttributes(endurance: 10), options));
+        Assert.Equal(1, StatFormulas.CalculateMaximumHp(MakeAttributes(endurance: 0), options));
+        Assert.Equal(20, StatFormulas.CalculateMaximumAp(MakeAttributes(stamina: 10), options));
+        Assert.Equal(20, StatFormulas.CalculateMaximumMp(MakeAttributes(mana: 10), options));
+        Assert.Equal(0, StatFormulas.CalculateMaximumMp(MakeAttributes(mana: 0), options));
     }
 }

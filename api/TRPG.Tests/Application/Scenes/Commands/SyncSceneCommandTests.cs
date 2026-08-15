@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.CreatureJobs.Commands;
+using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Data;

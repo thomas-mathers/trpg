@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using TRPG.Application.Common;
+using TRPG.Application.Configuration;
 using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.Tests.Helpers;

@@ -15,18 +15,24 @@ using OllamaSharp;
 using TickerQ.DependencyInjection;
 using TickerQ.EntityFrameworkCore.DependencyInjection;
 using TickerQ.Utilities.Enums;
-using TRPG.Application.Common;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Extensions;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Combat.Tools;
 using TRPG.Configuration;
 using TRPG.Contracts;
 using TRPG.Data;
 using TRPG.GameSessions.ChatClients;
+using TRPG.GameSessions.Commands;
 using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
+using TRPG.Inventory.Tools;
+using TRPG.NpcConversations.Tools;
+using TRPG.Quests.Tools;
 using TRPG.Worlds.Jobs;
+using TRPG.Worlds.Tools;
 using ZLogger;
 using ZLogger.Providers;
 using LoggingChatClient = TRPG.GameSessions.ChatClients.LoggingChatClient;
@@ -53,6 +59,13 @@ internal static class ServiceCollectionExtensions
             .AddTrpgOptions(configuration)
             .AddTrpgSessionState()
             .AddTrpgJobs(configuration)
+            .AddGameTool<WorldInfoTool>()
+            .AddGameTool<InventoryTool>()
+            .AddGameTool<ShowQuestDetailsTool>()
+            .AddGameTool<StartFightTool>()
+            .AddGameTool<StartConversationTool>()
+            .AddGameTool<EndConversationTool>()
+            .AddTransient<EndGameSessionCommandHandler>()
             .AddExceptionHandler<GlobalExceptionHandler>()
             .AddProblemDetails()
             .AddOpenApi()

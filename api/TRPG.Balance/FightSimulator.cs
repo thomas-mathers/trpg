@@ -1,6 +1,6 @@
 using TRPG.Application.Combat;
+using TRPG.Application.Combat.Events;
 using TRPG.Application.Configuration;
-using TRPG.Application.Creatures;
 using TRPG.Data.Models;
 
 namespace TRPG.Balance;
@@ -22,7 +22,7 @@ public class FightSimulator
 {
     private readonly CombatEngine _engine;
     private readonly EnemyCombatActionResolver _resolver;
-    private readonly StatFormulas _statFormulas;
+    private readonly CreatureGeneratorOptions _creatureGeneratorOptions;
     private readonly CombatOptions _combatOptions;
 
     public FightSimulator(
@@ -45,11 +45,7 @@ public class FightSimulator
             damageCalculator,
             _resolver
         );
-        _statFormulas = new StatFormulas(
-            new FixedOptionsSnapshot<CreatureGeneratorOptions>(
-                creatureGeneratorOptions ?? new CreatureGeneratorOptions()
-            )
-        );
+        _creatureGeneratorOptions = creatureGeneratorOptions ?? new CreatureGeneratorOptions();
     }
 
     public IReadOnlyList<RoundSnapshot> RunFight(
@@ -62,13 +58,13 @@ public class FightSimulator
         var player = SimulatedCombatantFactory.Build(
             playerSpec,
             isPlayer: true,
-            _statFormulas,
+            _creatureGeneratorOptions,
             _combatOptions
         );
         var enemy = SimulatedCombatantFactory.Build(
             enemySpec,
             isPlayer: false,
-            _statFormulas,
+            _creatureGeneratorOptions,
             _combatOptions
         );
         return RunFight(trial, player, enemy, maxRounds);

@@ -1,4 +1,4 @@
-# TRPG Codebase Guide
+﻿# TRPG Codebase Guide
 
 ## Project Overview
 
@@ -11,22 +11,36 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 ## Project Structure
 
 ### Projects
-- `api/TRPG` — ASP.NET Core minimal API host. Endpoints, SignalR hubs, DI wiring (`Program.cs`), background jobs (TickerQ)
-- `api/TRPG.Application` — all business logic: command/query handlers, the combat engine, world/creature generators, LLM tool definitions. No web-framework references
-- `api/TRPG.Contracts` — DTOs shared between the backend and its clients (requests/responses only, no logic)
-- `api/TRPG.Data` — EF Core: `TrpgDbContext`, entity models, migrations
-- `api/TRPG.Tests` — all backend tests (xUnit, Testcontainers-backed Postgres)
-- `spa` — React single-page application
+- `api/TRPG` — ASP.NET Core host: HTTP endpoints, SignalR hubs, DI composition, jobs, and LLM tool adapters.
+- `api/TRPG.Application.*` — feature assemblies; there is no `TRPG.Application` umbrella project. The host and `TRPG.Balance` compose the modules directly.
+- `api/TRPG.Application.Common` — small shared foundation only: events, exceptions, optional values, and genuinely reusable utilities. It must not become a feature-mapping or feature-logic bucket.
+- `api/TRPG.Application.Configuration` — public configuration options shared across modules.
+- `api/TRPG.Application.CreatureFormulas` — public stat, skill, and progression formulas.
+- `api/TRPG.Application.GameTurns` — turn orchestration, player movement, LLM conversation execution, and client events produced by that workflow.
+- Feature modules own their domain: Abilities, Buildings, Chat, Combat, CreatureJobs, Creatures, Encounters, GameSessions, Inventory, Narration, NpcConversations, Quests, Reputations, Scenes, Trading, WeaponProficiency, and Worlds. Worlds also owns navigation and world generation.
+- `api/TRPG.Contracts` — current HTTP/SignalR request and response DTOs plus shared JSON options. The SPA consumes OpenAPI-generated TypeScript, not this assembly directly; prefer feature-owned public result types and host-bound request mapping when evolving the API.
+- `api/TRPG.Data` — EF Core context, models, and migrations.
+- `api/TRPG.Tests` — xUnit tests with Testcontainers-backed PostgreSQL.
+- `spa` — React/Vite frontend.
+
+### Module boundaries
+- A feature module owns its commands, queries, events, mappers, and result types. Keep feature-specific enum/response mapping in that feature's `Mappers/` folder.
+- Commands, command handlers and their responses, queries, query handlers and their responses are public. Keep all other types `internal` unless they are an intentional shared contract or a public API requires them to be public.
+- Do not add `InternalsVisibleTo` preemptively. First make the boundary explicit and compile; add the narrow one-way friendship only when an internal implementation dependency is genuinely required.
+- Prefer a feature-local type or boundary mapping over a new Common dependency. A utility used by only one feature belongs in that feature.
+- Client events belong to the feature/workflow that emits them. `GameClientEvent`, its sink, dispatcher, and `EntityNotFoundException` are public Common infrastructure.
+- Keep serialization consistent: use `TrpgJsonOptions.Default`; do not introduce feature-specific JSON option sets.
+- `scripts/feature-dependency-graph.py` is the current dependency map.
 
 ### Folder convention: feature-then-type
-- Inside `api/TRPG`, `api/TRPG.Application`, and `api/TRPG.Contracts`, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
-- Within a feature folder, subfolders group by type: `Commands/`, `Queries/`, `Tools/`, `Generators/` (Application); `Endpoints/`, `Hubs/`, `Jobs/` (host); `Requests/`, `Responses/` (Contracts)
+- Inside `api/TRPG`, each `api/TRPG.Application.*` module, and `api/TRPG.Contracts`, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
+- Within a feature module, command, query, mapper, and event files live in `Commands/`, `Queries/`, `Mappers/`, and `Events/`. Other role-specific folders include `Tools/` and `Generators/`. Host features use `Endpoints/`, `Hubs/`, and `Jobs/`; Contracts currently uses `Requests/` and `Responses/`.
 - `api/TRPG.Data` is flat: `Models/` + `Migrations/` — entities aren't split by feature
 
 ### Key request flows
-- **Plain HTTP**: `api/TRPG/<Feature>/Endpoints/<Feature>Endpoints.cs` → one or more `*QueryHandler`/`*CommandHandler` in `api/TRPG.Application` → `TrpgDbContext`
+- **Plain HTTP**: `api/TRPG/<Feature>/Endpoints/<Feature>Endpoints.cs` → one or more `*QueryHandler`/`*CommandHandler` in the owning application module → `TrpgDbContext`
 - Endpoint methods never inject `TrpgDbContext`. Database access belongs in a dedicated command or query handler.
-- **Player turn (chat/wait)**: `api/TRPG/GameSessions/Hubs/ChatHub.cs` (SignalR) → `GameTurnRunner` (`api/TRPG.Application/GameSessions/GameTurnRunner.cs`) → LLM (`IChatClient`) with tool-calling (`api/TRPG.Application/*/Tools/`) → narration streamed back token-by-token
+- **Player turn (chat/wait)**: `api/TRPG/GameSessions/Hubs/ChatHub.cs` (SignalR) → `GameTurnRunner` (`api/TRPG.Application.GameTurns/GameTurnRunner.cs`) → LLM (`IChatClient`) with host-owned tool adapters → narration streamed back token-by-token
 - **Combat action (Attack/Defend/Item menu)**: client sends a typed `PlayerCombatAction` (`UseAbilityAction`/`UseItemAction`) over the same `SendCombatAction` hub method → `GameTurnRunner.StreamCombatActionResponse` → `PlayerCombatActionResolver` (validates the action, never throws — returns a `PlayerCombatActionResolverResult` with `Result`/`ErrorMessage`) → `CombatEngine.ProcessRound` (pure simulation over an already-validated action, also records any items consumed) → `ResolveCombatRoundCommand` persists the result and depletes any consumed inventory items → the LLM narrates the already-resolved outcome (tool-calling disabled for that one completion)
 
 Keep this section in sync: when a change adds, removes, or moves a top-level project, a feature folder, or alters one of the flows above, update this section in the same commit. This section is structural only (project/folder map, request-flow shapes) — it should rarely need touching for ordinary feature work, which is exactly why it's worth keeping accurate.
@@ -203,7 +217,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - A command receives only identifiers that independently define or authorize its operation. Do not carry a related identifier solely to revalidate a relationship or duplicate a route identifier in the request body.
 - When a batch command accepts quantities by identifier, aggregate duplicate identifiers and validate every requested total before mutating tracked entities.
 - Never accept a full entity as a command property and call `.Update()` on it — the entity's tracking state depends entirely on how the caller happened to fetch it, and a second tracked copy of the same row anywhere else in the same `DbContext` throws "another instance with the same key value is already being tracked"; use `ExecuteUpdateAsync` with named `SetProperty` calls instead
-- For a command that may only partially update a row, use `Optional<T>` (`TRPG.Application/Common/Optional.cs`) for any field that's already nullable in the domain — a plain `T?` can't distinguish "leave this alone" from "set it to null". A field that's never legitimately null (e.g. an enum status) can stay a plain `T?` on the command
+- For a command that may only partially update a row, use `Optional<T>` (`TRPG.Application.Common/Optional.cs`) for any field that's already nullable in the domain — a plain `T?` can't distinguish "leave this alone" from "set it to null". A field that's never legitimately null (e.g. an enum status) can stay a plain `T?` on the command
 - Build the `ExecuteUpdateAsync` call as a block-bodied lambda (EF Core 10+) and only call `s.SetProperty(...)` for fields the command actually set — `if (command.State != null) { s.SetProperty(c => c.State, command.State.Value); }`, `if (command.CityId.IsSet) { s.SetProperty(c => c.CityId, command.CityId.Value); }` — rather than the old pattern of unconditionally chaining every `SetProperty` and null-coalescing against the row's own current value (`c => command.State ?? c.State`); the old pattern always wrote every column, whether the caller set that field or not. `ExecuteUpdateAsync` throws if the lambda ends up calling `SetProperty` zero times, so guard the call (or return early) when every optional field on the command is unset
 - A command that can act on more than one row takes a pluralized `IReadOnlyCollection<Guid> XIds` and applies the same field values to all of them in one `ExecuteUpdateAsync` call — matches the `GetXsByIdsQuery` batch-read naming convention rather than looping a singular command
 

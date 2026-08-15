@@ -1,0 +1,28 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using TRPG.Data;
+using TRPG.Data.Models;
+
+namespace TRPG.Application.Buildings.Queries;
+
+public class GetBuildingByIdQuery
+{
+    public required Guid Id { get; init; }
+}
+
+public class GetBuildingByIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+{
+    public async Task<Building?> Handle(
+        GetBuildingByIdQuery query,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return await cache.GetOrCreateAsync(
+            $"building:{query.Id}",
+            _ =>
+                context
+                    .Buildings.AsNoTracking()
+                    .FirstOrDefaultAsync(b => b.Id == query.Id, cancellationToken)
+        );
+    }
+}

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using TRPG.Application.Common.Mappers;
+using TRPG.Application.Abilities.Mappers;
+using TRPG.Application.Combat.Mappers;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;

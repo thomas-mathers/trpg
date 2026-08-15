@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TRPG.Application.GameTurns" />
+    <InternalsVisibleTo Include="TRPG.Tests" />
+    <InternalsVisibleTo Include="TRPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TRPG.Application.Combat\TRPG.Application.Combat.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
+    <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
+    <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
+  </ItemGroup>
+</Project>

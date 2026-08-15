@@ -1,4 +1,4 @@
-using TRPG.Application.Creatures;
+using TRPG.Application.CreatureFormulas;
 
 namespace TRPG.Tests.Application.Creatures;
 

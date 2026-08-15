@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
+using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;

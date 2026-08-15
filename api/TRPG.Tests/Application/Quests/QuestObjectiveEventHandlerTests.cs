@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Quests;
+using TRPG.Application.Quests.Events;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;
