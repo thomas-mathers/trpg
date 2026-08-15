@@ -1,7 +1,6 @@
+using TRPG.Application.Common.Events;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Quests;
-using TRPG.Application.Quests.Events;
 using TRPG.Data;
 
 namespace TRPG.Application.NpcConversations.Commands;
@@ -21,7 +20,7 @@ public class OpenNpcConversationCommand
 
 public class OpenNpcConversationCommandHandler(
     TrpgDbContext context,
-    ConversationStartedQuestEventHandler conversationStartedQuestEvents,
+    IDomainEventPublisher<NpcConversationStartedEvent> domainEvents,
     GetGameSessionQueryHandler getGameSession,
     UpdateGameSessionCommandHandler updateGameSession
 )
@@ -54,11 +53,11 @@ public class OpenNpcConversationCommandHandler(
             cancellationToken
         );
 
-        await conversationStartedQuestEvents.Handle(
-            new ConversationStartedQuestEvent(
+        await domainEvents.Publish(
+            new NpcConversationStartedEvent(
                 PlayerId: snapshot.PlayerId,
                 WorldId: snapshot.WorldId,
-                CreatureId: command.NpcId
+                NpcId: command.NpcId
             ),
             cancellationToken
         );
