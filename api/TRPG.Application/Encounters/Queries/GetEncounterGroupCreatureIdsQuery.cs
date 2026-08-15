@@ -29,15 +29,19 @@ internal class GetEncounterGroupCreatureIdsQueryHandler(TrpgDbContext context)
             return [query.CreatureId];
         }
 
-        return await context
+        var livingMembers = await context
             .EncounterGroupMembers.AsNoTracking()
             .Where(m => m.EncounterGroupId == membership.EncounterGroupId)
             .Join(
                 context.Creatures.AsNoTracking().Where(c => c.State != CreatureState.Dead),
                 member => member.CreatureId,
                 creature => creature.Id,
-                (member, creature) => creature.Id
+                (member, creature) => new { creature.Id, creature.State }
             )
             .ToArrayAsync(cancellationToken);
+
+        var hasAwakeMember = livingMembers.Any(m => m.State != CreatureState.Sleeping);
+
+        return hasAwakeMember ? livingMembers.Select(m => m.Id).ToArray() : [query.CreatureId];
     }
 }

@@ -10,6 +10,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
@@ -49,6 +50,7 @@ internal class MovePlayerCommandHandler(
     GetActiveEncounterQueryHandler getActiveEncounter,
     RefreshSceneCommandHandler refreshScene,
     EvaluateLocationEncountersCommandHandler evaluateLocationEncounters,
+    SceneCatchUpCache catchUpCache,
     ILogger<MovePlayerCommandHandler> logger
 )
 {
@@ -93,6 +95,12 @@ internal class MovePlayerCommandHandler(
         }
 
         await CleanUpDeadCreatures(player, oldLocationId, cancellationToken);
+        await BustAlertedCreaturesCache(
+            player,
+            oldLocationId,
+            command.SessionId,
+            cancellationToken
+        );
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
@@ -186,6 +194,37 @@ internal class MovePlayerCommandHandler(
             new DeleteCreaturesCommand { CreatureIds = removableCreatureIds },
             cancellationToken
         );
+    }
+
+    private async Task BustAlertedCreaturesCache(
+        Creature player,
+        Guid oldLocationId,
+        Guid sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        var nearby = await getCreaturesAtLocation.Handle(
+            new GetCreaturesAtLocationQuery
+            {
+                WorldId = player.WorldId,
+                LocationId = oldLocationId,
+            },
+            cancellationToken
+        );
+
+        var hasAlertedCreature = nearby.Any(creature => creature.State == CreatureState.Alerted);
+        if (!hasAlertedCreature)
+        {
+            return;
+        }
+
+        var schedulePlaytime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = sessionId },
+            cancellationToken
+        );
+        var currentDate = GameClock.GetCurrentInGameDate(schedulePlaytime);
+
+        catchUpCache.Evict(player.WorldId, oldLocationId, currentDate.Hour);
     }
 
     private async Task<EntryOutcome> MoveFromLocation(

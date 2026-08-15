@@ -95,6 +95,78 @@ public sealed class EvaluateLocationEncountersCommandTests(DatabaseFixture db) :
     }
 
     [Fact]
+    public async Task Handle_ReturnsNull_WhenOnlyGroupMemberIsSleeping()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var monster = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: _location.Id,
+            level: 1,
+            state: CreatureState.Sleeping
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(WorldId, group.Id, monster.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(monster);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(member);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateLocationEncountersCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesSleepingMembers_FromTheInitialEncounterRoster()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var awakeMonster = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: _location.Id,
+            level: 1,
+            state: CreatureState.Idle
+        );
+        var sleepingMonster = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: _location.Id,
+            level: 1,
+            state: CreatureState.Sleeping
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        var awakeMember = Builders.MakeEncounterGroupMember(WorldId, group.Id, awakeMonster.Id);
+        var sleepingMember = Builders.MakeEncounterGroupMember(
+            WorldId,
+            group.Id,
+            sleepingMonster.Id
+        );
+        _context.Factions.Add(faction);
+        _context.Creatures.AddRange(awakeMonster, sleepingMonster);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.AddRange(awakeMember, sleepingMember);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateLocationEncountersCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(awakeMonster.Name, Assert.Single(result!.Members).Name);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsNull_WhenPlayerAlreadyHasAnActiveEncounter()
     {
         // Arrange

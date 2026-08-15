@@ -32,14 +32,20 @@ internal static class CreatureJobGenerator
         };
     }
 
-    public static CreatureJob GenerateIdle(Guid creatureId, Guid locationId, Guid worldId)
+    public static CreatureJob GenerateIdle(
+        Guid creatureId,
+        Guid locationId,
+        Guid worldId,
+        HourWindow? hours = null
+    )
     {
+        var window = hours ?? IdleHours;
         return new CreatureJob
         {
             CreatureId = creatureId,
             Action = CreatureJobAction.Idle,
-            StartHour = IdleHours.Start,
-            EndHour = IdleHours.End,
+            StartHour = window.Start,
+            EndHour = window.End,
             Priority = 0,
             LocationId = locationId,
             WorldId = worldId,

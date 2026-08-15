@@ -12,6 +12,7 @@ public class DungeonPopulatorInput
 
 public record DungeonPopulatorResult(
     IReadOnlyList<CreatureGeneratorResult> Monsters,
+    IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<EncounterGroup> EncounterGroups,
     IReadOnlyList<EncounterGroupMember> EncounterGroupMembers
 );
@@ -57,15 +58,17 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
         var archetype = archetypes[Random.Shared.Next(archetypes.Length)];
         var count = Random.Shared.Next(MinimumMonsters, MaximumMonsters + 1);
 
-        var monsters = new List<CreatureGeneratorResult>();
+        var generated = new List<MonsterGenerationResult>();
         for (var i = 0; i < count; i++)
         {
-            monsters.Add(GenerateMonster(input, archetype));
+            generated.Add(GenerateMonster(input, archetype));
         }
 
+        var monsters = generated.Select(g => g.Result).ToArray();
+        var jobs = generated.SelectMany(g => g.Jobs).ToArray();
         var group = CreateGroup(monsters, archetype.CreatureType!.Value, input);
 
-        return new DungeonPopulatorResult(monsters, [group.Group], group.Members);
+        return new DungeonPopulatorResult(monsters, jobs, [group.Group], group.Members);
     }
 
     private static EncounterGroupWithMembers CreateGroup(
@@ -92,7 +95,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
         return new EncounterGroupWithMembers(group, members);
     }
 
-    private CreatureGeneratorResult GenerateMonster(
+    private MonsterGenerationResult GenerateMonster(
         DungeonPopulatorInput input,
         CreatureArchetype archetype
     ) =>

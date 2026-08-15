@@ -37,6 +37,7 @@ using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Tools;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
+using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Tools;
@@ -97,7 +98,8 @@ public static class ServiceCollectionExtensions
             .AddTransient<GetCreatureIdsWithCreatureJobInLocationQueryHandler>()
             .AddTransient<ExecuteCreatureJobCommandHandler>()
             .AddTransient<SyncScheduleLockCommandHandler>()
-            .AddTransient<SyncLocationCommandHandler>()
+            .AddTransient<SyncSceneCommandHandler>()
+            .AddTransient<SceneCatchUpCache>()
             .AddTransient<RefreshSceneCommandHandler>()
             .AddTransient<CanEnterBuildingQueryHandler>()
             .AddTransient<GetStateByIdQueryHandler>()

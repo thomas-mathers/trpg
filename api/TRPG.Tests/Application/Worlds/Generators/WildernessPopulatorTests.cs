@@ -102,6 +102,33 @@ public class WildernessPopulatorTests
     }
 
     [Fact]
+    public void Generate_GivesEveryMonster_ADiurnalSleepSchedule()
+    {
+        for (var i = 0; i < 10; i++)
+        {
+            // Act
+            var result = _wildernessPopulator.Generate(MakeInput());
+
+            // Assert
+            Assert.All(
+                result.Monsters,
+                monster =>
+                {
+                    var jobs = result
+                        .Jobs.Where(job => job.CreatureId == monster.Creature.Id)
+                        .ToArray();
+                    var sleep = Assert.Single(jobs, job => job.Action == CreatureJobAction.Sleep);
+                    var idle = Assert.Single(jobs, job => job.Action == CreatureJobAction.Idle);
+                    Assert.Equal(22, sleep.StartHour);
+                    Assert.Equal(6, sleep.EndHour);
+                    Assert.Equal(6, idle.StartHour);
+                    Assert.Equal(22, idle.EndHour);
+                }
+            );
+        }
+    }
+
+    [Fact]
     public void Generate_EveryMonster_BelongsToExactlyOneGroup()
     {
         for (var i = 0; i < 30; i++)

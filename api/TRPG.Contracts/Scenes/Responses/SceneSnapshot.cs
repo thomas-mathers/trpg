@@ -52,13 +52,14 @@ public enum Profession
 
 public enum CreatureState
 {
-    Sleeping,
     Idle,
+    Sleeping,
     Busy,
     Studying,
     Praying,
     Training,
     Sitting,
+    Alerted,
     Dead,
 }
 

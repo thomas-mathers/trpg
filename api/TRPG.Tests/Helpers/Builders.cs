@@ -640,7 +640,8 @@ internal static class Builders
         Guid? cityId = null,
         Guid? districtId = null,
         Guid? roomId = null,
-        Guid? id = null
+        Guid? id = null,
+        LocationKind kind = LocationKind.District
     )
     {
         return new Location
@@ -651,6 +652,7 @@ internal static class Builders
             CityId = cityId,
             DistrictId = districtId,
             RoomId = roomId,
+            Kind = kind,
         };
     }
 

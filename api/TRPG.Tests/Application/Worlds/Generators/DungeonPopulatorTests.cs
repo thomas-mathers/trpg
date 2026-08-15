@@ -123,6 +123,74 @@ public class DungeonPopulatorTests
     }
 
     [Fact]
+    public void Generate_GivesCaveMonsters_ADiurnalSleepSchedule()
+    {
+        // Act
+        var result = _dungeonPopulator.Generate(MakeInput(BuildingType.Cave));
+
+        // Assert
+        Assert.All(result.Monsters, monster => AssertDiurnalSchedule(result, monster));
+    }
+
+    [Fact]
+    public void Generate_GivesCryptMonsters_ANocturnalSleepSchedule()
+    {
+        // Act
+        var result = _dungeonPopulator.Generate(MakeInput(BuildingType.Crypt));
+
+        // Assert
+        Assert.All(result.Monsters, monster => AssertNocturnalSchedule(result, monster));
+    }
+
+    [Fact]
+    public void Generate_GivesConstructMonsters_NoSleepSchedule()
+    {
+        for (var i = 0; i < 30; i++)
+        {
+            // Act
+            var result = _dungeonPopulator.Generate(MakeInput(BuildingType.Mine));
+
+            // Assert
+            var constructs = result.Monsters.Where(m =>
+                m.Creature.CreatureType == CreatureType.Construct
+            );
+            Assert.All(
+                constructs,
+                monster =>
+                    Assert.DoesNotContain(result.Jobs, job => job.CreatureId == monster.Creature.Id)
+            );
+        }
+    }
+
+    private static void AssertDiurnalSchedule(
+        DungeonPopulatorResult result,
+        CreatureGeneratorResult monster
+    )
+    {
+        var jobs = result.Jobs.Where(job => job.CreatureId == monster.Creature.Id).ToArray();
+        var sleep = Assert.Single(jobs, job => job.Action == CreatureJobAction.Sleep);
+        var idle = Assert.Single(jobs, job => job.Action == CreatureJobAction.Idle);
+        Assert.Equal(22, sleep.StartHour);
+        Assert.Equal(6, sleep.EndHour);
+        Assert.Equal(6, idle.StartHour);
+        Assert.Equal(22, idle.EndHour);
+    }
+
+    private static void AssertNocturnalSchedule(
+        DungeonPopulatorResult result,
+        CreatureGeneratorResult monster
+    )
+    {
+        var jobs = result.Jobs.Where(job => job.CreatureId == monster.Creature.Id).ToArray();
+        var sleep = Assert.Single(jobs, job => job.Action == CreatureJobAction.Sleep);
+        var idle = Assert.Single(jobs, job => job.Action == CreatureJobAction.Idle);
+        Assert.Equal(6, sleep.StartHour);
+        Assert.Equal(22, sleep.EndHour);
+        Assert.Equal(22, idle.StartHour);
+        Assert.Equal(6, idle.EndHour);
+    }
+
+    [Fact]
     public void SupportsDungeonType_MatchesBuildingTypesDungeon_Exactly()
     {
         // Assert — keeps the scene's dungeon/building split from drifting out of sync

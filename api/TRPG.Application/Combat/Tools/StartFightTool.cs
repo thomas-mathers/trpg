@@ -6,6 +6,7 @@ using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Mappers;
 using TRPG.Application.Common.Tools;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns;
@@ -22,6 +23,7 @@ internal class StartFightTool(
     GetCreatureByNameAtLocationQueryHandler getCreatureByNameAtLocation,
     GetEncounterGroupCreatureIdsQueryHandler getEncounterGroupCreatureIds,
     StartFightCommandHandler startFight,
+    UpdateCreaturesCommandHandler updateCreatures,
     ILogger<StartFightTool> logger
 ) : IGameTool
 {
@@ -96,6 +98,15 @@ internal class StartFightTool(
             {
                 WorldId = turnContext.WorldId,
                 CreatureId = target.Id,
+            },
+            cancellationToken
+        );
+
+        await updateCreatures.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = enemyCreatureIds,
+                State = CreatureState.Alerted,
             },
             cancellationToken
         );

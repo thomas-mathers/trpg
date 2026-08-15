@@ -71,7 +71,9 @@ internal class EvaluateLocationEncountersCommandHandler(
         var livingCreaturesById = await context
             .Creatures.AsNoTracking()
             .Where(c =>
-                memberCreatureIds.AsEnumerable().Contains(c.Id) && c.State != CreatureState.Dead
+                memberCreatureIds.AsEnumerable().Contains(c.Id)
+                && c.State != CreatureState.Dead
+                && c.State != CreatureState.Sleeping
             )
             .ToDictionaryAsync(c => c.Id, cancellationToken);
 

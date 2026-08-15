@@ -11,6 +11,7 @@ public class WildernessPopulatorInput
 
 public record WildernessPopulatorResult(
     IReadOnlyList<CreatureGeneratorResult> Monsters,
+    IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<EncounterGroup> EncounterGroups,
     IReadOnlyList<EncounterGroupMember> EncounterGroupMembers
 );
@@ -35,6 +36,7 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
         var groupCount = Random.Shared.Next(MinimumGroups, MaximumGroups + 1);
 
         var monsters = new List<CreatureGeneratorResult>();
+        var jobs = new List<CreatureJob>();
         var groups = new List<EncounterGroup>();
         var members = new List<EncounterGroupMember>();
 
@@ -42,11 +44,12 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
         {
             var group = GenerateGroup(input);
             monsters.AddRange(group.Monsters);
+            jobs.AddRange(group.Jobs);
             groups.Add(group.Group);
             members.AddRange(group.Members);
         }
 
-        return new WildernessPopulatorResult(monsters, groups, members);
+        return new WildernessPopulatorResult(monsters, jobs, groups, members);
     }
 
     private WildernessGroup GenerateGroup(WildernessPopulatorInput input)
@@ -54,10 +57,10 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
         var archetype = Archetypes[Random.Shared.Next(Archetypes.Length)];
         var count = Random.Shared.Next(MinimumMonsters, MaximumMonsters + 1);
 
-        var monsters = new List<CreatureGeneratorResult>();
+        var generated = new List<MonsterGenerationResult>();
         for (var i = 0; i < count; i++)
         {
-            monsters.Add(
+            generated.Add(
                 EncounterMonsterGenerator.Generate(
                     creatureGenerator,
                     input.WorldId,
@@ -68,6 +71,9 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
                 )
             );
         }
+
+        var monsters = generated.Select(g => g.Result).ToArray();
+        var jobs = generated.SelectMany(g => g.Jobs).ToArray();
 
         var group = new EncounterGroup
         {
@@ -84,12 +90,13 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
             })
             .ToArray();
 
-        return new WildernessGroup(monsters, group, members);
+        return new WildernessGroup(monsters, jobs, group, members);
     }
 }
 
 internal record WildernessGroup(
     IReadOnlyList<CreatureGeneratorResult> Monsters,
+    IReadOnlyList<CreatureJob> Jobs,
     EncounterGroup Group,
     IReadOnlyList<EncounterGroupMember> Members
 );
