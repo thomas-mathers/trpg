@@ -82,6 +82,24 @@ public sealed class CommandHandlerDecoratorsTests
         );
     }
 
+    [Fact]
+    public async Task Handle_LogsDuration_ForQuery()
+    {
+        var logger = new RecordingLogger<TimedQueryHandler<ExampleQuery, string>>();
+        var handler = new TimedQueryHandler<ExampleQuery, string>(
+            new RecordingQueryHandler(),
+            logger
+        );
+
+        var result = await handler.Handle(
+            new ExampleQuery { Name = "Move" },
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal("Move", result);
+        Assert.Single(logger.Messages);
+    }
+
     private sealed class ExampleCommand
     {
         [NotBlank]
@@ -100,6 +118,19 @@ public sealed class CommandHandlerDecoratorsTests
             WasHandled = true;
             return Task.FromResult(command.Name);
         }
+    }
+
+    private sealed class ExampleQuery
+    {
+        public required string Name { get; init; }
+    }
+
+    private sealed class RecordingQueryHandler : IQueryHandler<ExampleQuery, string>
+    {
+        public Task<string> Handle(
+            ExampleQuery query,
+            CancellationToken cancellationToken = default
+        ) => Task.FromResult(query.Name);
     }
 
     private sealed class RecordingLogger<T> : ILogger<T>

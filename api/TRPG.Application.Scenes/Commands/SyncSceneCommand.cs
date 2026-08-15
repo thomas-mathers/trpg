@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureJobs;
@@ -37,8 +35,7 @@ public class SyncSceneCommandHandler(
     > getWorkstationsByLocationId,
     ICommandHandler<SetWorkstationOccupantCommand> setWorkstationOccupant,
     IQueryHandler<GetRoomSummaryQuery, RoomSummary?> getRoomSummary,
-    ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
-    ILogger<SyncSceneCommandHandler> logger
+    ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock
 ) : ICommandHandler<SyncSceneCommand>
 {
     public async Task Handle(
@@ -120,7 +117,6 @@ public class SyncSceneCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var stopwatch = Stopwatch.StartNew();
         var workingCreaturesByLocationId = new Dictionary<Guid, List<Guid>>();
 
         foreach (var creatureId in creatureIds)
@@ -173,15 +169,6 @@ public class SyncSceneCommandHandler(
         {
             await AssignWorkstations(locationId, presentCreatureIds, cancellationToken);
         }
-
-        stopwatch.Stop();
-
-        logger.LogInformation(
-            "[perf] AdvanceDueJobs{Scope} processed {CreatureCount} people in {ElapsedMs}ms",
-            scope,
-            creatureIds.Count,
-            stopwatch.ElapsedMilliseconds
-        );
     }
 
     private async Task AssignWorkstations(

@@ -1,6 +1,4 @@
-using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Handling;
 using TRPG.Data;
@@ -12,7 +10,7 @@ public class GetPlaytimeQuery
     public required Guid SessionId { get; init; }
 }
 
-public class GetPlaytimeQueryHandler(TrpgDbContext context, ILogger<GetPlaytimeQueryHandler> logger)
+public class GetPlaytimeQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetPlaytimeQuery, TimeSpan>
 {
     public async Task<TimeSpan> Handle(
@@ -20,7 +18,6 @@ public class GetPlaytimeQueryHandler(TrpgDbContext context, ILogger<GetPlaytimeQ
         CancellationToken cancellationToken = default
     )
     {
-        var stopwatch = Stopwatch.StartNew();
         var playtime = await context
             .GameSessions.AsNoTracking()
             .Where(s => s.Id == query.SessionId)
@@ -31,11 +28,6 @@ public class GetPlaytimeQueryHandler(TrpgDbContext context, ILogger<GetPlaytimeQ
         {
             throw new EntityNotFoundException("Game session", query.SessionId);
         }
-
-        logger.LogInformation(
-            "[perf] GetPlaytime took {ElapsedMs}ms",
-            stopwatch.ElapsedMilliseconds
-        );
 
         return playtime.Value;
     }

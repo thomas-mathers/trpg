@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Chat.Commands;
 using TRPG.Application.Common.Handling;
@@ -29,8 +28,6 @@ public class CloseLingeringNpcConversationsCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var stopwatch = Stopwatch.StartNew();
-
         var openConversations = await getOpenNpcConversations.Handle(
             new GetOpenNpcConversationsQuery { SessionId = command.SessionId },
             cancellationToken
@@ -74,21 +71,10 @@ public class CloseLingeringNpcConversationsCommandHandler(
         );
 
         await transaction.CommitAsync(cancellationToken);
-
-        if (openConversations.Count > 0)
-        {
-            logger.LogInformation(
-                "[perf] CloseLingeringNpcConversationsCommand closed {Count} conversation(s) in {ElapsedMs}ms",
-                openConversations.Count,
-                stopwatch.ElapsedMilliseconds
-            );
-        }
     }
 
     private async Task ForceEndConversation(string npcName, CancellationToken cancellationToken)
     {
-        var stopwatch = Stopwatch.StartNew();
-
         var prompt =
             $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
         var reply = await llmConversationClient.StreamReply(
@@ -98,11 +84,5 @@ public class CloseLingeringNpcConversationsCommandHandler(
         );
 
         await foreach (var _ in reply.Tokens.WithCancellation(cancellationToken)) { }
-
-        logger.LogInformation(
-            "[perf] ForceEndConversation for {NpcName} took {ElapsedMs}ms",
-            npcName,
-            stopwatch.ElapsedMilliseconds
-        );
     }
 }

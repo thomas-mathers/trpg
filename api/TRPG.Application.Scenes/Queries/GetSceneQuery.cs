@@ -1,6 +1,4 @@
-using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
@@ -149,8 +147,7 @@ public class GetSceneQueryHandler(
     IQueryHandler<
         GetTotalCharacterXpFromSkillsQuery,
         IReadOnlyDictionary<Guid, int>
-    > getTotalCharacterXpFromSkills,
-    ILogger<GetSceneQueryHandler> logger
+    > getTotalCharacterXpFromSkills
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -158,8 +155,6 @@ public class GetSceneQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var stopwatch = Stopwatch.StartNew();
-
         var creaturesHere = await getNearbyCreatures.Handle(
             new GetNearbyCreaturesQuery { PlayerId = query.PlayerId },
             cancellationToken
@@ -189,13 +184,6 @@ public class GetSceneQueryHandler(
                 ? await BuildIndoorScene(player, cancellationToken)
                 : await BuildOutdoorScene(player, state, cancellationToken);
         var playerCreatureInfo = await BuildPlayerCreatureInfo(query, player, cancellationToken);
-
-        logger.LogInformation(
-            "[perf] GetScene ({Branch}) took {ElapsedMs}ms, {CreatureCount} nearby people",
-            player.RoomId != null ? "indoor" : "outdoor",
-            stopwatch.ElapsedMilliseconds,
-            nearbyPeople.Count
-        );
 
         return new SceneResult(
             query.WorldId,

@@ -132,7 +132,8 @@ public static class ApplicationServiceCollectionExtensions
             .Decorate(typeof(ICommandHandler<>), typeof(ValidatingCommandHandler<>))
             .Decorate(typeof(ICommandHandler<,>), typeof(ValidatingCommandHandler<,>))
             .Decorate(typeof(ICommandHandler<>), typeof(TimedCommandHandler<>))
-            .Decorate(typeof(ICommandHandler<,>), typeof(TimedCommandHandler<,>));
+            .Decorate(typeof(ICommandHandler<,>), typeof(TimedCommandHandler<,>))
+            .Decorate(typeof(IQueryHandler<,>), typeof(TimedQueryHandler<,>));
     }
 
     internal static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)

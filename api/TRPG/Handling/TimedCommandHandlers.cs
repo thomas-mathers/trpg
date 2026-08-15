@@ -52,3 +52,26 @@ internal sealed class TimedCommandHandler<TCommand, TResult>(
         }
     }
 }
+
+internal sealed class TimedQueryHandler<TQuery, TResult>(
+    IQueryHandler<TQuery, TResult> inner,
+    ILogger<TimedQueryHandler<TQuery, TResult>> logger
+) : IQueryHandler<TQuery, TResult>
+{
+    public async Task<TResult> Handle(TQuery query, CancellationToken cancellationToken = default)
+    {
+        var startedAt = Stopwatch.GetTimestamp();
+        try
+        {
+            return await inner.Handle(query, cancellationToken);
+        }
+        finally
+        {
+            logger.LogDebug(
+                "Handled {QueryType} in {ElapsedMilliseconds} ms",
+                typeof(TQuery).Name,
+                Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds
+            );
+        }
+    }
+}

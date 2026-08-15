@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions;
@@ -22,8 +21,7 @@ public class RefreshSceneCommandHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<SyncSceneCommand> syncScene,
     IQueryHandler<GetSceneQuery, SceneResult> getScene,
-    SceneCatchUpCache catchUpCache,
-    ILogger<RefreshSceneCommandHandler> logger
+    SceneCatchUpCache catchUpCache
 ) : ICommandHandler<RefreshSceneCommand, RefreshSceneResult>
 {
     public async Task<RefreshSceneResult> Handle(
@@ -72,21 +70,8 @@ public class RefreshSceneCommandHandler(
     {
         if (catchUpCache.HasCaughtUp(worldId, locationId, currentDate.Hour))
         {
-            logger.LogInformation(
-                "[perf] Catch-up cache hit for {WorldId}:{LocationId}:{Hour}",
-                worldId,
-                locationId,
-                currentDate.Hour
-            );
             return false;
         }
-
-        logger.LogInformation(
-            "[perf] Catch-up cache miss for {WorldId}:{LocationId}:{Hour}, running catch-up",
-            worldId,
-            locationId,
-            currentDate.Hour
-        );
 
         await syncScene.Handle(
             new SyncSceneCommand

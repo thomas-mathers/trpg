@@ -1,6 +1,4 @@
-using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Handling;
 using TRPG.Data;
 
@@ -13,10 +11,8 @@ public class UpdateGameSessionCommand
     public Dictionary<string, Guid>? OpenConversationCreatureIdsByName { get; init; }
 }
 
-public class UpdateGameSessionCommandHandler(
-    TrpgDbContext context,
-    ILogger<UpdateGameSessionCommandHandler> logger
-) : ICommandHandler<UpdateGameSessionCommand>
+public class UpdateGameSessionCommandHandler(TrpgDbContext context)
+    : ICommandHandler<UpdateGameSessionCommand>
 {
     public async Task Handle(
         UpdateGameSessionCommand command,
@@ -28,7 +24,6 @@ public class UpdateGameSessionCommandHandler(
             return;
         }
 
-        var stopwatch = Stopwatch.StartNew();
         await context
             .GameSessions.Where(s => s.Id == command.SessionId)
             .ExecuteUpdateAsync(
@@ -48,10 +43,5 @@ public class UpdateGameSessionCommandHandler(
                 },
                 cancellationToken
             );
-
-        logger.LogInformation(
-            "[perf] UpdateGameSession took {ElapsedMs}ms",
-            stopwatch.ElapsedMilliseconds
-        );
     }
 }
