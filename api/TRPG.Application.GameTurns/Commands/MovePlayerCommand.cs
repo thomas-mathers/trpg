@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
@@ -24,8 +25,13 @@ namespace TRPG.Application.GameTurns.Commands;
 
 public class MovePlayerCommand
 {
+    [NotEmptyGuid]
     public required Guid PlayerId { get; init; }
+
+    [NotEmptyGuid]
     public required Guid SessionId { get; init; }
+
+    [NotBlank]
     public required string DestinationName { get; init; }
 }
 
@@ -56,7 +62,7 @@ public class MovePlayerCommandHandler(
     EvaluateLocationEncountersCommandHandler evaluateLocationEncounters,
     SceneCatchUpCache catchUpCache,
     ILogger<MovePlayerCommandHandler> logger
-)
+) : ICommandHandler<MovePlayerCommand, MovePlayerResult>
 {
     public async Task<MovePlayerResult> Handle(
         MovePlayerCommand command,

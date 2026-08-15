@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
 using TRPG.Contracts.Quests.Requests;
@@ -103,7 +104,7 @@ internal static class QuestEndpoints
         Guid questId,
         Guid worldId,
         SetQuestTrackingRequest request,
-        SetQuestTrackingCommandHandler setQuestTracking,
+        ICommandHandler<SetQuestTrackingCommand> setQuestTracking,
         CancellationToken cancellationToken
     )
     {

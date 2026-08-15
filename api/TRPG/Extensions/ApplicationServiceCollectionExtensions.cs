@@ -9,6 +9,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Handling;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
@@ -43,6 +44,7 @@ using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.GameTurns.Tools;
+using TRPG.Handling;
 
 namespace TRPG.Extensions;
 
@@ -55,6 +57,7 @@ public static class ApplicationServiceCollectionExtensions
         return serviceCollection
             .AddMemoryCache()
             .AddScoped<GameTurnContext>()
+            .AddTransient(typeof(ICommandValidator<>), typeof(DataAnnotationsCommandValidator<>))
             .AddTransient(typeof(IDomainEventPublisher<>), typeof(DomainEventPublisher<>))
             .AddTransient<AddBuildingOwnerCommandHandler>()
             .AddTransient<RemoveBuildingOwnerCommandHandler>()
@@ -110,6 +113,9 @@ public static class ApplicationServiceCollectionExtensions
             .AddTransient<AddCreatureCommandHandler>()
             .AddTransient<UpdateCreaturesCommandHandler>()
             .AddTransient<MovePlayerCommandHandler>()
+            .AddTransient<ICommandHandler<MovePlayerCommand, MovePlayerResult>>(serviceProvider =>
+                serviceProvider.GetRequiredService<MovePlayerCommandHandler>()
+            )
             .AddTransient<AdjustCreatureSkillsCommandHandler>()
             .AddTransient<GetUnallocatedAttributePointsQueryHandler>()
             .AddTransient<AllocateAttributePointsCommandHandler>()
@@ -135,6 +141,9 @@ public static class ApplicationServiceCollectionExtensions
             .AddTransient<AcceptQuestCommandHandler>()
             .AddTransient<CompleteQuestCommandHandler>()
             .AddTransient<SetQuestTrackingCommandHandler>()
+            .AddTransient<ICommandHandler<SetQuestTrackingCommand>>(serviceProvider =>
+                serviceProvider.GetRequiredService<SetQuestTrackingCommandHandler>()
+            )
             .AddTransient<MarkQuestsReadyToCompleteCommandHandler>()
             .AddTransient<GetQuestJournalQueryHandler>()
             .AddTransient<GetActiveQuestItemIdsQueryHandler>()
@@ -231,7 +240,11 @@ public static class ApplicationServiceCollectionExtensions
             .AddGameTool<LookTool>()
             .AddGameTool<MoveTool>()
             .AddGameTool<CreatureInspectTool>()
-            .AddGameTool<LookupTool>();
+            .AddGameTool<LookupTool>()
+            .Decorate(typeof(ICommandHandler<>), typeof(ValidatingCommandHandler<>))
+            .Decorate(typeof(ICommandHandler<,>), typeof(ValidatingCommandHandler<,>))
+            .Decorate(typeof(ICommandHandler<>), typeof(TimedCommandHandler<>))
+            .Decorate(typeof(ICommandHandler<,>), typeof(TimedCommandHandler<,>));
     }
 
     internal static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)

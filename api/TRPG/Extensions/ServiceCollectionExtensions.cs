@@ -16,6 +16,7 @@ using TickerQ.DependencyInjection;
 using TickerQ.EntityFrameworkCore.DependencyInjection;
 using TickerQ.Utilities.Enums;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Extensions;
 using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
@@ -288,7 +289,11 @@ internal static class ServiceCollectionExtensions
                                         return result;
                                     }
                                     catch (Exception ex)
-                                        when (ex is InvalidOperationException or ArgumentException)
+                                        when (ex
+                                                is InputValidationException
+                                                    or InvalidOperationException
+                                                    or ArgumentException
+                                        )
                                     {
                                         toolLogger.LogWarning(
                                             ex,

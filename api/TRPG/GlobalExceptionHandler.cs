@@ -18,6 +18,17 @@ internal class GlobalExceptionHandler : IExceptionHandler
             case EntityNotFoundException:
                 httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
                 return true;
+            case InputValidationException inputValidationException:
+                httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await httpContext.Response.WriteAsJsonAsync(
+                    new ProblemDetails
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Title = inputValidationException.Message,
+                    },
+                    cancellationToken
+                );
+                return true;
             case InvalidOperationException invalidOperationException:
                 httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await httpContext.Response.WriteAsJsonAsync(
