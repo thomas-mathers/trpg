@@ -66,6 +66,7 @@ internal static class SceneResponseEnumMappers
             DataProfession.Carpenter => ContractProfession.Carpenter,
             DataProfession.Jeweler => ContractProfession.Jeweler,
             DataProfession.Homemaker => ContractProfession.Homemaker,
+            DataProfession.Bartender => ContractProfession.Bartender,
             DataProfession.Unemployed => ContractProfession.Unemployed,
             _ => throw new ArgumentOutOfRangeException(nameof(profession), profession, null),
         };
