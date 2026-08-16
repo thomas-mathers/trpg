@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using TRPG.Abilities.Mappers;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Combat.Responses;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
@@ -13,7 +14,6 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Contracts.Abilities.Responses;
-using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Inventory.Responses;
 using TRPG.Creatures.Mappers;
@@ -498,15 +498,15 @@ internal static class CreatureEndpoints
         {
             AttributeModifier m => new AttributeModifierSummary(
                 m.Amount,
-                m.Attribute.ToContract(),
-                m.AmountType.ToContract()
+                m.Attribute,
+                m.AmountType
             ),
             CombatSpeedModifier m => new CombatSpeedModifierSummary(
                 m.Amount,
                 m.SpeedType.ToContract()
             ),
             ElementalDamageModifier m => new ElementalDamageModifierSummary(
-                m.DamageType.ToContract(),
+                m.DamageType,
                 m.MinDamage,
                 m.MaxDamage
             ),

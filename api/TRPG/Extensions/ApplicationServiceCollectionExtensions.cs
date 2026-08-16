@@ -102,7 +102,11 @@ public static class ApplicationServiceCollectionExtensions
                     sp.GetRequiredService<T>().Invoke,
                     new AIFunctionFactoryOptions
                     {
-                        SerializerOptions = TRPG.Contracts.TrpgJsonOptions.Default,
+                        SerializerOptions = TRPG.Application
+                            .Common
+                            .Serialization
+                            .TrpgJsonOptions
+                            .Default,
                     }
                 )
             );

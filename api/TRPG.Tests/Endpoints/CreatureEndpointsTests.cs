@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
 using TRPG.Contracts;
 using TRPG.Contracts.Abilities.Responses;

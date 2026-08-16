@@ -48,7 +48,10 @@ internal class LookTool(
         logger.LogInformation(
             "[perf] [look] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,
-            JsonSerializer.Serialize(refreshed.Scene, TRPG.Contracts.TrpgJsonOptions.Default)
+            JsonSerializer.Serialize(
+                refreshed.Scene,
+                TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+            )
         );
         return refreshed.Scene;
     }

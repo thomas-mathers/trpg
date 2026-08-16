@@ -22,7 +22,6 @@
     <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
     <ProjectReference Include="..\TRPG.Application.Scenes\TRPG.Application.Scenes.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
-    <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>

@@ -1,5 +1,5 @@
 using TRPG.Application.Combat;
-using ContractActiveHot = TRPG.Contracts.Combat.Responses.ActiveHot;
+using ContractActiveHot = TRPG.Application.Combat.Responses.ActiveHot;
 
 namespace TRPG.Application.Combat.Mappers;
 

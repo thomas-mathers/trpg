@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace TRPG.Contracts.Combat.Requests;
+namespace TRPG.Application.Combat;
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(UseAbilityAction), nameof(UseAbilityAction))]

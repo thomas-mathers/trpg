@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Contracts.Combat.Requests;
+using TRPG.Application.Combat;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -433,8 +433,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await StartFight(sessionId, enemy);
         var connection = fixture.CreateHubConnection(sessionId);
         var combatUpdatedReceived =
-            new TaskCompletionSource<TRPG.Contracts.Combat.Responses.CombatUpdatePayload>();
-        connection.On<TRPG.Contracts.Combat.Responses.CombatUpdatePayload>(
+            new TaskCompletionSource<TRPG.Application.Combat.Responses.CombatUpdatePayload>();
+        connection.On<TRPG.Application.Combat.Responses.CombatUpdatePayload>(
             "CombatUpdated",
             payload => combatUpdatedReceived.TrySetResult(payload)
         );
@@ -449,7 +449,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
-        Assert.Equal(TRPG.Contracts.Combat.Responses.CombatOutcome.Fled, updated.Outcome);
+        Assert.Equal(TRPG.Application.Combat.Responses.CombatOutcome.Fled, updated.Outcome);
     }
 
     [Fact]
@@ -461,11 +461,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await StartFight(sessionId, enemy);
         var connection = fixture.CreateHubConnection(sessionId);
         var combatUpdatedReceived =
-            new TaskCompletionSource<TRPG.Contracts.Combat.Responses.CombatUpdatePayload>();
+            new TaskCompletionSource<TRPG.Application.Combat.Responses.CombatUpdatePayload>();
         var initialSnapshotReceived =
             new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
         var sceneSnapshots = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
-        connection.On<TRPG.Contracts.Combat.Responses.CombatUpdatePayload>(
+        connection.On<TRPG.Application.Combat.Responses.CombatUpdatePayload>(
             "CombatUpdated",
             payload => combatUpdatedReceived.TrySetResult(payload)
         );

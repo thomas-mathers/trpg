@@ -5,4 +5,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
+  </ItemGroup>
 </Project>

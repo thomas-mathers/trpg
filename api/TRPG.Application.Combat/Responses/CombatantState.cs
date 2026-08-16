@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace TRPG.Contracts.Combat.Responses;
+namespace TRPG.Application.Combat.Responses;
 
 public enum DamageType
 {

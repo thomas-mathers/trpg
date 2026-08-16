@@ -1,6 +1,6 @@
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Common.Handling;
-using ContractCombatantState = TRPG.Contracts.Combat.Responses.CombatantState;
+using ContractCombatantState = TRPG.Application.Combat.Responses.CombatantState;
 
 namespace TRPG.Application.Combat.Queries;
 

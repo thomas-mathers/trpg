@@ -1,4 +1,4 @@
-namespace TRPG.Contracts.Combat.Responses;
+namespace TRPG.Application.Combat.Responses;
 
 public record CombatUpdatePayload(
     IReadOnlyCollection<CombatantState> Combatants,

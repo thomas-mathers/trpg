@@ -3,7 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Contracts.Encounters.Requests;
+using TRPG.Application.Encounters;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Domain.Models;

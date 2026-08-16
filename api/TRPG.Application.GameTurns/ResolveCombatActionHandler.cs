@@ -1,3 +1,4 @@
+using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
@@ -5,7 +6,6 @@ using TRPG.Application.GameSessions;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
-using TRPG.Contracts.Combat.Requests;
 
 namespace TRPG.Application.GameTurns;
 

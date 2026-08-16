@@ -1,5 +1,5 @@
-using TRPG.Contracts.Combat.Requests;
-using TRPG.Contracts.Encounters.Requests;
+using TRPG.Application.Combat;
+using TRPG.Application.Encounters;
 
 namespace TRPG.Application.GameTurns;
 

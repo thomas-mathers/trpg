@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Combat.Responses;
 using TRPG.Application.Common.Handling;
-using TRPG.Contracts.Combat.Responses;
-using AbilityAvailability = TRPG.Contracts.Combat.Responses.AbilityAvailability;
+using AbilityAvailability = TRPG.Application.Combat.Responses.AbilityAvailability;
 
 namespace TRPG.Players.Endpoints;
 

@@ -1,5 +1,4 @@
 using TRPG.Application.Combat;
-using TRPG.Contracts.Combat.Requests;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Combat;

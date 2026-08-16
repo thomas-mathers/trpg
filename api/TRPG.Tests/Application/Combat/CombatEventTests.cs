@@ -28,7 +28,10 @@ public class CombatEventTests
         );
 
         // Act
-        var json = JsonSerializer.Serialize(hit, TRPG.Contracts.TrpgJsonOptions.Default);
+        var json = JsonSerializer.Serialize(
+            hit,
+            TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+        );
 
         // Assert
         Assert.DoesNotContain("AttackerId", json, StringComparison.Ordinal);
@@ -50,7 +53,10 @@ public class CombatEventTests
         );
 
         // Act
-        var json = JsonSerializer.Serialize(miss, TRPG.Contracts.TrpgJsonOptions.Default);
+        var json = JsonSerializer.Serialize(
+            miss,
+            TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+        );
 
         // Assert
         Assert.DoesNotContain("AttackerId", json, StringComparison.Ordinal);
@@ -70,7 +76,10 @@ public class CombatEventTests
         );
 
         // Act
-        var json = JsonSerializer.Serialize(block, TRPG.Contracts.TrpgJsonOptions.Default);
+        var json = JsonSerializer.Serialize(
+            block,
+            TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+        );
 
         // Assert
         Assert.DoesNotContain("AttackerId", json, StringComparison.Ordinal);

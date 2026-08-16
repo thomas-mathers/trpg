@@ -16,11 +16,9 @@ using DataEquipmentSlot = TRPG.Domain.Models.EquipmentSlot;
 using DataGender = TRPG.Domain.Models.Gender;
 using DataItemRarity = TRPG.Domain.Models.ItemRarity;
 using DataProfession = TRPG.Domain.Models.Profession;
-using DataResourceType = TRPG.Domain.Models.ResourceType;
 using DataSkill = TRPG.Domain.Models.Skill;
 using EquipmentSlotMapper = TRPG.Creatures.Mappers.EquipmentSlotMapper;
 using ItemRarityMapper = TRPG.Creatures.Mappers.ItemRarityMapper;
-using ResourceTypeMapper = TRPG.Application.Combat.Mappers.ResourceTypeMapper;
 
 namespace TRPG.Tests.Application.Common.Mappers;
 
@@ -115,17 +113,6 @@ public class ResponseEnumMappersTests
     }
 
     [Theory]
-    [MemberData(nameof(ResourceTypeValues))]
-    public void ToContract_MapsResourceTypeByName(DataResourceType value)
-    {
-        // Act
-        var result = ResourceTypeMapper.ToContract(value);
-
-        // Assert
-        Assert.Equal(value.ToString(), result.ToString());
-    }
-
-    [Theory]
     [MemberData(nameof(AmountTypeValues))]
     public void ToContract_MapsAmountTypeByName(DataAmountType value)
     {
@@ -195,8 +182,6 @@ public class ResponseEnumMappersTests
     public static IEnumerable<object[]> DamageTypeValues() => AllValues<DataDamageType>();
 
     public static IEnumerable<object[]> AttributeNameValues() => AllValues<DataAttributeName>();
-
-    public static IEnumerable<object[]> ResourceTypeValues() => AllValues<DataResourceType>();
 
     public static IEnumerable<object[]> AmountTypeValues() => AllValues<DataAmountType>();
 

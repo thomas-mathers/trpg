@@ -1,5 +1,5 @@
 using TRPG.Application.Combat.Events;
-using ContractEvent = TRPG.Contracts.Combat.Responses.CombatBlockEvent;
+using ContractEvent = TRPG.Application.Combat.Responses.CombatBlockEvent;
 
 namespace TRPG.Application.Combat.Mappers;
 
