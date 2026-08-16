@@ -3,8 +3,8 @@ using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Inventory;
-using TRPG.Data.Models;
-using PersistedActiveBuff = TRPG.Data.Models.ActiveBuff;
+using TRPG.Domain.Models;
+using PersistedActiveBuff = TRPG.Domain.Models.ActiveBuff;
 
 namespace TRPG.Tests.Helpers;
 

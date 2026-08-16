@@ -11,9 +11,9 @@ using TRPG.Contracts.Inventory.Responses;
 using TRPG.Creatures.Requests;
 using TRPG.Creatures.Responses;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
-using DataSkill = TRPG.Data.Models.Skill;
+using DataSkill = TRPG.Domain.Models.Skill;
 
 namespace TRPG.Tests.Endpoints;
 
@@ -118,7 +118,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
                 WorldId = _worldId,
                 Name = "Health Potion",
                 Description = "",
-                Resource = Data.Models.ResourceType.Hp,
+                Resource = Domain.Models.ResourceType.Hp,
                 RestoreAmount = 50,
                 Quantity = 1,
                 Ownership = new ItemOwnership
@@ -435,7 +435,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
                 {
                     WorldId = _worldId,
                     CreatureId = _creature.Id,
-                    Skill = Data.Models.Skill.Melee,
+                    Skill = Domain.Models.Skill.Melee,
                     Level = 2,
                     Experience = 300,
                 }
@@ -528,7 +528,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             i => i.Id == itemId,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(Data.Models.EquipmentSlot.RightHand, equipped.Ownership.EquippedSlot);
+        Assert.Equal(Domain.Models.EquipmentSlot.RightHand, equipped.Ownership.EquippedSlot);
     }
 
     [Fact]
@@ -543,7 +543,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             weapon.Quantity = 1;
             weapon.Ownership.OwnerId = _creature.Id;
             weapon.Ownership.OwnerType = OwnerType.Creature;
-            weapon.Ownership.EquippedSlot = Data.Models.EquipmentSlot.RightHand;
+            weapon.Ownership.EquippedSlot = Domain.Models.EquipmentSlot.RightHand;
             context.Items.Add(weapon);
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
             itemId = weapon.Id;

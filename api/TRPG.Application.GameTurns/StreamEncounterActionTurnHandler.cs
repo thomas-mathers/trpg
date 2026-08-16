@@ -7,7 +7,7 @@ using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Contracts.Encounters.Requests;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
 

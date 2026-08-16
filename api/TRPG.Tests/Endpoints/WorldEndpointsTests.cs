@@ -12,9 +12,9 @@ using TRPG.Jobs.Responses;
 using TRPG.Tests.Helpers;
 using TRPG.Worlds.Requests;
 using TRPG.Worlds.Responses;
-using DataCreatureType = TRPG.Data.Models.CreatureType;
-using DataSkill = TRPG.Data.Models.Skill;
-using OwnerType = TRPG.Data.Models.OwnerType;
+using DataCreatureType = TRPG.Domain.Models.CreatureType;
+using DataSkill = TRPG.Domain.Models.Skill;
+using OwnerType = TRPG.Domain.Models.OwnerType;
 
 namespace TRPG.Tests.Endpoints;
 

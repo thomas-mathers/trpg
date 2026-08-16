@@ -3,7 +3,7 @@ using TRPG.Application.Combat.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Combat.Queries;

@@ -27,7 +27,7 @@ namespace TRPG.Data.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("TRPG.Data.Models.Building", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Building", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -73,7 +73,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("buildings", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.BuildingOwner", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.BuildingOwner", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -108,7 +108,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("building_owners", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.ChatMessage", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.ChatMessage", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -146,7 +146,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("chat_messages", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.City", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.City", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -196,7 +196,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("cities", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Country", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Country", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -237,7 +237,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("countries", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Creature", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Creature", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -422,7 +422,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("creatures", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.CreatureJob", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.CreatureJob", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -477,7 +477,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("creature_jobs", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.CreatureKnowledge", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.CreatureKnowledge", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -513,7 +513,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("creature_knowledge", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.CreatureQuest", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.CreatureQuest", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -559,7 +559,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("creature_quests", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.CreatureQuestObjective", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.CreatureQuestObjective", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -598,7 +598,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("creature_quest_objectives", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.CreatureSkill", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.CreatureSkill", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -639,7 +639,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("creature_skills", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.CreatureWeaponProficiency", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.CreatureWeaponProficiency", b =>
                 {
                     b.Property<Guid>("CreatureId")
                         .HasColumnType("uuid")
@@ -666,7 +666,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("creature_weapon_proficiencies", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.District", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.District", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -720,7 +720,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("districts", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Faction", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Faction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -755,7 +755,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("factions", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.FactionMember", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.FactionMember", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -795,7 +795,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("faction_members", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Fight", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Fight", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -840,7 +840,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("fights", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.GameSession", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.GameSession", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -873,7 +873,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("game_sessions", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Item", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Item", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -930,7 +930,7 @@ namespace TRPG.Data.Migrations
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Location", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Location", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -993,7 +993,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("locations", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.LocationConnectorKey", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.LocationConnectorKey", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1027,7 +1027,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("location_connector_keys", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.NpcConversation", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.NpcConversation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1064,7 +1064,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("npc_conversations", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Prop", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Prop", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1111,7 +1111,7 @@ namespace TRPG.Data.Migrations
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Quest", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Quest", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1162,7 +1162,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("quests", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.QuestObjective", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.QuestObjective", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1219,7 +1219,7 @@ namespace TRPG.Data.Migrations
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Relationship", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Relationship", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1259,7 +1259,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("relationships", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Reputation", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Reputation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1300,7 +1300,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("reputations", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Road", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Road", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1349,7 +1349,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("roads", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Room", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Room", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1402,7 +1402,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("rooms", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.State", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.State", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1448,7 +1448,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("states", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.World", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.World", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1483,7 +1483,7 @@ namespace TRPG.Data.Migrations
                     b.ToTable("worlds", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.WorldEvent", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.WorldEvent", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1524,9 +1524,9 @@ namespace TRPG.Data.Migrations
                     b.ToTable("world_events", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Accessory", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Accessory", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Item");
+                    b.HasBaseType("TRPG.Domain.Models.Item");
 
                     b.Property<int>("Level")
                         .ValueGeneratedOnUpdateSometimes()
@@ -1549,9 +1549,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("accessory");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Ammunition", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Ammunition", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Item");
+                    b.HasBaseType("TRPG.Domain.Models.Item");
 
                     b.Property<int>("Level")
                         .ValueGeneratedOnUpdateSometimes()
@@ -1574,9 +1574,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("ammunition");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Armor", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Armor", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Item");
+                    b.HasBaseType("TRPG.Domain.Models.Item");
 
                     b.Property<string>("ArmorClass")
                         .IsRequired()
@@ -1616,9 +1616,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("armor");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Consumable", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Consumable", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Item");
+                    b.HasBaseType("TRPG.Domain.Models.Item");
 
                     b.Property<int>("Duration")
                         .HasColumnType("integer")
@@ -1649,27 +1649,27 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("consumable");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Gold", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Gold", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Item");
+                    b.HasBaseType("TRPG.Domain.Models.Item");
 
                     b.ToTable("items", (string)null);
 
                     b.HasDiscriminator().HasValue("gold");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Key", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Key", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Item");
+                    b.HasBaseType("TRPG.Domain.Models.Item");
 
                     b.ToTable("items", (string)null);
 
                     b.HasDiscriminator().HasValue("key");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Shield", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Shield", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Item");
+                    b.HasBaseType("TRPG.Domain.Models.Item");
 
                     b.Property<float>("BlockChance")
                         .HasColumnType("real")
@@ -1713,9 +1713,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("shield");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Weapon", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Weapon", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Item");
+                    b.HasBaseType("TRPG.Domain.Models.Item");
 
                     b.Property<int>("AttacksPerTurn")
                         .HasColumnType("integer")
@@ -1773,9 +1773,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("weapon");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Bed", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Bed", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Prop");
+                    b.HasBaseType("TRPG.Domain.Models.Prop");
 
                     b.Property<Guid?>("AssignedCreatureId")
                         .HasColumnType("uuid")
@@ -1790,9 +1790,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("Bed");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Container", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Container", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Prop");
+                    b.HasBaseType("TRPG.Domain.Models.Prop");
 
                     b.Property<Guid?>("KeyItemId")
                         .HasColumnType("uuid")
@@ -1807,9 +1807,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("Container");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.LocationConnector", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.LocationConnector", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Prop");
+                    b.HasBaseType("TRPG.Domain.Models.Prop");
 
                     b.Property<string>("DestinationLabel")
                         .IsRequired()
@@ -1834,9 +1834,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("LocationConnector");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Seat", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Seat", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Prop");
+                    b.HasBaseType("TRPG.Domain.Models.Prop");
 
                     b.Property<Guid?>("OccupantId")
                         .HasColumnType("uuid")
@@ -1851,9 +1851,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("Seat");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Trigger", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Trigger", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Prop");
+                    b.HasBaseType("TRPG.Domain.Models.Prop");
 
                     b.Property<Guid?>("TargetId")
                         .HasColumnType("uuid")
@@ -1864,9 +1864,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("Trigger");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Workstation", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Workstation", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.Prop");
+                    b.HasBaseType("TRPG.Domain.Models.Prop");
 
                     b.Property<Guid?>("AssignedCreatureId")
                         .HasColumnType("uuid")
@@ -1893,9 +1893,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("Workstation");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.CollectItemObjective", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.CollectItemObjective", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+                    b.HasBaseType("TRPG.Domain.Models.QuestObjective");
 
                     b.Property<Guid>("ItemId")
                         .HasColumnType("uuid")
@@ -1906,18 +1906,18 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("CollectItem");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.ExploreLocationObjective", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.ExploreLocationObjective", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+                    b.HasBaseType("TRPG.Domain.Models.QuestObjective");
 
                     b.ToTable("quest_objectives", (string)null);
 
                     b.HasDiscriminator().HasValue("ExploreLocation");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.KillCreatureObjective", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.KillCreatureObjective", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+                    b.HasBaseType("TRPG.Domain.Models.QuestObjective");
 
                     b.Property<Guid>("CreatureId")
                         .HasColumnType("uuid")
@@ -1928,9 +1928,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("KillCreature");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.KillCreatureTypeObjective", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.KillCreatureTypeObjective", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+                    b.HasBaseType("TRPG.Domain.Models.QuestObjective");
 
                     b.Property<string>("CreatureType")
                         .IsRequired()
@@ -1942,9 +1942,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("KillCreatureType");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.SpeakToCreatureObjective", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.SpeakToCreatureObjective", b =>
                 {
-                    b.HasBaseType("TRPG.Data.Models.QuestObjective");
+                    b.HasBaseType("TRPG.Domain.Models.QuestObjective");
 
                     b.Property<Guid>("CreatureId")
                         .HasColumnType("uuid")
@@ -1959,9 +1959,9 @@ namespace TRPG.Data.Migrations
                     b.HasDiscriminator().HasValue("SpeakToCreature");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Country", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Country", b =>
                 {
-                    b.OwnsOne("TRPG.Data.Models.Polygon", "Boundary", b1 =>
+                    b.OwnsOne("TRPG.Domain.Models.Polygon", "Boundary", b1 =>
                         {
                             b1.Property<Guid>("CountryId");
 
@@ -1978,7 +1978,7 @@ namespace TRPG.Data.Migrations
                                 .HasForeignKey("CountryId")
                                 .HasConstraintName("fk_countries_countries_country_id");
 
-                            b1.OwnsMany("TRPG.Data.Models.Point", "Points", b2 =>
+                            b1.OwnsMany("TRPG.Domain.Models.Point", "Points", b2 =>
                                 {
                                     b2.Property<Guid>("PolygonCountryId");
 
@@ -2006,9 +2006,9 @@ namespace TRPG.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Creature", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Creature", b =>
                 {
-                    b.OwnsOne("TRPG.Data.Models.Attributes", "BaseAttributes", b1 =>
+                    b.OwnsOne("TRPG.Domain.Models.Attributes", "BaseAttributes", b1 =>
                         {
                             b1.Property<Guid>("CreatureId");
 
@@ -2063,9 +2063,9 @@ namespace TRPG.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.CreatureQuest", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.CreatureQuest", b =>
                 {
-                    b.HasOne("TRPG.Data.Models.Quest", "Quest")
+                    b.HasOne("TRPG.Domain.Models.Quest", "Quest")
                         .WithMany()
                         .HasForeignKey("QuestId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2075,9 +2075,9 @@ namespace TRPG.Data.Migrations
                     b.Navigation("Quest");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.CreatureQuestObjective", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.CreatureQuestObjective", b =>
                 {
-                    b.HasOne("TRPG.Data.Models.QuestObjective", "Objective")
+                    b.HasOne("TRPG.Domain.Models.QuestObjective", "Objective")
                         .WithMany()
                         .HasForeignKey("ObjectiveId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2087,9 +2087,9 @@ namespace TRPG.Data.Migrations
                     b.Navigation("Objective");
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.Item", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.Item", b =>
                 {
-                    b.OwnsOne("TRPG.Data.Models.ItemOwnership", "Ownership", b1 =>
+                    b.OwnsOne("TRPG.Domain.Models.ItemOwnership", "Ownership", b1 =>
                         {
                             b1.Property<Guid>("ItemId")
                                 .HasColumnType("uuid")
@@ -2135,9 +2135,9 @@ namespace TRPG.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.State", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.State", b =>
                 {
-                    b.OwnsOne("TRPG.Data.Models.Polygon", "Boundary", b1 =>
+                    b.OwnsOne("TRPG.Domain.Models.Polygon", "Boundary", b1 =>
                         {
                             b1.Property<Guid>("StateId");
 
@@ -2153,7 +2153,7 @@ namespace TRPG.Data.Migrations
                                 .HasForeignKey("StateId")
                                 .HasConstraintName("fk_states_states_id");
 
-                            b1.OwnsMany("TRPG.Data.Models.Point", "Points", b2 =>
+                            b1.OwnsMany("TRPG.Domain.Models.Point", "Points", b2 =>
                                 {
                                     b2.Property<Guid>("PolygonStateId");
 
@@ -2176,7 +2176,7 @@ namespace TRPG.Data.Migrations
                             b1.Navigation("Points");
                         });
 
-                    b.OwnsOne("TRPG.Data.Models.Point", "Center", b1 =>
+                    b.OwnsOne("TRPG.Domain.Models.Point", "Center", b1 =>
                         {
                             b1.Property<Guid>("StateId");
 
@@ -2204,9 +2204,9 @@ namespace TRPG.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TRPG.Data.Models.World", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.World", b =>
                 {
-                    b.OwnsOne("TRPG.Data.Models.Rectangle", "Boundary", b1 =>
+                    b.OwnsOne("TRPG.Domain.Models.Rectangle", "Boundary", b1 =>
                         {
                             b1.Property<Guid>("WorldId");
 

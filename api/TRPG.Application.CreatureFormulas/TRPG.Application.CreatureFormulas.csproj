@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.Configuration\TRPG.Application.Configuration.csproj" />
+    <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>
 </Project>

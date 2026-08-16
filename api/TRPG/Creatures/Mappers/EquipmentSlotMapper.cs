@@ -1,5 +1,5 @@
 using ContractEquipmentSlot = TRPG.Contracts.Inventory.Responses.EquipmentSlot;
-using DataEquipmentSlot = TRPG.Data.Models.EquipmentSlot;
+using DataEquipmentSlot = TRPG.Domain.Models.EquipmentSlot;
 
 namespace TRPG.Creatures.Mappers;
 

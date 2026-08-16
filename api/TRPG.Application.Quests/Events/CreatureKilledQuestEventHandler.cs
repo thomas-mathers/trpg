@@ -1,5 +1,5 @@
-﻿using TRPG.Application.Common.Events;
-using TRPG.Data.Models;
+using TRPG.Application.Common.Events;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.Events;
 

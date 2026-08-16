@@ -1,9 +1,9 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
-using PersistedCombat = TRPG.Data.Models;
+using PersistedCombat = TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat;
 

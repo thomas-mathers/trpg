@@ -15,7 +15,7 @@ using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
 

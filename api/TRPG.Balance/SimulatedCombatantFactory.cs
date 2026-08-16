@@ -3,7 +3,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Balance;
 

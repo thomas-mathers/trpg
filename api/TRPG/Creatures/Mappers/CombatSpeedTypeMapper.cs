@@ -1,5 +1,5 @@
 using ContractCombatSpeedType = TRPG.Contracts.Inventory.Responses.CombatSpeedType;
-using DataCombatSpeedType = TRPG.Data.Models.CombatSpeedType;
+using DataCombatSpeedType = TRPG.Domain.Models.CombatSpeedType;
 
 namespace TRPG.Creatures.Mappers;
 

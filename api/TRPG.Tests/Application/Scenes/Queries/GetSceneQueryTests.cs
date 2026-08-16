@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Scenes.Queries;
@@ -281,7 +281,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var exit = Assert.Single(result.Exits);
         var destination = Assert.IsType<SceneDistrictExitDestination>(exit.Destination);
         Assert.Equal("City Center", destination.Name);
-        Assert.Equal(Data.Models.DistrictType.CityCenter, destination.DistrictType);
+        Assert.Equal(Domain.Models.DistrictType.CityCenter, destination.DistrictType);
     }
 
     [Fact]

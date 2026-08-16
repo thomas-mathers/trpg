@@ -1,6 +1,6 @@
 using TRPG.Application.Inventory;
 using TRPG.Application.Trading;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.Trading;
 

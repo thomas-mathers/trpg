@@ -1,5 +1,5 @@
 using ContractSkill = TRPG.Contracts.Abilities.Responses.Skill;
-using DataSkill = TRPG.Data.Models.Skill;
+using DataSkill = TRPG.Domain.Models.Skill;
 
 namespace TRPG.Abilities.Mappers;
 

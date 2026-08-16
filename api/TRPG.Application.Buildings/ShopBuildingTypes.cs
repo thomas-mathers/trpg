@@ -1,5 +1,5 @@
 using System.Collections.Frozen;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Buildings;
 

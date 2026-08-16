@@ -12,7 +12,7 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Contracts.Encounters.Requests;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.GameSessions.Commands;
 
 namespace TRPG.GameSessions.Hubs;

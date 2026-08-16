@@ -1,5 +1,5 @@
 using ContractResourceType = TRPG.Contracts.Inventory.Responses.ResourceType;
-using DataResourceType = TRPG.Data.Models.ResourceType;
+using DataResourceType = TRPG.Domain.Models.ResourceType;
 
 namespace TRPG.Creatures.Mappers;
 

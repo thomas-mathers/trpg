@@ -19,7 +19,7 @@ using TRPG.Contracts.Inventory.Responses;
 using TRPG.Creatures.Mappers;
 using TRPG.Creatures.Requests;
 using TRPG.Creatures.Responses;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Creatures.Endpoints;
 

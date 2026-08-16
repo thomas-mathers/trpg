@@ -14,6 +14,7 @@
     <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Contracts\TRPG.Contracts.csproj" />
+    <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>
 </Project>

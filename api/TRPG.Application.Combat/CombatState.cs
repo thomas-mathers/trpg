@@ -1,6 +1,6 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Events;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat;
 

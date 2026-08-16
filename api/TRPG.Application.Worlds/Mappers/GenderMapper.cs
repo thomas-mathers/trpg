@@ -1,4 +1,4 @@
-using DataGender = TRPG.Data.Models.Gender;
+using DataGender = TRPG.Domain.Models.Gender;
 
 namespace TRPG.Application.Worlds.Mappers;
 

@@ -4,7 +4,7 @@ using TRPG.Application.Common.Handling;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Events;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests;
 

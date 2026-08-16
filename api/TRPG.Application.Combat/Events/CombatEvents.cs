@@ -15,7 +15,7 @@ internal record CombatStartedEvent(
 internal record CombatUpdatedEvent(
     IReadOnlyCollection<TRPG.Contracts.Combat.Responses.CombatantState> Combatants,
     IReadOnlyList<CombatRoundEvent> Events,
-    TRPG.Data.Models.CombatOutcome Outcome
+    TRPG.Domain.Models.CombatOutcome Outcome
 ) : GameClientEvent
 {
     public override string MethodName => "CombatUpdated";

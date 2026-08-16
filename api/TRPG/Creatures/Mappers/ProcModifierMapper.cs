@@ -1,5 +1,5 @@
 using TRPG.Contracts.Inventory.Responses;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Creatures.Mappers;
 

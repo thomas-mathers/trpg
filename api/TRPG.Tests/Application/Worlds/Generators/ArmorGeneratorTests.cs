@@ -1,5 +1,5 @@
 using TRPG.Application.Worlds.Generators;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.Worlds.Generators;
 

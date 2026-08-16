@@ -4,7 +4,7 @@ using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Commands;
 using TRPG.Application.Worlds.Commands;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.GameSessions.Commands;
 

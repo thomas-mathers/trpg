@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 using TRPG.Application.Abilities;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Events;
 

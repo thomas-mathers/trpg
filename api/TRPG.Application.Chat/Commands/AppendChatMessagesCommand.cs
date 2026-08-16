@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using TRPG.Application.Common.Handling;
 using TRPG.Data;
-using ChatMessageRow = TRPG.Data.Models.ChatMessage;
+using ChatMessageRow = TRPG.Domain.Models.ChatMessage;
 
 namespace TRPG.Application.Chat.Commands;
 

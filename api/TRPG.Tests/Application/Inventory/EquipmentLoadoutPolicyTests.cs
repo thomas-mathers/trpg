@@ -1,5 +1,5 @@
 using TRPG.Application.Inventory;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Inventory;

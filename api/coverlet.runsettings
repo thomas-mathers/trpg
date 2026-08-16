@@ -5,11 +5,11 @@
       <DataCollector friendlyName="XPlat code coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <!-- TRPG.Data is entity models (plain data holders, no branching logic) plus EF
-               Core schema config and migrations. Correctness there is already proven by
+          <!-- TRPG.Domain contains entity models (plain data holders, no branching logic).
+               TRPG.Data contains EF Core schema config and migrations. Correctness there is already proven by
                every other test in the suite failing if the schema/mappings were wrong, the
                same reasoning that puts DI wiring and Program.cs out of scope for coverage. -->
-          <Exclude>[TRPG.Data]*</Exclude>
+          <Exclude>[TRPG.Data]*,[TRPG.Domain]*</Exclude>
         </Configuration>
       </DataCollector>
     </DataCollectors>

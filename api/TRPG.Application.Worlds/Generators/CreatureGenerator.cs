@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Worlds.Algorithms;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using static TRPG.Application.Worlds.Generators.ItemModifierHelpers;
 
 namespace TRPG.Application.Worlds.Generators;

@@ -4,7 +4,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Events;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Quests;

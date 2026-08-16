@@ -1,4 +1,4 @@
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Generators;
 
@@ -95,7 +95,7 @@ internal sealed class CreatureArchetype
             GoldMultiplier: 0.2f
         ),
         skillAffinities: new Dictionary<Skill, int> { [Skill.Melee] = 2, [Skill.General] = 1 },
-        creatureType: Data.Models.CreatureType.Beast,
+        creatureType: Domain.Models.CreatureType.Beast,
         biography: "A feral creature of claw and hunger, hostile to intruders."
     );
 
@@ -115,9 +115,9 @@ internal sealed class CreatureArchetype
             [Skill.Blocking] = 1,
             [Skill.General] = 1,
         },
-        creatureType: Data.Models.CreatureType.Undead,
+        creatureType: Domain.Models.CreatureType.Undead,
         startingGear: [new WeaponSpec(WeaponType.Sword)],
-        armorClass: Data.Models.ArmorClass.Mail,
+        armorClass: Domain.Models.ArmorClass.Mail,
         biography: "A restless corpse animated by something that is not life."
     );
 
@@ -132,7 +132,7 @@ internal sealed class CreatureArchetype
             GoldMultiplier: 0.4f
         ),
         skillAffinities: new Dictionary<Skill, int> { [Skill.Blocking] = 2, [Skill.General] = 1 },
-        creatureType: Data.Models.CreatureType.Construct,
+        creatureType: Domain.Models.CreatureType.Construct,
         naturalWeaponDamage: LargeNaturalWeapon,
         biography: "An artificial thing still obeying an order given long ago."
     );
@@ -153,7 +153,7 @@ internal sealed class CreatureArchetype
             [Skill.Melee] = 2,
             [Skill.General] = 1,
         },
-        creatureType: Data.Models.CreatureType.Demon,
+        creatureType: Domain.Models.CreatureType.Demon,
         startingGear: [new WeaponSpec(WeaponType.Sword)],
         hasPotions: true,
         biography: "A malevolent entity from somewhere that is not this world."
@@ -174,7 +174,7 @@ internal sealed class CreatureArchetype
             [Skill.Destruction] = 3,
             [Skill.General] = 1,
         },
-        creatureType: Data.Models.CreatureType.Elemental,
+        creatureType: Domain.Models.CreatureType.Elemental,
         biography: "Raw elemental force bound loosely into a walking shape."
     );
 
@@ -194,14 +194,14 @@ internal sealed class CreatureArchetype
             [Skill.Sneak] = 1,
             [Skill.General] = 1,
         },
-        creatureType: Data.Models.CreatureType.Goblin,
+        creatureType: Domain.Models.CreatureType.Goblin,
         startingGear:
         [
             new WeaponSpec(WeaponType.Bow),
             new AmmoSpec(AmmoType.Arrow, 20),
             new WeaponSpec(WeaponType.Dagger),
         ],
-        armorClass: Data.Models.ArmorClass.Leather,
+        armorClass: Domain.Models.ArmorClass.Leather,
         hasPotions: true,
         naturalWeaponDamage: SmallNaturalWeapon,
         biography: "A small, vicious scavenger that hunts in packs and covets anything shiny."
@@ -223,7 +223,7 @@ internal sealed class CreatureArchetype
             [Skill.Illusion] = 1,
             [Skill.General] = 1,
         },
-        creatureType: Data.Models.CreatureType.Wraith,
+        creatureType: Domain.Models.CreatureType.Wraith,
         biography: "A hateful spirit bound by unholy devotion to something long dead."
     );
 
@@ -238,7 +238,7 @@ internal sealed class CreatureArchetype
             GoldMultiplier: 0.5f
         ),
         skillAffinities: new Dictionary<Skill, int> { [Skill.Melee] = 3, [Skill.General] = 1 },
-        creatureType: Data.Models.CreatureType.Giant,
+        creatureType: Domain.Models.CreatureType.Giant,
         startingGear: [new WeaponSpec(WeaponType.Mace)],
         naturalWeaponDamage: LargeNaturalWeapon,
         biography: "A towering brute whose footsteps announce it long before it is seen."
@@ -260,14 +260,14 @@ internal sealed class CreatureArchetype
             [Skill.Melee] = 2,
             [Skill.General] = 1,
         },
-        creatureType: Data.Models.CreatureType.Dragon,
+        creatureType: Domain.Models.CreatureType.Dragon,
         naturalWeaponDamage: LargeNaturalWeapon,
         biography: "An ancient winged predator of scale and flame, jealous of its hoard."
     );
 
     private static readonly Dictionary<Profession, CreatureArchetype> ByProfession = new()
     {
-        [Data.Models.Profession.Knight] = new CreatureArchetype(
+        [Domain.Models.Profession.Knight] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 3,
                 Dexterity: 0,
@@ -278,12 +278,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 0.8f
             ),
             skillAffinities: SoldierSkillAffinities,
-            profession: Data.Models.Profession.Knight,
+            profession: Domain.Models.Profession.Knight,
             startingGear: [new WeaponSpec(WeaponType.Sword), new ShieldSpec()],
-            armorClass: Data.Models.ArmorClass.Plate,
+            armorClass: Domain.Models.ArmorClass.Plate,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Rogue] = new CreatureArchetype(
+        [Domain.Models.Profession.Rogue] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 1,
                 Dexterity: 4,
@@ -299,16 +299,16 @@ internal sealed class CreatureArchetype
                 [Skill.Melee] = 2,
                 [Skill.General] = 1,
             },
-            profession: Data.Models.Profession.Rogue,
+            profession: Domain.Models.Profession.Rogue,
             startingGear:
             [
                 new WeaponSpec(WeaponType.Dagger),
                 new WeaponSpec(WeaponType.Dagger, SlotOverride: EquipmentSlot.LeftHand),
             ],
-            armorClass: Data.Models.ArmorClass.Leather,
+            armorClass: Domain.Models.ArmorClass.Leather,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Ranger] = new CreatureArchetype(
+        [Domain.Models.Profession.Ranger] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 2,
                 Dexterity: 3,
@@ -323,12 +323,12 @@ internal sealed class CreatureArchetype
                 [Skill.Archery] = 2,
                 [Skill.General] = 1,
             },
-            profession: Data.Models.Profession.Ranger,
+            profession: Domain.Models.Profession.Ranger,
             startingGear: [new WeaponSpec(WeaponType.Bow), new AmmoSpec(AmmoType.Arrow, 20)],
-            armorClass: Data.Models.ArmorClass.Leather,
+            armorClass: Domain.Models.ArmorClass.Leather,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Mage] = new CreatureArchetype(
+        [Domain.Models.Profession.Mage] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 0,
@@ -344,12 +344,12 @@ internal sealed class CreatureArchetype
                 [Skill.Illusion] = 1,
                 [Skill.General] = 1,
             },
-            profession: Data.Models.Profession.Mage,
+            profession: Domain.Models.Profession.Mage,
             startingGear: [new WeaponSpec(WeaponType.Staff), new ConsumableSpec(3)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Cleric] = new CreatureArchetype(
+        [Domain.Models.Profession.Cleric] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 0,
@@ -365,12 +365,12 @@ internal sealed class CreatureArchetype
                 [Skill.Alteration] = 2,
                 [Skill.General] = 1,
             },
-            profession: Data.Models.Profession.Cleric,
+            profession: Domain.Models.Profession.Cleric,
             startingGear: [new WeaponSpec(WeaponType.Mace), new ShieldSpec()],
-            armorClass: Data.Models.ArmorClass.Plate,
+            armorClass: Domain.Models.ArmorClass.Plate,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Mercenary] = new CreatureArchetype(
+        [Domain.Models.Profession.Mercenary] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 3,
                 Dexterity: 1,
@@ -381,12 +381,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 1.1f
             ),
             skillAffinities: SoldierSkillAffinities,
-            profession: Data.Models.Profession.Mercenary,
+            profession: Domain.Models.Profession.Mercenary,
             startingGear: [new WeaponSpec(WeaponType.Sword), new ShieldSpec()],
-            armorClass: Data.Models.ArmorClass.Mail,
+            armorClass: Domain.Models.ArmorClass.Mail,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Alchemist] = new CreatureArchetype(
+        [Domain.Models.Profession.Alchemist] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 2,
@@ -397,12 +397,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 2.0f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Alchemist,
+            profession: Domain.Models.Profession.Alchemist,
             startingGear: [new WeaponSpec(WeaponType.Wand), new ConsumableSpec(5)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Blacksmith] = new CreatureArchetype(
+        [Domain.Models.Profession.Blacksmith] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 4,
                 Dexterity: 1,
@@ -413,12 +413,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 1.5f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Blacksmith,
+            profession: Domain.Models.Profession.Blacksmith,
             startingGear: [new WeaponSpec(WeaponType.Axe)],
-            armorClass: Data.Models.ArmorClass.Plate,
+            armorClass: Domain.Models.ArmorClass.Plate,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Scholar] = new CreatureArchetype(
+        [Domain.Models.Profession.Scholar] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 1,
@@ -429,12 +429,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 2.0f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Scholar,
+            profession: Domain.Models.Profession.Scholar,
             startingGear: [new WeaponSpec(WeaponType.Staff)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Merchant] = new CreatureArchetype(
+        [Domain.Models.Profession.Merchant] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 3,
@@ -445,12 +445,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 3.0f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Merchant,
+            profession: Domain.Models.Profession.Merchant,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Leather,
+            armorClass: Domain.Models.ArmorClass.Leather,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Politician] = new CreatureArchetype(
+        [Domain.Models.Profession.Politician] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 1,
@@ -461,12 +461,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 4.0f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Politician,
+            profession: Domain.Models.Profession.Politician,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.StableMaster] = new CreatureArchetype(
+        [Domain.Models.Profession.StableMaster] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 1,
                 Dexterity: 3,
@@ -477,12 +477,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 1.0f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.StableMaster,
+            profession: Domain.Models.Profession.StableMaster,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Leather,
+            armorClass: Domain.Models.ArmorClass.Leather,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Bartender] = new CreatureArchetype(
+        [Domain.Models.Profession.Bartender] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 3,
@@ -493,12 +493,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 1.2f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Bartender,
+            profession: Domain.Models.Profession.Bartender,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Guard] = new CreatureArchetype(
+        [Domain.Models.Profession.Guard] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 2,
                 Dexterity: 1,
@@ -509,12 +509,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 0.7f
             ),
             skillAffinities: SoldierSkillAffinities,
-            profession: Data.Models.Profession.Guard,
+            profession: Domain.Models.Profession.Guard,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Mail,
+            armorClass: Domain.Models.ArmorClass.Mail,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Baker] = new CreatureArchetype(
+        [Domain.Models.Profession.Baker] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 1,
                 Dexterity: 2,
@@ -525,12 +525,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 1.3f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Baker,
+            profession: Domain.Models.Profession.Baker,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Innkeeper] = new CreatureArchetype(
+        [Domain.Models.Profession.Innkeeper] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 2,
@@ -541,12 +541,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 1.4f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Innkeeper,
+            profession: Domain.Models.Profession.Innkeeper,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Tailor] = new CreatureArchetype(
+        [Domain.Models.Profession.Tailor] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 3,
@@ -557,12 +557,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 1.5f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Tailor,
+            profession: Domain.Models.Profession.Tailor,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Carpenter] = new CreatureArchetype(
+        [Domain.Models.Profession.Carpenter] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 2,
                 Dexterity: 2,
@@ -573,12 +573,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 1.2f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Carpenter,
+            profession: Domain.Models.Profession.Carpenter,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Leather,
+            armorClass: Domain.Models.ArmorClass.Leather,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Jeweler] = new CreatureArchetype(
+        [Domain.Models.Profession.Jeweler] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 3,
@@ -589,12 +589,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 2.5f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Jeweler,
+            profession: Domain.Models.Profession.Jeweler,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Homemaker] = new CreatureArchetype(
+        [Domain.Models.Profession.Homemaker] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 1,
@@ -605,12 +605,12 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 0.5f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Homemaker,
+            profession: Domain.Models.Profession.Homemaker,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
-        [Data.Models.Profession.Unemployed] = new CreatureArchetype(
+        [Domain.Models.Profession.Unemployed] = new CreatureArchetype(
             statAffinities: new StatAffinities(
                 Strength: 0,
                 Dexterity: 1,
@@ -621,9 +621,9 @@ internal sealed class CreatureArchetype
                 GoldMultiplier: 0.3f
             ),
             skillAffinities: CivilianSkillAffinities,
-            profession: Data.Models.Profession.Unemployed,
+            profession: Domain.Models.Profession.Unemployed,
             startingGear: [new WeaponSpec(WeaponType.Dagger)],
-            armorClass: Data.Models.ArmorClass.Cloth,
+            armorClass: Domain.Models.ArmorClass.Cloth,
             hasAccessories: true
         ),
     };

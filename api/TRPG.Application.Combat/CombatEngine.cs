@@ -4,7 +4,7 @@ using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Common.Extensions;
 using TRPG.Application.Configuration;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 
 namespace TRPG.Application.Combat;

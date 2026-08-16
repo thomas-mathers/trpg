@@ -8,7 +8,7 @@ using TRPG.Contracts;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;
@@ -163,7 +163,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         );
         var destination = Builders.MakeDistrict(
             city.Id,
-            Data.Models.DistrictType.Residential,
+            Domain.Models.DistrictType.Residential,
             worldId: world.Id,
             id: destinationId,
             locationId: destinationLocation.Id

@@ -13,7 +13,7 @@ using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Narration.Responses;
 using TRPG.Contracts.Scenes.Responses;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.GameSessions.Mappers;
 
 namespace TRPG.GameSessions.Endpoints;

@@ -1,7 +1,7 @@
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Trading.Queries;
 

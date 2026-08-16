@@ -1,7 +1,7 @@
 using System.Text.Json;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tools;
 
 namespace TRPG.Tests.Application.Combat;

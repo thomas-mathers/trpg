@@ -4,8 +4,8 @@ using TRPG.Application.Combat.Events;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Worlds.Generators;
-using TRPG.Data.Models;
-using Profession = TRPG.Data.Models.Profession;
+using TRPG.Domain.Models;
+using Profession = TRPG.Domain.Models.Profession;
 
 namespace TRPG.Tests.Helpers;
 

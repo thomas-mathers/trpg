@@ -3,7 +3,7 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Events;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Quests.Tools;
 using TRPG.Tests.Helpers;
 

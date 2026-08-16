@@ -2,8 +2,8 @@ using System.Text.Json;
 using Microsoft.Extensions.AI;
 using TRPG.Application.Common.Handling;
 using TRPG.Data;
-using ChatMessageRow = TRPG.Data.Models.ChatMessage;
-using GameSession = TRPG.Data.Models.GameSession;
+using ChatMessageRow = TRPG.Domain.Models.ChatMessage;
+using GameSession = TRPG.Domain.Models.GameSession;
 
 namespace TRPG.Application.GameSessions.Commands;
 
