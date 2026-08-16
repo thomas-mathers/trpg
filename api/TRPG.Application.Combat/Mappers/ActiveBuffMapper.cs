@@ -1,5 +1,5 @@
 using TRPG.Application.CreatureFormulas;
-using ContractActiveBuff = TRPG.Application.Combat.Responses.ActiveBuff;
+using ContractActiveBuff = TRPG.Application.Combat.ClientEvents.ActiveBuff;
 
 namespace TRPG.Application.Combat.Mappers;
 

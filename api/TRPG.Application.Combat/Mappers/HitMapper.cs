@@ -1,5 +1,5 @@
 using TRPG.Application.Combat.Events;
-using CombatHitEvent = TRPG.Application.Combat.Responses.CombatHitEvent;
+using CombatHitEvent = TRPG.Application.Combat.ClientEvents.CombatHitEvent;
 
 namespace TRPG.Application.Combat.Mappers;
 

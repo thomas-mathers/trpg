@@ -6,7 +6,6 @@ using TRPG.Abilities.Mappers;
 using TRPG.Abilities.Responses;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Combat.Responses;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;

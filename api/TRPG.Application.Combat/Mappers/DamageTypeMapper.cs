@@ -1,4 +1,4 @@
-using ContractDamageType = TRPG.Application.Combat.Responses.DamageType;
+using ContractDamageType = TRPG.Application.Combat.ClientEvents.DamageType;
 using DataDamageType = TRPG.Domain.Models.DamageType;
 
 namespace TRPG.Application.Combat.Mappers;

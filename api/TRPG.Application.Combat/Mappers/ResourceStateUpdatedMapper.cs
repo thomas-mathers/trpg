@@ -1,5 +1,5 @@
 using TRPG.Application.Combat.Events;
-using ContractEvent = TRPG.Application.Combat.Responses.CombatResourceStateUpdatedEvent;
+using ContractEvent = TRPG.Application.Combat.ClientEvents.CombatResourceStateUpdatedEvent;
 
 namespace TRPG.Application.Combat.Mappers;
 

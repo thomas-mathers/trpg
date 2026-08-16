@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace TRPG.Application.Combat.Responses;
+namespace TRPG.Application.Combat.ClientEvents;
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(CombatHitEvent), nameof(CombatHitEvent))]

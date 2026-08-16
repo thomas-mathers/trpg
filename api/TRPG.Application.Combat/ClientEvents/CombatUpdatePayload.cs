@@ -1,4 +1,4 @@
-namespace TRPG.Application.Combat.Responses;
+namespace TRPG.Application.Combat.ClientEvents;
 
 public record CombatUpdatePayload(
     IReadOnlyCollection<CombatantState> Combatants,
