@@ -8,7 +8,6 @@ using TRPG.Application.GameSessions;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
-using TRPG.Application.Scenes.Mappers;
 using TRPG.Contracts.Combat.Requests;
 using TRPG.Data.Models;
 
@@ -81,6 +80,6 @@ internal class ResolveCombatActionHandler(
             },
             cancellationToken
         );
-        gameEvents.Enqueue(new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(refreshed.Scene)));
+        gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
     }
 }

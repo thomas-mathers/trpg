@@ -194,6 +194,15 @@ internal static class ServiceCollectionExtensions
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {
         return serviceCollection
+            .Scan(scan =>
+                scan.FromAssemblyOf<GameClientEventDispatcher>()
+                    .AddClasses(
+                        classes => classes.AssignableTo<IGameClientEventFormatter>(),
+                        publicOnly: false
+                    )
+                    .AsImplementedInterfaces()
+                    .WithScopedLifetime()
+            )
             .AddScoped<GameClientEventBuffer>()
             .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<GameClientEventBuffer>())
             .AddScoped<IGameClientEventBuffer>(sp => sp.GetRequiredService<GameClientEventBuffer>())

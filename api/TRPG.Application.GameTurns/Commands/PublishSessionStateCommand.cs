@@ -10,7 +10,6 @@ using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.Models;
@@ -48,7 +47,7 @@ internal class PublishSessionStateCommandHandler(
             },
             cancellationToken
         );
-        gameEvents.Enqueue(new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(scene)));
+        gameEvents.Enqueue(new SceneUpdatedEvent(scene));
 
         var combatants = await getActiveFightCombatants.Handle(
             new GetActiveFightCombatantsQuery { PlayerId = command.PlayerId },

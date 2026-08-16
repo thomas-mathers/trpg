@@ -59,7 +59,11 @@ public sealed class CommandHandlerDecoratorsTests
         );
 
         Assert.Equal("Handling ExampleCommand", logger.Messages[0]);
-        Assert.StartsWith("Failed ExampleCommand after ", logger.Messages[1]);
+        Assert.StartsWith(
+            "Failed ExampleCommand after ",
+            logger.Messages[1],
+            StringComparison.Ordinal
+        );
         Assert.False(inner.WasHandled);
     }
 
@@ -100,7 +104,7 @@ public sealed class CommandHandlerDecoratorsTests
         Assert.Equal("Move", result);
         Assert.Equal(2, logger.Messages.Count);
         Assert.Equal("Handling ExampleQuery", logger.Messages[0]);
-        Assert.StartsWith("Handled ExampleQuery in ", logger.Messages[1]);
+        Assert.StartsWith("Handled ExampleQuery in ", logger.Messages[1], StringComparison.Ordinal);
     }
 
     private sealed class ExampleCommand

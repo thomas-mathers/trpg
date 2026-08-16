@@ -1,3 +1,4 @@
+using TRPG.Application.Buildings;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Handling;
@@ -47,7 +48,7 @@ internal class SyncScheduleLockCommandHandler(
             return null;
         }
 
-        if (ShopStaffingPolicy.StandardBuildingTypes.Contains(command.BuildingType))
+        if (ShopBuildingTypes.IsShop(command.BuildingType))
         {
             return await SyncShopLock(command, cancellationToken);
         }

@@ -20,27 +20,6 @@ internal static class ShopStaffingPolicy
 {
     internal const int MaxShopStaff = 3;
 
-    internal static readonly BuildingType[] StandardBuildingTypes =
-    [
-        BuildingType.ArcaneShop,
-        BuildingType.Apothecary,
-        BuildingType.Bakery,
-        BuildingType.Barracks,
-        BuildingType.Blacksmith,
-        BuildingType.Carpenter,
-        BuildingType.Castle,
-        BuildingType.GeneralGoods,
-        BuildingType.GuildHall,
-        BuildingType.Inn,
-        BuildingType.Jail,
-        BuildingType.Jeweler,
-        BuildingType.Library,
-        BuildingType.Stable,
-        BuildingType.Tailor,
-        BuildingType.Tavern,
-        BuildingType.Temple,
-    ];
-
     internal static readonly IReadOnlyList<DayOfWeek>[] StaffDayOffPatterns =
     [
         [DayOfWeek.Saturday, DayOfWeek.Sunday],

@@ -9,7 +9,6 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
-using TRPG.Application.Scenes.Mappers;
 
 namespace TRPG.GameTurns.Tools;
 
@@ -43,9 +42,7 @@ internal class LookTool(
 
         if (refreshed.Refreshed)
         {
-            gameEvents.Enqueue(
-                new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(refreshed.Scene))
-            );
+            gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
         }
 
         logger.LogInformation(

@@ -14,7 +14,6 @@ using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Data.Models;
 
@@ -128,7 +127,7 @@ internal class GameTurnStreamer(
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
-            gameEvents.Enqueue(new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(after)));
+            gameEvents.Enqueue(new SceneUpdatedEvent(after));
         }
 
         await eventDispatcher.FlushAsync(turnContext.WorldId, cancellationToken);

@@ -4,7 +4,7 @@ using TRPG.Application.Narration.Queries;
 
 namespace TRPG.Application.Narration;
 
-internal static class LoreAnchorLinker
+public static class LoreAnchorLinker
 {
     public static async IAsyncEnumerable<string> Link(
         IAsyncEnumerable<string> tokens,

@@ -1,8 +1,9 @@
 using TRPG.Application.Scenes.Queries;
 using TRPG.Contracts;
 using TRPG.Contracts.Scenes.Responses;
+using ApplicationQuestMarker = TRPG.Application.Quests.Queries.QuestMarker;
 
-namespace TRPG.Application.Scenes.Mappers;
+namespace TRPG.GameSessions.Mappers;
 
 internal static class SceneSnapshotMapper
 {
@@ -98,8 +99,8 @@ internal static class SceneSnapshotMapper
             TradeWorkstationId: creature.TradeWorkstationId,
             QuestMarker: creature.QuestMarker switch
             {
-                Quests.Queries.QuestMarker.Available => QuestMarker.Available,
-                Quests.Queries.QuestMarker.ReadyToTurnIn => QuestMarker.ReadyToTurnIn,
+                ApplicationQuestMarker.Available => QuestMarker.Available,
+                ApplicationQuestMarker.ReadyToTurnIn => QuestMarker.ReadyToTurnIn,
                 _ => null,
             }
         );

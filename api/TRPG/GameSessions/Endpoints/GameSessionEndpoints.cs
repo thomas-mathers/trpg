@@ -8,13 +8,13 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
-using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.GameSessions.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Contracts.Narration.Responses;
 using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data.Models;
+using TRPG.GameSessions.Mappers;
 
 namespace TRPG.GameSessions.Endpoints;
 
