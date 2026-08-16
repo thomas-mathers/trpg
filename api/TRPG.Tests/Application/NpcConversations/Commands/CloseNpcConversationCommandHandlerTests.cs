@@ -73,7 +73,7 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
         );
 
         // Assert
-        Assert.Equal(CloseNpcConversationOutcome.NotOpen, outcome);
+        Assert.Equal(CloseNpcConversationResult.NotOpen, outcome);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
         );
 
         // Assert
-        Assert.Equal(CloseNpcConversationOutcome.Closed, outcome);
+        Assert.Equal(CloseNpcConversationResult.Closed, outcome);
     }
 
     [Fact]

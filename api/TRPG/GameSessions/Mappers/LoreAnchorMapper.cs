@@ -6,7 +6,7 @@ namespace TRPG.GameSessions.Mappers;
 
 internal static class LoreAnchorMapper
 {
-    public static LoreAnchor ToResponse(this LoreAnchorSummary anchor) =>
+    public static LoreAnchor ToResponse(this LoreAnchorResult anchor) =>
         new(
             anchor.Id,
             anchor.Name,

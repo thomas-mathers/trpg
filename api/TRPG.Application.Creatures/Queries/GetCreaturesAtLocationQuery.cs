@@ -6,7 +6,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
 
-public record CreatureSummary(
+public record CreatureResult(
     Guid Id,
     string Name,
     CreatureType CreatureType,
@@ -70,7 +70,7 @@ internal static class CreatureLocationFiltering
         return query;
     }
 
-    public static async Task<IReadOnlyCollection<CreatureSummary>> BuildSummaries(
+    public static async Task<IReadOnlyCollection<CreatureResult>> BuildSummaries(
         TrpgDbContext context,
         IQueryable<Creature> creatureQuery,
         CancellationToken cancellationToken
@@ -99,7 +99,7 @@ internal static class CreatureLocationFiltering
             .ToArrayAsync(cancellationToken);
 
         return rows.Select(r =>
-                r.Creature.ToSummary(
+                r.Creature.ToResult(
                     r.Gold ?? 0,
                     r.Location?.StateId
                         ?? throw new InvalidOperationException("Creature location was not found."),
@@ -122,9 +122,9 @@ public class GetCreaturesAtLocationQuery
 }
 
 internal class GetCreaturesAtLocationQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetCreaturesAtLocationQuery, IReadOnlyCollection<CreatureSummary>>
+    : IQueryHandler<GetCreaturesAtLocationQuery, IReadOnlyCollection<CreatureResult>>
 {
-    public async Task<IReadOnlyCollection<CreatureSummary>> Handle(
+    public async Task<IReadOnlyCollection<CreatureResult>> Handle(
         GetCreaturesAtLocationQuery query,
         CancellationToken cancellationToken = default
     )

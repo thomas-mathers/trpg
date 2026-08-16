@@ -11,7 +11,7 @@ public class GetLoreAnchorAutomatonByWorldQuery
 internal class GetLoreAnchorAutomatonByWorldQueryHandler(
     IQueryHandler<
         GetLoreAnchorsByWorldQuery,
-        IReadOnlyCollection<LoreAnchorSummary>
+        IReadOnlyCollection<LoreAnchorResult>
     > getLoreAnchorsByWorld,
     IMemoryCache cache
 ) : IQueryHandler<GetLoreAnchorAutomatonByWorldQuery, LoreAnchorAutomaton>

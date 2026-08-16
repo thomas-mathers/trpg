@@ -48,7 +48,7 @@ internal class MovePlayerCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<
         GetCreaturesAtLocationQuery,
-        IReadOnlyCollection<CreatureSummary>
+        IReadOnlyCollection<CreatureResult>
     > getCreaturesAtLocation,
     IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>> getActiveQuestItemIds,
     IQueryHandler<
@@ -63,7 +63,7 @@ internal class MovePlayerCommandHandler(
         GetBuildingEntryRequirementsQuery,
         BuildingEntryRequirements
     > getBuildingEntryRequirements,
-    IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner,
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
@@ -334,13 +334,13 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        if (requirements.Outcome == BuildingEntryOutcome.NoEntrance)
+        if (requirements.Outcome == BuildingEntryResult.NoEntrance)
         {
             return EntryOutcome.NoEntrance;
         }
 
         if (
-            requirements.Outcome == BuildingEntryOutcome.Locked
+            requirements.Outcome == BuildingEntryResult.Locked
             && !await HasAnyKey(player, requirements, cancellationToken)
         )
         {
@@ -358,8 +358,8 @@ internal class MovePlayerCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var inventory = await getInventoryByOwner.Handle(
-            new GetInventoryByOwnerQuery
+        var inventory = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery
             {
                 Owner = new ItemOwnerReference(player.Id, OwnerType.Creature),
             },

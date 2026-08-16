@@ -5,7 +5,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-public enum BuildingEntryOutcome
+public enum BuildingEntryResult
 {
     Entered,
     NoEntrance,
@@ -18,7 +18,7 @@ public class GetBuildingEntryRequirementsQuery
 }
 
 public record BuildingEntryRequirements(
-    BuildingEntryOutcome Outcome,
+    BuildingEntryResult Outcome,
     Guid? EntranceLocationId,
     IReadOnlyCollection<Guid>? ValidKeyItemIds = null
 );
@@ -41,14 +41,14 @@ internal class GetBuildingEntryRequirementsQueryHandler(
             );
         if (entranceRoom == null)
         {
-            return new BuildingEntryRequirements(BuildingEntryOutcome.NoEntrance, null);
+            return new BuildingEntryRequirements(BuildingEntryResult.NoEntrance, null);
         }
 
         var door = await GetFrontDoor(entranceRoom.LocationId, cancellationToken);
         if (door is not { IsLocked: true })
         {
             return new BuildingEntryRequirements(
-                BuildingEntryOutcome.Entered,
+                BuildingEntryResult.Entered,
                 entranceRoom.LocationId
             );
         }
@@ -60,13 +60,13 @@ internal class GetBuildingEntryRequirementsQueryHandler(
         if (validKeyItemIds.Count == 0)
         {
             return new BuildingEntryRequirements(
-                BuildingEntryOutcome.Entered,
+                BuildingEntryResult.Entered,
                 entranceRoom.LocationId
             );
         }
 
         return new BuildingEntryRequirements(
-            BuildingEntryOutcome.Locked,
+            BuildingEntryResult.Locked,
             entranceRoom.LocationId,
             validKeyItemIds
         );

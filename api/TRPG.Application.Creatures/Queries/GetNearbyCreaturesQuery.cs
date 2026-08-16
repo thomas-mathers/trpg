@@ -14,9 +14,9 @@ public class GetNearbyCreaturesQuery
 }
 
 internal class GetNearbyCreaturesQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureSummary>>
+    : IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>>
 {
-    public async Task<IReadOnlyCollection<CreatureSummary>> Handle(
+    public async Task<IReadOnlyCollection<CreatureResult>> Handle(
         GetNearbyCreaturesQuery query,
         CancellationToken cancellationToken = default
     )

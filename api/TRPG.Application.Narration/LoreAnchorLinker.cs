@@ -31,7 +31,7 @@ public static class LoreAnchorLinker
         }
     }
 
-    private sealed record Checkpoint(int Length, LoreAnchorSummary Entity);
+    private sealed record Checkpoint(int Length, LoreAnchorResult Entity);
 
     private sealed class MatchState(LoreAnchorAutomaton automaton)
     {
@@ -168,6 +168,6 @@ public static class LoreAnchorLinker
         }
     }
 
-    private static string ToMarkup(LoreAnchorSummary entity) =>
+    private static string ToMarkup(LoreAnchorResult entity) =>
         $"[{entity.Name}](entity://{entity.Type}/{entity.Id})";
 }

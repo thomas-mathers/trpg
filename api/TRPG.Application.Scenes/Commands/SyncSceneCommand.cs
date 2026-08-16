@@ -34,7 +34,7 @@ internal class SyncSceneCommandHandler(
         IReadOnlyCollection<Workstation>
     > getWorkstationsByLocationId,
     ICommandHandler<SetWorkstationOccupantCommand> setWorkstationOccupant,
-    IQueryHandler<GetRoomSummaryQuery, RoomSummary?> getRoomSummary,
+    IQueryHandler<GetRoomQuery, RoomResult?> getRoom,
     ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock
 ) : ICommandHandler<SyncSceneCommand>
 {
@@ -218,11 +218,11 @@ internal class SyncSceneCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var roomSummary = await getRoomSummary.Handle(
-            new GetRoomSummaryQuery { RoomId = roomId },
+        var roomResult = await getRoom.Handle(
+            new GetRoomQuery { RoomId = roomId },
             cancellationToken
         );
-        if (roomSummary == null || roomSummary.RoomFloorNumber != 0)
+        if (roomResult == null || roomResult.RoomFloorNumber != 0)
         {
             return;
         }
@@ -230,8 +230,8 @@ internal class SyncSceneCommandHandler(
         await syncScheduleLock.Handle(
             new SyncScheduleLockCommand
             {
-                BuildingId = roomSummary.BuildingId,
-                BuildingType = roomSummary.BuildingType,
+                BuildingId = roomResult.BuildingId,
+                BuildingType = roomResult.BuildingType,
                 CurrentDate = currentDate,
             },
             cancellationToken

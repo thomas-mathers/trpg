@@ -108,7 +108,7 @@ public record SceneResult(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
-public record SceneDetails(
+internal record SceneLocationData(
     SceneBuildingInfo? Building,
     SceneRoomInfo? Room,
     string? RegionDescription,
@@ -122,7 +122,7 @@ internal class GetSceneQueryHandler(
     IQueryHandler<GetCityByIdQuery, City?> getCityById,
     IQueryHandler<GetCityByStateIdQuery, City?> getCityByStateId,
     IQueryHandler<GetDistrictByIdQuery, District?> getDistrictById,
-    IQueryHandler<GetRoomSummaryQuery, RoomSummary?> getRoomSummary,
+    IQueryHandler<GetRoomQuery, RoomResult?> getRoom,
     IQueryHandler<
         GetStaticPropsByLocationIdQuery,
         IReadOnlyCollection<Prop>
@@ -135,7 +135,7 @@ internal class GetSceneQueryHandler(
         GetAllBuildingsByLocationQuery,
         IReadOnlyCollection<Building>
     > getAllBuildingsByLocation,
-    IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureSummary>> getNearbyCreatures,
+    IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>> getNearbyCreatures,
     IQueryHandler<
         GetEffectiveReputationsQuery,
         IReadOnlyDictionary<Guid, int>
@@ -209,7 +209,7 @@ internal class GetSceneQueryHandler(
 
     private async Task<SceneCreatureInfo> BuildPlayerCreatureInfo(
         GetSceneQuery query,
-        CreatureSummary player,
+        CreatureResult player,
         CancellationToken cancellationToken
     )
     {
@@ -230,7 +230,7 @@ internal class GetSceneQueryHandler(
     }
 
     private static SceneCreatureInfo BuildSceneCreatureInfo(
-        CreatureSummary creature,
+        CreatureResult creature,
         int currentYear,
         IReadOnlyCollection<string> factionNames,
         CreatureState? state,
@@ -285,7 +285,7 @@ internal class GetSceneQueryHandler(
     }
 
     private async Task<SceneCityInfo?> BuildCityInfo(
-        CreatureSummary player,
+        CreatureResult player,
         CancellationToken cancellationToken
     )
     {
@@ -303,7 +303,7 @@ internal class GetSceneQueryHandler(
     }
 
     private async Task<SceneDistrictInfo?> BuildDistrictInfo(
-        CreatureSummary player,
+        CreatureResult player,
         CancellationToken cancellationToken
     )
     {
@@ -321,13 +321,13 @@ internal class GetSceneQueryHandler(
             : null;
     }
 
-    private async Task<SceneDetails> BuildIndoorScene(
-        CreatureSummary player,
+    private async Task<SceneLocationData> BuildIndoorScene(
+        CreatureResult player,
         CancellationToken cancellationToken
     )
     {
-        var roomSummary = await getRoomSummary.Handle(
-            new GetRoomSummaryQuery { RoomId = player.RoomId!.Value },
+        var roomResult = await getRoom.Handle(
+            new GetRoomQuery { RoomId = player.RoomId!.Value },
             cancellationToken
         );
 
@@ -337,26 +337,26 @@ internal class GetSceneQueryHandler(
         );
 
         var buildingInfo = new SceneBuildingInfo(
-            roomSummary!.BuildingName,
-            roomSummary.BuildingType,
-            roomSummary.OwnerName,
-            roomSummary.FactionName,
-            roomSummary.FactionDescription
+            roomResult!.BuildingName,
+            roomResult.BuildingType,
+            roomResult.OwnerName,
+            roomResult.FactionName,
+            roomResult.FactionDescription
         );
         var roomInfo = new SceneRoomInfo(
-            roomSummary.RoomName,
-            roomSummary.RoomDescription,
-            roomSummary.RoomFloorNumber
+            roomResult.RoomName,
+            roomResult.RoomDescription,
+            roomResult.RoomFloorNumber
         );
         var nearbyProps = props
             .Select(p => new ScenePropInfo(p.Id, p.Name, p.Description, GetPropType(p)))
             .ToArray();
 
-        return new SceneDetails(buildingInfo, roomInfo, null, nearbyProps, []);
+        return new SceneLocationData(buildingInfo, roomInfo, null, nearbyProps, []);
     }
 
-    private async Task<SceneDetails> BuildOutdoorScene(
-        CreatureSummary player,
+    private async Task<SceneLocationData> BuildOutdoorScene(
+        CreatureResult player,
         State? state,
         CancellationToken cancellationToken
     )
@@ -370,12 +370,12 @@ internal class GetSceneQueryHandler(
             .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
             .ToArray();
 
-        return new SceneDetails(null, null, state?.Description, [], nearbyBuildings);
+        return new SceneLocationData(null, null, state?.Description, [], nearbyBuildings);
     }
 
     private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
         GetSceneQuery query,
-        IReadOnlyCollection<CreatureSummary> nearby,
+        IReadOnlyCollection<CreatureResult> nearby,
         CancellationToken cancellationToken
     )
     {

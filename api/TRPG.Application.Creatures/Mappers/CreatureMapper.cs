@@ -5,7 +5,7 @@ namespace TRPG.Application.Creatures.Mappers;
 
 internal static class CreatureMapper
 {
-    public static CreatureSummary ToSummary(
+    public static CreatureResult ToResult(
         this Creature creature,
         int gold,
         Guid stateId,

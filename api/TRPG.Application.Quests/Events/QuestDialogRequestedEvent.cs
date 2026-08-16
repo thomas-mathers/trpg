@@ -11,6 +11,6 @@ public enum QuestDialogMode
 
 public record QuestDialogRequestedEvent(
     Guid WorldId,
-    QuestConversationDetail Quest,
+    QuestConversationResult Quest,
     QuestDialogMode Mode
 ) : GameClientEvent;

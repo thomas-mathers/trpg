@@ -7,7 +7,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.NpcConversations.Commands;
 
-public enum OpenNpcConversationOutcome
+public enum OpenNpcConversationResult
 {
     Opened,
     AlreadyOpen,
@@ -25,9 +25,9 @@ internal class OpenNpcConversationCommandHandler(
     IDomainEventPublisher<NpcConversationStartedEvent> domainEvents,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<UpdateGameSessionCommand> updateGameSession
-) : ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationOutcome>
+) : ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult>
 {
-    public async Task<OpenNpcConversationOutcome> Handle(
+    public async Task<OpenNpcConversationResult> Handle(
         OpenNpcConversationCommand command,
         CancellationToken cancellationToken = default
     )
@@ -42,7 +42,7 @@ internal class OpenNpcConversationCommandHandler(
         if (snapshot.OpenConversationCreatureIdsByName.ContainsKey(command.NpcName))
         {
             await transaction.CommitAsync(cancellationToken);
-            return OpenNpcConversationOutcome.AlreadyOpen;
+            return OpenNpcConversationResult.AlreadyOpen;
         }
 
         snapshot.OpenConversationCreatureIdsByName[command.NpcName] = command.NpcId;
@@ -64,6 +64,6 @@ internal class OpenNpcConversationCommandHandler(
             cancellationToken
         );
         await transaction.CommitAsync(cancellationToken);
-        return OpenNpcConversationOutcome.Opened;
+        return OpenNpcConversationResult.Opened;
     }
 }

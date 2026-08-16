@@ -147,7 +147,7 @@ internal static class InventoryEndpoints
     private static async Task<Ok<TradeSnapshot>> GetTrade(
         Guid playerId,
         Guid workstationId,
-        [FromServices] IQueryHandler<GetTradeQuery, TradeSnapshotInfo> getTrade,
+        [FromServices] IQueryHandler<GetTradeQuery, TradeResult> getTrade,
         [FromServices]
             IQueryHandler<
             GetActiveQuestItemIdsQuery,

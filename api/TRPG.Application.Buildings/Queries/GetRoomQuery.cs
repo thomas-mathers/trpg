@@ -6,12 +6,12 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-public class GetRoomSummaryQuery
+public class GetRoomQuery
 {
     public required Guid RoomId { get; init; }
 }
 
-public record RoomSummary(
+public record RoomResult(
     string RoomName,
     string RoomDescription,
     int RoomFloorNumber,
@@ -23,16 +23,16 @@ public record RoomSummary(
     string? FactionDescription
 );
 
-internal class GetRoomSummaryQueryHandler(TrpgDbContext context, IMemoryCache cache)
-    : IQueryHandler<GetRoomSummaryQuery, RoomSummary?>
+internal class GetRoomQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetRoomQuery, RoomResult?>
 {
-    public async Task<RoomSummary?> Handle(
-        GetRoomSummaryQuery query,
+    public async Task<RoomResult?> Handle(
+        GetRoomQuery query,
         CancellationToken cancellationToken = default
     )
     {
         return await cache.GetOrCreateAsync(
-            $"roomSummary:{query.RoomId}",
+            $"roomResult:{query.RoomId}",
             async _ =>
                 await (
                     from r in context.Rooms.AsNoTracking()
@@ -44,7 +44,7 @@ internal class GetRoomSummaryQueryHandler(TrpgDbContext context, IMemoryCache ca
                     from owner in ownerGroup.DefaultIfEmpty()
                     join f in context.Factions on b.FactionId equals (Guid?)f.Id into factionGroup
                     from f in factionGroup.DefaultIfEmpty()
-                    select new RoomSummary(
+                    select new RoomResult(
                         r.Name,
                         r.Description,
                         r.FloorNumber,

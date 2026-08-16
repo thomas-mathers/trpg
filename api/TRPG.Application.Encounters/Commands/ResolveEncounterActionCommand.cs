@@ -22,7 +22,7 @@ public class ResolveEncounterActionCommand
     public Guid? ArrivalOriginLocationId { get; init; }
 }
 
-public record EncounterActionResolution(
+public record EncounterActionResult(
     HostileEncounterActionKind ActionKind,
     EncounterResolutionFact Fact
 );
@@ -34,9 +34,9 @@ internal class ResolveEncounterActionCommandHandler(
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<StartFightCommand, IReadOnlyList<Combatant>> startFight,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
-) : ICommandHandler<ResolveEncounterActionCommand, EncounterActionResolution>
+) : ICommandHandler<ResolveEncounterActionCommand, EncounterActionResult>
 {
-    public async Task<EncounterActionResolution> Handle(
+    public async Task<EncounterActionResult> Handle(
         ResolveEncounterActionCommand command,
         CancellationToken cancellationToken = default
     )
@@ -79,7 +79,7 @@ internal class ResolveEncounterActionCommandHandler(
             MemberNames: groupContext.LivingMembers.Select(member => member.Name).ToArray()
         );
 
-        return new EncounterActionResolution(actionKind, fact);
+        return new EncounterActionResult(actionKind, fact);
     }
 
     private async Task ApplyEncounterOutcome(

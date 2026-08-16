@@ -16,10 +16,7 @@ public class RequestQuestDialogCommand
 public record QuestDialogRequestResult(bool IsAvailable);
 
 internal class RequestQuestDialogCommandHandler(
-    IQueryHandler<
-        GetQuestInteractionsForGiverQuery,
-        QuestInteractionsForGiver
-    > getQuestInteractions,
+    IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult> getQuestInteractions,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<RequestQuestDialogCommand, QuestDialogRequestResult>
 {

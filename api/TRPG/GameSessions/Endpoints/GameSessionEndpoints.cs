@@ -88,7 +88,7 @@ internal static class GameSessionEndpoints
         [FromServices]
             IQueryHandler<
             GetLoreAnchorsByWorldQuery,
-            IReadOnlyCollection<LoreAnchorSummary>
+            IReadOnlyCollection<LoreAnchorResult>
         > getLoreAnchorsByWorld,
         CancellationToken cancellationToken
     )
@@ -113,7 +113,7 @@ internal static class GameSessionEndpoints
         [FromServices]
             IQueryHandler<
             GetLoreAnchorsByWorldQuery,
-            IReadOnlyCollection<LoreAnchorSummary>
+            IReadOnlyCollection<LoreAnchorResult>
         > getLoreAnchorsByWorld,
         CancellationToken cancellationToken
     )
