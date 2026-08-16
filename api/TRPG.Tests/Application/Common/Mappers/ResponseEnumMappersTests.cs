@@ -1,7 +1,10 @@
 using TRPG.Abilities.Mappers;
 using TRPG.GameSessions.Mappers;
 using AbilitiesConditionType = TRPG.Application.Abilities.ConditionType;
-using CombatResponseEnumMappers = TRPG.Application.Combat.Mappers.CombatResponseEnumMappers;
+using AmountTypeMapper = TRPG.Application.Combat.Mappers.AmountTypeMapper;
+using AttributeNameMapper = TRPG.Application.Combat.Mappers.AttributeNameMapper;
+using ConditionTypeMapper = TRPG.Application.Combat.Mappers.ConditionTypeMapper;
+using DamageTypeMapper = TRPG.Application.Combat.Mappers.DamageTypeMapper;
 using DataAmountType = TRPG.Data.Models.AmountType;
 using DataAttributeName = TRPG.Data.Models.AttributeName;
 using DataBuildingType = TRPG.Data.Models.BuildingType;
@@ -15,7 +18,9 @@ using DataItemRarity = TRPG.Data.Models.ItemRarity;
 using DataProfession = TRPG.Data.Models.Profession;
 using DataResourceType = TRPG.Data.Models.ResourceType;
 using DataSkill = TRPG.Data.Models.Skill;
-using ItemResponseEnumMappers = TRPG.Creatures.Mappers.ItemResponseEnumMappers;
+using EquipmentSlotMapper = TRPG.Creatures.Mappers.EquipmentSlotMapper;
+using ItemRarityMapper = TRPG.Creatures.Mappers.ItemRarityMapper;
+using ResourceTypeMapper = TRPG.Application.Combat.Mappers.ResourceTypeMapper;
 
 namespace TRPG.Tests.Application.Common.Mappers;
 
@@ -92,7 +97,7 @@ public class ResponseEnumMappersTests
     public void ToContract_MapsDamageTypeByName(DataDamageType value)
     {
         // Act
-        var result = CombatResponseEnumMappers.ToContract(value);
+        var result = DamageTypeMapper.ToContract(value);
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -103,7 +108,7 @@ public class ResponseEnumMappersTests
     public void ToContract_MapsAttributeNameByName(DataAttributeName value)
     {
         // Act
-        var result = CombatResponseEnumMappers.ToContract(value);
+        var result = AttributeNameMapper.ToContract(value);
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -114,7 +119,7 @@ public class ResponseEnumMappersTests
     public void ToContract_MapsResourceTypeByName(DataResourceType value)
     {
         // Act
-        var result = CombatResponseEnumMappers.ToContract(value);
+        var result = ResourceTypeMapper.ToContract(value);
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -125,7 +130,7 @@ public class ResponseEnumMappersTests
     public void ToContract_MapsAmountTypeByName(DataAmountType value)
     {
         // Act
-        var result = CombatResponseEnumMappers.ToContract(value);
+        var result = AmountTypeMapper.ToContract(value);
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -147,7 +152,7 @@ public class ResponseEnumMappersTests
     public void ToContract_MapsConditionTypeByName(AbilitiesConditionType value)
     {
         // Act
-        var result = CombatResponseEnumMappers.ToContract(value);
+        var result = ConditionTypeMapper.ToContract(value);
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -158,7 +163,7 @@ public class ResponseEnumMappersTests
     public void ToContract_MapsItemRarityByName(DataItemRarity value)
     {
         // Act
-        var result = ItemResponseEnumMappers.ToContract(value);
+        var result = ItemRarityMapper.ToContract(value);
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -169,7 +174,7 @@ public class ResponseEnumMappersTests
     public void ToContract_MapsEquipmentSlotByName(DataEquipmentSlot value)
     {
         // Act
-        var result = ItemResponseEnumMappers.ToContract(value);
+        var result = EquipmentSlotMapper.ToContract(value);
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());

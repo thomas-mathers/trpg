@@ -29,26 +29,10 @@ internal static class AbilityEndpoints
     )
     {
         var abilities = await getAbilitiesBySkill.Handle(
-            new GetAbilitiesBySkillQuery { Skill = ToDomain(skill) },
+            new GetAbilitiesBySkillQuery { Skill = skill.ToDataModel() },
             cancellationToken
         );
 
         return TypedResults.Ok(abilities.Select(a => a.ToSummary()).ToArray());
     }
-
-    private static DataSkill ToDomain(Skill skill) =>
-        skill switch
-        {
-            Skill.Melee => DataSkill.Melee,
-            Skill.Unarmed => DataSkill.Unarmed,
-            Skill.Sneak => DataSkill.Sneak,
-            Skill.Destruction => DataSkill.Destruction,
-            Skill.Illusion => DataSkill.Illusion,
-            Skill.Archery => DataSkill.Archery,
-            Skill.Restoration => DataSkill.Restoration,
-            Skill.Alteration => DataSkill.Alteration,
-            Skill.General => DataSkill.General,
-            Skill.Blocking => DataSkill.Blocking,
-            _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, null),
-        };
 }

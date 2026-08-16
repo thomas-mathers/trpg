@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
+using TRPG.Application.Creatures.Mappers;
 using TRPG.Data;
 using TRPG.Data.Models;
 
@@ -98,8 +99,7 @@ internal static class CreatureLocationFiltering
             .ToArrayAsync(cancellationToken);
 
         return rows.Select(r =>
-                ToCreatureSummary(
-                    r.Creature,
+                r.Creature.ToSummary(
                     r.Gold ?? 0,
                     r.Location?.StateId
                         ?? throw new InvalidOperationException("Creature location was not found."),
@@ -110,51 +110,6 @@ internal static class CreatureLocationFiltering
             )
             .ToArray();
     }
-
-    private static CreatureSummary ToCreatureSummary(
-        Creature p,
-        int gold,
-        Guid stateId,
-        Guid? cityId,
-        Guid? districtId,
-        Guid? roomId
-    ) =>
-        new(
-            p.Id,
-            p.Name,
-            p.CreatureType,
-            p.Gender,
-            p.Profession,
-            p.Level,
-            p.BirthYear,
-            p.State,
-            gold,
-            stateId,
-            p.LocationId,
-            districtId,
-            roomId,
-            cityId,
-            p.CurrentHp,
-            p.MaximumHp,
-            p.CurrentAp,
-            p.MaximumAp,
-            p.CurrentMp,
-            p.MaximumMp,
-            p.Strength,
-            p.Dexterity,
-            p.Intelligence,
-            p.Endurance,
-            p.Stamina,
-            p.Mana,
-            p.Defense,
-            p.MovementSpeed,
-            p.PhysicalResistance,
-            p.FireResistance,
-            p.IceResistance,
-            p.LightningResistance,
-            p.PoisonResistance,
-            p.MagicResistance
-        );
 }
 
 public class GetCreaturesAtLocationQuery

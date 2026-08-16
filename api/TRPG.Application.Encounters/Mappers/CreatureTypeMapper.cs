@@ -3,7 +3,7 @@ using DataCreatureType = TRPG.Data.Models.CreatureType;
 
 namespace TRPG.Application.Encounters.Mappers;
 
-internal static class EncounterResponseEnumMappers
+internal static class CreatureTypeMapper
 {
     public static ContractCreatureType ToContract(this DataCreatureType type) =>
         type switch

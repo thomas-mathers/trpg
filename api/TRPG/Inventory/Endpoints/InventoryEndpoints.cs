@@ -16,10 +16,11 @@ using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Inventory.Responses;
 using TRPG.Contracts.Trading.Requests;
 using TRPG.Contracts.Trading.Responses;
-using TRPG.Creatures.Endpoints;
+using TRPG.Creatures.Mappers;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.GameSessions.Hubs;
+using TRPG.Inventory.Mappers;
 
 namespace TRPG.Inventory.Endpoints;
 
@@ -142,9 +143,7 @@ internal static class InventoryEndpoints
                 cancellationToken
             );
 
-        return item is null
-            ? TypedResults.NotFound()
-            : TypedResults.Ok(CreatureEndpoints.ToItemDetail(item));
+        return item is null ? TypedResults.NotFound() : TypedResults.Ok(item.ToDetail());
     }
 
     private static async Task<Ok<TradeSnapshot>> GetTrade(
@@ -170,8 +169,8 @@ internal static class InventoryEndpoints
 
         return TypedResults.Ok(
             new TradeSnapshot(
-                ToSummary(trade.PlayerInventory, questItemIds),
-                ToSummary(trade.ShopInventory, [])
+                trade.PlayerInventory.ToSummary(questItemIds),
+                trade.ShopInventory.ToSummary([])
             )
         );
     }
@@ -225,9 +224,4 @@ internal static class InventoryEndpoints
         );
         return TypedResults.NoContent();
     }
-
-    private static InventorySummary ToSummary(
-        InventorySnapshot snapshot,
-        IReadOnlyCollection<Guid> questItemIds
-    ) => new(snapshot.Gold, CreatureEndpoints.ToItemDetails(snapshot.Items, questItemIds));
 }

@@ -81,7 +81,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
                 b.Id,
                 b.Name,
                 LoreAnchorType.Building,
-                LoreAnchorBuildingTypeMapper.ToDisplayName(b.BuildingType),
+                b.BuildingType.ToDisplayName(),
                 b.Description
             ))
             .ToArray();
@@ -102,7 +102,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
                 d.Id,
                 d.Name,
                 LoreAnchorType.District,
-                LoreAnchorBuildingTypeMapper.ToDisplayName(d.DistrictType),
+                d.DistrictType.ToDisplayName(),
                 d.Description
             ))
             .ToArray();

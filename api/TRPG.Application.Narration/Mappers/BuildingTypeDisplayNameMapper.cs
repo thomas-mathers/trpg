@@ -1,29 +1,12 @@
 using TRPG.Contracts;
 using ContractBuildingType = TRPG.Contracts.Scenes.Responses.BuildingType;
-using ContractDistrictType = TRPG.Contracts.Scenes.Responses.DistrictType;
 using DataBuildingType = TRPG.Data.Models.BuildingType;
-using DataDistrictType = TRPG.Data.Models.DistrictType;
 
 namespace TRPG.Application.Narration.Mappers;
 
-internal static class LoreAnchorBuildingTypeMapper
+internal static class BuildingTypeDisplayNameMapper
 {
-    public static string ToDisplayName(DataDistrictType type) =>
-        (
-            type switch
-            {
-                DataDistrictType.Residential => ContractDistrictType.Residential,
-                DataDistrictType.Scientific => ContractDistrictType.Scientific,
-                DataDistrictType.CityCenter => ContractDistrictType.CityCenter,
-                DataDistrictType.CityEntrance => ContractDistrictType.CityEntrance,
-                DataDistrictType.Governmental => ContractDistrictType.Governmental,
-                DataDistrictType.HolySite => ContractDistrictType.HolySite,
-                DataDistrictType.Encampment => ContractDistrictType.Encampment,
-                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-            }
-        ).ToDisplayName();
-
-    public static string ToDisplayName(DataBuildingType type) =>
+    public static string ToDisplayName(this DataBuildingType type) =>
         (
             type switch
             {

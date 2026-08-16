@@ -81,7 +81,7 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(SceneSnapshotMapper.ToSnapshot(refreshed.Scene));
+        return TypedResults.Ok(refreshed.Scene.ToSnapshot());
     }
 
     private static async Task<Ok<LoreAnchor[]>> GetLoreAnchors(
@@ -105,7 +105,7 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(anchors.Select(ToLoreAnchor).ToArray());
+        return TypedResults.Ok(anchors.Select(anchor => anchor.ToContract()).ToArray());
     }
 
     private static async Task<Results<NotFound, Ok<LoreAnchor>>> GetLoreAnchorById(
@@ -131,25 +131,6 @@ internal static class GameSessionEndpoints
         );
 
         var anchor = anchors.FirstOrDefault(anchor => anchor.Id == anchorId);
-        return anchor == null ? TypedResults.NotFound() : TypedResults.Ok(ToLoreAnchor(anchor));
+        return anchor == null ? TypedResults.NotFound() : TypedResults.Ok(anchor.ToContract());
     }
-
-    private static LoreAnchor ToLoreAnchor(LoreAnchorSummary anchor) =>
-        new(
-            anchor.Id,
-            anchor.Name,
-            anchor.Type switch
-            {
-                LoreAnchorType.Creature => EntityType.Creature,
-                LoreAnchorType.Building => EntityType.Building,
-                LoreAnchorType.District => EntityType.District,
-                LoreAnchorType.World => EntityType.World,
-                LoreAnchorType.Country => EntityType.Country,
-                LoreAnchorType.State => EntityType.State,
-                LoreAnchorType.City => EntityType.City,
-                _ => throw new ArgumentOutOfRangeException(nameof(anchor)),
-            },
-            anchor.Subtype,
-            anchor.Description
-        );
 }

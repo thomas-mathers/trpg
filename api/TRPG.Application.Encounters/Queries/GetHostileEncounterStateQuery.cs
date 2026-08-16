@@ -31,9 +31,8 @@ internal class GetHostileEncounterStateQueryHandler(
             cancellationToken
         );
 
-        return HostileEncounterStateMapper.ToState(
+        return groupContext.Faction.ToState(
             query.EncounterId,
-            groupContext.Faction,
             groupContext.LivingMembers,
             location!
         );

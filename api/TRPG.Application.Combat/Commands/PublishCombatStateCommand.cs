@@ -26,8 +26,6 @@ internal class PublishCombatStateCommandHandler(
             cancellationToken
         );
         if (combatants.Count > 0)
-            gameEvents.Enqueue(
-                new CombatStartedEvent(CombatantStateMapper.ToCombatantStates(combatants))
-            );
+            gameEvents.Enqueue(new CombatStartedEvent(combatants.ToCombatantStates()));
     }
 }

@@ -135,12 +135,7 @@ internal class EvaluateLocationEncountersCommandHandler(
         context.Encounters.Add(encounter);
         await context.SaveChangesAsync(cancellationToken);
 
-        return HostileEncounterStateMapper.ToState(
-            encounter.Id,
-            selectedFaction,
-            selectedLivingMembers,
-            location
-        );
+        return selectedFaction.ToState(encounter.Id, selectedLivingMembers, location);
     }
 
     private static HostileEncounterCandidateGroup BuildCandidate(
