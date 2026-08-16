@@ -1,15 +1,14 @@
-using ContractGender = TRPG.Contracts.Worlds.Requests.Gender;
 using DataGender = TRPG.Data.Models.Gender;
 
 namespace TRPG.Application.Worlds.Mappers;
 
 internal static class GenderMapper
 {
-    public static DataGender ToGender(this ContractGender gender) =>
+    public static DataGender ToGender(this PlayerGender gender) =>
         gender switch
         {
-            ContractGender.Male => DataGender.Male,
-            ContractGender.Female => DataGender.Female,
+            PlayerGender.Male => DataGender.Male,
+            PlayerGender.Female => DataGender.Female,
             _ => throw new ArgumentOutOfRangeException(nameof(gender), gender, null),
         };
 }

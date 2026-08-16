@@ -4,8 +4,8 @@ using TickerQ.Utilities.Interfaces;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Contracts;
-using TRPG.Contracts.Worlds.Responses;
 using TRPG.Data;
+using TRPG.Worlds.Responses;
 
 namespace TRPG.Worlds.Jobs;
 

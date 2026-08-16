@@ -1,36 +1,12 @@
+using TRPG.Application.Worlds;
 using TRPG.Contracts.Creatures.Requests;
 
-namespace TRPG.Contracts.Worlds.Requests;
-
-public enum Gender
-{
-    Male,
-    Female,
-}
-
-public enum Race
-{
-    Human,
-    Elf,
-    Dwarf,
-    Orc,
-    Halfling,
-    Gnome,
-}
-
-public enum PlayerClass
-{
-    Knight,
-    Rogue,
-    Ranger,
-    Mage,
-    Cleric,
-}
+namespace TRPG.Worlds.Requests;
 
 public record CreateWorldRequest
 {
     public required string PlayerName { get; init; }
-    public required Gender Gender { get; init; }
+    public required PlayerGender Gender { get; init; }
     public required int Age { get; init; }
     public required Race Race { get; init; }
     public required PlayerClass PlayerClass { get; init; }
