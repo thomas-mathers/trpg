@@ -3,7 +3,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests.Events;
 
-public sealed class CreatureKilledQuestEventHandler(QuestObjectiveAdvancer questObjectiveAdvancer)
+internal sealed class CreatureKilledQuestEventHandler(QuestObjectiveAdvancer questObjectiveAdvancer)
     : IDomainEventConsumer<CreatureKilledEvent>
 {
     public Task Handle(

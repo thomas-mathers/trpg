@@ -8,7 +8,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests;
 
-public sealed class QuestObjectiveAdvancer(
+internal sealed class QuestObjectiveAdvancer(
     ICommandHandler<MarkQuestsReadyToCompleteCommand> markQuestsReadyToComplete,
     IGameClientEventSink gameEvents,
     TrpgDbContext context

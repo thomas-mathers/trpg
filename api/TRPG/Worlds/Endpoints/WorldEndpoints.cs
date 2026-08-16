@@ -2,11 +2,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using TickerQ.Utilities;
 using TickerQ.Utilities.Interfaces.Managers;
 using TRPG.Application.Common.Handling;
-using TRPG.Application.Narration.Queries;
+using TRPG.Application.Narration.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
@@ -90,14 +89,17 @@ internal static class WorldEndpoints
     private static async Task<NoContent> DropWorld(
         Guid worldId,
         [FromServices] ICommandHandler<DropWorldCommand> dropHandler,
-        IMemoryCache cache,
+        [FromServices]
+            ICommandHandler<InvalidateWorldLoreAnchorsCommand> invalidateWorldLoreAnchors,
         CancellationToken cancellationToken
     )
     {
         await dropHandler.Handle(new DropWorldCommand { WorldId = worldId }, cancellationToken);
 
-        cache.Remove(GetLoreAnchorsByWorldQueryHandler.CacheKey(worldId));
-        cache.Remove(GetLoreAnchorAutomatonByWorldQueryHandler.CacheKey(worldId));
+        await invalidateWorldLoreAnchors.Handle(
+            new InvalidateWorldLoreAnchorsCommand { WorldId = worldId },
+            cancellationToken
+        );
 
         return TypedResults.NoContent();
     }

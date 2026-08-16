@@ -18,12 +18,7 @@ using TRPG.GameSessions.Commands;
 namespace TRPG.GameSessions.Hubs;
 
 internal sealed class ChatHub(
-    StreamOpeningTurnHandler streamOpeningTurn,
-    StreamChatTurnHandler streamChatTurn,
-    StreamWaitTurnHandler streamWaitTurn,
-    StreamFleeTurnHandler streamFleeTurn,
-    StreamEncounterActionTurnHandler streamEncounterActionTurn,
-    ResolveCombatActionHandler resolveCombatAction,
+    GameTurnRunner gameTurnRunner,
     GameClientEventDispatcher eventDispatcher,
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
@@ -89,25 +84,25 @@ internal sealed class ChatHub(
     }
 
     public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken) =>
-        streamOpeningTurn.Handle(Session, cancellationToken);
+        gameTurnRunner.StreamOpening(Session, cancellationToken);
 
     public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken) =>
-        streamChatTurn.Handle(Session, message, cancellationToken);
+        gameTurnRunner.StreamChat(Session, message, cancellationToken);
 
     public IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken) =>
-        streamWaitTurn.Handle(Session, hours, cancellationToken);
+        gameTurnRunner.StreamWait(Session, hours, cancellationToken);
 
     public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
-        streamFleeTurn.Handle(Session, cancellationToken);
+        gameTurnRunner.StreamFlee(Session, cancellationToken);
 
     public IAsyncEnumerable<string> ResolveEncounterAction(
         PlayerEncounterAction action,
         CancellationToken cancellationToken
-    ) => streamEncounterActionTurn.Handle(Session, action, cancellationToken);
+    ) => gameTurnRunner.StreamEncounterAction(Session, action, cancellationToken);
 
     public async Task ResolveCombatAction(PlayerCombatAction action)
     {
-        await resolveCombatAction.Handle(Session, action, Context.ConnectionAborted);
+        await gameTurnRunner.ResolveCombatAction(Session, action, Context.ConnectionAborted);
         await eventDispatcher.FlushAsync(Session.WorldId, Context.ConnectionAborted);
     }
 

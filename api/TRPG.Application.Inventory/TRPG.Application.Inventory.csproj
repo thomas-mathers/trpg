@@ -6,7 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="TRPG.Tests" />
-    <InternalsVisibleTo Include="TRPG" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.CreatureFormulas\TRPG.Application.CreatureFormulas.csproj" />
