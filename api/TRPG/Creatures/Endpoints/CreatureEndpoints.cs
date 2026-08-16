@@ -104,7 +104,7 @@ internal static class CreatureEndpoints
         );
 
         return TypedResults.Ok(
-            new InventorySummary(snapshot.Gold, ToItemDetails(snapshot.Items, questItemIds))
+            new InventorySummary(snapshot.Gold, snapshot.Items.ToDetails(questItemIds))
         );
     }
 
@@ -123,7 +123,9 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(items.OfType<Consumable>().Select(ToConsumableSummary).ToArray());
+        return TypedResults.Ok(
+            items.OfType<Consumable>().Select(item => item.ToSummary()).ToArray()
+        );
     }
 
     private static async Task<Ok<NearbyCorpseSummary[]>> GetNearbyCorpses(
@@ -249,7 +251,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(ToEffectiveAttributesResponse(attributes));
+        return TypedResults.Ok(attributes.ToResponse());
     }
 
     private static async Task<Ok<EffectiveAttributesResponse>> PreviewEquipItemStats(
@@ -270,7 +272,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(ToEffectiveAttributesResponse(attributes));
+        return TypedResults.Ok(attributes.ToResponse());
     }
 
     private static async Task<Ok<BasicAttackDamageResponse>> GetBasicAttackDamage(
@@ -313,29 +315,6 @@ internal static class CreatureEndpoints
         return TypedResults.Ok(new BasicAttackDamageResponse(damagePerTurn));
     }
 
-    private static EffectiveAttributesResponse ToEffectiveAttributesResponse(
-        Attributes attributes
-    ) =>
-        new(
-            attributes.Strength,
-            attributes.Dexterity,
-            attributes.Intelligence,
-            attributes.Endurance,
-            attributes.Stamina,
-            attributes.Mana,
-            attributes.Defense,
-            attributes.MaximumHp,
-            attributes.MaximumAp,
-            attributes.MaximumMp,
-            attributes.MovementSpeed,
-            attributes.PhysicalResistance,
-            attributes.FireResistance,
-            attributes.IceResistance,
-            attributes.LightningResistance,
-            attributes.PoisonResistance,
-            attributes.MagicResistance
-        );
-
     private static async Task<Ok<SkillProgressSummary[]>> GetSkills(
         Guid creatureId,
         [FromServices]
@@ -351,7 +330,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(skills.Select(ToSkillProgressSummary).ToArray());
+        return TypedResults.Ok(skills.Select(skill => skill.ToSummary()).ToArray());
     }
 
     private static async Task<Ok<CreatureLevelResponse>> GetLevel(

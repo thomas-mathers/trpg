@@ -127,6 +127,12 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - No hard line-count ceiling — length by itself isn't the problem, mixed responsibilities are. A class creeping past a few hundred lines of actual logic is a prompt to re-check whether it's still doing one thing, not an automatic violation (e.g. `PlayerActionResolver` was split out of `CombatEngine` because validating player input is a different responsibility than simulating a round, not because of line count)
 - Classes that are mostly static literal data (e.g. `CreatureGenerator`'s name-pool arrays) can run long without needing a split — the length reflects data volume, not complexity
 
+### Mappers
+- Put each mapper in its feature's `Mappers/` folder. A mapper file contains one `internal static` mapper class, named for its source type (`WeaponMapper`, `SceneCreatureInfoMapper`), and its mapping methods are extension methods on that source type.
+- A concrete source type gets its own mapper. Do not embed mappings for its derived, nested, or related source types inside another mapper: compose their extension methods instead.
+- A base-type mapper may be a small polymorphic dispatcher (`ItemMapper`, `ItemModifierMapper`), but each switch arm must delegate to the concrete source type's mapper rather than construct its target there.
+- Mappers are pure transformations: no mutation, I/O, database access, logging, validation, business logic, or exceptions. Validate inputs and make business decisions before calling a mapper; mapper bodies may only perform straightforward value/collection/enum transformations and compose other mappers.
+
 ### Functions
 - A command represents one operation. Do not use a command property as a flag that switches its behavior; model each operation as its own command instead.
 - Each function does one thing — if you need "and" to describe what it does, split it

@@ -1,0 +1,17 @@
+using ContractArmorClass = TRPG.Contracts.Inventory.Responses.ArmorClass;
+using DataArmorClass = TRPG.Data.Models.ArmorClass;
+
+namespace TRPG.Creatures.Mappers;
+
+internal static class ArmorClassMapper
+{
+    public static ContractArmorClass ToContract(this DataArmorClass armorClass) =>
+        armorClass switch
+        {
+            DataArmorClass.Cloth => ContractArmorClass.Cloth,
+            DataArmorClass.Leather => ContractArmorClass.Leather,
+            DataArmorClass.Mail => ContractArmorClass.Mail,
+            DataArmorClass.Plate => ContractArmorClass.Plate,
+            _ => throw new ArgumentOutOfRangeException(nameof(armorClass), armorClass, null),
+        };
+}

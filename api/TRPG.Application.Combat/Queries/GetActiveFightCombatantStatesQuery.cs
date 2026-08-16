@@ -22,6 +22,6 @@ internal class GetActiveFightCombatantStatesQueryHandler(
             new GetActiveFightCombatantsQuery { PlayerId = query.PlayerId },
             cancellationToken
         );
-        return CombatantStateMapper.ToCombatantStates(combatants);
+        return combatants.ToCombatantStates();
     }
 }

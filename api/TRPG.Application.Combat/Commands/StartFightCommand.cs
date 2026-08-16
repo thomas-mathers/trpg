@@ -68,9 +68,7 @@ internal class StartFightCommandHandler(
             }
         );
         await context.SaveChangesAsync(cancellationToken);
-        gameEvents.Enqueue(
-            new CombatStartedEvent(CombatantStateMapper.ToCombatantStates(combatants))
-        );
+        gameEvents.Enqueue(new CombatStartedEvent(combatants.ToCombatantStates()));
 
         return combatants;
     }
