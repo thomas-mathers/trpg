@@ -1,9 +1,8 @@
-using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Narration.Queries;
+using TRPG.Application.Narration.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Data.Models;
 
@@ -19,7 +18,7 @@ internal class EndGameSessionCommandHandler(
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<DeleteGameSessionCommand> deleteGameSession,
     ICommandHandler<AbandonActiveFightCommand> abandonActiveFight,
-    IMemoryCache cache
+    ICommandHandler<InvalidateWorldLoreAnchorsCommand> invalidateWorldLoreAnchors
 ) : ICommandHandler<EndGameSessionCommand>
 {
     public async Task Handle(
@@ -56,7 +55,9 @@ internal class EndGameSessionCommandHandler(
             cancellationToken
         );
 
-        cache.Remove(GetLoreAnchorsByWorldQueryHandler.CacheKey(snapshot.WorldId));
-        cache.Remove(GetLoreAnchorAutomatonByWorldQueryHandler.CacheKey(snapshot.WorldId));
+        await invalidateWorldLoreAnchors.Handle(
+            new InvalidateWorldLoreAnchorsCommand { WorldId = snapshot.WorldId },
+            cancellationToken
+        );
     }
 }

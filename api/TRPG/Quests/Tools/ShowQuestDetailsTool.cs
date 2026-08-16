@@ -6,8 +6,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Quests;
-using TRPG.Application.Quests.Events;
+using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
 using TRPG.Data.Models;
 using TRPG.Tools;
@@ -16,13 +15,9 @@ namespace TRPG.Quests.Tools;
 
 internal class ShowQuestDetailsTool(
     GameTurnContext turnContext,
-    IGameClientEventSink gameEvents,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
-    IQueryHandler<
-        GetQuestInteractionsForGiverQuery,
-        QuestInteractionsForGiver
-    > getQuestInteractions,
+    ICommandHandler<RequestQuestDialogCommand, QuestDialogRequestResult> requestQuestDialog,
     ILogger<ShowQuestDetailsTool> logger
 ) : IGameTool
 {
@@ -70,43 +65,17 @@ internal class ShowQuestDetailsTool(
             return new ToolError($"No one named '{npcName}' found nearby.");
         }
 
-        var interactions = await getQuestInteractions.Handle(
-            new GetQuestInteractionsForGiverQuery
+        var dialog = await requestQuestDialog.Handle(
+            new RequestQuestDialogCommand
             {
-                GiverId = npc.Id,
-                PlayerId = player.Id,
                 WorldId = turnContext.WorldId,
+                PlayerId = player.Id,
+                GiverId = npc.Id,
+                QuestName = questName,
             },
             cancellationToken
         );
-        var availableQuest = interactions.AvailableQuests.FirstOrDefault(quest =>
-            quest.Name == questName
-        );
-        var readyQuest = interactions.ReadyToCompleteQuests.FirstOrDefault(quest =>
-            quest.Name == questName
-        );
-
-        if (availableQuest is not null)
-        {
-            gameEvents.Enqueue(
-                new QuestDialogRequestedEvent(
-                    turnContext.WorldId,
-                    availableQuest,
-                    QuestDialogMode.Offer
-                )
-            );
-        }
-        else if (readyQuest is not null)
-        {
-            gameEvents.Enqueue(
-                new QuestDialogRequestedEvent(
-                    turnContext.WorldId,
-                    readyQuest,
-                    QuestDialogMode.TurnIn
-                )
-            );
-        }
-        else
+        if (!dialog.IsAvailable)
         {
             return new ToolError($"'{questName}' is not available from {npcName} right now.");
         }

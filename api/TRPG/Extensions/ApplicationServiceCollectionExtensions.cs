@@ -27,7 +27,6 @@ using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Commands;
-using TRPG.Application.Quests.Events;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
@@ -79,36 +78,10 @@ public static class ApplicationServiceCollectionExtensions
             )
             .AddTradingServices()
             .AddTransient<SceneCatchUpCache>()
-            .AddTransient<QuestObjectiveAdvancer>()
-            .AddTransient<CreatureKilledQuestEventHandler>()
-            .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<CreatureKilledQuestEventHandler>()
-            )
-            .AddTransient<PlayerMovedQuestEventHandler>()
-            .AddTransient<ConversationStartedQuestEventHandler>()
-            .AddTransient<IDomainEventConsumer<NpcConversationStartedEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<ConversationStartedQuestEventHandler>()
-            )
-            .AddTransient<ItemAcquiredQuestEventHandler>()
-            .AddTransient<IDomainEventConsumer<ItemAcquiredEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<ItemAcquiredQuestEventHandler>()
-            )
-            .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<PlayerMovedQuestEventHandler>()
-            )
+            .AddQuestServices()
             .AddWorldsServices()
-            .AddTransient<LlmConversationClient>()
-            .AddTransient<GameTurnStreamer>()
-            .AddTransient<StreamOpeningTurnHandler>()
-            .AddTransient<StreamWaitTurnHandler>()
-            .AddTransient<StreamChatTurnHandler>()
-            .AddTransient<StreamFleeTurnHandler>()
-            .AddTransient<StreamEncounterActionTurnHandler>()
-            .AddTransient<ResolveCombatActionHandler>()
-            .AddTransient<HitCalculator>()
-            .AddTransient<DamageCalculator>()
-            .AddTransient<EnemyCombatActionResolver>()
-            .AddTransient<CombatEngine>()
+            .AddCombatServices()
+            .AddGameTurnsServices()
             .AddGameTool<LookTool>()
             .AddGameTool<MoveTool>()
             .AddGameTool<CreatureInspectTool>()

@@ -3,7 +3,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests.Events;
 
-public sealed class ConversationStartedQuestEventHandler(
+internal sealed class ConversationStartedQuestEventHandler(
     QuestObjectiveAdvancer questObjectiveAdvancer
 ) : IDomainEventConsumer<NpcConversationStartedEvent>
 {

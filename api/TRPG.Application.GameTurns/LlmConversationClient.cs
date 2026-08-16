@@ -14,7 +14,7 @@ namespace TRPG.Application.GameTurns;
 
 internal sealed record StreamedReply(int InputOrdinal, IAsyncEnumerable<string> Tokens);
 
-public class LlmConversationClient(
+internal class LlmConversationClient(
     [FromKeyedServices(LlmRoleKeys.Gameplay)] IChatClient chatClient,
     GameTurnContext turnContext,
     IQueryHandler<GetChatMessagesQuery, IReadOnlyList<ChatMessage>> getChatMessages,

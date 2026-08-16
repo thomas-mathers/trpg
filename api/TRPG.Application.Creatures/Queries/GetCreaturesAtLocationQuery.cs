@@ -42,7 +42,7 @@ public record CreatureSummary(
     float MagicResistance
 );
 
-public static class CreatureLocationFiltering
+internal static class CreatureLocationFiltering
 {
     public static IQueryable<Creature> ApplyFilters(
         IQueryable<Creature> query,

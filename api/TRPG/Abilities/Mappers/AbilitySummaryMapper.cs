@@ -1,9 +1,10 @@
+using TRPG.Application.Abilities;
 using AbilitySummary = TRPG.Contracts.Abilities.Responses.AbilitySummary;
 using ContractAbilityCategory = TRPG.Contracts.Abilities.Responses.AbilityCategory;
 using ContractSkill = TRPG.Contracts.Abilities.Responses.Skill;
 using DataSkill = TRPG.Data.Models.Skill;
 
-namespace TRPG.Application.Abilities.Mappers;
+namespace TRPG.Abilities.Mappers;
 
 internal static class AbilitySummaryMapper
 {

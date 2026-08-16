@@ -3,7 +3,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Quests.Events;
 
-public sealed class PlayerMovedQuestEventHandler(QuestObjectiveAdvancer questObjectiveAdvancer)
+internal sealed class PlayerMovedQuestEventHandler(QuestObjectiveAdvancer questObjectiveAdvancer)
     : IDomainEventConsumer<PlayerMovedEvent>
 {
     public Task Handle(
