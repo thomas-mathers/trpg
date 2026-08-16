@@ -4,7 +4,6 @@ using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

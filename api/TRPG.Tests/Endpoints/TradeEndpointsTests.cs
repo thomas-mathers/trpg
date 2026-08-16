@@ -1,7 +1,6 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Trading.Requests;
 using TRPG.Contracts.Trading.Responses;
 using TRPG.Data;

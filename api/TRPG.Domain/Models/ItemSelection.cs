@@ -1,3 +1,3 @@
-namespace TRPG.Contracts.Inventory.Requests;
+namespace TRPG.Domain.Models;
 
 public record ItemSelection(Guid ItemId, int Quantity);

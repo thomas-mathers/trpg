@@ -2,7 +2,6 @@ using System.Transactions;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Inventory;
-using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

@@ -1,4 +1,4 @@
-using TRPG.Contracts.Inventory.Requests;
+using TRPG.Domain.Models;
 
 namespace TRPG.Contracts.Trading.Requests;
 

@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Inventory;
 using TRPG.Application.Trading;
-using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
