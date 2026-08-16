@@ -46,7 +46,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
 
-        var item = Builders.MakeWeaponItem(_worldId);
+        var item = Builders.MakeWeapon(_worldId);
         item.Quantity = 1;
         item.Ownership.OwnerId = _fromCreature.Id;
         item.Ownership.OwnerType = OwnerType.Creature;

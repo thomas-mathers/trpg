@@ -49,7 +49,7 @@ public sealed class ReceivePlayerInventoryCommandHandlerTests(DatabaseFixture db
 
     private async Task<Item> SeedItemOnFromCreature(int quantity)
     {
-        var item = Builders.MakeWeaponItem(WorldId);
+        var item = Builders.MakeWeapon(WorldId);
         item.Quantity = quantity;
         item.Ownership.OwnerId = _fromCreature.Id;
         item.Ownership.OwnerType = OwnerType.Creature;
@@ -109,7 +109,7 @@ public sealed class ReceivePlayerInventoryCommandHandlerTests(DatabaseFixture db
 
     private async Task<Item> SeedAmmunitionOnFromCreature(int quantity)
     {
-        var item = Builders.MakeAmmunitionItem(WorldId);
+        var item = Builders.MakeAmmunition(WorldId);
         item.Quantity = quantity;
         item.Ownership.OwnerId = _fromCreature.Id;
         item.Ownership.OwnerType = OwnerType.Creature;
@@ -120,7 +120,7 @@ public sealed class ReceivePlayerInventoryCommandHandlerTests(DatabaseFixture db
 
     private async Task<Item> SeedItemOnContainer(int quantity)
     {
-        var item = Builders.MakeWeaponItem(WorldId);
+        var item = Builders.MakeWeapon(WorldId);
         item.Quantity = quantity;
         item.Ownership.OwnerId = _container.Id;
         item.Ownership.OwnerType = OwnerType.Container;

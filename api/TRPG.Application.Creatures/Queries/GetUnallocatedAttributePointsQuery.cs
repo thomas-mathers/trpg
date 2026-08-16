@@ -24,7 +24,9 @@ internal class GetUnallocatedAttributePointsQueryHandler(
     {
         var creature = await context
             .Creatures.AsNoTracking()
-            .FirstAsync(c => c.Id == query.CreatureId, cancellationToken);
+            .Where(c => c.Id == query.CreatureId)
+            .Select(c => new { c.BaseAttributes, c.Level })
+            .FirstAsync(cancellationToken);
 
         return StatFormulas.CalculateUnallocatedAttributePoints(
             creature.BaseAttributes,

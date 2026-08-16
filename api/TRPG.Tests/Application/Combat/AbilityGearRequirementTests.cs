@@ -37,7 +37,7 @@ public class AbilityGearRequirementTests
     public void IsMet_ReturnsTrue_WhenShieldIsRequiredAndEquipped()
     {
         // Arrange
-        var actor = MakeCombatant().WithItem(Builders.MakeShieldItem(_worldId)).Build();
+        var actor = MakeCombatant().WithItem(Builders.MakeShield(_worldId)).Build();
         var ability = MakeAbility("Shield Bash", GearRequirement.Shield);
 
         // Act
@@ -65,7 +65,7 @@ public class AbilityGearRequirementTests
     public void IsMet_ReturnsTrue_WhenMeleeWeaponIsRequiredAndEquipped()
     {
         // Arrange
-        var weapon = Builders.MakeWeaponItem(_worldId, type: WeaponType.Sword);
+        var weapon = Builders.MakeWeapon(_worldId, type: WeaponType.Sword);
         var actor = MakeCombatant().WithItem(weapon).Build();
         var ability = MakeAbility("Slash", GearRequirement.MeleeWeapon);
 
@@ -94,7 +94,7 @@ public class AbilityGearRequirementTests
     public void IsMet_ReturnsFalse_WhenRangedWeaponIsRequiredButAMeleeWeaponIsEquipped()
     {
         // Arrange
-        var weapon = Builders.MakeWeaponItem(_worldId, type: WeaponType.Sword);
+        var weapon = Builders.MakeWeapon(_worldId, type: WeaponType.Sword);
         var actor = MakeCombatant().WithItem(weapon).Build();
         var ability = MakeAbility("Arrow Shot", GearRequirement.RangedWeapon);
 
@@ -109,7 +109,7 @@ public class AbilityGearRequirementTests
     public void IsMet_ReturnsTrue_WhenRangedWeaponIsRequiredAndEquipped()
     {
         // Arrange
-        var weapon = Builders.MakeWeaponItem(_worldId, type: WeaponType.Bow);
+        var weapon = Builders.MakeWeapon(_worldId, type: WeaponType.Bow);
         var actor = MakeCombatant().WithItem(weapon).Build();
         var ability = MakeAbility("Arrow Shot", GearRequirement.RangedWeapon);
 
@@ -138,7 +138,7 @@ public class AbilityGearRequirementTests
     public void IsMet_ReturnsTrue_WhenCasterWeaponIsRequiredAndEquipped()
     {
         // Arrange
-        var weapon = Builders.MakeWeaponItem(_worldId, type: WeaponType.Staff);
+        var weapon = Builders.MakeWeapon(_worldId, type: WeaponType.Staff);
         var actor = MakeCombatant().WithItem(weapon).Build();
         var ability = MakeAbility("Fireball", GearRequirement.CasterWeapon);
 

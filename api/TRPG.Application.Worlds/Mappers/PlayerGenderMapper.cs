@@ -2,7 +2,7 @@ using DataGender = TRPG.Domain.Models.Gender;
 
 namespace TRPG.Application.Worlds.Mappers;
 
-internal static class GenderMapper
+internal static class PlayerGenderMapper
 {
     public static DataGender ToGender(this PlayerGender gender) =>
         gender switch

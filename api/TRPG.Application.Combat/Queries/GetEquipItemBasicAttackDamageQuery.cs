@@ -12,14 +12,14 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Queries;
 
-public class PreviewEquipItemBasicAttackDamageQuery
+public class GetEquipItemBasicAttackDamageQuery
 {
     public required Guid CreatureId { get; init; }
     public required Guid ItemId { get; init; }
     public required EquipmentSlot Slot { get; init; }
 }
 
-internal class PreviewEquipItemBasicAttackDamageQueryHandler(
+internal class GetEquipItemBasicAttackDamageQueryHandler(
     TrpgDbContext context,
     IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
     IQueryHandler<
@@ -28,10 +28,10 @@ internal class PreviewEquipItemBasicAttackDamageQueryHandler(
     > getAllWeaponProficiencies,
     DamageCalculator damageCalculator,
     IOptionsSnapshot<CombatOptions> optionsSnapshot
-) : IQueryHandler<PreviewEquipItemBasicAttackDamageQuery, float>
+) : IQueryHandler<GetEquipItemBasicAttackDamageQuery, float>
 {
     public async Task<float> Handle(
-        PreviewEquipItemBasicAttackDamageQuery query,
+        GetEquipItemBasicAttackDamageQuery query,
         CancellationToken cancellationToken = default
     )
     {

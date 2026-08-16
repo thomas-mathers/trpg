@@ -25,7 +25,7 @@ public class DamageCalculatorTests
         );
 
     private Weapon MakeFixedRangeWeapon(int damage) =>
-        Builders.MakeWeaponItem(worldId: _worldId, minDamage: damage, maxDamage: damage);
+        Builders.MakeWeapon(worldId: _worldId, minDamage: damage, maxDamage: damage);
 
     [Fact]
     public void CalculateDamage_RollsAgainstTheWeapon_ForPhysicalAbilities()
@@ -158,7 +158,7 @@ public class DamageCalculatorTests
     public void CalculateDamage_AddsElementalWeaponDamage_AfterTheMatchingResistance()
     {
         // Arrange â€” 10 physical damage plus 8 fixed fire damage against 25% fire resistance.
-        var weapon = Builders.MakeWeaponItem(
+        var weapon = Builders.MakeWeapon(
             worldId: _worldId,
             minDamage: 10,
             maxDamage: 10,
@@ -471,7 +471,7 @@ public class DamageCalculatorTests
     public void EstimateBasicAttackDamagePerTurn_MultipliesByMainHandAttacksPerTurn()
     {
         // Arrange — fixed 10-damage weapon, 3 attacks per turn = 30
-        var weapon = Builders.MakeWeaponItem(
+        var weapon = Builders.MakeWeapon(
             worldId: _worldId,
             minDamage: 10,
             maxDamage: 10,
@@ -496,7 +496,7 @@ public class DamageCalculatorTests
     public void EstimateBasicAttackDamagePerTurn_IncludesAverageElementalWeaponDamage()
     {
         // Arrange — a 10-damage weapon with a 4-8 fire affix has 16 expected damage per swing.
-        var weapon = Builders.MakeWeaponItem(
+        var weapon = Builders.MakeWeapon(
             worldId: _worldId,
             minDamage: 10,
             maxDamage: 10,
@@ -529,8 +529,8 @@ public class DamageCalculatorTests
     public void EstimateBasicAttackDamagePerTurn_AddsOffHandWeaponSwings()
     {
         // Arrange — main hand 10x1 + off hand 5x2 = 20
-        var mainHand = Builders.MakeWeaponItem(worldId: _worldId, minDamage: 10, maxDamage: 10);
-        var offHand = Builders.MakeWeaponItem(
+        var mainHand = Builders.MakeWeapon(worldId: _worldId, minDamage: 10, maxDamage: 10);
+        var offHand = Builders.MakeWeapon(
             worldId: _worldId,
             minDamage: 5,
             maxDamage: 5,

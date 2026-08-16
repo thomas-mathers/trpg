@@ -26,7 +26,7 @@ internal class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
     QuestGenerator questGenerator,
-    BootstrapWorldCommandHandler bootstrapWorld
+    ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld
 ) : ICommandHandler<CreateWorldCommand, CreateWorldResult>
 {
     public async Task<CreateWorldResult> Handle(
@@ -72,9 +72,12 @@ internal class CreateWorldCommandHandler(
         var quests = questGenerator.Generate(worldResult, startingState.Id);
 
         var bootstrapResult = await bootstrapWorld.Handle(
-            worldResult,
-            playerResult,
-            quests,
+            new BootstrapWorldCommand
+            {
+                World = worldResult,
+                Player = playerResult,
+                Quests = quests,
+            },
             cancellationToken
         );
 

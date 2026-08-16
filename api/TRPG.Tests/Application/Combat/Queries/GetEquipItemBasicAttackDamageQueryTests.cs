@@ -9,15 +9,15 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Combat.Queries;
 
 [Collection("Database")]
-public sealed class PreviewEquipItemBasicAttackDamageQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetEquipItemBasicAttackDamageQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private PreviewEquipItemBasicAttackDamageQueryHandler _previewHandler = null!;
+    private GetEquipItemBasicAttackDamageQueryHandler _getHandler = null!;
     private GetCreatureBasicAttackDamageQueryHandler _getDamageHandler = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
-    private readonly Weapon _weapon = Builders.MakeWeaponItem();
+    private readonly Weapon _weapon = Builders.MakeWeapon();
 
     public async ValueTask InitializeAsync()
     {
@@ -25,8 +25,8 @@ public sealed class PreviewEquipItemBasicAttackDamageQueryTests(DatabaseFixture 
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _previewHandler =
-            _serviceProvider.GetRequiredService<PreviewEquipItemBasicAttackDamageQueryHandler>();
+        _getHandler =
+            _serviceProvider.GetRequiredService<GetEquipItemBasicAttackDamageQueryHandler>();
         _getDamageHandler =
             _serviceProvider.GetRequiredService<GetCreatureBasicAttackDamageQueryHandler>();
         _equipHandler = _serviceProvider.GetRequiredService<EquipInventoryItemCommandHandler>();
@@ -55,8 +55,8 @@ public sealed class PreviewEquipItemBasicAttackDamageQueryTests(DatabaseFixture 
     public async Task Handle_MatchesTheValueAfterActuallyEquipping()
     {
         // Act
-        var previewedDamage = await _previewHandler.Handle(
-            new PreviewEquipItemBasicAttackDamageQuery
+        var previewedDamage = await _getHandler.Handle(
+            new GetEquipItemBasicAttackDamageQuery
             {
                 CreatureId = _creature.Id,
                 ItemId = _weapon.Id,
@@ -86,8 +86,8 @@ public sealed class PreviewEquipItemBasicAttackDamageQueryTests(DatabaseFixture 
     public async Task Handle_DoesNotPersistAnyChanges()
     {
         // Act
-        await _previewHandler.Handle(
-            new PreviewEquipItemBasicAttackDamageQuery
+        await _getHandler.Handle(
+            new GetEquipItemBasicAttackDamageQuery
             {
                 CreatureId = _creature.Id,
                 ItemId = _weapon.Id,

@@ -49,12 +49,12 @@ public sealed class TradeEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
     {
         // Arrange
         var playerItem = await SeedItem(
-            Builders.MakeWeaponItem(_world.Id, quantity: 1),
+            Builders.MakeWeapon(_world.Id, quantity: 1),
             _player.Id,
             OwnerType.Creature
         );
         var shopItem = await SeedItem(
-            Builders.MakeArmorItem(_world.Id, quantity: 1),
+            Builders.MakeArmor(_world.Id, quantity: 1),
             _workstation.Id,
             OwnerType.Workstation
         );
@@ -81,12 +81,12 @@ public sealed class TradeEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
     {
         // Arrange
         var playerItem = await SeedItem(
-            Builders.MakeWeaponItem(_world.Id, quantity: 1),
+            Builders.MakeWeapon(_world.Id, quantity: 1),
             _player.Id,
             OwnerType.Creature
         );
         var shopItem = await SeedItem(
-            Builders.MakeArmorItem(_world.Id, quantity: 1),
+            Builders.MakeArmor(_world.Id, quantity: 1),
             _workstation.Id,
             OwnerType.Workstation
         );
@@ -131,12 +131,12 @@ public sealed class TradeEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
     {
         // Arrange
         var playerItem = await SeedItem(
-            Builders.MakeWeaponItem(_world.Id, quantity: 1),
+            Builders.MakeWeapon(_world.Id, quantity: 1),
             _player.Id,
             OwnerType.Creature
         );
         var shopItem = await SeedItem(
-            Builders.MakeArmorItem(_world.Id, quantity: 1),
+            Builders.MakeArmor(_world.Id, quantity: 1),
             _workstation.Id,
             OwnerType.Workstation
         );

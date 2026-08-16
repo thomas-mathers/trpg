@@ -6,18 +6,18 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Queries;
 
-public class PreviewEquipItemStatsQuery
+public class GetEquipItemStatsQuery
 {
     public required Guid CreatureId { get; init; }
     public required Guid ItemId { get; init; }
     public required EquipmentSlot Slot { get; init; }
 }
 
-internal class PreviewEquipItemStatsQueryHandler(TrpgDbContext context)
-    : IQueryHandler<PreviewEquipItemStatsQuery, Attributes>
+internal class GetEquipItemStatsQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetEquipItemStatsQuery, Attributes>
 {
     public async Task<Attributes> Handle(
-        PreviewEquipItemStatsQuery query,
+        GetEquipItemStatsQuery query,
         CancellationToken cancellationToken = default
     )
     {

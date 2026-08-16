@@ -18,10 +18,10 @@ internal class GetCreatureBaseAttributesQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var creature = await context
+        return await context
             .Creatures.AsNoTracking()
-            .FirstAsync(c => c.Id == query.CreatureId, cancellationToken);
-
-        return creature.BaseAttributes;
+            .Where(c => c.Id == query.CreatureId)
+            .Select(c => c.BaseAttributes)
+            .FirstAsync(cancellationToken);
     }
 }

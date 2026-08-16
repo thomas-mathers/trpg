@@ -8,16 +8,16 @@ public sealed class ItemStackabilityTests
 {
     public static IEnumerable<object[]> StackableItems =>
         [
-            [Builders.MakeConsumableItem()],
-            [Builders.MakeAmmunitionItem()],
+            [Builders.MakeConsumable()],
+            [Builders.MakeAmmunition()],
             [Builders.MakeGold()],
-            [Builders.MakeWeaponItem(type: WeaponType.Javelin)],
+            [Builders.MakeWeapon(type: WeaponType.Javelin)],
         ];
 
     public static IEnumerable<object[]> NonStackableItems =>
         [
-            [Builders.MakeWeaponItem(type: WeaponType.Sword)],
-            [Builders.MakeArmorItem()],
+            [Builders.MakeWeapon(type: WeaponType.Sword)],
+            [Builders.MakeArmor()],
         ];
 
     [Theory]

@@ -175,7 +175,7 @@ public class CombatEngineTests
     public void ResolvePlayerAction_ResolvesABonusSwing_WhenAttackerWieldsAFastWeapon()
     {
         // Arrange — AttacksPerTurn 2 grants a bonus swing
-        var dagger = Builders.MakeWeaponItem(attacksPerTurn: 2);
+        var dagger = Builders.MakeWeapon(attacksPerTurn: 2);
         var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(dagger).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
@@ -193,7 +193,7 @@ public class CombatEngineTests
     public void ResolvePlayerAction_ResolvesOnlyOneSwing_WhenAttackerWieldsAStandardSpeedWeapon()
     {
         // Arrange — the default AttacksPerTurn (1) grants no bonus swing
-        var sword = Builders.MakeWeaponItem();
+        var sword = Builders.MakeWeapon();
         var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).WithItem(sword).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
@@ -212,7 +212,7 @@ public class CombatEngineTests
     {
         // Arrange — a high-percent ability with a status effect; only the first swing should
         // carry either, the bonus swing is a plain 100% weapon hit
-        var dagger = Builders.MakeWeaponItem(minDamage: 5, maxDamage: 5, attacksPerTurn: 2);
+        var dagger = Builders.MakeWeapon(minDamage: 5, maxDamage: 5, attacksPerTurn: 2);
         var stun = new StatusEffect { Condition = ConditionType.Stunned, Duration = 1 };
         var player = MakeCombatant("Hero")
             .AsPlayer()
@@ -239,8 +239,8 @@ public class CombatEngineTests
     public void ResolvePlayerAction_ResolvesFourSwings_WhenDualWieldingFastWeapons()
     {
         // Arrange — two AttacksPerTurn=2 daggers combine into up to 4 attacks
-        var mainDagger = Builders.MakeWeaponItem(type: WeaponType.Dagger, attacksPerTurn: 2);
-        var offDagger = Builders.MakeWeaponItem(type: WeaponType.Dagger, attacksPerTurn: 2);
+        var mainDagger = Builders.MakeWeapon(type: WeaponType.Dagger, attacksPerTurn: 2);
+        var offDagger = Builders.MakeWeapon(type: WeaponType.Dagger, attacksPerTurn: 2);
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -264,8 +264,8 @@ public class CombatEngineTests
     {
         // Arrange — fixed, distinct damage ranges prove an off-hand swing uses OffHandWeapon's
         // own damage roll rather than the main-hand weapon's
-        var mainDagger = Builders.MakeWeaponItem(minDamage: 5, maxDamage: 5, attacksPerTurn: 1);
-        var offDagger = Builders.MakeWeaponItem(minDamage: 50, maxDamage: 50, attacksPerTurn: 1);
+        var mainDagger = Builders.MakeWeapon(minDamage: 5, maxDamage: 5, attacksPerTurn: 1);
+        var offDagger = Builders.MakeWeapon(minDamage: 50, maxDamage: 50, attacksPerTurn: 1);
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -627,7 +627,9 @@ public class CombatEngineTests
         // Arrange
         var player = MakeCombatant("Hero")
             .AsPlayer()
-            .WithAbilities(Builders.MakeBuffAbility("Battle Stance", targetType: TargetType.Self))
+            .WithAbilities(
+                Builders.MakeBuffSupportAbility("Battle Stance", targetType: TargetType.Self)
+            )
             .Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
@@ -772,7 +774,7 @@ public class CombatEngineTests
     public void ProcessRound_TicksDownAndExpiresBuffs_OverSubsequentRounds()
     {
         // Arrange
-        var buffAbility = Builders.MakeBuffAbility(name: "Battle Stance");
+        var buffAbility = Builders.MakeBuffSupportAbility(name: "Battle Stance");
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -830,7 +832,7 @@ public class CombatEngineTests
     public void ProcessRound_RefreshesExistingBuff_InsteadOfStacking_WhenSameAbilityReapplied()
     {
         // Arrange
-        var buffAbility = Builders.MakeBuffAbility(name: "Battle Stance");
+        var buffAbility = Builders.MakeBuffSupportAbility(name: "Battle Stance");
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -856,8 +858,8 @@ public class CombatEngineTests
     public void ApplyBuff_AllowsDifferentNamedBuffs_ToCoexist()
     {
         // Arrange
-        var battleStance = Builders.MakeBuffAbility("Battle Stance");
-        var ironWill = Builders.MakeBuffAbility(
+        var battleStance = Builders.MakeBuffSupportAbility("Battle Stance");
+        var ironWill = Builders.MakeBuffSupportAbility(
             "Iron Will",
             attribute: AttributeName.Defense,
             amount: 10
@@ -1004,7 +1006,7 @@ public class CombatEngineTests
     public void ProcessRound_Block_AppliesDefenseBuff_WhenParryCapable()
     {
         // Arrange — a melee weapon makes the caster parry-capable, so Block doubles Defense
-        var weapon = Builders.MakeWeaponItem(_worldId);
+        var weapon = Builders.MakeWeapon(_worldId);
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -1190,7 +1192,7 @@ public class CombatEngineTests
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
-            .WithAbilities(Builders.MakeInstantHealAbility(amount: 999))
+            .WithAbilities(Builders.MakeHealSupportAbility(amount: 999))
             .WithCurrentHp(1)
             .Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();

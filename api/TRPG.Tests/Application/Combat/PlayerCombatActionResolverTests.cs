@@ -11,7 +11,7 @@ public class PlayerCombatActionResolverTests
     public void Resolve_ReturnsResolvedItem_WhenTheNamedItemExists()
     {
         // Arrange
-        var potion = Builders.MakeConsumableItem(name: "Health Potion", amount: 20);
+        var potion = Builders.MakeConsumable(name: "Health Potion", amount: 20);
         var player = Builders
             .NewCombatant()
             .WithWorldId(_worldId)

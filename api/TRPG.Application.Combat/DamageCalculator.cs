@@ -23,7 +23,7 @@ internal class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
                     weapon ?? attacker.MainHandWeapon,
                     ability.DamageAmount,
                     ability.DamageAmountType,
-                    (min, max) => Random.Shared.Next(min, max + 1)
+                    (minimum, maximum) => Random.Shared.Next(minimum, maximum + 1)
                 )
                 : CalculateMagicRawDamage(attacker, ability);
 
@@ -51,7 +51,7 @@ internal class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
                     weapon ?? attacker.MainHandWeapon,
                     ability.DamageAmount,
                     ability.DamageAmountType,
-                    (min, max) => (min + max) / 2
+                    (minimum, maximum) => (minimum + maximum) / 2
                 )
                 : CalculateMagicRawDamage(attacker, ability);
 
@@ -70,7 +70,7 @@ internal class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
                     weapon ?? attacker.MainHandWeapon,
                     ability.DamageAmount,
                     ability.DamageAmountType,
-                    (min, max) => (min + max) / 2
+                    (minimum, maximum) => (minimum + maximum) / 2
                 )
                 : CalculateMagicRawDamage(attacker, ability);
 

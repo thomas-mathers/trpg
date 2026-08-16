@@ -2,7 +2,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Mappers;
 
-internal static class HostileEncounterStateMapper
+internal static class FactionMapper
 {
     private static readonly string[] AllowedActions = ["Attack", "Evade", "Retreat"];
 

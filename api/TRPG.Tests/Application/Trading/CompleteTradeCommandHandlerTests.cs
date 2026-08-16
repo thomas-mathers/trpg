@@ -52,12 +52,12 @@ public sealed class CompleteTradeCommandHandlerTests(DatabaseFixture db) : IAsyn
     {
         // Arrange
         var playerItem = await SeedItem(
-            Builders.MakeWeaponItem(WorldId, quantity: 1),
+            Builders.MakeWeapon(WorldId, quantity: 1),
             _player.Id,
             OwnerType.Creature
         );
         var shopItem = await SeedItem(
-            Builders.MakeArmorItem(WorldId, quantity: 1),
+            Builders.MakeArmor(WorldId, quantity: 1),
             _workstation.Id,
             OwnerType.Workstation
         );
@@ -94,12 +94,12 @@ public sealed class CompleteTradeCommandHandlerTests(DatabaseFixture db) : IAsyn
     {
         // Arrange
         var playerItem = await SeedItem(
-            Builders.MakeArmorItem(WorldId, quantity: 1),
+            Builders.MakeArmor(WorldId, quantity: 1),
             _player.Id,
             OwnerType.Creature
         );
         var shopItem = await SeedItem(
-            Builders.MakeWeaponItem(WorldId, quantity: 1),
+            Builders.MakeWeapon(WorldId, quantity: 1),
             _workstation.Id,
             OwnerType.Workstation
         );

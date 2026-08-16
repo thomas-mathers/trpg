@@ -42,17 +42,12 @@ internal class StartFightCommandHandler(
             cancellationToken
         );
 
-        var combatants = new List<Combatant>();
-
-        foreach (var creature in regeneratedCreatures.Values)
-        {
-            var combatant = await combatantFactory.Create(
-                creature,
-                creature.Id == command.PlayerId,
-                cancellationToken
-            );
-            combatants.Add(combatant);
-        }
+        var combatants = await combatantFactory.CreateMany(
+            command.WorldId,
+            regeneratedCreatures.Values.ToArray(),
+            command.PlayerId,
+            cancellationToken
+        );
 
         context.Fights.Add(
             new Fight

@@ -148,8 +148,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Nullable reference types enabled; use `?` where genuinely optional
 
 ### Collections
-- `List<T>` **only** for PostgreSQL array columns (Npgsql requires it — `Collection<T>` throws at runtime)
-- `Collection<T>` for any other mutable public/internal collection property
+- `List<T>` is required for PostgreSQL array columns (Npgsql requirement)
 - Public/internal method return types and parameters: use `IReadOnlyCollection<T>`, `IReadOnlyList<T>`, or `IReadOnlyDictionary<K,V>` — never expose concrete collection types in signatures
 - Private method signatures and local fields may use concrete types (`List<T>`, `Dictionary<K,V>`) for performance
 - Collection expressions `[]` for empty collections, `[x, y]` for inline initialization

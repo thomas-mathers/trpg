@@ -92,7 +92,7 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
             {
                 WorldId = WorldId,
                 LocationId = sleepLocation.Id,
-                CurrentDate = Builders.MakeDate(23),
+                CurrentDate = Builders.MakeInGameDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -140,7 +140,7 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
             {
                 WorldId = WorldId,
                 LocationId = sleepLocation.Id,
-                CurrentDate = Builders.MakeDate(10),
+                CurrentDate = Builders.MakeInGameDate(10),
             },
             TestContext.Current.CancellationToken
         );
@@ -168,7 +168,7 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
             {
                 WorldId = WorldId,
                 LocationId = emptyLocation.Id,
-                CurrentDate = Builders.MakeDate(12),
+                CurrentDate = Builders.MakeInGameDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -218,7 +218,7 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
             {
                 WorldId = WorldId,
                 LocationId = idleLocation.Id,
-                CurrentDate = Builders.MakeDate(12),
+                CurrentDate = Builders.MakeInGameDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -286,7 +286,7 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
             {
                 WorldId = WorldId,
                 LocationId = shopLocation.Id,
-                CurrentDate = Builders.MakeDate(12),
+                CurrentDate = Builders.MakeInGameDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -349,7 +349,7 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
             {
                 WorldId = WorldId,
                 LocationId = shopLocation.Id,
-                CurrentDate = Builders.MakeDate(12),
+                CurrentDate = Builders.MakeInGameDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -390,7 +390,7 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
             {
                 WorldId = WorldId,
                 LocationId = wildernessLocation.Id,
-                CurrentDate = Builders.MakeDate(12),
+                CurrentDate = Builders.MakeInGameDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -429,7 +429,7 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
             {
                 WorldId = WorldId,
                 LocationId = doorLocation.Id,
-                CurrentDate = Builders.MakeDate(23),
+                CurrentDate = Builders.MakeInGameDate(23),
             },
             TestContext.Current.CancellationToken
         );

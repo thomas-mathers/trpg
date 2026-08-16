@@ -15,7 +15,7 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
     private GetInventoryItemsByOwnerQueryHandler _getHandler = null!;
     private UnequipInventoryItemCommandHandler _unequipHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
-    private readonly Item _item = Builders.MakeWeaponItem();
+    private readonly Item _item = Builders.MakeWeapon();
 
     public async ValueTask InitializeAsync()
     {
@@ -95,7 +95,7 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
     {
         // Arrange
         var baseMaximumHp = _creature.MaximumHp;
-        var gear = Builders.MakeArmorItem(
+        var gear = Builders.MakeArmor(
             worldId: _creature.WorldId,
             modifiers:
             [

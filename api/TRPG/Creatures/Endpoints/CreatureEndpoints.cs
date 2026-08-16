@@ -50,11 +50,11 @@ internal static class CreatureEndpoints
             .WithName("EquipCreatureItem");
         app.MapDelete("/creatures/{creatureId:guid}/equipment/{slot}", UnequipItem)
             .WithName("UnequipCreatureItem");
-        app.MapGet("/creatures/{creatureId:guid}/equipment/preview", PreviewEquipItemStats)
+        app.MapGet("/creatures/{creatureId:guid}/equipment/preview", GetEquipItemStats)
             .WithName("PreviewCreatureEquipment");
         app.MapGet(
                 "/creatures/{creatureId:guid}/equipment/preview/basic-attack-damage",
-                PreviewEquipItemBasicAttackDamage
+                GetEquipItemBasicAttackDamage
             )
             .WithName("PreviewCreatureBasicAttackDamage");
         app.MapGet("/players/{playerId:guid}/nearby-corpses", GetNearbyCorpses)
@@ -254,16 +254,16 @@ internal static class CreatureEndpoints
         return TypedResults.Ok(attributes.ToResponse());
     }
 
-    private static async Task<Ok<EffectiveAttributesResponse>> PreviewEquipItemStats(
+    private static async Task<Ok<EffectiveAttributesResponse>> GetEquipItemStats(
         Guid creatureId,
         Guid itemId,
         TRPG.Inventory.Responses.EquipmentSlot slot,
-        [FromServices] IQueryHandler<PreviewEquipItemStatsQuery, Attributes> previewEquipItemStats,
+        [FromServices] IQueryHandler<GetEquipItemStatsQuery, Attributes> getEquipItemStats,
         CancellationToken cancellationToken
     )
     {
-        var attributes = await previewEquipItemStats.Handle(
-            new PreviewEquipItemStatsQuery
+        var attributes = await getEquipItemStats.Handle(
+            new GetEquipItemStatsQuery
             {
                 CreatureId = creatureId,
                 ItemId = itemId,
@@ -290,20 +290,17 @@ internal static class CreatureEndpoints
         return TypedResults.Ok(new BasicAttackDamageResponse(damagePerTurn));
     }
 
-    private static async Task<Ok<BasicAttackDamageResponse>> PreviewEquipItemBasicAttackDamage(
+    private static async Task<Ok<BasicAttackDamageResponse>> GetEquipItemBasicAttackDamage(
         Guid creatureId,
         Guid itemId,
         TRPG.Inventory.Responses.EquipmentSlot slot,
         [FromServices]
-            IQueryHandler<
-            PreviewEquipItemBasicAttackDamageQuery,
-            float
-        > previewEquipItemBasicAttackDamage,
+            IQueryHandler<GetEquipItemBasicAttackDamageQuery, float> getEquipItemBasicAttackDamage,
         CancellationToken cancellationToken
     )
     {
-        var damagePerTurn = await previewEquipItemBasicAttackDamage.Handle(
-            new PreviewEquipItemBasicAttackDamageQuery
+        var damagePerTurn = await getEquipItemBasicAttackDamage.Handle(
+            new GetEquipItemBasicAttackDamageQuery
             {
                 CreatureId = creatureId,
                 ItemId = itemId,

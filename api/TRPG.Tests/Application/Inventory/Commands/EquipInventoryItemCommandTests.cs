@@ -14,8 +14,8 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
     private EquipInventoryItemCommandHandler _equipHandler = null!;
     private GetInventoryItemsByOwnerQueryHandler _getHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
-    private readonly Item _weapon = Builders.MakeWeaponItem();
-    private readonly Item _otherWeapon = Builders.MakeWeaponItem();
+    private readonly Item _weapon = Builders.MakeWeapon();
+    private readonly Item _otherWeapon = Builders.MakeWeapon();
 
     public async ValueTask InitializeAsync()
     {
@@ -118,7 +118,7 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
     {
         // Arrange
         var baseDefense = _creature.Defense;
-        var armor = Builders.MakeArmorItem(worldId: _creature.WorldId);
+        var armor = Builders.MakeArmor(worldId: _creature.WorldId);
         GiveToCreature(armor);
         _context.Items.Add(armor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -147,7 +147,7 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
     public async Task Handle_Throws_WhenItemIsNotEquippable()
     {
         // Arrange
-        var potion = Builders.MakeConsumableItem(worldId: _creature.WorldId);
+        var potion = Builders.MakeConsumable(worldId: _creature.WorldId);
         GiveToCreature(potion);
         _context.Items.Add(potion);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -188,7 +188,7 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
             },
             TestContext.Current.CancellationToken
         );
-        var greatSword = Builders.MakeWeaponItem(worldId: _creature.WorldId, isTwoHanded: true);
+        var greatSword = Builders.MakeWeapon(worldId: _creature.WorldId, isTwoHanded: true);
         GiveToCreature(greatSword);
         _context.Items.Add(greatSword);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -224,7 +224,7 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
     public async Task Handle_ResolvesTwoHandedWeaponToRightHand_WhenLeftHandRequested()
     {
         // Arrange
-        var greatAxe = Builders.MakeWeaponItem(worldId: _creature.WorldId, isTwoHanded: true);
+        var greatAxe = Builders.MakeWeapon(worldId: _creature.WorldId, isTwoHanded: true);
         GiveToCreature(greatAxe);
         _context.Items.Add(greatAxe);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -258,7 +258,7 @@ public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncL
     public async Task Handle_UnequipsTwoHandedWeapon_WhenEquippingOffHandItem()
     {
         // Arrange
-        var greatHammer = Builders.MakeWeaponItem(worldId: _creature.WorldId, isTwoHanded: true);
+        var greatHammer = Builders.MakeWeapon(worldId: _creature.WorldId, isTwoHanded: true);
         GiveToCreature(greatHammer);
         _context.Items.Add(greatHammer);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

@@ -180,7 +180,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     {
         // Arrange
         var baseMaximumHp = _creature.MaximumHp;
-        var gear = Builders.MakeArmorItem(
+        var gear = Builders.MakeArmor(
             worldId: _creature.WorldId,
             modifiers:
             [
