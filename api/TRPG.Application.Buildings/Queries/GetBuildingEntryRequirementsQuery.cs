@@ -1,27 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Buildings.Results;
 using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-public enum BuildingEntryResult
-{
-    Entered,
-    NoEntrance,
-    Locked,
-}
-
 public class GetBuildingEntryRequirementsQuery
 {
     public required Guid BuildingId { get; init; }
 }
-
-public record BuildingEntryRequirements(
-    BuildingEntryResult Outcome,
-    Guid? EntranceLocationId,
-    IReadOnlyCollection<Guid>? ValidKeyItemIds = null
-);
 
 internal class GetBuildingEntryRequirementsQueryHandler(
     TrpgDbContext context,

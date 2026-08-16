@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
+using TRPG.Application.Creatures.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

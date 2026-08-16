@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Buildings.Results;
 using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -10,18 +11,6 @@ public class GetRoomQuery
 {
     public required Guid RoomId { get; init; }
 }
-
-public record RoomResult(
-    string RoomName,
-    string RoomDescription,
-    int RoomFloorNumber,
-    Guid BuildingId,
-    string BuildingName,
-    BuildingType BuildingType,
-    string? OwnerName,
-    string? FactionName,
-    string? FactionDescription
-);
 
 internal class GetRoomQueryHandler(TrpgDbContext context, IMemoryCache cache)
     : IQueryHandler<GetRoomQuery, RoomResult?>

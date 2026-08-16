@@ -1,47 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Mappers;
+using TRPG.Application.Creatures.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
-
-public record CreatureResult(
-    Guid Id,
-    string Name,
-    CreatureType CreatureType,
-    Gender Gender,
-    Profession? Profession,
-    int Level,
-    int BirthYear,
-    CreatureState State,
-    int Gold,
-    Guid StateId,
-    Guid LocationId,
-    Guid? DistrictId,
-    Guid? RoomId,
-    Guid? CityId,
-    int CurrentHp,
-    int MaximumHp,
-    int CurrentAp,
-    int MaximumAp,
-    int CurrentMp,
-    int MaximumMp,
-    int Strength,
-    int Dexterity,
-    int Intelligence,
-    int Endurance,
-    int Stamina,
-    int Mana,
-    int Defense,
-    float MovementSpeed,
-    float PhysicalResistance,
-    float FireResistance,
-    float IceResistance,
-    float LightningResistance,
-    float PoisonResistance,
-    float MagicResistance
-);
 
 internal static class CreatureLocationFiltering
 {

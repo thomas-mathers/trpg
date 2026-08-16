@@ -4,6 +4,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.Encounters.Results;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 using Combatant = TRPG.Application.Combat.Combatant;
@@ -21,11 +22,6 @@ public class ResolveEncounterActionCommand
     public required Guid EncounterLocationId { get; init; }
     public Guid? ArrivalOriginLocationId { get; init; }
 }
-
-public record EncounterActionResult(
-    HostileEncounterActionKind ActionKind,
-    EncounterResolutionFact Fact
-);
 
 internal class ResolveEncounterActionCommandHandler(
     IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext> getEncounterGroupContext,

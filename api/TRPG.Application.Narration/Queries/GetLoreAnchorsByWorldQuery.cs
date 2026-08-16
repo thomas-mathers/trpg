@@ -2,28 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Narration.Mappers;
+using TRPG.Application.Narration.Results;
 using TRPG.Data;
 
 namespace TRPG.Application.Narration.Queries;
-
-public enum LoreAnchorType
-{
-    Creature,
-    Building,
-    District,
-    World,
-    Country,
-    State,
-    City,
-}
-
-public record LoreAnchorResult(
-    Guid Id,
-    string Name,
-    LoreAnchorType Type,
-    string? Subtype,
-    string Description
-);
 
 public class GetLoreAnchorsByWorldQuery
 {

@@ -2,6 +2,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Quests.Events;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Quests.Results;
 
 namespace TRPG.Application.Quests.Commands;
 

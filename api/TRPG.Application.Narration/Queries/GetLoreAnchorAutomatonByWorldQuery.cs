@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Handling;
+using TRPG.Application.Narration.Results;
 
 namespace TRPG.Application.Narration.Queries;
 

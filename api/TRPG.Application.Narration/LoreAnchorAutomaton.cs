@@ -1,4 +1,5 @@
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.Narration.Results;
 
 namespace TRPG.Application.Narration;
 

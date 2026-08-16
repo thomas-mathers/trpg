@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Buildings.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;

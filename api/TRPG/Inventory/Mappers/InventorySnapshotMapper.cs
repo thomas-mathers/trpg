@@ -1,4 +1,5 @@
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Inventory.Results;
 using TRPG.Creatures.Mappers;
 using TRPG.Inventory.Responses;
 

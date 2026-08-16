@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
+using TRPG.Application.Quests.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -12,21 +13,6 @@ public class GetQuestInteractionsForGiverQuery
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
 }
-
-public record QuestConversationObjectiveResult(string Name, string Description, int RequiredAmount);
-
-public record QuestConversationResult(
-    [property: JsonIgnore] Guid QuestId,
-    string Name,
-    string Description,
-    int GoldReward,
-    IReadOnlyCollection<QuestConversationObjectiveResult> Objectives
-);
-
-public record QuestInteractionsResult(
-    IReadOnlyCollection<QuestConversationResult> AvailableQuests,
-    IReadOnlyCollection<QuestConversationResult> ReadyToCompleteQuests
-);
 
 internal class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult>
