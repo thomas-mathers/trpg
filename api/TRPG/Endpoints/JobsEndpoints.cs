@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using TRPG.Contracts.Jobs.Responses;
 using TRPG.Data;
+using TRPG.Jobs.Responses;
 
 namespace TRPG.Endpoints;
 
