@@ -5,13 +5,12 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
-using TRPG.Application.Common.Tools;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Contracts.Encounters.Responses;
+using TRPG.Tools;
 
 namespace TRPG.GameTurns.Tools;
 

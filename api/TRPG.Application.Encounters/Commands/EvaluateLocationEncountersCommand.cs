@@ -4,7 +4,6 @@ using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Encounters.Queries;
-using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
 

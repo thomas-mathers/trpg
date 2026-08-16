@@ -35,7 +35,7 @@ internal class PreviewEquipItemStatsQueryHandler(TrpgDbContext context)
 
         var toEquip = items.First(i => i.Id == query.ItemId);
         var currentlyEquipped = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
-        var conflicting = ItemEquipmentPolicy.GetConflictingItems(
+        var conflicting = EquipmentLoadoutPolicy.GetConflictingItems(
             toEquip,
             query.Slot,
             currentlyEquipped

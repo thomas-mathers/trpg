@@ -1,6 +1,6 @@
 namespace TRPG.Application.Common.Extensions;
 
-internal static class EnumerableExtensions
+public static class EnumerableExtensions
 {
     public static T[] Shuffled<T>(this IEnumerable<T> source)
     {

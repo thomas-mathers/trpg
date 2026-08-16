@@ -6,7 +6,6 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Events;
-using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes;
@@ -29,8 +28,7 @@ internal class PublishSessionStateCommandHandler(
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getActiveFightCombatants,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
-    IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext> getEncounterGroupContext,
-    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
+    IQueryHandler<GetHostileEncounterStateQuery, HostileEncounterState> getHostileEncounterState
 ) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
@@ -66,24 +64,16 @@ internal class PublishSessionStateCommandHandler(
         );
         if (encounter != null)
         {
-            var groupContext = await getEncounterGroupContext.Handle(
-                new GetEncounterGroupContextQuery { EncounterGroupId = encounter.EncounterGroupId },
+            var state = await getHostileEncounterState.Handle(
+                new GetHostileEncounterStateQuery
+                {
+                    EncounterId = encounter.Id,
+                    EncounterGroupId = encounter.EncounterGroupId,
+                    LocationId = encounter.LocationId,
+                },
                 cancellationToken
             );
-            var location = await getLocationById.Handle(
-                new GetLocationByIdQuery { Id = encounter.LocationId },
-                cancellationToken
-            );
-            gameEvents.Enqueue(
-                new EncounterStartedEvent(
-                    HostileEncounterStateMapper.ToState(
-                        encounter.Id,
-                        groupContext.Faction,
-                        groupContext.LivingMembers,
-                        location!
-                    )
-                )
-            );
+            gameEvents.Enqueue(new EncounterStartedEvent(state));
         }
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);

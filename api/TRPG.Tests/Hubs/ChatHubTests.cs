@@ -700,9 +700,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         var sessionId = await StartSession();
         var encounterStartedReceived =
-            new TaskCompletionSource<TRPG.Contracts.Encounters.Responses.HostileEncounterState>();
+            new TaskCompletionSource<TRPG.Encounters.Responses.HostileEncounterState>();
         await using var connection = fixture.CreateHubConnection(sessionId);
-        connection.On<TRPG.Contracts.Encounters.Responses.HostileEncounterState>(
+        connection.On<TRPG.Encounters.Responses.HostileEncounterState>(
             "EncounterStarted",
             state => encounterStartedReceived.TrySetResult(state)
         );

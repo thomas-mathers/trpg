@@ -4,9 +4,4 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-  <ItemGroup>
-    <InternalsVisibleTo Include="TRPG.Application.CreatureFormulas" />
-    <InternalsVisibleTo Include="TRPG.Application.Worlds" />
-    <InternalsVisibleTo Include="TRPG.Application.GameTurns" />
-  </ItemGroup>
 </Project>

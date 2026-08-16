@@ -49,7 +49,7 @@ internal class PreviewEquipItemBasicAttackDamageQueryHandler(
 
         var toEquip = items.First(i => i.Id == query.ItemId);
         var currentlyEquipped = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
-        var conflicting = ItemEquipmentPolicy.GetConflictingItems(
+        var conflicting = EquipmentLoadoutPolicy.GetConflictingItems(
             toEquip,
             query.Slot,
             currentlyEquipped
@@ -59,7 +59,7 @@ internal class PreviewEquipItemBasicAttackDamageQueryHandler(
         {
             conflictingItem.Ownership.EquippedSlot = null;
         }
-        toEquip.Ownership.EquippedSlot = ItemEquipmentPolicy.ResolveEquippedSlot(
+        toEquip.Ownership.EquippedSlot = EquipmentLoadoutPolicy.ResolveEquippedSlot(
             toEquip,
             query.Slot
         );

@@ -1,4 +1,4 @@
-namespace TRPG.Contracts.Encounters.Responses;
+namespace TRPG.Application.Encounters;
 
 public enum EncounterResolutionOutcome
 {

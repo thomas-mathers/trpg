@@ -7,7 +7,6 @@ using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Encounters.Requests;
-using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data.Models;
 using Combatant = TRPG.Application.Combat.Combatant;
 

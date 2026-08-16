@@ -45,14 +45,14 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
             );
         }
 
-        if (ItemEquipmentPolicy.GetDefaultSlot(toEquip) == null)
+        if (EquipmentLoadoutPolicy.GetDefaultSlot(toEquip) == null)
         {
             throw new InvalidOperationException($"Item {command.ItemId} cannot be equipped.");
         }
 
         await UnequipConflictingItems(toEquip, command.Slot, items, cancellationToken);
 
-        toEquip.Ownership.EquippedSlot = ItemEquipmentPolicy.ResolveEquippedSlot(
+        toEquip.Ownership.EquippedSlot = EquipmentLoadoutPolicy.ResolveEquippedSlot(
             toEquip,
             command.Slot
         );
@@ -71,7 +71,11 @@ internal class EquipInventoryItemCommandHandler(TrpgDbContext context)
     )
     {
         var currentlyEquipped = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
-        var conflicting = ItemEquipmentPolicy.GetConflictingItems(toEquip, slot, currentlyEquipped);
+        var conflicting = EquipmentLoadoutPolicy.GetConflictingItems(
+            toEquip,
+            slot,
+            currentlyEquipped
+        );
 
         if (conflicting.Count == 0)
         {

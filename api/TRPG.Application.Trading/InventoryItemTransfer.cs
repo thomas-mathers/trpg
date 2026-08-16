@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.CreatureFormulas;
@@ -89,7 +90,7 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
             else
             {
                 item.Quantity -= quantity;
-                context.Items.Add(ItemEquipmentPolicy.Split(item, quantity, to.Id, to.Type));
+                context.Items.Add(Split(item, quantity, to));
             }
         }
     }
@@ -116,6 +117,18 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
                 $"Cannot partially transfer non-stackable item {itemId}."
             );
         }
+    }
+
+    private static Item Split(Item item, int quantity, ItemOwnerReference owner)
+    {
+        var type = item.GetType();
+        var node = JsonSerializer.SerializeToNode(item, type)!.AsObject();
+        node[nameof(Item.Id)] = Guid.NewGuid();
+        node[nameof(Item.Quantity)] = quantity;
+        node[nameof(Item.Ownership)] = JsonSerializer.SerializeToNode(
+            new ItemOwnership { OwnerId = owner.Id, OwnerType = owner.Type }
+        );
+        return (Item)node.Deserialize(type)!;
     }
 
     private async Task RecalculateSourceAttributes(
