@@ -1,7 +1,7 @@
-namespace TRPG.Application.Combat.ClientEvents;
+namespace TRPG.Combat.ClientModels;
 
 public record CombatUpdatePayload(
     IReadOnlyCollection<CombatantState> Combatants,
-    IReadOnlyList<CombatRoundEvent> Events,
+    IReadOnlyList<CombatRoundEntry> Events,
     CombatOutcome Outcome
 );

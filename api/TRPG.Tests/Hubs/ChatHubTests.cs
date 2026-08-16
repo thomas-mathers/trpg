@@ -435,8 +435,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await StartFight(sessionId, enemy);
         var connection = fixture.CreateHubConnection(sessionId);
         var combatUpdatedReceived =
-            new TaskCompletionSource<TRPG.Application.Combat.ClientEvents.CombatUpdatePayload>();
-        connection.On<TRPG.Application.Combat.ClientEvents.CombatUpdatePayload>(
+            new TaskCompletionSource<TRPG.Combat.ClientModels.CombatUpdatePayload>();
+        connection.On<TRPG.Combat.ClientModels.CombatUpdatePayload>(
             "CombatUpdated",
             payload => combatUpdatedReceived.TrySetResult(payload)
         );
@@ -451,7 +451,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
-        Assert.Equal(TRPG.Application.Combat.ClientEvents.CombatOutcome.Fled, updated.Outcome);
+        Assert.Equal(TRPG.Combat.ClientModels.CombatOutcome.Fled, updated.Outcome);
     }
 
     [Fact]
@@ -463,11 +463,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await StartFight(sessionId, enemy);
         var connection = fixture.CreateHubConnection(sessionId);
         var combatUpdatedReceived =
-            new TaskCompletionSource<TRPG.Application.Combat.ClientEvents.CombatUpdatePayload>();
+            new TaskCompletionSource<TRPG.Combat.ClientModels.CombatUpdatePayload>();
         var initialSnapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
-        connection.On<TRPG.Application.Combat.ClientEvents.CombatUpdatePayload>(
+        connection.On<TRPG.Combat.ClientModels.CombatUpdatePayload>(
             "CombatUpdated",
             payload => combatUpdatedReceived.TrySetResult(payload)
         );

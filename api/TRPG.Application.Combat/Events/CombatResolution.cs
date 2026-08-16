@@ -16,9 +16,9 @@ namespace TRPG.Application.Combat.Events;
 [JsonDerivedType(typeof(ConsumedPotion), "ConsumedPotion")]
 [JsonDerivedType(typeof(Regenerated), "Regenerated")]
 [JsonDerivedType(typeof(ResourceStateUpdated), "ResourceStateUpdated")]
-public abstract record CombatEvent;
+public abstract record CombatResolution;
 
-internal sealed record Hit(
+public sealed record Hit(
     [property: JsonIgnore] Guid AttackerId,
     string AttackerName,
     string AbilityName,
@@ -31,27 +31,27 @@ internal sealed record Hit(
     int Damage,
     DamageType DamageType,
     IReadOnlyList<ConditionType> AppliedConditions
-) : CombatEvent;
+) : CombatResolution;
 
-internal sealed record Miss(
+public sealed record Miss(
     [property: JsonIgnore] Guid AttackerId,
     string AttackerName,
     string AbilityName,
     [property: JsonIgnore] Guid TargetId,
     string TargetName
-) : CombatEvent;
+) : CombatResolution;
 
-internal sealed record Block(
+public sealed record Block(
     [property: JsonIgnore] Guid AttackerId,
     string AttackerName,
     string AbilityName,
     [property: JsonIgnore] Guid TargetId,
     string TargetName
-) : CombatEvent;
+) : CombatResolution;
 
-internal sealed record NoAction(string CreatureName, ConditionType Condition) : CombatEvent;
+public sealed record NoAction(string CreatureName, ConditionType Condition) : CombatResolution;
 
-internal sealed record DamageTicked(
+public sealed record DamageTicked(
     string CreatureName,
     string AbilityName,
     DamageType DamageType,
@@ -59,49 +59,49 @@ internal sealed record DamageTicked(
     int RemainingHp,
     int MaximumHp,
     bool Killed
-) : CombatEvent;
+) : CombatResolution;
 
-internal record BuffModifierInfo(
+public record BuffModifierInfo(
     float Amount,
     AmountType AmountType,
     AttributeName Attribute,
     int RemainingTurns
 );
 
-internal sealed record BuffApplied(
+public sealed record BuffApplied(
     string SourceName,
     string AbilityName,
     string TargetName,
     IReadOnlyList<BuffModifierInfo> AppliedModifiers
-) : CombatEvent;
+) : CombatResolution;
 
-internal sealed record Healed(
+public sealed record Healed(
     string SourceName,
     string AbilityName,
     string TargetName,
     int Amount,
     int TargetRemainingHp,
     int TargetMaximumHp
-) : CombatEvent;
+) : CombatResolution;
 
-internal sealed record HealOverTimeApplied(
+public sealed record HealOverTimeApplied(
     string SourceName,
     string AbilityName,
     string TargetName,
     int AmountPerTurn,
     int Duration
-) : CombatEvent;
+) : CombatResolution;
 
-internal sealed record ConsumedPotion(
+public sealed record ConsumedPotion(
     string CreatureName,
     string ItemName,
     ResourceType Resource,
     int Amount,
     int RemainingValue,
     int MaximumValue
-) : CombatEvent;
+) : CombatResolution;
 
-internal sealed record Regenerated(
+public sealed record Regenerated(
     [property: JsonIgnore] Guid CombatantId,
     string CombatantName,
     int PreviousAp,
@@ -110,13 +110,13 @@ internal sealed record Regenerated(
     int PreviousMp,
     int CurrentMp,
     int MaximumMp
-) : CombatEvent;
+) : CombatResolution;
 
-internal sealed record ResourceStateUpdated(
+public sealed record ResourceStateUpdated(
     [property: JsonIgnore] Guid CombatantId,
     string CombatantName,
     int CurrentAp,
     int MaximumAp,
     int CurrentMp,
     int MaximumMp
-) : CombatEvent;
+) : CombatResolution;

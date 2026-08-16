@@ -1,7 +1,7 @@
 using TRPG.Application.Combat;
-using ContractCombatantState = TRPG.Application.Combat.ClientEvents.CombatantState;
+using ContractCombatantState = TRPG.Combat.ClientModels.CombatantState;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
 internal static class CombatantMapper
 {

@@ -1,7 +1,7 @@
-using ContractCombatOutcome = TRPG.Application.Combat.ClientEvents.CombatOutcome;
+using ContractCombatOutcome = TRPG.Combat.ClientModels.CombatOutcome;
 using DataCombatOutcome = TRPG.Domain.Models.CombatOutcome;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
 internal static class CombatOutcomeMapper
 {

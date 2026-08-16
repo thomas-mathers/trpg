@@ -1,7 +1,7 @@
 using ConditionType = TRPG.Application.Abilities.ConditionType;
-using ContractActiveConditions = TRPG.Application.Combat.ClientEvents.ActiveConditions;
+using ContractActiveConditions = TRPG.Combat.ClientModels.ActiveConditions;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
 internal static class ActiveConditionsMapper
 {

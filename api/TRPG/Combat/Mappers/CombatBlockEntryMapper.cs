@@ -1,11 +1,12 @@
+using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
-using ContractEvent = TRPG.Application.Combat.ClientEvents.CombatBlockEvent;
+using CombatBlockEntry = TRPG.Combat.ClientModels.CombatBlockEntry;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
-internal static class BlockMapper
+internal static class CombatBlockEntryMapper
 {
-    public static ContractEvent ToContract(this Block block) =>
+    public static CombatBlockEntry ToContract(this Block block) =>
         new(
             block.AttackerId,
             block.AttackerName,

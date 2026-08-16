@@ -1,10 +1,10 @@
 using TRPG.Abilities.Mappers;
 using TRPG.GameSessions.Mappers;
 using AbilitiesConditionType = TRPG.Application.Abilities.ConditionType;
-using AmountTypeMapper = TRPG.Application.Combat.Mappers.AmountTypeMapper;
-using AttributeNameMapper = TRPG.Application.Combat.Mappers.AttributeNameMapper;
-using ConditionTypeMapper = TRPG.Application.Combat.Mappers.ConditionTypeMapper;
-using DamageTypeMapper = TRPG.Application.Combat.Mappers.DamageTypeMapper;
+using AmountTypeMapper = TRPG.Combat.Mappers.AmountTypeMapper;
+using AttributeNameMapper = TRPG.Combat.Mappers.AttributeNameMapper;
+using ConditionTypeMapper = TRPG.Combat.Mappers.ConditionTypeMapper;
+using DamageTypeMapper = TRPG.Combat.Mappers.DamageTypeMapper;
 using DataAmountType = TRPG.Domain.Models.AmountType;
 using DataAttributeName = TRPG.Domain.Models.AttributeName;
 using DataBuildingType = TRPG.Domain.Models.BuildingType;

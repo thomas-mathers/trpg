@@ -1,7 +1,7 @@
 using TRPG.Application.Combat;
-using ContractActiveHot = TRPG.Application.Combat.ClientEvents.ActiveHot;
+using ContractActiveHot = TRPG.Combat.ClientModels.ActiveHot;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
 internal static class ActiveHotMapper
 {

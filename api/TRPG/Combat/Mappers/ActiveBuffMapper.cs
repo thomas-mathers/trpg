@@ -1,7 +1,7 @@
 using TRPG.Application.CreatureFormulas;
-using ContractActiveBuff = TRPG.Application.Combat.ClientEvents.ActiveBuff;
+using ContractActiveBuff = TRPG.Combat.ClientModels.ActiveBuff;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
 internal static class ActiveBuffMapper
 {

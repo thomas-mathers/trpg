@@ -54,7 +54,7 @@ internal class CombatEngine(
         );
     }
 
-    private List<CombatEvent> ProcessTurn(Combatant actor, ResolvedCombatAction action)
+    private List<CombatResolution> ProcessTurn(Combatant actor, ResolvedCombatAction action)
     {
         if (!actor.IsAlive)
         {
@@ -87,7 +87,7 @@ internal class CombatEngine(
         return tickEvents.Concat(actionEvents).ToList();
     }
 
-    private List<CombatEvent> ProcessAbility(
+    private List<CombatResolution> ProcessAbility(
         Combatant actor,
         ResolvedUseAbilityAction resolvedUseAbilityAction
     )
@@ -151,7 +151,7 @@ internal class CombatEngine(
             _ => throw new ArgumentOutOfRangeException(nameof(weaponType), weaponType, null),
         };
 
-    private static List<CombatEvent> ProcessItem(Combatant actor, ConsumableItemSnapshot item)
+    private static List<CombatResolution> ProcessItem(Combatant actor, ConsumableItemSnapshot item)
     {
         actor.ItemsUsedCounts[item.ItemId] =
             actor.ItemsUsedCounts.GetValueOrDefault(item.ItemId) + 1;
@@ -232,7 +232,7 @@ internal class CombatEngine(
         }
     }
 
-    private static List<CombatEvent> ApplySupport(
+    private static List<CombatResolution> ApplySupport(
         Combatant actor,
         SupportAbility ability,
         IReadOnlyList<Combatant> targets
@@ -243,7 +243,7 @@ internal class CombatEngine(
                 ? ability.BuffsWhileParrying
                 : ability.Buffs;
 
-        var combatEvents = new List<CombatEvent>();
+        var combatEvents = new List<CombatResolution>();
 
         foreach (var target in targets)
         {
@@ -265,7 +265,11 @@ internal class CombatEngine(
         return combatEvents;
     }
 
-    private static CombatEvent ApplyHeal(Combatant actor, SupportAbility ability, Combatant target)
+    private static CombatResolution ApplyHeal(
+        Combatant actor,
+        SupportAbility ability,
+        Combatant target
+    )
     {
         var amount =
             ability.HealAmountType == AmountType.Percent
@@ -284,7 +288,7 @@ internal class CombatEngine(
         );
     }
 
-    private static CombatEvent ApplyHot(
+    private static CombatResolution ApplyHot(
         Combatant actor,
         string abilityName,
         HotEffect hot,
@@ -315,7 +319,7 @@ internal class CombatEngine(
         );
     }
 
-    private static CombatEvent ApplyBuffs(
+    private static CombatResolution ApplyBuffs(
         Combatant actor,
         string abilityName,
         IReadOnlyList<AttributeEffect> buffs,
@@ -348,7 +352,7 @@ internal class CombatEngine(
         return new BuffApplied(actor.Name, abilityName, target.Name, appliedModifiers);
     }
 
-    private List<CombatEvent> ApplyAttack(
+    private List<CombatResolution> ApplyAttack(
         Combatant attacker,
         AttackAbility ability,
         IReadOnlyList<Combatant> defenders
@@ -369,7 +373,7 @@ internal class CombatEngine(
             .. Enumerable.Repeat(AbilityCatalog.Strike, offHandSwings),
         ];
 
-        var combatEvents = new List<CombatEvent>();
+        var combatEvents = new List<CombatResolution>();
 
         foreach (var defender in defenders)
         {
@@ -388,7 +392,7 @@ internal class CombatEngine(
         return combatEvents;
     }
 
-    private CombatEvent ResolveWeaponSwing(
+    private CombatResolution ResolveWeaponSwing(
         Combatant attacker,
         AttackAbility ability,
         Combatant defender,
@@ -492,7 +496,7 @@ internal class CombatEngine(
         );
     }
 
-    private List<CombatEvent> ProcessTicks(Combatant actor)
+    private List<CombatResolution> ProcessTicks(Combatant actor)
     {
         var hotEvents = TickHots(actor);
         var dotEvents = TickDots(actor);
@@ -520,9 +524,9 @@ internal class CombatEngine(
         }
     }
 
-    private static List<CombatEvent> TickHots(Combatant actor)
+    private static List<CombatResolution> TickHots(Combatant actor)
     {
-        var healEvents = new List<CombatEvent>();
+        var healEvents = new List<CombatResolution>();
 
         foreach (var hot in actor.ActiveHots.Where(hot => hot.RemainingTurns > 0))
         {
@@ -557,9 +561,9 @@ internal class CombatEngine(
         actor.ActiveBuffs.RemoveAll(buff => buff.RemainingTurns == 0);
     }
 
-    private List<CombatEvent> TickDots(Combatant defender)
+    private List<CombatResolution> TickDots(Combatant defender)
     {
-        var damageTickedEvents = new List<CombatEvent>();
+        var damageTickedEvents = new List<CombatResolution>();
 
         foreach (var dot in defender.ActiveDots.Where(dot => dot.RemainingTurns > 0))
         {
@@ -592,7 +596,7 @@ internal class CombatEngine(
         return damageTickedEvents;
     }
 
-    private static CombatEvent? GetIncapacitationEvent(
+    private static CombatResolution? GetIncapacitationEvent(
         Combatant attacker,
         ResolvedCombatAction action
     )

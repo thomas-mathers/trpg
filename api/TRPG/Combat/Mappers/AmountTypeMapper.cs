@@ -1,7 +1,7 @@
-using ContractAmountType = TRPG.Application.Combat.ClientEvents.AmountType;
+using ContractAmountType = TRPG.Combat.ClientModels.AmountType;
 using DataAmountType = TRPG.Domain.Models.AmountType;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
 internal static class AmountTypeMapper
 {

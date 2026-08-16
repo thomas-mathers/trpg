@@ -1,16 +1,16 @@
 using TRPG.Application.Combat;
-using TRPG.Application.Combat.ClientEvents;
 using TRPG.Application.Combat.Events;
-using TRPG.Application.Combat.Mappers;
+using TRPG.Combat.ClientModels;
+using TRPG.Combat.Mappers;
 using DomainConditionType = TRPG.Application.Abilities.ConditionType;
 using DomainDamageType = TRPG.Domain.Models.DamageType;
 
-namespace TRPG.Tests.Application.Combat.Mappers;
+namespace TRPG.Tests.Combat.Mappers;
 
-public class CombatRoundEventMapperTests
+public class CombatRoundEntryMapperTests
 {
     [Fact]
-    public void ToCombatRoundEvents_MapsHit_ToCombatHitEvent()
+    public void ToCombatRoundEntries_MapsHit_ToCombatHitEntry()
     {
         // Arrange
         var attackerId = Guid.NewGuid();
@@ -31,10 +31,10 @@ public class CombatRoundEventMapperTests
         );
 
         // Act
-        var events = CombatRoundEventMapper.ToCombatRoundEvents([hit]);
+        var events = CombatRoundEntryMapper.ToCombatRoundEntries([hit]);
 
         // Assert
-        var mapped = Assert.IsType<CombatHitEvent>(Assert.Single(events));
+        var mapped = Assert.IsType<CombatHitEntry>(Assert.Single(events));
         Assert.Equal(attackerId, mapped.AttackerId);
         Assert.Equal(targetId, mapped.TargetId);
         Assert.Equal(15, mapped.Damage);
@@ -44,7 +44,7 @@ public class CombatRoundEventMapperTests
     }
 
     [Fact]
-    public void ToCombatRoundEvents_MapsMiss_ToCombatMissEvent()
+    public void ToCombatRoundEntries_MapsMiss_ToCombatMissEntry()
     {
         // Arrange
         var miss = new Miss(
@@ -56,14 +56,14 @@ public class CombatRoundEventMapperTests
         );
 
         // Act
-        var events = CombatRoundEventMapper.ToCombatRoundEvents([miss]);
+        var events = CombatRoundEntryMapper.ToCombatRoundEntries([miss]);
 
         // Assert
-        Assert.IsType<CombatMissEvent>(Assert.Single(events));
+        Assert.IsType<CombatMissEntry>(Assert.Single(events));
     }
 
     [Fact]
-    public void ToCombatRoundEvents_MapsBlock_ToCombatBlockEvent()
+    public void ToCombatRoundEntries_MapsBlock_ToCombatBlockEntry()
     {
         // Arrange
         var block = new Block(
@@ -75,20 +75,20 @@ public class CombatRoundEventMapperTests
         );
 
         // Act
-        var events = CombatRoundEventMapper.ToCombatRoundEvents([block]);
+        var events = CombatRoundEntryMapper.ToCombatRoundEntries([block]);
 
         // Assert
-        Assert.IsType<CombatBlockEvent>(Assert.Single(events));
+        Assert.IsType<CombatBlockEntry>(Assert.Single(events));
     }
 
     [Fact]
-    public void ToCombatRoundEvents_SkipsEventTypesWithoutAUiRepresentation()
+    public void ToCombatRoundEntries_SkipsResolutionsWithoutUiRepresentations()
     {
         // Arrange
         var noAction = new NoAction("Hero", DomainConditionType.Stunned);
 
         // Act
-        var events = CombatRoundEventMapper.ToCombatRoundEvents([noAction]);
+        var events = CombatRoundEntryMapper.ToCombatRoundEntries([noAction]);
 
         // Assert
         Assert.Empty(events);

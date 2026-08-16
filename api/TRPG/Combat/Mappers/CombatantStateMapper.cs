@@ -1,12 +1,12 @@
 using TRPG.Application.Combat;
-using ContractCombatantState = TRPG.Application.Combat.ClientEvents.CombatantState;
+using ContractCombatantState = TRPG.Combat.ClientModels.CombatantState;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
 internal static class CombatantStateMapper
 {
     public static IReadOnlyCollection<ContractCombatantState> ToCombatantStates(
-        this IReadOnlyList<Combatant> combatants
+        this IReadOnlyCollection<Combatant> combatants
     ) =>
         combatants
             .OrderByDescending(combatant => combatant.TurnOrder)

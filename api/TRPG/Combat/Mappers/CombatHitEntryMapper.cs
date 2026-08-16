@@ -1,11 +1,12 @@
+using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
-using CombatHitEvent = TRPG.Application.Combat.ClientEvents.CombatHitEvent;
+using CombatHitEntry = TRPG.Combat.ClientModels.CombatHitEntry;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
-internal static class HitMapper
+internal static class CombatHitEntryMapper
 {
-    public static CombatHitEvent ToContract(this Hit hit) =>
+    public static CombatHitEntry ToContract(this Hit hit) =>
         new(
             hit.AttackerId,
             hit.AttackerName,

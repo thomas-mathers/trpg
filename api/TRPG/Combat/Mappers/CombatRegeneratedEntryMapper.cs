@@ -1,11 +1,11 @@
 using TRPG.Application.Combat.Events;
-using ContractEvent = TRPG.Application.Combat.ClientEvents.CombatRegeneratedEvent;
+using CombatRegeneratedEntry = TRPG.Combat.ClientModels.CombatRegeneratedEntry;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
-internal static class RegeneratedMapper
+internal static class CombatRegeneratedEntryMapper
 {
-    public static ContractEvent ToContract(this Regenerated value) =>
+    public static CombatRegeneratedEntry ToContract(this Regenerated value) =>
         new(
             value.CombatantId,
             value.CombatantName,

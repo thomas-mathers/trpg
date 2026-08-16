@@ -1,4 +1,4 @@
-namespace TRPG.Application.Combat.ClientEvents;
+namespace TRPG.Combat.ClientModels;
 
 public record ActiveConditions
 {

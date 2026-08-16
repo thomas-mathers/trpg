@@ -1,7 +1,7 @@
 using TRPG.Application.Combat;
-using ContractActiveDot = TRPG.Application.Combat.ClientEvents.ActiveDot;
+using ContractActiveDot = TRPG.Combat.ClientModels.ActiveDot;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Combat.Mappers;
 
 internal static class ActiveDotMapper
 {
