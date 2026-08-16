@@ -1,7 +1,6 @@
 using System.Text.Json;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions;
 
@@ -9,44 +8,32 @@ namespace TRPG.Application.GameTurns;
 
 internal class StreamFleeTurnHandler(
     GameTurnStreamer streamer,
-    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
-    CombatEngine combatEngine,
-    ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound
+    ICommandHandler<ResolveFleeCombatCommand, CombatResult?> resolveFleeCombat
 )
 {
     public IAsyncEnumerable<string> Handle(
-        GameSessionIdentity session,
+        GameTurnSession session,
         CancellationToken cancellationToken = default
     ) => streamer.StreamTurn(session, ct => ResolveTurn(session, ct), cancellationToken);
 
     private async Task<GameTurnPrompt> ResolveTurn(
-        GameSessionIdentity session,
+        GameTurnSession session,
         CancellationToken cancellationToken
     )
     {
-        var combatants = await getCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = session.PlayerId },
-            cancellationToken
-        );
-
-        if (combatants.Count == 0)
-        {
-            return new GameTurnPrompt.Reply("There's no fight to flee from right now.");
-        }
-
-        var state = combatEngine.ResolveFlee(combatants);
-
-        var result = await resolveCombatRound.Handle(
-            new ResolveCombatRoundCommand
+        var result = await resolveFleeCombat.Handle(
+            new ResolveFleeCombatCommand
             {
                 SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                Combatants = combatants,
-                State = state,
             },
             cancellationToken
         );
+        if (result == null)
+        {
+            return new GameTurnPrompt.Reply("There's no fight to flee from right now.");
+        }
 
         return new GameTurnPrompt.Narrate(
             $"The player attempted to flee combat. Result: {JsonSerializer.Serialize(result, TRPG.Contracts.TrpgJsonOptions.Default)}. Narrate the escape attempt vividly based on this result. Do not call any tools.",

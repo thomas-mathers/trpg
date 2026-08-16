@@ -47,7 +47,7 @@ internal class GameTurnStreamer(
 )
 {
     public async IAsyncEnumerable<string> StreamTurn(
-        GameSessionIdentity session,
+        GameTurnSession session,
         Func<CancellationToken, Task<GameTurnPrompt>> resolveTurn,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
@@ -133,7 +133,7 @@ internal class GameTurnStreamer(
         await eventDispatcher.FlushAsync(turnContext.WorldId, cancellationToken);
     }
 
-    private async Task BeginTurn(GameSessionIdentity session, CancellationToken cancellationToken)
+    private async Task BeginTurn(GameTurnSession session, CancellationToken cancellationToken)
     {
         turnContext.SessionId = session.SessionId;
         turnContext.WorldId = session.WorldId;

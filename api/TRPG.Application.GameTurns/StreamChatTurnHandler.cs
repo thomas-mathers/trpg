@@ -5,7 +5,7 @@ namespace TRPG.Application.GameTurns;
 internal class StreamChatTurnHandler(GameTurnStreamer streamer)
 {
     public IAsyncEnumerable<string> Handle(
-        GameSessionIdentity session,
+        GameTurnSession session,
         string input,
         CancellationToken cancellationToken = default
     ) => streamer.StreamTurn(session, _ => ResolveTurn(input), cancellationToken);
