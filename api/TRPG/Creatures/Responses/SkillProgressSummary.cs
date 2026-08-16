@@ -1,6 +1,6 @@
 using TRPG.Contracts.Abilities.Responses;
 
-namespace TRPG.Contracts.Creatures.Responses;
+namespace TRPG.Creatures.Responses;
 
 public record SkillProgressSummary(
     Skill Skill,

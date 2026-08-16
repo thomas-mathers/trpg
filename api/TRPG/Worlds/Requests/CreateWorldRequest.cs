@@ -1,5 +1,5 @@
 using TRPG.Application.Worlds;
-using TRPG.Contracts.Creatures.Requests;
+using TRPG.Creatures.Requests;
 
 namespace TRPG.Worlds.Requests;
 

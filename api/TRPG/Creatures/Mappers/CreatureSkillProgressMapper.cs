@@ -1,6 +1,6 @@
 using TRPG.Abilities.Mappers;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Contracts.Creatures.Responses;
+using TRPG.Creatures.Responses;
 using TRPG.Data.Models;
 
 namespace TRPG.Creatures.Mappers;

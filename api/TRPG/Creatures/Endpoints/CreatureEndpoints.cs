@@ -14,11 +14,11 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Contracts.Abilities.Responses;
 using TRPG.Contracts.Combat.Responses;
-using TRPG.Contracts.Creatures.Requests;
-using TRPG.Contracts.Creatures.Responses;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Inventory.Responses;
 using TRPG.Creatures.Mappers;
+using TRPG.Creatures.Requests;
+using TRPG.Creatures.Responses;
 using TRPG.Data.Models;
 
 namespace TRPG.Creatures.Endpoints;

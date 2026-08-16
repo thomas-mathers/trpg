@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Tests.Helpers;

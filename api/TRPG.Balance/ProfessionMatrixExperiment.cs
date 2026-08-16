@@ -2,7 +2,6 @@ using System.Globalization;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Generators;
-using TRPG.Contracts.Creatures.Requests;
 using TRPG.Data.Models;
 
 namespace TRPG.Balance;
