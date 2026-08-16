@@ -1,7 +1,7 @@
 using TRPG.Application.Combat;
+using TRPG.Application.Combat.ClientEvents;
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Mappers;
-using TRPG.Application.Combat.Responses;
 using DomainConditionType = TRPG.Application.Abilities.ConditionType;
 using DomainDamageType = TRPG.Domain.Models.DamageType;
 

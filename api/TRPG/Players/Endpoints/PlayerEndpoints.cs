@@ -2,10 +2,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using TRPG.Application.Combat.ClientEvents;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Combat.Responses;
 using TRPG.Application.Common.Handling;
-using AbilityAvailability = TRPG.Application.Combat.Responses.AbilityAvailability;
 
 namespace TRPG.Players.Endpoints;
 
@@ -55,10 +54,6 @@ internal static class PlayerEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(
-            availability
-                .Select(a => new AbilityAvailability(a.Name, a.IsUsable, a.Reason))
-                .ToArray()
-        );
+        return TypedResults.Ok(availability.ToArray());
     }
 }

@@ -34,7 +34,7 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 
 ### Folder convention: feature-then-type
 - Inside `api/TRPG` and each `api/TRPG.Application.*` module, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
-- Within a feature module, command, query, mapper, and event files live in `Commands/`, `Queries/`, `Mappers/`, and `Events/`. Other role-specific folders include `Tools/` and `Generators/`. Host features use `Endpoints/`, `Hubs/`, `Jobs/`, `Requests/`, and `Responses/`.
+- Within a feature module, command, query, mapper, event, and client-event payload files live in `Commands/`, `Queries/`, `Mappers/`, `Events/`, and `ClientEvents/`. Other role-specific folders include `Tools/` and `Generators/`. Host features use `Endpoints/`, `Hubs/`, `Jobs/`, `Requests/`, and `Responses/`.
 - `api/TRPG.Domain/Models/` is flat — entities aren't split by feature. `api/TRPG.Data` contains EF contexts and migrations only.
 
 ### Key request flows
