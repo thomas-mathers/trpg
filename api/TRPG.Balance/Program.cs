@@ -1,5 +1,5 @@
 using TRPG.Balance;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 var mode = args.Length > 0 ? args[0] : "fight";
 

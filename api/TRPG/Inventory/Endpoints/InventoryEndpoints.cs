@@ -18,7 +18,7 @@ using TRPG.Contracts.Trading.Requests;
 using TRPG.Contracts.Trading.Responses;
 using TRPG.Creatures.Mappers;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Mappers;
 

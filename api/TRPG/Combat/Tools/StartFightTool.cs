@@ -9,7 +9,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tools;
 
 namespace TRPG.Combat.Tools;

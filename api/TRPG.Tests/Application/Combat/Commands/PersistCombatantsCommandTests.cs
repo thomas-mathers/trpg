@@ -1,7 +1,7 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Commands;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 using ActiveDot = TRPG.Application.Combat.ActiveDot;

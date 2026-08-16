@@ -6,7 +6,7 @@ using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Trading;
 

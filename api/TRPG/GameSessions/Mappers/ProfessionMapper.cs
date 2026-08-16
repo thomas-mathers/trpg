@@ -1,5 +1,5 @@
 using ContractProfession = TRPG.Contracts.Scenes.Responses.Profession;
-using DataProfession = TRPG.Data.Models.Profession;
+using DataProfession = TRPG.Domain.Models.Profession;
 
 namespace TRPG.GameSessions.Mappers;
 

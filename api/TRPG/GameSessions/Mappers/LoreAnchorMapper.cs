@@ -1,7 +1,7 @@
 using TRPG.Application.Narration.Queries;
 using TRPG.Contracts.Narration.Responses;
 using TRPG.Contracts.Scenes.Responses;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.GameSessions.Mappers;
 

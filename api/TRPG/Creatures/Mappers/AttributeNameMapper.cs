@@ -1,5 +1,5 @@
 using ContractAttributeName = TRPG.Contracts.Combat.Responses.AttributeName;
-using DataAttributeName = TRPG.Data.Models.AttributeName;
+using DataAttributeName = TRPG.Domain.Models.AttributeName;
 
 namespace TRPG.Creatures.Mappers;
 

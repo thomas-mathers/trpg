@@ -11,7 +11,7 @@ using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Creatures.Mappers;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Jobs.Responses;
 using TRPG.Worlds.Jobs;
 using TRPG.Worlds.Requests;

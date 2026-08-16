@@ -1,6 +1,6 @@
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 

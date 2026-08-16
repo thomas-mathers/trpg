@@ -7,7 +7,7 @@ using TRPG.Application.Trading;
 using TRPG.Application.Trading.Commands;
 using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Trading.Commands;

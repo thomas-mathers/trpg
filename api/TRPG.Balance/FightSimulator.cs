@@ -1,7 +1,7 @@
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Configuration;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Balance;
 

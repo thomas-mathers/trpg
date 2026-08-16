@@ -1,5 +1,5 @@
 using ContractSpecialHitType = TRPG.Contracts.Inventory.Responses.SpecialHitType;
-using DataSpecialHitType = TRPG.Data.Models.SpecialHitType;
+using DataSpecialHitType = TRPG.Domain.Models.SpecialHitType;
 
 namespace TRPG.Creatures.Mappers;
 

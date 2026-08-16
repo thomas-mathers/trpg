@@ -1,5 +1,5 @@
 using ContractGender = TRPG.Contracts.Scenes.Responses.Gender;
-using DataGender = TRPG.Data.Models.Gender;
+using DataGender = TRPG.Domain.Models.Gender;
 
 namespace TRPG.GameSessions.Mappers;
 

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Queries;

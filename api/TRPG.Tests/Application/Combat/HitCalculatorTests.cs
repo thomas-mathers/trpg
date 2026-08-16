@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Combat;

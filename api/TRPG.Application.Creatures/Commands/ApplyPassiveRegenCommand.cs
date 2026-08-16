@@ -5,7 +5,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
 

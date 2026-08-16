@@ -4,7 +4,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Events;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Combat.Commands;
@@ -352,7 +352,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             Killed: false,
             IsCritical: true,
             Damage: 18,
-            DamageType: TRPG.Data.Models.DamageType.Physical,
+            DamageType: TRPG.Domain.Models.DamageType.Physical,
             AppliedConditions: []
         );
         var state = Builders.MakeCombatState(

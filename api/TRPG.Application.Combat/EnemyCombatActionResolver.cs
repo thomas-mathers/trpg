@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Configuration;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 
 namespace TRPG.Application.Combat;

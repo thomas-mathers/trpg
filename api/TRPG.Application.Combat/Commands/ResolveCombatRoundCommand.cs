@@ -6,7 +6,7 @@ using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WeaponProficiency.Commands;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;
 

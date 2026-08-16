@@ -9,7 +9,7 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests.Queries;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tools;
 
 namespace TRPG.NpcConversations.Tools;

@@ -6,7 +6,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Events;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
 

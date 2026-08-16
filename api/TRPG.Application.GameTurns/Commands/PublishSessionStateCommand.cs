@@ -8,7 +8,7 @@ using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Commands;
 

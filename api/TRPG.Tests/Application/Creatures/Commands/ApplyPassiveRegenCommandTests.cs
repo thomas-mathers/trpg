@@ -6,7 +6,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Commands;

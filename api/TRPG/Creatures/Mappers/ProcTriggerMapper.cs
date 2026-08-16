@@ -1,5 +1,5 @@
 using ContractProcTrigger = TRPG.Contracts.Inventory.Responses.ProcTrigger;
-using DataProcTrigger = TRPG.Data.Models.ProcTrigger;
+using DataProcTrigger = TRPG.Domain.Models.ProcTrigger;
 
 namespace TRPG.Creatures.Mappers;
 

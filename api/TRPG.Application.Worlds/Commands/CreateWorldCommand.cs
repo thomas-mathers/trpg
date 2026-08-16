@@ -2,7 +2,7 @@ using TRPG.Application.Common.Handling;
 using TRPG.Application.Worlds;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Mappers;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Commands;
 

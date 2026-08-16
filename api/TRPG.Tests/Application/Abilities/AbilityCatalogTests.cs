@@ -1,5 +1,5 @@
 using TRPG.Application.Abilities;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.Abilities;
 

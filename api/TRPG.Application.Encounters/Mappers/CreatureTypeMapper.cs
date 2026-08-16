@@ -1,5 +1,5 @@
 using ContractCreatureType = TRPG.Contracts.Scenes.Responses.CreatureType;
-using DataCreatureType = TRPG.Data.Models.CreatureType;
+using DataCreatureType = TRPG.Domain.Models.CreatureType;
 
 namespace TRPG.Application.Encounters.Mappers;
 

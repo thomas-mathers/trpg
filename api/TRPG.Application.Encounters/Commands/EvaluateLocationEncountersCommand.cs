@@ -5,7 +5,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 

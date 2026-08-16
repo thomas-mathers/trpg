@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Contracts.Encounters.Requests;
 using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Hubs;
@@ -154,7 +154,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         return encounter;
     }
 
-    private async Task<Data.Models.Encounter> GetEncounter(Guid encounterId)
+    private async Task<Domain.Models.Encounter> GetEncounter(Guid encounterId)
     {
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();

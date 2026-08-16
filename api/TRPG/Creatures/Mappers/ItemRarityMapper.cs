@@ -1,5 +1,5 @@
 using ContractItemRarity = TRPG.Contracts.Inventory.Responses.ItemRarity;
-using DataItemRarity = TRPG.Data.Models.ItemRarity;
+using DataItemRarity = TRPG.Domain.Models.ItemRarity;
 
 namespace TRPG.Creatures.Mappers;
 

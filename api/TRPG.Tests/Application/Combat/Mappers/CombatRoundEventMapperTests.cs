@@ -3,7 +3,7 @@ using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Contracts.Combat.Responses;
 using DomainConditionType = TRPG.Application.Abilities.ConditionType;
-using DomainDamageType = TRPG.Data.Models.DamageType;
+using DomainDamageType = TRPG.Domain.Models.DamageType;
 
 namespace TRPG.Tests.Application.Combat.Mappers;
 

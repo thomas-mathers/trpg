@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Mappers;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
 

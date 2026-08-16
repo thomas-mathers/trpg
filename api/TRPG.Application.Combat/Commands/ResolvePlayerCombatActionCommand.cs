@@ -2,7 +2,7 @@ using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Contracts.Combat.Requests;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;
 

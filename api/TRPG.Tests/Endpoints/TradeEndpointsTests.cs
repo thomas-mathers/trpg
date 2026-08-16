@@ -5,7 +5,7 @@ using TRPG.Contracts.Inventory.Requests;
 using TRPG.Contracts.Trading.Requests;
 using TRPG.Contracts.Trading.Responses;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;

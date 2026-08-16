@@ -1,5 +1,5 @@
 using ContractCreatureState = TRPG.Contracts.Scenes.Responses.CreatureState;
-using DataCreatureState = TRPG.Data.Models.CreatureState;
+using DataCreatureState = TRPG.Domain.Models.CreatureState;
 
 namespace TRPG.GameSessions.Mappers;
 

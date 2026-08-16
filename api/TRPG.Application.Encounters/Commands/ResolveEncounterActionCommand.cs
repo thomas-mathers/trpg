@@ -5,7 +5,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Contracts.Encounters.Requests;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using Combatant = TRPG.Application.Combat.Combatant;
 
 namespace TRPG.Application.Encounters.Commands;

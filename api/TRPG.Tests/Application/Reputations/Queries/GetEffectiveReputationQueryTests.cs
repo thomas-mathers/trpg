@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Reputations.Queries;

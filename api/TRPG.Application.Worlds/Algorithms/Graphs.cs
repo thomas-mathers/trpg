@@ -1,4 +1,4 @@
-﻿namespace TRPG.Application.Worlds.Algorithms;
+namespace TRPG.Application.Worlds.Algorithms;
 
 internal static class Graphs
 {

@@ -1,5 +1,5 @@
 using ContractDistrictType = TRPG.Contracts.Scenes.Responses.DistrictType;
-using DataDistrictType = TRPG.Data.Models.DistrictType;
+using DataDistrictType = TRPG.Domain.Models.DistrictType;
 
 namespace TRPG.GameSessions.Mappers;
 

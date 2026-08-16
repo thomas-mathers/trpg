@@ -1,7 +1,7 @@
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.CreatureJobs.Queries;

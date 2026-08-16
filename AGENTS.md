@@ -19,7 +19,8 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 - `api/TRPG.Application.GameTurns` — turn orchestration, player movement, LLM conversation execution, and client events produced by that workflow.
 - Feature modules own their domain: Abilities, Buildings, Chat, Combat, CreatureJobs, Creatures, Encounters, GameSessions, Inventory, Narration, NpcConversations, Quests, Reputations, Scenes, Trading, WeaponProficiency, and Worlds. Worlds also owns navigation and world generation.
 - `api/TRPG.Contracts` — current HTTP/SignalR request and response DTOs plus shared JSON options. The SPA consumes OpenAPI-generated TypeScript, not this assembly directly; prefer feature-owned public result types and host-bound request mapping when evolving the API.
-- `api/TRPG.Data` — EF Core context, models, and migrations.
+- `api/TRPG.Domain` — dependency-free game entities, value objects, and domain enums. It has no project or package dependencies.
+- `api/TRPG.Data` — EF Core contexts, persistence configuration, and migrations. It references Domain for the persisted model types.
 - `api/TRPG.Tests` — xUnit tests with Testcontainers-backed PostgreSQL.
 - `spa` — React/Vite frontend.
 
@@ -35,7 +36,7 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 ### Folder convention: feature-then-type
 - Inside `api/TRPG`, each `api/TRPG.Application.*` module, and `api/TRPG.Contracts`, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
 - Within a feature module, command, query, mapper, and event files live in `Commands/`, `Queries/`, `Mappers/`, and `Events/`. Other role-specific folders include `Tools/` and `Generators/`. Host features use `Endpoints/`, `Hubs/`, and `Jobs/`; Contracts currently uses `Requests/` and `Responses/`.
-- `api/TRPG.Data` is flat: `Models/` + `Migrations/` — entities aren't split by feature
+- `api/TRPG.Domain/Models/` is flat — entities aren't split by feature. `api/TRPG.Data` contains EF contexts and migrations only.
 
 ### Key request flows
 - **Plain HTTP**: `api/TRPG/<Feature>/Endpoints/<Feature>Endpoints.cs` → one or more `*QueryHandler`/`*CommandHandler` in the owning application module → `TrpgDbContext`
@@ -86,7 +87,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Local only, not wired into CI. `coverlet.collector` is already a `TRPG.Tests` package reference; `reportgenerator` is pinned in `.config/dotnet-tools.json` alongside CSharpier
 - Generate: `dotnet test api/TRPG.sln --collect:"XPlat Code Coverage" --settings api/coverlet.runsettings --results-directory ./TestResults`, then `dotnet reportgenerator "-reports:TestResults/**/coverage.cobertura.xml" "-targetdir:CoverageReport" "-reporttypes:Html"` and open `CoverageReport/index.html`
 - `TestResults/` and `CoverageReport/` are gitignored — regenerate locally rather than committing either
-- `api/coverlet.runsettings` excludes `TRPG.Data` from collection entirely — entity models, EF schema config, and migrations, none of which have branching logic worth chasing; its correctness is already proven by every other test failing if the schema/mappings were wrong. Always pass `--settings api/coverlet.runsettings`, or `TRPG.Data` noise (mostly generated migration `Up`/`Down` bodies) drowns out real gaps
+- `api/coverlet.runsettings` excludes `TRPG.Data` and `TRPG.Domain` from collection entirely — entity models, EF schema configuration, and migrations have no branching logic worth chasing; their correctness is already proven by every other test failing if the schema/mappings were wrong. Always pass `--settings api/coverlet.runsettings`, or generated migration `Up`/`Down` noise drowns out real gaps
 - `scripts/coverage-gaps.py` parses a cobertura report and prints uncovered methods ranked by uncovered-line count, with compiler-generated async state machines folded back onto their real method and known-noise buckets (Program.cs, `*ServiceCollectionExtensions`, record/compiler-generated members) filtered out by default — read the script's own header comment for usage and exact filtering rules before assuming what it excludes
 
 ---

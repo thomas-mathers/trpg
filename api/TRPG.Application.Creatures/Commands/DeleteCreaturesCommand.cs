@@ -2,7 +2,7 @@ using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
 using TRPG.Data;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
 

@@ -1,5 +1,5 @@
 using ContractArmorClass = TRPG.Contracts.Inventory.Responses.ArmorClass;
-using DataArmorClass = TRPG.Data.Models.ArmorClass;
+using DataArmorClass = TRPG.Domain.Models.ArmorClass;
 
 namespace TRPG.Creatures.Mappers;
 

@@ -1,6 +1,6 @@
 using TRPG.Contracts;
 using ContractBuildingType = TRPG.Contracts.Scenes.Responses.BuildingType;
-using DataBuildingType = TRPG.Data.Models.BuildingType;
+using DataBuildingType = TRPG.Domain.Models.BuildingType;
 
 namespace TRPG.Application.Narration.Mappers;
 

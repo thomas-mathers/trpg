@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 using TRPG.Tools;
 
 namespace TRPG.Worlds.Tools;

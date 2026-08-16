@@ -1,5 +1,5 @@
 using ContractLeechType = TRPG.Contracts.Inventory.Responses.LeechType;
-using DataLeechType = TRPG.Data.Models.LeechType;
+using DataLeechType = TRPG.Domain.Models.LeechType;
 
 namespace TRPG.Creatures.Mappers;
 

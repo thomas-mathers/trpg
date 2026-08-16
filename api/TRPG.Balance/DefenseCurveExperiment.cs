@@ -1,6 +1,6 @@
 using System.Globalization;
 using TRPG.Application.Configuration;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Balance;
 

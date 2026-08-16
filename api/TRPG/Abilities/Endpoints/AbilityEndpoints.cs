@@ -7,7 +7,7 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Abilities.Queries;
 using TRPG.Application.Common.Handling;
 using TRPG.Contracts.Abilities.Responses;
-using DataSkill = TRPG.Data.Models.Skill;
+using DataSkill = TRPG.Domain.Models.Skill;
 
 namespace TRPG.Abilities.Endpoints;
 

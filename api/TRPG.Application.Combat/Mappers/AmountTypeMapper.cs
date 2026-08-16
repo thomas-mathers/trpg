@@ -1,5 +1,5 @@
 using ContractAmountType = TRPG.Contracts.Combat.Responses.AmountType;
-using DataAmountType = TRPG.Data.Models.AmountType;
+using DataAmountType = TRPG.Domain.Models.AmountType;
 
 namespace TRPG.Application.Combat.Mappers;
 

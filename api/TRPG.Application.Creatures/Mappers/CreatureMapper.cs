@@ -1,5 +1,5 @@
 using TRPG.Application.Creatures.Queries;
-using TRPG.Data.Models;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Mappers;
 
