@@ -1,4 +1,4 @@
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Results;

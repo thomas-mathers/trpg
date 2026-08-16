@@ -1,8 +1,9 @@
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Validation;
 
-namespace TRPG.Handling;
+namespace TRPG.Commands;
 
-internal sealed class ValidatingCommandHandler<TCommand>(
+internal sealed class ValidatingCommandHandlerDecorator<TCommand>(
     IEnumerable<ICommandValidator<TCommand>> validators,
     ICommandHandler<TCommand> inner
 ) : ICommandHandler<TCommand>
@@ -18,7 +19,7 @@ internal sealed class ValidatingCommandHandler<TCommand>(
     }
 }
 
-internal sealed class ValidatingCommandHandler<TCommand, TResult>(
+internal sealed class ValidatingCommandHandlerDecorator<TCommand, TResult>(
     IEnumerable<ICommandValidator<TCommand>> validators,
     ICommandHandler<TCommand, TResult> inner
 ) : ICommandHandler<TCommand, TResult>

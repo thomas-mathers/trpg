@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 using TRPG.Data;
 
 namespace TRPG.Application.Chat.Queries;

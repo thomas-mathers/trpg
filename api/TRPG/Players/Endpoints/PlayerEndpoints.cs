@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Combat.Results;
+using TRPG.Application.Common.Queries;
 using TRPG.Combat.Mappers;
 using TRPG.Combat.Responses;
 using ClientCombatantState = TRPG.Combat.ClientModels.CombatantState;
@@ -25,7 +26,10 @@ internal static class PlayerEndpoints
     > GetFight(
         Guid playerId,
         [FromServices]
-            IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
+            IQueryHandler<
+            GetActiveFightCombatantsQuery,
+            IReadOnlyList<CombatantResult>
+        > getCombatants,
         CancellationToken cancellationToken
     )
     {

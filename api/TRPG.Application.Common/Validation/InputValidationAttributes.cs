@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace TRPG.Application.Common.Handling;
+namespace TRPG.Application.Common.Validation;
 
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class NotBlankAttribute : ValidationAttribute

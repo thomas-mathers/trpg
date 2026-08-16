@@ -1,5 +1,6 @@
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Combat.Results;
+using TRPG.Application.Common.Commands;
 
 namespace TRPG.Application.Combat.Commands;
 
@@ -11,7 +12,7 @@ public class ResolveFleeCombatCommand
 }
 
 internal class ResolveFleeCombatCommandHandler(
-    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
+    ActiveFightCombatantLoader combatantLoader,
     CombatEngine combatEngine,
     ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound
 ) : ICommandHandler<ResolveFleeCombatCommand, CombatResult?>
@@ -21,10 +22,7 @@ internal class ResolveFleeCombatCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var combatants = await getCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
+        var combatants = await combatantLoader.Load(command.PlayerId, cancellationToken);
         if (combatants.Count == 0)
             return null;
         var state = combatEngine.ResolveFlee(combatants);

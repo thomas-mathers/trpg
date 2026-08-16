@@ -1,10 +1,10 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
@@ -24,7 +24,7 @@ internal class StartFightTool(
         GetEncounterGroupCreatureIdsQuery,
         IReadOnlyCollection<Guid>
     > getEncounterGroupCreatureIds,
-    ICommandHandler<StartFightCommand, IReadOnlyList<Combatant>> startFight,
+    ICommandHandler<StartFightCommand> startFight,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ILogger<StartFightTool> logger
 ) : IGameTool

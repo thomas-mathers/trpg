@@ -1,7 +1,8 @@
 using TRPG.Application.Combat.Events;
+using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -19,15 +20,15 @@ public class StartFightCommand
 
 internal class StartFightCommandHandler(
     TrpgDbContext context,
-    IQueryHandler<GetCombatantQuery, Combatant> getCombatant,
+    CombatantFactory combatantFactory,
     ICommandHandler<
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
     IGameClientEventSink gameEvents
-) : ICommandHandler<StartFightCommand, IReadOnlyList<Combatant>>
+) : ICommandHandler<StartFightCommand>
 {
-    public async Task<IReadOnlyList<Combatant>> Handle(
+    public async Task Handle(
         StartFightCommand command,
         CancellationToken cancellationToken = default
     )
@@ -45,12 +46,9 @@ internal class StartFightCommandHandler(
 
         foreach (var creature in regeneratedCreatures.Values)
         {
-            var combatant = await getCombatant.Handle(
-                new GetCombatantQuery
-                {
-                    Creature = creature,
-                    IsPlayer = creature.Id == command.PlayerId,
-                },
+            var combatant = await combatantFactory.Create(
+                creature,
+                creature.Id == command.PlayerId,
                 cancellationToken
             );
             combatants.Add(combatant);
@@ -67,8 +65,13 @@ internal class StartFightCommandHandler(
             }
         );
         await context.SaveChangesAsync(cancellationToken);
-        gameEvents.Enqueue(new CombatStartedEvent(combatants));
-
-        return combatants;
+        gameEvents.Enqueue(
+            new CombatStartedEvent(
+                combatants
+                    .OrderByDescending(combatant => combatant.TurnOrder)
+                    .Select(combatant => combatant.ToCombatantResult())
+                    .ToArray()
+            )
+        );
     }
 }

@@ -1,13 +1,13 @@
-using TRPG.Application.Combat;
+using TRPG.Application.Combat.Results;
 using ContractCombatantState = TRPG.Combat.ClientModels.CombatantState;
 
 namespace TRPG.Combat.Mappers;
 
 internal static class CombatantMapper
 {
-    public static ContractCombatantState ToContract(this Combatant combatant) =>
+    public static ContractCombatantState ToContract(this CombatantResult combatant) =>
         new(
-            Id: combatant.CreatureId,
+            Id: combatant.Id,
             Name: combatant.Name,
             Level: combatant.Level,
             IsPlayer: combatant.IsPlayer,

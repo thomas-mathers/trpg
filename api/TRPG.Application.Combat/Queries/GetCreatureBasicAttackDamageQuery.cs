@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Combat;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 using TRPG.Data;
 
 namespace TRPG.Application.Combat.Queries;
@@ -12,7 +12,7 @@ public class GetCreatureBasicAttackDamageQuery
 
 internal class GetCreatureBasicAttackDamageQueryHandler(
     TrpgDbContext context,
-    IQueryHandler<GetCombatantQuery, Combatant> getCombatant,
+    CombatantFactory combatantFactory,
     DamageCalculator damageCalculator
 ) : IQueryHandler<GetCreatureBasicAttackDamageQuery, float>
 {
@@ -25,10 +25,7 @@ internal class GetCreatureBasicAttackDamageQueryHandler(
             .Creatures.AsNoTracking()
             .FirstAsync(c => c.Id == query.CreatureId, cancellationToken);
 
-        var combatant = await getCombatant.Handle(
-            new GetCombatantQuery { Creature = creature, IsPlayer = true },
-            cancellationToken
-        );
+        var combatant = await combatantFactory.Create(creature, isPlayer: true, cancellationToken);
 
         return damageCalculator.EstimateBasicAttackDamagePerTurn(combatant);
     }

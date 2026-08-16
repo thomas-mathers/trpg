@@ -7,9 +7,12 @@ using TRPG.Application.Chat.Commands;
 using TRPG.Application.Chat.Queries;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
+using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Common.Validation;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
@@ -20,6 +23,7 @@ using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Application.GameTurns.Extensions;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Narration.Queries;
@@ -27,6 +31,7 @@ using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests;
 using TRPG.Application.Quests.Commands;
+using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
@@ -34,13 +39,17 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Trading;
+using TRPG.Application.Trading.Extensions;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Application.Worlds;
+using TRPG.Application.Worlds.Extensions;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Commands;
 using TRPG.GameTurns.Tools;
-using TRPG.Handling;
+using TRPG.Queries;
 using TRPG.Tools;
+using TRPG.Validation;
 
 namespace TRPG.Extensions;
 
@@ -86,11 +95,11 @@ public static class ApplicationServiceCollectionExtensions
             .AddGameTool<MoveTool>()
             .AddGameTool<CreatureInspectTool>()
             .AddGameTool<LookupTool>()
-            .Decorate(typeof(ICommandHandler<>), typeof(ValidatingCommandHandler<>))
-            .Decorate(typeof(ICommandHandler<,>), typeof(ValidatingCommandHandler<,>))
-            .Decorate(typeof(ICommandHandler<>), typeof(LoggedCommandHandler<>))
-            .Decorate(typeof(ICommandHandler<,>), typeof(LoggedCommandHandler<,>))
-            .Decorate(typeof(IQueryHandler<,>), typeof(LoggedQueryHandler<,>));
+            .Decorate(typeof(ICommandHandler<>), typeof(ValidatingCommandHandlerDecorator<>))
+            .Decorate(typeof(ICommandHandler<,>), typeof(ValidatingCommandHandlerDecorator<,>))
+            .Decorate(typeof(ICommandHandler<>), typeof(LoggedCommandHandlerDecorator<>))
+            .Decorate(typeof(ICommandHandler<,>), typeof(LoggedCommandHandlerDecorator<,>))
+            .Decorate(typeof(IQueryHandler<,>), typeof(LoggedQueryHandlerDecorator<,>));
     }
 
     internal static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)

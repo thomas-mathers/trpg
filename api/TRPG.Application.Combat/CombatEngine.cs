@@ -47,7 +47,10 @@ internal class CombatEngine(
 
         return new CombatState(
             Outcome: outcome,
-            Combatants: combatants.Select(c => c.ToCombatantState()).ToArray(),
+            Combatants: combatants
+                .OrderByDescending(combatant => combatant.TurnOrder)
+                .Select(combatant => combatant.ToCombatantResult())
+                .ToArray(),
             Events: combatEvents,
             WeaponSwingCounts: player.WeaponSwingCounts,
             SkillUsageCounts: player.SkillUsageCounts
@@ -677,7 +680,10 @@ internal class CombatEngine(
 
         return new CombatState(
             Outcome: CombatOutcome.Fled,
-            Combatants: combatants.Select(c => c.ToCombatantState()).ToArray(),
+            Combatants: combatants
+                .OrderByDescending(combatant => combatant.TurnOrder)
+                .Select(combatant => combatant.ToCombatantResult())
+                .ToArray(),
             Events: [],
             WeaponSwingCounts: player.WeaponSwingCounts,
             SkillUsageCounts: player.SkillUsageCounts

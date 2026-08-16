@@ -1,4 +1,5 @@
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Domain.Models;

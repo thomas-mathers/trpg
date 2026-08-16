@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;

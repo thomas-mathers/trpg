@@ -7,7 +7,7 @@ using PersistedCombat = TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat;
 
-public class ActiveDot
+internal class ActiveDot
 {
     public string AbilityName { get; init; } = "";
     public int Amount { get; init; }
@@ -15,14 +15,14 @@ public class ActiveDot
     public int RemainingTurns { get; set; }
 }
 
-public class ActiveHot
+internal class ActiveHot
 {
     public string AbilityName { get; init; } = "";
     public int Amount { get; init; }
     public int RemainingTurns { get; set; }
 }
 
-public record ConsumableItemSnapshot(
+internal record ConsumableItemSnapshot(
     Guid ItemId,
     string Name,
     ResourceType Resource,
@@ -56,7 +56,7 @@ public record ConsumableItemSnapshot(
     }
 }
 
-public class Combatant
+internal class Combatant
 {
     public required Guid CreatureId { get; init; }
     public required string Name { get; init; }

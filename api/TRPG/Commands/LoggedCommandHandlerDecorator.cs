@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
 
-namespace TRPG.Handling;
+namespace TRPG.Commands;
 
-internal sealed class LoggedCommandHandler<TCommand>(
+internal sealed class LoggedCommandHandlerDecorator<TCommand>(
     ICommandHandler<TCommand> inner,
-    ILogger<LoggedCommandHandler<TCommand>> logger
+    ILogger<LoggedCommandHandlerDecorator<TCommand>> logger
 ) : ICommandHandler<TCommand>
 {
     public async Task Handle(TCommand command, CancellationToken cancellationToken = default)
@@ -35,9 +35,9 @@ internal sealed class LoggedCommandHandler<TCommand>(
     }
 }
 
-internal sealed class LoggedCommandHandler<TCommand, TResult>(
+internal sealed class LoggedCommandHandlerDecorator<TCommand, TResult>(
     ICommandHandler<TCommand, TResult> inner,
-    ILogger<LoggedCommandHandler<TCommand, TResult>> logger
+    ILogger<LoggedCommandHandlerDecorator<TCommand, TResult>> logger
 ) : ICommandHandler<TCommand, TResult>
 {
     public async Task<TResult> Handle(
@@ -63,38 +63,6 @@ internal sealed class LoggedCommandHandler<TCommand, TResult>(
                 exception,
                 "Failed {CommandType} after {ElapsedMilliseconds} ms",
                 typeof(TCommand).Name,
-                Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds
-            );
-            throw;
-        }
-    }
-}
-
-internal sealed class LoggedQueryHandler<TQuery, TResult>(
-    IQueryHandler<TQuery, TResult> inner,
-    ILogger<LoggedQueryHandler<TQuery, TResult>> logger
-) : IQueryHandler<TQuery, TResult>
-{
-    public async Task<TResult> Handle(TQuery query, CancellationToken cancellationToken = default)
-    {
-        var startedAt = Stopwatch.GetTimestamp();
-        logger.LogDebug("Handling {QueryType}", typeof(TQuery).Name);
-        try
-        {
-            var result = await inner.Handle(query, cancellationToken);
-            logger.LogDebug(
-                "Handled {QueryType} in {ElapsedMilliseconds} ms",
-                typeof(TQuery).Name,
-                Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds
-            );
-            return result;
-        }
-        catch (Exception exception)
-        {
-            logger.LogDebug(
-                exception,
-                "Failed {QueryType} after {ElapsedMilliseconds} ms",
-                typeof(TQuery).Name,
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds
             );
             throw;

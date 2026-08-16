@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
+using TRPG.Application.Combat.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -61,7 +62,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
         return fight;
     }
 
-    private CombatantState MakeCombatantState(
+    private CombatantResult MakeCombatantState(
         Guid id,
         bool isPlayer,
         int currentHp,

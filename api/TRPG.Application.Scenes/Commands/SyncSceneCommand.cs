@@ -1,6 +1,7 @@
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Buildings.Results;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;

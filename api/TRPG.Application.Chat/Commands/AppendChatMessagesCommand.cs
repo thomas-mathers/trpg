@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
 using TRPG.Data;
 using ChatMessageRow = TRPG.Domain.Models.ChatMessage;
 

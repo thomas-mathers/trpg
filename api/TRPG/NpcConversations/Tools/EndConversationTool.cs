@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.GameTurns;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Tools;

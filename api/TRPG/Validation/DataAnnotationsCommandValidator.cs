@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Validation;
 
-namespace TRPG.Handling;
+namespace TRPG.Validation;
 
 internal sealed class DataAnnotationsCommandValidator<TCommand> : ICommandValidator<TCommand>
 {

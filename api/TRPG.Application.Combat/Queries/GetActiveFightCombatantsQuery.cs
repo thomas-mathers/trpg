@@ -1,6 +1,6 @@
-using TRPG.Application.Common.Handling;
-using TRPG.Application.Creatures.Queries;
-using TRPG.Domain.Models;
+using TRPG.Application.Combat.Extensions;
+using TRPG.Application.Combat.Results;
+using TRPG.Application.Common.Queries;
 
 namespace TRPG.Application.Combat.Queries;
 
@@ -9,46 +9,18 @@ public class GetActiveFightCombatantsQuery
     public required Guid PlayerId { get; init; }
 }
 
-internal class GetActiveFightCombatantsQueryHandler(
-    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
-    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    IQueryHandler<GetCombatantQuery, Combatant> getCombatant
-) : IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>>
+internal class GetActiveFightCombatantsQueryHandler(ActiveFightCombatantLoader combatantLoader)
+    : IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<CombatantResult>>
 {
-    public async Task<IReadOnlyList<Combatant>> Handle(
+    public async Task<IReadOnlyList<CombatantResult>> Handle(
         GetActiveFightCombatantsQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var fight = await getActiveFight.Handle(
-            new GetActiveFightQuery { PlayerId = query.PlayerId },
-            cancellationToken
-        );
-
-        if (fight == null)
-        {
-            return [];
-        }
-
-        var creaturesById = await getCreaturesByIds.Handle(
-            new GetCreaturesByIdsQuery { Ids = fight.CombatantIds },
-            cancellationToken
-        );
-
-        var combatants = new List<Combatant>();
-
-        foreach (var creature in fight.CombatantIds.Select(id => creaturesById[id]))
-        {
-            var isPlayer = creature.Id == query.PlayerId;
-
-            var combatant = await getCombatant.Handle(
-                new GetCombatantQuery { Creature = creature, IsPlayer = isPlayer },
-                cancellationToken
-            );
-
-            combatants.Add(combatant);
-        }
-
-        return combatants;
+        var combatants = await combatantLoader.Load(query.PlayerId, cancellationToken);
+        return combatants
+            .OrderByDescending(combatant => combatant.TurnOrder)
+            .Select(combatant => combatant.ToCombatantResult())
+            .ToArray();
     }
 }

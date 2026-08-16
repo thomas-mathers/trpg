@@ -1,4 +1,4 @@
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Trading.Commands;

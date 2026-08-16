@@ -1,6 +1,7 @@
 using TRPG.Application.Combat.Commands;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;

@@ -6,7 +6,7 @@ using TRPG.Abilities.Mappers;
 using TRPG.Abilities.Responses;
 using TRPG.Application.Abilities;
 using TRPG.Application.Abilities.Queries;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 using DataSkill = TRPG.Domain.Models.Skill;
 
 namespace TRPG.Abilities.Endpoints;

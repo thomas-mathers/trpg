@@ -1,11 +1,15 @@
 using System.Collections.ObjectModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Common.Handling;
-using TRPG.Handling;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Common.Validation;
+using TRPG.Commands;
+using TRPG.Queries;
+using TRPG.Validation;
 
-namespace TRPG.Tests.Application.Common.Handling;
+namespace TRPG.Tests.Application.Common.Commands;
 
 public sealed class CommandHandlerDecoratorsTests
 {
@@ -13,7 +17,7 @@ public sealed class CommandHandlerDecoratorsTests
     public async Task Handle_DoesNotInvokeInnerHandler_WhenInputIsInvalid()
     {
         var inner = new RecordingHandler();
-        var handler = new ValidatingCommandHandler<ExampleCommand, string>(
+        var handler = new ValidatingCommandHandlerDecorator<ExampleCommand, string>(
             [new DataAnnotationsCommandValidator<ExampleCommand>()],
             inner
         );
@@ -29,7 +33,7 @@ public sealed class CommandHandlerDecoratorsTests
     public async Task Handle_InvokesInnerHandler_WhenInputIsValid()
     {
         var inner = new RecordingHandler();
-        var handler = new ValidatingCommandHandler<ExampleCommand, string>(
+        var handler = new ValidatingCommandHandlerDecorator<ExampleCommand, string>(
             [new DataAnnotationsCommandValidator<ExampleCommand>()],
             inner
         );
@@ -46,13 +50,16 @@ public sealed class CommandHandlerDecoratorsTests
     [Fact]
     public async Task Handle_LogsStartAndFailure_WhenValidationFails()
     {
-        var logger = new RecordingLogger<LoggedCommandHandler<ExampleCommand, string>>();
+        var logger = new RecordingLogger<LoggedCommandHandlerDecorator<ExampleCommand, string>>();
         var inner = new RecordingHandler();
-        var validatingHandler = new ValidatingCommandHandler<ExampleCommand, string>(
+        var validatingHandler = new ValidatingCommandHandlerDecorator<ExampleCommand, string>(
             [new DataAnnotationsCommandValidator<ExampleCommand>()],
             inner
         );
-        var handler = new LoggedCommandHandler<ExampleCommand, string>(validatingHandler, logger);
+        var handler = new LoggedCommandHandlerDecorator<ExampleCommand, string>(
+            validatingHandler,
+            logger
+        );
 
         await Assert.ThrowsAsync<InputValidationException>(() =>
             handler.Handle(new ExampleCommand { Name = " " }, TestContext.Current.CancellationToken)
@@ -77,8 +84,8 @@ public sealed class CommandHandlerDecoratorsTests
                 DataAnnotationsCommandValidator<ExampleCommand>
             >()
             .AddTransient<ICommandHandler<ExampleCommand, string>, RecordingHandler>()
-            .Decorate(typeof(ICommandHandler<,>), typeof(ValidatingCommandHandler<,>))
-            .Decorate(typeof(ICommandHandler<,>), typeof(LoggedCommandHandler<,>));
+            .Decorate(typeof(ICommandHandler<,>), typeof(ValidatingCommandHandlerDecorator<,>))
+            .Decorate(typeof(ICommandHandler<,>), typeof(LoggedCommandHandlerDecorator<,>));
         using var serviceProvider = services.BuildServiceProvider();
         var handler = serviceProvider.GetRequiredService<ICommandHandler<ExampleCommand, string>>();
 
@@ -90,8 +97,8 @@ public sealed class CommandHandlerDecoratorsTests
     [Fact]
     public async Task Handle_LogsStartAndCompletion_ForQuery()
     {
-        var logger = new RecordingLogger<LoggedQueryHandler<ExampleQuery, string>>();
-        var handler = new LoggedQueryHandler<ExampleQuery, string>(
+        var logger = new RecordingLogger<LoggedQueryHandlerDecorator<ExampleQuery, string>>();
+        var handler = new LoggedQueryHandlerDecorator<ExampleQuery, string>(
             new RecordingQueryHandler(),
             logger
         );

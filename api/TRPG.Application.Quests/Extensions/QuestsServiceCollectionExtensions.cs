@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Quests.Events;
 
-namespace TRPG.Application.Quests;
+namespace TRPG.Application.Quests.Extensions;
 
 public static class QuestsServiceCollectionExtensions
 {
