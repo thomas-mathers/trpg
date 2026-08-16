@@ -7,7 +7,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Chat.Commands;
 using TRPG.Application.Chat.Queries;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 
 namespace TRPG.Application.GameTurns;

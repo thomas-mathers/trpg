@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Validation;
 using TRPG.Data;
 
 namespace TRPG.Application.Quests.Commands;

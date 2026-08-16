@@ -123,14 +123,14 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
     private async Task ResolveFleeDirectly(Guid sessionId)
     {
         await using var scope = fixture.CreateScope();
-        var getCombatants =
-            scope.ServiceProvider.GetRequiredService<GetActiveFightCombatantsQueryHandler>();
+        var combatantLoader =
+            scope.ServiceProvider.GetRequiredService<ActiveFightCombatantLoader>();
         var combatEngine = scope.ServiceProvider.GetRequiredService<CombatEngine>();
         var resolveCombatRound =
             scope.ServiceProvider.GetRequiredService<ResolveCombatRoundCommandHandler>();
 
-        var combatants = await getCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = _playerId },
+        var combatants = await combatantLoader.Load(
+            _playerId,
             TestContext.Current.CancellationToken
         );
         var state = combatEngine.ResolveFlee(combatants);

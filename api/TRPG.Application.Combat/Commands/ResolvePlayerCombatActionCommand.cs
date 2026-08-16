@@ -1,6 +1,7 @@
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Combat.Results;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Domain.Models;
 
@@ -19,7 +20,7 @@ internal class ResolvePlayerCombatActionCommandHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
+    ActiveFightCombatantLoader combatantLoader,
     CombatEngine combatEngine,
     ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound
 ) : ICommandHandler<ResolvePlayerCombatActionCommand>
@@ -37,10 +38,7 @@ internal class ResolvePlayerCombatActionCommandHandler(
             },
             cancellationToken
         );
-        var combatants = await getCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
+        var combatants = await combatantLoader.Load(command.PlayerId, cancellationToken);
         if (combatants.Count == 0)
             throw new InvalidOperationException("There's no fight to act in right now.");
         var resolved = new PlayerCombatActionResolver(combatants).Resolve(command.Action);

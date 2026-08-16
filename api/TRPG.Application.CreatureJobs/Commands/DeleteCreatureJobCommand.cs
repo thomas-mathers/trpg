@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
 using TRPG.Data;
 
 namespace TRPG.Application.CreatureJobs.Commands;

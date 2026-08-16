@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
@@ -8,15 +8,9 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat.Queries;
+namespace TRPG.Application.Combat;
 
-public class GetCombatantQuery
-{
-    public required Creature Creature { get; init; }
-    public required bool IsPlayer { get; init; }
-}
-
-internal class GetCombatantQueryHandler(
+internal class CombatantFactory(
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventory,
     IQueryHandler<
         GetAllWeaponProficienciesQuery,
@@ -24,18 +18,19 @@ internal class GetCombatantQueryHandler(
     > getAllWeaponProficiencies,
     IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
     IOptionsSnapshot<CombatOptions> optionsSnapshot
-) : IQueryHandler<GetCombatantQuery, Combatant>
+)
 {
-    public async Task<Combatant> Handle(
-        GetCombatantQuery query,
+    public async Task<Combatant> Create(
+        Creature creature,
+        bool isPlayer,
         CancellationToken cancellationToken = default
     )
     {
         var weaponProficiencies = await getAllWeaponProficiencies.Handle(
             new GetAllWeaponProficienciesQuery
             {
-                WorldId = query.Creature.WorldId,
-                CreatureId = query.Creature.Id,
+                WorldId = creature.WorldId,
+                CreatureId = creature.Id,
             },
             cancellationToken
         );
@@ -43,20 +38,20 @@ internal class GetCombatantQueryHandler(
         var items = await getInventory.Handle(
             new GetInventoryItemsByOwnerQuery
             {
-                Owner = new ItemOwnerReference(query.Creature.Id, OwnerType.Creature),
+                Owner = new ItemOwnerReference(creature.Id, OwnerType.Creature),
             },
             cancellationToken
         );
 
         var abilities = await getCreatureAbilities.Handle(
-            new GetCreatureAbilitiesQuery { CreatureId = query.Creature.Id },
+            new GetCreatureAbilitiesQuery { CreatureId = creature.Id },
             cancellationToken
         );
 
         return Combatant.FromCreature(
             optionsSnapshot.Value,
-            query.IsPlayer,
-            query.Creature,
+            isPlayer,
+            creature,
             abilities,
             items,
             weaponProficiencies

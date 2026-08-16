@@ -102,7 +102,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         var currentHpAtCreation = playerResult.Creature.CurrentHp;
 
         // Act — start a fight exactly like StartFightTool does before the player chooses an action
-        var combatants = await _startFight.Handle(
+        await _startFight.Handle(
             new StartFightCommand
             {
                 SessionId = session.Id,
@@ -114,6 +114,9 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         );
 
         // Assert — entering combat must not change Maximum or Current HP by itself
+        var combatants = await _serviceProvider
+            .GetRequiredService<ActiveFightCombatantLoader>()
+            .Load(playerResult.Creature.Id, TestContext.Current.CancellationToken);
         var playerCombatant = combatants.Single(c => c.IsPlayer);
         Assert.Equal(maximumHpAtCreation, playerCombatant.MaximumHp);
         Assert.Equal(currentHpAtCreation, playerCombatant.CurrentHp);

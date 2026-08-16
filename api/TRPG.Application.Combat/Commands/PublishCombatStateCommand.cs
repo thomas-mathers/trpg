@@ -1,7 +1,9 @@
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Queries;
+using TRPG.Application.Combat.Results;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 
 namespace TRPG.Application.Combat.Commands;
 
@@ -11,7 +13,7 @@ public class PublishCombatStateCommand
 }
 
 internal class PublishCombatStateCommandHandler(
-    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
+    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<CombatantResult>> getCombatants,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<PublishCombatStateCommand>
 {

@@ -1,5 +1,5 @@
 using TRPG.Application.Abilities;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 
 namespace TRPG.Application.Combat.Queries;
 
@@ -10,19 +10,15 @@ public class GetAbilityAvailabilityQuery
     public required Guid PlayerId { get; init; }
 }
 
-internal class GetAbilityAvailabilityQueryHandler(
-    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getActiveFightCombatants
-) : IQueryHandler<GetAbilityAvailabilityQuery, IReadOnlyList<AbilityAvailability>>
+internal class GetAbilityAvailabilityQueryHandler(ActiveFightCombatantLoader combatantLoader)
+    : IQueryHandler<GetAbilityAvailabilityQuery, IReadOnlyList<AbilityAvailability>>
 {
     public async Task<IReadOnlyList<AbilityAvailability>> Handle(
         GetAbilityAvailabilityQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var combatants = await getActiveFightCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = query.PlayerId },
-            cancellationToken
-        );
+        var combatants = await combatantLoader.Load(query.PlayerId, cancellationToken);
 
         var player = combatants.SingleOrDefault(c => c.IsPlayer);
         if (player is null)

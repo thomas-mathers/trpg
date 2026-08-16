@@ -1,7 +1,8 @@
 using System.Text.Json;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Combat.Results;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.GameSessions;
 
 namespace TRPG.Application.GameTurns;

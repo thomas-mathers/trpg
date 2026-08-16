@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace TRPG.Application.GameTurns;
+namespace TRPG.Application.GameTurns.Extensions;
 
 public static class GameTurnsServiceCollectionExtensions
 {

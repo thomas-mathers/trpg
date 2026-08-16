@@ -1,5 +1,6 @@
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters;
@@ -7,7 +8,6 @@ using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Encounters.Results;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
-using Combatant = TRPG.Application.Combat.Combatant;
 
 namespace TRPG.Application.Encounters.Commands;
 
@@ -28,7 +28,7 @@ internal class ResolveEncounterActionCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<CompleteEncounterCommand> completeEncounter,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<StartFightCommand, IReadOnlyList<Combatant>> startFight,
+    ICommandHandler<StartFightCommand> startFight,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
 ) : ICommandHandler<ResolveEncounterActionCommand, EncounterActionResult>
 {

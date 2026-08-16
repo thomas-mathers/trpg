@@ -1,32 +1,8 @@
-using TRPG.Application.Abilities;
-using TRPG.Application.Combat.Events;
-using TRPG.Domain.Models;
+using TRPG.Application.Combat.Results;
 
-namespace TRPG.Application.Combat;
+namespace TRPG.Application.Combat.Mappers;
 
-public record CombatResultPlayerState(
-    string Name,
-    int CurrentHp,
-    int MaximumHp,
-    IReadOnlyList<string> Abilities,
-    IReadOnlyDictionary<ConditionType, int> ActiveConditions
-);
-
-public record CombatResultEnemyState(
-    string Name,
-    int CurrentHp,
-    int MaximumHp,
-    IReadOnlyDictionary<ConditionType, int> ActiveConditions
-);
-
-public record CombatResult(
-    CombatOutcome Outcome,
-    CombatResultPlayerState Player,
-    IReadOnlyList<CombatResultEnemyState> Enemies,
-    IReadOnlyList<CombatResolution> Events
-);
-
-internal static class CombatStateExtensions
+internal static class CombatStateMapper
 {
     public static CombatResult ToCombatResult(this CombatState state)
     {

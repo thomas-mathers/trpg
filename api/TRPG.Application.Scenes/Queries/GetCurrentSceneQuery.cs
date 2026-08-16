@@ -1,4 +1,4 @@
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
 

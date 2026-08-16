@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace TRPG.Application.Combat;
+namespace TRPG.Application.Combat.Extensions;
 
 public static class CombatServiceCollectionExtensions
 {
@@ -9,5 +9,7 @@ public static class CombatServiceCollectionExtensions
             .AddTransient<HitCalculator>()
             .AddTransient<DamageCalculator>()
             .AddTransient<EnemyCombatActionResolver>()
+            .AddTransient<CombatantFactory>()
+            .AddTransient<ActiveFightCombatantLoader>()
             .AddTransient<CombatEngine>();
 }

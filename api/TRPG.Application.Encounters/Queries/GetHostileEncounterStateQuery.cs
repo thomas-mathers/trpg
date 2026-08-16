@@ -1,4 +1,4 @@
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;

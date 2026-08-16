@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace TRPG.Application.Trading;
+namespace TRPG.Application.Trading.Extensions;
 
 public static class TradingServiceCollectionExtensions
 {

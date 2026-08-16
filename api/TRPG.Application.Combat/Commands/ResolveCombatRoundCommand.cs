@@ -1,7 +1,9 @@
 using System.Transactions;
 using TRPG.Application.Combat.Events;
+using TRPG.Application.Combat.Mappers;
+using TRPG.Application.Combat.Results;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WeaponProficiency.Commands;
@@ -9,7 +11,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;
 
-public class ResolveCombatRoundCommand
+internal class ResolveCombatRoundCommand
 {
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
@@ -60,7 +62,7 @@ internal class ResolveCombatRoundCommandHandler(
             );
         }
 
-        gameEvents.Enqueue(new CombatUpdatedEvent(command.Combatants, state.Events, state.Outcome));
+        gameEvents.Enqueue(new CombatUpdatedEvent(state.Combatants, state.Events, state.Outcome));
 
         if (state.WeaponSwingCounts.Count > 0)
         {

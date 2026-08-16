@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
 using TRPG.Data;
 
 namespace TRPG.Application.Combat.Commands;
 
-public class PersistCombatantsCommand
+internal class PersistCombatantsCommand
 {
     public required IReadOnlyList<Combatant> Combatants { get; init; }
 }

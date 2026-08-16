@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 
-namespace TRPG.Application.Worlds;
+namespace TRPG.Application.Worlds.Extensions;
 
 public static class WorldsServiceCollectionExtensions
 {

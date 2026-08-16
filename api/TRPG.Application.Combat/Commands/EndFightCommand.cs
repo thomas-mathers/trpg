@@ -1,6 +1,7 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Common.Handling;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
@@ -8,7 +9,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;
 
-public class EndFightCommand
+internal class EndFightCommand
 {
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }

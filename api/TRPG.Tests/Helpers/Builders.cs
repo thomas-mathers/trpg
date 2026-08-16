@@ -1,6 +1,7 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
+using TRPG.Application.Combat.Results;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Worlds.Generators;
@@ -90,7 +91,7 @@ internal static class Builders
             WorldId = worldId ?? Guid.NewGuid(),
         };
 
-    public static CombatantState MakeCombatantState(
+    public static CombatantResult MakeCombatantState(
         Guid id,
         string name,
         bool isPlayer,
@@ -98,23 +99,29 @@ internal static class Builders
         bool isAlive,
         IReadOnlyDictionary<Guid, int>? itemsUsedCounts = null
     ) =>
-        new(
+        new CombatantResult(
             Id: id,
             Name: name,
+            Level: 1,
             IsPlayer: isPlayer,
             CurrentHp: currentHp,
             MaximumHp: 100,
             CurrentAp: 7,
+            MaximumAp: 10,
             CurrentMp: 2,
+            MaximumMp: 5,
             IsAlive: isAlive,
             Abilities: [],
             ActiveConditions: new Dictionary<ConditionType, int>(),
+            ActiveDots: [],
+            ActiveHots: [],
+            ActiveBuffs: [],
             ItemsUsedCounts: itemsUsedCounts ?? new Dictionary<Guid, int>()
         );
 
     public static CombatState MakeCombatState(
         CombatOutcome outcome,
-        IReadOnlyList<CombatantState> combatants,
+        IReadOnlyList<CombatantResult> combatants,
         int? goldLooted = null,
         IReadOnlyDictionary<WeaponType, int>? weaponSwingCounts = null,
         IReadOnlyList<CombatResolution>? events = null

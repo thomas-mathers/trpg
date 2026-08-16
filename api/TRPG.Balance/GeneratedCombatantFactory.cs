@@ -28,7 +28,7 @@ public static class GeneratedCombatantFactory
         return new GeneratedCombatantContext(generator);
     }
 
-    public static Combatant ToCombatant(
+    internal static Combatant ToCombatant(
         CreatureGeneratorResult result,
         bool isPlayer,
         CombatOptions? combatOptions = null
