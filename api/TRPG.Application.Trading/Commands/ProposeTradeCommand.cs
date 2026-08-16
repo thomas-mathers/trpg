@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Handling;
-using TRPG.Contracts.Inventory.Requests;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Trading.Commands;
 

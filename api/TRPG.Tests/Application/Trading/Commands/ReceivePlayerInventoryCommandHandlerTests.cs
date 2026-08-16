@@ -5,7 +5,6 @@ using TRPG.Application.Quests;
 using TRPG.Application.Quests.Events;
 using TRPG.Application.Trading;
 using TRPG.Application.Trading.Commands;
-using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;

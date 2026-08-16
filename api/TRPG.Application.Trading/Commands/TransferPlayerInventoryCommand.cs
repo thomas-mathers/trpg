@@ -2,7 +2,6 @@ using System.Transactions;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Inventory;
 using TRPG.Application.Quests.Queries;
-using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
