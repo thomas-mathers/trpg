@@ -11,7 +11,7 @@ namespace TRPG.NpcConversations.Tools;
 
 internal class EndConversationTool(
     GameTurnContext turnContext,
-    ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationOutcome> closeNpcConversation,
+    ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationResult> closeNpcConversation,
     ILogger<EndConversationTool> logger
 ) : IGameTool
 {
@@ -47,7 +47,7 @@ internal class EndConversationTool(
             },
             cancellationToken
         );
-        if (outcome == CloseNpcConversationOutcome.NotOpen)
+        if (outcome == CloseNpcConversationResult.NotOpen)
         {
             return new ToolError(
                 $"No open conversation with '{npcName}'. Call start_conversation first."

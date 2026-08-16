@@ -18,7 +18,7 @@ public class AllocateAttributePointsCommand
 
 internal class AllocateAttributePointsCommandHandler(
     TrpgDbContext context,
-    IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner,
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
 ) : ICommandHandler<AllocateAttributePointsCommand>
 {
@@ -74,8 +74,8 @@ internal class AllocateAttributePointsCommandHandler(
             optionsSnapshot.Value
         );
 
-        var items = await getInventoryByOwner.Handle(
-            new GetInventoryByOwnerQuery
+        var items = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery
             {
                 Owner = new ItemOwnerReference(command.CreatureId, OwnerType.Creature),
             },

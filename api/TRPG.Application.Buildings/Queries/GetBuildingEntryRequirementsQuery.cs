@@ -1,27 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Buildings.Results;
 using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-public enum BuildingEntryOutcome
-{
-    Entered,
-    NoEntrance,
-    Locked,
-}
-
 public class GetBuildingEntryRequirementsQuery
 {
     public required Guid BuildingId { get; init; }
 }
-
-public record BuildingEntryRequirements(
-    BuildingEntryOutcome Outcome,
-    Guid? EntranceLocationId,
-    IReadOnlyCollection<Guid>? ValidKeyItemIds = null
-);
 
 internal class GetBuildingEntryRequirementsQueryHandler(
     TrpgDbContext context,
@@ -41,14 +29,14 @@ internal class GetBuildingEntryRequirementsQueryHandler(
             );
         if (entranceRoom == null)
         {
-            return new BuildingEntryRequirements(BuildingEntryOutcome.NoEntrance, null);
+            return new BuildingEntryRequirements(BuildingEntryResult.NoEntrance, null);
         }
 
         var door = await GetFrontDoor(entranceRoom.LocationId, cancellationToken);
         if (door is not { IsLocked: true })
         {
             return new BuildingEntryRequirements(
-                BuildingEntryOutcome.Entered,
+                BuildingEntryResult.Entered,
                 entranceRoom.LocationId
             );
         }
@@ -60,13 +48,13 @@ internal class GetBuildingEntryRequirementsQueryHandler(
         if (validKeyItemIds.Count == 0)
         {
             return new BuildingEntryRequirements(
-                BuildingEntryOutcome.Entered,
+                BuildingEntryResult.Entered,
                 entranceRoom.LocationId
             );
         }
 
         return new BuildingEntryRequirements(
-            BuildingEntryOutcome.Locked,
+            BuildingEntryResult.Locked,
             entranceRoom.LocationId,
             validKeyItemIds
         );

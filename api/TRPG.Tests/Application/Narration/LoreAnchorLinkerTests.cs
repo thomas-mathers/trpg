@@ -1,5 +1,6 @@
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.Narration.Results;
 
 namespace TRPG.Tests.Application.Narration;
 
@@ -519,13 +520,13 @@ public class LoreAnchorLinkerTests
         Assert.Equal("You see The Common Name.", string.Concat(linked));
     }
 
-    private static LoreAnchorSummary MakeEntity(string name, LoreAnchorType type) =>
+    private static LoreAnchorResult MakeEntity(string name, LoreAnchorType type) =>
         new(Guid.NewGuid(), name, type, Subtype: null, Description: "");
 
-    private static LoreAnchorAutomaton MakeMatcher(params LoreAnchorSummary[] entities) =>
+    private static LoreAnchorAutomaton MakeMatcher(params LoreAnchorResult[] entities) =>
         LoreAnchorAutomaton.Build(entities);
 
-    private static string ToMarkup(LoreAnchorSummary entity) =>
+    private static string ToMarkup(LoreAnchorResult entity) =>
         $"[{entity.Name}](entity://{entity.Type}/{entity.Id})";
 
     private static async IAsyncEnumerable<string> ToAsyncEnumerable(params string[] chunks)

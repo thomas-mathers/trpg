@@ -1,4 +1,5 @@
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.Narration.Results;
 
 namespace TRPG.Application.Narration;
 
@@ -8,7 +9,7 @@ public sealed class LoreAnchorAutomaton
 
     private LoreAnchorAutomaton() { }
 
-    public static LoreAnchorAutomaton Build(IReadOnlyCollection<LoreAnchorSummary> entities)
+    public static LoreAnchorAutomaton Build(IReadOnlyCollection<LoreAnchorResult> entities)
     {
         var automaton = new LoreAnchorAutomaton();
         automaton.Root.Fail = automaton.Root;
@@ -65,7 +66,7 @@ public sealed class LoreAnchorAutomaton
     public sealed class Node(int depth)
     {
         public int Depth { get; } = depth;
-        public LoreAnchorSummary? Match { get; internal set; }
+        public LoreAnchorResult? Match { get; internal set; }
         internal Dictionary<char, Node> Children { get; } = new();
         internal Node Fail { get; set; } = null!;
 

@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.Narration.Results;
 
 namespace TRPG.Application.Narration;
 
@@ -31,7 +32,7 @@ public static class LoreAnchorLinker
         }
     }
 
-    private sealed record Checkpoint(int Length, LoreAnchorSummary Entity);
+    private sealed record Checkpoint(int Length, LoreAnchorResult Entity);
 
     private sealed class MatchState(LoreAnchorAutomaton automaton)
     {
@@ -168,6 +169,6 @@ public static class LoreAnchorLinker
         }
     }
 
-    private static string ToMarkup(LoreAnchorSummary entity) =>
+    private static string ToMarkup(LoreAnchorResult entity) =>
         $"[{entity.Name}](entity://{entity.Type}/{entity.Id})";
 }

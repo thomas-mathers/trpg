@@ -2,28 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Narration.Mappers;
+using TRPG.Application.Narration.Results;
 using TRPG.Data;
 
 namespace TRPG.Application.Narration.Queries;
-
-public enum LoreAnchorType
-{
-    Creature,
-    Building,
-    District,
-    World,
-    Country,
-    State,
-    City,
-}
-
-public record LoreAnchorSummary(
-    Guid Id,
-    string Name,
-    LoreAnchorType Type,
-    string? Subtype,
-    string Description
-);
 
 public class GetLoreAnchorsByWorldQuery
 {
@@ -31,11 +13,11 @@ public class GetLoreAnchorsByWorldQuery
 }
 
 internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
-    : IQueryHandler<GetLoreAnchorsByWorldQuery, IReadOnlyCollection<LoreAnchorSummary>>
+    : IQueryHandler<GetLoreAnchorsByWorldQuery, IReadOnlyCollection<LoreAnchorResult>>
 {
     public static string CacheKey(Guid worldId) => $"namedEntities:{worldId}";
 
-    public async Task<IReadOnlyCollection<LoreAnchorSummary>> Handle(
+    public async Task<IReadOnlyCollection<LoreAnchorResult>> Handle(
         GetLoreAnchorsByWorldQuery query,
         CancellationToken cancellationToken = default
     )
@@ -47,7 +29,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
         return entities ?? [];
     }
 
-    private async Task<LoreAnchorSummary[]> BuildEntities(
+    private async Task<LoreAnchorResult[]> BuildEntities(
         Guid worldId,
         CancellationToken cancellationToken
     )
@@ -55,7 +37,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
         var creatures = await context
             .Creatures.AsNoTracking()
             .Where(c => c.WorldId == worldId)
-            .Select(c => new LoreAnchorSummary(
+            .Select(c => new LoreAnchorResult(
                 c.Id,
                 c.Name,
                 LoreAnchorType.Creature,
@@ -76,7 +58,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
             })
             .ToArrayAsync(cancellationToken);
         var buildings = buildingRows
-            .Select(b => new LoreAnchorSummary(
+            .Select(b => new LoreAnchorResult(
                 b.Id,
                 b.Name,
                 LoreAnchorType.Building,
@@ -97,7 +79,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
             })
             .ToArrayAsync(cancellationToken);
         var districts = districtRows
-            .Select(d => new LoreAnchorSummary(
+            .Select(d => new LoreAnchorResult(
                 d.Id,
                 d.Name,
                 LoreAnchorType.District,
@@ -109,7 +91,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
         var world = await context
             .Worlds.AsNoTracking()
             .Where(w => w.Id == worldId)
-            .Select(w => new LoreAnchorSummary(
+            .Select(w => new LoreAnchorResult(
                 w.Id,
                 w.Name,
                 LoreAnchorType.World,
@@ -121,7 +103,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
         var countries = await context
             .Countries.AsNoTracking()
             .Where(c => c.WorldId == worldId)
-            .Select(c => new LoreAnchorSummary(
+            .Select(c => new LoreAnchorResult(
                 c.Id,
                 c.Name,
                 LoreAnchorType.Country,
@@ -133,7 +115,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
         var states = await context
             .States.AsNoTracking()
             .Where(s => s.WorldId == worldId)
-            .Select(s => new LoreAnchorSummary(
+            .Select(s => new LoreAnchorResult(
                 s.Id,
                 s.Name,
                 LoreAnchorType.State,
@@ -145,7 +127,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
         var cities = await context
             .Cities.AsNoTracking()
             .Where(c => c.WorldId == worldId)
-            .Select(c => new LoreAnchorSummary(
+            .Select(c => new LoreAnchorResult(
                 c.Id,
                 c.Name,
                 LoreAnchorType.City,

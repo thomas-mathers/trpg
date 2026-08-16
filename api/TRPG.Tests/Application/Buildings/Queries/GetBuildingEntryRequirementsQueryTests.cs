@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Buildings.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -82,7 +83,7 @@ public sealed class GetBuildingEntryRequirementsQueryTests(DatabaseFixture db) :
         );
 
         // Assert
-        Assert.Equal(BuildingEntryOutcome.Entered, result.Outcome);
+        Assert.Equal(BuildingEntryResult.Entered, result.Outcome);
         Assert.Equal(_entranceRoom.LocationId, result.EntranceLocationId);
         Assert.Null(result.ValidKeyItemIds);
     }
@@ -102,7 +103,7 @@ public sealed class GetBuildingEntryRequirementsQueryTests(DatabaseFixture db) :
         );
 
         // Assert — the entrance location comes along so the caller can finish the check itself
-        Assert.Equal(BuildingEntryOutcome.Locked, result.Outcome);
+        Assert.Equal(BuildingEntryResult.Locked, result.Outcome);
         Assert.Equal(_entranceRoom.LocationId, result.EntranceLocationId);
         Assert.Equal(
             new[] { keyA.Id, keyB.Id }.OrderBy(id => id),
@@ -138,7 +139,7 @@ public sealed class GetBuildingEntryRequirementsQueryTests(DatabaseFixture db) :
         );
 
         // Assert
-        Assert.Equal(BuildingEntryOutcome.Entered, result.Outcome);
+        Assert.Equal(BuildingEntryResult.Entered, result.Outcome);
         Assert.Equal(keylessDoorRoom.LocationId, result.EntranceLocationId);
     }
 
@@ -157,7 +158,7 @@ public sealed class GetBuildingEntryRequirementsQueryTests(DatabaseFixture db) :
         );
 
         // Assert
-        Assert.Equal(BuildingEntryOutcome.NoEntrance, result.Outcome);
+        Assert.Equal(BuildingEntryResult.NoEntrance, result.Outcome);
         Assert.Null(result.EntranceLocationId);
     }
 }

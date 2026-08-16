@@ -6,6 +6,7 @@ using TRPG.Application.Common.Handling;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.Narration.Results;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Worlds.Queries;
@@ -88,7 +89,7 @@ internal static class GameSessionEndpoints
         [FromServices]
             IQueryHandler<
             GetLoreAnchorsByWorldQuery,
-            IReadOnlyCollection<LoreAnchorSummary>
+            IReadOnlyCollection<LoreAnchorResult>
         > getLoreAnchorsByWorld,
         CancellationToken cancellationToken
     )
@@ -113,7 +114,7 @@ internal static class GameSessionEndpoints
         [FromServices]
             IQueryHandler<
             GetLoreAnchorsByWorldQuery,
-            IReadOnlyCollection<LoreAnchorSummary>
+            IReadOnlyCollection<LoreAnchorResult>
         > getLoreAnchorsByWorld,
         CancellationToken cancellationToken
     )

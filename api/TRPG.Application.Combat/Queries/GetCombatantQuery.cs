@@ -17,7 +17,7 @@ public class GetCombatantQuery
 }
 
 internal class GetCombatantQueryHandler(
-    IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventory,
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventory,
     IQueryHandler<
         GetAllWeaponProficienciesQuery,
         IReadOnlyDictionary<WeaponType, int>
@@ -41,7 +41,7 @@ internal class GetCombatantQueryHandler(
         );
 
         var items = await getInventory.Handle(
-            new GetInventoryByOwnerQuery
+            new GetInventoryItemsByOwnerQuery
             {
                 Owner = new ItemOwnerReference(query.Creature.Id, OwnerType.Creature),
             },

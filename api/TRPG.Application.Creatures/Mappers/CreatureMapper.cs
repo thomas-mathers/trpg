@@ -1,11 +1,12 @@
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Creatures.Results;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Mappers;
 
 internal static class CreatureMapper
 {
-    public static CreatureSummary ToSummary(
+    public static CreatureResult ToResult(
         this Creature creature,
         int gold,
         Guid stateId,

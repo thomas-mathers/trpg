@@ -9,6 +9,7 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Quests.Results;
 using TRPG.Domain.Models;
 using TRPG.Tools;
 
@@ -17,8 +18,8 @@ namespace TRPG.NpcConversations.Tools;
 internal record StartConversationResult(
     string Summary,
     string Biography,
-    IReadOnlyCollection<QuestConversationDetail> AvailableQuests,
-    IReadOnlyCollection<QuestConversationDetail> ReadyToCompleteQuests
+    IReadOnlyCollection<QuestConversationResult> AvailableQuests,
+    IReadOnlyCollection<QuestConversationResult> ReadyToCompleteQuests
 );
 
 internal class StartConversationTool(
@@ -27,11 +28,8 @@ internal class StartConversationTool(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
     IQueryHandler<GetNpcConversationSummaryQuery, string> getNpcConversationSummary,
-    IQueryHandler<
-        GetQuestInteractionsForGiverQuery,
-        QuestInteractionsForGiver
-    > getQuestInteractions,
-    ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationOutcome> openNpcConversation,
+    IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult> getQuestInteractions,
+    ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult> openNpcConversation,
     ILogger<StartConversationTool> logger
 ) : IGameTool
 {
@@ -93,7 +91,7 @@ internal class StartConversationTool(
             },
             cancellationToken
         );
-        if (outcome == OpenNpcConversationOutcome.AlreadyOpen)
+        if (outcome == OpenNpcConversationResult.AlreadyOpen)
         {
             return new ToolError(
                 $"You are already in conversation with {npcName}; no need to call this again for them. If the dialogue has turned to someone else, call lookup instead."

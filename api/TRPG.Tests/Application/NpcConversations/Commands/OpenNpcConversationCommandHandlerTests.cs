@@ -52,7 +52,7 @@ public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) :
         );
 
         // Assert
-        Assert.Equal(OpenNpcConversationOutcome.Opened, outcome);
+        Assert.Equal(OpenNpcConversationResult.Opened, outcome);
     }
 
     [Fact]
@@ -105,6 +105,6 @@ public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) :
         );
 
         // Assert
-        Assert.Equal(OpenNpcConversationOutcome.AlreadyOpen, outcome);
+        Assert.Equal(OpenNpcConversationResult.AlreadyOpen, outcome);
     }
 }

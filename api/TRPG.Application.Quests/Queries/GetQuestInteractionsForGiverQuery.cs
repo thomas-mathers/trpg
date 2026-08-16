@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
+using TRPG.Application.Quests.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -13,25 +14,10 @@ public class GetQuestInteractionsForGiverQuery
     public required Guid WorldId { get; init; }
 }
 
-public record QuestConversationObjective(string Name, string Description, int RequiredAmount);
-
-public record QuestConversationDetail(
-    [property: JsonIgnore] Guid QuestId,
-    string Name,
-    string Description,
-    int GoldReward,
-    IReadOnlyCollection<QuestConversationObjective> Objectives
-);
-
-public record QuestInteractionsForGiver(
-    IReadOnlyCollection<QuestConversationDetail> AvailableQuests,
-    IReadOnlyCollection<QuestConversationDetail> ReadyToCompleteQuests
-);
-
 internal class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsForGiver>
+    : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult>
 {
-    public async Task<QuestInteractionsForGiver> Handle(
+    public async Task<QuestInteractionsResult> Handle(
         GetQuestInteractionsForGiverQuery query,
         CancellationToken cancellationToken = default
     )
@@ -69,7 +55,7 @@ internal class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
 
         var objectivesByQuestId = objectives
             .GroupBy(objective => objective.QuestId)
-            .ToDictionary(group => group.Key, group => group.Select(ToDetail).ToArray());
+            .ToDictionary(group => group.Key, group => group.Select(ToResult).ToArray());
 
         var acceptedQuestIds = creatureQuests.Select(quest => quest.QuestId).ToHashSet();
 
@@ -78,7 +64,7 @@ internal class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
         var availableQuests = quests
             .Where(quest => !acceptedQuestIds.Contains(quest.Id))
             .Where(quest => quest.PrerequisiteQuestIds.All(completedQuestIdSet.Contains))
-            .Select(quest => ToDetail(quest, objectivesByQuestId))
+            .Select(quest => ToResult(quest, objectivesByQuestId))
             .ToArray();
 
         var questsById = quests.ToDictionary(quest => quest.Id);
@@ -86,15 +72,15 @@ internal class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
         var readyToCompleteQuests = creatureQuests
             .Where(quest => quest.Status == QuestStatus.ReadyToComplete)
             .Select(quest => questsById[quest.QuestId])
-            .Select(quest => ToDetail(quest, objectivesByQuestId))
+            .Select(quest => ToResult(quest, objectivesByQuestId))
             .ToArray();
 
-        return new QuestInteractionsForGiver(availableQuests, readyToCompleteQuests);
+        return new QuestInteractionsResult(availableQuests, readyToCompleteQuests);
     }
 
-    private static QuestConversationDetail ToDetail(
+    private static QuestConversationResult ToResult(
         Quest quest,
-        IReadOnlyDictionary<Guid, QuestConversationObjective[]> objectivesByQuestId
+        IReadOnlyDictionary<Guid, QuestConversationObjectiveResult[]> objectivesByQuestId
     ) =>
         new(
             quest.Id,
@@ -104,6 +90,6 @@ internal class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
             objectivesByQuestId.GetValueOrDefault(quest.Id, [])
         );
 
-    private static QuestConversationObjective ToDetail(QuestObjective objective) =>
+    private static QuestConversationObjectiveResult ToResult(QuestObjective objective) =>
         new(objective.Name, objective.Description, objective.RequiredAmount);
 }

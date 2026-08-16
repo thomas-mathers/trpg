@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
@@ -10,34 +11,46 @@ namespace TRPG.Tests.Application.Inventory.Queries;
 public sealed class GetInventoryByOwnerQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetInventoryByOwnerQueryHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
-    private readonly Workstation _workstation = Builders.MakeWorkstation();
-    private readonly Item _item = Builders.MakeItem();
-    private readonly Item _otherItem = Builders.MakeItem();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetInventoryByOwnerQueryHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<GetInventoryByOwnerQueryHandler>();
 
         _context.Creatures.Add(_creature);
-        _context.Props.Add(_workstation);
-        _context.Items.AddRange(_item, _otherItem);
-
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
-    [Fact]
-    public async Task Handle_ReturnsEmptyCollection_WhenOwnerHasNoItems()
+    private async Task<Item> SeedItem(Item item, int quantity)
     {
+        item.Quantity = quantity;
+        item.Ownership.OwnerId = _creature.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.Add(item);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return item;
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsOwnersGold()
+    {
+        // Arrange
+        await SeedItem(Builders.MakeGold(_creature.WorldId), 100);
+
         // Act
-        var items = await _handler.Handle(
+        var result = await _handler.Handle(
             new GetInventoryByOwnerQuery
             {
                 Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
@@ -46,25 +59,35 @@ public sealed class GetInventoryByOwnerQueryTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Empty(items);
+        Assert.Equal(100, result.Gold);
     }
 
     [Fact]
-    public async Task Handle_ReturnsItemsOrderedByAcquiredAt()
+    public async Task Handle_ReturnsZeroGold_WhenOwnerDoesNotExist()
+    {
+        // Act — no existence check by design; an unknown creature id just has no gold or items
+        var result = await _handler.Handle(
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(Guid.NewGuid(), OwnerType.Creature),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(0, result.Gold);
+        Assert.Empty(result.Items);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsEveryItem()
     {
         // Arrange
-        _item.Quantity = 1;
-        _item.Ownership.OwnerId = _creature.Id;
-        _item.Ownership.OwnerType = OwnerType.Creature;
-        _item.Ownership.AcquiredAt = DateTime.UtcNow.AddMinutes(-1);
-        _otherItem.Quantity = 1;
-        _otherItem.Ownership.OwnerId = _creature.Id;
-        _otherItem.Ownership.OwnerType = OwnerType.Creature;
-        _otherItem.Ownership.AcquiredAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var weapon = await SeedItem(Builders.MakeWeaponItem(_creature.WorldId), 1);
+        var potion = await SeedItem(Builders.MakeConsumableItem(_creature.WorldId), 3);
 
         // Act
-        var items = await _handler.Handle(
+        var result = await _handler.Handle(
             new GetInventoryByOwnerQuery
             {
                 Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
@@ -73,28 +96,8 @@ public sealed class GetInventoryByOwnerQueryTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Equal([_item.Id, _otherItem.Id], items.Select(i => i.Id));
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsWorkstationItems()
-    {
-        // Arrange
-        _item.Quantity = 1;
-        _item.Ownership.OwnerId = _workstation.Id;
-        _item.Ownership.OwnerType = OwnerType.Workstation;
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var items = await _handler.Handle(
-            new GetInventoryByOwnerQuery
-            {
-                Owner = new ItemOwnerReference(_workstation.Id, OwnerType.Workstation),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal([_item.Id], items.Select(i => i.Id));
+        Assert.Equal(2, result.Items.Count);
+        Assert.Contains(result.Items, i => i.Id == weapon.Id);
+        Assert.Contains(result.Items, i => i.Id == potion.Id);
     }
 }

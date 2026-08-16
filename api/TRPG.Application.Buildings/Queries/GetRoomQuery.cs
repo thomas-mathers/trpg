@@ -1,38 +1,27 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Buildings.Results;
 using TRPG.Application.Common.Handling;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-public class GetRoomSummaryQuery
+public class GetRoomQuery
 {
     public required Guid RoomId { get; init; }
 }
 
-public record RoomSummary(
-    string RoomName,
-    string RoomDescription,
-    int RoomFloorNumber,
-    Guid BuildingId,
-    string BuildingName,
-    BuildingType BuildingType,
-    string? OwnerName,
-    string? FactionName,
-    string? FactionDescription
-);
-
-internal class GetRoomSummaryQueryHandler(TrpgDbContext context, IMemoryCache cache)
-    : IQueryHandler<GetRoomSummaryQuery, RoomSummary?>
+internal class GetRoomQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetRoomQuery, RoomResult?>
 {
-    public async Task<RoomSummary?> Handle(
-        GetRoomSummaryQuery query,
+    public async Task<RoomResult?> Handle(
+        GetRoomQuery query,
         CancellationToken cancellationToken = default
     )
     {
         return await cache.GetOrCreateAsync(
-            $"roomSummary:{query.RoomId}",
+            $"roomResult:{query.RoomId}",
             async _ =>
                 await (
                     from r in context.Rooms.AsNoTracking()
@@ -44,7 +33,7 @@ internal class GetRoomSummaryQueryHandler(TrpgDbContext context, IMemoryCache ca
                     from owner in ownerGroup.DefaultIfEmpty()
                     join f in context.Factions on b.FactionId equals (Guid?)f.Id into factionGroup
                     from f in factionGroup.DefaultIfEmpty()
-                    select new RoomSummary(
+                    select new RoomResult(
                         r.Name,
                         r.Description,
                         r.FloorNumber,

@@ -12,7 +12,7 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
 {
     private TrpgDbContext _context = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
-    private GetInventoryByOwnerQueryHandler _getHandler = null!;
+    private GetInventoryItemsByOwnerQueryHandler _getHandler = null!;
     private UnequipInventoryItemCommandHandler _unequipHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
     private readonly Item _item = Builders.MakeWeaponItem();
@@ -22,7 +22,7 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
         _context = db.CreateContext();
         _equipHandler = new EquipInventoryItemCommandHandler(_context);
         _unequipHandler = new UnequipInventoryItemCommandHandler(_context);
-        _getHandler = new GetInventoryByOwnerQueryHandler(_context);
+        _getHandler = new GetInventoryItemsByOwnerQueryHandler(_context);
 
         _item.Quantity = 1;
         _item.Ownership.OwnerId = _creature.Id;
@@ -65,7 +65,7 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
 
         // Assert
         var items = await _getHandler.Handle(
-            new GetInventoryByOwnerQuery
+            new GetInventoryItemsByOwnerQuery
             {
                 Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
             },

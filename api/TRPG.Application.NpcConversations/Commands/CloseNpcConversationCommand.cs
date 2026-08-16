@@ -5,7 +5,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.NpcConversations.Commands;
 
-public enum CloseNpcConversationOutcome
+public enum CloseNpcConversationResult
 {
     Closed,
     NotOpen,
@@ -24,9 +24,9 @@ internal class CloseNpcConversationCommandHandler(
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<SetNpcConversationSummaryCommand> setNpcConversationSummary,
     ICommandHandler<UpdateGameSessionCommand> updateGameSession
-) : ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationOutcome>
+) : ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationResult>
 {
-    public async Task<CloseNpcConversationOutcome> Handle(
+    public async Task<CloseNpcConversationResult> Handle(
         CloseNpcConversationCommand command,
         CancellationToken cancellationToken = default
     )
@@ -37,7 +37,7 @@ internal class CloseNpcConversationCommandHandler(
         );
         if (!snapshot.OpenConversationCreatureIdsByName.TryGetValue(command.NpcName, out var npcId))
         {
-            return CloseNpcConversationOutcome.NotOpen;
+            return CloseNpcConversationResult.NotOpen;
         }
 
         await setNpcConversationSummary.Handle(
@@ -61,6 +61,6 @@ internal class CloseNpcConversationCommandHandler(
             cancellationToken
         );
 
-        return CloseNpcConversationOutcome.Closed;
+        return CloseNpcConversationResult.Closed;
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
+using TRPG.Application.Creatures.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -10,14 +11,14 @@ public class GetNearbyCorpsesQuery
     public required Guid PlayerId { get; init; }
 }
 
-public record CorpseSummary(Guid Id, string Name, int ItemCount);
+public record CorpseResult(Guid Id, string Name, int ItemCount);
 
 internal class GetNearbyCorpsesQueryHandler(
     TrpgDbContext context,
-    IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureSummary>> getNearbyCreatures
-) : IQueryHandler<GetNearbyCorpsesQuery, IReadOnlyList<CorpseSummary>>
+    IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>> getNearbyCreatures
+) : IQueryHandler<GetNearbyCorpsesQuery, IReadOnlyList<CorpseResult>>
 {
-    public async Task<IReadOnlyList<CorpseSummary>> Handle(
+    public async Task<IReadOnlyList<CorpseResult>> Handle(
         GetNearbyCorpsesQuery query,
         CancellationToken cancellationToken = default
     )
@@ -45,7 +46,7 @@ internal class GetNearbyCorpsesQueryHandler(
             .ToDictionaryAsync(g => g.OwnerId, g => g.Count, cancellationToken);
 
         return corpses
-            .Select(c => new CorpseSummary(
+            .Select(c => new CorpseResult(
                 c.Id,
                 c.Name,
                 itemCountsByOwner.GetValueOrDefault(c.Id, 0)

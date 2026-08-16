@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Inventory.Results;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Trading.Queries;
@@ -11,31 +12,31 @@ public class GetTradeQuery
     public required Guid WorkstationId { get; init; }
 }
 
-public record TradeSnapshotInfo(InventorySnapshot PlayerInventory, InventorySnapshot ShopInventory);
+public record TradeResult(InventoryResult PlayerInventory, InventoryResult ShopInventory);
 
 internal class GetTradeQueryHandler(
-    IQueryHandler<GetInventorySummaryByOwnerQuery, InventorySnapshot> getInventorySummary
-) : IQueryHandler<GetTradeQuery, TradeSnapshotInfo>
+    IQueryHandler<GetInventoryByOwnerQuery, InventoryResult> getInventory
+) : IQueryHandler<GetTradeQuery, TradeResult>
 {
-    public async Task<TradeSnapshotInfo> Handle(
+    public async Task<TradeResult> Handle(
         GetTradeQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var playerInventory = await getInventorySummary.Handle(
-            new GetInventorySummaryByOwnerQuery
+        var playerInventory = await getInventory.Handle(
+            new GetInventoryByOwnerQuery
             {
                 Owner = new ItemOwnerReference(query.PlayerId, OwnerType.Creature),
             },
             cancellationToken
         );
-        var shopInventory = await getInventorySummary.Handle(
-            new GetInventorySummaryByOwnerQuery
+        var shopInventory = await getInventory.Handle(
+            new GetInventoryByOwnerQuery
             {
                 Owner = new ItemOwnerReference(query.WorkstationId, OwnerType.Workstation),
             },
             cancellationToken
         );
-        return new TradeSnapshotInfo(playerInventory, shopInventory);
+        return new TradeResult(playerInventory, shopInventory);
     }
 }

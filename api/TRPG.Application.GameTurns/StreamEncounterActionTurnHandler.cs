@@ -5,6 +5,7 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.Encounters.Results;
 using TRPG.Application.GameSessions;
 using TRPG.Domain.Models;
 
@@ -13,10 +14,7 @@ namespace TRPG.Application.GameTurns;
 internal class StreamEncounterActionTurnHandler(
     GameTurnStreamer streamer,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
-    ICommandHandler<
-        ResolveEncounterActionCommand,
-        EncounterActionResolution
-    > resolveEncounterAction,
+    ICommandHandler<ResolveEncounterActionCommand, EncounterActionResult> resolveEncounterAction,
     IGameClientEventSink gameEvents
 )
 {
@@ -65,7 +63,7 @@ internal class StreamEncounterActionTurnHandler(
         );
     }
 
-    private void EnqueueEncounterResolutionEvents(EncounterActionResolution resolution)
+    private void EnqueueEncounterResolutionEvents(EncounterActionResult resolution)
     {
         gameEvents.Enqueue(new EncounterResolvedEvent(resolution.Fact));
     }

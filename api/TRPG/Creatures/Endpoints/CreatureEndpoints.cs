@@ -12,6 +12,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Inventory.Results;
 using TRPG.Application.Quests.Queries;
 using TRPG.Creatures.Mappers;
 using TRPG.Creatures.Requests;
@@ -76,11 +77,7 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<InventorySummary>> GetInventory(
         Guid creatureId,
-        [FromServices]
-            IQueryHandler<
-            GetInventorySummaryByOwnerQuery,
-            InventorySnapshot
-        > getInventorySummaryByOwner,
+        [FromServices] IQueryHandler<GetInventoryByOwnerQuery, InventoryResult> getInventoryByOwner,
         [FromServices]
             IQueryHandler<
             GetActiveQuestItemIdsQuery,
@@ -89,8 +86,8 @@ internal static class CreatureEndpoints
         CancellationToken cancellationToken
     )
     {
-        var snapshot = await getInventorySummaryByOwner.Handle(
-            new GetInventorySummaryByOwnerQuery
+        var snapshot = await getInventoryByOwner.Handle(
+            new GetInventoryByOwnerQuery
             {
                 Owner = new ItemOwnerReference(creatureId, OwnerType.Creature),
             },
@@ -110,12 +107,15 @@ internal static class CreatureEndpoints
     private static async Task<Ok<ConsumableSummary[]>> GetConsumables(
         Guid creatureId,
         [FromServices]
-            IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner,
+            IQueryHandler<
+            GetInventoryItemsByOwnerQuery,
+            IReadOnlyList<Item>
+        > getInventoryItemsByOwner,
         CancellationToken cancellationToken
     )
     {
-        var items = await getInventoryByOwner.Handle(
-            new GetInventoryByOwnerQuery
+        var items = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery
             {
                 Owner = new ItemOwnerReference(creatureId, OwnerType.Creature),
             },
@@ -130,7 +130,7 @@ internal static class CreatureEndpoints
     private static async Task<Ok<NearbyCorpseSummary[]>> GetNearbyCorpses(
         Guid playerId,
         [FromServices]
-            IQueryHandler<GetNearbyCorpsesQuery, IReadOnlyList<CorpseSummary>> getNearbyCorpses,
+            IQueryHandler<GetNearbyCorpsesQuery, IReadOnlyList<CorpseResult>> getNearbyCorpses,
         CancellationToken cancellationToken
     )
     {

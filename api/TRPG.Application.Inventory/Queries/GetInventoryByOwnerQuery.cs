@@ -1,6 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
-using TRPG.Data;
+using TRPG.Application.Inventory.Results;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Queries;
@@ -10,22 +9,22 @@ public class GetInventoryByOwnerQuery
     public required ItemOwnerReference Owner { get; init; }
 }
 
-internal class GetInventoryByOwnerQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>>
+internal class GetInventoryByOwnerQueryHandler(
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner
+) : IQueryHandler<GetInventoryByOwnerQuery, InventoryResult>
 {
-    public async Task<IReadOnlyList<Item>> Handle(
+    public async Task<InventoryResult> Handle(
         GetInventoryByOwnerQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        return await context
-            .Items.AsNoTracking()
-            .Where(i =>
-                i.Ownership.OwnerType == query.Owner.Type
-                && i.Ownership.OwnerId == query.Owner.Id
-                && i.Quantity > 0
-            )
-            .OrderBy(i => i.Ownership.AcquiredAt)
-            .ToArrayAsync(cancellationToken);
+        var items = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery { Owner = query.Owner },
+            cancellationToken
+        );
+
+        var gold = items.OfType<Gold>().Sum(i => i.Quantity);
+
+        return new InventoryResult(gold, items);
     }
 }

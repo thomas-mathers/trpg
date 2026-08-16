@@ -2,6 +2,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Quests.Events;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Quests.Results;
 
 namespace TRPG.Application.Quests.Commands;
 
@@ -16,10 +17,7 @@ public class RequestQuestDialogCommand
 public record QuestDialogRequestResult(bool IsAvailable);
 
 internal class RequestQuestDialogCommandHandler(
-    IQueryHandler<
-        GetQuestInteractionsForGiverQuery,
-        QuestInteractionsForGiver
-    > getQuestInteractions,
+    IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult> getQuestInteractions,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<RequestQuestDialogCommand, QuestDialogRequestResult>
 {

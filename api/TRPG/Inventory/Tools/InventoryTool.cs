@@ -24,7 +24,7 @@ internal class InventoryTool(
     GameTurnContext turnContext,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
-    IQueryHandler<GetInventoryByOwnerQuery, IReadOnlyList<Item>> getInventoryByOwner,
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     ILogger<InventoryTool> logger
 ) : IGameTool
 {
@@ -75,8 +75,8 @@ internal class InventoryTool(
             }
         }
 
-        var items = await getInventoryByOwner.Handle(
-            new GetInventoryByOwnerQuery
+        var items = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery
             {
                 Owner = new ItemOwnerReference(target!.Id, OwnerType.Creature),
             },

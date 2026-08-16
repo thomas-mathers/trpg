@@ -1,47 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Mappers;
+using TRPG.Application.Creatures.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
-
-public record CreatureSummary(
-    Guid Id,
-    string Name,
-    CreatureType CreatureType,
-    Gender Gender,
-    Profession? Profession,
-    int Level,
-    int BirthYear,
-    CreatureState State,
-    int Gold,
-    Guid StateId,
-    Guid LocationId,
-    Guid? DistrictId,
-    Guid? RoomId,
-    Guid? CityId,
-    int CurrentHp,
-    int MaximumHp,
-    int CurrentAp,
-    int MaximumAp,
-    int CurrentMp,
-    int MaximumMp,
-    int Strength,
-    int Dexterity,
-    int Intelligence,
-    int Endurance,
-    int Stamina,
-    int Mana,
-    int Defense,
-    float MovementSpeed,
-    float PhysicalResistance,
-    float FireResistance,
-    float IceResistance,
-    float LightningResistance,
-    float PoisonResistance,
-    float MagicResistance
-);
 
 internal static class CreatureLocationFiltering
 {
@@ -70,7 +34,7 @@ internal static class CreatureLocationFiltering
         return query;
     }
 
-    public static async Task<IReadOnlyCollection<CreatureSummary>> BuildSummaries(
+    public static async Task<IReadOnlyCollection<CreatureResult>> BuildSummaries(
         TrpgDbContext context,
         IQueryable<Creature> creatureQuery,
         CancellationToken cancellationToken
@@ -99,7 +63,7 @@ internal static class CreatureLocationFiltering
             .ToArrayAsync(cancellationToken);
 
         return rows.Select(r =>
-                r.Creature.ToSummary(
+                r.Creature.ToResult(
                     r.Gold ?? 0,
                     r.Location?.StateId
                         ?? throw new InvalidOperationException("Creature location was not found."),
@@ -122,9 +86,9 @@ public class GetCreaturesAtLocationQuery
 }
 
 internal class GetCreaturesAtLocationQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetCreaturesAtLocationQuery, IReadOnlyCollection<CreatureSummary>>
+    : IQueryHandler<GetCreaturesAtLocationQuery, IReadOnlyCollection<CreatureResult>>
 {
-    public async Task<IReadOnlyCollection<CreatureSummary>> Handle(
+    public async Task<IReadOnlyCollection<CreatureResult>> Handle(
         GetCreaturesAtLocationQuery query,
         CancellationToken cancellationToken = default
     )
