@@ -138,7 +138,7 @@ public class StatFormulasTests
     public void EffectiveAttribute_AddsArmorAndShieldDefense_ToBaseDefense()
     {
         // Arrange — base 0 + armor 10 + shield 8
-        Item[] inventory = [Builders.MakeArmorItem(), Builders.MakeShieldItem()];
+        Item[] inventory = [Builders.MakeArmor(), Builders.MakeShield()];
 
         // Act
         var value = StatFormulas.CalculateEffectiveAttribute(
@@ -158,7 +158,7 @@ public class StatFormulasTests
         // Arrange
         Item[] inventory =
         [
-            Builders.MakeShieldItem(
+            Builders.MakeShield(
                 modifiers:
                 [
                     new AttributeModifier
@@ -197,7 +197,7 @@ public class StatFormulasTests
                 RemainingTurns = 3,
             },
         ];
-        Item[] inventory = [Builders.MakeArmorItem()];
+        Item[] inventory = [Builders.MakeArmor()];
 
         // Act
         var result = StatFormulas.CalculateEffectiveAttributes(

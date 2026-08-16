@@ -8,22 +8,23 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Inventory.Commands;
 
 [Collection("Database")]
-public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class RemoveInventoryItemsCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private GetInventoryItemsByOwnerQueryHandler _getHandler = null!;
-    private RemoveInventoryItemCommandHandler _removeHandler = null!;
+    private RemoveInventoryItemsCommandHandler _removeHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
+    private readonly Creature _otherCreature = Builders.MakeCreature();
     private readonly Item _item = Builders.MakeItem();
-    private readonly Item _stackableItem = Builders.MakeConsumableItem();
+    private readonly Item _stackableItem = Builders.MakeConsumable();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _removeHandler = new RemoveInventoryItemCommandHandler(_context);
+        _removeHandler = new RemoveInventoryItemsCommandHandler(_context);
         _getHandler = new GetInventoryItemsByOwnerQueryHandler(_context);
 
-        _context.Creatures.Add(_creature);
+        _context.Creatures.AddRange(_creature, _otherCreature);
         _context.Items.AddRange(_item, _stackableItem);
 
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -34,10 +35,10 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
         await _context.DisposeAsync();
     }
 
-    private async Task GiveToCreature(Item item, int quantity)
+    private async Task GiveToCreature(Item item, Guid creatureId, int quantity)
     {
         item.Quantity = quantity;
-        item.Ownership.OwnerId = _creature.Id;
+        item.Ownership.OwnerId = creatureId;
         item.Ownership.OwnerType = OwnerType.Creature;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -46,15 +47,13 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
     public async Task Handle_DecreasesQuantity()
     {
         // Arrange
-        await GiveToCreature(_stackableItem, 5);
+        await GiveToCreature(_stackableItem, _creature.Id, 5);
 
         // Act
         await _removeHandler.Handle(
-            new RemoveInventoryItemCommand
+            new RemoveInventoryItemsCommand
             {
-                CreatureId = _creature.Id,
-                ItemId = _stackableItem.Id,
-                Quantity = 3,
+                Removals = [new InventoryItemRemoval(_creature.Id, _stackableItem.Id, 3)],
             },
             TestContext.Current.CancellationToken
         );
@@ -75,15 +74,13 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
     public async Task Handle_RemovesEntry_WhenQuantityReachesZero()
     {
         // Arrange
-        await GiveToCreature(_item, 1);
+        await GiveToCreature(_item, _creature.Id, 1);
 
         // Act
         await _removeHandler.Handle(
-            new RemoveInventoryItemCommand
+            new RemoveInventoryItemsCommand
             {
-                CreatureId = _creature.Id,
-                ItemId = _item.Id,
-                Quantity = 1,
+                Removals = [new InventoryItemRemoval(_creature.Id, _item.Id, 1)],
             },
             TestContext.Current.CancellationToken
         );
@@ -105,11 +102,9 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _removeHandler.Handle(
-                new RemoveInventoryItemCommand
+                new RemoveInventoryItemsCommand
                 {
-                    CreatureId = _creature.Id,
-                    ItemId = _item.Id,
-                    Quantity = 1,
+                    Removals = [new InventoryItemRemoval(_creature.Id, _item.Id, 1)],
                 },
                 TestContext.Current.CancellationToken
             )
@@ -121,7 +116,7 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
     {
         // Arrange
         var baseMaximumHp = _creature.MaximumHp;
-        var gear = Builders.MakeArmorItem(
+        var gear = Builders.MakeArmor(
             worldId: _creature.WorldId,
             modifiers:
             [
@@ -134,7 +129,7 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
             ]
         );
         _context.Items.Add(gear);
-        await GiveToCreature(gear, 1);
+        await GiveToCreature(gear, _creature.Id, 1);
         await new EquipInventoryItemCommandHandler(_context).Handle(
             new EquipInventoryItemCommand
             {
@@ -149,11 +144,9 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
 
         // Act
         await _removeHandler.Handle(
-            new RemoveInventoryItemCommand
+            new RemoveInventoryItemsCommand
             {
-                CreatureId = _creature.Id,
-                ItemId = gear.Id,
-                Quantity = 1,
+                Removals = [new InventoryItemRemoval(_creature.Id, gear.Id, 1)],
             },
             TestContext.Current.CancellationToken
         );
@@ -166,5 +159,44 @@ public sealed class RemoveInventoryItemCommandTests(DatabaseFixture db) : IAsync
         );
         Assert.Equal(baseMaximumHp, updated!.MaximumHp);
         Assert.Equal(baseMaximumHp, updated.CurrentHp);
+    }
+
+    [Fact]
+    public async Task Handle_RemovesFromMultipleCreaturesInOneCall()
+    {
+        // Arrange
+        await GiveToCreature(_item, _creature.Id, 1);
+        await GiveToCreature(_stackableItem, _otherCreature.Id, 5);
+
+        // Act
+        await _removeHandler.Handle(
+            new RemoveInventoryItemsCommand
+            {
+                Removals =
+                [
+                    new InventoryItemRemoval(_creature.Id, _item.Id, 1),
+                    new InventoryItemRemoval(_otherCreature.Id, _stackableItem.Id, 3),
+                ],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var creatureItems = await _getHandler.Handle(
+            new GetInventoryItemsByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_creature.Id, OwnerType.Creature),
+            },
+            TestContext.Current.CancellationToken
+        );
+        var otherCreatureItems = await _getHandler.Handle(
+            new GetInventoryItemsByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(_otherCreature.Id, OwnerType.Creature),
+            },
+            TestContext.Current.CancellationToken
+        );
+        Assert.Empty(creatureItems);
+        Assert.Equal(2, otherCreatureItems.Single().Quantity);
     }
 }

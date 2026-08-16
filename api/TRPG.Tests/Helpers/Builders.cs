@@ -58,7 +58,7 @@ internal static class Builders
 
     public static CombatantBuilder NewCombatant() => new();
 
-    public static InGameDate MakeDate(int hour) =>
+    public static InGameDate MakeInGameDate(int hour) =>
         new(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, hour);
 
     public static LocationConnector MakeLocationConnector(
@@ -149,7 +149,7 @@ internal static class Builders
                 damageType == DamageType.Physical ? AmountType.Percent : AmountType.Flat,
         };
 
-    public static SupportAbility MakeInstantHealAbility(
+    public static SupportAbility MakeHealSupportAbility(
         string name = "Cure",
         int amount = 20,
         int cost = 0,
@@ -165,7 +165,7 @@ internal static class Builders
             HealAmount = amount,
         };
 
-    public static SupportAbility MakeBuffAbility(
+    public static SupportAbility MakeBuffSupportAbility(
         string name = "Buff",
         int cost = 0,
         int cooldown = 0,
@@ -318,7 +318,7 @@ internal static class Builders
         };
     }
 
-    public static Weapon MakeWeaponItem(
+    public static Weapon MakeWeapon(
         Guid? worldId = null,
         WeaponType type = WeaponType.Sword,
         int minDamage = 5,
@@ -349,7 +349,7 @@ internal static class Builders
         };
     }
 
-    public static Armor MakeArmorItem(
+    public static Armor MakeArmor(
         Guid? worldId = null,
         ArmorType type = ArmorType.Chest,
         int quantity = 0,
@@ -372,7 +372,7 @@ internal static class Builders
         };
     }
 
-    public static Shield MakeShieldItem(
+    public static Shield MakeShield(
         Guid? worldId = null,
         float blockChance = 0.25f,
         IReadOnlyCollection<ItemModifier>? modifiers = null
@@ -393,7 +393,7 @@ internal static class Builders
         };
     }
 
-    public static Consumable MakeConsumableItem(
+    public static Consumable MakeConsumable(
         Guid? worldId = null,
         string? name = null,
         ResourceType resource = ResourceType.Hp,
@@ -413,10 +413,7 @@ internal static class Builders
         };
     }
 
-    public static Ammunition MakeAmmunitionItem(
-        Guid? worldId = null,
-        AmmoType type = AmmoType.Arrow
-    )
+    public static Ammunition MakeAmmunition(Guid? worldId = null, AmmoType type = AmmoType.Arrow)
     {
         return new Ammunition
         {
@@ -429,7 +426,7 @@ internal static class Builders
         };
     }
 
-    public static Accessory MakeAccessoryItem(
+    public static Accessory MakeAccessory(
         Guid? worldId = null,
         AccessoryType type = AccessoryType.Ring
     )

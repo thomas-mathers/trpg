@@ -90,7 +90,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = building.BuildingType,
-                CurrentDate = Builders.MakeDate(23),
+                CurrentDate = Builders.MakeInGameDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -130,7 +130,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = building.BuildingType,
-                CurrentDate = Builders.MakeDate(23),
+                CurrentDate = Builders.MakeInGameDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -141,7 +141,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = building.BuildingType,
-                CurrentDate = Builders.MakeDate(12),
+                CurrentDate = Builders.MakeInGameDate(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -174,7 +174,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = building.Id,
                 BuildingType = BuildingType.Tavern,
-                CurrentDate = Builders.MakeDate(23),
+                CurrentDate = Builders.MakeInGameDate(23),
             },
             TestContext.Current.CancellationToken
         );
@@ -209,7 +209,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = Builders.MakeDate(16),
+                CurrentDate = Builders.MakeInGameDate(16),
             },
             TestContext.Current.CancellationToken
         );
@@ -242,7 +242,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = Builders.MakeDate(16),
+                CurrentDate = Builders.MakeInGameDate(16),
             },
             TestContext.Current.CancellationToken
         );
@@ -253,7 +253,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = Builders.MakeDate(10),
+                CurrentDate = Builders.MakeInGameDate(10),
             },
             TestContext.Current.CancellationToken
         );
@@ -298,7 +298,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             {
                 BuildingId = shop.Id,
                 BuildingType = shop.BuildingType,
-                CurrentDate = Builders.MakeDate(10),
+                CurrentDate = Builders.MakeInGameDate(10),
             },
             TestContext.Current.CancellationToken
         );

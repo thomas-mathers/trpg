@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
 
@@ -6,19 +7,28 @@ namespace TRPG.Application.Worlds.Commands;
 
 public record BootstrapWorldResult(Guid WorldId, Guid PlayerId);
 
-public class BootstrapWorldCommandHandler(
+public class BootstrapWorldCommand
+{
+    public required WorldGeneratorResult World { get; init; }
+    public CreatureGeneratorResult? Player { get; init; }
+    public required QuestGeneratorResult Quests { get; init; }
+}
+
+internal class BootstrapWorldCommandHandler(
     TrpgDbContext context,
     TradeStockGenerator tradeStockGenerator,
     ILogger<BootstrapWorldCommandHandler> logger
-)
+) : ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult>
 {
     public async Task<BootstrapWorldResult> Handle(
-        WorldGeneratorResult world,
-        CreatureGeneratorResult? player,
-        QuestGeneratorResult quests,
-        CancellationToken cancellationToken
+        BootstrapWorldCommand command,
+        CancellationToken cancellationToken = default
     )
     {
+        var world = command.World;
+        var player = command.Player;
+        var quests = command.Quests;
+
         if (player != null)
         {
             world.World.PlayerId = player.Creature.Id;

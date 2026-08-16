@@ -52,11 +52,11 @@ public sealed class TradeOfferValidatorTests(DatabaseFixture db) : IAsyncLifetim
     {
         // Arrange
         var playerItem = await SeedItem(
-            Builders.MakeWeaponItem(WorldId, quantity: 1),
+            Builders.MakeWeapon(WorldId, quantity: 1),
             new(_player.Id, OwnerType.Creature)
         );
         var shopItem = await SeedItem(
-            Builders.MakeArmorItem(WorldId, quantity: 1),
+            Builders.MakeArmor(WorldId, quantity: 1),
             new(_workstation.Id, OwnerType.Workstation)
         );
 
@@ -83,11 +83,11 @@ public sealed class TradeOfferValidatorTests(DatabaseFixture db) : IAsyncLifetim
     {
         // Arrange
         var playerItem = await SeedItem(
-            Builders.MakeArmorItem(WorldId, quantity: 1),
+            Builders.MakeArmor(WorldId, quantity: 1),
             new(_player.Id, OwnerType.Creature)
         );
         var shopItem = await SeedItem(
-            Builders.MakeWeaponItem(WorldId, quantity: 1),
+            Builders.MakeWeapon(WorldId, quantity: 1),
             new(_workstation.Id, OwnerType.Workstation)
         );
 
@@ -142,7 +142,7 @@ public sealed class TradeOfferValidatorTests(DatabaseFixture db) : IAsyncLifetim
     {
         // Arrange
         var playerItem = await SeedItem(
-            Builders.MakeWeaponItem(WorldId, quantity: 1),
+            Builders.MakeWeapon(WorldId, quantity: 1),
             new(_player.Id, OwnerType.Creature)
         );
 
@@ -163,7 +163,7 @@ public sealed class TradeOfferValidatorTests(DatabaseFixture db) : IAsyncLifetim
     {
         // Arrange
         var shopItem = await SeedItem(
-            Builders.MakeWeaponItem(WorldId, quantity: 1),
+            Builders.MakeWeapon(WorldId, quantity: 1),
             new(_workstation.Id, OwnerType.Workstation)
         );
 

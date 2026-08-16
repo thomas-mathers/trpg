@@ -83,8 +83,8 @@ public sealed class GetInventoryByOwnerQueryTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_ReturnsEveryItem()
     {
         // Arrange
-        var weapon = await SeedItem(Builders.MakeWeaponItem(_creature.WorldId), 1);
-        var potion = await SeedItem(Builders.MakeConsumableItem(_creature.WorldId), 3);
+        var weapon = await SeedItem(Builders.MakeWeapon(_creature.WorldId), 1);
+        var potion = await SeedItem(Builders.MakeConsumable(_creature.WorldId), 3);
 
         // Act
         var result = await _handler.Handle(

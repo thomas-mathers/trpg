@@ -7,18 +7,18 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Inventory.Queries;
 
 [Collection("Database")]
-public sealed class PreviewEquipItemStatsQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetEquipItemStatsQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private PreviewEquipItemStatsQueryHandler _previewHandler = null!;
+    private GetEquipItemStatsQueryHandler _getHandler = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
-    private readonly Armor _armor = Builders.MakeArmorItem();
+    private readonly Armor _armor = Builders.MakeArmor();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _previewHandler = new PreviewEquipItemStatsQueryHandler(_context);
+        _getHandler = new GetEquipItemStatsQueryHandler(_context);
         _equipHandler = new EquipInventoryItemCommandHandler(_context);
 
         GiveToCreature(_armor);
@@ -44,8 +44,8 @@ public sealed class PreviewEquipItemStatsQueryTests(DatabaseFixture db) : IAsync
     public async Task Handle_ReturnsHigherDefense_WhenPreviewingUnequippedArmor()
     {
         // Act
-        var stats = await _previewHandler.Handle(
-            new PreviewEquipItemStatsQuery
+        var stats = await _getHandler.Handle(
+            new GetEquipItemStatsQuery
             {
                 CreatureId = _creature.Id,
                 ItemId = _armor.Id,
@@ -72,14 +72,14 @@ public sealed class PreviewEquipItemStatsQueryTests(DatabaseFixture db) : IAsync
             },
             TestContext.Current.CancellationToken
         );
-        var replacementArmor = Builders.MakeArmorItem(worldId: _creature.WorldId);
+        var replacementArmor = Builders.MakeArmor(worldId: _creature.WorldId);
         GiveToCreature(replacementArmor);
         _context.Items.Add(replacementArmor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var stats = await _previewHandler.Handle(
-            new PreviewEquipItemStatsQuery
+        var stats = await _getHandler.Handle(
+            new GetEquipItemStatsQuery
             {
                 CreatureId = _creature.Id,
                 ItemId = replacementArmor.Id,
@@ -97,9 +97,9 @@ public sealed class PreviewEquipItemStatsQueryTests(DatabaseFixture db) : IAsync
     {
         // Arrange
         var baseDefense = _creature.Defense;
-        var shield = Builders.MakeShieldItem(worldId: _creature.WorldId);
-        var weapon = Builders.MakeWeaponItem(worldId: _creature.WorldId);
-        var greatSword = Builders.MakeWeaponItem(worldId: _creature.WorldId, isTwoHanded: true);
+        var shield = Builders.MakeShield(worldId: _creature.WorldId);
+        var weapon = Builders.MakeWeapon(worldId: _creature.WorldId);
+        var greatSword = Builders.MakeWeapon(worldId: _creature.WorldId, isTwoHanded: true);
         GiveToCreature(shield);
         GiveToCreature(weapon);
         GiveToCreature(greatSword);
@@ -125,8 +125,8 @@ public sealed class PreviewEquipItemStatsQueryTests(DatabaseFixture db) : IAsync
         );
 
         // Act
-        var stats = await _previewHandler.Handle(
-            new PreviewEquipItemStatsQuery
+        var stats = await _getHandler.Handle(
+            new GetEquipItemStatsQuery
             {
                 CreatureId = _creature.Id,
                 ItemId = greatSword.Id,
@@ -143,8 +143,8 @@ public sealed class PreviewEquipItemStatsQueryTests(DatabaseFixture db) : IAsync
     public async Task Handle_DoesNotPersistAnyChanges()
     {
         // Act
-        await _previewHandler.Handle(
-            new PreviewEquipItemStatsQuery
+        await _getHandler.Handle(
+            new GetEquipItemStatsQuery
             {
                 CreatureId = _creature.Id,
                 ItemId = _armor.Id,

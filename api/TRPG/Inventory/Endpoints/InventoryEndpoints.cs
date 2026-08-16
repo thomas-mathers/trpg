@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
@@ -14,7 +13,6 @@ using TRPG.Application.Trading;
 using TRPG.Application.Trading.Commands;
 using TRPG.Application.Trading.Queries;
 using TRPG.Creatures.Mappers;
-using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Mappers;
@@ -127,7 +125,7 @@ internal static class InventoryEndpoints
         Guid sessionId,
         Guid itemId,
         [FromServices] IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-        TrpgDbContext context,
+        [FromServices] IQueryHandler<GetItemByIdQuery, Item?> getItemById,
         CancellationToken cancellationToken
     )
     {
@@ -135,12 +133,10 @@ internal static class InventoryEndpoints
             new GetGameSessionQuery { SessionId = sessionId },
             cancellationToken
         );
-        var item = await context
-            .Items.AsNoTracking()
-            .FirstOrDefaultAsync(
-                item => item.Id == itemId && item.WorldId == session.WorldId,
-                cancellationToken
-            );
+        var item = await getItemById.Handle(
+            new GetItemByIdQuery { ItemId = itemId, WorldId = session.WorldId },
+            cancellationToken
+        );
 
         return item is null ? TypedResults.NotFound() : TypedResults.Ok(item.ToDetail());
     }

@@ -52,7 +52,7 @@ public class HitCalculatorTests
         );
 
     private Weapon MakeWeapon(WeaponType type = WeaponType.Sword) =>
-        Builders.MakeWeaponItem(worldId: _worldId, type: type);
+        Builders.MakeWeapon(worldId: _worldId, type: type);
 
     [Fact]
     public void CalculateHitChance_IsTheProficiencyShareOfTheCombinedTotal()
@@ -472,7 +472,7 @@ public class HitCalculatorTests
     public void RollBlock_NeverBlocks_ForNonPhysicalAbilities()
     {
         // Arrange — a shield that would otherwise always block
-        var shield = Builders.MakeShieldItem(worldId: _worldId, blockChance: 1.0f);
+        var shield = Builders.MakeShield(worldId: _worldId, blockChance: 1.0f);
         var defender = Builders.NewCombatant().WithWorldId(_worldId).WithItem(shield).Build();
         var calculator = new HitCalculator(Settings);
 
@@ -487,7 +487,7 @@ public class HitCalculatorTests
     public void RollBlock_RollsAgainstBlockChance_ForPhysicalAbilities()
     {
         // Arrange
-        var blockingShield = Builders.MakeShieldItem(worldId: _worldId, blockChance: 1.0f);
+        var blockingShield = Builders.MakeShield(worldId: _worldId, blockChance: 1.0f);
         var blockingDefender = Builders
             .NewCombatant()
             .WithWorldId(_worldId)

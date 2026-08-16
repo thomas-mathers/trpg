@@ -397,7 +397,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     {
         // Arrange
         await SeedFight();
-        var potion = Builders.MakeConsumableItem(WorldId);
+        var potion = Builders.MakeConsumable(WorldId);
         potion.Quantity = 2;
         potion.Ownership.OwnerId = _player.Id;
         potion.Ownership.OwnerType = OwnerType.Creature;

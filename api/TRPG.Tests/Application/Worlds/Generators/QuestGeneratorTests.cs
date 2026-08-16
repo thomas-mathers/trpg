@@ -45,7 +45,7 @@ public sealed class QuestGeneratorTests
 
         // Act
         var result = generator.Generate(
-            MakeWorld(
+            MakeWorldGeneratorResult(
                 world,
                 city,
                 cityCenter,
@@ -90,7 +90,15 @@ public sealed class QuestGeneratorTests
 
         // Act
         var result = generator.Generate(
-            MakeWorld(world, city, cityCenter, building, room, [giver, speaker, monster], []),
+            MakeWorldGeneratorResult(
+                world,
+                city,
+                cityCenter,
+                building,
+                room,
+                [giver, speaker, monster],
+                []
+            ),
             stateId
         );
 
@@ -101,7 +109,7 @@ public sealed class QuestGeneratorTests
         Assert.DoesNotContain(result.Objectives, objective => objective is CollectItemObjective);
     }
 
-    private static WorldGeneratorResult MakeWorld(
+    private static WorldGeneratorResult MakeWorldGeneratorResult(
         World world,
         City city,
         District cityCenter,

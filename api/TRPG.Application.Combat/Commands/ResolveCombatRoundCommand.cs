@@ -24,7 +24,7 @@ internal class ResolveCombatRoundCommandHandler(
     ICommandHandler<PersistCombatantsCommand> persistCombatants,
     ICommandHandler<AdjustWeaponProficienciesCommand> adjustWeaponProficiencies,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
-    ICommandHandler<RemoveInventoryItemCommand> removeInventoryItem,
+    ICommandHandler<RemoveInventoryItemsCommand> removeInventoryItems,
     ICommandHandler<EndFightCommand> endFight,
     IGameClientEventSink gameEvents,
     IDomainEventPublisher<CreatureKilledEvent> domainEvents
@@ -90,20 +90,22 @@ internal class ResolveCombatRoundCommandHandler(
             );
         }
 
-        foreach (var combatantState in state.Combatants)
+        var itemRemovals = state
+            .Combatants.SelectMany(combatantState =>
+                combatantState.ItemsUsedCounts.Select(itemUsedCount => new InventoryItemRemoval(
+                    combatantState.Id,
+                    itemUsedCount.Key,
+                    itemUsedCount.Value
+                ))
+            )
+            .ToArray();
+
+        if (itemRemovals.Length > 0)
         {
-            foreach (var (itemId, quantity) in combatantState.ItemsUsedCounts)
-            {
-                await removeInventoryItem.Handle(
-                    new RemoveInventoryItemCommand
-                    {
-                        CreatureId = combatantState.Id,
-                        ItemId = itemId,
-                        Quantity = quantity,
-                    },
-                    cancellationToken
-                );
-            }
+            await removeInventoryItems.Handle(
+                new RemoveInventoryItemsCommand { Removals = itemRemovals },
+                cancellationToken
+            );
         }
 
         foreach (

@@ -14,7 +14,7 @@ public sealed class EquipmentLoadoutPolicyTests
     )
     {
         // Arrange
-        var weapon = Builders.MakeWeaponItem(isTwoHanded: true);
+        var weapon = Builders.MakeWeapon(isTwoHanded: true);
 
         // Act
         var footprint = EquipmentLoadoutPolicy.GetFootprint(weapon, requestedSlot);
@@ -27,7 +27,7 @@ public sealed class EquipmentLoadoutPolicyTests
     public void GetFootprint_ReturnsRequestedSlotOnly_ForOneHandedItem()
     {
         // Arrange
-        var weapon = Builders.MakeWeaponItem(isTwoHanded: false);
+        var weapon = Builders.MakeWeapon(isTwoHanded: false);
 
         // Act
         var footprint = EquipmentLoadoutPolicy.GetFootprint(weapon, EquipmentSlot.LeftHand);
@@ -44,7 +44,7 @@ public sealed class EquipmentLoadoutPolicyTests
     )
     {
         // Arrange
-        var weapon = Builders.MakeWeaponItem(isTwoHanded: true);
+        var weapon = Builders.MakeWeapon(isTwoHanded: true);
 
         // Act
         var resolvedSlot = EquipmentLoadoutPolicy.ResolveEquippedSlot(weapon, requestedSlot);
@@ -57,7 +57,7 @@ public sealed class EquipmentLoadoutPolicyTests
     public void ResolveEquippedSlot_ReturnsRequestedSlot_ForOneHandedItem()
     {
         // Arrange
-        var weapon = Builders.MakeWeaponItem(isTwoHanded: false);
+        var weapon = Builders.MakeWeapon(isTwoHanded: false);
 
         // Act
         var resolvedSlot = EquipmentLoadoutPolicy.ResolveEquippedSlot(

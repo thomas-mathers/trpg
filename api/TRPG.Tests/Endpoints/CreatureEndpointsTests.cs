@@ -504,7 +504,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            var weapon = Builders.MakeWeaponItem(_worldId);
+            var weapon = Builders.MakeWeapon(_worldId);
             weapon.Quantity = 1;
             weapon.Ownership.OwnerId = _creature.Id;
             weapon.Ownership.OwnerType = OwnerType.Creature;
@@ -540,7 +540,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            var weapon = Builders.MakeWeaponItem(_worldId);
+            var weapon = Builders.MakeWeapon(_worldId);
             weapon.Quantity = 1;
             weapon.Ownership.OwnerId = _creature.Id;
             weapon.Ownership.OwnerType = OwnerType.Creature;

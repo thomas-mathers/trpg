@@ -30,14 +30,13 @@ internal class ActiveFightCombatantLoader(
             cancellationToken
         );
 
-        var combatants = new List<Combatant>();
-        foreach (var creature in fight.CombatantIds.Select(id => creaturesById[id]))
-        {
-            combatants.Add(
-                await combatantFactory.Create(creature, creature.Id == playerId, cancellationToken)
-            );
-        }
+        var creatures = fight.CombatantIds.Select(id => creaturesById[id]).ToArray();
 
-        return combatants;
+        return await combatantFactory.CreateMany(
+            fight.WorldId,
+            creatures,
+            playerId,
+            cancellationToken
+        );
     }
 }

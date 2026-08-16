@@ -44,7 +44,7 @@ public sealed class TransferPlayerInventoryCommandHandlerTests(DatabaseFixture d
     public async Task Handle_MovesSelectedItems_FromPlayerToContainer()
     {
         // Arrange
-        var item = Builders.MakeWeaponItem(WorldId);
+        var item = Builders.MakeWeapon(WorldId);
         item.Quantity = 1;
         item.Ownership.OwnerId = _player.Id;
         item.Ownership.OwnerType = OwnerType.Creature;

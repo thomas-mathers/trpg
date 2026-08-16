@@ -69,7 +69,7 @@ public class EnemyCombatActionResolverTests
         };
         var player = MakeCombatant("Hero").AsPlayer().Build();
         var monster = MakeCombatant("Wraith")
-            .WithAbilities(Builders.MakeInstantHealAbility())
+            .WithAbilities(Builders.MakeHealSupportAbility())
             .WithItem(potion)
             .WithCurrentHp(1)
             .Build();
@@ -154,7 +154,7 @@ public class EnemyCombatActionResolverTests
     {
         // Arrange — a long-running buff (Duration > 1) is eligible; OpeningBuffChancePercent: 1
         // makes the coin flip deterministic instead of needing statistical trials
-        var battleStance = Builders.MakeBuffAbility("Battle Stance");
+        var battleStance = Builders.MakeBuffSupportAbility("Battle Stance");
         var player = MakeCombatant("Hero").AsPlayer().Build();
         var monster = MakeCombatant("Wraith").WithAbilities(battleStance).Build();
 
@@ -170,12 +170,12 @@ public class EnemyCombatActionResolverTests
     {
         // Arrange — a Strength buff boosts the monster's physical Strike; a MovementSpeed-only
         // buff provides no offensive or defensive value, so it should never win the comparison
-        var strengthBuff = Builders.MakeBuffAbility(
+        var strengthBuff = Builders.MakeBuffSupportAbility(
             "Battle Stance",
             attribute: AttributeName.Strength,
             amount: 50
         );
-        var speedBuff = Builders.MakeBuffAbility(
+        var speedBuff = Builders.MakeBuffSupportAbility(
             "Haste",
             attribute: AttributeName.MovementSpeed,
             amount: 10
@@ -196,7 +196,7 @@ public class EnemyCombatActionResolverTests
     {
         // Arrange — same eligible buff as above, but OpeningBuffChancePercent: 0 means the coin
         // flip never favors it, so the monster falls through to attacking
-        var battleStance = Builders.MakeBuffAbility("Battle Stance");
+        var battleStance = Builders.MakeBuffSupportAbility("Battle Stance");
         var player = MakeCombatant("Hero").AsPlayer().Build();
         var monster = MakeCombatant("Wraith").WithAbilities(battleStance).Build();
 

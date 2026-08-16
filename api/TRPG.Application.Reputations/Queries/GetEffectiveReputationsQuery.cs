@@ -33,7 +33,8 @@ internal class GetEffectiveReputationsQueryHandler(TrpgDbContext context)
             .ToArray();
 
         var reputations = await context
-            .Reputations.Where(r =>
+            .Reputations.AsNoTracking()
+            .Where(r =>
                 r.CreatureId == query.ObserverCreatureId
                 && (
                     (

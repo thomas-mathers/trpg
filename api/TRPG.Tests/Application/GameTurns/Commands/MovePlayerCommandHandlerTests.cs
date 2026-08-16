@@ -531,7 +531,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             state: CreatureState.Dead
         );
         var quest = Builders.MakeQuest(corpse.Id, WorldId);
-        var item = Builders.MakeWeaponItem(WorldId);
+        var item = Builders.MakeWeapon(WorldId);
         item.Ownership.OwnerId = corpse.Id;
         item.Ownership.OwnerType = OwnerType.Creature;
         var objective = new CollectItemObjective

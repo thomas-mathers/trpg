@@ -56,7 +56,7 @@ public sealed class GetCreatureBasicAttackDamageQueryTests(DatabaseFixture db) :
             new GetCreatureBasicAttackDamageQuery { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
-        var weapon = Builders.MakeWeaponItem(
+        var weapon = Builders.MakeWeapon(
             worldId: _creature.WorldId,
             minDamage: 500,
             maxDamage: 500
