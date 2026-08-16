@@ -1,5 +1,5 @@
 using TRPG.Application.Combat;
-using ContractActiveDot = TRPG.Contracts.Combat.Responses.ActiveDot;
+using ContractActiveDot = TRPG.Application.Combat.Responses.ActiveDot;
 
 namespace TRPG.Application.Combat.Mappers;
 

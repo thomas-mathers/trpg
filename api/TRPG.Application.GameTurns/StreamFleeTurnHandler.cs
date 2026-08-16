@@ -36,7 +36,7 @@ internal class StreamFleeTurnHandler(
         }
 
         return new GameTurnPrompt.Narrate(
-            $"The player attempted to flee combat. Result: {JsonSerializer.Serialize(result, TRPG.Contracts.TrpgJsonOptions.Default)}. Narrate the escape attempt vividly based on this result. Do not call any tools.",
+            $"The player attempted to flee combat. Result: {JsonSerializer.Serialize(result, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the escape attempt vividly based on this result. Do not call any tools.",
             IncludeTools: false
         );
     }

@@ -1,5 +1,5 @@
 using TRPG.Application.Combat.Events;
-using CombatRoundEvent = TRPG.Contracts.Combat.Responses.CombatRoundEvent;
+using CombatRoundEvent = TRPG.Application.Combat.Responses.CombatRoundEvent;
 
 namespace TRPG.Application.Combat.Mappers;
 

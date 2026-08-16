@@ -1,6 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
-using TRPG.Contracts.Combat.Responses;
+using TRPG.Domain.Models;
 
 namespace TRPG.Contracts.Inventory.Responses;
 

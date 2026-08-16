@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace TRPG.Contracts;
+namespace TRPG.Application.Common.Serialization;
 
 public static class TrpgJsonOptions
 {

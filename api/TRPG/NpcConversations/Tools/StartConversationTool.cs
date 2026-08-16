@@ -123,7 +123,10 @@ internal class StartConversationTool(
         logger.LogInformation(
             "[perf] [start_conversation] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,
-            JsonSerializer.Serialize(result, TRPG.Contracts.TrpgJsonOptions.Default)
+            JsonSerializer.Serialize(
+                result,
+                TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+            )
         );
         return result;
     }

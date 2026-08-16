@@ -6,7 +6,6 @@ using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions;
-using TRPG.Contracts.Encounters.Requests;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -61,7 +60,7 @@ internal class StreamEncounterActionTurnHandler(
         EnqueueEncounterResolutionEvents(resolution);
 
         return new GameTurnPrompt.Narrate(
-            $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution.Fact, TRPG.Contracts.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
+            $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution.Fact, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
             IncludeTools: false
         );
     }

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Serialization;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Worlds;
 using TRPG.Contracts;

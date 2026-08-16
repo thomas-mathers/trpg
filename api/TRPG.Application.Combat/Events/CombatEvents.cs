@@ -1,11 +1,11 @@
 using TRPG.Application.Combat.Mappers;
+using TRPG.Application.Combat.Responses;
 using TRPG.Application.Common.Events;
-using TRPG.Contracts.Combat.Responses;
 
 namespace TRPG.Application.Combat.Events;
 
 internal record CombatStartedEvent(
-    IReadOnlyCollection<TRPG.Contracts.Combat.Responses.CombatantState> Combatants
+    IReadOnlyCollection<TRPG.Application.Combat.Responses.CombatantState> Combatants
 ) : GameClientEvent
 {
     public override string MethodName => "CombatStarted";
@@ -13,7 +13,7 @@ internal record CombatStartedEvent(
 }
 
 internal record CombatUpdatedEvent(
-    IReadOnlyCollection<TRPG.Contracts.Combat.Responses.CombatantState> Combatants,
+    IReadOnlyCollection<TRPG.Application.Combat.Responses.CombatantState> Combatants,
     IReadOnlyList<CombatRoundEvent> Events,
     TRPG.Domain.Models.CombatOutcome Outcome
 ) : GameClientEvent

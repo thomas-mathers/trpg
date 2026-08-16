@@ -1,4 +1,4 @@
-using ContractCombatOutcome = TRPG.Contracts.Combat.Responses.CombatOutcome;
+using ContractCombatOutcome = TRPG.Application.Combat.Responses.CombatOutcome;
 using DataCombatOutcome = TRPG.Domain.Models.CombatOutcome;
 
 namespace TRPG.Application.Combat.Mappers;

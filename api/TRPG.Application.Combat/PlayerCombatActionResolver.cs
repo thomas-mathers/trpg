@@ -1,5 +1,5 @@
 using TRPG.Application.Abilities;
-using TRPG.Contracts.Combat.Requests;
+using TRPG.Application.Combat;
 
 namespace TRPG.Application.Combat;
 

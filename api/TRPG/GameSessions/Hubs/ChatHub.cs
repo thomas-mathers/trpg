@@ -3,15 +3,15 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Combat;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Configuration;
+using TRPG.Application.Encounters;
 using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
-using TRPG.Contracts.Combat.Requests;
-using TRPG.Contracts.Encounters.Requests;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Commands;
 

@@ -13,12 +13,12 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 ### Projects
 - `api/TRPG` — ASP.NET Core host: HTTP endpoints, SignalR hubs, DI composition, jobs, and LLM tool adapters.
 - `api/TRPG.Application.*` — feature assemblies; there is no `TRPG.Application` umbrella project. The host and `TRPG.Balance` compose the modules directly.
-- `api/TRPG.Application.Common` — small shared foundation only: events, exceptions, optional values, and genuinely reusable utilities. It must not become a feature-mapping or feature-logic bucket.
+- `api/TRPG.Application.Common` — small shared foundation only: events, exceptions, optional values, shared JSON serialization options, and genuinely reusable utilities. It must not become a feature-mapping or feature-logic bucket.
 - `api/TRPG.Application.Configuration` — public configuration options shared across modules.
 - `api/TRPG.Application.CreatureFormulas` — public stat, skill, and progression formulas.
 - `api/TRPG.Application.GameTurns` — turn orchestration, player movement, LLM conversation execution, and client events produced by that workflow.
 - Feature modules own their domain: Abilities, Buildings, Chat, Combat, CreatureJobs, Creatures, Encounters, GameSessions, Inventory, Narration, NpcConversations, Quests, Reputations, Scenes, Trading, WeaponProficiency, and Worlds. Worlds also owns navigation and world generation.
-- `api/TRPG.Contracts` — current HTTP/SignalR request and response DTOs plus shared JSON options. The SPA consumes OpenAPI-generated TypeScript, not this assembly directly; prefer feature-owned public result types and host-bound request mapping when evolving the API.
+- `api/TRPG.Contracts` — remaining HTTP/SignalR request and response DTOs. The SPA consumes OpenAPI-generated TypeScript, not this assembly directly; prefer feature-owned public result types and host-bound request mapping when evolving the API.
 - `api/TRPG.Domain` — dependency-free game entities, value objects, and domain enums. It has no project or package dependencies.
 - `api/TRPG.Data` — EF Core contexts, persistence configuration, and migrations. It references Domain for the persisted model types.
 - `api/TRPG.Tests` — xUnit tests with Testcontainers-backed PostgreSQL.

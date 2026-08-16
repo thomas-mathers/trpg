@@ -6,5 +6,5 @@ namespace TRPG.Creatures.Mappers;
 internal static class ElementalDamageModifierMapper
 {
     public static ElementalDamageModifierSummary ToSummary(this ElementalDamageModifier modifier) =>
-        new(modifier.DamageType.ToContract(), modifier.MinDamage, modifier.MaxDamage);
+        new(modifier.DamageType, modifier.MinDamage, modifier.MaxDamage);
 }

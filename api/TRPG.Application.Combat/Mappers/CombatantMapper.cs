@@ -1,5 +1,5 @@
 using TRPG.Application.Combat;
-using ContractCombatantState = TRPG.Contracts.Combat.Responses.CombatantState;
+using ContractCombatantState = TRPG.Application.Combat.Responses.CombatantState;
 
 namespace TRPG.Application.Combat.Mappers;
 
