@@ -9,7 +9,7 @@ internal sealed class CombatUpdatedEventFormatter : GameClientEventFormatter<Com
 {
     protected override GameClientMessage Format(CombatUpdatedEvent gameEvent) =>
         new(
-            gameEvent.MethodName,
+            "CombatUpdated",
             new CombatUpdatePayload(
                 gameEvent.Combatants.ToCombatantStates(),
                 gameEvent.Events.ToCombatRoundEntries(),

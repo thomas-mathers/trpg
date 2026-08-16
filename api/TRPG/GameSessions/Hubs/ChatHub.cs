@@ -12,7 +12,11 @@ using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Combat.Mappers;
+using TRPG.Combat.Requests;
 using TRPG.Domain.Models;
+using TRPG.Encounters.Mappers;
+using TRPG.Encounters.Requests;
 using TRPG.GameSessions.Commands;
 
 namespace TRPG.GameSessions.Hubs;
@@ -96,13 +100,17 @@ internal sealed class ChatHub(
         gameTurnRunner.StreamFlee(Session, cancellationToken);
 
     public IAsyncEnumerable<string> ResolveEncounterAction(
-        PlayerEncounterAction action,
+        EncounterActionRequest action,
         CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamEncounterAction(Session, action, cancellationToken);
+    ) => gameTurnRunner.StreamEncounterAction(Session, action.ToAction(), cancellationToken);
 
-    public async Task ResolveCombatAction(PlayerCombatAction action)
+    public async Task ResolveCombatAction(CombatActionRequest action)
     {
-        await gameTurnRunner.ResolveCombatAction(Session, action, Context.ConnectionAborted);
+        await gameTurnRunner.ResolveCombatAction(
+            Session,
+            action.ToAction(),
+            Context.ConnectionAborted
+        );
         await eventDispatcher.FlushAsync(Session.WorldId, Context.ConnectionAborted);
     }
 

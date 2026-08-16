@@ -23,8 +23,5 @@ public class GameClientEventBufferTests
         Assert.Empty(buffer.Drain());
     }
 
-    private sealed record TestGameEvent(string Name) : GameClientEvent
-    {
-        public override string MethodName => Name;
-    }
+    private sealed record TestGameEvent(string Name) : GameClientEvent;
 }

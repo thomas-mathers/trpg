@@ -7,5 +7,5 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class CombatStartedEventFormatter : GameClientEventFormatter<CombatStartedEvent>
 {
     protected override GameClientMessage Format(CombatStartedEvent gameEvent) =>
-        new(gameEvent.MethodName, gameEvent.Combatants.ToCombatantStates());
+        new("CombatStarted", gameEvent.Combatants.ToCombatantStates());
 }

@@ -17,9 +17,12 @@ internal sealed class GameClientEventDispatcher(
         var clients = hubContext.Clients.Group(GameClientGroups.ForWorld(worldId));
         foreach (var gameEvent in eventBuffer.Drain())
         {
-            var message = _eventFormatters.TryGetValue(gameEvent.GetType(), out var formatter)
-                ? formatter.Format(gameEvent)
-                : new GameClientMessage(gameEvent.MethodName, gameEvent.Payload);
+            var formatter =
+                _eventFormatters.GetValueOrDefault(gameEvent.GetType())
+                ?? throw new InvalidOperationException(
+                    $"No client event formatter is registered for {gameEvent.GetType().Name}."
+                );
+            var message = formatter.Format(gameEvent);
 
             if (message.Payload == null)
             {

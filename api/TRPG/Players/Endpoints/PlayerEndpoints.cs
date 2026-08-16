@@ -6,6 +6,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Handling;
 using TRPG.Combat.Mappers;
+using TRPG.Combat.Responses;
 using ClientCombatantState = TRPG.Combat.ClientModels.CombatantState;
 
 namespace TRPG.Players.Endpoints;
@@ -40,7 +41,7 @@ internal static class PlayerEndpoints
         return TypedResults.Ok(combatants.ToCombatantStates());
     }
 
-    private static async Task<Ok<AbilityAvailability[]>> GetAbilityAvailability(
+    private static async Task<Ok<AbilityAvailabilityResponse[]>> GetAbilityAvailability(
         Guid playerId,
         [FromServices]
             IQueryHandler<
@@ -55,6 +56,6 @@ internal static class PlayerEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(availability.ToArray());
+        return TypedResults.Ok(availability.Select(ability => ability.ToResponse()).ToArray());
     }
 }
