@@ -130,7 +130,7 @@ export type CreateSessionRequest = {
 
 export type CreateWorldRequest = {
     playerName: string;
-    gender: Gender;
+    gender: PlayerGender;
     age: number;
     race: Race;
     playerClass: PlayerClass;
@@ -159,7 +159,7 @@ export type CreatureLevelResponse = {
     level: number;
 };
 
-export type CreatureState = 'Sleeping' | 'Idle' | 'Busy' | 'Studying' | 'Praying' | 'Training' | 'Sitting' | 'Dead';
+export type CreatureState = 'Idle' | 'Sleeping' | 'Busy' | 'Studying' | 'Praying' | 'Training' | 'Sitting' | 'Alerted' | 'Dead';
 
 export type CreatureStatusSnapshot = {
     id: string;
@@ -562,6 +562,8 @@ export type NearbyPropSnapshot = {
 };
 
 export type PlayerClass = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric';
+
+export type PlayerGender = 'Male' | 'Female';
 
 export type ProblemDetails = {
     type?: null | string;

@@ -5,12 +5,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.Worlds;
 using TRPG.Contracts;
-using TRPG.Contracts.Worlds.Requests;
-using TRPG.Contracts.Worlds.Responses;
 using TRPG.Data;
 using TRPG.Jobs.Responses;
 using TRPG.Tests.Helpers;
+using TRPG.Worlds.Requests;
+using TRPG.Worlds.Responses;
 using DataCreatureType = TRPG.Data.Models.CreatureType;
 using DataSkill = TRPG.Data.Models.Skill;
 using OwnerType = TRPG.Data.Models.OwnerType;
@@ -40,7 +41,7 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         var request = new CreateWorldRequest
         {
             PlayerName = "Test Player",
-            Gender = Gender.Male,
+            Gender = PlayerGender.Male,
             Age = 18,
             Race = Race.Human,
             PlayerClass = PlayerClass.Knight,
@@ -94,7 +95,7 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         var request = new CreateWorldRequest
         {
             PlayerName = "Test Player",
-            Gender = Gender.Male,
+            Gender = PlayerGender.Male,
             Age = 18,
             Race = Race.Human,
             PlayerClass = PlayerClass.Knight,

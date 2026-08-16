@@ -1,10 +1,9 @@
 using TRPG.Application.Common.Handling;
+using TRPG.Application.Worlds;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Mappers;
 using TRPG.Contracts.Creatures.Requests;
-using TRPG.Contracts.Worlds.Requests;
 using TRPG.Data.Models;
-using Gender = TRPG.Contracts.Worlds.Requests.Gender;
 
 namespace TRPG.Application.Worlds.Commands;
 
@@ -12,7 +11,7 @@ public class CreateWorldCommand
 {
     public required WorldGeneratorInput WorldInput { get; init; }
     public required string Name { get; init; }
-    public required Gender Gender { get; init; }
+    public required PlayerGender Gender { get; init; }
     public required int Age { get; init; }
     public required Race Race { get; init; }
     public required PlayerClass PlayerClass { get; init; }

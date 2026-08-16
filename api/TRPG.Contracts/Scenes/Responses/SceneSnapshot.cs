@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
-using TRPG.Contracts.Worlds.Requests;
 
 namespace TRPG.Contracts.Scenes.Responses;
 
@@ -21,6 +20,12 @@ public enum CreatureType
     Wraith,
     Giant,
     Dragon,
+}
+
+public enum Gender
+{
+    Male,
+    Female,
 }
 
 public enum Profession

@@ -9,12 +9,12 @@ using TRPG.Application.Narration.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Contracts.Worlds.Requests;
-using TRPG.Contracts.Worlds.Responses;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Jobs.Responses;
 using TRPG.Worlds.Jobs;
+using TRPG.Worlds.Requests;
+using TRPG.Worlds.Responses;
 
 namespace TRPG.Worlds.Endpoints;
 
