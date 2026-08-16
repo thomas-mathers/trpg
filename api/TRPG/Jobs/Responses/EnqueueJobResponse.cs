@@ -1,3 +1,3 @@
-namespace TRPG.Contracts.Jobs.Responses;
+namespace TRPG.Jobs.Responses;
 
 public record EnqueueJobResponse(Guid JobId);
