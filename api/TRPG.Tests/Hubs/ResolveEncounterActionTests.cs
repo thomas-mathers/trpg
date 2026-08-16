@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Encounters;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.Encounters.Requests;
 using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
@@ -106,7 +107,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         var narration = await Drain(
             gameHub.StreamAsync<string>(
                 "ResolveEncounterAction",
-                new AttackEncounterAction(),
+                new AttackEncounterActionRequest(),
                 TestContext.Current.CancellationToken
             )
         );
@@ -188,7 +189,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         var narration = await Drain(
             gameHub.StreamAsync<string>(
                 "ResolveEncounterAction",
-                new AttackEncounterAction(),
+                new AttackEncounterActionRequest(),
                 TestContext.Current.CancellationToken
             )
         );
@@ -222,7 +223,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         await Drain(
             gameHub.StreamAsync<string>(
                 "ResolveEncounterAction",
-                new EvadeEncounterAction(),
+                new EvadeEncounterActionRequest(),
                 TestContext.Current.CancellationToken
             )
         );
@@ -276,7 +277,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         await Drain(
             gameHub.StreamAsync<string>(
                 "ResolveEncounterAction",
-                new RetreatEncounterAction(),
+                new RetreatEncounterActionRequest(),
                 TestContext.Current.CancellationToken
             )
         );
