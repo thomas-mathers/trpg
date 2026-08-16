@@ -16,7 +16,7 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 - `api/TRPG.Application.Common` — small shared foundation only: events, exceptions, optional values, shared JSON serialization options, and genuinely reusable utilities. It must not become a feature-mapping or feature-logic bucket.
 - `api/TRPG.Application.Configuration` — public configuration options shared across modules.
 - `api/TRPG.Application.CreatureFormulas` — public stat, skill, and progression formulas.
-- `api/TRPG.Application.GameTurns` — turn orchestration, player movement, LLM conversation execution, and client events produced by that workflow.
+- `api/TRPG.Application.GameTurns` — turn orchestration, player movement, LLM conversation execution, and application event publication for that workflow.
 - Feature modules own their domain: Abilities, Buildings, Chat, Combat, CreatureJobs, Creatures, Encounters, GameSessions, Inventory, Narration, NpcConversations, Quests, Reputations, Scenes, Trading, WeaponProficiency, and Worlds. Worlds also owns navigation and world generation.
 - `api/TRPG.Domain` — dependency-free game entities, value objects, and domain enums. It has no project or package dependencies.
 - `api/TRPG.Data` — EF Core contexts, persistence configuration, and migrations. It references Domain for the persisted model types.
@@ -28,13 +28,13 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 - Commands, queries, and their result/response types are public. Command and query handler implementations (`*CommandHandler`/`*QueryHandler`) are `internal` — callers depend on `ICommandHandler<>`/`IQueryHandler<,>` (`TRPG.Application.Common.Handling`) and never name the concrete handler class, and DI resolves them via assembly scanning (`ApplicationServiceCollectionExtensions`'s `Scan(...)`, which scans non-public types too), so no `InternalsVisibleTo` is needed for this. Keep all other types `internal` unless they are an intentional shared contract or a public API requires them to be public.
 - Do not add `InternalsVisibleTo` preemptively. First make the boundary explicit and compile; add the narrow one-way friendship only when an internal implementation dependency is genuinely required.
 - Prefer a feature-local type or boundary mapping over a new Common dependency. A utility used by only one feature belongs in that feature.
-- Client events belong to the feature/workflow that emits them. `GameClientEvent`, its sink, dispatcher, and `EntityNotFoundException` are public Common infrastructure.
+- Application modules never define HTTP or SignalR wire types: requests, responses, client payloads, hub method names, and their mappings belong in the host `TRPG`. `GameClientEvent` is a payload-free application notification marker; host formatters translate it into the appropriate client message. Its sink and `EntityNotFoundException` are public Common infrastructure.
 - Keep serialization consistent: use `TrpgJsonOptions.Default`; do not introduce feature-specific JSON option sets.
 - `scripts/feature-dependency-graph.py` is the current dependency map.
 
 ### Folder convention: feature-then-type
 - Inside `api/TRPG` and each `api/TRPG.Application.*` module, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
-- Within a feature module, command, query, mapper, event, client-event payload, and shared result files live in `Commands/`, `Queries/`, `Mappers/`, `Events/`, `ClientEvents/`, and `Results/`. Define a result beside the single command/query handler that instantiates and uses it; move it to `Results/` when it is reused by multiple application types. Other role-specific folders include `Tools/` and `Generators/`. Host features use `Endpoints/`, `Hubs/`, `Jobs/`, `Requests/`, and `Responses/`.
+- Within a feature module, command, query, mapper, event, and shared result files live in `Commands/`, `Queries/`, `Mappers/`, `Events/`, and `Results/`. Define a result beside the single command/query handler that instantiates and uses it; move it to `Results/` when it is reused by multiple application types. Other role-specific folders include `Tools/` and `Generators/`. Host features use `Endpoints/`, `Hubs/`, `Jobs/`, `Requests/`, `Responses/`, and `ClientModels/`.
 - `api/TRPG.Domain/Models/` is flat — entities aren't split by feature. `api/TRPG.Data` contains EF contexts and migrations only.
 
 ### Key request flows
