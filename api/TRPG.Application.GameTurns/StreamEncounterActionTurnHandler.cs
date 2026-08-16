@@ -1,9 +1,6 @@
 using System.Text.Json;
-using TRPG.Application.Combat;
-using TRPG.Application.Combat.Events;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
-using TRPG.Application.Common.Tools;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
@@ -25,13 +22,13 @@ internal class StreamEncounterActionTurnHandler(
 )
 {
     public IAsyncEnumerable<string> Handle(
-        GameSessionIdentity session,
+        GameTurnSession session,
         PlayerEncounterAction action,
         CancellationToken cancellationToken = default
     ) => streamer.StreamTurn(session, ct => ResolveTurn(session, action, ct), cancellationToken);
 
     private async Task<GameTurnPrompt> ResolveTurn(
-        GameSessionIdentity session,
+        GameTurnSession session,
         PlayerEncounterAction action,
         CancellationToken cancellationToken
     )
@@ -72,11 +69,6 @@ internal class StreamEncounterActionTurnHandler(
     private void EnqueueEncounterResolutionEvents(EncounterActionResolution resolution)
     {
         gameEvents.Enqueue(new EncounterResolvedEvent(resolution.Fact));
-
-        if (resolution.Combatants != null)
-        {
-            gameEvents.Enqueue(new CombatStartedEvent(resolution.Combatants));
-        }
     }
 
     private static string DescribeAction(HostileEncounterActionKind actionKind) =>

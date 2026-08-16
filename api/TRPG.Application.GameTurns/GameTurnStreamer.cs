@@ -14,7 +14,6 @@ using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Data.Models;
 
@@ -48,7 +47,7 @@ internal class GameTurnStreamer(
 )
 {
     public async IAsyncEnumerable<string> StreamTurn(
-        GameSessionIdentity session,
+        GameTurnSession session,
         Func<CancellationToken, Task<GameTurnPrompt>> resolveTurn,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
@@ -128,13 +127,13 @@ internal class GameTurnStreamer(
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
-            gameEvents.Enqueue(new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(after)));
+            gameEvents.Enqueue(new SceneUpdatedEvent(after));
         }
 
         await eventDispatcher.FlushAsync(turnContext.WorldId, cancellationToken);
     }
 
-    private async Task BeginTurn(GameSessionIdentity session, CancellationToken cancellationToken)
+    private async Task BeginTurn(GameTurnSession session, CancellationToken cancellationToken)
     {
         turnContext.SessionId = session.SessionId;
         turnContext.WorldId = session.WorldId;

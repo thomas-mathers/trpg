@@ -1,9 +1,8 @@
-using System.Text.Json;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Inventory;
 
-internal static class ItemEquipmentPolicy
+public static class EquipmentLoadoutPolicy
 {
     public static EquipmentSlot? GetDefaultSlot(Item item) =>
         item switch
@@ -51,17 +50,5 @@ internal static class ItemEquipmentPolicy
                 GetFootprint(i, i.Ownership.EquippedSlot!.Value).Intersect(newFootprint).Any()
             )
             .ToArray();
-    }
-
-    public static Item Split(Item item, int quantity, Guid ownerId, OwnerType ownerType)
-    {
-        var type = item.GetType();
-        var node = JsonSerializer.SerializeToNode(item, type)!.AsObject();
-        node[nameof(Item.Id)] = Guid.NewGuid();
-        node[nameof(Item.Quantity)] = quantity;
-        node[nameof(Item.Ownership)] = JsonSerializer.SerializeToNode(
-            new ItemOwnership { OwnerId = ownerId, OwnerType = ownerType }
-        );
-        return (Item)node.Deserialize(type)!;
     }
 }

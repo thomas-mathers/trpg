@@ -16,13 +16,13 @@ internal class StreamWaitTurnHandler(
 )
 {
     public IAsyncEnumerable<string> Handle(
-        GameSessionIdentity session,
+        GameTurnSession session,
         int hours,
         CancellationToken cancellationToken = default
     ) => streamer.StreamTurn(session, ct => ResolveTurn(session, hours, ct), cancellationToken);
 
     private async Task<GameTurnPrompt> ResolveTurn(
-        GameSessionIdentity session,
+        GameTurnSession session,
         int hours,
         CancellationToken cancellationToken
     )

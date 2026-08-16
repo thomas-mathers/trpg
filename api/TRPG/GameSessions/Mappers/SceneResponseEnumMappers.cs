@@ -11,7 +11,7 @@ using DataDistrictType = TRPG.Data.Models.DistrictType;
 using DataGender = TRPG.Data.Models.Gender;
 using DataProfession = TRPG.Data.Models.Profession;
 
-namespace TRPG.Application.Scenes.Mappers;
+namespace TRPG.GameSessions.Mappers;
 
 internal static class SceneResponseEnumMappers
 {

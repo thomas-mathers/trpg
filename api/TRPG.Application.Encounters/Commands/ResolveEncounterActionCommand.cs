@@ -1,13 +1,10 @@
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Contracts.Combat.Responses;
 using TRPG.Contracts.Encounters.Requests;
-using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data.Models;
 using Combatant = TRPG.Application.Combat.Combatant;
 
@@ -27,8 +24,7 @@ public class ResolveEncounterActionCommand
 
 public record EncounterActionResolution(
     HostileEncounterActionKind ActionKind,
-    EncounterResolutionFact Fact,
-    IReadOnlyCollection<CombatantState>? Combatants
+    EncounterResolutionFact Fact
 );
 
 internal class ResolveEncounterActionCommandHandler(
@@ -68,13 +64,7 @@ internal class ResolveEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var effects = await ApplyEncounterOutcome(
-            outcome,
-            command,
-            player,
-            groupContext,
-            cancellationToken
-        );
+        await ApplyEncounterOutcome(outcome, command, player, groupContext, cancellationToken);
 
         var location = await getLocationById.Handle(
             new GetLocationByIdQuery { Id = command.EncounterLocationId },
@@ -89,10 +79,10 @@ internal class ResolveEncounterActionCommandHandler(
             MemberNames: groupContext.LivingMembers.Select(member => member.Name).ToArray()
         );
 
-        return new EncounterActionResolution(actionKind, fact, effects.Combatants);
+        return new EncounterActionResolution(actionKind, fact);
     }
 
-    private async Task<EncounterOutcomeEffects> ApplyEncounterOutcome(
+    private async Task ApplyEncounterOutcome(
         HostileEncounterActionOutcome outcome,
         ResolveEncounterActionCommand command,
         Creature player,
@@ -113,7 +103,7 @@ internal class ResolveEncounterActionCommandHandler(
                 },
                 cancellationToken
             );
-            return new EncounterOutcomeEffects(null);
+            return;
         }
 
         var startsFight = outcome switch
@@ -125,7 +115,7 @@ internal class ResolveEncounterActionCommandHandler(
         };
         if (!startsFight)
         {
-            return new EncounterOutcomeEffects(null);
+            return;
         }
 
         var enemyCreatureIds = groupContext.LivingMembers.Select(member => member.Id).ToArray();
@@ -139,7 +129,7 @@ internal class ResolveEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var combatants = await startFight.Handle(
+        await startFight.Handle(
             new StartFightCommand
             {
                 SessionId = command.SessionId,
@@ -151,7 +141,7 @@ internal class ResolveEncounterActionCommandHandler(
             cancellationToken
         );
 
-        return new EncounterOutcomeEffects(CombatantStateMapper.ToCombatantStates(combatants));
+        return;
     }
 
     private static HostileEncounterActionKind ToActionKind(PlayerEncounterAction action) =>
@@ -176,5 +166,3 @@ internal class ResolveEncounterActionCommandHandler(
             _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
         };
 }
-
-public record EncounterOutcomeEffects(IReadOnlyCollection<CombatantState>? Combatants);

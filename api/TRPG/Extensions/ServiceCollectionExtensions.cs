@@ -18,7 +18,6 @@ using TickerQ.Utilities.Enums;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Extensions;
-using TRPG.Application.Common.Tools;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Combat.Tools;
@@ -31,6 +30,7 @@ using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Tools;
 using TRPG.NpcConversations.Tools;
 using TRPG.Quests.Tools;
+using TRPG.Tools;
 using TRPG.Worlds.Jobs;
 using TRPG.Worlds.Tools;
 using ZLogger;
@@ -194,6 +194,15 @@ internal static class ServiceCollectionExtensions
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {
         return serviceCollection
+            .Scan(scan =>
+                scan.FromAssemblyOf<GameClientEventDispatcher>()
+                    .AddClasses(
+                        classes => classes.AssignableTo<IGameClientEventFormatter>(),
+                        publicOnly: false
+                    )
+                    .AsImplementedInterfaces()
+                    .WithScopedLifetime()
+            )
             .AddScoped<GameClientEventBuffer>()
             .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<GameClientEventBuffer>())
             .AddScoped<IGameClientEventBuffer>(sp => sp.GetRequiredService<GameClientEventBuffer>())

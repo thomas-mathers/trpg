@@ -4,12 +4,11 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
-using TRPG.Application.Common.Tools;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
-using TRPG.Application.Scenes.Mappers;
+using TRPG.Tools;
 
 namespace TRPG.GameTurns.Tools;
 
@@ -43,9 +42,7 @@ internal class LookTool(
 
         if (refreshed.Refreshed)
         {
-            gameEvents.Enqueue(
-                new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(refreshed.Scene))
-            );
+            gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
         }
 
         logger.LogInformation(

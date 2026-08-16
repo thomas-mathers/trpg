@@ -5,9 +5,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="TRPG.Application.GameTurns" />
     <InternalsVisibleTo Include="TRPG.Tests" />
-    <InternalsVisibleTo Include="TRPG" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.Combat\TRPG.Application.Combat.csproj" />

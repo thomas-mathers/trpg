@@ -1,16 +1,11 @@
-using TRPG.Application.Combat;
-using TRPG.Application.Combat.Events;
-using TRPG.Application.Combat.Mappers;
-using TRPG.Application.Combat.Queries;
+using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Events;
-using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.Models;
@@ -28,10 +23,9 @@ internal class PublishSessionStateCommandHandler(
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
-    IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getActiveFightCombatants,
+    ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
-    IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext> getEncounterGroupContext,
-    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
+    IQueryHandler<GetHostileEncounterStateQuery, HostileEncounterState> getHostileEncounterState
 ) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
@@ -48,18 +42,12 @@ internal class PublishSessionStateCommandHandler(
             },
             cancellationToken
         );
-        gameEvents.Enqueue(new SceneUpdatedEvent(SceneSnapshotMapper.ToSnapshot(scene)));
+        gameEvents.Enqueue(new SceneUpdatedEvent(scene));
 
-        var combatants = await getActiveFightCombatants.Handle(
-            new GetActiveFightCombatantsQuery { PlayerId = command.PlayerId },
+        await publishCombatState.Handle(
+            new PublishCombatStateCommand { PlayerId = command.PlayerId },
             cancellationToken
         );
-        if (combatants.Count > 0)
-        {
-            gameEvents.Enqueue(
-                new CombatStartedEvent(CombatantStateMapper.ToCombatantStates(combatants))
-            );
-        }
 
         var encounter = await getActiveEncounter.Handle(
             new GetActiveEncounterQuery { PlayerId = command.PlayerId },
@@ -67,24 +55,16 @@ internal class PublishSessionStateCommandHandler(
         );
         if (encounter != null)
         {
-            var groupContext = await getEncounterGroupContext.Handle(
-                new GetEncounterGroupContextQuery { EncounterGroupId = encounter.EncounterGroupId },
+            var state = await getHostileEncounterState.Handle(
+                new GetHostileEncounterStateQuery
+                {
+                    EncounterId = encounter.Id,
+                    EncounterGroupId = encounter.EncounterGroupId,
+                    LocationId = encounter.LocationId,
+                },
                 cancellationToken
             );
-            var location = await getLocationById.Handle(
-                new GetLocationByIdQuery { Id = encounter.LocationId },
-                cancellationToken
-            );
-            gameEvents.Enqueue(
-                new EncounterStartedEvent(
-                    HostileEncounterStateMapper.ToState(
-                        encounter.Id,
-                        groupContext.Faction,
-                        groupContext.LivingMembers,
-                        location!
-                    )
-                )
-            );
+            gameEvents.Enqueue(new EncounterStartedEvent(state));
         }
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);

@@ -2,7 +2,7 @@ using TRPG.Data.Models;
 
 namespace TRPG.Application.Abilities;
 
-internal static class AbilityCatalog
+public static class AbilityCatalog
 {
     public static AttackAbility Strike { get; } =
         new()

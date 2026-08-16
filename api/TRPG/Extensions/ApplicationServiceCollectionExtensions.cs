@@ -10,7 +10,6 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
-using TRPG.Application.Common.Tools;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
@@ -42,6 +41,7 @@ using TRPG.Application.Worlds;
 using TRPG.Application.Worlds.Queries;
 using TRPG.GameTurns.Tools;
 using TRPG.Handling;
+using TRPG.Tools;
 
 namespace TRPG.Extensions;
 

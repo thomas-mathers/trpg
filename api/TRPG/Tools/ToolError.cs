@@ -1,3 +1,3 @@
-namespace TRPG.Application.Common.Tools;
+namespace TRPG.Tools;
 
 internal record ToolError(string Error);

@@ -41,7 +41,7 @@ internal sealed class ChatHub(
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = sessionId }
         );
-        var session = new GameSessionIdentity(snapshot.Id, snapshot.WorldId, snapshot.PlayerId);
+        var session = new GameTurnSession(snapshot.Id, snapshot.WorldId, snapshot.PlayerId);
         Context.Items[SessionKey] = session;
 
         await Groups.AddToGroupAsync(
@@ -64,7 +64,7 @@ internal sealed class ChatHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        if (Context.Items[SessionKey] is GameSessionIdentity session)
+        if (Context.Items[SessionKey] is GameTurnSession session)
         {
             pendingSessionEnds.Schedule(session.SessionId);
         }
@@ -111,7 +111,7 @@ internal sealed class ChatHub(
         await eventDispatcher.FlushAsync(Session.WorldId, Context.ConnectionAborted);
     }
 
-    private GameSessionIdentity Session => (GameSessionIdentity)Context.Items[SessionKey]!;
+    private GameTurnSession Session => (GameTurnSession)Context.Items[SessionKey]!;
 
     private Guid GetSessionIdFromQuery()
     {

@@ -1,3 +1,4 @@
+using TRPG.Application.Buildings;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Worlds.Generators;
@@ -118,7 +119,7 @@ public class CityGenerator(
                 .ToList(),
         };
 
-        foreach (var type in ShopStaffingPolicy.StandardBuildingTypes)
+        foreach (var type in ShopBuildingTypes.All)
         {
             if (
                 !districtsByType.TryGetValue(

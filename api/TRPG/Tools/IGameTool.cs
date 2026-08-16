@@ -1,4 +1,4 @@
-namespace TRPG.Application.Common.Tools;
+namespace TRPG.Tools;
 
 internal interface IGameTool
 {

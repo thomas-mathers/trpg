@@ -4,7 +4,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Inventory;
 
-public sealed class ItemEquipmentPolicyTests
+public sealed class EquipmentLoadoutPolicyTests
 {
     [Theory]
     [InlineData(EquipmentSlot.RightHand)]
@@ -17,7 +17,7 @@ public sealed class ItemEquipmentPolicyTests
         var weapon = Builders.MakeWeaponItem(isTwoHanded: true);
 
         // Act
-        var footprint = ItemEquipmentPolicy.GetFootprint(weapon, requestedSlot);
+        var footprint = EquipmentLoadoutPolicy.GetFootprint(weapon, requestedSlot);
 
         // Assert
         Assert.Equivalent(new[] { EquipmentSlot.RightHand, EquipmentSlot.LeftHand }, footprint);
@@ -30,7 +30,7 @@ public sealed class ItemEquipmentPolicyTests
         var weapon = Builders.MakeWeaponItem(isTwoHanded: false);
 
         // Act
-        var footprint = ItemEquipmentPolicy.GetFootprint(weapon, EquipmentSlot.LeftHand);
+        var footprint = EquipmentLoadoutPolicy.GetFootprint(weapon, EquipmentSlot.LeftHand);
 
         // Assert
         Assert.Equal([EquipmentSlot.LeftHand], footprint);
@@ -47,7 +47,7 @@ public sealed class ItemEquipmentPolicyTests
         var weapon = Builders.MakeWeaponItem(isTwoHanded: true);
 
         // Act
-        var resolvedSlot = ItemEquipmentPolicy.ResolveEquippedSlot(weapon, requestedSlot);
+        var resolvedSlot = EquipmentLoadoutPolicy.ResolveEquippedSlot(weapon, requestedSlot);
 
         // Assert
         Assert.Equal(EquipmentSlot.RightHand, resolvedSlot);
@@ -60,7 +60,10 @@ public sealed class ItemEquipmentPolicyTests
         var weapon = Builders.MakeWeaponItem(isTwoHanded: false);
 
         // Act
-        var resolvedSlot = ItemEquipmentPolicy.ResolveEquippedSlot(weapon, EquipmentSlot.LeftHand);
+        var resolvedSlot = EquipmentLoadoutPolicy.ResolveEquippedSlot(
+            weapon,
+            EquipmentSlot.LeftHand
+        );
 
         // Assert
         Assert.Equal(EquipmentSlot.LeftHand, resolvedSlot);

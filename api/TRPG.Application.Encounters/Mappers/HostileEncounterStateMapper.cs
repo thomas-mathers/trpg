@@ -1,4 +1,3 @@
-using TRPG.Contracts.Encounters.Responses;
 using TRPG.Data.Models;
 
 namespace TRPG.Application.Encounters.Mappers;
@@ -18,9 +17,9 @@ internal static class HostileEncounterStateMapper
             FactionName: faction.Name,
             LocationName: location.Name,
             Members: livingMembers
-                .Select(member => new HostileEncounterMemberState(
+                .Select(member => new HostileEncounterMember(
                     member.Name,
-                    member.CreatureType.ToContract(),
+                    member.CreatureType,
                     member.Level
                 ))
                 .ToArray(),

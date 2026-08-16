@@ -5,8 +5,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="TRPG.Application.Encounters" />
-    <InternalsVisibleTo Include="TRPG.Application.GameTurns" />
     <InternalsVisibleTo Include="TRPG.Tests" />
     <InternalsVisibleTo Include="TRPG" />
     <InternalsVisibleTo Include="TRPG.Balance" />

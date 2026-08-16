@@ -1,6 +1,6 @@
 using TRPG.Contracts.Scenes.Responses;
 
-namespace TRPG.Contracts.Encounters.Responses;
+namespace TRPG.Encounters.Responses;
 
 public record HostileEncounterMemberState(string Name, CreatureType CreatureType, int Level);
 
