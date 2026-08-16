@@ -1,6 +1,4 @@
-using TRPG.Contracts.Scenes.Responses;
-
-namespace TRPG.Contracts.Narration.Responses;
+namespace TRPG.GameSessions.Responses;
 
 public record LoreAnchor(
     Guid Id,

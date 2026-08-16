@@ -1,5 +1,5 @@
 using TRPG.Application.Scenes.Queries;
-using TRPG.Contracts.Scenes.Responses;
+using TRPG.GameSessions.Responses;
 
 namespace TRPG.GameSessions.Mappers;
 
@@ -9,12 +9,12 @@ internal static class SceneCreatureInfoMapper
         new(
             creature.Id,
             creature.Name,
-            creature.CreatureType.ToContract(),
-            creature.Gender.ToContract(),
-            creature.Profession?.ToContract(),
+            creature.CreatureType.ToResponse(),
+            creature.Gender.ToResponse(),
+            creature.Profession?.ToResponse(),
             creature.Level,
             creature.Age,
-            creature.State?.ToContract(),
+            creature.State?.ToResponse(),
             creature.Gold,
             creature.CurrentHp,
             creature.MaximumHp,
@@ -41,6 +41,6 @@ internal static class SceneCreatureInfoMapper
             creature.PoisonResistance,
             creature.MagicResistance,
             creature.TradeWorkstationId,
-            creature.QuestMarker.ToContract()
+            creature.QuestMarker.ToResponse()
         );
 }

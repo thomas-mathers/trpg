@@ -5,11 +5,10 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Serialization;
-using TRPG.Contracts;
-using TRPG.Contracts.GameSessions.Responses;
-using TRPG.Contracts.Scenes.Responses;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.Extensions;
+using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;

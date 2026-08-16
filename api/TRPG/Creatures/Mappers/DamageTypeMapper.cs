@@ -5,7 +5,7 @@ namespace TRPG.Creatures.Mappers;
 
 internal static class DamageTypeMapper
 {
-    public static ContractDamageType ToContract(this DataDamageType type) =>
+    public static ContractDamageType ToResponse(this DataDamageType type) =>
         type switch
         {
             DataDamageType.Physical => ContractDamageType.Physical,

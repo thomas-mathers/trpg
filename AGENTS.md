@@ -18,7 +18,6 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 - `api/TRPG.Application.CreatureFormulas` — public stat, skill, and progression formulas.
 - `api/TRPG.Application.GameTurns` — turn orchestration, player movement, LLM conversation execution, and client events produced by that workflow.
 - Feature modules own their domain: Abilities, Buildings, Chat, Combat, CreatureJobs, Creatures, Encounters, GameSessions, Inventory, Narration, NpcConversations, Quests, Reputations, Scenes, Trading, WeaponProficiency, and Worlds. Worlds also owns navigation and world generation.
-- `api/TRPG.Contracts` — remaining HTTP/SignalR request and response DTOs. The SPA consumes OpenAPI-generated TypeScript, not this assembly directly; prefer feature-owned public result types and host-bound request mapping when evolving the API.
 - `api/TRPG.Domain` — dependency-free game entities, value objects, and domain enums. It has no project or package dependencies.
 - `api/TRPG.Data` — EF Core contexts, persistence configuration, and migrations. It references Domain for the persisted model types.
 - `api/TRPG.Tests` — xUnit tests with Testcontainers-backed PostgreSQL.
@@ -34,8 +33,8 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 - `scripts/feature-dependency-graph.py` is the current dependency map.
 
 ### Folder convention: feature-then-type
-- Inside `api/TRPG`, each `api/TRPG.Application.*` module, and `api/TRPG.Contracts`, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
-- Within a feature module, command, query, mapper, and event files live in `Commands/`, `Queries/`, `Mappers/`, and `Events/`. Other role-specific folders include `Tools/` and `Generators/`. Host features use `Endpoints/`, `Hubs/`, and `Jobs/`; Contracts currently uses `Requests/` and `Responses/`.
+- Inside `api/TRPG` and each `api/TRPG.Application.*` module, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
+- Within a feature module, command, query, mapper, and event files live in `Commands/`, `Queries/`, `Mappers/`, and `Events/`. Other role-specific folders include `Tools/` and `Generators/`. Host features use `Endpoints/`, `Hubs/`, `Jobs/`, `Requests/`, and `Responses/`.
 - `api/TRPG.Domain/Models/` is flat — entities aren't split by feature. `api/TRPG.Data` contains EF contexts and migrations only.
 
 ### Key request flows

@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 
-namespace TRPG.Contracts.Inventory.Responses;
+namespace TRPG.Inventory.Responses;
 
 public enum ResourceType
 {

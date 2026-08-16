@@ -1,11 +1,11 @@
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Creatures.Mappers;
 
 internal static class AccessoryTypeMapper
 {
-    public static ItemType ToContract(this AccessoryType type) =>
+    public static ItemType ToResponse(this AccessoryType type) =>
         type switch
         {
             AccessoryType.Ring => ItemType.Ring,

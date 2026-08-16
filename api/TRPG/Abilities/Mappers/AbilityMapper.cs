@@ -1,6 +1,6 @@
 using TRPG.Application.Abilities;
-using AbilitySummary = TRPG.Contracts.Abilities.Responses.AbilitySummary;
-using ContractAbilityCategory = TRPG.Contracts.Abilities.Responses.AbilityCategory;
+using AbilitySummary = TRPG.Abilities.Responses.AbilitySummary;
+using ContractAbilityCategory = TRPG.Abilities.Responses.AbilityCategory;
 
 namespace TRPG.Abilities.Mappers;
 
@@ -9,7 +9,7 @@ internal static class AbilityMapper
     public static AbilitySummary ToSummary(this Ability ability) =>
         new(
             ability.Name,
-            ability.Skill.ToContract(),
+            ability.Skill.ToResponse(),
             ability.Description,
             ability.ApCost,
             ability.MpCost,

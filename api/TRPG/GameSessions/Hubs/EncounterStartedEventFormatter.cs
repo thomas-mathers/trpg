@@ -1,7 +1,7 @@
 using TRPG.Application.Common.Events;
 using TRPG.Application.Encounters.Events;
 using TRPG.Encounters.Responses;
-using ContractCreatureType = TRPG.Contracts.Scenes.Responses.CreatureType;
+using ContractCreatureType = TRPG.GameSessions.Responses.CreatureType;
 
 namespace TRPG.GameSessions.Hubs;
 

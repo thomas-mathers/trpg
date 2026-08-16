@@ -1,4 +1,4 @@
-using TRPG.Contracts.Scenes.Responses;
+using TRPG.GameSessions.Responses;
 
 namespace TRPG.Encounters.Responses;
 

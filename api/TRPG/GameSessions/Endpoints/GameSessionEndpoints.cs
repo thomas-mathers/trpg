@@ -9,12 +9,10 @@ using TRPG.Application.Narration.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Contracts.GameSessions.Requests;
-using TRPG.Contracts.GameSessions.Responses;
-using TRPG.Contracts.Narration.Responses;
-using TRPG.Contracts.Scenes.Responses;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Mappers;
+using TRPG.GameSessions.Requests;
+using TRPG.GameSessions.Responses;
 
 namespace TRPG.GameSessions.Endpoints;
 
@@ -105,7 +103,7 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(anchors.Select(anchor => anchor.ToContract()).ToArray());
+        return TypedResults.Ok(anchors.Select(anchor => anchor.ToResponse()).ToArray());
     }
 
     private static async Task<Results<NotFound, Ok<LoreAnchor>>> GetLoreAnchorById(
@@ -131,6 +129,6 @@ internal static class GameSessionEndpoints
         );
 
         var anchor = anchors.FirstOrDefault(anchor => anchor.Id == anchorId);
-        return anchor == null ? TypedResults.NotFound() : TypedResults.Ok(anchor.ToContract());
+        return anchor == null ? TypedResults.NotFound() : TypedResults.Ok(anchor.ToResponse());
     }
 }

@@ -1,11 +1,11 @@
-using ContractSpecialHitType = TRPG.Contracts.Inventory.Responses.SpecialHitType;
+using ContractSpecialHitType = TRPG.Inventory.Responses.SpecialHitType;
 using DataSpecialHitType = TRPG.Domain.Models.SpecialHitType;
 
 namespace TRPG.Creatures.Mappers;
 
 internal static class SpecialHitTypeMapper
 {
-    public static ContractSpecialHitType ToContract(this DataSpecialHitType type) =>
+    public static ContractSpecialHitType ToResponse(this DataSpecialHitType type) =>
         type switch
         {
             DataSpecialHitType.CrushingBlow => ContractSpecialHitType.CrushingBlow,

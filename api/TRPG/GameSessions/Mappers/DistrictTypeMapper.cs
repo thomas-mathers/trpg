@@ -1,11 +1,11 @@
-using ContractDistrictType = TRPG.Contracts.Scenes.Responses.DistrictType;
+using ContractDistrictType = TRPG.GameSessions.Responses.DistrictType;
 using DataDistrictType = TRPG.Domain.Models.DistrictType;
 
 namespace TRPG.GameSessions.Mappers;
 
 internal static class DistrictTypeMapper
 {
-    public static ContractDistrictType ToContract(this DataDistrictType type) =>
+    public static ContractDistrictType ToResponse(this DataDistrictType type) =>
         type switch
         {
             DataDistrictType.Residential => ContractDistrictType.Residential,

@@ -1,5 +1,5 @@
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Creatures.Mappers;
 
@@ -7,8 +7,8 @@ internal static class ShieldMapper
 {
     public static ShieldDetail ToDetail(this Shield shield, bool isQuestItem)
     {
-        var equippedSlot = shield.Ownership.EquippedSlot?.ToContract();
-        var rarity = shield.Rarity.ToContract();
+        var equippedSlot = shield.Ownership.EquippedSlot?.ToResponse();
+        var rarity = shield.Rarity.ToResponse();
         var modifiers = shield.Modifiers.Select(modifier => modifier.ToSummary()).ToArray();
         var isStackable = Application.Inventory.ItemStackability.IsStackable(shield);
         return new ShieldDetail(

@@ -1,9 +1,9 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Contracts.Inventory.Requests;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Requests;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;

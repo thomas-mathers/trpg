@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Text.Json.Serialization;
 using TRPG.Domain.Models;
 
-namespace TRPG.Contracts.Inventory.Responses;
+namespace TRPG.Inventory.Responses;
 
 public enum CombatSpeedType
 {

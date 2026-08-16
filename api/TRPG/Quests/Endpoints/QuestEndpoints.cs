@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
-using TRPG.Contracts.Quests.Requests;
-using TRPG.Contracts.Quests.Responses;
+using TRPG.Quests.Requests;
+using TRPG.Quests.Responses;
 
 namespace TRPG.Quests.Endpoints;
 

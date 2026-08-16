@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Reflection;
 
-namespace TRPG.Contracts;
+namespace TRPG.Extensions;
 
 public static class EnumDisplayExtensions
 {

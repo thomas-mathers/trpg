@@ -1,4 +1,4 @@
-namespace TRPG.Contracts.Abilities.Responses;
+namespace TRPG.Abilities.Responses;
 
 public enum Skill
 {

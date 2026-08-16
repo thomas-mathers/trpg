@@ -1,6 +1,6 @@
 using TRPG.Domain.Models;
 
-namespace TRPG.Contracts.Trading.Requests;
+namespace TRPG.Inventory.Requests;
 
 public record TradeRequest(
     IReadOnlyList<ItemSelection> PlayerOffer,

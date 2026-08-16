@@ -1,13 +1,12 @@
 using TRPG.Application.Narration.Queries;
-using TRPG.Contracts.Narration.Responses;
-using TRPG.Contracts.Scenes.Responses;
 using TRPG.Domain.Models;
+using TRPG.GameSessions.Responses;
 
 namespace TRPG.GameSessions.Mappers;
 
 internal static class LoreAnchorMapper
 {
-    public static LoreAnchor ToContract(this LoreAnchorSummary anchor) =>
+    public static LoreAnchor ToResponse(this LoreAnchorSummary anchor) =>
         new(
             anchor.Id,
             anchor.Name,

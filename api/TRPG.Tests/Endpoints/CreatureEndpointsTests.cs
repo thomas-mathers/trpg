@@ -3,16 +3,16 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using TRPG.Abilities.Responses;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
-using TRPG.Contracts;
-using TRPG.Contracts.Abilities.Responses;
-using TRPG.Contracts.Inventory.Requests;
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Creatures.Requests;
 using TRPG.Creatures.Responses;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.Extensions;
+using TRPG.Inventory.Requests;
+using TRPG.Inventory.Responses;
 using TRPG.Tests.Helpers;
 using DataSkill = TRPG.Domain.Models.Skill;
 
@@ -516,7 +516,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         // Act
         var response = await _client.PutAsJsonAsync(
             "EquipCreatureItem",
-            new EquipItemRequest(itemId, Contracts.Inventory.Responses.EquipmentSlot.RightHand),
+            new EquipItemRequest(itemId, TRPG.Inventory.Responses.EquipmentSlot.RightHand),
             routeValues: new { creatureId = _creature.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );

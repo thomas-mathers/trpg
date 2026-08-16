@@ -4,10 +4,11 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Encounters;
-using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
+using DataCreatureType = TRPG.Domain.Models.CreatureType;
 
 namespace TRPG.Tests.Hubs;
 
@@ -122,7 +123,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         var faction = Builders.MakeFaction(_worldId, aggression: 150);
         var monster = Builders.MakeCreature(
             _worldId,
-            creatureType: CreatureType.Beast,
+            creatureType: DataCreatureType.Beast,
             locationId: _locationId,
             level: 1
         );

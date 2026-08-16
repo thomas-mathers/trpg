@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using TRPG.Abilities.Mappers;
+using TRPG.Abilities.Responses;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Combat.Responses;
@@ -13,13 +14,12 @@ using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests.Queries;
-using TRPG.Contracts.Abilities.Responses;
-using TRPG.Contracts.Inventory.Requests;
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Creatures.Mappers;
 using TRPG.Creatures.Requests;
 using TRPG.Creatures.Responses;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Requests;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Creatures.Endpoints;
 
@@ -201,7 +201,7 @@ internal static class CreatureEndpoints
 
     private static async Task<NoContent> UnequipItem(
         Guid creatureId,
-        Contracts.Inventory.Responses.EquipmentSlot slot,
+        TRPG.Inventory.Responses.EquipmentSlot slot,
         [FromServices] ICommandHandler<UnequipInventoryItemCommand> unequipInventoryItem,
         CancellationToken cancellationToken
     )
@@ -257,7 +257,7 @@ internal static class CreatureEndpoints
     private static async Task<Ok<EffectiveAttributesResponse>> PreviewEquipItemStats(
         Guid creatureId,
         Guid itemId,
-        Contracts.Inventory.Responses.EquipmentSlot slot,
+        TRPG.Inventory.Responses.EquipmentSlot slot,
         [FromServices] IQueryHandler<PreviewEquipItemStatsQuery, Attributes> previewEquipItemStats,
         CancellationToken cancellationToken
     )
@@ -293,7 +293,7 @@ internal static class CreatureEndpoints
     private static async Task<Ok<BasicAttackDamageResponse>> PreviewEquipItemBasicAttackDamage(
         Guid creatureId,
         Guid itemId,
-        Contracts.Inventory.Responses.EquipmentSlot slot,
+        TRPG.Inventory.Responses.EquipmentSlot slot,
         [FromServices]
             IQueryHandler<
             PreviewEquipItemBasicAttackDamageQuery,
@@ -349,7 +349,7 @@ internal static class CreatureEndpoints
 
     internal static ItemDetail ToItemDetail(Item item, bool isQuestItem = false)
     {
-        var equippedSlot = item.Ownership.EquippedSlot?.ToContract();
+        var equippedSlot = item.Ownership.EquippedSlot?.ToResponse();
         var type = ToItemType(item);
         var rarity = ToRarity(item);
         var modifiers = item.Modifiers.Select(ToItemModifierSummary).ToArray();
@@ -390,7 +390,7 @@ internal static class CreatureEndpoints
                 modifiers,
                 isStackable,
                 a.Defense,
-                a.ArmorClass.ToContract(),
+                a.ArmorClass.ToResponse(),
                 a.DurabilityCurrent,
                 a.DurabilityMax
             ),
@@ -449,7 +449,7 @@ internal static class CreatureEndpoints
                 c.GoldValue,
                 modifiers,
                 isStackable,
-                c.Resource.ToContract(),
+                c.Resource.ToResponse(),
                 c.RestoreAmount,
                 c.Duration
             ),
@@ -503,20 +503,20 @@ internal static class CreatureEndpoints
             ),
             CombatSpeedModifier m => new CombatSpeedModifierSummary(
                 m.Amount,
-                m.SpeedType.ToContract()
+                m.SpeedType.ToResponse()
             ),
             ElementalDamageModifier m => new ElementalDamageModifierSummary(
                 m.DamageType,
                 m.MinDamage,
                 m.MaxDamage
             ),
-            LeechModifier m => new LeechModifierSummary(m.LeechType.ToContract(), m.Percent),
-            SpecialHitModifier m => new SpecialHitModifierSummary(m.Chance, m.HitType.ToContract()),
-            SkillBonusModifier m => new SkillBonusModifierSummary(m.Amount, m.Skill?.ToContract()),
+            LeechModifier m => new LeechModifierSummary(m.LeechType.ToResponse(), m.Percent),
+            SpecialHitModifier m => new SpecialHitModifierSummary(m.Chance, m.HitType.ToResponse()),
+            SkillBonusModifier m => new SkillBonusModifierSummary(m.Amount, m.Skill?.ToResponse()),
             ProcModifier m => new ProcModifierSummary(
                 m.AbilityName,
                 m.Chance,
-                m.Trigger.ToContract()
+                m.Trigger.ToResponse()
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(modifier)),
         };
@@ -569,26 +569,26 @@ internal static class CreatureEndpoints
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
-    private static Contracts.Inventory.Responses.ItemRarity? ToRarity(Item item) =>
+    private static TRPG.Inventory.Responses.ItemRarity? ToRarity(Item item) =>
         item switch
         {
-            Weapon w => w.Rarity.ToContract(),
-            Armor a => a.Rarity.ToContract(),
-            Shield s => s.Rarity.ToContract(),
-            Consumable c => c.Rarity.ToContract(),
-            Ammunition am => am.Rarity.ToContract(),
-            Accessory ac => ac.Rarity.ToContract(),
+            Weapon w => w.Rarity.ToResponse(),
+            Armor a => a.Rarity.ToResponse(),
+            Shield s => s.Rarity.ToResponse(),
+            Consumable c => c.Rarity.ToResponse(),
+            Ammunition am => am.Rarity.ToResponse(),
+            Accessory ac => ac.Rarity.ToResponse(),
             Gold => null,
             Key => null,
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
     private static ConsumableSummary ToConsumableSummary(Consumable item) =>
-        new(item.Id, item.Name, item.Quantity, item.Resource.ToContract(), item.RestoreAmount);
+        new(item.Id, item.Name, item.Quantity, item.Resource.ToResponse(), item.RestoreAmount);
 
     private static SkillProgressSummary ToSkillProgressSummary(CreatureSkillProgress progress) =>
         new(
-            progress.Skill.ToContract(),
+            progress.Skill.ToResponse(),
             progress.Level,
             progress.ExperienceCurrent,
             progress.ExperienceToNextLevel

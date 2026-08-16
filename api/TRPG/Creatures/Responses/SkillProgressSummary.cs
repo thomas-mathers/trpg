@@ -1,4 +1,4 @@
-using TRPG.Contracts.Abilities.Responses;
+using TRPG.Abilities.Responses;
 
 namespace TRPG.Creatures.Responses;
 

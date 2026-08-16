@@ -1,11 +1,11 @@
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Creatures.Mappers;
 
 internal static class WeaponTypeMapper
 {
-    public static ItemType ToContract(this WeaponType type) =>
+    public static ItemType ToResponse(this WeaponType type) =>
         type switch
         {
             WeaponType.Dagger => ItemType.Dagger,

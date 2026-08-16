@@ -1,11 +1,11 @@
-using ContractCreatureState = TRPG.Contracts.Scenes.Responses.CreatureState;
+using ContractCreatureState = TRPG.GameSessions.Responses.CreatureState;
 using DataCreatureState = TRPG.Domain.Models.CreatureState;
 
 namespace TRPG.GameSessions.Mappers;
 
 internal static class CreatureStateMapper
 {
-    public static ContractCreatureState ToContract(this DataCreatureState state) =>
+    public static ContractCreatureState ToResponse(this DataCreatureState state) =>
         state switch
         {
             DataCreatureState.Idle => ContractCreatureState.Idle,

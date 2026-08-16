@@ -1,10 +1,10 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Contracts.Quests.Requests;
-using TRPG.Contracts.Quests.Responses;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.Quests.Requests;
+using TRPG.Quests.Responses;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;

@@ -1,11 +1,11 @@
-using ContractCreatureType = TRPG.Contracts.Scenes.Responses.CreatureType;
+using ContractCreatureType = TRPG.GameSessions.Responses.CreatureType;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
 
 namespace TRPG.GameSessions.Mappers;
 
 internal static class CreatureTypeMapper
 {
-    public static ContractCreatureType ToContract(this DataCreatureType type) =>
+    public static ContractCreatureType ToResponse(this DataCreatureType type) =>
         type switch
         {
             DataCreatureType.Human => ContractCreatureType.Human,

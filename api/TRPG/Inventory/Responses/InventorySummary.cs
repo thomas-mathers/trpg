@@ -1,3 +1,3 @@
-namespace TRPG.Contracts.Inventory.Responses;
+namespace TRPG.Inventory.Responses;
 
 public record InventorySummary(int Gold, IReadOnlyList<ItemDetail> Items);

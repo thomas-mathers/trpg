@@ -1,11 +1,11 @@
-using ContractBuildingType = TRPG.Contracts.Scenes.Responses.BuildingType;
+using ContractBuildingType = TRPG.GameSessions.Responses.BuildingType;
 using DataBuildingType = TRPG.Domain.Models.BuildingType;
 
 namespace TRPG.GameSessions.Mappers;
 
 internal static class BuildingTypeMapper
 {
-    public static ContractBuildingType ToContract(this DataBuildingType type) =>
+    public static ContractBuildingType ToResponse(this DataBuildingType type) =>
         type switch
         {
             DataBuildingType.ArcaneShop => ContractBuildingType.ArcaneShop,

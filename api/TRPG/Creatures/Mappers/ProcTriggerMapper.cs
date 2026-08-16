@@ -1,11 +1,11 @@
-using ContractProcTrigger = TRPG.Contracts.Inventory.Responses.ProcTrigger;
+using ContractProcTrigger = TRPG.Inventory.Responses.ProcTrigger;
 using DataProcTrigger = TRPG.Domain.Models.ProcTrigger;
 
 namespace TRPG.Creatures.Mappers;
 
 internal static class ProcTriggerMapper
 {
-    public static ContractProcTrigger ToContract(this DataProcTrigger trigger) =>
+    public static ContractProcTrigger ToResponse(this DataProcTrigger trigger) =>
         trigger switch
         {
             DataProcTrigger.OnStriking => ContractProcTrigger.OnStriking,

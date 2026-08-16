@@ -1,5 +1,5 @@
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Creatures.Mappers;
 
@@ -7,7 +7,7 @@ internal static class KeyMapper
 {
     public static KeyDetail ToDetail(this Key key, bool isQuestItem)
     {
-        var equippedSlot = key.Ownership.EquippedSlot?.ToContract();
+        var equippedSlot = key.Ownership.EquippedSlot?.ToResponse();
         var modifiers = key.Modifiers.Select(modifier => modifier.ToSummary()).ToArray();
         var isStackable = Application.Inventory.ItemStackability.IsStackable(key);
         return new KeyDetail(

@@ -5,7 +5,7 @@ namespace TRPG.Creatures.Mappers;
 
 internal static class AttributeNameMapper
 {
-    public static ContractAttributeName ToContract(this DataAttributeName attribute) =>
+    public static ContractAttributeName ToResponse(this DataAttributeName attribute) =>
         attribute switch
         {
             DataAttributeName.MaximumHp => ContractAttributeName.MaximumHp,
