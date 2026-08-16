@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Narration.Mappers;
-using TRPG.Contracts;
 using TRPG.Data;
 
 namespace TRPG.Application.Narration.Queries;
