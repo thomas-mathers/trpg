@@ -1,3 +1,3 @@
-namespace TRPG.Contracts.Quests.Requests;
+namespace TRPG.Quests.Requests;
 
 public record SetQuestTrackingRequest(bool IsTracked);

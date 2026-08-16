@@ -1,4 +1,4 @@
-namespace TRPG.Contracts.Quests.Responses;
+namespace TRPG.Quests.Responses;
 
 public record QuestObjectiveProgressSnapshot(
     string Name,

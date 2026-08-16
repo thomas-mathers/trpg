@@ -1,3 +1,3 @@
-namespace TRPG.Contracts.GameSessions.Responses;
+namespace TRPG.GameSessions.Responses;
 
 public record SessionCreatedResponse(Guid SessionId, Guid PlayerId);

@@ -1,4 +1,4 @@
-namespace TRPG.Contracts.Scenes.Responses;
+namespace TRPG.GameSessions.Responses;
 
 public enum EntityType
 {

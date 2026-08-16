@@ -12,15 +12,13 @@ using TRPG.Application.Quests.Queries;
 using TRPG.Application.Trading;
 using TRPG.Application.Trading.Commands;
 using TRPG.Application.Trading.Queries;
-using TRPG.Contracts.Inventory.Requests;
-using TRPG.Contracts.Inventory.Responses;
-using TRPG.Contracts.Trading.Requests;
-using TRPG.Contracts.Trading.Responses;
 using TRPG.Creatures.Mappers;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Mappers;
+using TRPG.Inventory.Requests;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Inventory.Endpoints;
 

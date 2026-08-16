@@ -1,4 +1,4 @@
-using ContractSkill = TRPG.Contracts.Abilities.Responses.Skill;
+using ContractSkill = TRPG.Abilities.Responses.Skill;
 using DataSkill = TRPG.Domain.Models.Skill;
 
 namespace TRPG.Abilities.Mappers;
@@ -21,7 +21,7 @@ internal static class SkillMapper
             _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, null),
         };
 
-    public static ContractSkill ToContract(this DataSkill skill) =>
+    public static ContractSkill ToResponse(this DataSkill skill) =>
         skill switch
         {
             DataSkill.Melee => ContractSkill.Melee,

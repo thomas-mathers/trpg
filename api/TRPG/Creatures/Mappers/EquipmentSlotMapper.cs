@@ -1,11 +1,11 @@
-using ContractEquipmentSlot = TRPG.Contracts.Inventory.Responses.EquipmentSlot;
+using ContractEquipmentSlot = TRPG.Inventory.Responses.EquipmentSlot;
 using DataEquipmentSlot = TRPG.Domain.Models.EquipmentSlot;
 
 namespace TRPG.Creatures.Mappers;
 
 internal static class EquipmentSlotMapper
 {
-    public static ContractEquipmentSlot ToContract(this DataEquipmentSlot slot) =>
+    public static ContractEquipmentSlot ToResponse(this DataEquipmentSlot slot) =>
         slot switch
         {
             DataEquipmentSlot.Helm => ContractEquipmentSlot.Helm,

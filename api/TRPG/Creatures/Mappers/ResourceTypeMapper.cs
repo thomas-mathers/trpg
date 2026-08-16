@@ -1,11 +1,11 @@
-using ContractResourceType = TRPG.Contracts.Inventory.Responses.ResourceType;
+using ContractResourceType = TRPG.Inventory.Responses.ResourceType;
 using DataResourceType = TRPG.Domain.Models.ResourceType;
 
 namespace TRPG.Creatures.Mappers;
 
 internal static class ResourceTypeMapper
 {
-    public static ContractResourceType ToContract(this DataResourceType resource) =>
+    public static ContractResourceType ToResponse(this DataResourceType resource) =>
         resource switch
         {
             DataResourceType.Hp => ContractResourceType.Hp,

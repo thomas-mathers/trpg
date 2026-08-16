@@ -1,11 +1,11 @@
-using ContractGender = TRPG.Contracts.Scenes.Responses.Gender;
+using ContractGender = TRPG.GameSessions.Responses.Gender;
 using DataGender = TRPG.Domain.Models.Gender;
 
 namespace TRPG.GameSessions.Mappers;
 
 internal static class GenderMapper
 {
-    public static ContractGender ToContract(this DataGender gender) =>
+    public static ContractGender ToResponse(this DataGender gender) =>
         gender switch
         {
             DataGender.Male => ContractGender.Male,

@@ -1,11 +1,11 @@
-using ContractProfession = TRPG.Contracts.Scenes.Responses.Profession;
+using ContractProfession = TRPG.GameSessions.Responses.Profession;
 using DataProfession = TRPG.Domain.Models.Profession;
 
 namespace TRPG.GameSessions.Mappers;
 
 internal static class ProfessionMapper
 {
-    public static ContractProfession ToContract(this DataProfession profession) =>
+    public static ContractProfession ToResponse(this DataProfession profession) =>
         profession switch
         {
             DataProfession.Knight => ContractProfession.Knight,

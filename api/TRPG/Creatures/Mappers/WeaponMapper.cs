@@ -1,5 +1,5 @@
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Creatures.Mappers;
 
@@ -7,9 +7,9 @@ internal static class WeaponMapper
 {
     public static WeaponDetail ToDetail(this Weapon weapon, bool isQuestItem)
     {
-        var equippedSlot = weapon.Ownership.EquippedSlot?.ToContract();
-        var type = weapon.Type.ToContract();
-        var rarity = weapon.Rarity.ToContract();
+        var equippedSlot = weapon.Ownership.EquippedSlot?.ToResponse();
+        var type = weapon.Type.ToResponse();
+        var rarity = weapon.Rarity.ToResponse();
         var modifiers = weapon.Modifiers.Select(modifier => modifier.ToSummary()).ToArray();
         var isStackable = Application.Inventory.ItemStackability.IsStackable(weapon);
         return new WeaponDetail(

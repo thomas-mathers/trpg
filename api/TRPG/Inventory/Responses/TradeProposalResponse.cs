@@ -1,6 +1,6 @@
-using TRPG.Contracts.Inventory.Responses;
+using TRPG.Inventory.Responses;
 
-namespace TRPG.Contracts.Trading.Responses;
+namespace TRPG.Inventory.Responses;
 
 public enum TradeProposalStatus
 {

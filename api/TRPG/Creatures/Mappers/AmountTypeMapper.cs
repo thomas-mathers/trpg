@@ -5,7 +5,7 @@ namespace TRPG.Creatures.Mappers;
 
 internal static class AmountTypeMapper
 {
-    public static ContractAmountType ToContract(this DataAmountType type) =>
+    public static ContractAmountType ToResponse(this DataAmountType type) =>
         type switch
         {
             DataAmountType.Flat => ContractAmountType.Flat,

@@ -1,5 +1,5 @@
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Creatures.Mappers;
 
@@ -7,8 +7,8 @@ internal static class ConsumableItemMapper
 {
     public static ConsumableItemDetail ToDetail(this Consumable consumable, bool isQuestItem)
     {
-        var equippedSlot = consumable.Ownership.EquippedSlot?.ToContract();
-        var rarity = consumable.Rarity.ToContract();
+        var equippedSlot = consumable.Ownership.EquippedSlot?.ToResponse();
+        var rarity = consumable.Rarity.ToResponse();
         var modifiers = consumable.Modifiers.Select(modifier => modifier.ToSummary()).ToArray();
         var isStackable = Application.Inventory.ItemStackability.IsStackable(consumable);
         return new ConsumableItemDetail(
@@ -23,7 +23,7 @@ internal static class ConsumableItemMapper
             consumable.GoldValue,
             modifiers,
             isStackable,
-            consumable.Resource.ToContract(),
+            consumable.Resource.ToResponse(),
             consumable.RestoreAmount,
             consumable.Duration
         )

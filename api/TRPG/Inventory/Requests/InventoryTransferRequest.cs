@@ -1,5 +1,5 @@
 using TRPG.Domain.Models;
 
-namespace TRPG.Contracts.Inventory.Requests;
+namespace TRPG.Inventory.Requests;
 
 public record InventoryTransferRequest(Guid FromId, Guid ToId, IReadOnlyList<ItemSelection> Items);

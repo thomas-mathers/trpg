@@ -1,6 +1,6 @@
 using TRPG.Application.Inventory.Queries;
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Creatures.Mappers;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Inventory.Mappers;
 

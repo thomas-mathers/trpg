@@ -1,11 +1,11 @@
-using ContractCombatSpeedType = TRPG.Contracts.Inventory.Responses.CombatSpeedType;
+using ContractCombatSpeedType = TRPG.Inventory.Responses.CombatSpeedType;
 using DataCombatSpeedType = TRPG.Domain.Models.CombatSpeedType;
 
 namespace TRPG.Creatures.Mappers;
 
 internal static class CombatSpeedTypeMapper
 {
-    public static ContractCombatSpeedType ToContract(this DataCombatSpeedType type) =>
+    public static ContractCombatSpeedType ToResponse(this DataCombatSpeedType type) =>
         type switch
         {
             DataCombatSpeedType.IncreasedAttackSpeed =>

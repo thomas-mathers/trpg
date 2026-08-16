@@ -26,10 +26,10 @@ public class ResponseEnumMappersTests
 {
     [Theory]
     [MemberData(nameof(GenderValues))]
-    public void ToContract_MapsGenderByName(DataGender value)
+    public void ToResponse_MapsGenderByName(DataGender value)
     {
         // Act
-        var result = value.ToContract();
+        var result = value.ToResponse();
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -37,10 +37,10 @@ public class ResponseEnumMappersTests
 
     [Theory]
     [MemberData(nameof(CreatureTypeValues))]
-    public void ToContract_MapsCreatureTypeByName(DataCreatureType value)
+    public void ToResponse_MapsCreatureTypeByName(DataCreatureType value)
     {
         // Act
-        var result = value.ToContract();
+        var result = value.ToResponse();
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -48,10 +48,10 @@ public class ResponseEnumMappersTests
 
     [Theory]
     [MemberData(nameof(ProfessionValues))]
-    public void ToContract_MapsProfessionByName(DataProfession value)
+    public void ToResponse_MapsProfessionByName(DataProfession value)
     {
         // Act
-        var result = value.ToContract();
+        var result = value.ToResponse();
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -59,10 +59,10 @@ public class ResponseEnumMappersTests
 
     [Theory]
     [MemberData(nameof(CreatureStateValues))]
-    public void ToContract_MapsCreatureStateByName(DataCreatureState value)
+    public void ToResponse_MapsCreatureStateByName(DataCreatureState value)
     {
         // Act
-        var result = value.ToContract();
+        var result = value.ToResponse();
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -70,10 +70,10 @@ public class ResponseEnumMappersTests
 
     [Theory]
     [MemberData(nameof(DistrictTypeValues))]
-    public void ToContract_MapsDistrictTypeByName(DataDistrictType value)
+    public void ToResponse_MapsDistrictTypeByName(DataDistrictType value)
     {
         // Act
-        var result = value.ToContract();
+        var result = value.ToResponse();
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -81,10 +81,10 @@ public class ResponseEnumMappersTests
 
     [Theory]
     [MemberData(nameof(BuildingTypeValues))]
-    public void ToContract_MapsBuildingTypeByName(DataBuildingType value)
+    public void ToResponse_MapsBuildingTypeByName(DataBuildingType value)
     {
         // Act
-        var result = value.ToContract();
+        var result = value.ToResponse();
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -125,10 +125,10 @@ public class ResponseEnumMappersTests
 
     [Theory]
     [MemberData(nameof(SkillValues))]
-    public void ToContract_MapsSkillByName(DataSkill value)
+    public void ToResponse_MapsSkillByName(DataSkill value)
     {
         // Act
-        var result = value.ToContract();
+        var result = value.ToResponse();
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -147,10 +147,10 @@ public class ResponseEnumMappersTests
 
     [Theory]
     [MemberData(nameof(ItemRarityValues))]
-    public void ToContract_MapsItemRarityByName(DataItemRarity value)
+    public void ToResponse_MapsItemRarityByName(DataItemRarity value)
     {
         // Act
-        var result = ItemRarityMapper.ToContract(value);
+        var result = ItemRarityMapper.ToResponse(value);
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());
@@ -158,10 +158,10 @@ public class ResponseEnumMappersTests
 
     [Theory]
     [MemberData(nameof(EquipmentSlotValues))]
-    public void ToContract_MapsEquipmentSlotByName(DataEquipmentSlot value)
+    public void ToResponse_MapsEquipmentSlotByName(DataEquipmentSlot value)
     {
         // Act
-        var result = EquipmentSlotMapper.ToContract(value);
+        var result = EquipmentSlotMapper.ToResponse(value);
 
         // Assert
         Assert.Equal(value.ToString(), result.ToString());

@@ -6,10 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Queries;
-using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
+using DataCreatureType = TRPG.Domain.Models.CreatureType;
 
 namespace TRPG.Tests.Endpoints;
 
@@ -86,7 +87,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
         var creature = Builders.MakeCreature(
             _worldId,
-            creatureType: CreatureType.Beast,
+            creatureType: DataCreatureType.Beast,
             locationId: _locationId
         );
         context.Creatures.Add(creature);

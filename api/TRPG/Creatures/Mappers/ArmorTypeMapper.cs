@@ -1,11 +1,11 @@
-using TRPG.Contracts.Inventory.Responses;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Responses;
 
 namespace TRPG.Creatures.Mappers;
 
 internal static class ArmorTypeMapper
 {
-    public static ItemType ToContract(this ArmorType type) =>
+    public static ItemType ToResponse(this ArmorType type) =>
         type switch
         {
             ArmorType.Helm => ItemType.Helm,

@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat;
-using TRPG.Contracts.GameSessions.Responses;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
+using DataCreatureType = TRPG.Domain.Models.CreatureType;
+using DataDistrictType = TRPG.Domain.Models.DistrictType;
 
 namespace TRPG.Tests.Hubs;
 
@@ -95,7 +97,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var creature = Builders.MakeCreature(
             _worldId,
             name: "Wraith",
-            creatureType: CreatureType.Beast,
+            creatureType: DataCreatureType.Beast,
             locationId: _locationId
         );
         context.Creatures.Add(creature);
@@ -194,8 +196,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
         await using var connection = fixture.CreateHubConnection(sessionId);
         var snapshotReceived =
-            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
-        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
+        connection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
             "SceneSnapshot",
             snapshot => snapshotReceived.TrySetResult(snapshot)
         );
@@ -232,8 +234,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
         var firstConnection = fixture.CreateHubConnection(sessionId);
         var firstSnapshotReceived =
-            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
-        firstConnection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
+        firstConnection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
             "SceneSnapshot",
             snapshot => firstSnapshotReceived.TrySetResult(snapshot)
         );
@@ -245,8 +247,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         await using var secondConnection = fixture.CreateHubConnection(sessionId);
         var secondSnapshotReceived =
-            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
-        secondConnection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
+        secondConnection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
             "SceneSnapshot",
             snapshot => secondSnapshotReceived.TrySetResult(snapshot)
         );
@@ -374,10 +376,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await SeedHostileCreature();
         var sessionId = await StartSession();
         var connection = fixture.CreateHubConnection(sessionId);
-        var snapshots = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        var snapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
         var initialSnapshotReceived =
-            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
-        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
+        connection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
             "SceneSnapshot",
             snapshot =>
             {
@@ -463,13 +465,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var combatUpdatedReceived =
             new TaskCompletionSource<TRPG.Application.Combat.Responses.CombatUpdatePayload>();
         var initialSnapshotReceived =
-            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
-        var sceneSnapshots = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+            new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
+        var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
         connection.On<TRPG.Application.Combat.Responses.CombatUpdatePayload>(
             "CombatUpdated",
             payload => combatUpdatedReceived.TrySetResult(payload)
         );
-        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+        connection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
             "SceneSnapshot",
             snapshot =>
             {
@@ -519,7 +521,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
         var destinationDistrict = Builders.MakeDistrict(
             _cityId,
-            DistrictType.Residential,
+            DataDistrictType.Residential,
             worldId: _worldId,
             name: "Market Row",
             id: destinationDistrictId,
@@ -540,10 +542,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         var sessionId = await StartSession();
         var connection = fixture.CreateHubConnection(sessionId);
-        var sceneSnapshots = new List<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
+        var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
         var initialSnapshotReceived =
-            new TaskCompletionSource<TRPG.Contracts.Scenes.Responses.SceneSnapshot>();
-        connection.On<TRPG.Contracts.Scenes.Responses.SceneSnapshot>(
+            new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
+        connection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
             "SceneSnapshot",
             snapshot =>
             {
@@ -684,7 +686,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var monster = Builders.MakeCreature(
             _worldId,
             name: "Ravenous Wolf",
-            creatureType: CreatureType.Beast,
+            creatureType: DataCreatureType.Beast,
             locationId: _locationId,
             level: 1
         );
