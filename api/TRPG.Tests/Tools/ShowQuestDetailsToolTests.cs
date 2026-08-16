@@ -74,10 +74,9 @@ public sealed class ShowQuestDetailsToolTests(DatabaseFixture db) : IAsyncLifeti
             Assert.Single(_events.EnqueuedEvents)
         );
         Assert.Equal(QuestDialogMode.Offer, gameEvent.Mode);
-        var payload = Assert.IsType<QuestDialogSnapshot>(gameEvent.Payload);
-        Assert.Equal(WorldId, payload.WorldId);
-        Assert.Equal(_quest.Id, payload.QuestId);
-        Assert.Equal(_quest.Name, payload.Name);
-        Assert.Equal(objective.Name, Assert.Single(payload.Objectives).Name);
+        Assert.Equal(WorldId, gameEvent.WorldId);
+        Assert.Equal(_quest.Id, gameEvent.Quest.QuestId);
+        Assert.Equal(_quest.Name, gameEvent.Quest.Name);
+        Assert.Equal(objective.Name, Assert.Single(gameEvent.Quest.Objectives).Name);
     }
 }

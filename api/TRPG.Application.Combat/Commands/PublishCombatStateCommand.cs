@@ -1,5 +1,4 @@
 using TRPG.Application.Combat.Events;
-using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
@@ -26,6 +25,6 @@ internal class PublishCombatStateCommandHandler(
             cancellationToken
         );
         if (combatants.Count > 0)
-            gameEvents.Enqueue(new CombatStartedEvent(combatants.ToCombatantStates()));
+            gameEvents.Enqueue(new CombatStartedEvent(combatants));
     }
 }

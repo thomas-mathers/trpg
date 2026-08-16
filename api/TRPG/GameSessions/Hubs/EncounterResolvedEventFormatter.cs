@@ -9,7 +9,7 @@ internal sealed class EncounterResolvedEventFormatter
 {
     protected override GameClientMessage Format(EncounterResolvedEvent gameEvent) =>
         new(
-            gameEvent.MethodName,
+            "EncounterResolved",
             new EncounterResolutionFact(
                 gameEvent.Fact.EncounterId,
                 (EncounterResolutionOutcome)gameEvent.Fact.Outcome,

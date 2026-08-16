@@ -385,9 +385,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
         var turnEvent = Assert.Single(gameEvents.EnqueuedEvents);
         var combatUpdated = Assert.IsType<CombatUpdatedEvent>(turnEvent);
-        var mappedHit = Assert.IsType<TRPG.Application.Combat.ClientEvents.CombatHitEvent>(
-            Assert.Single(combatUpdated.Events)
-        );
+        var mappedHit = Assert.IsType<Hit>(Assert.Single(combatUpdated.Events));
         Assert.Equal(_player.Id, mappedHit.AttackerId);
         Assert.Equal(_enemy.Id, mappedHit.TargetId);
         Assert.True(mappedHit.IsCritical);

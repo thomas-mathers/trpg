@@ -23,7 +23,7 @@ public record CombatResult(
     CombatOutcome Outcome,
     CombatResultPlayerState Player,
     IReadOnlyList<CombatResultEnemyState> Enemies,
-    IReadOnlyList<CombatEvent> Events
+    IReadOnlyList<CombatResolution> Events
 );
 
 internal static class CombatStateExtensions

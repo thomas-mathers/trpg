@@ -1,6 +1,5 @@
 using System.Transactions;
 using TRPG.Application.Combat.Events;
-using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
 using TRPG.Application.Creatures.Commands;
@@ -61,13 +60,7 @@ internal class ResolveCombatRoundCommandHandler(
             );
         }
 
-        gameEvents.Enqueue(
-            new CombatUpdatedEvent(
-                command.Combatants.ToCombatantStates(),
-                state.Events.ToCombatRoundEvents(),
-                state.Outcome
-            )
-        );
+        gameEvents.Enqueue(new CombatUpdatedEvent(command.Combatants, state.Events, state.Outcome));
 
         if (state.WeaponSwingCounts.Count > 0)
         {

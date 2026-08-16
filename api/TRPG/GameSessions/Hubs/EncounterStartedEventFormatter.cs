@@ -10,7 +10,7 @@ internal sealed class EncounterStartedEventFormatter
 {
     protected override GameClientMessage Format(EncounterStartedEvent gameEvent) =>
         new(
-            gameEvent.MethodName,
+            "EncounterStarted",
             new HostileEncounterState(
                 gameEvent.State.EncounterId,
                 gameEvent.State.FactionName,

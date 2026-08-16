@@ -2,12 +2,12 @@ using TRPG.Application.Combat.Events;
 
 namespace TRPG.Application.Combat;
 
-internal static class CombatNarration
+public static class CombatNarration
 {
-    public static IReadOnlyList<string> Describe(IReadOnlyList<CombatEvent> events) =>
+    public static IReadOnlyList<string> Describe(IReadOnlyList<CombatResolution> events) =>
         events.Select(Describe).OfType<string>().ToArray();
 
-    public static string? Describe(CombatEvent combatEvent) =>
+    public static string? Describe(CombatResolution combatEvent) =>
         combatEvent switch
         {
             Hit { IsCritical: true } hit =>

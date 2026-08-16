@@ -113,7 +113,7 @@ public class FightSimulator
         return snapshots.Select(s => s with { Outcome = finalOutcome }).ToArray();
     }
 
-    private static string DescribeEvent(CombatEvent combatEvent) =>
+    private static string DescribeEvent(CombatResolution combatEvent) =>
         combatEvent switch
         {
             Hit hit =>

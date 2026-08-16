@@ -1,5 +1,4 @@
 using TRPG.Application.Combat.Events;
-using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Handling;
@@ -68,7 +67,7 @@ internal class StartFightCommandHandler(
             }
         );
         await context.SaveChangesAsync(cancellationToken);
-        gameEvents.Enqueue(new CombatStartedEvent(combatants.ToCombatantStates()));
+        gameEvents.Enqueue(new CombatStartedEvent(combatants));
 
         return combatants;
     }

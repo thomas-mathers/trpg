@@ -2,9 +2,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using TRPG.Application.Combat.ClientEvents;
+using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Handling;
+using TRPG.Combat.Mappers;
+using TRPG.Combat.Responses;
+using ClientCombatantState = TRPG.Combat.ClientModels.CombatantState;
 
 namespace TRPG.Players.Endpoints;
 
@@ -17,29 +20,28 @@ internal static class PlayerEndpoints
             .WithName("GetPlayerFightAbilities");
     }
 
-    private static async Task<Results<NotFound, Ok<IReadOnlyCollection<CombatantState>>>> GetFight(
+    private static async Task<
+        Results<NotFound, Ok<IReadOnlyCollection<ClientCombatantState>>>
+    > GetFight(
         Guid playerId,
         [FromServices]
-            IQueryHandler<
-            GetActiveFightCombatantStatesQuery,
-            IReadOnlyCollection<CombatantState>
-        > getCombatantStates,
+            IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<Combatant>> getCombatants,
         CancellationToken cancellationToken
     )
     {
-        var combatantStates = await getCombatantStates.Handle(
-            new GetActiveFightCombatantStatesQuery { PlayerId = playerId },
+        var combatants = await getCombatants.Handle(
+            new GetActiveFightCombatantsQuery { PlayerId = playerId },
             cancellationToken
         );
-        if (combatantStates.Count == 0)
+        if (combatants.Count == 0)
         {
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(combatantStates);
+        return TypedResults.Ok(combatants.ToCombatantStates());
     }
 
-    private static async Task<Ok<AbilityAvailability[]>> GetAbilityAvailability(
+    private static async Task<Ok<AbilityAvailabilityResponse[]>> GetAbilityAvailability(
         Guid playerId,
         [FromServices]
             IQueryHandler<
@@ -54,6 +56,6 @@ internal static class PlayerEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(availability.ToArray());
+        return TypedResults.Ok(availability.Select(ability => ability.ToResponse()).ToArray());
     }
 }

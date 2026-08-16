@@ -117,7 +117,7 @@ internal static class Builders
         IReadOnlyList<CombatantState> combatants,
         int? goldLooted = null,
         IReadOnlyDictionary<WeaponType, int>? weaponSwingCounts = null,
-        IReadOnlyList<CombatEvent>? events = null
+        IReadOnlyList<CombatResolution>? events = null
     ) =>
         new(
             Outcome: outcome,
