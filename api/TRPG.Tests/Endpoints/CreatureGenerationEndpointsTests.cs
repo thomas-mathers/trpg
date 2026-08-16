@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Contracts;
-using TRPG.Contracts.Creatures.Responses;
+using TRPG.Creatures.Responses;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Endpoints;

@@ -1,4 +1,4 @@
-namespace TRPG.Contracts.Creatures.Requests;
+namespace TRPG.Data.Models;
 
 public enum AllocatableAttributeName
 {
@@ -9,5 +9,3 @@ public enum AllocatableAttributeName
     Mana,
     Intelligence,
 }
-
-public record AllocateAttributePointsRequest(AttributeAllocation Deltas);

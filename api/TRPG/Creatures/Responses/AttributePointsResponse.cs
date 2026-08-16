@@ -1,3 +1,3 @@
-namespace TRPG.Contracts.Creatures.Responses;
+namespace TRPG.Creatures.Responses;
 
 public record AttributePointsResponse(int UnallocatedPoints);

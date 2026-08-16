@@ -9,6 +9,7 @@ using TRPG.Application.Narration.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Creatures.Mappers;
 using TRPG.Data;
 using TRPG.Data.Models;
 using TRPG.Jobs.Responses;

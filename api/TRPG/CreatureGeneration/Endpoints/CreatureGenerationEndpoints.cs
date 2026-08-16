@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
-using TRPG.Contracts.Creatures.Responses;
+using TRPG.Creatures.Responses;
 
 namespace TRPG.CreatureGeneration.Endpoints;
 
