@@ -1,5 +1,3 @@
-using TRPG.Application.Combat;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Creatures.Commands;

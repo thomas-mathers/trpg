@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat.Queries;
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;

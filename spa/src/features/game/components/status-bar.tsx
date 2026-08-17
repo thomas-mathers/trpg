@@ -1,23 +1,30 @@
+import { HubConnectionState } from '@microsoft/signalr';
 import { Droplet, Heart, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import type { SceneSnapshot } from '@/api/client';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useScene } from '@/features/game/contexts/scene-context';
 import { formatLocation } from '@/features/game/scene-format';
-import type { ConnectionStatus } from '@/lib/game-event-bus';
 
 interface StatusBarProps {
   isInCombat?: boolean;
-  connectionStatus: ConnectionStatus;
+  connectionStatus: HubConnectionState;
   controls: ReactNode;
 }
 
-const connectionStatusStyles: Record<ConnectionStatus, { className: string; label: string }> = {
-  connected: { className: 'bg-green-500', label: 'Connected' },
-  reconnecting: { className: 'animate-pulse bg-amber-500', label: 'Reconnecting…' },
-  reconnected: { className: 'bg-green-500', label: 'Connected' },
-  disconnected: { className: 'bg-destructive', label: 'Connection lost' },
+const connectionStatusStyles: Record<HubConnectionState, { className: string; label: string }> = {
+  [HubConnectionState.Connected]: { className: 'bg-green-500', label: 'Connected' },
+  [HubConnectionState.Connecting]: {
+    className: 'animate-pulse bg-amber-500',
+    label: 'Connectingâ€¦',
+  },
+  [HubConnectionState.Reconnecting]: {
+    className: 'animate-pulse bg-amber-500',
+    label: 'Reconnectingâ€¦',
+  },
+  [HubConnectionState.Disconnecting]: { className: 'bg-destructive', label: 'Connection lost' },
+  [HubConnectionState.Disconnected]: { className: 'bg-destructive', label: 'Connection lost' },
 };
 
 export function StatusBar({ isInCombat = false, connectionStatus, controls }: StatusBarProps) {
@@ -82,7 +89,7 @@ function PlayerName({
 }: {
   name: string;
   level: number | string;
-  connectionStatus: ConnectionStatus;
+  connectionStatus: HubConnectionState;
 }) {
   const status = connectionStatusStyles[connectionStatus];
 
@@ -132,5 +139,5 @@ function ExperienceProgress({
 }
 
 function formatTime(scene: SceneSnapshot): string {
-  return `${scene.weekdayName}, ${scene.monthName} ${scene.day} — ${scene.hour}:00`;
+  return `${scene.weekdayName}, ${scene.monthName} ${scene.day} â€” ${scene.hour}:00`;
 }

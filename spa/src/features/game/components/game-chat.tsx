@@ -1,16 +1,21 @@
+import { HubConnectionState } from '@microsoft/signalr';
 import { useState } from 'react';
 
 import { CombatDialog } from '@/features/combat/components/combat-dialog';
 import { HostileEncounterDialog } from '@/features/encounters/components/hostile-encounter-dialog';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-encounter-state';
-import { useChatPanel } from '@/features/game/game-chat-context';
+import { useGameChat } from '@/features/game/hooks/use-game-chat';
+import { useChatHub, useGameHubConnection } from '@/features/game/hooks/use-game-hub-connection';
 import { useIsInCombat } from '@/features/game/hooks/use-is-in-combat';
 
 import { ChatHistory } from './chat-history';
 import { ChatInput } from './chat-input';
 
 export function GameChat() {
-  const { messages, isConnected, isStreaming, submitChatMessage } = useChatPanel();
+  const { messages, isStreaming, submitNarratedTurn } = useGameChat();
+  const chatHub = useChatHub();
+  const { connectionStatus } = useGameHubConnection();
+  const isConnected = connectionStatus === HubConnectionState.Connected;
   const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
   const [input, setInput] = useState('');
@@ -22,7 +27,7 @@ export function GameChat() {
     }
 
     setInput('');
-    submitChatMessage(text);
+    submitNarratedTurn(text, chatHub.sendChat(text));
   };
 
   return (

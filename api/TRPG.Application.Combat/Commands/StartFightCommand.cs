@@ -1,6 +1,5 @@
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Extensions;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Commands;

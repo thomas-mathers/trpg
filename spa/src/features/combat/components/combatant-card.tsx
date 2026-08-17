@@ -1,7 +1,7 @@
 import { Crown, Droplet, Heart, type LucideIcon, Skull, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 
-import type { CombatantState } from '@/api/client';
+import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.Responses';
 import { EffectBadge } from '@/features/combat/components/effect-badge';
 import type { CombatFlash } from '@/features/combat/hooks/use-combat';
 import { useStatDelta } from '@/features/combat/hooks/use-stat-delta';

@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import { byText } from 'testing-library-selector';
 import { describe, expect, it } from 'vitest';
 
-import type { SceneSnapshot } from '@/api/client';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { usePlayerId, useScene, useSessionId } from '@/features/game/contexts/scene-context';
 import { gameEventBus } from '@/lib/game-event-bus';
 

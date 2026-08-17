@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Combat;
-using TRPG.Combat.Requests;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Responses;
@@ -436,8 +434,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await StartFight(sessionId, enemy);
         var connection = fixture.CreateHubConnection(sessionId);
         var combatUpdatedReceived =
-            new TaskCompletionSource<TRPG.Combat.ClientModels.CombatUpdatePayload>();
-        connection.On<TRPG.Combat.ClientModels.CombatUpdatePayload>(
+            new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdatePayload>();
+        connection.On<TRPG.Combat.Responses.CombatUpdatePayload>(
             "CombatUpdated",
             payload => combatUpdatedReceived.TrySetResult(payload)
         );
@@ -452,7 +450,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
-        Assert.Equal(TRPG.Combat.ClientModels.CombatOutcome.Fled, updated.Outcome);
+        Assert.Equal(TRPG.Combat.Responses.CombatOutcome.Fled, updated.Outcome);
     }
 
     [Fact]
@@ -464,11 +462,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await StartFight(sessionId, enemy);
         var connection = fixture.CreateHubConnection(sessionId);
         var combatUpdatedReceived =
-            new TaskCompletionSource<TRPG.Combat.ClientModels.CombatUpdatePayload>();
+            new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdatePayload>();
         var initialSnapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
-        connection.On<TRPG.Combat.ClientModels.CombatUpdatePayload>(
+        connection.On<TRPG.Combat.Responses.CombatUpdatePayload>(
             "CombatUpdated",
             payload => combatUpdatedReceived.TrySetResult(payload)
         );
@@ -487,8 +485,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act
         await gameHub.InvokeAsync(
-            "ResolveCombatAction",
-            new UseAbilityCombatActionRequest(enemy.Id, "Strike"),
+            "ResolveUseAbilityCombatAction",
+            enemy.Id,
+            "Strike",
             TestContext.Current.CancellationToken
         );
 
@@ -588,8 +587,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HubException>(() =>
             gameHub.InvokeAsync(
-                "ResolveCombatAction",
-                new UseAbilityCombatActionRequest(Guid.NewGuid(), "Strike"),
+                "ResolveUseAbilityCombatAction",
+                Guid.NewGuid(),
+                "Strike",
                 TestContext.Current.CancellationToken
             )
         );
@@ -612,8 +612,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HubException>(() =>
             gameHub.InvokeAsync(
-                "ResolveCombatAction",
-                new UseAbilityCombatActionRequest(enemy.Id, "Nonexistent Move"),
+                "ResolveUseAbilityCombatAction",
+                enemy.Id,
+                "Nonexistent Move",
                 TestContext.Current.CancellationToken
             )
         );

@@ -2,7 +2,6 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Application.Creatures;
 using TRPG.Domain.Models;
 
 namespace TRPG.Balance;

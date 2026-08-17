@@ -1,28 +1,42 @@
 import {
   HubConnection,
   HubConnectionBuilder,
+  HubConnectionState,
   LogLevel,
   type IRetryPolicy,
-  type IStreamSubscriber,
-  type ISubscription,
 } from '@microsoft/signalr';
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
-import type { CombatantState, SceneSnapshot } from '@/api/client';
-import type { PlayerCombatAction } from '@/features/combat/combat-action';
-import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
+import { getHubProxyFactory, getReceiverRegister } from '@/api/signalr-client/TypedSignalR.Client';
 import type {
-  EncounterResolutionFact,
-  HostileEncounterState,
-  PlayerEncounterAction,
-} from '@/features/encounters/encounter';
-import {
-  gameEventBus,
-  type CharacterLevelUp,
-  type ConnectionStatus,
-  type QuestDialogRequested,
-  type SkillLevelUp,
-} from '@/lib/game-event-bus';
+  IChatHub,
+  IGameClient,
+} from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
+import { gameEventBus } from '@/lib/game-event-bus';
+
+export interface GameHubConnection {
+  connectionStatus: HubConnectionState;
+  connectionError: boolean;
+  chatHub: IChatHub | null;
+}
+
+export const GameHubConnectionContext = createContext<GameHubConnection | null>(null);
+
+export function useGameHubConnection(): GameHubConnection {
+  const context = useContext(GameHubConnectionContext);
+  if (!context) {
+    throw new Error('useGameHubConnection must be used within a GameHubConnectionContext provider');
+  }
+  return context;
+}
+
+export function useChatHub(): IChatHub {
+  const { chatHub } = useGameHubConnection();
+  if (!chatHub) {
+    throw new Error('useChatHub must be used after the hub connection has been established');
+  }
+  return chatHub;
+}
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string;
 
@@ -41,18 +55,16 @@ const reconnectPolicy: IRetryPolicy = {
   },
 };
 
-export function useGameHubConnection(sessionId: string | null) {
+export function useConnectToHub(sessionId: string): GameHubConnection {
   const hubConnection = useRef<HubConnection | null>(null);
+  const [chatHub, setChatHub] = useState<IChatHub | null>(null);
   const isIntentionalStop = useRef(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-  const [error, setError] = useState<boolean>(false);
+  const [connectionStatus, setConnectionStatus] = useState<HubConnectionState>(
+    HubConnectionState.Disconnected,
+  );
+  const [connectionError, setConnectionError] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!sessionId) {
-      return;
-    }
-
     isIntentionalStop.current = false;
 
     const connection = new HubConnectionBuilder()
@@ -64,180 +76,69 @@ export function useGameHubConnection(sessionId: string | null) {
     hubConnection.current = connection;
 
     connection.onreconnecting(() => {
-      setIsConnected(false);
-      setConnectionStatus('reconnecting');
+      setConnectionStatus(connection.state);
       gameEventBus.emit('ConnectionStatusChanged', 'reconnecting');
     });
     connection.onreconnected(() => {
-      setIsConnected(true);
-      setConnectionStatus('connected');
-      setError(false);
+      setConnectionStatus(connection.state);
+      setConnectionError(false);
       gameEventBus.emit('ConnectionStatusChanged', 'reconnected');
     });
     connection.onclose((e) => {
-      setIsConnected(false);
-      setConnectionStatus('disconnected');
+      setConnectionStatus(connection.state);
       if (!isIntentionalStop.current) {
         console.error('SignalR connection lost', e);
-        setError(true);
+        setConnectionError(true);
         gameEventBus.emit('ConnectionStatusChanged', 'disconnected');
       }
     });
 
-    connection.on('SceneSnapshot', (payload: SceneSnapshot) =>
-      gameEventBus.emit('SceneSnapshot', payload),
+    const gameClient: IGameClient = {
+      sceneSnapshot: async (snapshot) => gameEventBus.emit('SceneSnapshot', snapshot),
+      combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
+      combatUpdated: async (update) => gameEventBus.emit('CombatUpdated', update),
+      encounterStarted: async (encounter) => gameEventBus.emit('EncounterStarted', encounter),
+      encounterResolved: async (fact) => gameEventBus.emit('EncounterResolved', fact),
+      skillLevelUp: async (skillLevelUp) => gameEventBus.emit('SkillLevelUp', skillLevelUp),
+      characterLevelUp: async (characterLevelUp) =>
+        gameEventBus.emit('CharacterLevelUp', characterLevelUp),
+      questDialogRequested: async (questDialog) =>
+        gameEventBus.emit('QuestDialogRequested', questDialog),
+      questObjectiveCompleted: async (objective) =>
+        gameEventBus.emit('QuestObjectiveCompleted', objective),
+      questJournalUpdated: async () => gameEventBus.emit('QuestJournalUpdated'),
+    };
+    const receiverSubscription = getReceiverRegister('IGameClient').register(
+      connection,
+      gameClient,
     );
-    connection.on('CombatStarted', (payload: CombatantState[]) =>
-      gameEventBus.emit('CombatStarted', payload),
-    );
-    connection.on('CombatUpdated', (payload: CombatUpdatePayload) =>
-      gameEventBus.emit('CombatUpdated', payload),
-    );
-    connection.on('EncounterStarted', (payload: HostileEncounterState) =>
-      gameEventBus.emit('EncounterStarted', payload),
-    );
-    connection.on('EncounterResolved', (payload: EncounterResolutionFact) =>
-      gameEventBus.emit('EncounterResolved', payload),
-    );
-    connection.on('SkillLevelUp', (payload: SkillLevelUp) =>
-      gameEventBus.emit('SkillLevelUp', payload),
-    );
-    connection.on('CharacterLevelUp', (payload: CharacterLevelUp) =>
-      gameEventBus.emit('CharacterLevelUp', payload),
-    );
-    connection.on('QuestDialogRequested', (payload: QuestDialogRequested) =>
-      gameEventBus.emit('QuestDialogRequested', payload),
-    );
-    connection.on('QuestObjectiveCompleted', (payload) =>
-      gameEventBus.emit('QuestObjectiveCompleted', payload),
-    );
-    connection.on('QuestJournalUpdated', () => gameEventBus.emit('QuestJournalUpdated'));
 
     connection
       .start()
       .then(() => {
-        setIsConnected(true);
-        setConnectionStatus('connected');
-        setError(false);
+        setConnectionStatus(connection.state);
+        setConnectionError(false);
+        setChatHub(getHubProxyFactory('IChatHub').createHubProxy(connection));
       })
       .catch((e) => {
         console.error('Error connecting to game hub', e);
-        setConnectionStatus('disconnected');
-        setError(true);
+        setConnectionStatus(connection.state);
+        setConnectionError(true);
       });
 
     return () => {
+      receiverSubscription.dispose();
       isIntentionalStop.current = true;
       connection.stop();
-      setIsConnected(false);
-      setConnectionStatus('disconnected');
+      setConnectionStatus(HubConnectionState.Disconnected);
       hubConnection.current = null;
+      setChatHub(null);
     };
   }, [sessionId]);
 
-  const streamTokens = useCallback(
-    (
-      methodName: string,
-      onReceiveToken: (token: string) => void,
-      onComplete: (() => void) | undefined,
-      ...args: any[]
-    ) => {
-      const connection = hubConnection.current;
-
-      if (!connection || !isConnected) {
-        throw new Error(`Unable to stream ${methodName} while disconnected from the hub`);
-      }
-
-      let subscription: ISubscription<string> | null = null;
-
-      const subscriber: IStreamSubscriber<string> = {
-        complete() {
-          subscription?.dispose();
-          onComplete?.();
-        },
-        error(err: any) {
-          console.error(`Error receiving response from ${methodName}`, err);
-          setError(true);
-          subscription?.dispose();
-          onComplete?.();
-        },
-        next: onReceiveToken,
-      };
-
-      subscription = connection.stream(methodName, ...args).subscribe(subscriber);
-    },
-    [isConnected],
-  );
-
-  const streamOpening = useCallback(
-    (onReceiveToken: (token: string) => void, onComplete?: () => void) =>
-      streamTokens('ReceiveOpening', onReceiveToken, onComplete),
-    [streamTokens],
-  );
-
-  const streamChat = useCallback(
-    (message: string, onReceiveToken: (token: string) => void, onComplete?: () => void) =>
-      streamTokens('SendChat', onReceiveToken, onComplete, message),
-    [streamTokens],
-  );
-
-  const streamWait = useCallback(
-    (hours: number, onReceiveToken: (token: string) => void, onComplete?: () => void) =>
-      streamTokens('SendWait', onReceiveToken, onComplete, hours),
-    [streamTokens],
-  );
-
-  const streamFlee = useCallback(
-    (onReceiveToken: (token: string) => void, onComplete?: () => void) =>
-      streamTokens('SendFlee', onReceiveToken, onComplete),
-    [streamTokens],
-  );
-
-  const streamEncounterAction = useCallback(
-    (
-      action: PlayerEncounterAction,
-      onReceiveToken: (token: string) => void,
-      onComplete?: () => void,
-    ) => streamTokens('ResolveEncounterAction', onReceiveToken, onComplete, action),
-    [streamTokens],
-  );
-
-  const resolveCombatAction = useCallback(
-    (action: PlayerCombatAction) => {
-      const connection = hubConnection.current;
-      if (!connection || !isConnected) {
-        return Promise.reject(
-          new Error('Unable to resolve combat action while disconnected from the hub'),
-        );
-      }
-      return connection.invoke('ResolveCombatAction', action);
-    },
-    [isConnected],
-  );
-
-  const endSession = useCallback(async () => {
-    const connection = hubConnection.current;
-    if (!connection || !isConnected) {
-      return;
-    }
-
-    try {
-      await connection.invoke('EndSession');
-    } catch (e) {
-      console.error('Error ending session', e);
-    }
-  }, [isConnected]);
-
   return {
-    isConnected,
     connectionStatus,
-    error,
-    streamOpening,
-    streamChat,
-    streamWait,
-    streamFlee,
-    streamEncounterAction,
-    resolveCombatAction,
-    endSession,
+    connectionError,
+    chatHub,
   };
 }

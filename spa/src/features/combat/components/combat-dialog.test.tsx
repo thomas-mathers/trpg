@@ -1,26 +1,40 @@
+import { HubConnectionState } from '@microsoft/signalr';
 import { act, configure, screen, waitFor } from '@testing-library/react';
 import { byRole } from 'testing-library-selector';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type {
-  AbilitySummary,
-  CombatantState,
-  ConsumableSummary,
-  SceneSnapshot,
-} from '@/api/client';
+import type { AbilitySummary, ConsumableSummary } from '@/api/client';
 import {
   handleGetCreatureAbilities,
   handleGetCreatureConsumables,
   handleGetPlayerFightAbilities,
 } from '@/api/client/msw.gen';
-import { GameChatContext } from '@/features/game/game-chat-context';
-import type { GameChat } from '@/features/game/hooks/use-game-chat';
+import type { ActiveConditions, CombatantState } from '@/api/signalr-client/TRPG.Combat.Responses';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
+import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
+import {
+  GameHubConnectionContext,
+  type GameHubConnection,
+} from '@/features/game/hooks/use-game-hub-connection';
 import { SceneProvider } from '@/features/game/providers/scene-provider';
 import { gameEventBus } from '@/lib/game-event-bus';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 
 import { CombatDialog } from './combat-dialog';
+
+const noActiveConditions: ActiveConditions = {
+  blinded: 0,
+  bleeding: 0,
+  burning: 0,
+  disarmed: 0,
+  frozen: 0,
+  poisoned: 0,
+  silenced: 0,
+  snared: 0,
+  stunned: 0,
+};
 
 const player: CombatantState = {
   id: 'player-id',
@@ -34,7 +48,7 @@ const player: CombatantState = {
   maximumAp: 10,
   currentMp: 10,
   maximumMp: 10,
-  activeConditions: {},
+  activeConditions: noActiveConditions,
   activeDots: [],
   activeHots: [],
   activeBuffs: [],
@@ -67,17 +81,36 @@ function ability(name: string, category: AbilitySummary['category']): AbilitySum
   };
 }
 
+function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
+  return {
+    endSession: vi.fn(),
+    receiveOpening: vi.fn(),
+    sendChat: vi.fn(),
+    sendWait: vi.fn(),
+    sendFlee: vi.fn(),
+    resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
+    resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
+    resolveAttackEncounterAction: vi.fn(),
+    resolveEvadeEncounterAction: vi.fn(),
+    resolveRetreatEncounterAction: vi.fn(),
+    ...overrides,
+  } as IChatHub;
+}
+
 function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
   return {
     messages: [],
-    isConnected: true,
-    connectionStatus: 'connected',
     isStreaming: false,
-    submitChatMessage: vi.fn(),
-    submitEncounterAction: vi.fn(),
-    submitFlee: vi.fn(),
-    submitCombatAction: vi.fn().mockResolvedValue(undefined),
-    endSession: vi.fn(),
+    submitNarratedTurn: vi.fn(),
+    ...overrides,
+  };
+}
+
+function buildGameHubConnection(overrides: Partial<GameHubConnection> = {}): GameHubConnection {
+  return {
+    connectionStatus: HubConnectionState.Connected,
+    connectionError: false,
+    chatHub: buildChatHub(),
     ...overrides,
   };
 }
@@ -86,22 +119,28 @@ function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
 beforeAll(() => configure({ asyncUtilTimeout: 2000 }));
 afterAll(() => configure({ asyncUtilTimeout: 1000 }));
 
-function renderConsole(overrides: Partial<GameChat> = {}) {
-  const gameChat = buildGameChat(overrides);
+function renderConsole(
+  gameChatOverrides: Partial<GameChat> = {},
+  hubConnectionOverrides: Partial<GameHubConnection> = {},
+) {
+  const gameChat = buildGameChat(gameChatOverrides);
+  const hubConnection = buildGameHubConnection(hubConnectionOverrides);
   const result = renderWithProviders(
-    <GameChatContext.Provider value={gameChat}>
-      <SceneProvider sessionId="session-id">
-        <CombatDialog />
-      </SceneProvider>
-    </GameChatContext.Provider>,
+    <GameHubConnectionContext.Provider value={hubConnection}>
+      <GameChatContext.Provider value={gameChat}>
+        <SceneProvider sessionId="session-id">
+          <CombatDialog />
+        </SceneProvider>
+      </GameChatContext.Provider>
+    </GameHubConnectionContext.Provider>,
   );
 
   gameEventBus.emit('SceneSnapshot', { playerStatus: { id: 'player-id' } } as SceneSnapshot);
   gameEventBus.emit('CombatStarted', fight);
 
   return {
-    submitFlee: gameChat.submitFlee,
-    submitCombatAction: gameChat.submitCombatAction,
+    submitNarratedTurn: gameChat.submitNarratedTurn,
+    chatHub: hubConnection.chatHub!,
     ...result,
   };
 }
@@ -114,11 +153,12 @@ describe('CombatDialog', () => {
   });
 
   it('submits flee actions', async () => {
-    const { submitFlee, user } = renderConsole();
+    const { submitNarratedTurn, chatHub, user } = renderConsole();
 
     await user.click(await ui.flee.find());
 
-    expect(submitFlee).toHaveBeenCalledOnce();
+    expect(chatHub.sendFlee).toHaveBeenCalledOnce();
+    expect(submitNarratedTurn).toHaveBeenCalledOnce();
   });
 
   it('chooses an offensive ability after targeting an enemy', async () => {
@@ -126,17 +166,13 @@ describe('CombatDialog', () => {
       handleGetCreatureAbilities({ body: [ability('Power Strike', 'Offensive')] }),
       handleGetPlayerFightAbilities({ body: [] }),
     );
-    const { submitCombatAction, user } = renderConsole();
+    const { chatHub, user } = renderConsole();
 
     await user.click(await ui.attack.find());
     await user.click(await ui.ability('Power Strike').find());
     await user.click(await ui.target('Goblin').find());
 
-    expect(submitCombatAction).toHaveBeenCalledWith({
-      type: 'UseAbilityAction',
-      targetId: 'goblin-id',
-      abilityName: 'Power Strike',
-    });
+    expect(chatHub.resolveUseAbilityCombatAction).toHaveBeenCalledWith('goblin-id', 'Power Strike');
   });
 
   it('targets the player when choosing a support ability', async () => {
@@ -144,16 +180,12 @@ describe('CombatDialog', () => {
       handleGetCreatureAbilities({ body: [ability('First Aid', 'Support')] }),
       handleGetPlayerFightAbilities({ body: [] }),
     );
-    const { submitCombatAction, user } = renderConsole();
+    const { chatHub, user } = renderConsole();
 
     await user.click(await ui.defend.find());
     await user.click(await ui.ability('First Aid').find());
 
-    expect(submitCombatAction).toHaveBeenCalledWith({
-      type: 'UseAbilityAction',
-      targetId: 'player-id',
-      abilityName: 'First Aid',
-    });
+    expect(chatHub.resolveUseAbilityCombatAction).toHaveBeenCalledWith('player-id', 'First Aid');
   });
 
   it('submits the chosen item', async () => {
@@ -165,15 +197,12 @@ describe('CombatDialog', () => {
       restoreAmount: 25,
     };
     server.use(handleGetCreatureConsumables({ body: [potion] }));
-    const { submitCombatAction, user } = renderConsole();
+    const { chatHub, user } = renderConsole();
 
     await user.click(await ui.item.find());
     await user.click(await ui.consumable('Healing Potion').find());
 
-    expect(submitCombatAction).toHaveBeenCalledWith({
-      type: 'UseItemAction',
-      itemName: 'Healing Potion',
-    });
+    expect(chatHub.resolveUseItemCombatAction).toHaveBeenCalledWith('Healing Potion');
   });
 
   it('stays hidden while the combat-starting chat turn finishes', async () => {
@@ -192,13 +221,13 @@ describe('CombatDialog', () => {
     };
     server.use(handleGetCreatureConsumables({ body: [potion] }));
     let resolveAction: () => void = () => undefined;
-    const submitCombatAction = vi.fn(
+    const resolveUseItemCombatAction = vi.fn(
       () =>
         new Promise<void>((resolve) => {
           resolveAction = resolve;
         }),
     );
-    const { user } = renderConsole({ submitCombatAction });
+    const { user } = renderConsole({}, { chatHub: buildChatHub({ resolveUseItemCombatAction }) });
 
     await user.click(await ui.item.find());
     await user.click(await ui.consumable('Healing Potion').find());

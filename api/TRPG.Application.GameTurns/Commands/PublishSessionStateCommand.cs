@@ -6,9 +6,7 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns.Events;
-using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Commands;

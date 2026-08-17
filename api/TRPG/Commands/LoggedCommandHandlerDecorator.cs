@@ -24,7 +24,7 @@ internal sealed class LoggedCommandHandlerDecorator<TCommand>(
         }
         catch (Exception exception)
         {
-            logger.LogDebug(
+            logger.LogError(
                 exception,
                 "Failed {CommandType} after {ElapsedMilliseconds} ms",
                 typeof(TCommand).Name,
@@ -59,7 +59,7 @@ internal sealed class LoggedCommandHandlerDecorator<TCommand, TResult>(
         }
         catch (Exception exception)
         {
-            logger.LogDebug(
+            logger.LogError(
                 exception,
                 "Failed {CommandType} after {ElapsedMilliseconds} ms",
                 typeof(TCommand).Name,

@@ -6,7 +6,6 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Events;
-using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Tools;
 

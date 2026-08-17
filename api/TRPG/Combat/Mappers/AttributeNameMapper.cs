@@ -1,4 +1,4 @@
-using ContractAttributeName = TRPG.Combat.ClientModels.AttributeName;
+using ContractAttributeName = TRPG.Combat.Responses.AttributeName;
 using DataAttributeName = TRPG.Domain.Models.AttributeName;
 
 namespace TRPG.Combat.Mappers;

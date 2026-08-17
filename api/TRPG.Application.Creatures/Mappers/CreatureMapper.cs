@@ -1,4 +1,3 @@
-using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Domain.Models;
 

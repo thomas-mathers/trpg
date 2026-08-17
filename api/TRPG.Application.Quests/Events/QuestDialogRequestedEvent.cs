@@ -1,5 +1,4 @@
 using TRPG.Application.Common.Events;
-using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;
 
 namespace TRPG.Application.Quests.Events;

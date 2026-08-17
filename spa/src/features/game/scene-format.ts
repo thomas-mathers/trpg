@@ -1,4 +1,4 @@
-import type { SceneSnapshot } from '@/api/client';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 export function formatLocation(scene: SceneSnapshot): string {
   const levels = [scene.buildingName, scene.districtName, scene.cityName, scene.stateName].filter(

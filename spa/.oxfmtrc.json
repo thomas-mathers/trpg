@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "singleQuote": true,
-  "ignorePatterns": ["src/api/client/**", "src/components/ui/**"],
+  "ignorePatterns": ["src/api/client/**", "src/api/signalr-client/**", "src/components/ui/**"],
   "sortImports": true,
   "sortTailwindcss": true,
   "sortPackageJson": true

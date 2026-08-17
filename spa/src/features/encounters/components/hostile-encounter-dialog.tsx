@@ -1,21 +1,47 @@
 import { Footprints, ShieldAlert, Swords } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { encounterActionByName, type HostileEncounterState } from '@/features/encounters/encounter';
+import type { EncounterActionName, HostileEncounterState } from '@/features/encounters/encounter';
 import { useEncounterState } from '@/features/encounters/hooks/use-encounter-state';
-import { useEncounterActions } from '@/features/game/game-chat-context';
+import { useGameChat } from '@/features/game/hooks/use-game-chat';
+import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 
-const actionDetails: Record<string, { description: string; icon: typeof Swords }> = {
-  Attack: { description: 'Meet the threat head-on.', icon: Swords },
-  Evade: { description: 'Try to slip past unnoticed.', icon: Footprints },
-  Retreat: { description: 'Fall back the way you came.', icon: ShieldAlert },
-};
+const ACTION_NAMES: readonly EncounterActionName[] = ['Attack', 'Evade', 'Retreat'];
+
+function isEncounterActionName(name: string): name is EncounterActionName {
+  return (ACTION_NAMES as readonly string[]).includes(name);
+}
 
 export function HostileEncounterDialog() {
   const encounter = useEncounterState();
-  const { isStreaming, submitEncounterAction } = useEncounterActions();
+  const { isStreaming, submitNarratedTurn } = useGameChat();
+  const chatHub = useChatHub();
   const isRevealed = useDelayedReveal(!!encounter && !isStreaming);
+
+  const actionDetails: Record<
+    EncounterActionName,
+    { description: string; icon: typeof Swords; submit: (displayText: string) => void }
+  > = {
+    Attack: {
+      description: 'Meet the threat head-on.',
+      icon: Swords,
+      submit: (displayText) =>
+        submitNarratedTurn(displayText, chatHub.resolveAttackEncounterAction()),
+    },
+    Evade: {
+      description: 'Try to slip past unnoticed.',
+      icon: Footprints,
+      submit: (displayText) =>
+        submitNarratedTurn(displayText, chatHub.resolveEvadeEncounterAction()),
+    },
+    Retreat: {
+      description: 'Fall back the way you came.',
+      icon: ShieldAlert,
+      submit: (displayText) =>
+        submitNarratedTurn(displayText, chatHub.resolveRetreatEncounterAction()),
+    },
+  };
 
   if (!encounter || !isRevealed) {
     return null;
@@ -41,11 +67,10 @@ export function HostileEncounterDialog() {
           <EncounterMembers encounter={encounter} />
           <div className="grid gap-2 sm:grid-cols-3">
             {encounter.allowedActions.map((actionName) => {
-              const action = encounterActionByName[actionName];
-              const details = actionDetails[actionName];
-              if (!action || !details) {
+              if (!isEncounterActionName(actionName)) {
                 return null;
               }
+              const details = actionDetails[actionName];
 
               const Icon = details.icon;
               return (
@@ -53,7 +78,7 @@ export function HostileEncounterDialog() {
                   key={actionName}
                   type="button"
                   disabled={isStreaming}
-                  onClick={() => submitEncounterAction(action, actionName)}
+                  onClick={() => details.submit(actionName)}
                   className="border-border bg-card hover:bg-accent focus-visible:ring-ring flex min-h-24 flex-col items-start gap-2 rounded-lg border p-3 text-left shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Icon className="h-5 w-5 text-amber-500" />

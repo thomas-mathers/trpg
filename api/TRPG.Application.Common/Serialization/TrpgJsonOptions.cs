@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace TRPG.Application.Common.Serialization;
 
@@ -13,5 +14,6 @@ public static class TrpgJsonOptions
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             Converters = { new JsonStringEnumConverter() },
+            TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
         };
 }

@@ -13,14 +13,26 @@ using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
-using TRPG.Combat.Mappers;
-using TRPG.Combat.Requests;
 using TRPG.Domain.Models;
-using TRPG.Encounters.Mappers;
-using TRPG.Encounters.Requests;
 using TRPG.GameSessions.Commands;
+using TypedSignalR.Client;
 
 namespace TRPG.GameSessions.Hubs;
+
+[Hub]
+public interface IChatHub
+{
+    Task EndSession();
+    IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken);
+    Task ResolveUseAbilityCombatAction(Guid targetId, string abilityName);
+    Task ResolveUseItemCombatAction(string itemName);
+    IAsyncEnumerable<string> ResolveAttackEncounterAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolveEvadeEncounterAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolveRetreatEncounterAction(CancellationToken cancellationToken);
+}
 
 internal sealed class ChatHub(
     GameTurnRunner gameTurnRunner,
@@ -29,7 +41,7 @@ internal sealed class ChatHub(
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<EndGameSessionCommand> endGameSession,
     PendingSessionEndRegistry pendingSessionEnds
-) : Hub
+) : Hub<IGameClient>, IChatHub
 {
     private const string SessionKey = "Session";
 
@@ -100,18 +112,42 @@ internal sealed class ChatHub(
     public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
         gameTurnRunner.StreamFlee(Session, cancellationToken);
 
-    public IAsyncEnumerable<string> ResolveEncounterAction(
-        EncounterActionRequest action,
+    public IAsyncEnumerable<string> ResolveAttackEncounterAction(
         CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamEncounterAction(Session, action.ToAction(), cancellationToken);
-
-    public async Task ResolveCombatAction(CombatActionRequest action)
-    {
-        await gameTurnRunner.ResolveCombatAction(
+    ) =>
+        gameTurnRunner.StreamEncounterAction(
             Session,
-            action.ToAction(),
-            Context.ConnectionAborted
+            new AttackEncounterAction(),
+            cancellationToken
         );
+
+    public IAsyncEnumerable<string> ResolveEvadeEncounterAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamEncounterAction(
+            Session,
+            new EvadeEncounterAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolveRetreatEncounterAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamEncounterAction(
+            Session,
+            new RetreatEncounterAction(),
+            cancellationToken
+        );
+
+    public Task ResolveUseAbilityCombatAction(Guid targetId, string abilityName) =>
+        ResolveCombatAction(new UseAbilityAction(targetId, abilityName));
+
+    public Task ResolveUseItemCombatAction(string itemName) =>
+        ResolveCombatAction(new UseItemAction(itemName));
+
+    private async Task ResolveCombatAction(PlayerCombatAction action)
+    {
+        await gameTurnRunner.ResolveCombatAction(Session, action, Context.ConnectionAborted);
         await eventDispatcher.FlushAsync(Session.WorldId, Context.ConnectionAborted);
     }
 

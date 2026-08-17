@@ -1,5 +1,3 @@
-using TRPG.Domain.Models;
-
 namespace TRPG.Creatures.Requests;
 
 public record AttributeAllocation

@@ -3,10 +3,8 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Encounters;
 using TRPG.Data;
 using TRPG.Domain.Models;
-using TRPG.Encounters.Requests;
 using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
@@ -106,8 +104,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         // Act
         var narration = await Drain(
             gameHub.StreamAsync<string>(
-                "ResolveEncounterAction",
-                new AttackEncounterActionRequest(),
+                "ResolveAttackEncounterAction",
                 TestContext.Current.CancellationToken
             )
         );
@@ -188,8 +185,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         // Act
         var narration = await Drain(
             gameHub.StreamAsync<string>(
-                "ResolveEncounterAction",
-                new AttackEncounterActionRequest(),
+                "ResolveAttackEncounterAction",
                 TestContext.Current.CancellationToken
             )
         );
@@ -222,8 +218,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         // Act — the evade roll is random, so this asserts the invariants that hold either way
         await Drain(
             gameHub.StreamAsync<string>(
-                "ResolveEncounterAction",
-                new EvadeEncounterActionRequest(),
+                "ResolveEvadeEncounterAction",
                 TestContext.Current.CancellationToken
             )
         );
@@ -276,8 +271,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         // Act — the retreat roll is random, so this asserts the invariant that holds either way
         await Drain(
             gameHub.StreamAsync<string>(
-                "ResolveEncounterAction",
-                new RetreatEncounterActionRequest(),
+                "ResolveRetreatEncounterAction",
                 TestContext.Current.CancellationToken
             )
         );

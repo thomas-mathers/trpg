@@ -2,13 +2,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Queries;
 using TRPG.Combat.Mappers;
 using TRPG.Combat.Responses;
-using ClientCombatantState = TRPG.Combat.ClientModels.CombatantState;
+using ClientCombatantState = TRPG.Combat.Responses.CombatantState;
 
 namespace TRPG.Players.Endpoints;
 

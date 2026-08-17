@@ -4,7 +4,7 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
-export type AbilityAvailability = {
+export type AbilityAvailabilityResponse = {
     name: string;
     isUsable: boolean;
     reason: null | string;
@@ -1045,7 +1045,7 @@ export type GetPlayerFightAbilitiesResponses = {
     /**
      * OK
      */
-    200: Array<AbilityAvailability>;
+    200: Array<AbilityAvailabilityResponse>;
 };
 
 export type GetPlayerFightAbilitiesResponse = GetPlayerFightAbilitiesResponses[keyof GetPlayerFightAbilitiesResponses];

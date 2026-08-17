@@ -3,12 +3,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
-import type {
-  AbilityCategory,
-  AbilitySummary,
-  CombatantState,
-  ConsumableSummary,
-} from '@/api/client';
+import type { AbilityCategory, AbilitySummary, ConsumableSummary } from '@/api/client';
+import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.Responses';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -130,7 +126,8 @@ export function CombatDialog() {
     combatFlashes,
     isRevealed,
     disabled,
-    submitCombatAction,
+    submitUseAbilityCombatAction,
+    submitUseItemCombatAction,
     submitFlee,
   } = useCombat();
   const playerId = usePlayerId();
@@ -210,20 +207,16 @@ export function CombatDialog() {
 
   function chooseTarget(targetId: string) {
     if (!pendingAbility) return;
-    submitCombatAction({ type: 'UseAbilityAction', targetId, abilityName: pendingAbility.name });
+    submitUseAbilityCombatAction(targetId, pendingAbility.name);
     setPendingAbility(null);
   }
 
   function chooseSupportAbility(ability: AbilitySummary) {
-    submitCombatAction({
-      type: 'UseAbilityAction',
-      targetId: player!.id,
-      abilityName: ability.name,
-    });
+    submitUseAbilityCombatAction(player!.id, ability.name);
   }
 
   function chooseItem(item: ConsumableSummary) {
-    submitCombatAction({ type: 'UseItemAction', itemName: item.name });
+    submitUseItemCombatAction(item.name);
   }
 
   function renderMode() {

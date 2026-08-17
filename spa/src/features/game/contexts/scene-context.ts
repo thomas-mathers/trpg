@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import type { SceneSnapshot } from '@/api/client';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 export const SessionContext = createContext<string | null>(null);
 export const PlayerIdContext = createContext<string | undefined>(undefined);

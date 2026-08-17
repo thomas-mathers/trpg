@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Combat.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Responses;
@@ -292,7 +291,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var combatants = await response.Content.ReadFromJsonAsync<
-            IReadOnlyCollection<TRPG.Combat.ClientModels.CombatantState>
+            IReadOnlyCollection<TRPG.Combat.Responses.CombatantState>
         >(TestContext.Current.CancellationToken);
         Assert.NotNull(combatants);
         Assert.Contains(combatants, c => c.IsPlayer);
