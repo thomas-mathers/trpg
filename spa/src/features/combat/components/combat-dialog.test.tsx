@@ -9,10 +9,7 @@ import {
   handleGetCreatureConsumables,
   handleGetPlayerFightAbilities,
 } from '@/api/client/msw.gen';
-import type {
-  ActiveConditions,
-  CombatantState,
-} from '@/api/signalr-client/TRPG.Combat.ClientModels';
+import type { ActiveConditions, CombatantState } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';

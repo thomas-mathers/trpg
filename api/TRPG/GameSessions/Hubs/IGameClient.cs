@@ -1,8 +1,8 @@
-using TRPG.Combat.ClientModels;
-using TRPG.Creatures.ClientModels;
+using TRPG.Combat.Responses;
+using TRPG.Creatures.Responses;
 using TRPG.Encounters.Responses;
 using TRPG.GameSessions.Responses;
-using TRPG.Quests.ClientModels;
+using TRPG.Quests.Responses;
 using TypedSignalR.Client;
 
 namespace TRPG.GameSessions.Hubs;

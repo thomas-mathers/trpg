@@ -5,10 +5,10 @@
 import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
 import type { SceneSnapshot } from '../TRPG.GameSessions.Responses';
-import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.ClientModels';
+import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, EncounterResolutionFact } from '../TRPG.Encounters.Responses';
-import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.ClientModels';
-import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.ClientModels';
+import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
+import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.Responses';
 
 
 // components

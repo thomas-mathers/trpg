@@ -1,4 +1,4 @@
-namespace TRPG.Combat.ClientModels;
+namespace TRPG.Combat.Responses;
 
 [Tapper.TranspilationSource]
 public record CombatUpdatePayload(

@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type ReactNod
 import { toast } from 'sonner';
 
 import type { AbilityCategory, AbilitySummary, ConsumableSummary } from '@/api/client';
-import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.ClientModels';
+import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.Responses';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TooltipProvider } from '@/components/ui/tooltip';

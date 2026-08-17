@@ -8,7 +8,7 @@ import type {
   CombatResourceState,
   CombatantState,
   CombatUpdatePayload,
-} from '@/api/signalr-client/TRPG.Combat.ClientModels';
+} from '@/api/signalr-client/TRPG.Combat.Responses';
 import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
 import { GameToast } from '@/features/game/components/game-toast';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';

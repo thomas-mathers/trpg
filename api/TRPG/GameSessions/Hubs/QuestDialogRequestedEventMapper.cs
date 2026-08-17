@@ -1,15 +1,15 @@
 using TRPG.Application.Quests.Events;
-using TRPG.Quests.ClientModels;
+using TRPG.Quests.Responses;
 using ApplicationQuestDialogMode = TRPG.Application.Quests.Events.QuestDialogMode;
-using ClientQuestDialogMode = TRPG.Quests.ClientModels.QuestDialogMode;
+using ClientQuestDialogMode = TRPG.Quests.Responses.QuestDialogMode;
 
 namespace TRPG.GameSessions.Hubs;
 
-internal sealed class QuestDialogRequestedEventFormatter
-    : GameClientEventFormatter<QuestDialogRequestedEvent>
+internal sealed class QuestDialogRequestedEventMapper
+    : GameClientEventMapper<QuestDialogRequestedEvent>
 {
-    protected override Task Dispatch(IGameClient client, QuestDialogRequestedEvent gameEvent) =>
-        client.QuestDialogRequested(
+    protected override IGameClientCall Map(QuestDialogRequestedEvent gameEvent) =>
+        new GameClientCall<QuestDialogRequested>(
             new QuestDialogRequested(
                 gameEvent.WorldId,
                 gameEvent.Quest.QuestId,
@@ -29,6 +29,7 @@ internal sealed class QuestDialogRequestedEventFormatter
                     ApplicationQuestDialogMode.TurnIn => ClientQuestDialogMode.TurnIn,
                     _ => throw new ArgumentOutOfRangeException(nameof(gameEvent)),
                 }
-            )
+            ),
+            static (client, arguments) => client.QuestDialogRequested(arguments)
         );
 }

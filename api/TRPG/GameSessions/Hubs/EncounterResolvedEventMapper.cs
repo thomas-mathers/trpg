@@ -3,17 +3,17 @@ using TRPG.Encounters.Responses;
 
 namespace TRPG.GameSessions.Hubs;
 
-internal sealed class EncounterResolvedEventFormatter
-    : GameClientEventFormatter<EncounterResolvedEvent>
+internal sealed class EncounterResolvedEventMapper : GameClientEventMapper<EncounterResolvedEvent>
 {
-    protected override Task Dispatch(IGameClient client, EncounterResolvedEvent gameEvent) =>
-        client.EncounterResolved(
+    protected override IGameClientCall Map(EncounterResolvedEvent gameEvent) =>
+        new GameClientCall<EncounterResolutionFact>(
             new EncounterResolutionFact(
                 gameEvent.Fact.EncounterId,
                 (EncounterResolutionOutcome)gameEvent.Fact.Outcome,
                 gameEvent.Fact.FactionName,
                 gameEvent.Fact.LocationName,
                 gameEvent.Fact.MemberNames
-            )
+            ),
+            static (client, arguments) => client.EncounterResolved(arguments)
         );
 }

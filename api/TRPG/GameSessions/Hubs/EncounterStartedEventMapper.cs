@@ -4,11 +4,10 @@ using ContractCreatureType = TRPG.GameSessions.Responses.CreatureType;
 
 namespace TRPG.GameSessions.Hubs;
 
-internal sealed class EncounterStartedEventFormatter
-    : GameClientEventFormatter<EncounterStartedEvent>
+internal sealed class EncounterStartedEventMapper : GameClientEventMapper<EncounterStartedEvent>
 {
-    protected override Task Dispatch(IGameClient client, EncounterStartedEvent gameEvent) =>
-        client.EncounterStarted(
+    protected override IGameClientCall Map(EncounterStartedEvent gameEvent) =>
+        new GameClientCall<HostileEncounterState>(
             new HostileEncounterState(
                 gameEvent.State.EncounterId,
                 gameEvent.State.FactionName,
@@ -21,6 +20,7 @@ internal sealed class EncounterStartedEventFormatter
                     ))
                     .ToArray(),
                 gameEvent.State.AllowedActions
-            )
+            ),
+            static (client, arguments) => client.EncounterStarted(arguments)
         );
 }

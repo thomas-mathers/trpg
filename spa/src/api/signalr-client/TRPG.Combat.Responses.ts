@@ -2,7 +2,7 @@
 /* eslint-disable */
 /* tslint:disable */
 
-/** Transpiled from TRPG.Combat.ClientModels.ActiveConditions */
+/** Transpiled from TRPG.Combat.Responses.ActiveConditions */
 export type ActiveConditions = {
     /** Transpiled from int */
     blinded: number;
@@ -24,12 +24,12 @@ export type ActiveConditions = {
     stunned: number;
 }
 
-/** Transpiled from TRPG.Combat.ClientModels.CombatActionOutcome */
+/** Transpiled from TRPG.Combat.Responses.CombatActionOutcome */
 export type CombatActionOutcome = "Hit" | "Miss" | "Block";
 
-/** Transpiled from TRPG.Combat.ClientModels.CombatActionResult */
+/** Transpiled from TRPG.Combat.Responses.CombatActionResult */
 export type CombatActionResult = {
-    /** Transpiled from TRPG.Combat.ClientModels.CombatActionOutcome */
+    /** Transpiled from TRPG.Combat.Responses.CombatActionOutcome */
     outcome: CombatActionOutcome;
     /** Transpiled from System.Guid */
     attackerId: string;
@@ -43,7 +43,7 @@ export type CombatActionResult = {
     targetName: string;
     /** Transpiled from int */
     damage?: number;
-    /** Transpiled from TRPG.Combat.ClientModels.DamageType */
+    /** Transpiled from TRPG.Combat.Responses.DamageType */
     damageType?: DamageType;
     /** Transpiled from bool */
     isCritical?: boolean;
@@ -53,28 +53,28 @@ export type CombatActionResult = {
     targetRemainingHp?: number;
     /** Transpiled from int */
     targetMaximumHp?: number;
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.ClientModels.ConditionType>? */
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.ConditionType>? */
     appliedConditions?: ConditionType[];
     /** Transpiled from string */
     narration: string;
 }
 
-/** Transpiled from TRPG.Combat.ClientModels.DamageType */
+/** Transpiled from TRPG.Combat.Responses.DamageType */
 export type DamageType = "Physical" | "Fire" | "Ice" | "Lightning" | "Poison" | "Magic";
 
-/** Transpiled from TRPG.Combat.ClientModels.AttributeName */
+/** Transpiled from TRPG.Combat.Responses.AttributeName */
 export type AttributeName = "MaximumHp" | "MaximumAp" | "MaximumMp" | "Strength" | "Defense" | "Dexterity" | "Endurance" | "Stamina" | "Mana" | "Intelligence" | "PhysicalResistance" | "FireResistance" | "IceResistance" | "LightningResistance" | "PoisonResistance" | "MagicResistance" | "MovementSpeed";
 
-/** Transpiled from TRPG.Combat.ClientModels.AmountType */
+/** Transpiled from TRPG.Combat.Responses.AmountType */
 export type AmountType = "Flat" | "Percent";
 
-/** Transpiled from TRPG.Combat.ClientModels.ConditionType */
+/** Transpiled from TRPG.Combat.Responses.ConditionType */
 export type ConditionType = "Blinded" | "Bleeding" | "Burning" | "Disarmed" | "Frozen" | "Poisoned" | "Silenced" | "Snared" | "Stunned";
 
-/** Transpiled from TRPG.Combat.ClientModels.CombatOutcome */
+/** Transpiled from TRPG.Combat.Responses.CombatOutcome */
 export type CombatOutcome = "Ongoing" | "Victory" | "Defeat" | "Fled";
 
-/** Transpiled from TRPG.Combat.ClientModels.CombatantState */
+/** Transpiled from TRPG.Combat.Responses.CombatantState */
 export type CombatantState = {
     /** Transpiled from System.Guid */
     id: string;
@@ -98,29 +98,29 @@ export type CombatantState = {
     currentMp: number;
     /** Transpiled from int */
     maximumMp: number;
-    /** Transpiled from TRPG.Combat.ClientModels.ActiveConditions */
+    /** Transpiled from TRPG.Combat.Responses.ActiveConditions */
     activeConditions: ActiveConditions;
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.ClientModels.ActiveDot> */
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.ActiveDot> */
     activeDots: ActiveDot[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.ClientModels.ActiveHot> */
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.ActiveHot> */
     activeHots: ActiveHot[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.ClientModels.ActiveBuff> */
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.ActiveBuff> */
     activeBuffs: ActiveBuff[];
 }
 
-/** Transpiled from TRPG.Combat.ClientModels.ActiveDot */
+/** Transpiled from TRPG.Combat.Responses.ActiveDot */
 export type ActiveDot = {
     /** Transpiled from string */
     abilityName: string;
     /** Transpiled from int */
     amount: number;
-    /** Transpiled from TRPG.Combat.ClientModels.DamageType */
+    /** Transpiled from TRPG.Combat.Responses.DamageType */
     damageType: DamageType;
     /** Transpiled from int */
     remainingTurns: number;
 }
 
-/** Transpiled from TRPG.Combat.ClientModels.ActiveHot */
+/** Transpiled from TRPG.Combat.Responses.ActiveHot */
 export type ActiveHot = {
     /** Transpiled from string */
     abilityName: string;
@@ -130,21 +130,21 @@ export type ActiveHot = {
     remainingTurns: number;
 }
 
-/** Transpiled from TRPG.Combat.ClientModels.ActiveBuff */
+/** Transpiled from TRPG.Combat.Responses.ActiveBuff */
 export type ActiveBuff = {
     /** Transpiled from string */
     abilityName: string;
-    /** Transpiled from TRPG.Combat.ClientModels.AttributeName */
+    /** Transpiled from TRPG.Combat.Responses.AttributeName */
     attribute: AttributeName;
     /** Transpiled from float */
     amount: number;
-    /** Transpiled from TRPG.Combat.ClientModels.AmountType */
+    /** Transpiled from TRPG.Combat.Responses.AmountType */
     amountType: AmountType;
     /** Transpiled from int */
     remainingTurns: number;
 }
 
-/** Transpiled from TRPG.Combat.ClientModels.CombatRegeneration */
+/** Transpiled from TRPG.Combat.Responses.CombatRegeneration */
 export type CombatRegeneration = {
     /** Transpiled from System.Guid */
     combatantId: string;
@@ -162,7 +162,7 @@ export type CombatRegeneration = {
     maximumMp: number;
 }
 
-/** Transpiled from TRPG.Combat.ClientModels.CombatResourceState */
+/** Transpiled from TRPG.Combat.Responses.CombatResourceState */
 export type CombatResourceState = {
     /** Transpiled from System.Guid */
     combatantId: string;
@@ -176,17 +176,17 @@ export type CombatResourceState = {
     maximumMp: number;
 }
 
-/** Transpiled from TRPG.Combat.ClientModels.CombatUpdatePayload */
+/** Transpiled from TRPG.Combat.Responses.CombatUpdatePayload */
 export type CombatUpdatePayload = {
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.ClientModels.CombatantState> */
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.CombatantState> */
     combatants: CombatantState[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.ClientModels.CombatActionResult> */
+    /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.Responses.CombatActionResult> */
     actions: CombatActionResult[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.ClientModels.CombatRegeneration> */
+    /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.Responses.CombatRegeneration> */
     regenerations: CombatRegeneration[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.ClientModels.CombatResourceState> */
+    /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.Responses.CombatResourceState> */
     resourceStates: CombatResourceState[];
-    /** Transpiled from TRPG.Combat.ClientModels.CombatOutcome */
+    /** Transpiled from TRPG.Combat.Responses.CombatOutcome */
     outcome: CombatOutcome;
 }
 

@@ -2,10 +2,10 @@
 /* eslint-disable */
 /* tslint:disable */
 
-/** Transpiled from TRPG.Quests.ClientModels.QuestDialogMode */
+/** Transpiled from TRPG.Quests.Responses.QuestDialogMode */
 export type QuestDialogMode = "Offer" | "TurnIn";
 
-/** Transpiled from TRPG.Quests.ClientModels.QuestDialogObjective */
+/** Transpiled from TRPG.Quests.Responses.QuestDialogObjective */
 export type QuestDialogObjective = {
     /** Transpiled from string */
     name: string;
@@ -15,7 +15,7 @@ export type QuestDialogObjective = {
     requiredAmount: number;
 }
 
-/** Transpiled from TRPG.Quests.ClientModels.QuestDialogRequested */
+/** Transpiled from TRPG.Quests.Responses.QuestDialogRequested */
 export type QuestDialogRequested = {
     /** Transpiled from System.Guid */
     worldId: string;
@@ -27,13 +27,13 @@ export type QuestDialogRequested = {
     description: string;
     /** Transpiled from int */
     goldReward: number;
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Quests.ClientModels.QuestDialogObjective> */
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Quests.Responses.QuestDialogObjective> */
     objectives: QuestDialogObjective[];
-    /** Transpiled from TRPG.Quests.ClientModels.QuestDialogMode */
+    /** Transpiled from TRPG.Quests.Responses.QuestDialogMode */
     mode: QuestDialogMode;
 }
 
-/** Transpiled from TRPG.Quests.ClientModels.QuestObjectiveCompleted */
+/** Transpiled from TRPG.Quests.Responses.QuestObjectiveCompleted */
 export type QuestObjectiveCompleted = {
     /** Transpiled from string */
     objectiveName: string;

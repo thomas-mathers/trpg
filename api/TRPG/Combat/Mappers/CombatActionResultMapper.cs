@@ -1,6 +1,6 @@
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
-using TRPG.Combat.ClientModels;
+using TRPG.Combat.Responses;
 
 namespace TRPG.Combat.Mappers;
 

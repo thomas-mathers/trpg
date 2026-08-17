@@ -1,6 +1,6 @@
 using Tapper;
 
-namespace TRPG.Combat.ClientModels;
+namespace TRPG.Combat.Responses;
 
 [TranspilationSource]
 public enum CombatActionOutcome

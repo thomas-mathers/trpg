@@ -1,5 +1,5 @@
 using AbilitiesConditionType = TRPG.Application.Abilities.ConditionType;
-using ContractConditionType = TRPG.Combat.ClientModels.ConditionType;
+using ContractConditionType = TRPG.Combat.Responses.ConditionType;
 
 namespace TRPG.Combat.Mappers;
 

@@ -196,7 +196,7 @@ internal static class ServiceCollectionExtensions
             .Scan(scan =>
                 scan.FromAssemblyOf<GameClientEventDispatcher>()
                     .AddClasses(
-                        classes => classes.AssignableTo<IGameClientEventFormatter>(),
+                        classes => classes.AssignableTo<IGameClientEventMapper>(),
                         publicOnly: false
                     )
                     .AsImplementedInterfaces()

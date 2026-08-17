@@ -1,11 +1,8 @@
 import type {
   CombatantState,
   CombatUpdatePayload,
-} from '@/api/signalr-client/TRPG.Combat.ClientModels';
-import type {
-  CharacterLevelUp,
-  SkillLevelUp,
-} from '@/api/signalr-client/TRPG.Creatures.ClientModels';
+} from '@/api/signalr-client/TRPG.Combat.Responses';
+import type { CharacterLevelUp, SkillLevelUp } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type {
   EncounterResolutionFact,
   HostileEncounterState,
@@ -14,7 +11,7 @@ import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Respo
 import type {
   QuestDialogRequested,
   QuestObjectiveCompleted,
-} from '@/api/signalr-client/TRPG.Quests.ClientModels';
+} from '@/api/signalr-client/TRPG.Quests.Responses';
 import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'reconnected' | 'disconnected';

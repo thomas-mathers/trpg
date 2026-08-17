@@ -21,7 +21,7 @@ import type {
   CombatActionResult,
   CombatantState,
   DamageType,
-} from '@/api/signalr-client/TRPG.Combat.ClientModels';
+} from '@/api/signalr-client/TRPG.Combat.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

@@ -3,13 +3,13 @@
 /* tslint:disable */
 import type { Skill } from './TRPG.Abilities.Responses';
 
-/** Transpiled from TRPG.Creatures.ClientModels.CharacterLevelUp */
+/** Transpiled from TRPG.Creatures.Responses.CharacterLevelUp */
 export type CharacterLevelUp = {
     /** Transpiled from int */
     level: number;
 }
 
-/** Transpiled from TRPG.Creatures.ClientModels.SkillLevelUp */
+/** Transpiled from TRPG.Creatures.Responses.SkillLevelUp */
 export type SkillLevelUp = {
     /** Transpiled from TRPG.Abilities.Responses.Skill */
     skill: Skill;

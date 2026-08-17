@@ -2,7 +2,7 @@ using System.ComponentModel;
 using Tapper;
 using TypedSignalR.Client;
 
-namespace TRPG.Combat.ClientModels;
+namespace TRPG.Combat.Responses;
 
 [TranspilationSource]
 public enum DamageType

@@ -2,7 +2,7 @@ using Tapper;
 using TRPG.Abilities.Responses;
 using TypedSignalR.Client;
 
-namespace TRPG.Creatures.ClientModels;
+namespace TRPG.Creatures.Responses;
 
 [TranspilationSource]
 public record SkillLevelUp(

@@ -1,4 +1,4 @@
-namespace TRPG.Quests.ClientModels;
+namespace TRPG.Quests.Responses;
 
 [Tapper.TranspilationSource]
 public enum QuestDialogMode
