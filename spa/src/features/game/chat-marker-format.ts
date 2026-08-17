@@ -1,4 +1,4 @@
-import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
+import type { TerminalCombatOutcome } from '@/features/combat/terminal-combat-outcome';
 
 export const OUTCOME_MARKER: Record<TerminalCombatOutcome, string> = {
   Victory: 'Victory!',

@@ -9,7 +9,7 @@ import type {
   CombatantState,
   CombatUpdatePayload,
 } from '@/api/signalr-client/TRPG.Combat.Responses';
-import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
+import type { TerminalCombatOutcome } from '@/features/combat/terminal-combat-outcome';
 import { GameToast } from '@/features/game/components/game-toast';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';

@@ -12,7 +12,7 @@ import type {
   QuestDialogRequested,
   QuestObjectiveCompleted,
 } from '@/api/signalr-client/TRPG.Quests.Responses';
-import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
+import type { TerminalCombatOutcome } from '@/features/combat/terminal-combat-outcome';
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'reconnected' | 'disconnected';
 
