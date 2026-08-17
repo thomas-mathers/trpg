@@ -58,6 +58,11 @@
     <PackageReference Include="TickerQ" Version="10.4.0" />
     <PackageReference Include="TickerQ.EntityFrameworkCore" Version="10.4.0" />
     <PackageReference Include="TypedSignalR.Client.TypeScript.Attributes" Version="1.17.0" />
+    <PackageReference
+      Include="TypedSignalR.Client.TypeScript.Analyzer"
+      Version="1.17.0"
+      PrivateAssets="all"
+    />
     <PackageReference Include="ZLogger" Version="2.5.10" />
   </ItemGroup>
 </Project>

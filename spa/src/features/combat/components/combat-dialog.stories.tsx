@@ -9,15 +9,18 @@ import type {
   AbilityAvailabilityResponse,
   AbilityCategory,
   AbilitySummary,
-  CombatantState,
   ConsumableSummary,
-  DamageType,
 } from '@/api/client';
 import {
   handleGetCreatureAbilities,
   handleGetCreatureConsumables,
   handleGetPlayerFightAbilities,
 } from '@/api/client/msw.gen';
+import type {
+  ActiveConditions,
+  CombatantState,
+  DamageType,
+} from '@/api/signalr-client/TRPG.Combat.ClientModels';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -36,6 +39,18 @@ import { gameEventBus } from '@/lib/game-event-bus';
 
 import { CombatDialog } from './combat-dialog';
 
+const noActiveConditions: ActiveConditions = {
+  blinded: 0,
+  bleeding: 0,
+  burning: 0,
+  disarmed: 0,
+  frozen: 0,
+  poisoned: 0,
+  silenced: 0,
+  snared: 0,
+  stunned: 0,
+};
+
 const player: CombatantState = {
   id: 'player-id',
   name: 'Aria',
@@ -48,7 +63,7 @@ const player: CombatantState = {
   maximumAp: 20,
   currentMp: 9,
   maximumMp: 15,
-  activeConditions: {},
+  activeConditions: noActiveConditions,
   activeDots: [],
   activeHots: [],
   activeBuffs: [],
@@ -459,7 +474,7 @@ const standardFight: CombatantState[] = [
 const crowdedFight: CombatantState[] = [
   {
     ...player,
-    activeConditions: { burning: 2 },
+    activeConditions: { ...noActiveConditions, burning: 2 },
     activeHots: [{ abilityName: 'Regeneration', amount: 4, remainingTurns: 3 }],
   },
   {

@@ -6,9 +6,8 @@ namespace TRPG.GameSessions.Hubs;
 
 internal sealed class SkillLevelUpEventFormatter : GameClientEventFormatter<SkillLevelUpEvent>
 {
-    protected override GameClientMessage Format(SkillLevelUpEvent gameEvent) =>
-        new(
-            "SkillLevelUp",
+    protected override Task Dispatch(IGameClient client, SkillLevelUpEvent gameEvent) =>
+        client.SkillLevelUp(
             new SkillLevelUp(
                 gameEvent.Skill.ToResponse(),
                 gameEvent.Level,

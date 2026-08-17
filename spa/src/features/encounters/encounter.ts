@@ -1,30 +1,8 @@
-export interface HostileEncounterMemberState {
-  name: string;
-  creatureType: string;
-  level: number;
-}
-
-export interface HostileEncounterState {
-  encounterId: string;
-  factionName: string;
-  locationName: string;
-  members: HostileEncounterMemberState[];
-  allowedActions: string[];
-}
-
-export interface EncounterResolutionFact {
-  encounterId: string;
-  outcome: EncounterResolutionOutcome;
-  factionName: string;
-  locationName: string;
-  memberNames: string[];
-}
-
-export type EncounterResolutionOutcome =
-  | 'Evaded'
-  | 'EvadeFailed'
-  | 'Retreated'
-  | 'RetreatFailed'
-  | 'Attacked';
+export type {
+  EncounterResolutionFact,
+  EncounterResolutionOutcome,
+  HostileEncounterMemberState,
+  HostileEncounterState,
+} from '@/api/signalr-client/TRPG.Encounters.Responses';
 
 export type EncounterActionName = 'Attack' | 'Evade' | 'Retreat';

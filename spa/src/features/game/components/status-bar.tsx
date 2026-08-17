@@ -2,7 +2,7 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { Droplet, Heart, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import type { SceneSnapshot } from '@/api/client';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useScene } from '@/features/game/contexts/scene-context';
 import { formatLocation } from '@/features/game/scene-format';
@@ -17,11 +17,11 @@ const connectionStatusStyles: Record<HubConnectionState, { className: string; la
   [HubConnectionState.Connected]: { className: 'bg-green-500', label: 'Connected' },
   [HubConnectionState.Connecting]: {
     className: 'animate-pulse bg-amber-500',
-    label: 'Connecting…',
+    label: 'Connectingâ€¦',
   },
   [HubConnectionState.Reconnecting]: {
     className: 'animate-pulse bg-amber-500',
-    label: 'Reconnecting…',
+    label: 'Reconnectingâ€¦',
   },
   [HubConnectionState.Disconnecting]: { className: 'bg-destructive', label: 'Connection lost' },
   [HubConnectionState.Disconnected]: { className: 'bg-destructive', label: 'Connection lost' },
@@ -139,5 +139,5 @@ function ExperienceProgress({
 }
 
 function formatTime(scene: SceneSnapshot): string {
-  return `${scene.weekdayName}, ${scene.monthName} ${scene.day} — ${scene.hour}:00`;
+  return `${scene.weekdayName}, ${scene.monthName} ${scene.day} â€” ${scene.hour}:00`;
 }

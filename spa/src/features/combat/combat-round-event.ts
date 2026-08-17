@@ -1,5 +1,7 @@
-import type { CombatantState, DamageType } from '@/api/client';
-import type { CombatOutcome } from '@/features/combat/combat-outcome';
+import type {
+  CombatUpdatePayload as GeneratedCombatUpdatePayload,
+  DamageType,
+} from '@/api/signalr-client/TRPG.Combat.ClientModels';
 
 export type CombatActionEvent = CombatHitEvent | CombatMissEvent | CombatBlockEvent;
 
@@ -58,8 +60,10 @@ export interface CombatResourceStateUpdatedEvent {
   maximumMp: number;
 }
 
-export interface CombatUpdatePayload {
-  combatants: CombatantState[];
+export type CombatUpdatePayload = Pick<GeneratedCombatUpdatePayload, 'combatants' | 'outcome'> & {
   events: CombatRoundEvent[];
-  outcome: CombatOutcome;
+};
+
+export function toCombatUpdatePayload(payload: GeneratedCombatUpdatePayload): CombatUpdatePayload {
+  return { ...payload, events: payload.events as CombatRoundEvent[] };
 }

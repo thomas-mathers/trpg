@@ -1,5 +1,6 @@
 namespace TRPG.Abilities.Responses;
 
+[Tapper.TranspilationSource]
 public enum Skill
 {
     Melee,
@@ -14,12 +15,14 @@ public enum Skill
     Blocking,
 }
 
+[Tapper.TranspilationSource]
 public enum AbilityCategory
 {
     Offensive,
     Support,
 }
 
+[Tapper.TranspilationSource]
 public record AbilitySummary(
     string Name,
     Skill Skill,

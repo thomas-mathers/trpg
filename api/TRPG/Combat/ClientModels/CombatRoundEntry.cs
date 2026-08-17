@@ -1,7 +1,10 @@
 using System.Text.Json.Serialization;
+using Tapper;
+using TypedSignalR.Client;
 
 namespace TRPG.Combat.ClientModels;
 
+[TranspilationSource]
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(CombatHitEntry), "CombatHitEvent")]
 [JsonDerivedType(typeof(CombatMissEntry), "CombatMissEvent")]
@@ -19,6 +22,7 @@ public abstract record CombatRoundEntry(
     public string? Narration { get; init; }
 }
 
+[TranspilationSource]
 public sealed record CombatHitEntry(
     Guid AttackerId,
     string AttackerName,
@@ -34,6 +38,7 @@ public sealed record CombatHitEntry(
     IReadOnlyList<ConditionType> AppliedConditions
 ) : CombatRoundEntry(AttackerId, AttackerName, AbilityName, TargetId, TargetName);
 
+[TranspilationSource]
 public sealed record CombatMissEntry(
     Guid AttackerId,
     string AttackerName,
@@ -42,6 +47,7 @@ public sealed record CombatMissEntry(
     string TargetName
 ) : CombatRoundEntry(AttackerId, AttackerName, AbilityName, TargetId, TargetName);
 
+[TranspilationSource]
 public sealed record CombatBlockEntry(
     Guid AttackerId,
     string AttackerName,
@@ -50,6 +56,7 @@ public sealed record CombatBlockEntry(
     string TargetName
 ) : CombatRoundEntry(AttackerId, AttackerName, AbilityName, TargetId, TargetName);
 
+[TranspilationSource]
 public sealed record CombatRegeneratedEntry(
     Guid AttackerId,
     string AttackerName,
@@ -61,6 +68,7 @@ public sealed record CombatRegeneratedEntry(
     int MaximumMp
 ) : CombatRoundEntry(AttackerId, AttackerName, "Regenerate", AttackerId, AttackerName);
 
+[TranspilationSource]
 public sealed record CombatResourceStateUpdatedEntry(
     Guid AttackerId,
     string AttackerName,

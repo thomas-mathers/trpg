@@ -3,7 +3,12 @@
 /* tslint:disable */
 // @ts-nocheck
 import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
-import type { IChatHub } from './TRPG.GameSessions.Hubs';
+import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
+import type { SceneSnapshot } from '../TRPG.GameSessions.Responses';
+import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.ClientModels';
+import type { HostileEncounterState, EncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.ClientModels';
+import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.ClientModels';
 
 
 // components
@@ -52,9 +57,13 @@ export const getHubProxyFactory = ((hubType: string) => {
 }) as HubProxyFactoryProvider;
 
 export type ReceiverRegisterProvider = {
+    (receiverType: "IGameClient"): ReceiverRegister<IGameClient>;
 }
 
 export const getReceiverRegister = ((receiverType: string) => {
+    if(receiverType === "IGameClient") {
+        return IGameClient_Binder.Instance;
+    }
 }) as ReceiverRegisterProvider;
 
 // HubProxy
@@ -118,4 +127,52 @@ class IChatHub_HubProxy implements IChatHub {
 
 
 // Receiver
+
+class IGameClient_Binder implements ReceiverRegister<IGameClient> {
+
+    public static Instance = new IGameClient_Binder();
+
+    private constructor() {
+    }
+
+    public readonly register = (connection: HubConnection, receiver: IGameClient): Disposable => {
+
+        const __sceneSnapshot = (...args: [SceneSnapshot]) => receiver.sceneSnapshot(...args);
+        const __combatStarted = (...args: [CombatantState[]]) => receiver.combatStarted(...args);
+        const __combatUpdated = (...args: [CombatUpdatePayload]) => receiver.combatUpdated(...args);
+        const __encounterStarted = (...args: [HostileEncounterState]) => receiver.encounterStarted(...args);
+        const __encounterResolved = (...args: [EncounterResolutionFact]) => receiver.encounterResolved(...args);
+        const __skillLevelUp = (...args: [SkillLevelUp]) => receiver.skillLevelUp(...args);
+        const __characterLevelUp = (...args: [CharacterLevelUp]) => receiver.characterLevelUp(...args);
+        const __questDialogRequested = (...args: [QuestDialogRequested]) => receiver.questDialogRequested(...args);
+        const __questObjectiveCompleted = (...args: [QuestObjectiveCompleted]) => receiver.questObjectiveCompleted(...args);
+        const __questJournalUpdated = () => receiver.questJournalUpdated();
+
+        connection.on("SceneSnapshot", __sceneSnapshot);
+        connection.on("CombatStarted", __combatStarted);
+        connection.on("CombatUpdated", __combatUpdated);
+        connection.on("EncounterStarted", __encounterStarted);
+        connection.on("EncounterResolved", __encounterResolved);
+        connection.on("SkillLevelUp", __skillLevelUp);
+        connection.on("CharacterLevelUp", __characterLevelUp);
+        connection.on("QuestDialogRequested", __questDialogRequested);
+        connection.on("QuestObjectiveCompleted", __questObjectiveCompleted);
+        connection.on("QuestJournalUpdated", __questJournalUpdated);
+
+        const methodList: ReceiverMethod[] = [
+            { methodName: "SceneSnapshot", method: __sceneSnapshot },
+            { methodName: "CombatStarted", method: __combatStarted },
+            { methodName: "CombatUpdated", method: __combatUpdated },
+            { methodName: "EncounterStarted", method: __encounterStarted },
+            { methodName: "EncounterResolved", method: __encounterResolved },
+            { methodName: "SkillLevelUp", method: __skillLevelUp },
+            { methodName: "CharacterLevelUp", method: __characterLevelUp },
+            { methodName: "QuestDialogRequested", method: __questDialogRequested },
+            { methodName: "QuestObjectiveCompleted", method: __questObjectiveCompleted },
+            { methodName: "QuestJournalUpdated", method: __questJournalUpdated }
+        ]
+
+        return new ReceiverMethodSubscription(connection, methodList);
+    }
+}
 

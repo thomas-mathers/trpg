@@ -3,17 +3,17 @@ import { act, configure, screen, waitFor } from '@testing-library/react';
 import { byRole } from 'testing-library-selector';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type {
-  AbilitySummary,
-  CombatantState,
-  ConsumableSummary,
-  SceneSnapshot,
-} from '@/api/client';
+import type { AbilitySummary, ConsumableSummary } from '@/api/client';
 import {
   handleGetCreatureAbilities,
   handleGetCreatureConsumables,
   handleGetPlayerFightAbilities,
 } from '@/api/client/msw.gen';
+import type {
+  ActiveConditions,
+  CombatantState,
+} from '@/api/signalr-client/TRPG.Combat.ClientModels';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
@@ -27,6 +27,18 @@ import { renderWithProviders } from '@/test/test-utils';
 
 import { CombatDialog } from './combat-dialog';
 
+const noActiveConditions: ActiveConditions = {
+  blinded: 0,
+  bleeding: 0,
+  burning: 0,
+  disarmed: 0,
+  frozen: 0,
+  poisoned: 0,
+  silenced: 0,
+  snared: 0,
+  stunned: 0,
+};
+
 const player: CombatantState = {
   id: 'player-id',
   name: 'Player',
@@ -39,7 +51,7 @@ const player: CombatantState = {
   maximumAp: 10,
   currentMp: 10,
   maximumMp: 10,
-  activeConditions: {},
+  activeConditions: noActiveConditions,
   activeDots: [],
   activeHots: [],
   activeBuffs: [],

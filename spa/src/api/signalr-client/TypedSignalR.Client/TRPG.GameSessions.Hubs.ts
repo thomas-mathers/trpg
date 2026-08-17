@@ -3,6 +3,11 @@
 /* tslint:disable */
 // @ts-nocheck
 import type { IStreamResult, Subject } from '@microsoft/signalr';
+import type { SceneSnapshot } from '../TRPG.GameSessions.Responses';
+import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.ClientModels';
+import type { HostileEncounterState, EncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.ClientModels';
+import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.ClientModels';
 
 export type IChatHub = {
     /**
@@ -57,5 +62,57 @@ export type IChatHub = {
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
     resolveRetreatEncounterAction(): IStreamResult<string>;
+}
+
+export type IGameClient = {
+    /**
+    * @param snapshot Transpiled from TRPG.GameSessions.Responses.SceneSnapshot
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    sceneSnapshot(snapshot: SceneSnapshot): Promise<void>;
+    /**
+    * @param combatants Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.ClientModels.CombatantState>
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    combatStarted(combatants: CombatantState[]): Promise<void>;
+    /**
+    * @param update Transpiled from TRPG.Combat.ClientModels.CombatUpdatePayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    combatUpdated(update: CombatUpdatePayload): Promise<void>;
+    /**
+    * @param encounter Transpiled from TRPG.Encounters.Responses.HostileEncounterState
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    encounterStarted(encounter: HostileEncounterState): Promise<void>;
+    /**
+    * @param fact Transpiled from TRPG.Encounters.Responses.EncounterResolutionFact
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    encounterResolved(fact: EncounterResolutionFact): Promise<void>;
+    /**
+    * @param skillLevelUp Transpiled from TRPG.Creatures.ClientModels.SkillLevelUp
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    skillLevelUp(skillLevelUp: SkillLevelUp): Promise<void>;
+    /**
+    * @param characterLevelUp Transpiled from TRPG.Creatures.ClientModels.CharacterLevelUp
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    characterLevelUp(characterLevelUp: CharacterLevelUp): Promise<void>;
+    /**
+    * @param questDialog Transpiled from TRPG.Quests.ClientModels.QuestDialogRequested
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    questDialogRequested(questDialog: QuestDialogRequested): Promise<void>;
+    /**
+    * @param objective Transpiled from TRPG.Quests.ClientModels.QuestObjectiveCompleted
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    questObjectiveCompleted(objective: QuestObjectiveCompleted): Promise<void>;
+    /**
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    questJournalUpdated(): Promise<void>;
 }
 

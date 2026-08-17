@@ -2,12 +2,10 @@ using TRPG.Application.Common.Events;
 
 namespace TRPG.GameSessions.Hubs;
 
-internal record GameClientMessage(string MethodName, object? Payload);
-
 internal interface IGameClientEventFormatter
 {
     Type EventType { get; }
-    GameClientMessage Format(GameClientEvent gameEvent);
+    Task Dispatch(IGameClient client, GameClientEvent gameEvent);
 }
 
 internal abstract class GameClientEventFormatter<TEvent> : IGameClientEventFormatter
@@ -15,7 +13,8 @@ internal abstract class GameClientEventFormatter<TEvent> : IGameClientEventForma
 {
     public Type EventType => typeof(TEvent);
 
-    public GameClientMessage Format(GameClientEvent gameEvent) => Format((TEvent)gameEvent);
+    public Task Dispatch(IGameClient client, GameClientEvent gameEvent) =>
+        Dispatch(client, (TEvent)gameEvent);
 
-    protected abstract GameClientMessage Format(TEvent gameEvent);
+    protected abstract Task Dispatch(IGameClient client, TEvent gameEvent);
 }

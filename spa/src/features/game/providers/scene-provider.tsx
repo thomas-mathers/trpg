@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
-import type { SceneSnapshot } from '@/api/client';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import {
   PlayerIdContext,
   SceneContext,

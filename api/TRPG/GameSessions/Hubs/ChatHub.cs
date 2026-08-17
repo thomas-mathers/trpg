@@ -41,7 +41,7 @@ internal sealed class ChatHub(
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<EndGameSessionCommand> endGameSession,
     PendingSessionEndRegistry pendingSessionEnds
-) : Hub, IChatHub
+) : Hub<IGameClient>, IChatHub
 {
     private const string SessionKey = "Session";
 

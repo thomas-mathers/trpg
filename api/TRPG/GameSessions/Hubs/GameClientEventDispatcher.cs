@@ -5,7 +5,7 @@ namespace TRPG.GameSessions.Hubs;
 
 internal sealed class GameClientEventDispatcher(
     IGameClientEventBuffer eventBuffer,
-    IHubContext<ChatHub> hubContext,
+    IHubContext<ChatHub, IGameClient> hubContext,
     IEnumerable<IGameClientEventFormatter> eventFormatters
 ) : IGameClientEventDispatcher
 {
@@ -14,7 +14,7 @@ internal sealed class GameClientEventDispatcher(
 
     public async Task FlushAsync(Guid worldId, CancellationToken cancellationToken = default)
     {
-        var clients = hubContext.Clients.Group(GameClientGroups.ForWorld(worldId));
+        var client = hubContext.Clients.Group(GameClientGroups.ForWorld(worldId));
         foreach (var gameEvent in eventBuffer.Drain())
         {
             var formatter =
@@ -22,16 +22,7 @@ internal sealed class GameClientEventDispatcher(
                 ?? throw new InvalidOperationException(
                     $"No client event formatter is registered for {gameEvent.GetType().Name}."
                 );
-            var message = formatter.Format(gameEvent);
-
-            if (message.Payload == null)
-            {
-                await clients.SendAsync(message.MethodName, cancellationToken);
-            }
-            else
-            {
-                await clients.SendAsync(message.MethodName, message.Payload, cancellationToken);
-            }
+            await formatter.Dispatch(client, gameEvent);
         }
     }
 }

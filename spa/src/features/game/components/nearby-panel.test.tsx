@@ -2,8 +2,9 @@ import { screen, waitFor } from '@testing-library/react';
 import { HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { QuestJournalEntrySnapshot, SceneSnapshot, TradeSnapshot } from '@/api/client';
+import type { QuestJournalEntrySnapshot, TradeSnapshot } from '@/api/client';
 import { handleGetQuestJournal, handleGetTrade } from '@/api/client/msw.gen';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 

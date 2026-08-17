@@ -5,6 +5,6 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class QuestJournalUpdatedEventFormatter
     : GameClientEventFormatter<QuestJournalUpdatedEvent>
 {
-    protected override GameClientMessage Format(QuestJournalUpdatedEvent gameEvent) =>
-        new("QuestJournalUpdated", null);
+    protected override Task Dispatch(IGameClient client, QuestJournalUpdatedEvent gameEvent) =>
+        client.QuestJournalUpdated();
 }

@@ -1,7 +1,10 @@
 using System.ComponentModel;
+using Tapper;
+using TypedSignalR.Client;
 
 namespace TRPG.Combat.ClientModels;
 
+[TranspilationSource]
 public enum DamageType
 {
     Physical,
@@ -12,6 +15,7 @@ public enum DamageType
     Magic,
 }
 
+[TranspilationSource]
 public enum AttributeName
 {
     [Description("Maximum HP")]
@@ -52,12 +56,14 @@ public enum AttributeName
     MovementSpeed,
 }
 
+[TranspilationSource]
 public enum AmountType
 {
     Flat,
     Percent,
 }
 
+[TranspilationSource]
 public enum ConditionType
 {
     Blinded,
@@ -71,6 +77,7 @@ public enum ConditionType
     Stunned,
 }
 
+[TranspilationSource]
 public enum CombatOutcome
 {
     Ongoing,
@@ -79,6 +86,7 @@ public enum CombatOutcome
     Fled,
 }
 
+[TranspilationSource]
 public record CombatantState(
     Guid Id,
     string Name,
@@ -97,10 +105,13 @@ public record CombatantState(
     IReadOnlyCollection<ActiveBuff> ActiveBuffs
 );
 
+[TranspilationSource]
 public record ActiveDot(string AbilityName, int Amount, DamageType DamageType, int RemainingTurns);
 
+[TranspilationSource]
 public record ActiveHot(string AbilityName, int Amount, int RemainingTurns);
 
+[TranspilationSource]
 public record ActiveBuff(
     string AbilityName,
     AttributeName Attribute,

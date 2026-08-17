@@ -1,41 +1,23 @@
-import type { CombatantState, SceneSnapshot } from '@/api/client';
-import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
-import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
+import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.ClientModels';
+import type {
+  CharacterLevelUp,
+  SkillLevelUp,
+} from '@/api/signalr-client/TRPG.Creatures.ClientModels';
 import type {
   EncounterResolutionFact,
   HostileEncounterState,
-} from '@/features/encounters/encounter';
+} from '@/api/signalr-client/TRPG.Encounters.Responses';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type {
+  QuestDialogRequested,
+  QuestObjectiveCompleted,
+} from '@/api/signalr-client/TRPG.Quests.ClientModels';
+import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
+import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'reconnected' | 'disconnected';
 
-export interface SkillLevelUp {
-  skill: string;
-  level: number;
-  characterExperienceCurrent: number;
-  characterExperienceToNextLevel: number;
-}
-
-export interface CharacterLevelUp {
-  level: number;
-}
-
-export interface QuestDialogRequested {
-  worldId: string;
-  questId: string;
-  name: string;
-  description: string;
-  goldReward: number;
-  objectives: Array<{
-    name: string;
-    description: string;
-    requiredAmount: number;
-  }>;
-  mode: 'Offer' | 'TurnIn';
-}
-
-export interface QuestObjectiveCompleted {
-  objectiveName: string;
-}
+export type { CharacterLevelUp, QuestDialogRequested, QuestObjectiveCompleted, SkillLevelUp };
 
 interface GameEventMap {
   SceneSnapshot: SceneSnapshot;

@@ -5,6 +5,6 @@ namespace TRPG.GameSessions.Hubs;
 
 internal sealed class SceneUpdatedEventFormatter : GameClientEventFormatter<SceneUpdatedEvent>
 {
-    protected override GameClientMessage Format(SceneUpdatedEvent gameEvent) =>
-        new("SceneSnapshot", gameEvent.Scene.ToSnapshot());
+    protected override Task Dispatch(IGameClient client, SceneUpdatedEvent gameEvent) =>
+        client.SceneSnapshot(gameEvent.Scene.ToSnapshot());
 }

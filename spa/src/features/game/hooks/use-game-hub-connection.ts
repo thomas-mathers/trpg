@@ -7,20 +7,13 @@ import {
 } from '@microsoft/signalr';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
-import type { CombatantState, SceneSnapshot } from '@/api/client';
-import { getHubProxyFactory } from '@/api/signalr-client/TypedSignalR.Client';
-import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
-import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
+import { getHubProxyFactory, getReceiverRegister } from '@/api/signalr-client/TypedSignalR.Client';
 import type {
-  EncounterResolutionFact,
-  HostileEncounterState,
-} from '@/features/encounters/encounter';
-import {
-  gameEventBus,
-  type CharacterLevelUp,
-  type QuestDialogRequested,
-  type SkillLevelUp,
-} from '@/lib/game-event-bus';
+  IChatHub,
+  IGameClient,
+} from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
+import { toCombatUpdatePayload } from '@/features/combat/combat-round-event';
+import { gameEventBus } from '@/lib/game-event-bus';
 
 export interface GameHubConnection {
   connectionStatus: HubConnectionState;
@@ -101,34 +94,26 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       }
     });
 
-    connection.on('SceneSnapshot', (payload: SceneSnapshot) =>
-      gameEventBus.emit('SceneSnapshot', payload),
+    const gameClient: IGameClient = {
+      sceneSnapshot: async (snapshot) => gameEventBus.emit('SceneSnapshot', snapshot),
+      combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
+      combatUpdated: async (update) =>
+        gameEventBus.emit('CombatUpdated', toCombatUpdatePayload(update)),
+      encounterStarted: async (encounter) => gameEventBus.emit('EncounterStarted', encounter),
+      encounterResolved: async (fact) => gameEventBus.emit('EncounterResolved', fact),
+      skillLevelUp: async (skillLevelUp) => gameEventBus.emit('SkillLevelUp', skillLevelUp),
+      characterLevelUp: async (characterLevelUp) =>
+        gameEventBus.emit('CharacterLevelUp', characterLevelUp),
+      questDialogRequested: async (questDialog) =>
+        gameEventBus.emit('QuestDialogRequested', questDialog),
+      questObjectiveCompleted: async (objective) =>
+        gameEventBus.emit('QuestObjectiveCompleted', objective),
+      questJournalUpdated: async () => gameEventBus.emit('QuestJournalUpdated'),
+    };
+    const receiverSubscription = getReceiverRegister('IGameClient').register(
+      connection,
+      gameClient,
     );
-    connection.on('CombatStarted', (payload: CombatantState[]) =>
-      gameEventBus.emit('CombatStarted', payload),
-    );
-    connection.on('CombatUpdated', (payload: CombatUpdatePayload) =>
-      gameEventBus.emit('CombatUpdated', payload),
-    );
-    connection.on('EncounterStarted', (payload: HostileEncounterState) =>
-      gameEventBus.emit('EncounterStarted', payload),
-    );
-    connection.on('EncounterResolved', (payload: EncounterResolutionFact) =>
-      gameEventBus.emit('EncounterResolved', payload),
-    );
-    connection.on('SkillLevelUp', (payload: SkillLevelUp) =>
-      gameEventBus.emit('SkillLevelUp', payload),
-    );
-    connection.on('CharacterLevelUp', (payload: CharacterLevelUp) =>
-      gameEventBus.emit('CharacterLevelUp', payload),
-    );
-    connection.on('QuestDialogRequested', (payload: QuestDialogRequested) =>
-      gameEventBus.emit('QuestDialogRequested', payload),
-    );
-    connection.on('QuestObjectiveCompleted', (payload) =>
-      gameEventBus.emit('QuestObjectiveCompleted', payload),
-    );
-    connection.on('QuestJournalUpdated', () => gameEventBus.emit('QuestJournalUpdated'));
 
     connection
       .start()
@@ -144,6 +129,7 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       });
 
     return () => {
+      receiverSubscription.dispose();
       isIntentionalStop.current = true;
       connection.stop();
       setConnectionStatus(HubConnectionState.Disconnected);

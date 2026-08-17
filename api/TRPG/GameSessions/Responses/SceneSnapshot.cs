@@ -1,8 +1,11 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
+using Tapper;
+using TypedSignalR.Client;
 
 namespace TRPG.GameSessions.Responses;
 
+[TranspilationSource]
 public enum CreatureType
 {
     Human,
@@ -22,12 +25,14 @@ public enum CreatureType
     Dragon,
 }
 
+[TranspilationSource]
 public enum Gender
 {
     Male,
     Female,
 }
 
+[TranspilationSource]
 public enum Profession
 {
     Knight,
@@ -55,6 +60,7 @@ public enum Profession
     Unemployed,
 }
 
+[TranspilationSource]
 public enum CreatureState
 {
     Idle,
@@ -68,6 +74,7 @@ public enum CreatureState
     Dead,
 }
 
+[TranspilationSource]
 public enum DistrictType
 {
     Residential,
@@ -85,6 +92,7 @@ public enum DistrictType
     Encampment,
 }
 
+[TranspilationSource]
 public enum BuildingType
 {
     [Description("Arcane Shop")]
@@ -117,6 +125,7 @@ public enum BuildingType
     Tower,
 }
 
+[TranspilationSource]
 public record SceneSnapshot(
     Guid WorldId,
     string StateName,
@@ -136,6 +145,7 @@ public record SceneSnapshot(
     IReadOnlyCollection<NearbyExitSnapshot> Exits
 );
 
+[TranspilationSource]
 public record CreatureStatusSnapshot(
     Guid Id,
     string Name,
@@ -174,12 +184,14 @@ public record CreatureStatusSnapshot(
     QuestMarker? QuestMarker
 );
 
+[TranspilationSource]
 public enum QuestMarker
 {
     Available,
     ReadyToTurnIn,
 }
 
+[TranspilationSource]
 public record NearbyBuildingSnapshot(
     Guid Id,
     string Name,
@@ -187,8 +199,10 @@ public record NearbyBuildingSnapshot(
     string TypeDescription
 );
 
+[TranspilationSource]
 public record NearbyPropSnapshot(Guid Id, string Name, string Type);
 
+[TranspilationSource]
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
 [JsonDerivedType(typeof(DistrictExitDestination), "District")]
 [JsonDerivedType(typeof(BuildingExitDestination), "Building")]
@@ -196,15 +210,20 @@ public record NearbyPropSnapshot(Guid Id, string Name, string Type);
 [JsonDerivedType(typeof(WildernessExitDestination), "Wilderness")]
 public abstract record NearbyExitDestination(string Name);
 
+[TranspilationSource]
 public sealed record DistrictExitDestination(string Name, DistrictType DistrictType)
     : NearbyExitDestination(Name);
 
+[TranspilationSource]
 public sealed record BuildingExitDestination(string Name, BuildingType BuildingType)
     : NearbyExitDestination(Name);
 
+[TranspilationSource]
 public sealed record RoomExitDestination(string Name, BuildingType BuildingType)
     : NearbyExitDestination(Name);
 
+[TranspilationSource]
 public sealed record WildernessExitDestination(string Name) : NearbyExitDestination(Name);
 
+[TranspilationSource]
 public record NearbyExitSnapshot(string Description, NearbyExitDestination Destination);

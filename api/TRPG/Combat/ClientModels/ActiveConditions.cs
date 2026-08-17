@@ -1,5 +1,6 @@
 namespace TRPG.Combat.ClientModels;
 
+[Tapper.TranspilationSource]
 public record ActiveConditions
 {
     public int Blinded { get; init; }

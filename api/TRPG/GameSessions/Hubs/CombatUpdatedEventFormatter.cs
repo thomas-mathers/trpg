@@ -6,9 +6,8 @@ namespace TRPG.GameSessions.Hubs;
 
 internal sealed class CombatUpdatedEventFormatter : GameClientEventFormatter<CombatUpdatedEvent>
 {
-    protected override GameClientMessage Format(CombatUpdatedEvent gameEvent) =>
-        new(
-            "CombatUpdated",
+    protected override Task Dispatch(IGameClient client, CombatUpdatedEvent gameEvent) =>
+        client.CombatUpdated(
             new CombatUpdatePayload(
                 gameEvent.Combatants.ToCombatantStates(),
                 gameEvent.Events.ToCombatRoundEntries(),

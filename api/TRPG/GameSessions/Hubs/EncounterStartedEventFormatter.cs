@@ -7,9 +7,8 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class EncounterStartedEventFormatter
     : GameClientEventFormatter<EncounterStartedEvent>
 {
-    protected override GameClientMessage Format(EncounterStartedEvent gameEvent) =>
-        new(
-            "EncounterStarted",
+    protected override Task Dispatch(IGameClient client, EncounterStartedEvent gameEvent) =>
+        client.EncounterStarted(
             new HostileEncounterState(
                 gameEvent.State.EncounterId,
                 gameEvent.State.FactionName,

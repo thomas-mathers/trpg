@@ -29,19 +29,24 @@ import {
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
+import type { BuildingType, DistrictType } from '@/api/client';
 import type {
-  BuildingType,
   CreatureStatusSnapshot,
-  DistrictType,
-  NearbyExitDestination,
+  NearbyExitDestination as SignalrNearbyExitDestination,
   SceneSnapshot,
-} from '@/api/client';
+} from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
 import { QuestTracker } from '@/features/quests/components/quest-tracker';
 import { cn } from '@/lib/utils';
+
+type NearbyExitDestination = SignalrNearbyExitDestination & {
+  $type?: 'District' | 'Building' | 'Room' | 'Wilderness';
+  buildingType?: BuildingType;
+  districtType?: DistrictType;
+};
 
 const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
   ArcaneShop: Sparkles,
@@ -205,9 +210,10 @@ export function NearbyPanel({ scene, onOpenQuestJournal }: NearbyPanelProps) {
 
 function ExitDestinationIcon({ destination }: { destination: NearbyExitDestination }) {
   const Icon =
-    destination.$type === 'District'
+    destination.$type === 'District' && destination.districtType
       ? DISTRICT_TYPE_ICONS[destination.districtType]
-      : destination.$type === 'Building' || destination.$type === 'Room'
+      : (destination.$type === 'Building' || destination.$type === 'Room') &&
+          destination.buildingType
         ? BUILDING_TYPE_ICONS[destination.buildingType]
         : Mountain;
 

@@ -2,7 +2,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useEffect, useReducer, useState } from 'react';
 import { toast } from 'sonner';
 
-import type { CombatantState } from '@/api/client';
+import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.ClientModels';
 import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
 import type {
   CombatActionEvent,

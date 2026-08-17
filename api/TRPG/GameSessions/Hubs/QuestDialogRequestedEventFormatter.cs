@@ -8,9 +8,8 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class QuestDialogRequestedEventFormatter
     : GameClientEventFormatter<QuestDialogRequestedEvent>
 {
-    protected override GameClientMessage Format(QuestDialogRequestedEvent gameEvent) =>
-        new(
-            "QuestDialogRequested",
+    protected override Task Dispatch(IGameClient client, QuestDialogRequestedEvent gameEvent) =>
+        client.QuestDialogRequested(
             new QuestDialogRequested(
                 gameEvent.WorldId,
                 gameEvent.Quest.QuestId,
