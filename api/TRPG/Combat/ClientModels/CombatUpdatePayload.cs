@@ -3,6 +3,8 @@ namespace TRPG.Combat.ClientModels;
 [Tapper.TranspilationSource]
 public record CombatUpdatePayload(
     IReadOnlyCollection<CombatantState> Combatants,
-    IReadOnlyList<CombatRoundEntry> Events,
+    IReadOnlyList<CombatActionResult> Actions,
+    IReadOnlyList<CombatRegeneration> Regenerations,
+    IReadOnlyList<CombatResourceState> ResourceStates,
     CombatOutcome Outcome
 );

@@ -18,6 +18,7 @@ import {
 } from '@/api/client/msw.gen';
 import type {
   ActiveConditions,
+  CombatActionResult,
   CombatantState,
   DamageType,
 } from '@/api/signalr-client/TRPG.Combat.ClientModels';
@@ -25,7 +26,6 @@ import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.Gam
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import type { CombatRoundEvent } from '@/features/combat/combat-round-event';
 import { AbilityPicker } from '@/features/combat/components/ability-picker';
 import { CombatantCard } from '@/features/combat/components/combatant-card';
 import { ItemPicker } from '@/features/combat/components/item-picker';
@@ -278,7 +278,9 @@ function WorkbenchProviders({
       window.setTimeout(() => {
         gameEventBus.emit('CombatUpdated', {
           combatants: initialFight,
-          events: [],
+          actions: [],
+          regenerations: [],
+          resourceStates: [],
           outcome: 'Fled',
         });
         setIsStreaming(false);
@@ -359,10 +361,10 @@ function simulateRound(fight: CombatantState[], action: SimulatedCombatAction) {
     action.type === 'UseAbilityAction'
       ? afterPlayerAction.find((combatant) => combatant.id === action.targetId)
       : undefined;
-  const events: CombatRoundEvent[] = [];
+  const actions: CombatActionResult[] = [];
 
   if (action.type === 'UseAbilityAction' && playerTarget && !playerTarget.isPlayer) {
-    events.push(
+    actions.push(
       hitEvent(
         playerAfterAction,
         playerTarget,
@@ -378,7 +380,7 @@ function simulateRound(fight: CombatantState[], action: SimulatedCombatAction) {
     (combatant) => !combatant.isPlayer && combatant.isAlive,
   )) {
     playerHp = Math.max(0, playerHp - 6);
-    events.push(
+    actions.push(
       hitEvent(
         enemy,
         {
@@ -397,7 +399,9 @@ function simulateRound(fight: CombatantState[], action: SimulatedCombatAction) {
     combatants: afterPlayerAction.map((combatant) =>
       combatant.isPlayer ? { ...combatant, currentHp: playerHp, isAlive: playerHp > 0 } : combatant,
     ),
-    events,
+    actions,
+    regenerations: [],
+    resourceStates: [],
     outcome: 'Ongoing' as const,
   };
 }
@@ -408,9 +412,9 @@ function hitEvent(
   abilityName: string,
   damage: number,
   damageType: DamageType,
-): CombatRoundEvent {
+): CombatActionResult {
   return {
-    type: 'CombatHitEvent',
+    outcome: 'Hit',
     attackerId: attacker.id,
     attackerName: attacker.name,
     abilityName,
@@ -423,6 +427,7 @@ function hitEvent(
     targetRemainingHp: target.currentHp,
     targetMaximumHp: target.maximumHp,
     appliedConditions: [],
+    narration: '',
   };
 }
 

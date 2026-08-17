@@ -2,15 +2,14 @@ import { ShieldAlert } from 'lucide-react';
 import { useEffect, useReducer, useState } from 'react';
 import { toast } from 'sonner';
 
-import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.ClientModels';
-import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
 import type {
-  CombatActionEvent,
-  CombatRegeneratedEvent,
-  CombatResourceStateUpdatedEvent,
-  CombatRoundEvent,
+  CombatActionResult,
+  CombatRegeneration,
+  CombatResourceState,
+  CombatantState,
   CombatUpdatePayload,
-} from '@/features/combat/combat-round-event';
+} from '@/api/signalr-client/TRPG.Combat.ClientModels';
+import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
 import { GameToast } from '@/features/game/components/game-toast';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
@@ -34,22 +33,22 @@ type AnimationStep =
   | {
       kind: 'begin';
       attackerId: string;
-      resourceState?: CombatResourceStateUpdatedEvent;
+      resourceState?: CombatResourceState;
       delayMs: number;
     }
-  | { kind: 'apply'; event: CombatActionEvent; delayMs: number }
+  | { kind: 'apply'; event: CombatActionResult; delayMs: number }
   | { kind: 'toast'; delayMs: number }
   | { kind: 'defenderRecovery'; delayMs: number }
   | { kind: 'attackerRecovery'; delayMs: number }
-  | { kind: 'prepareRegeneration'; events: CombatRegeneratedEvent[]; delayMs: number }
-  | { kind: 'regenerate'; events: CombatRegeneratedEvent[]; delayMs: number }
+  | { kind: 'prepareRegeneration'; events: CombatRegeneration[]; delayMs: number }
+  | { kind: 'regenerate'; events: CombatRegeneration[]; delayMs: number }
   | { kind: 'settle'; combatants: CombatantState[]; delayMs: number };
 
 interface CombatState {
   fight: CombatantState[] | null;
   activeAttackerId: string | null;
   activeDefenderId: string | null;
-  activeCombatEvent: CombatActionEvent | null;
+  activeCombatEvent: CombatActionResult | null;
   combatFlashes: Record<string, CombatFlash>;
   isPlayingBack: boolean;
   combatOutcome: TerminalCombatOutcome | null;
@@ -79,9 +78,15 @@ const initialState: CombatState = {
 
 function applyRoundEventToFight(
   fight: CombatantState[],
-  event: CombatRoundEvent,
+  event: CombatActionResult,
 ): CombatantState[] {
-  if (event.type !== 'CombatHitEvent') {
+  const { killed, targetMaximumHp, targetRemainingHp } = event;
+  if (
+    event.outcome !== 'Hit' ||
+    targetRemainingHp === undefined ||
+    targetMaximumHp === undefined ||
+    killed === undefined
+  ) {
     return fight;
   }
 
@@ -89,9 +94,9 @@ function applyRoundEventToFight(
     combatant.id === event.targetId
       ? {
           ...combatant,
-          currentHp: event.targetRemainingHp,
-          maximumHp: event.targetMaximumHp,
-          isAlive: !event.killed,
+          currentHp: targetRemainingHp,
+          maximumHp: targetMaximumHp,
+          isAlive: !killed,
         }
       : combatant,
   );
@@ -99,10 +104,10 @@ function applyRoundEventToFight(
 
 function applyRegenerationToFight(
   fight: CombatantState[],
-  events: CombatRegeneratedEvent[],
+  events: CombatRegeneration[],
   phase: 'before' | 'after',
 ): CombatantState[] {
-  const regenerationByCombatantId = new Map(events.map((event) => [event.attackerId, event]));
+  const regenerationByCombatantId = new Map(events.map((event) => [event.combatantId, event]));
 
   return fight.map((combatant) => {
     const regeneration = regenerationByCombatantId.get(combatant.id);
@@ -120,10 +125,10 @@ function applyRegenerationToFight(
 
 function applyResourceStateToFight(
   fight: CombatantState[],
-  resourceState: CombatResourceStateUpdatedEvent,
+  resourceState: CombatResourceState,
 ): CombatantState[] {
   return fight.map((combatant) =>
-    combatant.id === resourceState.attackerId
+    combatant.id === resourceState.combatantId
       ? {
           ...combatant,
           currentAp: resourceState.currentAp,
@@ -135,41 +140,33 @@ function applyResourceStateToFight(
   );
 }
 
-function toCombatFlash(event: CombatActionEvent, nonce: number): CombatFlash {
-  switch (event.type) {
-    case 'CombatHitEvent':
-      return { kind: event.isCritical ? 'crit' : 'hit', damage: event.damage, nonce };
-    case 'CombatMissEvent':
+function toCombatFlash(event: CombatActionResult, nonce: number): CombatFlash {
+  switch (event.outcome) {
+    case 'Hit':
+      return {
+        kind: event.isCritical ? 'crit' : 'hit',
+        damage: event.damage,
+        nonce,
+      };
+    case 'Miss':
       return { kind: 'miss', nonce };
-    case 'CombatBlockEvent':
+    case 'Block':
       return { kind: 'block', nonce };
   }
 }
 
 function buildRoundSteps(payload: CombatUpdatePayload): AnimationStep[] {
   const steps: AnimationStep[] = [];
-  if (payload.events.length === 0) {
+  if (payload.actions.length === 0) {
     steps.push({ kind: 'settle', combatants: payload.combatants, delayMs: 0 });
     return steps;
   }
 
-  const actionEvents = payload.events.filter(
-    (event): event is CombatActionEvent =>
-      event.type !== 'CombatRegeneratedEvent' && event.type !== 'CombatResourceStateUpdatedEvent',
-  );
   const resourceStatesByCombatantId = new Map(
-    payload.events
-      .filter(
-        (event): event is CombatResourceStateUpdatedEvent =>
-          event.type === 'CombatResourceStateUpdatedEvent',
-      )
-      .map((event) => [event.attackerId, event]),
-  );
-  const regenerationEvents = payload.events.filter(
-    (event): event is CombatRegeneratedEvent => event.type === 'CombatRegeneratedEvent',
+    payload.resourceStates.map((resourceState) => [resourceState.combatantId, resourceState]),
   );
 
-  for (const [index, event] of actionEvents.entries()) {
+  for (const [index, event] of payload.actions.entries()) {
     steps.push({
       kind: 'begin',
       attackerId: event.attackerId,
@@ -182,13 +179,13 @@ function buildRoundSteps(payload: CombatUpdatePayload): AnimationStep[] {
     steps.push({ kind: 'attackerRecovery', delayMs: DEFENDER_TO_ATTACKER_RECOVERY_MS });
   }
 
-  if (regenerationEvents.length > 0) {
+  if (payload.regenerations.length > 0) {
     steps.push({
       kind: 'prepareRegeneration',
-      events: regenerationEvents,
+      events: payload.regenerations,
       delayMs: BEFORE_ROUND_REGEN_MS,
     });
-    steps.push({ kind: 'regenerate', events: regenerationEvents, delayMs: 280 });
+    steps.push({ kind: 'regenerate', events: payload.regenerations, delayMs: 280 });
   }
 
   steps.push({ kind: 'settle', combatants: payload.combatants, delayMs: 0 });

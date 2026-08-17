@@ -12,7 +12,6 @@ import type {
   IChatHub,
   IGameClient,
 } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
-import { toCombatUpdatePayload } from '@/features/combat/combat-round-event';
 import { gameEventBus } from '@/lib/game-event-bus';
 
 export interface GameHubConnection {
@@ -97,8 +96,7 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
     const gameClient: IGameClient = {
       sceneSnapshot: async (snapshot) => gameEventBus.emit('SceneSnapshot', snapshot),
       combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
-      combatUpdated: async (update) =>
-        gameEventBus.emit('CombatUpdated', toCombatUpdatePayload(update)),
+      combatUpdated: async (update) => gameEventBus.emit('CombatUpdated', update),
       encounterStarted: async (encounter) => gameEventBus.emit('EncounterStarted', encounter),
       encounterResolved: async (fact) => gameEventBus.emit('EncounterResolved', fact),
       skillLevelUp: async (skillLevelUp) => gameEventBus.emit('SkillLevelUp', skillLevelUp),

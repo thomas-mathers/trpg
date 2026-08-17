@@ -10,7 +10,9 @@ internal sealed class CombatUpdatedEventFormatter : GameClientEventFormatter<Com
         client.CombatUpdated(
             new CombatUpdatePayload(
                 gameEvent.Combatants.ToCombatantStates(),
-                gameEvent.Events.ToCombatRoundEntries(),
+                gameEvent.Events.ToCombatActionResults(),
+                gameEvent.Events.ToCombatRegenerations(),
+                gameEvent.Events.ToCombatResourceStates(),
                 gameEvent.Outcome.ToContract()
             )
         );

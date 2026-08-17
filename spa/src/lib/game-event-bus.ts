@@ -1,4 +1,7 @@
-import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.ClientModels';
+import type {
+  CombatantState,
+  CombatUpdatePayload,
+} from '@/api/signalr-client/TRPG.Combat.ClientModels';
 import type {
   CharacterLevelUp,
   SkillLevelUp,
@@ -13,7 +16,6 @@ import type {
   QuestObjectiveCompleted,
 } from '@/api/signalr-client/TRPG.Quests.ClientModels';
 import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
-import type { CombatUpdatePayload } from '@/features/combat/combat-round-event';
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'reconnected' | 'disconnected';
 
