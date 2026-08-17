@@ -1,9 +1,14 @@
+import { HubConnectionState } from '@microsoft/signalr';
 import { configure, screen, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import type { HostileEncounterState } from '@/features/encounters/encounter';
-import { GameChatContext } from '@/features/game/game-chat-context';
-import type { GameChat } from '@/features/game/hooks/use-game-chat';
+import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
+import {
+  GameHubConnectionContext,
+  type GameHubConnection,
+} from '@/features/game/hooks/use-game-hub-connection';
 import { gameEventBus } from '@/lib/game-event-bus';
 import { renderWithProviders } from '@/test/test-utils';
 
@@ -20,27 +25,52 @@ const encounter: HostileEncounterState = {
   allowedActions: ['Attack', 'Evade', 'Retreat'],
 };
 
-function renderDialog({ isStreaming = false } = {}) {
-  const submitEncounterAction = vi.fn();
-  const gameChat: GameChat = {
+function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
+  return {
     messages: [],
-    isConnected: true,
-    connectionStatus: 'connected',
-    isStreaming,
-    submitChatMessage: vi.fn(),
-    submitEncounterAction,
-    submitFlee: vi.fn(),
-    submitCombatAction: vi.fn(),
-    endSession: vi.fn(),
+    isStreaming: false,
+    submitNarratedTurn: vi.fn(),
+    ...overrides,
   };
+}
 
+function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
+  return {
+    endSession: vi.fn(),
+    receiveOpening: vi.fn(),
+    sendChat: vi.fn(),
+    sendWait: vi.fn(),
+    sendFlee: vi.fn(),
+    resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
+    resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
+    resolveAttackEncounterAction: vi.fn(),
+    resolveEvadeEncounterAction: vi.fn(),
+    resolveRetreatEncounterAction: vi.fn(),
+    ...overrides,
+  } as IChatHub;
+}
+
+function buildGameHubConnection(overrides: Partial<GameHubConnection> = {}): GameHubConnection {
+  return {
+    connectionStatus: HubConnectionState.Connected,
+    connectionError: false,
+    chatHub: buildChatHub(),
+    ...overrides,
+  };
+}
+
+function renderDialog(overrides: Partial<GameChat> = {}) {
+  const gameChat = buildGameChat(overrides);
+  const hubConnection = buildGameHubConnection();
   const result = renderWithProviders(
-    <GameChatContext.Provider value={gameChat}>
-      <HostileEncounterDialog />
-    </GameChatContext.Provider>,
+    <GameHubConnectionContext.Provider value={hubConnection}>
+      <GameChatContext.Provider value={gameChat}>
+        <HostileEncounterDialog />
+      </GameChatContext.Provider>
+    </GameHubConnectionContext.Provider>,
   );
 
-  return { ...result, submitEncounterAction };
+  return { ...result, gameChat, chatHub: hubConnection.chatHub! };
 }
 
 // The dialog waits past its reveal delay before appearing, so give findBy/waitFor more time.
@@ -75,35 +105,28 @@ describe('HostileEncounterDialog', () => {
     gameEventBus.emit('EncounterStarted', encounter);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    const submitEncounterAction = vi.fn();
     rerender(
-      <GameChatContext.Provider
-        value={{
-          messages: [],
-          isConnected: true,
-          connectionStatus: 'connected',
-          isStreaming: false,
-          submitChatMessage: vi.fn(),
-          submitEncounterAction,
-          submitFlee: vi.fn(),
-          submitCombatAction: vi.fn(),
-          endSession: vi.fn(),
-        }}
-      >
-        <HostileEncounterDialog />
-      </GameChatContext.Provider>,
+      <GameHubConnectionContext.Provider value={buildGameHubConnection()}>
+        <GameChatContext.Provider value={buildGameChat({ isStreaming: false })}>
+          <HostileEncounterDialog />
+        </GameChatContext.Provider>
+      </GameHubConnectionContext.Provider>,
     );
 
     expect(await screen.findByRole('dialog')).toHaveTextContent('Goblin Raiders');
   });
 
   it('sends the selected typed encounter action', async () => {
-    const { user, submitEncounterAction } = renderDialog();
+    const { user, gameChat, chatHub } = renderDialog();
 
     gameEventBus.emit('EncounterStarted', encounter);
     await user.click(await screen.findByRole('button', { name: /evade/i }));
 
-    expect(submitEncounterAction).toHaveBeenCalledWith({ type: 'EvadeEncounterAction' }, 'Evade');
+    expect(chatHub.resolveEvadeEncounterAction).toHaveBeenCalledOnce();
+    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
+      'Evade',
+      vi.mocked(chatHub.resolveEvadeEncounterAction).mock.results[0]?.value,
+    );
   });
 
   it('closes when the encounter resolves', async () => {

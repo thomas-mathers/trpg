@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Trading;
 using TRPG.Application.Trading.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;

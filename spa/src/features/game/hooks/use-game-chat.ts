@@ -1,50 +1,66 @@
-import { useEffect, useRef, useState } from 'react';
+import type { IStreamResult, IStreamSubscriber, ISubscription } from '@microsoft/signalr';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
-import type { PlayerCombatAction } from '@/features/combat/combat-action';
-import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
-import type { PlayerEncounterAction } from '@/features/encounters/encounter';
-import { gameEventBus, type ConnectionStatus } from '@/lib/game-event-bus';
 import { loadStoredMessages, saveMessages } from '@/lib/session-storage';
 
-import type { ChatMarkerVariant, ChatMessage } from '../components/chat-history';
+import type { ChatMessage } from '../components/chat-history';
 import { appendTokenToNarrationSegments } from '../narration-markup';
-import { formatLocation, locationKey } from '../scene-format';
-import { useGameHubConnection } from './use-game-hub-connection';
-
-const OUTCOME_MARKER: Record<TerminalCombatOutcome, string> = {
-  Victory: 'Victory!',
-  Defeat: 'You have died',
-  Fled: 'You escaped',
-};
+import { useChatMarkers } from './use-chat-markers';
+import { useChatHub } from './use-game-hub-connection';
 
 export interface GameChat {
   messages: ChatMessage[];
-  isConnected: boolean;
-  connectionStatus: ConnectionStatus;
   isStreaming: boolean;
-  submitChatMessage: (text: string) => void;
-  submitEncounterAction: (action: PlayerEncounterAction, displayText: string) => void;
-  submitFlee: () => void;
-  submitCombatAction: (action: PlayerCombatAction) => Promise<void>;
-  endSession: () => Promise<void>;
+  submitNarratedTurn: (displayText: string | null, stream: IStreamResult<string>) => void;
 }
 
-export function useGameChat(sessionId: string): GameChat {
-  const {
-    connectionStatus,
-    isConnected,
-    streamOpening,
-    streamChat,
-    streamFlee,
-    streamEncounterAction,
-    resolveCombatAction,
-    endSession,
-  } = useGameHubConnection(sessionId);
+export const GameChatContext = createContext<GameChat | null>(null);
+
+export function useGameChat(): GameChat {
+  const context = useContext(GameChatContext);
+  if (!context) {
+    throw new Error('useGameChat must be used within a GameChatContext provider');
+  }
+  return context;
+}
+
+export function useGameChatBuilder(sessionId: string): GameChat {
+  const chatHub = useChatHub();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const startedSessionId = useRef<string | null>(null);
-  const previousLocation = useRef<string | null>(null);
+  const hasStarted = useRef(false);
   const activeNarratorMessageId = useRef<string | null>(null);
+
+  useChatMarkers(setMessages, activeNarratorMessageId);
+
+  const subscribeToStream = useCallback(
+    (
+      streamResult: IStreamResult<string>,
+      onReceiveToken: (token: string) => void,
+      onComplete: (() => void) | undefined,
+    ) => {
+      setIsStreaming(true);
+      let subscription: ISubscription<string> | null = null;
+
+      const subscriber: IStreamSubscriber<string> = {
+        complete() {
+          subscription?.dispose();
+          setIsStreaming(false);
+          onComplete?.();
+        },
+        error(err: unknown) {
+          console.error('Error receiving stream response', err);
+          subscription?.dispose();
+          setIsStreaming(false);
+          onComplete?.();
+        },
+        next: onReceiveToken,
+      };
+
+      subscription = streamResult.subscribe(subscriber);
+    },
+    [],
+  );
 
   const appendTokenToActiveNarrationMessage = (id: string, token: string) => {
     setMessages((current) =>
@@ -56,77 +72,33 @@ export function useGameChat(sessionId: string): GameChat {
     );
   };
 
-  const appendChatMarker = (text: string, variant: ChatMarkerVariant) => {
-    const marker: ChatMessage = { id: crypto.randomUUID(), role: 'marker', text, variant };
-    setMessages((current) => {
-      const insertIndex = activeNarratorMessageId.current
-        ? current.findIndex((m) => m.id === activeNarratorMessageId.current)
-        : -1;
-      if (insertIndex === -1) {
-        return [...current, marker];
-      }
-      return [...current.slice(0, insertIndex), marker, ...current.slice(insertIndex)];
-    });
-  };
-
-  useEffect(
-    () =>
-      gameEventBus.on('SceneSnapshot', (scene) => {
-        const key = locationKey(scene);
-        if (previousLocation.current !== null && key !== previousLocation.current) {
-          appendChatMarker(formatLocation(scene), 'location');
-        }
-        previousLocation.current = key;
-      }),
-    [],
-  );
-
-  useEffect(
-    () =>
-      gameEventBus.on('CombatStarted', () => appendChatMarker('Combat started', 'combat-start')),
-    [],
-  );
-
-  useEffect(
-    () =>
-      gameEventBus.on('CombatResolved', (outcome) =>
-        appendChatMarker(OUTCOME_MARKER[outcome], 'combat-end'),
-      ),
-    [],
-  );
-
   useEffect(() => {
-    if (!isConnected || startedSessionId.current === sessionId) {
+    if (hasStarted.current) {
       return;
     }
 
-    startedSessionId.current = sessionId;
-    previousLocation.current = null;
+    hasStarted.current = true;
 
     const stored = loadStoredMessages(sessionId);
+
     if (stored && stored.length > 0) {
       setMessages(stored);
       return;
     }
 
-    setMessages([]);
-
     const narratorMessageId = crypto.randomUUID();
-
     setMessages([{ id: narratorMessageId, role: 'narrator', segments: [] }]);
 
     activeNarratorMessageId.current = narratorMessageId;
 
-    setIsStreaming(true);
-
-    streamOpening(
+    subscribeToStream(
+      chatHub.receiveOpening(),
       (token) => appendTokenToActiveNarrationMessage(narratorMessageId, token),
       () => {
         activeNarratorMessageId.current = null;
-        setIsStreaming(false);
       },
     );
-  }, [isConnected, sessionId, streamOpening]);
+  }, [chatHub, sessionId, subscribeToStream]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -150,51 +122,21 @@ export function useGameChat(sessionId: string): GameChat {
 
     activeNarratorMessageId.current = narratorMessageId;
 
-    setIsStreaming(true);
-
     stream(
       (token) => appendTokenToActiveNarrationMessage(narratorMessageId, token),
       () => {
         activeNarratorMessageId.current = null;
-        setIsStreaming(false);
       },
     );
   };
 
-  const submitChatMessage = (text: string) => {
-    if (isStreaming) {
-      return;
-    }
-    startTurn(text, (onToken, onComplete) => streamChat(text, onToken, onComplete));
+  const submitNarratedTurn = (displayText: string | null, stream: IStreamResult<string>) => {
+    startTurn(displayText, (onToken, onComplete) => subscribeToStream(stream, onToken, onComplete));
   };
-
-  const submitFlee = () => {
-    if (isStreaming) {
-      return;
-    }
-    startTurn(null, (onToken, onComplete) => streamFlee(onToken, onComplete));
-  };
-
-  const submitEncounterAction = (action: PlayerEncounterAction, displayText: string) => {
-    if (isStreaming) {
-      return;
-    }
-    startTurn(displayText, (onToken, onComplete) =>
-      streamEncounterAction(action, onToken, onComplete),
-    );
-  };
-
-  const submitCombatAction = (action: PlayerCombatAction) => resolveCombatAction(action);
 
   return {
     messages,
-    isConnected,
-    connectionStatus,
     isStreaming,
-    submitChatMessage,
-    submitEncounterAction,
-    submitFlee,
-    submitCombatAction,
-    endSession,
+    submitNarratedTurn,
   };
 }

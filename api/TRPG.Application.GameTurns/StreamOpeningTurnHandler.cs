@@ -1,5 +1,3 @@
-using TRPG.Application.GameSessions;
-
 namespace TRPG.Application.GameTurns;
 
 internal class StreamOpeningTurnHandler(GameTurnStreamer streamer)

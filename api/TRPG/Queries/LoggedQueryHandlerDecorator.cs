@@ -25,7 +25,7 @@ internal sealed class LoggedQueryHandlerDecorator<TQuery, TResult>(
         }
         catch (Exception exception)
         {
-            logger.LogDebug(
+            logger.LogError(
                 exception,
                 "Failed {QueryType} after {ElapsedMilliseconds} ms",
                 typeof(TQuery).Name,

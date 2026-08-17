@@ -1,3 +1,4 @@
+import { HubConnectionState, type IStreamResult } from '@microsoft/signalr';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DoorOpen, FlaskConical, Shield, Sparkles, Swords, type LucideIcon } from 'lucide-react';
@@ -5,8 +6,8 @@ import { motion } from 'motion/react';
 import { forwardRef, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import type {
+  AbilityAvailabilityResponse,
   AbilityCategory,
-  AbilityAvailability,
   AbilitySummary,
   CombatantState,
   ConsumableSummary,
@@ -17,17 +18,20 @@ import {
   handleGetCreatureConsumables,
   handleGetPlayerFightAbilities,
 } from '@/api/client/msw.gen';
+import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import type { PlayerCombatAction } from '@/features/combat/combat-action';
 import type { CombatRoundEvent } from '@/features/combat/combat-round-event';
 import { AbilityPicker } from '@/features/combat/components/ability-picker';
 import { CombatantCard } from '@/features/combat/components/combatant-card';
 import { ItemPicker } from '@/features/combat/components/item-picker';
 import { PlayerIdContext } from '@/features/game/contexts/scene-context';
-import { GameChatContext } from '@/features/game/game-chat-context';
-import type { GameChat } from '@/features/game/hooks/use-game-chat';
+import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
+import {
+  GameHubConnectionContext,
+  type GameHubConnection,
+} from '@/features/game/hooks/use-game-hub-connection';
 import { gameEventBus } from '@/lib/game-event-bus';
 
 import { CombatDialog } from './combat-dialog';
@@ -174,7 +178,7 @@ const abilities: AbilitySummary[] = [
   },
 ];
 
-const availability: AbilityAvailability[] = abilities.map((ability) => ({
+const availability: AbilityAvailabilityResponse[] = abilities.map((ability) => ({
   name: ability.name,
   isUsable: true,
   reason: null,
@@ -217,7 +221,7 @@ function WorkbenchProviders({
   }, [initialFight]);
 
   const resolveAction = useCallback(
-    (action: PlayerCombatAction) =>
+    (action: SimulatedCombatAction) =>
       new Promise<void>((resolve) => {
         window.setTimeout(() => {
           setFight((current) => {
@@ -231,15 +235,30 @@ function WorkbenchProviders({
     [],
   );
 
+  const chatHub: IChatHub = {
+    endSession: async () => undefined,
+    receiveOpening: noopStream,
+    sendChat: noopStream,
+    sendWait: noopStream,
+    sendFlee: noopStream,
+    resolveUseAbilityCombatAction: (targetId, abilityName) =>
+      resolveAction({ type: 'UseAbilityAction', targetId, abilityName }),
+    resolveUseItemCombatAction: (itemName) => resolveAction({ type: 'UseItemAction', itemName }),
+    resolveAttackEncounterAction: noopStream,
+    resolveEvadeEncounterAction: noopStream,
+    resolveRetreatEncounterAction: noopStream,
+  };
+
+  const hubConnection: GameHubConnection = {
+    connectionStatus: HubConnectionState.Connected,
+    connectionError: false,
+    chatHub,
+  };
+
   const gameChat: GameChat = {
     messages: [],
-    isConnected: true,
-    connectionStatus: 'connected',
     isStreaming,
-    submitChatMessage: () => undefined,
-    submitEncounterAction: () => undefined,
-    submitCombatAction: resolveAction,
-    submitFlee: () => {
+    submitNarratedTurn: () => {
       setIsStreaming(true);
       window.setTimeout(() => {
         gameEventBus.emit('CombatUpdated', {
@@ -250,16 +269,17 @@ function WorkbenchProviders({
         setIsStreaming(false);
       }, 650);
     },
-    endSession: async () => undefined,
   };
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <PlayerIdContext.Provider value={player.id}>
-          <GameChatContext.Provider value={{ ...gameChat, isStreaming }}>
-            <div className="bg-background w-[min(100vw-2rem,42rem)] p-4">{children}</div>
-          </GameChatContext.Provider>
+          <GameHubConnectionContext.Provider value={hubConnection}>
+            <GameChatContext.Provider value={gameChat}>
+              <div className="bg-background w-[min(100vw-2rem,42rem)] p-4">{children}</div>
+            </GameChatContext.Provider>
+          </GameHubConnectionContext.Provider>
         </PlayerIdContext.Provider>
       </TooltipProvider>
     </QueryClientProvider>
@@ -285,7 +305,15 @@ function CombatDialogStory({ fight, isStreaming = false }: CombatDialogStoryProp
   );
 }
 
-function simulateRound(fight: CombatantState[], action: PlayerCombatAction) {
+type SimulatedCombatAction =
+  | { type: 'UseAbilityAction'; targetId: string; abilityName: string }
+  | { type: 'UseItemAction'; itemName: string };
+
+function noopStream(): IStreamResult<string> {
+  return { subscribe: () => ({ dispose: () => undefined }) };
+}
+
+function simulateRound(fight: CombatantState[], action: SimulatedCombatAction) {
   const playerAction = (combatant: CombatantState) => {
     if (action.type === 'UseItemAction') {
       const item = consumables.find((entry) => entry.name === action.itemName);

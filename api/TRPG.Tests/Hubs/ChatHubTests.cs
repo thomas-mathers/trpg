@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Combat;
-using TRPG.Combat.Requests;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Responses;
@@ -487,8 +485,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act
         await gameHub.InvokeAsync(
-            "ResolveCombatAction",
-            new UseAbilityCombatActionRequest(enemy.Id, "Strike"),
+            "ResolveUseAbilityCombatAction",
+            enemy.Id,
+            "Strike",
             TestContext.Current.CancellationToken
         );
 
@@ -588,8 +587,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HubException>(() =>
             gameHub.InvokeAsync(
-                "ResolveCombatAction",
-                new UseAbilityCombatActionRequest(Guid.NewGuid(), "Strike"),
+                "ResolveUseAbilityCombatAction",
+                Guid.NewGuid(),
+                "Strike",
                 TestContext.Current.CancellationToken
             )
         );
@@ -612,8 +612,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HubException>(() =>
             gameHub.InvokeAsync(
-                "ResolveCombatAction",
-                new UseAbilityCombatActionRequest(enemy.Id, "Nonexistent Move"),
+                "ResolveUseAbilityCombatAction",
+                enemy.Id,
+                "Nonexistent Move",
                 TestContext.Current.CancellationToken
             )
         );

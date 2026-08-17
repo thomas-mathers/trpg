@@ -1,4 +1,3 @@
-using TRPG.Application.Common.Events;
 using TRPG.Application.Encounters.Events;
 using TRPG.Encounters.Responses;
 

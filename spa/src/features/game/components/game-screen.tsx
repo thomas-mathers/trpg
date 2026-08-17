@@ -7,19 +7,19 @@ import { CharacterDialog } from '@/features/character/components/character-dialo
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-encounter-state';
 
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
-import {
-  gameEventBus,
-  type ConnectionStatus,
-  type QuestDialogRequested,
-} from '../../../lib/game-event-bus';
+import { gameEventBus, type QuestDialogRequested } from '../../../lib/game-event-bus';
 import { clearStoredMessages } from '../../../lib/session-storage';
 import { InventoryDialog } from '../../inventory/components/inventory-dialog';
 import { QuestDialog } from '../../quests/components/quest-dialog';
 import { QuestJournalDialog } from '../../quests/components/quest-journal-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
 import { usePlayerId, useScene } from '../contexts/scene-context';
-import { GameChatContext } from '../game-chat-context';
-import { useGameChat } from '../hooks/use-game-chat';
+import { GameChatContext, useGameChatBuilder } from '../hooks/use-game-chat';
+import {
+  GameHubConnectionContext,
+  useConnectToHub,
+  useGameHubConnection,
+} from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { SceneProvider } from '../providers/scene-provider';
 import { ConnectionLostDialog } from './connection-lost-dialog';
@@ -35,7 +35,7 @@ type OpenDialog = 'character' | 'inventory' | 'questJournal' | 'skillTree' | nul
 function GameScreen() {
   const navigate = useNavigate();
   const { sessionId } = useParams({ from: '/session/$sessionId' });
-  const gameChat = useGameChat(sessionId);
+  const hubConnection = useConnectToHub(sessionId);
   const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
   const isActionBlocked = isInCombat || hasActiveEncounter;
@@ -65,35 +65,43 @@ function GameScreen() {
 
   const handleExitToMenu = async () => {
     clearStoredMessages(sessionId);
-    await gameChat.endSession();
+    if (hubConnection.chatHub) {
+      try {
+        await hubConnection.chatHub.endSession();
+      } catch (e) {
+        console.error('Error ending session', e);
+      }
+    }
     navigate({ to: '/' });
   };
 
   return (
-    <GameChatContext.Provider value={gameChat}>
+    <GameHubConnectionContext.Provider value={hubConnection}>
       <SceneProvider key={sessionId} sessionId={sessionId}>
-        <GameScreenContent
-          isInCombat={isActionBlocked}
-          isNearbyOpen={isNearbyOpen}
-          openDialog={openDialog}
-          isConnectionLostDialogOpen={isConnectionLostDialogOpen}
-          connectionStatus={gameChat.connectionStatus}
-          onNearbyOpenChange={setIsNearbyOpen}
-          onOpenDialog={setOpenDialog}
-          onQuit={handleExitToMenu}
-          onConnectionLostClose={handleReturnToMenu}
-        />
+        {hubConnection.chatHub && (
+          <GameScreenContent
+            sessionId={sessionId}
+            isInCombat={isActionBlocked}
+            isNearbyOpen={isNearbyOpen}
+            openDialog={openDialog}
+            isConnectionLostDialogOpen={isConnectionLostDialogOpen}
+            onNearbyOpenChange={setIsNearbyOpen}
+            onOpenDialog={setOpenDialog}
+            onQuit={handleExitToMenu}
+            onConnectionLostClose={handleReturnToMenu}
+          />
+        )}
       </SceneProvider>
-    </GameChatContext.Provider>
+    </GameHubConnectionContext.Provider>
   );
 }
 
 interface GameScreenContentProps {
+  sessionId: string;
   isInCombat: boolean;
   isNearbyOpen: boolean;
   openDialog: OpenDialog;
   isConnectionLostDialogOpen: boolean;
-  connectionStatus: ConnectionStatus;
   onNearbyOpenChange: (open: boolean) => void;
   onOpenDialog: (dialog: OpenDialog) => void;
   onQuit: () => void;
@@ -101,16 +109,18 @@ interface GameScreenContentProps {
 }
 
 function GameScreenContent({
+  sessionId,
   isInCombat,
   isNearbyOpen,
   openDialog,
   isConnectionLostDialogOpen,
-  connectionStatus,
   onNearbyOpenChange,
   onOpenDialog,
   onQuit,
   onConnectionLostClose,
 }: GameScreenContentProps) {
+  const { connectionStatus } = useGameHubConnection();
+  const gameChat = useGameChatBuilder(sessionId);
   const playerId = usePlayerId();
   const scene = useScene();
   const queryClient = useQueryClient();
@@ -144,70 +154,72 @@ function GameScreenContent({
   );
 
   return (
-    <SidebarProvider
-      open={isNearbyOpen}
-      onOpenChange={onNearbyOpenChange}
-      className="h-screen flex-col"
-    >
-      <div className="border-b px-4 py-2">
-        <StatusBar
-          connectionStatus={connectionStatus}
-          isInCombat={isInCombat}
-          controls={
-            <>
-              {!isInCombat && <NearbyToggleButton />}
-              <GameMenu
-                onOpenCharacterDialog={() => onOpenDialog('character')}
-                onOpenInventoryDialog={() => onOpenDialog('inventory')}
-                onOpenQuestJournal={() => onOpenDialog('questJournal')}
-                onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
-                onQuit={onQuit}
-              />
-            </>
-          }
-        />
-      </div>
-
-      <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
-        <SidebarInset>
-          <GameChat />
-        </SidebarInset>
-
-        <NearbySidebar onOpenQuestJournal={() => onOpenDialog('questJournal')} />
-      </div>
-
-      {playerId && (
-        <>
-          <CharacterDialog open={openDialog === 'character'} onClose={() => onOpenDialog(null)} />
-          <InventoryDialog
-            playerId={playerId}
-            open={openDialog === 'inventory'}
-            onClose={() => onOpenDialog(null)}
+    <GameChatContext.Provider value={gameChat}>
+      <SidebarProvider
+        open={isNearbyOpen}
+        onOpenChange={onNearbyOpenChange}
+        className="h-screen flex-col"
+      >
+        <div className="border-b px-4 py-2">
+          <StatusBar
+            connectionStatus={connectionStatus}
+            isInCombat={isInCombat}
+            controls={
+              <>
+                {!isInCombat && <NearbyToggleButton />}
+                <GameMenu
+                  onOpenCharacterDialog={() => onOpenDialog('character')}
+                  onOpenInventoryDialog={() => onOpenDialog('inventory')}
+                  onOpenQuestJournal={() => onOpenDialog('questJournal')}
+                  onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
+                  onQuit={onQuit}
+                />
+              </>
+            }
           />
-          <SkillTreeDialog
-            playerId={playerId}
-            open={openDialog === 'skillTree'}
-            onClose={() => onOpenDialog(null)}
-          />
-          <QuestDialog
-            playerId={playerId}
-            quest={questDialog}
-            onClose={() => setQuestDialog(null)}
-          />
-          {scene && (
-            <QuestJournalDialog
+        </div>
+
+        <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
+          <SidebarInset>
+            <GameChat />
+          </SidebarInset>
+
+          <NearbySidebar onOpenQuestJournal={() => onOpenDialog('questJournal')} />
+        </div>
+
+        {playerId && (
+          <>
+            <CharacterDialog open={openDialog === 'character'} onClose={() => onOpenDialog(null)} />
+            <InventoryDialog
               playerId={playerId}
-              worldId={scene.worldId}
-              open={openDialog === 'questJournal'}
+              open={openDialog === 'inventory'}
               onClose={() => onOpenDialog(null)}
             />
-          )}
-        </>
-      )}
+            <SkillTreeDialog
+              playerId={playerId}
+              open={openDialog === 'skillTree'}
+              onClose={() => onOpenDialog(null)}
+            />
+            <QuestDialog
+              playerId={playerId}
+              quest={questDialog}
+              onClose={() => setQuestDialog(null)}
+            />
+            {scene && (
+              <QuestJournalDialog
+                playerId={playerId}
+                worldId={scene.worldId}
+                open={openDialog === 'questJournal'}
+                onClose={() => onOpenDialog(null)}
+              />
+            )}
+          </>
+        )}
 
-      <ConnectionLostDialog open={isConnectionLostDialogOpen} onClose={onConnectionLostClose} />
-      <GameNotifications />
-    </SidebarProvider>
+        <ConnectionLostDialog open={isConnectionLostDialogOpen} onClose={onConnectionLostClose} />
+        <GameNotifications />
+      </SidebarProvider>
+    </GameChatContext.Provider>
   );
 }
 

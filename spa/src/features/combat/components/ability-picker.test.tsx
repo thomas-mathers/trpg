@@ -4,7 +4,7 @@ import { HttpResponse } from 'msw';
 import { byRole, byText } from 'testing-library-selector';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { AbilityAvailability, AbilityCategory, AbilitySummary } from '@/api/client';
+import type { AbilityAvailabilityResponse, AbilityCategory, AbilitySummary } from '@/api/client';
 import { handleGetCreatureAbilities, handleGetPlayerFightAbilities } from '@/api/client/msw.gen';
 import { gameEventBus } from '@/lib/game-event-bus';
 import { server } from '@/test/server';
@@ -39,7 +39,10 @@ function ability(
   };
 }
 
-function mockAbilityData(abilities: AbilitySummary[], availability: AbilityAvailability[] = []) {
+function mockAbilityData(
+  abilities: AbilitySummary[],
+  availability: AbilityAvailabilityResponse[] = [],
+) {
   server.use(
     handleGetCreatureAbilities({ body: abilities }),
     handleGetPlayerFightAbilities({ body: availability }),
@@ -154,7 +157,7 @@ describe('AbilityPicker', () => {
       handleGetCreatureAbilities({ body: [selected] }),
       handleGetPlayerFightAbilities(() => {
         requestCount += 1;
-        return HttpResponse.json<AbilityAvailability[]>([
+        return HttpResponse.json<AbilityAvailabilityResponse[]>([
           { name: selected.name, isUsable: requestCount < 2, reason: 'On cooldown.' },
         ]);
       }),

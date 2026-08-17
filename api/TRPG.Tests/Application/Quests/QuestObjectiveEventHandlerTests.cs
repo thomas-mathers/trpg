@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Quests;
 using TRPG.Application.Quests.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;

@@ -1,4 +1,3 @@
-using TRPG.Application.Common.Events;
 using TRPG.Application.GameTurns.Events;
 using TRPG.GameSessions.Mappers;
 

@@ -8,13 +8,11 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
-using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Domain.Models;
 

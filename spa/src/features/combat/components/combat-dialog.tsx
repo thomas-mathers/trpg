@@ -130,7 +130,8 @@ export function CombatDialog() {
     combatFlashes,
     isRevealed,
     disabled,
-    submitCombatAction,
+    submitUseAbilityCombatAction,
+    submitUseItemCombatAction,
     submitFlee,
   } = useCombat();
   const playerId = usePlayerId();
@@ -210,20 +211,16 @@ export function CombatDialog() {
 
   function chooseTarget(targetId: string) {
     if (!pendingAbility) return;
-    submitCombatAction({ type: 'UseAbilityAction', targetId, abilityName: pendingAbility.name });
+    submitUseAbilityCombatAction(targetId, pendingAbility.name);
     setPendingAbility(null);
   }
 
   function chooseSupportAbility(ability: AbilitySummary) {
-    submitCombatAction({
-      type: 'UseAbilityAction',
-      targetId: player!.id,
-      abilityName: ability.name,
-    });
+    submitUseAbilityCombatAction(player!.id, ability.name);
   }
 
   function chooseItem(item: ConsumableSummary) {
-    submitCombatAction({ type: 'UseItemAction', itemName: item.name });
+    submitUseItemCombatAction(item.name);
   }
 
   function renderMode() {

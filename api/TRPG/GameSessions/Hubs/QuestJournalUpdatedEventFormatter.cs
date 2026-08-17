@@ -1,4 +1,3 @@
-using TRPG.Application.Common.Events;
 using TRPG.Application.Quests.Events;
 
 namespace TRPG.GameSessions.Hubs;

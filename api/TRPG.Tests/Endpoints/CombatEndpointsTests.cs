@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Combat.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Responses;

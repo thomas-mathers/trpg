@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Serialization;
 using TRPG.Data;
 using TRPG.Domain.Models;
-using TRPG.Extensions;
 using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
 

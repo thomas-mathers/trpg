@@ -14,7 +14,7 @@
     "lint": "oxlint",
     "fmt": "oxfmt . --write",
     "fmt:check": "oxfmt . --check",
-    "generate-client": "dotnet build ../api/TRPG/TRPG.csproj -v minimal && dotnet build ../api/TRPG/TRPG.csproj -v minimal --no-restore -t:GenerateOpenApiDocuments && openapi-ts",
+    "generate-client": "dotnet build ../api/TRPG/TRPG.csproj -v minimal && dotnet build ../api/TRPG/TRPG.csproj -v minimal --no-restore -t:GenerateOpenApiDocuments && openapi-ts && dotnet tool run dotnet-tsrts --project ../api/TRPG/TRPG.csproj --output ./src/api/signalr-client",
     "preview": "vite preview"
   },
   "dependencies": {

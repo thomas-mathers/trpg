@@ -1,5 +1,4 @@
 using TRPG.Abilities.Mappers;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Events;
 using TRPG.Creatures.ClientModels;
 

@@ -10,7 +10,6 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
 using TRPG.Data;
-using TRPG.Extensions;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests;

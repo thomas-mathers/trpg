@@ -3,7 +3,6 @@ import { useEffect, useReducer, useState } from 'react';
 import { toast } from 'sonner';
 
 import type { CombatantState } from '@/api/client';
-import type { PlayerCombatAction } from '@/features/combat/combat-action';
 import type { TerminalCombatOutcome } from '@/features/combat/combat-outcome';
 import type {
   CombatActionEvent,
@@ -13,7 +12,8 @@ import type {
   CombatUpdatePayload,
 } from '@/features/combat/combat-round-event';
 import { GameToast } from '@/features/game/components/game-toast';
-import { useCombatChatActions } from '@/features/game/game-chat-context';
+import { useGameChat } from '@/features/game/hooks/use-game-chat';
+import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 import { gameEventBus } from '@/lib/game-event-bus';
 
@@ -304,11 +304,9 @@ function prefersReducedMotion() {
 
 export function useCombat() {
   const [state, dispatch] = useReducer(combatReducer, initialState);
-  const {
-    isStreaming,
-    submitFlee,
-    submitCombatAction: resolveCombatAction,
-  } = useCombatChatActions();
+  const { isStreaming, submitNarratedTurn } = useGameChat();
+  const chatHub = useChatHub();
+  const submitFlee = () => submitNarratedTurn(null, chatHub.sendFlee());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isRevealed = useDelayedReveal(!!state.fight && !isStreaming);
 
@@ -344,9 +342,9 @@ export function useCombat() {
     dispatch({ type: 'RESOLVED' });
   }, [state.combatOutcome]);
 
-  const submitCombatAction = (action: PlayerCombatAction) => {
+  const runCombatAction = (action: Promise<void>) => {
     setIsSubmitting(true);
-    resolveCombatAction(action)
+    action
       .catch((error: unknown) => {
         const description =
           error instanceof Error ? error.message : 'Combat action could not be resolved.';
@@ -362,6 +360,12 @@ export function useCombat() {
       .finally(() => setIsSubmitting(false));
   };
 
+  const submitUseAbilityCombatAction = (targetId: string, abilityName: string) =>
+    runCombatAction(chatHub.resolveUseAbilityCombatAction(targetId, abilityName));
+
+  const submitUseItemCombatAction = (itemName: string) =>
+    runCombatAction(chatHub.resolveUseItemCombatAction(itemName));
+
   const isResolvingRound = state.isPlayingBack || isSubmitting;
   const disabled = isResolvingRound || isStreaming;
 
@@ -373,7 +377,8 @@ export function useCombat() {
     combatFlashes: state.combatFlashes,
     isRevealed,
     disabled,
-    submitCombatAction,
+    submitUseAbilityCombatAction,
+    submitUseItemCombatAction,
     submitFlee,
   };
 }

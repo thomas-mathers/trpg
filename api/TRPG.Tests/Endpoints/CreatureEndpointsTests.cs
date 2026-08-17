@@ -10,7 +10,6 @@ using TRPG.Creatures.Requests;
 using TRPG.Creatures.Responses;
 using TRPG.Data;
 using TRPG.Domain.Models;
-using TRPG.Extensions;
 using TRPG.Inventory.Requests;
 using TRPG.Inventory.Responses;
 using TRPG.Tests.Helpers;

@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using TRPG.Application.Combat;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Queries;

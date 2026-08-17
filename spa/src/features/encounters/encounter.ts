@@ -27,13 +27,4 @@ export type EncounterResolutionOutcome =
   | 'RetreatFailed'
   | 'Attacked';
 
-export type PlayerEncounterAction =
-  | { type: 'AttackEncounterAction' }
-  | { type: 'EvadeEncounterAction' }
-  | { type: 'RetreatEncounterAction' };
-
-export const encounterActionByName: Record<string, PlayerEncounterAction> = {
-  Attack: { type: 'AttackEncounterAction' },
-  Evade: { type: 'EvadeEncounterAction' },
-  Retreat: { type: 'RetreatEncounterAction' },
-};
+export type EncounterActionName = 'Attack' | 'Evade' | 'Retreat';

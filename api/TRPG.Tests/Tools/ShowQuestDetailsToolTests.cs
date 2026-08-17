@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Quests;
 using TRPG.Application.Quests.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
