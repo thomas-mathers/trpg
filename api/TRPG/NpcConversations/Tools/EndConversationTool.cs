@@ -35,19 +35,19 @@ internal class EndConversationTool(
         [Description(
             "Mandatory check, not optional: any new fact the player stated about themselves that should be remembered indefinitely — their name, family members (spouse, children, pets), hometown, allegiance, and similar. Example: the player says 'I have a dog named Noah, a wife named Wakako, and a son named Leo' — that is three separate durable facts to add, even though you'll also mention it in summary. Do not include anything about the NPC, or anything already covered by quest or reputation state. Only omit if the player truly revealed nothing new about themselves this conversation."
         )]
-            IReadOnlyCollection<string> durableFactsAdded = null!,
+            IReadOnlyCollection<string>? durableFactsAdded = null,
         [Description(
             "The numbers of durable facts, from this conversation's start_conversation DurableFacts list, that the player has now contradicted and should be retracted. Omit if none were contradicted."
         )]
-            IReadOnlyCollection<int> durableFactsRemoved = null!,
+            IReadOnlyCollection<int>? durableFactsRemoved = null,
         [Description(
             "Mandatory check, not optional: any new unresolved thread with the player — a promise made, a question left unanswered, something to circle back to next time. Only for things with a natural resolution, not permanent facts. Only omit if nothing was left pending this conversation."
         )]
-            IReadOnlyCollection<string> openThreadsAdded = null!,
+            IReadOnlyCollection<string>? openThreadsAdded = null,
         [Description(
             "The numbers of open threads, from this conversation's start_conversation OpenThreads list, that were resolved or addressed this conversation. Omit if none were resolved."
         )]
-            IReadOnlyCollection<int> openThreadsRemoved = null!,
+            IReadOnlyCollection<int>? openThreadsRemoved = null,
         CancellationToken cancellationToken = default
     )
     {
