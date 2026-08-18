@@ -35,8 +35,14 @@ internal static class EmploymentAssigner
 
     private static readonly DayOfWeek[] AllWeekdays = Enum.GetValues<DayOfWeek>();
 
-    private static readonly Dictionary<CreatureJobAction, BuildingType> RequiredBuildingTypeByAction =
-        new() { [CreatureJobAction.Pray] = BuildingType.Temple, [CreatureJobAction.Study] = BuildingType.Library };
+    private static readonly Dictionary<
+        CreatureJobAction,
+        BuildingType
+    > RequiredBuildingTypeByAction = new()
+    {
+        [CreatureJobAction.Pray] = BuildingType.Temple,
+        [CreatureJobAction.Study] = BuildingType.Library,
+    };
 
     private record DayOffNeed(
         IReadOnlyList<Guid> ParticipantIds,
