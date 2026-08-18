@@ -43,8 +43,9 @@ public class GameTurnRunner
     public IAsyncEnumerable<string> StreamWait(
         GameTurnSession session,
         int hours,
+        int minutes,
         CancellationToken cancellationToken = default
-    ) => _streamWaitTurn.Handle(session, hours, cancellationToken);
+    ) => _streamWaitTurn.Handle(session, hours, minutes, cancellationToken);
 
     public IAsyncEnumerable<string> StreamFlee(
         GameTurnSession session,

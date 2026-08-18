@@ -15,6 +15,7 @@ interface GameMenuProps {
   onOpenInventoryDialog: () => void;
   onOpenQuestJournal: () => void;
   onOpenSkillTreeDialog: () => void;
+  onOpenWaitDialog: () => void;
   onQuit: () => void;
 }
 
@@ -23,6 +24,7 @@ export function GameMenu({
   onOpenInventoryDialog,
   onOpenQuestJournal,
   onOpenSkillTreeDialog,
+  onOpenWaitDialog,
   onQuit,
 }: GameMenuProps) {
   const scene = useScene();
@@ -46,6 +48,9 @@ export function GameMenu({
         </DropdownMenuItem>
         <DropdownMenuItem disabled={!scene} onClick={onOpenSkillTreeDialog}>
           Skills
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={!scene} onClick={onOpenWaitDialog}>
+          Wait
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onQuit}>Quit</DropdownMenuItem>

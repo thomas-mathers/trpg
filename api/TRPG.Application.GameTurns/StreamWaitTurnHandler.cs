@@ -18,25 +18,32 @@ internal class StreamWaitTurnHandler(
     public IAsyncEnumerable<string> Handle(
         GameTurnSession session,
         int hours,
+        int minutes,
         CancellationToken cancellationToken = default
-    ) => streamer.StreamTurn(session, ct => ResolveTurn(session, hours, ct), cancellationToken);
+    ) =>
+        streamer.StreamTurn(
+            session,
+            ct => ResolveTurn(session, hours, minutes, ct),
+            cancellationToken
+        );
 
     private async Task<GameTurnPrompt> ResolveTurn(
         GameTurnSession session,
         int hours,
+        int minutes,
         CancellationToken cancellationToken
     )
     {
-        if (hours <= 0)
+        if (hours < 0 || minutes < 0 || (hours == 0 && minutes == 0))
         {
-            return new GameTurnPrompt.Reply("The number of hours to wait must be positive.");
+            return new GameTurnPrompt.Reply("The wait duration must be positive.");
         }
 
         await advanceTime.Handle(
             new AdvanceTimeCommand
             {
                 SessionId = session.SessionId,
-                Delta = hours * GameClock.RealTimePerInGameHour,
+                Delta = GameClock.RealTimePerInGameHour * (hours + minutes / 60.0),
             },
             cancellationToken
         );
@@ -50,8 +57,17 @@ internal class StreamWaitTurnHandler(
             cancellationToken
         );
 
+        var elapsed = string.Join(
+            " and ",
+            new[]
+            {
+                hours > 0 ? $"{hours} hour(s)" : null,
+                minutes > 0 ? $"{minutes} minute(s)" : null,
+            }.Where(part => part != null)
+        );
+
         return new GameTurnPrompt.Narrate(
-            $"{hours} hour(s) have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns."
+            $"{elapsed} have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns."
         );
     }
 }

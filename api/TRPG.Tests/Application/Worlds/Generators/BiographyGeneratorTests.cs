@@ -156,7 +156,7 @@ public class BiographyGeneratorTests
         );
 
         // Assert
-        // GameClock's in-world day names, not .NET's â€” Monday and Tuesday are Ashday and Ironday
+        // GameClock's in-world day names, not .NET's - Monday and Tuesday are Ashday and Ironday
         Assert.Contains(
             "Their days off are Ashday and Ironday.",
             creature.Biography,
@@ -167,7 +167,7 @@ public class BiographyGeneratorTests
     [Fact]
     public void AssignBiographies_OmitsDaysOff_WhenCreatureIsUnemployed()
     {
-        // Arrange â€” unemployed adults get a SpecificDay job for every weekday, but that's not a "day off"
+        // Arrange - unemployed adults get a SpecificDay job for every weekday, but that's not a "day off"
         var creature = Builders.MakeCreature(
             _worldId,
             birthYear: 950,

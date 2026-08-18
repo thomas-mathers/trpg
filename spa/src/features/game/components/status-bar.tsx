@@ -17,11 +17,11 @@ const connectionStatusStyles: Record<HubConnectionState, { className: string; la
   [HubConnectionState.Connected]: { className: 'bg-green-500', label: 'Connected' },
   [HubConnectionState.Connecting]: {
     className: 'animate-pulse bg-amber-500',
-    label: 'Connectingâ€¦',
+    label: 'Connecting...',
   },
   [HubConnectionState.Reconnecting]: {
     className: 'animate-pulse bg-amber-500',
-    label: 'Reconnectingâ€¦',
+    label: 'Reconnecting...',
   },
   [HubConnectionState.Disconnecting]: { className: 'bg-destructive', label: 'Connection lost' },
   [HubConnectionState.Disconnected]: { className: 'bg-destructive', label: 'Connection lost' },
@@ -139,5 +139,5 @@ function ExperienceProgress({
 }
 
 function formatTime(scene: SceneSnapshot): string {
-  return `${scene.weekdayName}, ${scene.monthName} ${scene.day} â€” ${scene.hour}:00`;
+  return `${scene.weekdayName}, ${scene.monthName} ${scene.day} - ${scene.hour}:00`;
 }
