@@ -173,7 +173,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
-        // Assert Ã¢â‚¬â€ the wire date mirrors the in-game date, minus the internal DayOfWeek
+        // Assert - the wire date mirrors the in-game date, minus the internal DayOfWeek
         Assert.Equal(new SceneDateInfo(975, "Thawmoon", 14, "Stormday", 21), result.CurrentDate);
     }
 
@@ -343,7 +343,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_ComputesExperienceProgress_ForThePlayer()
     {
-        // Arrange Ã¢â‚¬â€ a single skill at level 2 contributes CalculateExperienceFromSkillLevel(2) = 2
+        // Arrange - a single skill at level 2 contributes CalculateExperienceFromSkillLevel(2) = 2
         // toward character level. Level 1 floor is CalculateExperienceFromLevel(1) = 0, next level
         // floor is CalculateExperienceFromLevel(2) = 2, so this sits at Current = 2, ToNextLevel = 2.
         _player.Level = 1;
@@ -377,7 +377,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Handle_UsesZeroExperienceProgress_ForNearbyCreatures_RegardlessOfSkillLevels()
     {
-        // Arrange Ã¢â‚¬â€ nearby creatures never accumulate tracked skill XP the way the player does, so
+        // Arrange - nearby creatures never accumulate tracked skill XP the way the player does, so
         // GetSceneQueryHandler doesn't query for it at all; a skill row here should have no effect.
         _nearbyCreature.Level = 1;
         _context.CreatureSkills.Add(

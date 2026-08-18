@@ -157,7 +157,7 @@ public class DamageCalculatorTests
     [Fact]
     public void CalculateDamage_AddsElementalWeaponDamage_AfterTheMatchingResistance()
     {
-        // Arrange â€” 10 physical damage plus 8 fixed fire damage against 25% fire resistance.
+        // Arrange - 10 physical damage plus 8 fixed fire damage against 25% fire resistance.
         var weapon = Builders.MakeWeapon(
             worldId: _worldId,
             minDamage: 10,

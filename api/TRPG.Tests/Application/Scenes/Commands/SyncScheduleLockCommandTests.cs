@@ -266,7 +266,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
     [Fact]
     public async Task Handle_LocksShop_WhenEveryWorkerIsOnADayOff()
     {
-        // Arrange ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the Work window covers this hour, but a higher-priority day-off job overrides it
+        // Arrange - the Work window covers this hour, but a higher-priority day-off job overrides it
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);

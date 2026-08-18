@@ -27,10 +27,11 @@ export type IChatHub = {
     sendChat(message: string): IStreamResult<string>;
     /**
     * @param hours Transpiled from int
+    * @param minutes Transpiled from int
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
-    sendWait(hours: number): IStreamResult<string>;
+    sendWait(hours: number, minutes: number): IStreamResult<string>;
     /**
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>

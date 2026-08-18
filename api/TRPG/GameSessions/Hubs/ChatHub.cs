@@ -24,7 +24,7 @@ public interface IChatHub
     Task EndSession();
     IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendWait(int hours, int minutes, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken);
     Task ResolveUseAbilityCombatAction(Guid targetId, string abilityName);
     Task ResolveUseItemCombatAction(string itemName);
@@ -105,8 +105,11 @@ internal sealed class ChatHub(
     public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken) =>
         gameTurnRunner.StreamChat(Session, message, cancellationToken);
 
-    public IAsyncEnumerable<string> SendWait(int hours, CancellationToken cancellationToken) =>
-        gameTurnRunner.StreamWait(Session, hours, cancellationToken);
+    public IAsyncEnumerable<string> SendWait(
+        int hours,
+        int minutes,
+        CancellationToken cancellationToken
+    ) => gameTurnRunner.StreamWait(Session, hours, minutes, cancellationToken);
 
     public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
         gameTurnRunner.StreamFlee(Session, cancellationToken);

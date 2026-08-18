@@ -29,8 +29,9 @@ import { GameNotifications } from './game-notifications';
 import { NearbySidebar } from './nearby-sidebar';
 import { NearbyToggleButton } from './nearby-toggle-button';
 import { StatusBar } from './status-bar';
+import { WaitDialog } from './wait-dialog';
 
-type OpenDialog = 'character' | 'inventory' | 'questJournal' | 'skillTree' | null;
+type OpenDialog = 'character' | 'inventory' | 'questJournal' | 'skillTree' | 'wait' | null;
 
 function GameScreen() {
   const navigate = useNavigate();
@@ -172,6 +173,7 @@ function GameScreenContent({
                   onOpenInventoryDialog={() => onOpenDialog('inventory')}
                   onOpenQuestJournal={() => onOpenDialog('questJournal')}
                   onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
+                  onOpenWaitDialog={() => onOpenDialog('wait')}
                   onQuit={onQuit}
                 />
               </>
@@ -200,6 +202,7 @@ function GameScreenContent({
               open={openDialog === 'skillTree'}
               onClose={() => onOpenDialog(null)}
             />
+            <WaitDialog open={openDialog === 'wait'} onClose={() => onOpenDialog(null)} />
             <QuestDialog
               playerId={playerId}
               quest={questDialog}

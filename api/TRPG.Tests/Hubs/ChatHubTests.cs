@@ -294,7 +294,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act
         var narration = await Drain(
-            gameHub.StreamAsync<string>("SendWait", 3, TestContext.Current.CancellationToken)
+            gameHub.StreamAsync<string>("SendWait", 3, 0, TestContext.Current.CancellationToken)
         );
 
         // Assert
@@ -304,7 +304,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendWait_ReturnsAMessage_WhenHoursIsNotPositive()
+    public async Task SendWait_AdvancesTime_WhenOnlyMinutesAreProvided()
     {
         // Arrange
         var sessionId = await StartSession();
@@ -312,11 +312,29 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act
         var narration = await Drain(
-            gameHub.StreamAsync<string>("SendWait", 0, TestContext.Current.CancellationToken)
+            gameHub.StreamAsync<string>("SendWait", 0, 30, TestContext.Current.CancellationToken)
         );
 
         // Assert
-        Assert.Equal("The number of hours to wait must be positive.", narration);
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        var session = await GetGameSession(sessionId);
+        Assert.True(session.Playtime > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task SendWait_ReturnsAMessage_WhenDurationIsNotPositive()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        // Act
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendWait", 0, 0, TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal("The wait duration must be positive.", narration);
         var session = await GetGameSession(sessionId);
         Assert.Equal(TimeSpan.Zero, session.Playtime);
     }
