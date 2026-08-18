@@ -93,14 +93,14 @@ public class CreatureJobGeneratorTests
         // Act
         var job = CreatureJobGenerator.GenerateDayOff(
             _personId,
-            CreatureJobAction.Sit,
+            CreatureJobAction.Idle,
             locationId,
             DayOfWeek.Saturday,
             _worldId
         );
 
         // Assert
-        Assert.Equal(CreatureJobAction.Sit, job.Action);
+        Assert.Equal(CreatureJobAction.Idle, job.Action);
         Assert.Equal(8, job.StartHour);
         Assert.Equal(20, job.EndHour);
         Assert.Equal(DayOfWeek.Saturday, job.SpecificDay);

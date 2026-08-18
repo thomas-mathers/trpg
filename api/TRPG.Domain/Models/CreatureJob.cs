@@ -5,12 +5,8 @@ public enum CreatureJobAction
     Sleep,
     Work,
     Idle,
-    Patrol,
-    Socialize,
     Study,
     Pray,
-    Train,
-    Sit,
 }
 
 public class CreatureJob

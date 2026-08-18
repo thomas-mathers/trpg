@@ -12,7 +12,7 @@ export type Gender = "Male" | "Female";
 export type Profession = "Knight" | "Rogue" | "Ranger" | "Mage" | "Cleric" | "Mercenary" | "Alchemist" | "Blacksmith" | "Scholar" | "Merchant" | "Politician" | "StableMaster" | "Bartender" | "Guard" | "Baker" | "Innkeeper" | "Tailor" | "Carpenter" | "Jeweler" | "Homemaker" | "Unemployed";
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
-export type CreatureState = "Idle" | "Sleeping" | "Busy" | "Studying" | "Praying" | "Training" | "Sitting" | "Alerted" | "Dead";
+export type CreatureState = "Idle" | "Sleeping" | "Busy" | "Studying" | "Praying" | "Alerted" | "Dead";
 
 /** Transpiled from TRPG.GameSessions.Responses.DistrictType */
 export type DistrictType = "Residential" | "Scientific" | "CityCenter" | "CityEntrance" | "Governmental" | "HolySite" | "Encampment";

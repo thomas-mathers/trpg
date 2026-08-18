@@ -63,24 +63,6 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
-    public async Task Handle_UpdatesCreatureLocationAndState_ForTrainJob()
-    {
-        await AssertLocationIdUpdated(CreatureJobAction.Train, CreatureState.Training);
-    }
-
-    [Fact]
-    public async Task Handle_UpdatesCreatureLocationAndState_ForSitJob()
-    {
-        await AssertLocationIdUpdated(CreatureJobAction.Sit, CreatureState.Sitting);
-    }
-
-    [Fact]
-    public async Task Handle_LeavesCreatureUnchanged_ForPatrolJob()
-    {
-        await AssertLocationIdUnchanged(CreatureJobAction.Patrol);
-    }
-
-    [Fact]
     public async Task Handle_LeavesCreatureUnchanged_WhenCurrentlyAlerted()
     {
         // Arrange
@@ -108,12 +90,6 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
         );
         Assert.Equal(originalLocationId, updated!.LocationId);
         Assert.Equal(originalState, updated.State);
-    }
-
-    [Fact]
-    public async Task Handle_LeavesCreatureUnchanged_ForSocializeJob()
-    {
-        await AssertLocationIdUnchanged(CreatureJobAction.Socialize);
     }
 
     private async Task AssertLocationIdUpdated(
@@ -145,34 +121,5 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
         );
         Assert.Equal(locationId, updated!.LocationId);
         Assert.Equal(expectedState, updated.State);
-    }
-
-    private async Task AssertLocationIdUnchanged(CreatureJobAction action)
-    {
-        // Arrange
-        var originalLocationId = _creature.LocationId;
-        var originalState = _creature.State;
-
-        // Act
-        await _handler.Handle(
-            new ExecuteCreatureJobCommand
-            {
-                CreatureId = _creature.Id,
-                CurrentLocationId = _creature.LocationId,
-                CurrentState = _creature.State,
-                CreatureJobAction = action,
-                JobLocationId = Guid.NewGuid(),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(originalLocationId, updated!.LocationId);
-        Assert.Equal(originalState, updated.State);
     }
 }
