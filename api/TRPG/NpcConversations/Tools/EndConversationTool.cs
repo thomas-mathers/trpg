@@ -32,7 +32,23 @@ internal class EndConversationTool(
             "A concise, third-person, factual summary of the NPC's longer history with the player, updated to include this conversation."
         )]
             string summary,
-        CancellationToken cancellationToken
+        [Description(
+            "New durable facts the player stated about themselves that should be remembered indefinitely — name, origin, allegiance, and similar. Do not include anything about the NPC, or anything already covered by quest or reputation state. Omit if nothing new was learned."
+        )]
+            IReadOnlyCollection<string>? durableFactsAdded = null,
+        [Description(
+            "The numbers of durable facts, from this conversation's start_conversation DurableFacts list, that the player has now contradicted and should be retracted. Omit if none were contradicted."
+        )]
+            IReadOnlyCollection<int>? durableFactsRemoved = null,
+        [Description(
+            "New unresolved threads with the player — a promise, an unanswered question, something to circle back to. Only for things with a natural resolution, not permanent facts. Omit if nothing new is pending."
+        )]
+            IReadOnlyCollection<string>? openThreadsAdded = null,
+        [Description(
+            "The numbers of open threads, from this conversation's start_conversation OpenThreads list, that were resolved or addressed this conversation. Omit if none were resolved."
+        )]
+            IReadOnlyCollection<int>? openThreadsRemoved = null,
+        CancellationToken cancellationToken = default
     )
     {
         logger.LogInformation("[end_conversation] npcName={NpcName}", npcName);
@@ -47,6 +63,10 @@ internal class EndConversationTool(
                 NpcName = npcName,
                 ConversationSummary = conversationSummary,
                 Summary = summary,
+                DurableFactsAdded = durableFactsAdded ?? [],
+                DurableFactsRemoved = durableFactsRemoved ?? [],
+                OpenThreadsAdded = openThreadsAdded ?? [],
+                OpenThreadsRemoved = openThreadsRemoved ?? [],
             },
             cancellationToken
         );

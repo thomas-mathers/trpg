@@ -243,6 +243,48 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         // Assert
         Assert.Equal("", result.RuntimeState.ConversationHistory.Summary);
         Assert.Empty(result.RuntimeState.ConversationHistory.Recent);
+        Assert.Empty(result.RuntimeState.ConversationHistory.DurableFacts);
+        Assert.Empty(result.RuntimeState.ConversationHistory.OpenThreads);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesRetractedFactsAndResolvedThreads_AndRenumbersWhatRemains()
+    {
+        // Arrange
+        var history = new NpcConversationHistory
+        {
+            WorldId = WorldId,
+            CreatureId = _player.Id,
+            NpcId = _npc.Id,
+            DurableFacts =
+            [
+                new NpcDurableFact("Player's name is Elena", IsRetracted: true),
+                new NpcDurableFact("Player is from Millhaven"),
+                new NpcDurableFact("Player is allied with the Ledger Guild"),
+            ],
+            OpenThreads =
+            [
+                new NpcOpenThread("Promised to bring back a coin"),
+                new NpcOpenThread("Asked about the missing shipment", IsResolved: true),
+            ],
+        };
+        _context.NpcConversationHistories.Add(history);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var facts = result.RuntimeState.ConversationHistory.DurableFacts;
+        Assert.Equal(2, facts.Count);
+        Assert.Equal(1, facts.ElementAt(0).Id);
+        Assert.Equal("Player is from Millhaven", facts.ElementAt(0).Text);
+        Assert.Equal(2, facts.ElementAt(1).Id);
+        Assert.Equal("Player is allied with the Ledger Guild", facts.ElementAt(1).Text);
+
+        var thread = Assert.Single(result.RuntimeState.ConversationHistory.OpenThreads);
+        Assert.Equal(1, thread.Id);
+        Assert.Equal("Promised to bring back a coin", thread.Text);
     }
 
     [Fact]

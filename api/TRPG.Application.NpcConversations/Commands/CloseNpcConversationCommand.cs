@@ -21,6 +21,10 @@ public class CloseNpcConversationCommand
     public required string NpcName { get; init; }
     public required string ConversationSummary { get; init; }
     public required string Summary { get; init; }
+    public required IReadOnlyCollection<string> DurableFactsAdded { get; init; }
+    public required IReadOnlyCollection<int> DurableFactsRemoved { get; init; }
+    public required IReadOnlyCollection<string> OpenThreadsAdded { get; init; }
+    public required IReadOnlyCollection<int> OpenThreadsRemoved { get; init; }
 }
 
 internal class CloseNpcConversationCommandHandler(
@@ -56,6 +60,10 @@ internal class CloseNpcConversationCommandHandler(
                 NpcId = npcId,
                 ConversationSummary = command.ConversationSummary,
                 Summary = command.Summary,
+                DurableFactsAdded = command.DurableFactsAdded,
+                DurableFactsRemoved = command.DurableFactsRemoved,
+                OpenThreadsAdded = command.OpenThreadsAdded,
+                OpenThreadsRemoved = command.OpenThreadsRemoved,
             },
             cancellationToken
         );

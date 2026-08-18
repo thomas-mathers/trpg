@@ -47,9 +47,15 @@ public record NpcConversationAttitude(string Disposition, string Guidance);
 
 public record NpcConversationRecord(string Summary);
 
+public record NpcConversationDurableFact(int Id, string Text);
+
+public record NpcConversationOpenThread(int Id, string Text);
+
 public record NpcConversationHistoryResult(
     string Summary,
-    IReadOnlyCollection<NpcConversationRecord> Recent
+    IReadOnlyCollection<NpcConversationRecord> Recent,
+    IReadOnlyCollection<NpcConversationDurableFact> DurableFacts,
+    IReadOnlyCollection<NpcConversationOpenThread> OpenThreads
 );
 
 public record NpcConversationQuest(string Name);
@@ -165,11 +171,32 @@ internal class GetNpcConversationBriefingQueryHandler(
             ),
             new NpcConversationRuntimeState(
                 attitude,
-                new NpcConversationHistoryResult(history?.Summary ?? "", recent),
+                new NpcConversationHistoryResult(
+                    history?.Summary ?? "",
+                    recent,
+                    ToActiveFacts(history),
+                    ToActiveThreads(history)
+                ),
                 quests
             )
         );
     }
+
+    private static NpcConversationDurableFact[] ToActiveFacts(NpcConversationHistory? history) =>
+        history == null
+            ? []
+            : history
+                .DurableFacts.Where(fact => !fact.IsRetracted)
+                .Select((fact, index) => new NpcConversationDurableFact(index + 1, fact.Text))
+                .ToArray();
+
+    private static NpcConversationOpenThread[] ToActiveThreads(NpcConversationHistory? history) =>
+        history == null
+            ? []
+            : history
+                .OpenThreads.Where(thread => !thread.IsResolved)
+                .Select((thread, index) => new NpcConversationOpenThread(index + 1, thread.Text))
+                .ToArray();
 
     private async Task<NpcConversationAttitude> GetAttitude(
         GetNpcConversationBriefingQuery query,
