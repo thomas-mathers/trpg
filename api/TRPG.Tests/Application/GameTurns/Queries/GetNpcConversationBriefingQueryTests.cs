@@ -47,10 +47,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     public async Task Handle_ReturnsIdentityFromTheCreature()
     {
         // Act
-        var result = await _handler.Handle(
-            MakeQuery(),
-            TestContext.Current.CancellationToken
-        );
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(_npc.Name, result.Identity.Name);
@@ -70,7 +67,10 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
                 WorldId = WorldId,
                 CreatureId = _npc.Id,
                 Description = "A watchful shopkeeper.",
-                Appearance = new NpcAppearance { DistinguishingFeatures = ["A scar above one eye."] },
+                Appearance = new NpcAppearance
+                {
+                    DistinguishingFeatures = ["A scar above one eye."],
+                },
                 Behavior = new NpcBehavior
                 {
                     Personality = "Blunt and practical.",
@@ -97,14 +97,14 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            MakeQuery(),
-            TestContext.Current.CancellationToken
-        );
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("A watchful shopkeeper.", result.Appearance.Description);
-        Assert.Equal("A scar above one eye.", Assert.Single(result.Appearance.DistinguishingFeatures));
+        Assert.Equal(
+            "A scar above one eye.",
+            Assert.Single(result.Appearance.DistinguishingFeatures)
+        );
         Assert.Equal("Blunt and practical.", result.Behavior.Personality);
         Assert.Equal("woodworking", result.Behavior.Hobby);
         Assert.Equal("Millhaven", result.PrivateBackground.Origin);
@@ -127,10 +127,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            MakeQuery(),
-            TestContext.Current.CancellationToken
-        );
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("A traveling merchant of few words.", result.Appearance.Description);
@@ -143,10 +140,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     public async Task Handle_ReturnsNeutralAttitude_WhenThereIsNoReputationHistory()
     {
         // Act
-        var result = await _handler.Handle(
-            MakeQuery(),
-            TestContext.Current.CancellationToken
-        );
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("Neutral", result.RuntimeState.Attitude.Disposition);
@@ -189,10 +183,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            MakeQuery(),
-            TestContext.Current.CancellationToken
-        );
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("Trusting", result.RuntimeState.Attitude.Disposition);
@@ -202,10 +193,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     public async Task Handle_ReturnsEmptyHistory_WhenPlayerHasNeverSpokenToTheNpc()
     {
         // Act
-        var result = await _handler.Handle(
-            MakeQuery(),
-            TestContext.Current.CancellationToken
-        );
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("", result.RuntimeState.ConversationHistory.Summary);
@@ -240,15 +228,21 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            MakeQuery(),
-            TestContext.Current.CancellationToken
-        );
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal("They have spoken many times.", result.RuntimeState.ConversationHistory.Summary);
         Assert.Equal(
-            ["Conversation 2", "Conversation 3", "Conversation 4", "Conversation 5", "Conversation 6"],
+            "They have spoken many times.",
+            result.RuntimeState.ConversationHistory.Summary
+        );
+        Assert.Equal(
+            [
+                "Conversation 2",
+                "Conversation 3",
+                "Conversation 4",
+                "Conversation 5",
+                "Conversation 6",
+            ],
             result.RuntimeState.ConversationHistory.Recent.Select(record => record.Summary)
         );
     }
@@ -288,10 +282,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            MakeQuery(),
-            TestContext.Current.CancellationToken
-        );
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(available.Name, Assert.Single(result.RuntimeState.Quests.Available).Name);
