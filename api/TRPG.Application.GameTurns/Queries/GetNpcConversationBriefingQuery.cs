@@ -148,7 +148,10 @@ internal class GetNpcConversationBriefingQueryHandler(
             new NpcConversationBackground(
                 profile.PrivateBackground.Origin,
                 profile.PrivateBackground.Profession,
-                profile.PrivateBackground.Factions.Select(faction => faction.Name).ToArray(),
+                profile
+                    .PrivateBackground.Factions.Where(faction => !faction.IsCityFaction)
+                    .Select(faction => faction.Name)
+                    .ToArray(),
                 profile
                     .PrivateBackground.Family.Select(member => new NpcConversationFamilyMember(
                         member.Name,

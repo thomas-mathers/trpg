@@ -35,7 +35,7 @@ public class NpcPrivateBackground
 
 public record NpcFamilyMember(string Name, string Relationship);
 
-public record NpcFaction(Guid Id, string Name);
+public record NpcFaction(Guid Id, string Name, bool IsCityFaction = false);
 
 public class NpcWorkBackground
 {

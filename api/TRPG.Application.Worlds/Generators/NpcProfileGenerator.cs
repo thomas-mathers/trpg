@@ -73,7 +73,8 @@ internal static class NpcProfileGenerator
                     group
                         .Select(member => new NpcFaction(
                             member.FactionId,
-                            factionsById[member.FactionId].Name
+                            factionsById[member.FactionId].Name,
+                            factionsById[member.FactionId].IsCityFaction
                         ))
                         .ToArray()
             );

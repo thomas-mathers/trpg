@@ -190,6 +190,51 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     }
 
     [Fact]
+    public async Task Handle_ExcludesCityFactionFromNarration_ButStillCountsItTowardAttitude()
+    {
+        // Arrange
+        var namedFactionId = Guid.NewGuid();
+        var cityFactionId = Guid.NewGuid();
+        _context.NpcProfiles.Add(
+            new NpcProfile
+            {
+                WorldId = WorldId,
+                CreatureId = _npc.Id,
+                PrivateBackground = new NpcPrivateBackground
+                {
+                    Factions =
+                    [
+                        new NpcFaction(namedFactionId, "The Ledger Guild"),
+                        new NpcFaction(
+                            cityFactionId,
+                            "The People of Millhaven",
+                            IsCityFaction: true
+                        ),
+                    ],
+                },
+            }
+        );
+        _context.Reputations.Add(
+            new Reputation
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                TargetId = cityFactionId,
+                TargetType = ReputationTargetType.Faction,
+                Score = 60,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("The Ledger Guild", Assert.Single(result.PrivateBackground.Factions));
+        Assert.Equal("Trusting", result.RuntimeState.Attitude.Disposition);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsEmptyHistory_WhenPlayerHasNeverSpokenToTheNpc()
     {
         // Act
