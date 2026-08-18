@@ -3,7 +3,6 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Encounters.Results;
 using TRPG.Application.Worlds.Queries;
@@ -136,8 +135,6 @@ internal class ResolveEncounterActionCommandHandler(
             },
             cancellationToken
         );
-
-        return;
     }
 
     private static HostileEncounterActionKind ToActionKind(PlayerEncounterAction action) =>

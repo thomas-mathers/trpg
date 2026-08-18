@@ -4,6 +4,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Reputations.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -18,7 +19,8 @@ public class CompleteQuestCommand
 
 internal class CompleteQuestCommandHandler(
     TrpgDbContext context,
-    ICommandHandler<AddGoldCommand> addGold
+    ICommandHandler<AddGoldCommand> addGold,
+    ICommandHandler<AdjustReputationCommand> adjustReputation
 ) : ICommandHandler<CompleteQuestCommand>
 {
     public async Task Handle(
@@ -28,6 +30,7 @@ internal class CompleteQuestCommandHandler(
     {
         var creatureQuest = await context
             .CreatureQuests.Include(quest => quest.Quest)
+                .ThenInclude(quest => quest.ReputationRewards)
             .FirstOrDefaultAsync(
                 quest =>
                     quest.CreatureId == command.PlayerId
@@ -63,6 +66,20 @@ internal class CompleteQuestCommandHandler(
             cancellationToken
         );
 
+        foreach (var reward in creatureQuest.Quest.ReputationRewards)
+        {
+            await adjustReputation.Handle(
+                new AdjustReputationCommand
+                {
+                    CreatureId = command.PlayerId,
+                    TargetId = reward.TargetId,
+                    TargetType = reward.TargetType,
+                    DeltaScore = reward.Score,
+                },
+                cancellationToken
+            );
+        }
+
         creatureQuest.Status = QuestStatus.Completed;
         creatureQuest.IsTracked = false;
 
@@ -80,6 +97,7 @@ internal class CompleteQuestCommandHandler(
             .Where(objective => objective.QuestId == command.QuestId)
             .Select(objective => objective.ItemId)
             .ToArrayAsync(cancellationToken);
+
         var ownedItemIds = await context
             .Items.Where(item =>
                 requiredItemIds.AsEnumerable().Contains(item.Id)
@@ -88,6 +106,7 @@ internal class CompleteQuestCommandHandler(
             )
             .Select(item => item.Id)
             .ToArrayAsync(cancellationToken);
+
         var missingItemIds = requiredItemIds.Except(ownedItemIds).ToArray();
 
         if (missingItemIds.Length > 0)

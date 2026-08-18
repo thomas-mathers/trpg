@@ -45,6 +45,7 @@ internal class BootstrapWorldCommandHandler(
         context.EncounterGroupMembers.AddRange(world.EncounterGroupMembers);
         context.Buildings.AddRange(world.Buildings);
         context.Creatures.AddRange(world.Creatures);
+        context.NpcProfiles.AddRange(world.NpcProfiles);
         context.BuildingOwners.AddRange(world.BuildingOwners);
         context.Items.AddRange(world.Items);
         context.Rooms.AddRange(world.Rooms);

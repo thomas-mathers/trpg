@@ -55,6 +55,37 @@ public class QuestGenerator
             objectives.AddRange(secondObjectives);
         }
 
+        foreach (var quest in quests)
+        {
+            quest.ReputationRewards.Add(
+                new QuestReputationReward
+                {
+                    WorldId = world.World.Id,
+                    QuestId = quest.Id,
+                    TargetId = giver.Id,
+                    TargetType = ReputationTargetType.Creature,
+                    Score = 10,
+                }
+            );
+            foreach (
+                var factionId in world
+                    .FactionMembers.Where(member => member.CreatureId == giver.Id)
+                    .Select(member => member.FactionId)
+            )
+            {
+                quest.ReputationRewards.Add(
+                    new QuestReputationReward
+                    {
+                        WorldId = world.World.Id,
+                        QuestId = quest.Id,
+                        TargetId = factionId,
+                        TargetType = ReputationTargetType.Faction,
+                        Score = 4,
+                    }
+                );
+            }
+        }
+
         return new QuestGeneratorResult(quests, objectives);
     }
 

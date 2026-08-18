@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Combat;
 using TRPG.Application.Common.Queries;
 using TRPG.Data;
 

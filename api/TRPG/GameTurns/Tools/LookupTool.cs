@@ -25,7 +25,7 @@ internal class LookupTool(
 
     [DisplayName("lookup")]
     [Description(
-        "Returns background information about a named country, city, faction, or person anywhere in the world — automatically figures out which kind of thing the name refers to, so you don't need to know its category in advance. Partial names and misspellings resolve automatically: results come back as a list ranked by Similarity (1.0 = exact), with full details for the best match and name-only stubs for the others — to expand a stub, call lookup again with its exact Name. This represents what a specific NPC knows or has heard, not omniscient narrator knowledge — call it on behalf of the NPC who would be recalling or sharing this information in dialogue, never to generate the narrator's own scene-setting exposition. Call this whenever dialogue turns to a specific person, place, or faction mentioned by name — a family member, acquaintance, distant place, or faction — other than the NPC you're currently speaking with about themselves: their family, hometown, faction ties, workplace (and whether they own it), work hours, days off, and home are already given in full by start_conversation's biography, and if it doesn't mention something, that means it doesn't exist, so don't call this tool on yourself to check. Returns an Error if nothing matches the name, or if the speaker wouldn't know about it."
+        "Returns background information about a named country, city, faction, or person anywhere in the world — automatically figures out which kind of thing the name refers to, so you don't need to know its category in advance. Partial names and misspellings resolve automatically: results come back as a list ranked by Similarity (1.0 = exact), with full details for the best match and name-only stubs for the others — to expand a stub, call lookup again with its exact Name. This represents what a specific NPC knows or has heard, not omniscient narrator knowledge — call it on behalf of the NPC who would be recalling or sharing this information in dialogue, never to generate the narrator's own scene-setting exposition. Call this whenever dialogue turns to a specific person, place, or faction mentioned by name, other than the NPC currently being spoken with: their factual background is already in start_conversation's PrivateBackground. Returns an Error if nothing matches, or if the speaker wouldn't know about it."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -92,7 +92,7 @@ internal class LookupTool(
             stopwatch.ElapsedMilliseconds,
             JsonSerializer.Serialize(
                 result,
-                TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+                Application.Common.Serialization.TrpgJsonOptions.Default
             )
         );
         return result;

@@ -21,60 +21,72 @@ internal class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var quests = await context
+        var giverQuests = await context
             .Quests.AsNoTracking()
             .Where(quest => quest.GiverId == query.GiverId && quest.WorldId == query.WorldId)
             .ToArrayAsync(cancellationToken);
 
-        var questIds = quests.Select(quest => quest.Id).ToArray();
+        var giverQuestIds = giverQuests.Select(quest => quest.Id).ToHashSet();
 
-        var creatureQuests = await context
+        var playerQuests = await context
             .CreatureQuests.AsNoTracking()
             .Where(creatureQuest =>
-                creatureQuest.CreatureId == query.PlayerId
-                && creatureQuest.WorldId == query.WorldId
-                && questIds.AsEnumerable().Contains(creatureQuest.QuestId)
+                creatureQuest.CreatureId == query.PlayerId && creatureQuest.WorldId == query.WorldId
             )
             .ToArrayAsync(cancellationToken);
 
-        var completedQuestIds = await context
-            .CreatureQuests.AsNoTracking()
-            .Where(creatureQuest =>
-                creatureQuest.CreatureId == query.PlayerId
-                && creatureQuest.WorldId == query.WorldId
-                && creatureQuest.Status == QuestStatus.Completed
-            )
+        var completedQuestIds = playerQuests
+            .Where(creatureQuest => creatureQuest.Status == QuestStatus.Completed)
             .Select(creatureQuest => creatureQuest.QuestId)
-            .ToArrayAsync(cancellationToken);
+            .ToHashSet();
 
         var objectives = await context
             .QuestObjectives.AsNoTracking()
-            .Where(objective => questIds.AsEnumerable().Contains(objective.QuestId))
+            .Where(objective => giverQuestIds.AsEnumerable().Contains(objective.QuestId))
             .ToArrayAsync(cancellationToken);
 
         var objectivesByQuestId = objectives
             .GroupBy(objective => objective.QuestId)
             .ToDictionary(group => group.Key, group => group.Select(ToResult).ToArray());
 
-        var acceptedQuestIds = creatureQuests.Select(quest => quest.QuestId).ToHashSet();
+        var giverPlayerQuests = playerQuests
+            .Where(creatureQuest => giverQuestIds.Contains(creatureQuest.QuestId))
+            .ToArray();
 
-        var completedQuestIdSet = completedQuestIds.ToHashSet();
+        var acceptedQuestIds = giverPlayerQuests.Select(quest => quest.QuestId).ToHashSet();
 
-        var availableQuests = quests
+        var availableQuests = giverQuests
             .Where(quest => !acceptedQuestIds.Contains(quest.Id))
-            .Where(quest => quest.PrerequisiteQuestIds.All(completedQuestIdSet.Contains))
+            .Where(quest => quest.PrerequisiteQuestIds.All(completedQuestIds.Contains))
             .Select(quest => ToResult(quest, objectivesByQuestId))
             .ToArray();
 
-        var questsById = quests.ToDictionary(quest => quest.Id);
+        var questsById = giverQuests.ToDictionary(quest => quest.Id);
 
-        var readyToCompleteQuests = creatureQuests
+        var activeQuests = giverPlayerQuests
+            .Where(quest => quest.Status == QuestStatus.Accepted)
+            .Select(quest => questsById[quest.QuestId])
+            .Select(quest => ToResult(quest, objectivesByQuestId))
+            .ToArray();
+
+        var readyToCompleteQuests = giverPlayerQuests
             .Where(quest => quest.Status == QuestStatus.ReadyToComplete)
             .Select(quest => questsById[quest.QuestId])
             .Select(quest => ToResult(quest, objectivesByQuestId))
             .ToArray();
 
-        return new QuestInteractionsResult(availableQuests, readyToCompleteQuests);
+        var completedQuests = giverPlayerQuests
+            .Where(quest => quest.Status == QuestStatus.Completed)
+            .Select(quest => questsById[quest.QuestId])
+            .Select(quest => ToResult(quest, objectivesByQuestId))
+            .ToArray();
+
+        return new QuestInteractionsResult(
+            availableQuests,
+            activeQuests,
+            readyToCompleteQuests,
+            completedQuests
+        );
     }
 
     private static QuestConversationResult ToResult(

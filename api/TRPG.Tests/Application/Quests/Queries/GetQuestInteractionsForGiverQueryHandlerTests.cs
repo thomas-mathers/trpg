@@ -124,4 +124,71 @@ public sealed class GetQuestInteractionsForGiverQueryHandlerTests(DatabaseFixtur
         Assert.Empty(result.AvailableQuests);
         Assert.Equal(readyQuest.Name, Assert.Single(result.ReadyToCompleteQuests).Name);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsActiveQuest_WhenPlayerHasAcceptedButNotFinishedIt()
+    {
+        // Arrange
+        var acceptedQuest = Builders.MakeQuest(_giver.Id, WorldId);
+        _context.Quests.Add(acceptedQuest);
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = _player.Id,
+                QuestId = acceptedQuest.Id,
+                Status = QuestStatus.Accepted,
+                WorldId = WorldId,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetQuestInteractionsForGiverQuery
+            {
+                GiverId = _giver.Id,
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(acceptedQuest.Name, Assert.Single(result.ActiveQuests).Name);
+        Assert.Empty(result.CompletedQuests);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsCompletedQuest_WhenPlayerHasTurnedItIn()
+    {
+        // Arrange
+        var completedQuest = Builders.MakeQuest(_giver.Id, WorldId);
+        _context.Quests.Add(completedQuest);
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = _player.Id,
+                QuestId = completedQuest.Id,
+                Status = QuestStatus.Completed,
+                WorldId = WorldId,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetQuestInteractionsForGiverQuery
+            {
+                GiverId = _giver.Id,
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(completedQuest.Name, Assert.Single(result.CompletedQuests).Name);
+        Assert.Empty(result.ActiveQuests);
+        Assert.Empty(result.AvailableQuests);
+    }
 }

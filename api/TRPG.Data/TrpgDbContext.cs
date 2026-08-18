@@ -64,9 +64,12 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<LocationConnector> LocationConnectors => Set<LocationConnector>();
     public DbSet<DoorConnector> DoorConnectors => Set<DoorConnector>();
     public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
+    public DbSet<NpcConversationHistory> NpcConversationHistories => Set<NpcConversationHistory>();
+    public DbSet<NpcProfile> NpcProfiles => Set<NpcProfile>();
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
+    public DbSet<QuestReputationReward> QuestReputationRewards => Set<QuestReputationReward>();
     public DbSet<Relationship> Relationships => Set<Relationship>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<DoorConnectorKey> DoorConnectorKeys => Set<DoorConnectorKey>();
@@ -384,10 +387,29 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(b => b.WorldId);
         });
 
-        modelBuilder.Entity<NpcConversation>(entity =>
+        modelBuilder.Entity<NpcConversationHistory>(entity =>
         {
             entity.HasIndex(c => c.WorldId);
             entity.HasIndex(c => new { c.NpcId, c.CreatureId }).IsUnique();
+        });
+
+        modelBuilder.Entity<NpcConversation>(entity =>
+        {
+            entity.HasIndex(c => c.WorldId);
+            entity.HasIndex(c => new { c.NpcConversationHistoryId, c.CreatedAt });
+        });
+
+        modelBuilder.Entity<NpcProfile>(entity =>
+        {
+            entity.HasIndex(profile => profile.WorldId);
+            entity.HasIndex(profile => profile.CreatureId).IsUnique();
+            entity
+                .Property(profile => profile.Appearance)
+                .HasJsonConversion(() => new NpcAppearance());
+            entity.Property(profile => profile.Behavior).HasJsonConversion(() => new NpcBehavior());
+            entity
+                .Property(profile => profile.PrivateBackground)
+                .HasJsonConversion(() => new NpcPrivateBackground());
         });
 
         modelBuilder.Entity<WorldEvent>(entity =>
@@ -407,6 +429,15 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 })
                 .IsUnique();
             entity.HasIndex(r => r.WorldId);
+            entity.ToTable(table =>
+                table.HasCheckConstraint("ck_reputations_score", "score BETWEEN -100 AND 100")
+            );
+        });
+
+        modelBuilder.Entity<QuestReputationReward>(entity =>
+        {
+            entity.HasIndex(reward => reward.WorldId);
+            entity.HasIndex(reward => reward.QuestId);
         });
 
         modelBuilder.Entity<FactionMember>(entity =>

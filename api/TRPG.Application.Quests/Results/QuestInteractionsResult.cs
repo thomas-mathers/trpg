@@ -14,5 +14,7 @@ public record QuestConversationResult(
 
 public record QuestInteractionsResult(
     IReadOnlyCollection<QuestConversationResult> AvailableQuests,
-    IReadOnlyCollection<QuestConversationResult> ReadyToCompleteQuests
+    IReadOnlyCollection<QuestConversationResult> ActiveQuests,
+    IReadOnlyCollection<QuestConversationResult> ReadyToCompleteQuests,
+    IReadOnlyCollection<QuestConversationResult> CompletedQuests
 );

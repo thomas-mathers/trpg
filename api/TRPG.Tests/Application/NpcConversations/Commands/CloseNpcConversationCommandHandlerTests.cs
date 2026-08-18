@@ -67,6 +67,7 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
                 WorldId = WorldId,
                 PlayerId = PlayerId,
                 NpcName = "Wraith",
+                ConversationSummary = "They fought briefly.",
                 Summary = "They fought briefly.",
             },
             TestContext.Current.CancellationToken
@@ -91,6 +92,7 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
                 WorldId = WorldId,
                 PlayerId = PlayerId,
                 NpcName = "Wraith",
+                ConversationSummary = "They fought briefly.",
                 Summary = "They fought briefly.",
             },
             TestContext.Current.CancellationToken
@@ -115,6 +117,7 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
                 WorldId = WorldId,
                 PlayerId = PlayerId,
                 NpcName = "Wraith",
+                ConversationSummary = "They fought briefly.",
                 Summary = "They fought briefly.",
             },
             TestContext.Current.CancellationToken
@@ -143,6 +146,7 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
                 WorldId = WorldId,
                 PlayerId = PlayerId,
                 NpcName = "Wraith",
+                ConversationSummary = "They fought briefly.",
                 Summary = "They fought briefly.",
             },
             TestContext.Current.CancellationToken
