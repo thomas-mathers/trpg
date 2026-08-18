@@ -391,6 +391,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         {
             entity.HasIndex(c => c.WorldId);
             entity.HasIndex(c => new { c.NpcId, c.CreatureId }).IsUnique();
+            entity.Property(c => c.DurableFacts).HasJsonConversion(() => []);
+            entity.Property(c => c.OpenThreads).HasJsonConversion(() => []);
         });
 
         modelBuilder.Entity<NpcConversation>(entity =>

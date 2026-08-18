@@ -69,6 +69,10 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
                 NpcName = "Wraith",
                 ConversationSummary = "They fought briefly.",
                 Summary = "They fought briefly.",
+                DurableFactsAdded = [],
+                DurableFactsRemoved = [],
+                OpenThreadsAdded = [],
+                OpenThreadsRemoved = [],
             },
             TestContext.Current.CancellationToken
         );
@@ -94,6 +98,10 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
                 NpcName = "Wraith",
                 ConversationSummary = "They fought briefly.",
                 Summary = "They fought briefly.",
+                DurableFactsAdded = [],
+                DurableFactsRemoved = [],
+                OpenThreadsAdded = [],
+                OpenThreadsRemoved = [],
             },
             TestContext.Current.CancellationToken
         );
@@ -119,6 +127,10 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
                 NpcName = "Wraith",
                 ConversationSummary = "They fought briefly.",
                 Summary = "They fought briefly.",
+                DurableFactsAdded = [],
+                DurableFactsRemoved = [],
+                OpenThreadsAdded = [],
+                OpenThreadsRemoved = [],
             },
             TestContext.Current.CancellationToken
         );
@@ -148,6 +160,10 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
                 NpcName = "Wraith",
                 ConversationSummary = "They fought briefly.",
                 Summary = "They fought briefly.",
+                DurableFactsAdded = [],
+                DurableFactsRemoved = [],
+                OpenThreadsAdded = [],
+                OpenThreadsRemoved = [],
             },
             TestContext.Current.CancellationToken
         );
