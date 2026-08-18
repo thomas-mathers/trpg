@@ -91,7 +91,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_ReturnsDestinationNotFound_WhenTheBuildingIsInAnotherDistrict()
     {
-        // Arrange Ã¢â‚¬â€ the building exists in the state but in a district the player isn't standing in
+        // Arrange - the building exists in the state but in a district the player isn't standing in
         var district = Builders.MakeLocation(WorldId, _stateId, districtId: Guid.NewGuid());
         var farLocation = Builders.MakeLocation(WorldId, _stateId, districtId: Guid.NewGuid());
         var player = Builders.MakeCreature(WorldId, locationId: district.Id);
@@ -366,7 +366,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_MovesThroughAHubConnector_WhenAlreadyPlacedInAConnectedDistrict()
     {
-        // Arrange Ã¢â‚¬â€ a placed (non-unplaced) player travels via a real hub LocationConnector, not the
+        // Arrange - a placed (non-unplaced) player travels via a real hub LocationConnector, not the
         // unplaced-bootstrap GetDistrictByNameInCityQuery fallback the other district-move tests use
         var stateId = Guid.NewGuid();
         var state = Builders.MakeState(Guid.NewGuid(), worldId: WorldId, id: stateId);
@@ -442,7 +442,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_DeletesDeadCreaturesLeftBehindInTheOldDistrict()
     {
-        // Arrange Ã¢â‚¬â€ the player is already placed in a real district connected to the destination
+        // Arrange - the player is already placed in a real district connected to the destination
         // by a hub connector, exercising the normal (non-bootstrap) district-to-district move
         var stateId = Guid.NewGuid();
         var state = Builders.MakeState(Guid.NewGuid(), worldId: WorldId, id: stateId);
