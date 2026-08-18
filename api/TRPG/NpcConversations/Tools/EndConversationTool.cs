@@ -19,15 +19,17 @@ internal class EndConversationTool(
 
     [DisplayName("end_conversation")]
     [Description(
-        "Call this when a conversation with someone winds down or the topic changes significantly, to save a summary of what was discussed so you can recall it next time you speak with them."
+        "Call this when a conversation with someone winds down or the topic changes significantly, to save both this conversation and an updated long-term summary for future meetings."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
             "The exact Name of the person you spoke with, copied verbatim from the most recent look or move result."
         )]
             string npcName,
+        [Description("A concise, third-person, factual summary of this conversation only.")]
+            string conversationSummary,
         [Description(
-            "A concise, third-person, factual summary of what was discussed — replaces any previous summary for this person."
+            "A concise, third-person, factual summary of the NPC's longer history with the player, updated to include this conversation."
         )]
             string summary,
         CancellationToken cancellationToken
@@ -43,6 +45,7 @@ internal class EndConversationTool(
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
                 NpcName = npcName,
+                ConversationSummary = conversationSummary,
                 Summary = summary,
             },
             cancellationToken
@@ -60,7 +63,7 @@ internal class EndConversationTool(
             stopwatch.ElapsedMilliseconds,
             JsonSerializer.Serialize(
                 result,
-                TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+                Application.Common.Serialization.TrpgJsonOptions.Default
             )
         );
         return result;

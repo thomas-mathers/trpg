@@ -120,9 +120,75 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db) : IAsyn
         );
     }
 
-    private async Task<CreatureQuest> SeedQuest(QuestStatus status)
+    [Fact]
+    public async Task Handle_AppliesReputationRewards_WhenQuestIsCompleted()
     {
+        // Arrange
+        var faction = Builders.MakeFaction(WorldId);
+        _context.Factions.Add(faction);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
         var quest = Builders.MakeQuest(_giver.Id, WorldId);
+        var creatureQuest = await SeedQuest(
+            QuestStatus.ReadyToComplete,
+            quest,
+            [
+                new QuestReputationReward
+                {
+                    WorldId = WorldId,
+                    QuestId = quest.Id,
+                    TargetId = _giver.Id,
+                    TargetType = ReputationTargetType.Creature,
+                    Score = 10,
+                },
+                new QuestReputationReward
+                {
+                    WorldId = WorldId,
+                    QuestId = quest.Id,
+                    TargetId = faction.Id,
+                    TargetType = ReputationTargetType.Faction,
+                    Score = 4,
+                },
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new CompleteQuestCommand
+            {
+                PlayerId = _player.Id,
+                QuestId = creatureQuest.QuestId,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var reputations = await _context
+            .Reputations.Where(reputation => reputation.CreatureId == _player.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(
+            10,
+            reputations
+                .Single(reputation => reputation.TargetType == ReputationTargetType.Creature)
+                .Score
+        );
+        Assert.Equal(
+            4,
+            reputations
+                .Single(reputation => reputation.TargetType == ReputationTargetType.Faction)
+                .Score
+        );
+    }
+
+    private async Task<CreatureQuest> SeedQuest(
+        QuestStatus status,
+        Quest? quest = null,
+        IReadOnlyCollection<QuestReputationReward>? reputationRewards = null
+    )
+    {
+        quest ??= Builders.MakeQuest(_giver.Id, WorldId);
+        quest.ReputationRewards.AddRange(reputationRewards ?? []);
         var creatureQuest = new CreatureQuest
         {
             CreatureId = _player.Id,

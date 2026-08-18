@@ -149,13 +149,13 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.False(
-            await verifyContext.NpcConversations.AnyAsync(
+            await verifyContext.NpcConversationHistories.AnyAsync(
                 x => x.CreatureId == target.Id,
                 cancellationToken
             )
         );
         Assert.False(
-            await verifyContext.NpcConversations.AnyAsync(
+            await verifyContext.NpcConversationHistories.AnyAsync(
                 x => x.NpcId == target.Id,
                 cancellationToken
             )
@@ -249,13 +249,13 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             )
         );
         Assert.True(
-            await verifyContext.NpcConversations.AnyAsync(
+            await verifyContext.NpcConversationHistories.AnyAsync(
                 x => x.CreatureId == other.Id,
                 cancellationToken
             )
         );
         Assert.True(
-            await verifyContext.NpcConversations.AnyAsync(
+            await verifyContext.NpcConversationHistories.AnyAsync(
                 x => x.NpcId == other.Id,
                 cancellationToken
             )
@@ -355,8 +355,8 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 WorldId = worldId,
             }
         );
-        _context.NpcConversations.Add(
-            new NpcConversation
+        _context.NpcConversationHistories.Add(
+            new NpcConversationHistory
             {
                 CreatureId = creatureId,
                 NpcId = Guid.NewGuid(),
@@ -364,8 +364,8 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
                 WorldId = worldId,
             }
         );
-        _context.NpcConversations.Add(
-            new NpcConversation
+        _context.NpcConversationHistories.Add(
+            new NpcConversationHistory
             {
                 CreatureId = Guid.NewGuid(),
                 NpcId = creatureId,

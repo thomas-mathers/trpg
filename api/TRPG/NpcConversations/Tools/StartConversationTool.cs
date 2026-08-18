@@ -7,29 +7,22 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns;
+using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.NpcConversations.Commands;
-using TRPG.Application.NpcConversations.Queries;
-using TRPG.Application.Quests.Queries;
-using TRPG.Application.Quests.Results;
 using TRPG.Domain.Models;
 using TRPG.Tools;
 
 namespace TRPG.NpcConversations.Tools;
-
-internal record StartConversationResult(
-    string Summary,
-    string Biography,
-    IReadOnlyCollection<QuestConversationResult> AvailableQuests,
-    IReadOnlyCollection<QuestConversationResult> ReadyToCompleteQuests
-);
 
 internal class StartConversationTool(
     GameTurnContext turnContext,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
-    IQueryHandler<GetNpcConversationSummaryQuery, string> getNpcConversationSummary,
-    IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult> getQuestInteractions,
+    IQueryHandler<
+        GetNpcConversationBriefingQuery,
+        NpcConversationBriefing
+    > getNpcConversationBriefing,
     ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult> openNpcConversation,
     ILogger<StartConversationTool> logger
 ) : IGameTool
@@ -38,7 +31,7 @@ internal class StartConversationTool(
 
     [DisplayName("start_conversation")]
     [Description(
-        "Call this when you begin talking to someone, to remember what was discussed the last time you spoke with them and to learn their personality, background, and manner of speech. Returns an empty summary if you've never spoken before — use the biography to voice them consistently regardless."
+        "Call this when you begin talking to someone. It returns their player-visible appearance, private roleplaying background, reputation-driven attitude, conversation history, and quest context."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -99,32 +92,21 @@ internal class StartConversationTool(
             );
         }
 
-        var summary = await getNpcConversationSummary.Handle(
-            new GetNpcConversationSummaryQuery { CreatureId = player!.Id, NpcId = npc.Id },
-            cancellationToken
-        );
-        var questInteractions = await getQuestInteractions.Handle(
-            new GetQuestInteractionsForGiverQuery
+        var result = await getNpcConversationBriefing.Handle(
+            new GetNpcConversationBriefingQuery
             {
-                GiverId = npc.Id,
+                NpcId = npc.Id,
                 PlayerId = player.Id,
                 WorldId = turnContext.WorldId,
             },
             cancellationToken
-        );
-
-        var result = new StartConversationResult(
-            summary,
-            npc.Biography,
-            questInteractions.AvailableQuests,
-            questInteractions.ReadyToCompleteQuests
         );
         logger.LogInformation(
             "[perf] [start_conversation] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,
             JsonSerializer.Serialize(
                 result,
-                TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+                Application.Common.Serialization.TrpgJsonOptions.Default
             )
         );
         return result;

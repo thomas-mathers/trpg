@@ -1,3 +1,4 @@
+using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Commands;
@@ -18,12 +19,13 @@ public class CloseNpcConversationCommand
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required string NpcName { get; init; }
+    public required string ConversationSummary { get; init; }
     public required string Summary { get; init; }
 }
 
 internal class CloseNpcConversationCommandHandler(
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-    ICommandHandler<SetNpcConversationSummaryCommand> setNpcConversationSummary,
+    ICommandHandler<RecordNpcConversationCommand> recordNpcConversation,
     ICommandHandler<UpdateGameSessionCommand> updateGameSession
 ) : ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationResult>
 {
@@ -41,18 +43,25 @@ internal class CloseNpcConversationCommandHandler(
             return CloseNpcConversationResult.NotOpen;
         }
 
-        await setNpcConversationSummary.Handle(
-            new SetNpcConversationSummaryCommand
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+
+        await recordNpcConversation.Handle(
+            new RecordNpcConversationCommand
             {
                 WorldId = command.WorldId,
-                CreatureId = command.PlayerId,
+                PlayerId = command.PlayerId,
                 NpcId = npcId,
+                ConversationSummary = command.ConversationSummary,
                 Summary = command.Summary,
             },
             cancellationToken
         );
 
         snapshot.OpenConversationCreatureIdsByName.Remove(command.NpcName);
+
         await updateGameSession.Handle(
             new UpdateGameSessionCommand
             {
@@ -61,6 +70,8 @@ internal class CloseNpcConversationCommandHandler(
             },
             cancellationToken
         );
+
+        transaction.Complete();
 
         return CloseNpcConversationResult.Closed;
     }

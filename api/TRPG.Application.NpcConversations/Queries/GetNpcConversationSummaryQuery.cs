@@ -18,13 +18,11 @@ internal class GetNpcConversationSummaryQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var conversation = await context
-            .NpcConversations.AsNoTracking()
-            .FirstOrDefaultAsync(
-                c => c.CreatureId == query.CreatureId && c.NpcId == query.NpcId,
-                cancellationToken
-            );
-
-        return conversation?.Summary ?? "";
+        return await context
+                .NpcConversationHistories.AsNoTracking()
+                .Where(c => c.CreatureId == query.CreatureId && c.NpcId == query.NpcId)
+                .Select(c => c.Summary)
+                .FirstOrDefaultAsync(cancellationToken)
+            ?? "";
     }
 }

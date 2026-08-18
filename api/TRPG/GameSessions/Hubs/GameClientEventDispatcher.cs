@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Events;
 
 namespace TRPG.GameSessions.Hubs;
@@ -6,7 +7,8 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class GameClientEventDispatcher(
     IGameClientEventBuffer eventBuffer,
     IHubContext<ChatHub, IGameClient> hubContext,
-    IEnumerable<IGameClientEventMapper> eventMappers
+    IEnumerable<IGameClientEventMapper> eventMappers,
+    ILogger<GameClientEventDispatcher> logger
 ) : IGameClientEventDispatcher
 {
     private readonly IReadOnlyDictionary<Type, IGameClientEventMapper> _eventMappers =
@@ -22,7 +24,20 @@ internal sealed class GameClientEventDispatcher(
                 ?? throw new InvalidOperationException(
                     $"No client event mapper is registered for {gameEvent.GetType().Name}."
                 );
+
+            logger.LogDebug(
+                "Sending client event {EventType} to world {WorldId}",
+                gameEvent.GetType().Name,
+                worldId
+            );
+
             await mapper.Map(gameEvent).Invoke(client);
+
+            logger.LogDebug(
+                "Sent client event {EventType} to world {WorldId}",
+                gameEvent.GetType().Name,
+                worldId
+            );
         }
     }
 }

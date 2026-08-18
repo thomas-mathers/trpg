@@ -133,6 +133,7 @@ public sealed class QuestGeneratorTests
             Items = items,
             Jobs = [],
             Knowledge = [],
+            NpcProfiles = [],
             Locations =
             [
                 new Location
