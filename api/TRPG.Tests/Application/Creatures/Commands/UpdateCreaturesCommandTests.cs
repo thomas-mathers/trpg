@@ -55,7 +55,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id],
-                State = CreatureState.Training,
+                State = CreatureState.Studying,
             },
             TestContext.Current.CancellationToken
         );
@@ -66,7 +66,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Training, updated!.State);
+        Assert.Equal(CreatureState.Studying, updated!.State);
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id, otherCreature.Id],
-                State = CreatureState.Sitting,
+                State = CreatureState.Studying,
             },
             TestContext.Current.CancellationToken
         );
@@ -203,7 +203,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
             [otherCreature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Sitting, updatedCreature!.State);
-        Assert.Equal(CreatureState.Sitting, updatedOther!.State);
+        Assert.Equal(CreatureState.Studying, updatedCreature!.State);
+        Assert.Equal(CreatureState.Studying, updatedOther!.State);
     }
 }

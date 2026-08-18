@@ -39,8 +39,6 @@ public enum CreatureState
     Busy,
     Studying,
     Praying,
-    Training,
-    Sitting,
     Alerted,
     Dead,
 }

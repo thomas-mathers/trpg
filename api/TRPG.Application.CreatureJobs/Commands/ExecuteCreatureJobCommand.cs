@@ -34,20 +34,12 @@ internal class ExecuteCreatureJobCommandHandler(TrpgDbContext context)
             CreatureJobAction.Idle => CreatureState.Idle,
             CreatureJobAction.Study => CreatureState.Studying,
             CreatureJobAction.Pray => CreatureState.Praying,
-            CreatureJobAction.Train => CreatureState.Training,
-            CreatureJobAction.Sit => CreatureState.Sitting,
-            CreatureJobAction.Patrol or CreatureJobAction.Socialize => (CreatureState?)null,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(command),
                 command.CreatureJobAction,
                 "Unhandled CreatureJobAction."
             ),
         };
-
-        if (targetState == null)
-        {
-            return;
-        }
 
         if (
             command.CurrentLocationId == command.JobLocationId
@@ -62,7 +54,7 @@ internal class ExecuteCreatureJobCommandHandler(TrpgDbContext context)
             .ExecuteUpdateAsync(
                 s =>
                     s.SetProperty(c => c.LocationId, command.JobLocationId)
-                        .SetProperty(c => c.State, targetState.Value),
+                        .SetProperty(c => c.State, targetState),
                 cancellationToken
             );
     }

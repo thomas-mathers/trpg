@@ -129,13 +129,13 @@ public class BiographyGeneratorTests
         );
         var mondayOff = Builders.MakeCreatureJob(
             creature.Id,
-            action: CreatureJobAction.Sit,
+            action: CreatureJobAction.Idle,
             specificDay: DayOfWeek.Monday,
             worldId: _worldId
         );
         var tuesdayOff = Builders.MakeCreatureJob(
             creature.Id,
-            action: CreatureJobAction.Sit,
+            action: CreatureJobAction.Idle,
             specificDay: DayOfWeek.Tuesday,
             worldId: _worldId
         );
@@ -177,7 +177,7 @@ public class BiographyGeneratorTests
             .Select(day =>
                 Builders.MakeCreatureJob(
                     creature.Id,
-                    action: CreatureJobAction.Sit,
+                    action: CreatureJobAction.Idle,
                     specificDay: day,
                     worldId: _worldId
                 )

@@ -31,11 +31,18 @@ internal static class EmploymentAssigner
         CreatureJobAction.Idle,
         CreatureJobAction.Study,
         CreatureJobAction.Pray,
-        CreatureJobAction.Train,
-        CreatureJobAction.Sit,
     ];
 
     private static readonly DayOfWeek[] AllWeekdays = Enum.GetValues<DayOfWeek>();
+
+    private static readonly Dictionary<
+        CreatureJobAction,
+        BuildingType
+    > RequiredBuildingTypeByAction = new()
+    {
+        [CreatureJobAction.Pray] = BuildingType.Temple,
+        [CreatureJobAction.Study] = BuildingType.Library,
+    };
 
     private record DayOffNeed(
         IReadOnlyList<Guid> ParticipantIds,
@@ -257,6 +264,10 @@ internal static class EmploymentAssigner
             .Where(i => remainingCapacity[i] >= need.ParticipantIds.Count)
             .Where(i =>
                 !need.ExcludeTavern || cityIdleCandidates[i].BuildingType != BuildingType.Tavern
+            )
+            .Where(i =>
+                !RequiredBuildingTypeByAction.TryGetValue(need.Action, out var requiredType)
+                || cityIdleCandidates[i].BuildingType == requiredType
             )
             .Where(i =>
                 clampedByIndex[i] is { } clamped && WindowLength(clamped) >= MinimumStayHours
