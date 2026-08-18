@@ -19,7 +19,7 @@ internal class EndConversationTool(
 
     [DisplayName("end_conversation")]
     [Description(
-        "Call this when a conversation with someone winds down or the topic changes significantly, to save both this conversation and an updated long-term summary for future meetings."
+        "Call this when a conversation with someone winds down or the topic changes significantly, to save this conversation, an updated long-term summary, and any durable facts or open threads for future meetings. summary is a narrative recap and durableFactsAdded/openThreadsAdded are a separate, mandatory checklist — writing a good summary does NOT excuse skipping them. Before every call, ask yourself: did the player state any personal fact about themselves (name, family, home, allegiance)? Did they make a promise or leave a question unanswered? If yes to either, populate the matching field — do not just fold it into summary and move on."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -33,7 +33,7 @@ internal class EndConversationTool(
         )]
             string summary,
         [Description(
-            "New durable facts the player stated about themselves that should be remembered indefinitely — name, origin, allegiance, and similar. Do not include anything about the NPC, or anything already covered by quest or reputation state. Omit if nothing new was learned."
+            "Mandatory check, not optional: any new fact the player stated about themselves that should be remembered indefinitely — their name, family members (spouse, children, pets), hometown, allegiance, and similar. Example: the player says 'I have a dog named Noah, a wife named Wakako, and a son named Leo' — that is three separate durable facts to add, even though you'll also mention it in summary. Do not include anything about the NPC, or anything already covered by quest or reputation state. Only omit if the player truly revealed nothing new about themselves this conversation."
         )]
             IReadOnlyCollection<string>? durableFactsAdded = null,
         [Description(
@@ -41,7 +41,7 @@ internal class EndConversationTool(
         )]
             IReadOnlyCollection<int>? durableFactsRemoved = null,
         [Description(
-            "New unresolved threads with the player — a promise, an unanswered question, something to circle back to. Only for things with a natural resolution, not permanent facts. Omit if nothing new is pending."
+            "Mandatory check, not optional: any new unresolved thread with the player — a promise made, a question left unanswered, something to circle back to next time. Only for things with a natural resolution, not permanent facts. Only omit if nothing was left pending this conversation."
         )]
             IReadOnlyCollection<string>? openThreadsAdded = null,
         [Description(
