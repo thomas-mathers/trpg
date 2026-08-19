@@ -1,3 +1,4 @@
+using TRPG.Application.Buildings;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Generators;
@@ -16,7 +17,8 @@ internal record BuildingGeneratorResult(
     IReadOnlyList<LocationConnector> LocationConnectors,
     DoorConnector FrontDoor,
     IReadOnlyList<Item> KeyItems,
-    IReadOnlyList<DoorConnectorKey> DoorConnectorKeys
+    IReadOnlyList<DoorConnectorKey> DoorConnectorKeys,
+    IReadOnlyList<DoorConnector> InteriorDoors
 );
 
 public class BuildingGenerator
@@ -326,6 +328,7 @@ public class BuildingGenerator
             .ToList();
 
         var roomsByFloor = rooms.GroupBy(r => r.FloorNumber).OrderBy(g => g.Key).ToArray();
+        var interiorDoors = new List<DoorConnector>();
 
         for (var i = 0; i < roomsByFloor.Length - 1; i++)
         {
@@ -344,17 +347,28 @@ public class BuildingGenerator
                 }
             );
 
-            locationConnectors.Add(
-                new LocationConnector
-                {
-                    OriginLocationId = roomAbove.LocationId,
-                    Name = "Staircase",
-                    Description = "A staircase leading down.",
-                    DestinationLocationId = roomBelow.LocationId,
-                    DestinationLabel = roomBelow.Name,
-                    WorldId = worldId,
-                }
-            );
+            var downConnector = new LocationConnector
+            {
+                OriginLocationId = roomAbove.LocationId,
+                Name = "Staircase",
+                Description = "A staircase leading down.",
+                DestinationLocationId = roomBelow.LocationId,
+                DestinationLabel = roomBelow.Name,
+                WorldId = worldId,
+            };
+            locationConnectors.Add(downConnector);
+
+            if (input.Spec.Type == BuildingType.Jail && roomAbove.Name == JailRoomNames.Cells)
+            {
+                interiorDoors.Add(
+                    new DoorConnector
+                    {
+                        ConnectorId = downConnector.Id,
+                        IsLocked = true,
+                        WorldId = worldId,
+                    }
+                );
+            }
         }
 
         var entranceRoom = rooms.First(r => r.FloorNumber == 0);
@@ -413,7 +427,8 @@ public class BuildingGenerator
             locationConnectors,
             frontDoor,
             keyItems,
-            doorConnectorKeys
+            doorConnectorKeys,
+            interiorDoors
         );
     }
 }

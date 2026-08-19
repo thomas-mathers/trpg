@@ -65,6 +65,8 @@ internal class MovePlayerCommandHandler(
         GetBuildingEntryRequirementsQuery,
         BuildingEntryRequirements
     > getBuildingEntryRequirements,
+    IQueryHandler<GetDoorConnectorByConnectorIdQuery, DoorConnector?> getDoorConnectorByConnectorId,
+    IQueryHandler<GetKeyItemIdsQuery, IReadOnlyList<Guid>> getKeyItemIds,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
@@ -288,6 +290,24 @@ internal class MovePlayerCommandHandler(
                 : EntryOutcome.ExitNotFound;
         }
 
+        var door = await getDoorConnectorByConnectorId.Handle(
+            new GetDoorConnectorByConnectorIdQuery { ConnectorId = exitMatch.ConnectorId!.Value },
+            cancellationToken
+        );
+
+        if (door is { IsLocked: true })
+        {
+            var validKeyItemIds = await getKeyItemIds.Handle(
+                new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
+                cancellationToken
+            );
+
+            if (!await HasAnyKey(player, validKeyItemIds, cancellationToken))
+            {
+                return EntryOutcome.Locked;
+            }
+        }
+
         player.LocationId = exitMatch.DestinationLocationId!.Value;
 
         return EntryOutcome.Entered;
@@ -343,7 +363,7 @@ internal class MovePlayerCommandHandler(
 
         if (
             requirements.Outcome == BuildingEntryResult.Locked
-            && !await HasAnyKey(player, requirements, cancellationToken)
+            && !await HasAnyKey(player, requirements.ValidKeyItemIds!, cancellationToken)
         )
         {
             return EntryOutcome.Locked;
@@ -356,7 +376,7 @@ internal class MovePlayerCommandHandler(
 
     private async Task<bool> HasAnyKey(
         Creature player,
-        BuildingEntryRequirements requirements,
+        IReadOnlyCollection<Guid> validKeyItemIds,
         CancellationToken cancellationToken
     )
     {
@@ -367,6 +387,6 @@ internal class MovePlayerCommandHandler(
             },
             cancellationToken
         );
-        return inventory.Any(item => requirements.ValidKeyItemIds!.Contains(item.Id));
+        return inventory.Any(item => validKeyItemIds.Contains(item.Id));
     }
 }

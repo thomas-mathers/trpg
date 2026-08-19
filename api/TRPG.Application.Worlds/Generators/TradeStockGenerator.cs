@@ -53,8 +53,7 @@ public class TradeStockGenerator(ItemGenerator itemGenerator)
             BuildingType.Tailor => CreateTailorStock(worldId),
             BuildingType.Carpenter => CreateCarpenterStock(worldId),
             BuildingType.Jeweler => CreateJewelerStock(worldId),
-            BuildingType.GuildHall or BuildingType.Barracks or BuildingType.Castle =>
-                CreateMilitaryStock(worldId),
+            BuildingType.GuildHall => CreateMilitaryStock(worldId),
             _ => [],
         };
 

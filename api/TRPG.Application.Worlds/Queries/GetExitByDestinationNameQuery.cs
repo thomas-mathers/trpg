@@ -10,7 +10,7 @@ public class GetExitByDestinationNameQuery
     public required string DestinationName { get; init; }
 }
 
-public record ExitMatch(bool Matched, Guid? DestinationLocationId);
+public record ExitMatch(bool Matched, Guid? DestinationLocationId, Guid? ConnectorId = null);
 
 internal class GetExitByDestinationNameQueryHandler(TrpgDbContext context)
     : IQueryHandler<GetExitByDestinationNameQuery, ExitMatch>
@@ -29,7 +29,7 @@ internal class GetExitByDestinationNameQueryHandler(TrpgDbContext context)
             );
 
         return match != null
-            ? new ExitMatch(true, match.DestinationLocationId)
+            ? new ExitMatch(true, match.DestinationLocationId, match.Id)
             : new ExitMatch(false, null);
     }
 }

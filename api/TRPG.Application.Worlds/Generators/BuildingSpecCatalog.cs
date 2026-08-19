@@ -1,3 +1,4 @@
+using TRPG.Application.Buildings;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Generators;
@@ -46,7 +47,7 @@ internal static class BuildingSpecCatalog
             BuildingType.Apothecary => GetApothecarySpecs(ownerId),
             BuildingType.Bakery => GetBakerySpecs(ownerId),
             BuildingType.Stable => GetStableSpecs(ownerId),
-            BuildingType.Barracks => GetBarracksSpecs(ownerId),
+            BuildingType.Barracks => GetBarracksSpecs(memberIds),
             BuildingType.ArcaneShop => GetArcaneShopSpecs(ownerId),
             BuildingType.GuildHall => GetGuildHallSpecs(ownerId, memberIds),
             BuildingType.Castle => GetCastleSpecs(ownerId),
@@ -841,16 +842,15 @@ internal static class BuildingSpecCatalog
                             }
                     ),
                     new PropSpec(
-                        "Counter",
+                        "Altar",
                         (id, worldId) =>
                             new Workstation
                             {
                                 LocationId = id,
                                 WorldId = worldId,
-                                Name = "Counter",
-                                Description = "A counter for donations and offerings.",
-                                WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
+                                Name = "Altar",
+                                Description = "A second altar for a visiting cleric.",
+                                WorkstationType = WorkstationType.Prayer,
                             }
                     ),
                 ]
@@ -1365,8 +1365,25 @@ internal static class BuildingSpecCatalog
         ];
     }
 
-    private static RoomSpec[] GetBarracksSpecs(Guid? ownerId)
+    private static RoomSpec[] GetBarracksSpecs(IReadOnlyList<Guid> memberIds)
     {
+        var officerId = memberIds.Count > 0 ? memberIds[0] : (Guid?)null;
+        var dormitoryBeds = memberIds
+            .Skip(1)
+            .Select(guardId => new PropSpec(
+                "Bed",
+                (id, worldId) =>
+                    new Bed
+                    {
+                        LocationId = id,
+                        WorldId = worldId,
+                        Name = "Bed",
+                        Description = "A simple bunk.",
+                        AssignedCreatureId = guardId,
+                    }
+            ))
+            .ToArray();
+
         return
         [
             new RoomSpec(
@@ -1386,19 +1403,6 @@ internal static class BuildingSpecCatalog
                                 Description = "A rack holding practice weapons.",
                             }
                     ),
-                    new PropSpec(
-                        "Counter",
-                        (id, worldId) =>
-                            new Workstation
-                            {
-                                LocationId = id,
-                                WorldId = worldId,
-                                Name = "Counter",
-                                Description = "A counter for issuing orders and supplies.",
-                                WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
-                            }
-                    ),
                 ]
             ),
             new RoomSpec(
@@ -1416,7 +1420,7 @@ internal static class BuildingSpecCatalog
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A simple cot.",
-                                AssignedCreatureId = ownerId,
+                                AssignedCreatureId = officerId,
                             }
                     ),
                     new PropSpec(
@@ -1428,6 +1432,26 @@ internal static class BuildingSpecCatalog
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A footlocker for personal effects.",
+                            }
+                    ),
+                ]
+            ),
+            new RoomSpec(
+                "Barracks Dormitory",
+                "Rows of bunks for the guards on duty.",
+                1,
+                20,
+                [
+                    .. dormitoryBeds,
+                    new PropSpec(
+                        "Footlocker",
+                        (id, worldId) =>
+                            new Container
+                            {
+                                LocationId = id,
+                                WorldId = worldId,
+                                Name = "Footlocker",
+                                Description = "A shared footlocker for personal effects.",
                             }
                     ),
                 ]
@@ -1487,19 +1511,6 @@ internal static class BuildingSpecCatalog
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A chair for guests.",
-                            }
-                    ),
-                    new PropSpec(
-                        "Counter",
-                        (id, worldId) =>
-                            new Workstation
-                            {
-                                LocationId = id,
-                                WorldId = worldId,
-                                Name = "Counter",
-                                Description = "A counter for receiving tribute and trade.",
-                                WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -1562,7 +1573,7 @@ internal static class BuildingSpecCatalog
                 ]
             ),
             new RoomSpec(
-                "Cells",
+                JailRoomNames.Cells,
                 "A row of dark, damp cells.",
                 1,
                 4,
