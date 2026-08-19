@@ -42,7 +42,8 @@ public record MovePlayerResult(
     EntryOutcome Outcome,
     Creature Player,
     HostileEncounterState? Encounter = null,
-    SceneResult? Scene = null
+    SceneResult? Scene = null,
+    GuardEncounterState? GuardEncounter = null
 );
 
 internal class MovePlayerCommandHandler(
@@ -73,11 +74,13 @@ internal class MovePlayerCommandHandler(
     ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    IQueryHandler<GetActiveGuardEncounterQuery, GuardEncounter?> getActiveGuardEncounter,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<
         EvaluateLocationEncountersCommand,
         HostileEncounterState?
     > evaluateLocationEncounters,
+    ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounterState?> evaluateGuardEncounter,
     SceneCatchUpCache catchUpCache,
     ILogger<MovePlayerCommandHandler> logger
 ) : ICommandHandler<MovePlayerCommand, MovePlayerResult>
@@ -102,6 +105,17 @@ internal class MovePlayerCommandHandler(
         );
 
         if (activeEncounter != null)
+        {
+            transaction.Complete();
+            return new MovePlayerResult(EntryOutcome.EncounterActive, player!);
+        }
+
+        var activeGuardEncounter = await getActiveGuardEncounter.Handle(
+            new GetActiveGuardEncounterQuery { PlayerId = command.PlayerId },
+            cancellationToken
+        );
+
+        if (activeGuardEncounter != null)
         {
             transaction.Complete();
             return new MovePlayerResult(EntryOutcome.EncounterActive, player!);
@@ -168,8 +182,19 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
+        var guardEncounter = await evaluateGuardEncounter.Handle(
+            new EvaluateGuardEncounterCommand { WorldId = player.WorldId, PlayerId = player.Id },
+            cancellationToken
+        );
+
         transaction.Complete();
-        return new MovePlayerResult(EntryOutcome.Entered, player, encounter, refreshed.Scene);
+        return new MovePlayerResult(
+            EntryOutcome.Entered,
+            player,
+            encounter,
+            refreshed.Scene,
+            guardEncounter
+        );
     }
 
     private async Task CleanUpDeadCreatures(

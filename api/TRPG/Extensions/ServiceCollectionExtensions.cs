@@ -356,7 +356,8 @@ internal static class ServiceCollectionExtensions
             .Configure<CreatureRegenOptions>(configuration.GetSection("CreatureRegen"))
             .Configure<GameClockOptions>(configuration.GetSection("GameClock"))
             .Configure<GameSessionOptions>(configuration.GetSection("GameSession"))
-            .Configure<GuardEncounterOptions>(configuration.GetSection("GuardEncounter"));
+            .Configure<GuardEncounterOptions>(configuration.GetSection("GuardEncounter"))
+            .Configure<ReputationOptions>(configuration.GetSection("Reputation"));
     }
 
     private static int GetSerializedByteCount(object? value)

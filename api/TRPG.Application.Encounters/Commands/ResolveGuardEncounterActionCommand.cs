@@ -128,11 +128,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             },
             cancellationToken
         );
-        var fineAmount = (int)
-            Math.Min(
-                options.MaxFineGold,
-                Math.Ceiling(Math.Abs(score) * options.FineGoldPerReputationPoint)
-            );
+        var fineAmount = GuardEncounterCalculator.ComputeFineGold(score, options);
 
         await removeGold.Handle(
             new RemoveGoldCommand
@@ -184,11 +180,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             },
             cancellationToken
         );
-        var jailHours = (int)
-            Math.Min(
-                options.MaxJailHours,
-                Math.Ceiling(Math.Abs(score) * options.JailHoursPerReputationPoint)
-            );
+        var jailHours = GuardEncounterCalculator.ComputeJailHours(score, options);
 
         if (location.CityId == null)
         {

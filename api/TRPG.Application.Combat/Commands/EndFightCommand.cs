@@ -1,9 +1,12 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Reputations.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -19,7 +22,9 @@ internal class EndFightCommand
 internal class EndFightCommandHandler(
     TrpgDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+    ICommandHandler<AdjustReputationCommand> adjustReputation,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICommandHandler<EndFightCommand>
 {
     public async Task Handle(EndFightCommand command, CancellationToken cancellationToken = default)
@@ -50,6 +55,8 @@ internal class EndFightCommandHandler(
             cancellationToken
         );
 
+        await ApplyKilledFactionReputation(state, cancellationToken);
+
         await context
             .Fights.Where(f => f.WorldId == command.WorldId && f.Outcome == CombatOutcome.Ongoing)
             .ExecuteUpdateAsync(
@@ -61,5 +68,44 @@ internal class EndFightCommandHandler(
             );
 
         transaction.Complete();
+    }
+
+    private async Task ApplyKilledFactionReputation(
+        CombatState state,
+        CancellationToken cancellationToken
+    )
+    {
+        var player = state.Combatants.FirstOrDefault(c => c.IsPlayer);
+        var killedCreatureIds = state
+            .Combatants.Where(c => !c.IsPlayer && !c.IsAlive)
+            .Select(c => c.Id)
+            .ToArray();
+
+        if (player == null || killedCreatureIds.Length == 0)
+        {
+            return;
+        }
+
+        var killedFactionIds = await context
+            .FactionMembers.AsNoTracking()
+            .Where(m => killedCreatureIds.Contains(m.CreatureId))
+            .Select(m => m.FactionId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        foreach (var factionId in killedFactionIds)
+        {
+            await adjustReputation.Handle(
+                new AdjustReputationCommand
+                {
+                    CreatureId = player.Id,
+                    TargetId = factionId,
+                    TargetType = ReputationTargetType.Faction,
+                    DeltaScore = reputationOptions.CurrentValue.KillReputationPenalty,
+                    Reason = "Killed a member of this faction",
+                },
+                cancellationToken
+            );
+        }
     }
 }

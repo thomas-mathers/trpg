@@ -8,5 +8,4 @@ public class GuardEncounterOptions
     public int MaxFineGold { get; init; } = 250;
     public float JailHoursPerReputationPoint { get; init; } = 0.5f;
     public int MaxJailHours { get; init; } = 24;
-    public int GuardKilledReputationPenalty { get; init; } = -100;
 }
