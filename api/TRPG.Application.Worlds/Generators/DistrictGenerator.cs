@@ -26,16 +26,6 @@ internal static class DistrictGenerator
             [BuildingType.Barracks] = DistrictType.Encampment,
         };
 
-    internal static readonly Dictionary<DistrictType, int> Popularity = new()
-    {
-        [DistrictType.Residential] = 6,
-        [DistrictType.Scientific] = 3,
-        [DistrictType.CityCenter] = 10,
-        [DistrictType.Governmental] = 2,
-        [DistrictType.HolySite] = 4,
-        [DistrictType.Encampment] = 3,
-    };
-
     private static readonly Dictionary<DistrictType, string[]> Names = new()
     {
         [DistrictType.Residential] =

@@ -18,8 +18,14 @@ internal record DungeonGeneratorResult(
 
 internal static class DungeonGenerator
 {
-    private static readonly IReadOnlyList<BuildingType> DungeonBuildingTypes =
-        BuildingGenerator.DungeonBuildingTypes.ToArray();
+    private static readonly IReadOnlyCollection<BuildingType> DungeonBuildingTypes =
+    [
+        BuildingType.Cave,
+        BuildingType.Crypt,
+        BuildingType.Mine,
+        BuildingType.Ruins,
+        BuildingType.Tower,
+    ];
 
     private static readonly Dictionary<BuildingType, string[]> Names = new()
     {

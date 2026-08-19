@@ -18,6 +18,7 @@ public static class WorldsServiceCollectionExtensions
             .AddTransient<DungeonPopulator>()
             .AddTransient<WildernessPopulator>()
             .AddTransient<HouseholdGenerator>()
+            .AddTransient<CreatureGroupGenerator>()
             .AddTransient<CityGenerator>()
             .AddTransient<GeographyGenerator>()
             .AddTransient<BuildingGenerator>()

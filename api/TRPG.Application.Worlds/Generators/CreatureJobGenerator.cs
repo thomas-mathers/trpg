@@ -120,12 +120,12 @@ internal static class CreatureJobGenerator
 
     public static void ApplySleepOverride(
         Guid creatureId,
-        HourWindow? sleepHours,
+        HourWindow workHours,
         Guid worldId,
         List<CreatureJob> jobs
     )
     {
-        if (sleepHours == null)
+        if (!Overlaps(workHours, DefaultSleepHours))
         {
             return;
         }
@@ -134,7 +134,26 @@ internal static class CreatureJobGenerator
             j.CreatureId == creatureId && j.Action == CreatureJobAction.Sleep
         );
         jobs.Remove(existingSleep);
-        jobs.Add(GenerateSleep(creatureId, existingSleep.LocationId, worldId, sleepHours));
+        var overrideHours = new HourWindow(workHours.End, (workHours.End + 8) % 24);
+        jobs.Add(GenerateSleep(creatureId, existingSleep.LocationId, worldId, overrideHours));
+    }
+
+    private static bool Overlaps(HourWindow a, HourWindow b)
+    {
+        bool Contains(HourWindow window, int hour) =>
+            window.Start <= window.End
+                ? hour >= window.Start && hour < window.End
+                : hour >= window.Start || hour < window.End;
+
+        for (var hour = 0; hour < 24; hour++)
+        {
+            if (Contains(a, hour) && Contains(b, hour))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static IReadOnlyList<CreatureJob> Generate(

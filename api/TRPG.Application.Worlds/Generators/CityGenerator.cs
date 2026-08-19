@@ -36,13 +36,10 @@ internal class CityGeneratorResult
 
 public class CityGenerator(
     BuildingGenerator buildingGenerator,
-    CreatureGenerator creatureGenerator,
-    HouseholdGenerator householdGenerator
+    HouseholdGenerator householdGenerator,
+    CreatureGroupGenerator creatureGroupGenerator
 )
 {
-    private const int AdultAge = 18;
-    private const int MaxAdultBirthYear = WorldEpoch.Year - AdultAge;
-
     private int _guildHallIndex;
 
     private sealed class CityWorkspace
@@ -73,11 +70,6 @@ public class CityGenerator(
         public Dictionary<Guid, Guid> HomeLocationIdByMemberId { get; } = [];
         public HashSet<Guid> FatherIds { get; } = [];
     }
-
-    private record GuildHallOccupants(
-        Creature Owner,
-        IReadOnlyList<CreatureGeneratorResult> Members
-    );
 
     internal CityGeneratorResult Generate(CityGeneratorInput input)
     {
@@ -113,7 +105,7 @@ public class CityGenerator(
                 .Select(d => new IdleCandidate(
                     d.LocationId,
                     int.MaxValue,
-                    DistrictGenerator.Popularity[d.DistrictType],
+                    EmploymentAssigner.DistrictPopularity[d.DistrictType],
                     null
                 ))
                 .ToList(),
@@ -131,8 +123,14 @@ public class CityGenerator(
                 continue;
             }
 
-            if (type == BuildingType.GuildHall && _guildHallIndex >= input.NamedFactions.Count)
+            if (type == BuildingType.GuildHall)
             {
+                if (_guildHallIndex >= input.NamedFactions.Count)
+                {
+                    continue;
+                }
+
+                GenerateGuildHallBuilding(workspace, district);
                 continue;
             }
 
@@ -189,69 +187,48 @@ public class CityGenerator(
     )
     {
         var input = workspace.Input;
+
         var ownerHousehold = householdGenerator.Generate(
             workspace.HouseholdInput,
-            ShopStaffingPolicy.GetProfessionForBuilding(type)
+            StaffingPolicy.GetProfessionForBuilding(type)
         );
+
         RegisterHousehold(workspace, ownerHousehold);
+
         var owner = ownerHousehold.DesignatedWorker!;
-
-        IReadOnlyList<CreatureGeneratorResult> memberCreatures =
-            type == BuildingType.GuildHall ? GenerateGuildMembers(workspace, district) : [];
         var memberIds = new List<Guid> { owner.Id };
-        memberIds.AddRange(memberCreatures.Select(m => m.Creature.Id));
 
-        var isLockable = type is not (BuildingType.Inn or BuildingType.Tavern);
         var buildingName = SettlementNameGenerator.GenerateBuildingName(
             input.DominantRace,
             type,
             workspace.HouseholdInput.UsedBuildingNames
         );
 
+        var spec = BuildingSpecCatalog.GetSpecs(type, owner.Id, memberIds, bedroomGroups: null);
+
         var buildingResult = buildingGenerator.Generate(
-            new BuildingGeneratorInput(input.LocationsById[district.LocationId], owner.Id, type)
+            new BuildingGeneratorInput(input.LocationsById[district.LocationId], spec)
             {
                 Name = buildingName,
                 MemberIds = memberIds,
-                IsLockable = isLockable,
             }
         );
 
-        if (isLockable)
-        {
-            DistributeBuildingKeys(workspace, buildingResult, memberIds);
-        }
+        workspace.Items.AddRange(buildingResult.KeyItems);
+        workspace.DoorConnectorKeys.AddRange(buildingResult.DoorConnectorKeys);
 
         var groundFloorRoom = buildingResult.Rooms.First(r => r.FloorNumber == 0);
-        if (
-            type
-            is not (
-                BuildingType.Jail
-                or BuildingType.Castle
-                or BuildingType.Barracks
-                or BuildingType.GuildHall
-            )
-        )
+
+        if (spec.IdleDestination is { } idleDestination)
         {
             workspace.IdleCandidates.Add(
                 new IdleCandidate(
                     groundFloorRoom.LocationId,
                     groundFloorRoom.Capacity,
-                    BuildingGenerator.Popularity[type],
+                    idleDestination.Popularity,
                     type,
-                    type == BuildingType.Inn
-                        ? null
-                        : ShopStaffingPolicy.GetWorkHoursForBuilding(type)
+                    idleDestination.OpenHours
                 )
-            );
-        }
-
-        if (type == BuildingType.GuildHall)
-        {
-            RegisterGuildFaction(
-                workspace,
-                buildingResult,
-                new GuildHallOccupants(owner, memberCreatures)
             );
         }
 
@@ -273,143 +250,105 @@ public class CityGenerator(
         workspace.DoorConnectors.Add(buildingResult.FrontDoor);
     }
 
-    private IReadOnlyList<CreatureGeneratorResult> GenerateGuildMembers(
-        CityWorkspace workspace,
-        District district
-    )
+    private void GenerateGuildHallBuilding(CityWorkspace workspace, District district)
     {
         var input = workspace.Input;
+
+        var ownerCreatures = creatureGroupGenerator.Generate(
+            new CreatureGroupGeneratorInput(
+                input.DominantRace,
+                StaffingPolicy.GetProfessionForBuilding(BuildingType.GuildHall),
+                input.WorldId,
+                district.LocationId,
+                Count: 1,
+                MinLevel: 1,
+                MaxLevel: 20
+            )
+        );
+        var owner = ownerCreatures[0].Creature;
+
         var numMembers = Random.Shared.Next(
             input.GeneratorInput.MinFactionMembers,
             input.GeneratorInput.MaxFactionMembers + 1
         );
+        var memberCreatures = creatureGroupGenerator.Generate(
+            new CreatureGroupGeneratorInput(
+                input.DominantRace,
+                Profession.Mercenary,
+                input.WorldId,
+                district.LocationId,
+                numMembers - 1,
+                MinLevel: 5,
+                MaxLevel: 100
+            )
+        );
+        var memberList = memberCreatures.Select(m => m.Creature).ToList();
+        var memberIds = new List<Guid> { owner.Id };
 
-        var members = new List<CreatureGeneratorResult>();
-        for (var m = 1; m < numMembers; m++)
-        {
-            var memberRace = CreatureGenerator.PickCreatureType(input.DominantRace);
-            var memberCreature = creatureGenerator.Generate(
-                new CreatureGeneratorInput(
-                    memberRace,
-                    CreatureArchetype.For(Profession.Mercenary),
-                    input.WorldId,
-                    district.LocationId,
-                    MinLevel: 5,
-                    MaxLevel: 100
-                )
-                {
-                    MaxBirthYear = MaxAdultBirthYear,
-                }
-            );
-            memberCreature.Creature.LocationId = district.LocationId;
-            members.Add(memberCreature);
-        }
+        memberIds.AddRange(memberList.Select(m => m.Id));
 
-        return members;
-    }
+        var buildingName = SettlementNameGenerator.GenerateBuildingName(
+            input.DominantRace,
+            BuildingType.GuildHall,
+            workspace.HouseholdInput.UsedBuildingNames
+        );
 
-    private static void DistributeBuildingKeys(
-        CityWorkspace workspace,
-        BuildingGeneratorResult buildingResult,
-        IReadOnlyList<Guid> memberIds
-    )
-    {
-        var worldId = workspace.Input.WorldId;
-        var frontDoor = buildingResult.FrontDoor;
-        foreach (var residentId in memberIds)
-        {
-            var keyItem = new Key
+        var spec = BuildingSpecCatalog.GetSpecs(
+            BuildingType.GuildHall,
+            owner.Id,
+            memberIds,
+            bedroomGroups: null
+        );
+
+        var buildingResult = buildingGenerator.Generate(
+            new BuildingGeneratorInput(input.LocationsById[district.LocationId], spec)
             {
-                WorldId = worldId,
-                Name = $"Key to {buildingResult.Building.Name}",
-                Description = $"A key that unlocks {buildingResult.Building.Name}.",
-                Quantity = 1,
-                Ownership = new ItemOwnership
-                {
-                    OwnerId = residentId,
-                    OwnerType = OwnerType.Creature,
-                },
-            };
-            workspace.Items.Add(keyItem);
-            workspace.DoorConnectorKeys.Add(
-                new DoorConnectorKey
-                {
-                    ItemId = keyItem.Id,
-                    DoorConnectorId = frontDoor.Id,
-                    WorldId = worldId,
-                }
-            );
-        }
-    }
-
-    private void RegisterGuildFaction(
-        CityWorkspace workspace,
-        BuildingGeneratorResult buildingResult,
-        GuildHallOccupants occupants
-    )
-    {
-        var input = workspace.Input;
-        var groundFloorRoom = buildingResult.Rooms.First(r => r.FloorNumber == 0);
-        var guildFactionId =
-            input.NamedFactions.Count > 0 ? input.NamedFactions[_guildHallIndex++].Id : (Guid?)null;
-
-        if (guildFactionId != null)
-        {
-            buildingResult.Building.FactionId = guildFactionId;
-            workspace.FactionMembers.Add(
-                new FactionMember
-                {
-                    FactionId = guildFactionId.Value,
-                    CreatureId = occupants.Owner.Id,
-                    Role = FactionRole.Leader,
-                    WorldId = input.WorldId,
-                }
-            );
-        }
-
-        foreach (var memberCreature in occupants.Members)
-        {
-            if (guildFactionId != null)
-            {
-                workspace.FactionMembers.Add(
-                    new FactionMember
-                    {
-                        FactionId = guildFactionId.Value,
-                        CreatureId = memberCreature.Creature.Id,
-                        Role = FactionRole.Member,
-                        WorldId = input.WorldId,
-                    }
-                );
+                Name = buildingName,
+                MemberIds = memberIds,
             }
+        );
 
-            workspace.FactionMembers.Add(
-                new FactionMember
-                {
-                    FactionId = workspace.CityFaction.Id,
-                    CreatureId = memberCreature.Creature.Id,
-                    Role = FactionRole.Member,
-                    WorldId = input.WorldId,
-                }
-            );
-            memberCreature.Creature.LocationId = groundFloorRoom.LocationId;
-            workspace.Creatures.Add(memberCreature.Creature);
-            workspace.Items.AddRange(memberCreature.Items);
-            workspace.Skills.AddRange(memberCreature.Skills);
+        workspace.Items.AddRange(buildingResult.KeyItems);
+        workspace.DoorConnectorKeys.AddRange(buildingResult.DoorConnectorKeys);
 
-            var memberBedLocationId = buildingResult
-                .Props.OfType<Bed>()
-                .First(b => b.AssignedCreatureId == memberCreature.Creature.Id)
-                .LocationId;
-            workspace.Jobs.AddRange(
-                CreatureJobGenerator.Generate(
-                    memberCreature.Creature.Id,
-                    memberBedLocationId,
-                    null,
-                    groundFloorRoom.LocationId,
-                    input.WorldId
-                )
-            );
-        }
+        var groundFloorRoom = buildingResult.Rooms.First(r => r.FloorNumber == 0);
+
+        var guildFactionId = input.NamedFactions[_guildHallIndex++].Id;
+        buildingResult.Building.FactionId = guildFactionId;
+
+        var registration = GuildHallOccupantGenerator.Generate(
+            new GuildHallOccupantGeneratorInput
+            {
+                WorldId = input.WorldId,
+                CityFactionId = workspace.CityFaction.Id,
+                GuildFactionId = guildFactionId,
+                Owner = owner,
+                GroundFloorLocationId = groundFloorRoom.LocationId,
+                Beds = buildingResult.Props.OfType<Bed>().ToList(),
+                Members = memberList,
+            }
+        );
+
+        workspace.FactionMembers.AddRange(registration.FactionMembers);
+        workspace.Jobs.AddRange(registration.Jobs);
+        workspace.Creatures.Add(owner);
+        workspace.Creatures.AddRange(memberList);
+        workspace.Items.AddRange(ownerCreatures.Concat(memberCreatures).SelectMany(m => m.Items));
+        workspace.Skills.AddRange(ownerCreatures.Concat(memberCreatures).SelectMany(m => m.Skills));
+        workspace.Buildings.Add(buildingResult.Building);
+        workspace.BuildingOwners.Add(
+            new BuildingOwner
+            {
+                BuildingId = buildingResult.Building.Id,
+                OwnerId = owner.Id,
+                WorldId = input.WorldId,
+            }
+        );
+        workspace.Rooms.AddRange(buildingResult.Rooms);
+        workspace.Locations.AddRange(buildingResult.Locations);
+        workspace.Props.AddRange(buildingResult.Props);
+        workspace.LocationConnectors.AddRange(buildingResult.LocationConnectors);
+        workspace.DoorConnectors.Add(buildingResult.FrontDoor);
     }
 
     private static void RegisterShopStaffing(
@@ -418,84 +357,63 @@ public class CityGenerator(
         Guid ownerId
     )
     {
-        var input = workspace.Input;
         var type = buildingResult.Building.BuildingType;
         var groundFloorLocationId = buildingResult.Rooms.First(r => r.FloorNumber == 0).LocationId;
 
+        StaffingSchedule schedule;
         if (type == BuildingType.Inn)
         {
-            ShopStaffingPolicy.GenerateInnStaffing(
-                input.WorldId,
-                ownerId,
-                groundFloorLocationId,
-                workspace.Jobs,
-                workspace.ShopOwnerAssignments,
-                workspace.OpenShopSlots
-            );
-            return;
+            schedule = InnStaffingPolicy.Generate();
         }
-
-        if (type == BuildingType.GuildHall)
+        else
         {
-            workspace.Jobs.Add(
-                CreatureJobGenerator.GenerateWork(ownerId, groundFloorLocationId, input.WorldId)
+            var staffableWorkstationCount = Math.Max(
+                1,
+                buildingResult
+                    .Props.OfType<Workstation>()
+                    .Count(w => w.WorkstationType != WorkstationType.Reading)
             );
-            return;
+            schedule = ShopStaffingPolicy.Generate(type, staffableWorkstationCount);
         }
 
-        var workHours = ShopStaffingPolicy.GetWorkHoursForBuilding(type);
-        var sleepHours = ShopStaffingPolicy.GetSleepHoursForBuilding(type);
+        AssignShiftsToWorkspace(workspace, schedule, ownerId, groundFloorLocationId);
+    }
+
+    private static void AssignShiftsToWorkspace(
+        CityWorkspace workspace,
+        StaffingSchedule schedule,
+        Guid ownerId,
+        Guid groundFloorLocationId
+    )
+    {
+        var worldId = workspace.Input.WorldId;
+
         workspace.Jobs.Add(
             CreatureJobGenerator.GenerateWork(
                 ownerId,
                 groundFloorLocationId,
-                input.WorldId,
-                workHours
+                worldId,
+                schedule.OwnerShift.WorkHours
             )
         );
-        CreatureJobGenerator.ApplySleepOverride(ownerId, sleepHours, input.WorldId, workspace.Jobs);
-
-        var staffableWorkstationCount = Math.Max(
-            1,
-            buildingResult
-                .Props.OfType<Workstation>()
-                .Count(w => w.WorkstationType != WorkstationType.Reading)
+        CreatureJobGenerator.ApplySleepOverride(
+            ownerId,
+            schedule.OwnerShift.WorkHours,
+            worldId,
+            workspace.Jobs
         );
-
-        if (staffableWorkstationCount == 1)
-        {
-            workspace.ShopOwnerAssignments.Add(
-                new StaffDayOff(
-                    ownerId,
-                    ShopStaffingPolicy.NonOverlappingDayOffPatterns[0],
-                    workHours
-                )
-            );
-            workspace.OpenShopSlots.Add(
-                new ShopEmploymentSlot(
-                    groundFloorLocationId,
-                    ShopStaffingPolicy.GetEmployeeProfessionForBuilding(type),
-                    ShopStaffingPolicy.NonOverlappingDayOffPatterns[1],
-                    workHours,
-                    sleepHours
-                )
-            );
-            return;
-        }
-
-        var totalStaff = Math.Min(staffableWorkstationCount, ShopStaffingPolicy.MaxShopStaff);
         workspace.ShopOwnerAssignments.Add(
-            new StaffDayOff(ownerId, ShopStaffingPolicy.StaffDayOffPatterns[0], workHours)
+            new StaffDayOff(ownerId, schedule.OwnerShift.DaysOff, schedule.OwnerShift.WorkHours)
         );
-        for (var position = 1; position < totalStaff; position++)
+
+        foreach (var shift in schedule.EmployeeShifts)
         {
             workspace.OpenShopSlots.Add(
                 new ShopEmploymentSlot(
                     groundFloorLocationId,
-                    ShopStaffingPolicy.GetEmployeeProfessionForBuilding(type),
-                    ShopStaffingPolicy.StaffDayOffPatterns[position],
-                    workHours,
-                    sleepHours
+                    shift.Profession,
+                    shift.DaysOff,
+                    shift.WorkHours
                 )
             );
         }

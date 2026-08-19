@@ -24,7 +24,7 @@ public class ShopStaffingPolicyTests
     public void NonOverlappingDayOffPatterns_PartitionTheWeekWithNoOverlap()
     {
         // Act
-        var patterns = ShopStaffingPolicy.NonOverlappingDayOffPatterns;
+        var patterns = StaffingPolicy.NonOverlappingDayOffPatterns;
 
         // Assert — the two positions never share a day off (so someone's always covering the single workstation),
         // and together their days off cover the whole week (each works exactly the days the other is off)
