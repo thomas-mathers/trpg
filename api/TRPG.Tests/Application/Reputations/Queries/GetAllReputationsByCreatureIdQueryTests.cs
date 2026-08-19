@@ -47,6 +47,7 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 5,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -57,6 +58,7 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
                 TargetId = faction2.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 10,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );

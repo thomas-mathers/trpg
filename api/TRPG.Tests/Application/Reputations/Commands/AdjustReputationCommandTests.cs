@@ -50,6 +50,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 10,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -75,6 +76,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 10,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -87,6 +89,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 5,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -112,6 +115,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 20,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -124,6 +128,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = -8,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -148,6 +153,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 90,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -160,6 +166,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 90,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -184,6 +191,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = -90,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -196,6 +204,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = -90,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -206,6 +215,32 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
             TestContext.Current.CancellationToken
         );
         Assert.Equal(-100, reputations.First().Score);
+    }
+
+    [Fact]
+    public async Task Handle_WritesALogEntry_WithTheGivenReason()
+    {
+        // Act
+        await _handler.Handle(
+            new AdjustReputationCommand
+            {
+                CreatureId = _creatureId,
+                TargetId = _faction.Id,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = -30,
+                Reason = "Killed a guard",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var entry = Assert.Single(
+            _context.ReputationLogEntries.Where(e => e.CreatureId == _creatureId)
+        );
+        Assert.Equal(_faction.Id, entry.TargetId);
+        Assert.Equal(ReputationTargetType.Faction, entry.TargetType);
+        Assert.Equal(-30, entry.DeltaScore);
+        Assert.Equal("Killed a guard", entry.Reason);
     }
 
     [Fact]
@@ -220,6 +255,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                     TargetId = Guid.NewGuid(),
                     TargetType = ReputationTargetType.Faction,
                     DeltaScore = 10,
+                    Reason = "Test reason",
                 },
                 TestContext.Current.CancellationToken
             )
@@ -238,6 +274,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
                     TargetId = Guid.NewGuid(),
                     TargetType = ReputationTargetType.Creature,
                     DeltaScore = 10,
+                    Reason = "Test reason",
                 },
                 TestContext.Current.CancellationToken
             )
