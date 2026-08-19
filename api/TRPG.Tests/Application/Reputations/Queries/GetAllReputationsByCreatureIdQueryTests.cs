@@ -44,10 +44,10 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
             new AdjustReputationCommand
             {
                 CreatureId = creatureId,
-                TargetId = _faction.Id,
+                TargetIds = [_faction.Id],
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 5,
-                Reason = "Test reason",
+                Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
         );
@@ -55,10 +55,10 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
             new AdjustReputationCommand
             {
                 CreatureId = creatureId,
-                TargetId = faction2.Id,
+                TargetIds = [faction2.Id],
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 10,
-                Reason = "Test reason",
+                Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
         );

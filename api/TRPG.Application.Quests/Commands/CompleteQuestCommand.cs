@@ -66,16 +66,21 @@ internal class CompleteQuestCommandHandler(
             cancellationToken
         );
 
-        foreach (var reward in creatureQuest.Quest.ReputationRewards)
+        var rewardGroups = creatureQuest.Quest.ReputationRewards.GroupBy(reward =>
+            (reward.TargetType, reward.Score)
+        );
+
+        foreach (var group in rewardGroups)
         {
             await adjustReputation.Handle(
                 new AdjustReputationCommand
                 {
                     CreatureId = command.PlayerId,
-                    TargetId = reward.TargetId,
-                    TargetType = reward.TargetType,
-                    DeltaScore = reward.Score,
-                    Reason = $"Completed quest: {creatureQuest.Quest.Name}",
+                    TargetIds = group.Select(reward => reward.TargetId).ToArray(),
+                    TargetType = group.Key.TargetType,
+                    DeltaScore = group.Key.Score,
+                    Reason = ReputationReason.QuestCompleted,
+                    Detail = $"Completed quest: {creatureQuest.Quest.Name}",
                 },
                 cancellationToken
             );

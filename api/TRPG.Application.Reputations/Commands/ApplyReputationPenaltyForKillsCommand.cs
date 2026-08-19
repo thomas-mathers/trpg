@@ -36,19 +36,21 @@ internal class ApplyReputationPenaltyForKillsCommandHandler(
             .Distinct()
             .ToArrayAsync(cancellationToken);
 
-        foreach (var factionId in killedFactionIds)
+        if (killedFactionIds.Length == 0)
         {
-            await adjustReputation.Handle(
-                new AdjustReputationCommand
-                {
-                    CreatureId = command.KillerId,
-                    TargetId = factionId,
-                    TargetType = ReputationTargetType.Faction,
-                    DeltaScore = reputationOptions.CurrentValue.KillReputationPenalty,
-                    Reason = "Killed a member of this faction",
-                },
-                cancellationToken
-            );
+            return;
         }
+
+        await adjustReputation.Handle(
+            new AdjustReputationCommand
+            {
+                CreatureId = command.KillerId,
+                TargetIds = killedFactionIds,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = reputationOptions.CurrentValue.KillReputationPenalty,
+                Reason = ReputationReason.KilledFactionMember,
+            },
+            cancellationToken
+        );
     }
 }

@@ -30,7 +30,7 @@ public sealed class GetRecentReputationLogQueryTests(DatabaseFixture db) : IAsyn
         await _context.DisposeAsync();
     }
 
-    private ReputationLogEntry AddEntry(int deltaScore, string reason, DateTime createdAt)
+    private ReputationLogEntry AddEntry(int deltaScore, string detail, DateTime createdAt)
     {
         var entry = new ReputationLogEntry
         {
@@ -38,7 +38,8 @@ public sealed class GetRecentReputationLogQueryTests(DatabaseFixture db) : IAsyn
             TargetId = _faction.Id,
             TargetType = ReputationTargetType.Faction,
             DeltaScore = deltaScore,
-            Reason = reason,
+            Reason = ReputationReason.QuestCompleted,
+            Detail = detail,
             CreatedAt = createdAt,
             WorldId = _faction.WorldId,
         };
@@ -69,7 +70,7 @@ public sealed class GetRecentReputationLogQueryTests(DatabaseFixture db) : IAsyn
         );
 
         // Assert
-        Assert.Equal(["Newest", "Middle"], result.Select(e => e.Reason));
+        Assert.Equal(["Newest", "Middle"], result.Select(e => e.Detail));
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public sealed class GetRecentReputationLogQueryTests(DatabaseFixture db) : IAsyn
 
         // Assert
         var entry = Assert.Single(result);
-        Assert.Equal("Killed a guard", entry.Reason);
+        Assert.Equal("Killed a guard", entry.Detail);
     }
 
     [Fact]
@@ -114,7 +115,8 @@ public sealed class GetRecentReputationLogQueryTests(DatabaseFixture db) : IAsyn
                 TargetId = otherFaction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = -5,
-                Reason = "Other faction",
+                Reason = ReputationReason.QuestCompleted,
+                Detail = "Other faction",
                 CreatedAt = now,
                 WorldId = otherFaction.WorldId,
             }
@@ -135,6 +137,6 @@ public sealed class GetRecentReputationLogQueryTests(DatabaseFixture db) : IAsyn
 
         // Assert
         var entry = Assert.Single(result);
-        Assert.Equal("Same faction", entry.Reason);
+        Assert.Equal("Same faction", entry.Detail);
     }
 }
