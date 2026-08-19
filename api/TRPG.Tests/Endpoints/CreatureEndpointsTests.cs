@@ -118,7 +118,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
                 WorldId = _worldId,
                 Name = "Health Potion",
                 Description = "",
-                Resource = Domain.Models.ResourceType.Hp,
+                Resource = TRPG.Domain.Models.ResourceType.Hp,
                 RestoreAmount = 50,
                 Quantity = 1,
                 Ownership = new ItemOwnership
@@ -435,7 +435,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
                 {
                     WorldId = _worldId,
                     CreatureId = _creature.Id,
-                    Skill = Domain.Models.Skill.Melee,
+                    Skill = TRPG.Domain.Models.Skill.Melee,
                     Level = 2,
                     Experience = 300,
                 }
@@ -528,7 +528,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             i => i.Id == itemId,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(Domain.Models.EquipmentSlot.RightHand, equipped.Ownership.EquippedSlot);
+        Assert.Equal(TRPG.Domain.Models.EquipmentSlot.RightHand, equipped.Ownership.EquippedSlot);
     }
 
     [Fact]
@@ -543,7 +543,7 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             weapon.Quantity = 1;
             weapon.Ownership.OwnerId = _creature.Id;
             weapon.Ownership.OwnerType = OwnerType.Creature;
-            weapon.Ownership.EquippedSlot = Domain.Models.EquipmentSlot.RightHand;
+            weapon.Ownership.EquippedSlot = TRPG.Domain.Models.EquipmentSlot.RightHand;
             context.Items.Add(weapon);
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
             itemId = weapon.Id;

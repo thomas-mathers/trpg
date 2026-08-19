@@ -1,6 +1,6 @@
-using TRPG.Application.GameSessions;
+using TRPG.Domain;
 
-namespace TRPG.Tests.Application.GameSessions;
+namespace TRPG.Tests.Domain;
 
 public class GameClockTests
 {
@@ -12,7 +12,7 @@ public class GameClockTests
         var before = GameClock.GetCurrentInGameDateTime(bankedPlaytime);
         Thread.Sleep(500);
 
-        // Act — real time passing on its own must not move the in-game clock
+        // Act - real time passing on its own must not move the in-game clock
         var after = GameClock.GetCurrentInGameDateTime(bankedPlaytime);
 
         // Assert
@@ -26,7 +26,7 @@ public class GameClockTests
         var bankedPlaytime = TimeSpan.Zero;
         var before = GameClock.GetCurrentInGameDateTime(bankedPlaytime);
 
-        // Act — 5 in-game hours at the 12-in-game-hours-per-real-hour ratio is 5/12 of a real hour
+        // Act - 5 in-game hours at the 12-in-game-hours-per-real-hour ratio is 5/12 of a real hour
         var after = GameClock.GetCurrentInGameDateTime(
             bankedPlaytime + 5 * GameClock.RealTimePerInGameHour
         );

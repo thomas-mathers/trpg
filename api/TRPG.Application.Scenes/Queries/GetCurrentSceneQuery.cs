@@ -1,6 +1,6 @@
 using TRPG.Application.Common.Queries;
-using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Domain;
 
 namespace TRPG.Application.Scenes.Queries;
 

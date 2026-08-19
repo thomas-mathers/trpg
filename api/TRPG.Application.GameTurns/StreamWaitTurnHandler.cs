@@ -1,7 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;

@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Caching.Memory;
-using TRPG.Application.GameSessions;
+using TRPG.Domain;
 
 namespace TRPG.Application.Scenes;
 
