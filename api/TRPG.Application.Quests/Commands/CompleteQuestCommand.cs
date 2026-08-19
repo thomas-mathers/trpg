@@ -75,6 +75,7 @@ internal class CompleteQuestCommandHandler(
                     TargetId = reward.TargetId,
                     TargetType = reward.TargetType,
                     DeltaScore = reward.Score,
+                    Reason = $"Completed quest: {creatureQuest.Quest.Name}",
                 },
                 cancellationToken
             );

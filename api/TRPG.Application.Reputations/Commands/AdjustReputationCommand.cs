@@ -11,6 +11,7 @@ public class AdjustReputationCommand
     public required Guid TargetId { get; init; }
     public required ReputationTargetType TargetType { get; init; }
     public required int DeltaScore { get; init; }
+    public required string Reason { get; init; }
 }
 
 internal class AdjustReputationCommandHandler(TrpgDbContext context)
@@ -47,9 +48,10 @@ internal class AdjustReputationCommandHandler(TrpgDbContext context)
             cancellationToken
         );
 
+        Guid worldId;
         if (reputation == null)
         {
-            var worldId = await context
+            worldId = await context
                 .Creatures.Where(p => p.Id == command.CreatureId)
                 .Select(p => p.WorldId)
                 .FirstAsync(cancellationToken);
@@ -66,12 +68,25 @@ internal class AdjustReputationCommandHandler(TrpgDbContext context)
         }
         else
         {
+            worldId = reputation.WorldId;
             reputation.Score = Math.Clamp(
                 reputation.Score + command.DeltaScore,
                 MinimumScore,
                 MaximumScore
             );
         }
+
+        context.ReputationLogEntries.Add(
+            new ReputationLogEntry
+            {
+                CreatureId = command.CreatureId,
+                TargetId = command.TargetId,
+                TargetType = command.TargetType,
+                DeltaScore = command.DeltaScore,
+                Reason = command.Reason,
+                WorldId = worldId,
+            }
+        );
 
         await context.SaveChangesAsync(cancellationToken);
     }

@@ -97,6 +97,7 @@ public sealed class GetEffectiveReputationsQueryTests(DatabaseFixture db) : IAsy
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 5,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -107,6 +108,7 @@ public sealed class GetEffectiveReputationsQueryTests(DatabaseFixture db) : IAsy
                 TargetId = factionB.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 20,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -117,6 +119,7 @@ public sealed class GetEffectiveReputationsQueryTests(DatabaseFixture db) : IAsy
                 TargetId = npcA.Id,
                 TargetType = ReputationTargetType.Creature,
                 DeltaScore = 3,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );

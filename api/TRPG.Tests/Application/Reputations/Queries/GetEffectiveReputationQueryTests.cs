@@ -92,6 +92,7 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
                 TargetId = _faction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 5,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -102,6 +103,7 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
                 TargetId = guildFaction.Id,
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 10,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
@@ -112,6 +114,7 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
                 TargetId = npc.Id,
                 TargetType = ReputationTargetType.Creature,
                 DeltaScore = 3,
+                Reason = "Test reason",
             },
             TestContext.Current.CancellationToken
         );
