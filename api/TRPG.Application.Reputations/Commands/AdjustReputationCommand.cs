@@ -8,9 +8,11 @@ namespace TRPG.Application.Reputations.Commands;
 public class AdjustReputationCommand
 {
     public required Guid CreatureId { get; init; }
-    public required Guid TargetId { get; init; }
+    public required IReadOnlyCollection<Guid> TargetIds { get; init; }
     public required ReputationTargetType TargetType { get; init; }
     public required int DeltaScore { get; init; }
+    public required ReputationReason Reason { get; init; }
+    public string? Detail { get; init; }
 }
 
 internal class AdjustReputationCommandHandler(TrpgDbContext context)
@@ -24,52 +26,81 @@ internal class AdjustReputationCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var targetExists =
-            command.TargetType == ReputationTargetType.Faction
-                ? await context.Factions.AnyAsync(f => f.Id == command.TargetId, cancellationToken)
-                : await context.Creatures.AnyAsync(
-                    p => p.Id == command.TargetId,
-                    cancellationToken
-                );
+        if (command.TargetIds.Count == 0)
+        {
+            return;
+        }
 
-        if (!targetExists)
+        var existingTargetIds =
+            command.TargetType == ReputationTargetType.Faction
+                ? await context
+                    .Factions.Where(f => command.TargetIds.Contains(f.Id))
+                    .Select(f => f.Id)
+                    .ToArrayAsync(cancellationToken)
+                : await context
+                    .Creatures.Where(c => command.TargetIds.Contains(c.Id))
+                    .Select(c => c.Id)
+                    .ToArrayAsync(cancellationToken);
+
+        var missingTargetId = command
+            .TargetIds.Except(existingTargetIds)
+            .Cast<Guid?>()
+            .FirstOrDefault();
+        if (missingTargetId != null)
         {
             throw new InvalidOperationException(
-                $"{command.TargetType} with id {command.TargetId} does not exist."
+                $"{command.TargetType} with id {missingTargetId} does not exist."
             );
         }
 
-        var reputation = await context.Reputations.FirstOrDefaultAsync(
-            r =>
-                r.CreatureId == command.CreatureId
-                && r.TargetId == command.TargetId
-                && r.TargetType == command.TargetType,
-            cancellationToken
-        );
+        var worldId = await context
+            .Creatures.Where(p => p.Id == command.CreatureId)
+            .Select(p => p.WorldId)
+            .FirstAsync(cancellationToken);
 
-        if (reputation == null)
+        var existingReputationsByTargetId = await context
+            .Reputations.Where(r =>
+                r.CreatureId == command.CreatureId
+                && r.TargetType == command.TargetType
+                && command.TargetIds.Contains(r.TargetId)
+            )
+            .ToDictionaryAsync(r => r.TargetId, cancellationToken);
+
+        foreach (var targetId in command.TargetIds)
         {
-            var worldId = await context
-                .Creatures.Where(p => p.Id == command.CreatureId)
-                .Select(p => p.WorldId)
-                .FirstAsync(cancellationToken);
-            context.Reputations.Add(
-                new Reputation
+            if (existingReputationsByTargetId.TryGetValue(targetId, out var reputation))
+            {
+                reputation.Score = Math.Clamp(
+                    reputation.Score + command.DeltaScore,
+                    MinimumScore,
+                    MaximumScore
+                );
+            }
+            else
+            {
+                context.Reputations.Add(
+                    new Reputation
+                    {
+                        CreatureId = command.CreatureId,
+                        TargetId = targetId,
+                        TargetType = command.TargetType,
+                        Score = Math.Clamp(command.DeltaScore, MinimumScore, MaximumScore),
+                        WorldId = worldId,
+                    }
+                );
+            }
+
+            context.ReputationLogEntries.Add(
+                new ReputationLogEntry
                 {
                     CreatureId = command.CreatureId,
-                    TargetId = command.TargetId,
+                    TargetId = targetId,
                     TargetType = command.TargetType,
-                    Score = Math.Clamp(command.DeltaScore, MinimumScore, MaximumScore),
+                    DeltaScore = command.DeltaScore,
+                    Reason = command.Reason,
+                    Detail = command.Detail,
                     WorldId = worldId,
                 }
-            );
-        }
-        else
-        {
-            reputation.Score = Math.Clamp(
-                reputation.Score + command.DeltaScore,
-                MinimumScore,
-                MaximumScore
             );
         }
 

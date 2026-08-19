@@ -89,9 +89,10 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
             new AdjustReputationCommand
             {
                 CreatureId = _creatureId,
-                TargetId = _faction.Id,
+                TargetIds = [_faction.Id],
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 5,
+                Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
         );
@@ -99,9 +100,10 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
             new AdjustReputationCommand
             {
                 CreatureId = _creatureId,
-                TargetId = guildFaction.Id,
+                TargetIds = [guildFaction.Id],
                 TargetType = ReputationTargetType.Faction,
                 DeltaScore = 10,
+                Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
         );
@@ -109,9 +111,10 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
             new AdjustReputationCommand
             {
                 CreatureId = _creatureId,
-                TargetId = npc.Id,
+                TargetIds = [npc.Id],
                 TargetType = ReputationTargetType.Creature,
                 DeltaScore = 3,
+                Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
         );
