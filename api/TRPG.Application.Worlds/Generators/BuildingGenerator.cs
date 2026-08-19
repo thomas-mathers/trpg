@@ -16,7 +16,8 @@ internal record BuildingGeneratorResult(
     IReadOnlyList<Prop> Props,
     IReadOnlyList<Location> Locations,
     IReadOnlyList<LocationConnector> LocationConnectors,
-    DoorConnector FrontDoor
+    DoorConnector FrontDoor,
+    IReadOnlyList<DoorConnector> InteriorDoors
 );
 
 public class BuildingGenerator
@@ -387,35 +388,57 @@ public class BuildingGenerator
             .ToList();
 
         var roomsByFloor = rooms.GroupBy(r => r.FloorNumber).OrderBy(g => g.Key).ToArray();
+        var interiorDoors = new List<DoorConnector>();
 
         for (var i = 0; i < roomsByFloor.Length - 1; i++)
         {
             var roomAbove = roomsByFloor[i + 1].First();
             var roomBelow = roomsByFloor[i].First();
 
-            locationConnectors.Add(
-                new LocationConnector
-                {
-                    OriginLocationId = roomBelow.LocationId,
-                    Name = "Staircase",
-                    Description = "A staircase leading up.",
-                    DestinationLocationId = roomAbove.LocationId,
-                    DestinationLabel = roomAbove.Name,
-                    WorldId = worldId,
-                }
-            );
+            var upConnector = new LocationConnector
+            {
+                OriginLocationId = roomBelow.LocationId,
+                Name = "Staircase",
+                Description = "A staircase leading up.",
+                DestinationLocationId = roomAbove.LocationId,
+                DestinationLabel = roomAbove.Name,
+                WorldId = worldId,
+            };
+            var downConnector = new LocationConnector
+            {
+                OriginLocationId = roomAbove.LocationId,
+                Name = "Staircase",
+                Description = "A staircase leading down.",
+                DestinationLocationId = roomBelow.LocationId,
+                DestinationLabel = roomBelow.Name,
+                WorldId = worldId,
+            };
+            locationConnectors.Add(upConnector);
+            locationConnectors.Add(downConnector);
 
-            locationConnectors.Add(
-                new LocationConnector
-                {
-                    OriginLocationId = roomAbove.LocationId,
-                    Name = "Staircase",
-                    Description = "A staircase leading down.",
-                    DestinationLocationId = roomBelow.LocationId,
-                    DestinationLabel = roomBelow.Name,
-                    WorldId = worldId,
-                }
-            );
+            // The jail cell door is locked independently of the front door and the
+            // schedule-driven lock sync (which only ever targets the exterior-facing
+            // ground-floor door) - it stays locked until a GoToJail resolution explicitly
+            // releases it, regardless of whether a jailer is on duty.
+            if (input.Type == BuildingType.Jail && roomAbove.Name == "Cells")
+            {
+                interiorDoors.Add(
+                    new DoorConnector
+                    {
+                        ConnectorId = upConnector.Id,
+                        IsLocked = true,
+                        WorldId = worldId,
+                    }
+                );
+                interiorDoors.Add(
+                    new DoorConnector
+                    {
+                        ConnectorId = downConnector.Id,
+                        IsLocked = true,
+                        WorldId = worldId,
+                    }
+                );
+            }
         }
 
         var entranceRoom = rooms.First(r => r.FloorNumber == 0);
@@ -442,7 +465,8 @@ public class BuildingGenerator
             props,
             locations,
             locationConnectors,
-            frontDoor
+            frontDoor,
+            interiorDoors
         );
     }
 
@@ -467,7 +491,7 @@ public class BuildingGenerator
             BuildingType.Apothecary => GetApothecarySpecs(ownerId),
             BuildingType.Bakery => GetBakerySpecs(ownerId),
             BuildingType.Stable => GetStableSpecs(ownerId),
-            BuildingType.Barracks => GetBarracksSpecs(ownerId),
+            BuildingType.Barracks => GetBarracksSpecs(memberIds),
             BuildingType.ArcaneShop => GetArcaneShopSpecs(ownerId),
             BuildingType.GuildHall => GetGuildHallSpecs(ownerId, memberIds),
             BuildingType.Castle => GetCastleSpecs(ownerId),
@@ -1242,16 +1266,15 @@ public class BuildingGenerator
                             }
                     ),
                     new PropSpec(
-                        "Counter",
+                        "Altar",
                         (id, worldId) =>
                             new Workstation
                             {
                                 LocationId = id,
                                 WorldId = worldId,
-                                Name = "Counter",
-                                Description = "A counter for donations and offerings.",
-                                WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
+                                Name = "Altar",
+                                Description = "A second altar for a visiting cleric.",
+                                WorkstationType = WorkstationType.Prayer,
                             }
                     ),
                 ]
@@ -1766,8 +1789,25 @@ public class BuildingGenerator
         ];
     }
 
-    private static RoomSpec[] GetBarracksSpecs(Guid? ownerId)
+    private static RoomSpec[] GetBarracksSpecs(IReadOnlyList<Guid> memberIds)
     {
+        var officerId = memberIds.Count > 0 ? memberIds[0] : (Guid?)null;
+        var dormitoryBeds = memberIds
+            .Skip(1)
+            .Select(guardId => new PropSpec(
+                "Bed",
+                (id, worldId) =>
+                    new Bed
+                    {
+                        LocationId = id,
+                        WorldId = worldId,
+                        Name = "Bed",
+                        Description = "A simple bunk.",
+                        AssignedCreatureId = guardId,
+                    }
+            ))
+            .ToArray();
+
         return
         [
             new RoomSpec(
@@ -1787,19 +1827,6 @@ public class BuildingGenerator
                                 Description = "A rack holding practice weapons.",
                             }
                     ),
-                    new PropSpec(
-                        "Counter",
-                        (id, worldId) =>
-                            new Workstation
-                            {
-                                LocationId = id,
-                                WorldId = worldId,
-                                Name = "Counter",
-                                Description = "A counter for issuing orders and supplies.",
-                                WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
-                            }
-                    ),
                 ]
             ),
             new RoomSpec(
@@ -1817,7 +1844,7 @@ public class BuildingGenerator
                                 WorldId = worldId,
                                 Name = "Bed",
                                 Description = "A simple cot.",
-                                AssignedCreatureId = ownerId,
+                                AssignedCreatureId = officerId,
                             }
                     ),
                     new PropSpec(
@@ -1829,6 +1856,26 @@ public class BuildingGenerator
                                 WorldId = worldId,
                                 Name = "Chest",
                                 Description = "A footlocker for personal effects.",
+                            }
+                    ),
+                ]
+            ),
+            new RoomSpec(
+                "Barracks Dormitory",
+                "Rows of bunks for the guards on duty.",
+                1,
+                20,
+                [
+                    .. dormitoryBeds,
+                    new PropSpec(
+                        "Footlocker",
+                        (id, worldId) =>
+                            new Container
+                            {
+                                LocationId = id,
+                                WorldId = worldId,
+                                Name = "Footlocker",
+                                Description = "A shared footlocker for personal effects.",
                             }
                     ),
                 ]
@@ -1888,19 +1935,6 @@ public class BuildingGenerator
                                 WorldId = worldId,
                                 Name = "Chair",
                                 Description = "A chair for guests.",
-                            }
-                    ),
-                    new PropSpec(
-                        "Counter",
-                        (id, worldId) =>
-                            new Workstation
-                            {
-                                LocationId = id,
-                                WorldId = worldId,
-                                Name = "Counter",
-                                Description = "A counter for receiving tribute and trade.",
-                                WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]

@@ -43,6 +43,13 @@ public class CityGenerator(
     private const int AdultAge = 18;
     private const int MaxAdultBirthYear = WorldEpoch.Year - AdultAge;
 
+    private const int TotalGuards = 7;
+    private const int PatrolWaypointsPerGuard = 2;
+    private static readonly HourWindow GuardDayShiftHours = new(6, 18);
+    private static readonly HourWindow GuardNightShiftHours = new(18, 6);
+    private static readonly HourWindow GuardDayShiftSleepHours = new(22, 6);
+    private static readonly HourWindow GuardNightShiftSleepHours = new(6, 14);
+
     private int _guildHallIndex;
 
     private sealed class CityWorkspace
@@ -73,11 +80,6 @@ public class CityGenerator(
         public Dictionary<Guid, Guid> HomeLocationIdByMemberId { get; } = [];
         public HashSet<Guid> FatherIds { get; } = [];
     }
-
-    private record GuildHallOccupants(
-        Creature Owner,
-        IReadOnlyList<CreatureGeneratorResult> Members
-    );
 
     internal CityGeneratorResult Generate(CityGeneratorInput input)
     {
@@ -136,7 +138,18 @@ public class CityGenerator(
                 continue;
             }
 
-            GenerateStandardBuilding(workspace, type, district);
+            switch (type)
+            {
+                case BuildingType.GuildHall:
+                    GenerateGuildHallBuilding(workspace, district);
+                    break;
+                case BuildingType.Barracks:
+                    GenerateBarracksBuilding(workspace, district);
+                    break;
+                default:
+                    GenerateHouseholdOwnedBuilding(workspace, type, district);
+                    break;
+            }
         }
 
         for (var h = 0; h < input.GeneratorInput.HousesPerCity; h++)
@@ -182,13 +195,12 @@ public class CityGenerator(
         };
     }
 
-    private void GenerateStandardBuilding(
+    private void GenerateHouseholdOwnedBuilding(
         CityWorkspace workspace,
         BuildingType type,
         District district
     )
     {
-        var input = workspace.Input;
         var ownerHousehold = householdGenerator.Generate(
             workspace.HouseholdInput,
             ShopStaffingPolicy.GetProfessionForBuilding(type)
@@ -196,12 +208,115 @@ public class CityGenerator(
         RegisterHousehold(workspace, ownerHousehold);
         var owner = ownerHousehold.DesignatedWorker!;
 
-        IReadOnlyList<CreatureGeneratorResult> memberCreatures =
-            type == BuildingType.GuildHall ? GenerateGuildMembers(workspace, district) : [];
-        var memberIds = new List<Guid> { owner.Id };
-        memberIds.AddRange(memberCreatures.Select(m => m.Creature.Id));
-
         var isLockable = type is not (BuildingType.Inn or BuildingType.Tavern);
+        var buildingResult = GenerateBuildingShell(
+            workspace,
+            type,
+            district,
+            owner.Id,
+            [owner.Id],
+            isLockable
+        );
+
+        RegisterShopStaffing(workspace, buildingResult, owner.Id);
+    }
+
+    private void GenerateGuildHallBuilding(CityWorkspace workspace, District district)
+    {
+        var numMembers = Random.Shared.Next(
+            workspace.Input.GeneratorInput.MinFactionMembers,
+            workspace.Input.GeneratorInput.MaxFactionMembers + 1
+        );
+        var occupants = GenerateStandaloneOccupants(
+            workspace,
+            district,
+            numMembers,
+            Profession.Mercenary,
+            minLevel: 5,
+            maxLevel: 100
+        );
+        var occupantIds = occupants.Select(o => o.Creature.Id).ToList();
+
+        var buildingResult = GenerateBuildingShell(
+            workspace,
+            BuildingType.GuildHall,
+            district,
+            occupantIds[0],
+            occupantIds,
+            isLockable: true
+        );
+
+        RegisterGuildFaction(workspace, buildingResult, occupants);
+    }
+
+    private void GenerateBarracksBuilding(CityWorkspace workspace, District district)
+    {
+        var guards = GenerateStandaloneOccupants(
+            workspace,
+            district,
+            TotalGuards,
+            Profession.Guard,
+            minLevel: 3,
+            maxLevel: 30
+        );
+        var guardIds = guards.Select(g => g.Creature.Id).ToList();
+
+        var buildingResult = GenerateBuildingShell(
+            workspace,
+            BuildingType.Barracks,
+            district,
+            guardIds[0],
+            guardIds,
+            isLockable: true
+        );
+
+        RegisterBarracksGuardDuty(workspace, buildingResult, guards);
+    }
+
+    private IReadOnlyList<CreatureGeneratorResult> GenerateStandaloneOccupants(
+        CityWorkspace workspace,
+        District district,
+        int count,
+        Profession profession,
+        int minLevel,
+        int maxLevel
+    )
+    {
+        var input = workspace.Input;
+        var occupants = new List<CreatureGeneratorResult>();
+        for (var i = 0; i < count; i++)
+        {
+            var race = CreatureGenerator.PickCreatureType(input.DominantRace);
+            var occupant = creatureGenerator.Generate(
+                new CreatureGeneratorInput(
+                    race,
+                    CreatureArchetype.For(profession),
+                    input.WorldId,
+                    district.LocationId,
+                    MinLevel: minLevel,
+                    MaxLevel: maxLevel
+                )
+                {
+                    MaxBirthYear = MaxAdultBirthYear,
+                }
+            );
+            occupant.Creature.LocationId = district.LocationId;
+            occupants.Add(occupant);
+        }
+
+        return occupants;
+    }
+
+    private BuildingGeneratorResult GenerateBuildingShell(
+        CityWorkspace workspace,
+        BuildingType type,
+        District district,
+        Guid ownerId,
+        IReadOnlyList<Guid> memberIds,
+        bool isLockable
+    )
+    {
+        var input = workspace.Input;
         var buildingName = SettlementNameGenerator.GenerateBuildingName(
             input.DominantRace,
             type,
@@ -209,7 +324,7 @@ public class CityGenerator(
         );
 
         var buildingResult = buildingGenerator.Generate(
-            new BuildingGeneratorInput(input.LocationsById[district.LocationId], owner.Id, type)
+            new BuildingGeneratorInput(input.LocationsById[district.LocationId], ownerId, type)
             {
                 Name = buildingName,
                 MemberIds = memberIds,
@@ -246,23 +361,12 @@ public class CityGenerator(
             );
         }
 
-        if (type == BuildingType.GuildHall)
-        {
-            RegisterGuildFaction(
-                workspace,
-                buildingResult,
-                new GuildHallOccupants(owner, memberCreatures)
-            );
-        }
-
-        RegisterShopStaffing(workspace, buildingResult, owner.Id);
-
         workspace.Buildings.Add(buildingResult.Building);
         workspace.BuildingOwners.Add(
             new BuildingOwner
             {
                 BuildingId = buildingResult.Building.Id,
-                OwnerId = owner.Id,
+                OwnerId = ownerId,
                 WorldId = input.WorldId,
             }
         );
@@ -271,41 +375,9 @@ public class CityGenerator(
         workspace.Props.AddRange(buildingResult.Props);
         workspace.LocationConnectors.AddRange(buildingResult.LocationConnectors);
         workspace.DoorConnectors.Add(buildingResult.FrontDoor);
-    }
+        workspace.DoorConnectors.AddRange(buildingResult.InteriorDoors);
 
-    private IReadOnlyList<CreatureGeneratorResult> GenerateGuildMembers(
-        CityWorkspace workspace,
-        District district
-    )
-    {
-        var input = workspace.Input;
-        var numMembers = Random.Shared.Next(
-            input.GeneratorInput.MinFactionMembers,
-            input.GeneratorInput.MaxFactionMembers + 1
-        );
-
-        var members = new List<CreatureGeneratorResult>();
-        for (var m = 1; m < numMembers; m++)
-        {
-            var memberRace = CreatureGenerator.PickCreatureType(input.DominantRace);
-            var memberCreature = creatureGenerator.Generate(
-                new CreatureGeneratorInput(
-                    memberRace,
-                    CreatureArchetype.For(Profession.Mercenary),
-                    input.WorldId,
-                    district.LocationId,
-                    MinLevel: 5,
-                    MaxLevel: 100
-                )
-                {
-                    MaxBirthYear = MaxAdultBirthYear,
-                }
-            );
-            memberCreature.Creature.LocationId = district.LocationId;
-            members.Add(memberCreature);
-        }
-
-        return members;
+        return buildingResult;
     }
 
     private static void DistributeBuildingKeys(
@@ -345,7 +417,7 @@ public class CityGenerator(
     private void RegisterGuildFaction(
         CityWorkspace workspace,
         BuildingGeneratorResult buildingResult,
-        GuildHallOccupants occupants
+        IReadOnlyList<CreatureGeneratorResult> occupants
     )
     {
         var input = workspace.Input;
@@ -356,27 +428,21 @@ public class CityGenerator(
         if (guildFactionId != null)
         {
             buildingResult.Building.FactionId = guildFactionId;
-            workspace.FactionMembers.Add(
-                new FactionMember
-                {
-                    FactionId = guildFactionId.Value,
-                    CreatureId = occupants.Owner.Id,
-                    Role = FactionRole.Leader,
-                    WorldId = input.WorldId,
-                }
-            );
         }
 
-        foreach (var memberCreature in occupants.Members)
+        for (var i = 0; i < occupants.Count; i++)
         {
+            var occupant = occupants[i];
+            var isLeader = i == 0;
+
             if (guildFactionId != null)
             {
                 workspace.FactionMembers.Add(
                     new FactionMember
                     {
                         FactionId = guildFactionId.Value,
-                        CreatureId = memberCreature.Creature.Id,
-                        Role = FactionRole.Member,
+                        CreatureId = occupant.Creature.Id,
+                        Role = isLeader ? FactionRole.Leader : FactionRole.Member,
                         WorldId = input.WorldId,
                     }
                 );
@@ -386,25 +452,25 @@ public class CityGenerator(
                 new FactionMember
                 {
                     FactionId = workspace.CityFaction.Id,
-                    CreatureId = memberCreature.Creature.Id,
+                    CreatureId = occupant.Creature.Id,
                     Role = FactionRole.Member,
                     WorldId = input.WorldId,
                 }
             );
-            memberCreature.Creature.LocationId = groundFloorRoom.LocationId;
-            workspace.Creatures.Add(memberCreature.Creature);
-            workspace.Items.AddRange(memberCreature.Items);
-            workspace.Skills.AddRange(memberCreature.Skills);
+            occupant.Creature.LocationId = groundFloorRoom.LocationId;
+            workspace.Creatures.Add(occupant.Creature);
+            workspace.Items.AddRange(occupant.Items);
+            workspace.Skills.AddRange(occupant.Skills);
 
-            var memberBedLocationId = buildingResult
+            var bedLocationId = buildingResult
                 .Props.OfType<Bed>()
-                .First(b => b.AssignedCreatureId == memberCreature.Creature.Id)
+                .First(b => b.AssignedCreatureId == occupant.Creature.Id)
                 .LocationId;
             workspace.Jobs.AddRange(
                 CreatureJobGenerator.Generate(
-                    memberCreature.Creature.Id,
-                    memberBedLocationId,
-                    null,
+                    occupant.Creature.Id,
+                    bedLocationId,
+                    isLeader ? groundFloorRoom.LocationId : null,
                     groundFloorRoom.LocationId,
                     input.WorldId
                 )
@@ -431,14 +497,6 @@ public class CityGenerator(
                 workspace.Jobs,
                 workspace.ShopOwnerAssignments,
                 workspace.OpenShopSlots
-            );
-            return;
-        }
-
-        if (type == BuildingType.GuildHall)
-        {
-            workspace.Jobs.Add(
-                CreatureJobGenerator.GenerateWork(ownerId, groundFloorLocationId, input.WorldId)
             );
             return;
         }
@@ -499,6 +557,187 @@ public class CityGenerator(
                 )
             );
         }
+    }
+
+    // Guard 0 is the commanding officer, who also reinforces day patrol as a 7th body
+    // beyond the minimum roster. Guards 1-2 cover the gate (day/night), 3-4 cover day
+    // patrol, 5-6 cover night patrol. None of them get day-off activities - unlike shop
+    // staff, guards have no household/personal life for a day off to be spent on.
+    private void RegisterBarracksGuardDuty(
+        CityWorkspace workspace,
+        BuildingGeneratorResult buildingResult,
+        IReadOnlyList<CreatureGeneratorResult> guards
+    )
+    {
+        var groundFloorRoom = buildingResult.Rooms.First(r => r.FloorNumber == 0);
+        var gateLocationId = ResolveGateLocationId(workspace, groundFloorRoom.LocationId);
+        var patrolWaypoints = ResolvePatrolWaypoints(workspace, groundFloorRoom.LocationId);
+
+        for (var i = 0; i < guards.Count; i++)
+        {
+            var guard = guards[i];
+            RegisterOccupant(workspace, guard, groundFloorRoom.LocationId);
+
+            var bedLocationId = buildingResult
+                .Props.OfType<Bed>()
+                .First(b => b.AssignedCreatureId == guard.Creature.Id)
+                .LocationId;
+
+            switch (i)
+            {
+                case 0:
+                    AssignPatrol(
+                        workspace,
+                        guard.Creature.Id,
+                        bedLocationId,
+                        patrolWaypoints,
+                        rotationOffset: 0,
+                        isDayShift: true
+                    );
+                    break;
+                case 1:
+                    AssignGate(workspace, guard.Creature.Id, bedLocationId, gateLocationId, true);
+                    break;
+                case 2:
+                    AssignGate(workspace, guard.Creature.Id, bedLocationId, gateLocationId, false);
+                    break;
+                case 3 or 4:
+                    AssignPatrol(
+                        workspace,
+                        guard.Creature.Id,
+                        bedLocationId,
+                        patrolWaypoints,
+                        rotationOffset: i - 3,
+                        isDayShift: true
+                    );
+                    break;
+                default:
+                    AssignPatrol(
+                        workspace,
+                        guard.Creature.Id,
+                        bedLocationId,
+                        patrolWaypoints,
+                        rotationOffset: i - 5,
+                        isDayShift: false
+                    );
+                    break;
+            }
+        }
+    }
+
+    private static void RegisterOccupant(
+        CityWorkspace workspace,
+        CreatureGeneratorResult occupant,
+        Guid locationId
+    )
+    {
+        occupant.Creature.LocationId = locationId;
+        workspace.Creatures.Add(occupant.Creature);
+        workspace.Items.AddRange(occupant.Items);
+        workspace.Skills.AddRange(occupant.Skills);
+        workspace.FactionMembers.Add(
+            new FactionMember
+            {
+                FactionId = workspace.CityFaction.Id,
+                CreatureId = occupant.Creature.Id,
+                Role = FactionRole.Member,
+                WorldId = workspace.Input.WorldId,
+            }
+        );
+    }
+
+    private static void AssignGate(
+        CityWorkspace workspace,
+        Guid guardId,
+        Guid bedLocationId,
+        Guid gateLocationId,
+        bool isDayShift
+    )
+    {
+        var shiftHours = isDayShift ? GuardDayShiftHours : GuardNightShiftHours;
+        var sleepHours = isDayShift ? GuardDayShiftSleepHours : GuardNightShiftSleepHours;
+
+        workspace.Jobs.Add(
+            CreatureJobGenerator.GenerateSleep(
+                guardId,
+                bedLocationId,
+                workspace.Input.WorldId,
+                sleepHours
+            )
+        );
+        workspace.Jobs.Add(
+            CreatureJobGenerator.GenerateWork(
+                guardId,
+                gateLocationId,
+                workspace.Input.WorldId,
+                shiftHours
+            )
+        );
+    }
+
+    private static void AssignPatrol(
+        CityWorkspace workspace,
+        Guid guardId,
+        Guid bedLocationId,
+        IReadOnlyList<Guid> waypoints,
+        int rotationOffset,
+        bool isDayShift
+    )
+    {
+        var shiftHours = isDayShift ? GuardDayShiftHours : GuardNightShiftHours;
+        var sleepHours = isDayShift ? GuardDayShiftSleepHours : GuardNightShiftSleepHours;
+
+        workspace.Jobs.Add(
+            CreatureJobGenerator.GenerateSleep(
+                guardId,
+                bedLocationId,
+                workspace.Input.WorldId,
+                sleepHours
+            )
+        );
+
+        var waypointCount = Math.Min(PatrolWaypointsPerGuard, waypoints.Count);
+        var shiftLength = (shiftHours.End - shiftHours.Start + 24) % 24;
+        var blockLength = shiftLength / waypointCount;
+
+        for (var w = 0; w < waypointCount; w++)
+        {
+            var waypoint = waypoints[(rotationOffset + w) % waypoints.Count];
+            var blockStart = (shiftHours.Start + w * blockLength) % 24;
+            var blockEnd =
+                w == waypointCount - 1 ? shiftHours.End : (blockStart + blockLength) % 24;
+            workspace.Jobs.Add(
+                CreatureJobGenerator.GenerateWork(
+                    guardId,
+                    waypoint,
+                    workspace.Input.WorldId,
+                    new HourWindow(blockStart, blockEnd)
+                )
+            );
+        }
+    }
+
+    private static Guid ResolveGateLocationId(CityWorkspace workspace, Guid fallbackLocationId)
+    {
+        return workspace.DistrictsByType.TryGetValue(
+            DistrictType.CityEntrance,
+            out var gateDistrict
+        )
+            ? gateDistrict.LocationId
+            : fallbackLocationId;
+    }
+
+    private static IReadOnlyList<Guid> ResolvePatrolWaypoints(
+        CityWorkspace workspace,
+        Guid fallbackLocationId
+    )
+    {
+        var waypoints = workspace
+            .Input.Districts.Where(d => d.DistrictType != DistrictType.CityEntrance)
+            .Select(d => d.LocationId)
+            .ToArray();
+
+        return waypoints.Length > 0 ? waypoints : [fallbackLocationId];
     }
 
     private static void RegisterHousehold(
