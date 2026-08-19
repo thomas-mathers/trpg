@@ -1,7 +1,7 @@
 using System.Globalization;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.GameSessions;
+namespace TRPG.Domain;
 
 public static class GameClock
 {
