@@ -2,8 +2,10 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { useState } from 'react';
 
 import { CombatDialog } from '@/features/combat/components/combat-dialog';
+import { GuardEncounterDialog } from '@/features/encounters/components/guard-encounter-dialog';
 import { HostileEncounterDialog } from '@/features/encounters/components/hostile-encounter-dialog';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-encounter-state';
+import { useHasActiveGuardEncounter } from '@/features/encounters/hooks/use-guard-encounter-state';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub, useGameHubConnection } from '@/features/game/hooks/use-game-hub-connection';
 import { useIsInCombat } from '@/features/game/hooks/use-is-in-combat';
@@ -18,6 +20,7 @@ export function GameChat() {
   const isConnected = connectionStatus === HubConnectionState.Connected;
   const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
+  const hasActiveGuardEncounter = useHasActiveGuardEncounter();
   const [input, setInput] = useState('');
 
   const handleSend = () => {
@@ -36,7 +39,7 @@ export function GameChat() {
       <GameChatControls
         input={input}
         isConnected={isConnected}
-        isInCombat={isInCombat || hasActiveEncounter}
+        isInCombat={isInCombat || hasActiveEncounter || hasActiveGuardEncounter}
         isStreaming={isStreaming}
         onChange={setInput}
         onSubmit={handleSend}
@@ -66,6 +69,7 @@ function GameChatControls({
     <div className="mx-auto w-full max-w-2xl p-4">
       <CombatDialog />
       <HostileEncounterDialog />
+      <GuardEncounterDialog />
       {!isInCombat && (
         <ChatInput
           value={input}

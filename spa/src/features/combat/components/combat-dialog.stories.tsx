@@ -262,6 +262,9 @@ function WorkbenchProviders({
     resolveAttackEncounterAction: noopStream,
     resolveEvadeEncounterAction: noopStream,
     resolveRetreatEncounterAction: noopStream,
+    resolvePayFineGuardEncounterAction: noopStream,
+    resolveGoToJailGuardEncounterAction: noopStream,
+    resolveResistArrestGuardEncounterAction: noopStream,
   };
 
   const hubConnection: GameHubConnection = {

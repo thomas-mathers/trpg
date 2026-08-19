@@ -6,7 +6,7 @@ import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
 import type { SceneSnapshot } from '../TRPG.GameSessions.Responses';
 import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, EncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, EncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.Responses';
 
@@ -123,6 +123,18 @@ class IChatHub_HubProxy implements IChatHub {
     public readonly resolveRetreatEncounterAction = (): IStreamResult<string> => {
         return this.connection.stream("ResolveRetreatEncounterAction");
     }
+
+    public readonly resolvePayFineGuardEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolvePayFineGuardEncounterAction");
+    }
+
+    public readonly resolveGoToJailGuardEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveGoToJailGuardEncounterAction");
+    }
+
+    public readonly resolveResistArrestGuardEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveResistArrestGuardEncounterAction");
+    }
 }
 
 
@@ -142,6 +154,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __combatUpdated = (...args: [CombatUpdatePayload]) => receiver.combatUpdated(...args);
         const __encounterStarted = (...args: [HostileEncounterState]) => receiver.encounterStarted(...args);
         const __encounterResolved = (...args: [EncounterResolutionFact]) => receiver.encounterResolved(...args);
+        const __guardEncounterStarted = (...args: [GuardEncounterState]) => receiver.guardEncounterStarted(...args);
+        const __guardEncounterResolved = (...args: [GuardEncounterResolutionFact]) => receiver.guardEncounterResolved(...args);
         const __skillLevelUp = (...args: [SkillLevelUp]) => receiver.skillLevelUp(...args);
         const __characterLevelUp = (...args: [CharacterLevelUp]) => receiver.characterLevelUp(...args);
         const __questDialogRequested = (...args: [QuestDialogRequested]) => receiver.questDialogRequested(...args);
@@ -153,6 +167,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("CombatUpdated", __combatUpdated);
         connection.on("EncounterStarted", __encounterStarted);
         connection.on("EncounterResolved", __encounterResolved);
+        connection.on("GuardEncounterStarted", __guardEncounterStarted);
+        connection.on("GuardEncounterResolved", __guardEncounterResolved);
         connection.on("SkillLevelUp", __skillLevelUp);
         connection.on("CharacterLevelUp", __characterLevelUp);
         connection.on("QuestDialogRequested", __questDialogRequested);
@@ -165,6 +181,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "CombatUpdated", method: __combatUpdated },
             { methodName: "EncounterStarted", method: __encounterStarted },
             { methodName: "EncounterResolved", method: __encounterResolved },
+            { methodName: "GuardEncounterStarted", method: __guardEncounterStarted },
+            { methodName: "GuardEncounterResolved", method: __guardEncounterResolved },
             { methodName: "SkillLevelUp", method: __skillLevelUp },
             { methodName: "CharacterLevelUp", method: __characterLevelUp },
             { methodName: "QuestDialogRequested", method: __questDialogRequested },

@@ -31,6 +31,15 @@ public interface IChatHub
     IAsyncEnumerable<string> ResolveAttackEncounterAction(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveEvadeEncounterAction(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveRetreatEncounterAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolvePayFineGuardEncounterAction(
+        CancellationToken cancellationToken
+    );
+    IAsyncEnumerable<string> ResolveGoToJailGuardEncounterAction(
+        CancellationToken cancellationToken
+    );
+    IAsyncEnumerable<string> ResolveResistArrestGuardEncounterAction(
+        CancellationToken cancellationToken
+    );
 }
 
 internal sealed class ChatHub(
@@ -138,6 +147,33 @@ internal sealed class ChatHub(
         gameTurnRunner.StreamEncounterAction(
             Session,
             new RetreatEncounterAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolvePayFineGuardEncounterAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamGuardEncounterAction(
+            Session,
+            new PayFineEncounterAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolveGoToJailGuardEncounterAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamGuardEncounterAction(
+            Session,
+            new GoToJailEncounterAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolveResistArrestGuardEncounterAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamGuardEncounterAction(
+            Session,
+            new ResistArrestEncounterAction(),
             cancellationToken
         );
 

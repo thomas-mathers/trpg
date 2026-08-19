@@ -20,6 +20,41 @@ export type EncounterResolutionFact = {
     memberNames: string[];
 }
 
+/** Transpiled from TRPG.Encounters.Responses.GuardEncounterResolutionOutcome */
+export type GuardEncounterResolutionOutcome = "PaidFine" | "WentToJail" | "ResistedArrest";
+
+/** Transpiled from TRPG.Encounters.Responses.GuardEncounterResolutionFact */
+export type GuardEncounterResolutionFact = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from TRPG.Encounters.Responses.GuardEncounterResolutionOutcome */
+    outcome: GuardEncounterResolutionOutcome;
+    /** Transpiled from string */
+    guardName: string;
+    /** Transpiled from string */
+    locationName: string;
+    /** Transpiled from int */
+    fineAmount?: number;
+    /** Transpiled from int */
+    jailHours?: number;
+}
+
+/** Transpiled from TRPG.Encounters.Responses.GuardEncounterState */
+export type GuardEncounterState = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from string */
+    guardName: string;
+    /** Transpiled from string */
+    locationName: string;
+    /** Transpiled from int */
+    fineAmount: number;
+    /** Transpiled from int */
+    jailHours: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    recentOffenses: string[];
+}
+
 /** Transpiled from TRPG.Encounters.Responses.HostileEncounterMemberState */
 export type HostileEncounterMemberState = {
     /** Transpiled from string */

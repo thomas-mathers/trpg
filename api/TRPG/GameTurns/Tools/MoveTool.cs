@@ -13,7 +13,11 @@ using TRPG.Tools;
 
 namespace TRPG.GameTurns.Tools;
 
-internal record MoveToolResult(SceneResult Scene, HostileEncounterState? Encounter);
+internal record MoveToolResult(
+    SceneResult Scene,
+    HostileEncounterState? Encounter,
+    GuardEncounterState? GuardEncounter
+);
 
 internal class MoveTool(
     GameTurnContext turnContext,
@@ -64,7 +68,12 @@ internal class MoveTool(
             gameEvents.Enqueue(new EncounterStartedEvent(moveResult.Encounter));
         }
 
-        var result = new MoveToolResult(scene, moveResult.Encounter);
+        if (moveResult.GuardEncounter != null)
+        {
+            gameEvents.Enqueue(new GuardEncounterStartedEvent(moveResult.GuardEncounter));
+        }
+
+        var result = new MoveToolResult(scene, moveResult.Encounter, moveResult.GuardEncounter);
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
@@ -92,7 +101,7 @@ internal class MoveTool(
                 $"No exit named '{destinationName}' found here. Call look to see the available exits."
             ),
             EntryOutcome.EncounterActive => new ToolError(
-                "A hostile encounter is already underway — resolve it before moving."
+                "An encounter is already underway — resolve it before moving."
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
         };

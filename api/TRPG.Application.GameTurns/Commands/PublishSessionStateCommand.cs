@@ -24,7 +24,9 @@ internal class PublishSessionStateCommandHandler(
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
-    IQueryHandler<GetHostileEncounterStateQuery, HostileEncounterState> getHostileEncounterState
+    IQueryHandler<GetHostileEncounterStateQuery, HostileEncounterState> getHostileEncounterState,
+    IQueryHandler<GetActiveGuardEncounterQuery, GuardEncounter?> getActiveGuardEncounter,
+    IQueryHandler<GetGuardEncounterStateQuery, GuardEncounterState> getGuardEncounterState
 ) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
@@ -64,6 +66,25 @@ internal class PublishSessionStateCommandHandler(
                 cancellationToken
             );
             gameEvents.Enqueue(new EncounterStartedEvent(state));
+        }
+
+        var guardEncounter = await getActiveGuardEncounter.Handle(
+            new GetActiveGuardEncounterQuery { PlayerId = command.PlayerId },
+            cancellationToken
+        );
+        if (guardEncounter != null)
+        {
+            var guardState = await getGuardEncounterState.Handle(
+                new GetGuardEncounterStateQuery
+                {
+                    EncounterId = guardEncounter.Id,
+                    PlayerId = command.PlayerId,
+                    GuardCreatureId = guardEncounter.GuardCreatureId,
+                    LocationId = guardEncounter.LocationId,
+                },
+                cancellationToken
+            );
+            gameEvents.Enqueue(new GuardEncounterStartedEvent(guardState));
         }
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);

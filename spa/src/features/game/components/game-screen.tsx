@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { getQuestJournalQueryKey } from '@/api/client';
 import { CharacterDialog } from '@/features/character/components/character-dialog';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-encounter-state';
+import { useHasActiveGuardEncounter } from '@/features/encounters/hooks/use-guard-encounter-state';
 
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
 import { gameEventBus, type QuestDialogRequested } from '../../../lib/game-event-bus';
@@ -39,7 +40,8 @@ function GameScreen() {
   const hubConnection = useConnectToHub(sessionId);
   const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
-  const isActionBlocked = isInCombat || hasActiveEncounter;
+  const hasActiveGuardEncounter = useHasActiveGuardEncounter();
+  const isActionBlocked = isInCombat || hasActiveEncounter || hasActiveGuardEncounter;
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
   const [isConnectionLostDialogOpen, setIsConnectionLostDialogOpen] = useState(false);

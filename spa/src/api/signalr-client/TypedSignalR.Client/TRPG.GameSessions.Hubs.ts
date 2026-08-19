@@ -5,7 +5,7 @@
 import type { IStreamResult, Subject } from '@microsoft/signalr';
 import type { SceneSnapshot } from '../TRPG.GameSessions.Responses';
 import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, EncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, EncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.Responses';
 
@@ -63,6 +63,21 @@ export type IChatHub = {
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
     resolveRetreatEncounterAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolvePayFineGuardEncounterAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveGoToJailGuardEncounterAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveResistArrestGuardEncounterAction(): IStreamResult<string>;
 }
 
 export type IGameClient = {
@@ -91,6 +106,16 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     encounterResolved(fact: EncounterResolutionFact): Promise<void>;
+    /**
+    * @param encounter Transpiled from TRPG.Encounters.Responses.GuardEncounterState
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    guardEncounterStarted(encounter: GuardEncounterState): Promise<void>;
+    /**
+    * @param fact Transpiled from TRPG.Encounters.Responses.GuardEncounterResolutionFact
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    guardEncounterResolved(fact: GuardEncounterResolutionFact): Promise<void>;
     /**
     * @param skillLevelUp Transpiled from TRPG.Creatures.Responses.SkillLevelUp
     * @returns Transpiled from System.Threading.Tasks.Task
