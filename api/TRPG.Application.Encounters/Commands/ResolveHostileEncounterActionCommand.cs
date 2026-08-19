@@ -3,49 +3,42 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Encounters.Results;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class ResolveEncounterActionCommand
+public class ResolveHostileEncounterActionCommand
 {
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required PlayerEncounterAction Action { get; init; }
+    public required HostileEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
-    public required Guid EncounterGroupId { get; init; }
-    public required Guid EncounterLocationId { get; init; }
+    public required string FactionName { get; init; }
+    public required string LocationName { get; init; }
+    public required IReadOnlyCollection<HostileEncounterMemberSnapshot> Members { get; init; }
     public Guid? ArrivalOriginLocationId { get; init; }
 }
 
-internal class ResolveEncounterActionCommandHandler(
-    IQueryHandler<GetEncounterGroupContextQuery, EncounterGroupContext> getEncounterGroupContext,
+internal class ResolveHostileEncounterActionCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<CompleteEncounterCommand> completeEncounter,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<StartFightCommand> startFight,
-    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
-) : ICommandHandler<ResolveEncounterActionCommand, EncounterActionResult>
+    ICommandHandler<StartFightCommand> startFight
+) : ICommandHandler<ResolveHostileEncounterActionCommand, HostileEncounterActionResult>
 {
-    public async Task<EncounterActionResult> Handle(
-        ResolveEncounterActionCommand command,
+    public async Task<HostileEncounterActionResult> Handle(
+        ResolveHostileEncounterActionCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var groupContext = await getEncounterGroupContext.Handle(
-            new GetEncounterGroupContextQuery { EncounterGroupId = command.EncounterGroupId },
-            cancellationToken
-        );
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
         );
 
-        var groupPower = groupContext.LivingMembers.Sum(member => member.Level);
+        var groupPower = command.Members.Sum(member => member.Level);
         var actionKind = ToActionKind(command.Action);
         var outcome = HostileEncounterActionResolver.Resolve(
             actionKind,
@@ -59,29 +52,23 @@ internal class ResolveEncounterActionCommandHandler(
             cancellationToken
         );
 
-        await ApplyEncounterOutcome(outcome, command, player, groupContext, cancellationToken);
+        await ApplyEncounterOutcome(outcome, command, player, cancellationToken);
 
-        var location = await getLocationById.Handle(
-            new GetLocationByIdQuery { Id = command.EncounterLocationId },
-            cancellationToken
-        );
-
-        var fact = new EncounterResolutionFact(
+        var fact = new HostileEncounterResolutionFact(
             EncounterId: command.EncounterId,
             Outcome: ToResolutionOutcome(outcome),
-            FactionName: groupContext.Faction.Name,
-            LocationName: location!.Name,
-            MemberNames: groupContext.LivingMembers.Select(member => member.Name).ToArray()
+            FactionName: command.FactionName,
+            LocationName: command.LocationName,
+            MemberNames: command.Members.Select(member => member.Name).ToArray()
         );
 
-        return new EncounterActionResult(actionKind, fact);
+        return new HostileEncounterActionResult(actionKind, fact);
     }
 
     private async Task ApplyEncounterOutcome(
         HostileEncounterActionOutcome outcome,
-        ResolveEncounterActionCommand command,
+        ResolveHostileEncounterActionCommand command,
         Creature player,
-        EncounterGroupContext groupContext,
         CancellationToken cancellationToken
     )
     {
@@ -113,7 +100,7 @@ internal class ResolveEncounterActionCommandHandler(
             return;
         }
 
-        var enemyCreatureIds = groupContext.LivingMembers.Select(member => member.Id).ToArray();
+        var enemyCreatureIds = command.Members.Select(member => member.Id).ToArray();
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
@@ -131,13 +118,12 @@ internal class ResolveEncounterActionCommandHandler(
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = enemyCreatureIds,
-                EncounterId = command.EncounterId,
             },
             cancellationToken
         );
     }
 
-    private static HostileEncounterActionKind ToActionKind(PlayerEncounterAction action) =>
+    private static HostileEncounterActionKind ToActionKind(HostileEncounterAction action) =>
         action switch
         {
             AttackEncounterAction => HostileEncounterActionKind.Attack,
@@ -146,16 +132,18 @@ internal class ResolveEncounterActionCommandHandler(
             _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
 
-    private static EncounterResolutionOutcome ToResolutionOutcome(
+    private static HostileEncounterResolutionOutcome ToResolutionOutcome(
         HostileEncounterActionOutcome outcome
     ) =>
         outcome switch
         {
-            HostileEncounterActionOutcome.Attacked => EncounterResolutionOutcome.Attacked,
-            HostileEncounterActionOutcome.Evaded => EncounterResolutionOutcome.Evaded,
-            HostileEncounterActionOutcome.EvadeFailed => EncounterResolutionOutcome.EvadeFailed,
-            HostileEncounterActionOutcome.Retreated => EncounterResolutionOutcome.Retreated,
-            HostileEncounterActionOutcome.RetreatFailed => EncounterResolutionOutcome.RetreatFailed,
+            HostileEncounterActionOutcome.Attacked => HostileEncounterResolutionOutcome.Attacked,
+            HostileEncounterActionOutcome.Evaded => HostileEncounterResolutionOutcome.Evaded,
+            HostileEncounterActionOutcome.EvadeFailed =>
+                HostileEncounterResolutionOutcome.EvadeFailed,
+            HostileEncounterActionOutcome.Retreated => HostileEncounterResolutionOutcome.Retreated,
+            HostileEncounterActionOutcome.RetreatFailed =>
+                HostileEncounterResolutionOutcome.RetreatFailed,
             _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
         };
 }

@@ -117,7 +117,7 @@ internal sealed class ChatHub(
     public IAsyncEnumerable<string> ResolveAttackEncounterAction(
         CancellationToken cancellationToken
     ) =>
-        gameTurnRunner.StreamEncounterAction(
+        gameTurnRunner.StreamHostileEncounterAction(
             Session,
             new AttackEncounterAction(),
             cancellationToken
@@ -126,7 +126,7 @@ internal sealed class ChatHub(
     public IAsyncEnumerable<string> ResolveEvadeEncounterAction(
         CancellationToken cancellationToken
     ) =>
-        gameTurnRunner.StreamEncounterAction(
+        gameTurnRunner.StreamHostileEncounterAction(
             Session,
             new EvadeEncounterAction(),
             cancellationToken
@@ -135,7 +135,7 @@ internal sealed class ChatHub(
     public IAsyncEnumerable<string> ResolveRetreatEncounterAction(
         CancellationToken cancellationToken
     ) =>
-        gameTurnRunner.StreamEncounterAction(
+        gameTurnRunner.StreamHostileEncounterAction(
             Session,
             new RetreatEncounterAction(),
             cancellationToken

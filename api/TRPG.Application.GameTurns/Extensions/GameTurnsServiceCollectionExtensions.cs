@@ -14,14 +14,14 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<StreamWaitTurnHandler>()
             .AddTransient<StreamChatTurnHandler>()
             .AddTransient<StreamFleeTurnHandler>()
-            .AddTransient<StreamEncounterActionTurnHandler>()
+            .AddTransient<StreamHostileEncounterActionTurnHandler>()
             .AddTransient<ResolveCombatActionHandler>()
             .AddTransient<GameTurnRunner>(serviceProvider => new GameTurnRunner(
                 serviceProvider.GetRequiredService<StreamOpeningTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamChatTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamWaitTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamFleeTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamEncounterActionTurnHandler>(),
+                serviceProvider.GetRequiredService<StreamHostileEncounterActionTurnHandler>(),
                 serviceProvider.GetRequiredService<ResolveCombatActionHandler>()
             ));
 }

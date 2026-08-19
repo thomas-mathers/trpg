@@ -156,14 +156,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
     }
 
-    private async Task<Fight> GetFight()
+    private async Task<FightEncounter> GetFight()
     {
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        return await context.Fights.SingleAsync(
-            f => f.PlayerId == _playerId,
-            TestContext.Current.CancellationToken
-        );
+        return await context
+            .Encounters.OfType<FightEncounter>()
+            .SingleAsync(f => f.PlayerId == _playerId, TestContext.Current.CancellationToken);
     }
 
     private async Task<World> GetWorld()
@@ -710,13 +709,23 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             locationId: _locationId,
             level: 1
         );
-        var group = Builders.MakeEncounterGroup(_worldId, _locationId, faction.Id);
-        var member = Builders.MakeEncounterGroupMember(_worldId, group.Id, monster.Id);
-        var encounter = Builders.MakeHostileEncounter(_worldId, _playerId, _locationId, group.Id);
+        var encounter = Builders.MakeHostileEncounter(
+            _worldId,
+            _playerId,
+            _locationId,
+            factionName: faction.Name,
+            members:
+            [
+                new HostileEncounterMemberSnapshot(
+                    monster.Id,
+                    monster.Name,
+                    monster.CreatureType,
+                    monster.Level
+                ),
+            ]
+        );
         context.Factions.Add(faction);
         context.Creatures.Add(monster);
-        context.EncounterGroups.Add(group);
-        context.EncounterGroupMembers.Add(member);
         context.Encounters.Add(encounter);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

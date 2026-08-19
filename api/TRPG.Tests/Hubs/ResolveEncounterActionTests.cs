@@ -113,7 +113,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         Assert.Equal("There's no encounter to resolve right now.", narration);
     }
 
-    private async Task<(Faction Faction, Creature Monster, EncounterGroup Group)> SeedHostileGroup()
+    private async Task<(Faction Faction, Creature Monster)> SeedHostileGroup()
     {
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -125,18 +125,18 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
             locationId: _locationId,
             level: 1
         );
-        var group = Builders.MakeEncounterGroup(_worldId, _locationId, faction.Id);
-        var member = Builders.MakeEncounterGroupMember(_worldId, group.Id, monster.Id);
         context.Factions.Add(faction);
         context.Creatures.Add(monster);
-        context.EncounterGroups.Add(group);
-        context.EncounterGroupMembers.Add(member);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        return (faction, monster, group);
+        return (faction, monster);
     }
 
-    private async Task<HostileEncounter> SeedActiveEncounter(Guid encounterGroupId)
+    private async Task<HostileEncounter> SeedActiveEncounter(
+        Faction faction,
+        Creature monster,
+        Guid? arrivalOriginLocationId = null
+    )
     {
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -145,7 +145,17 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
             _worldId,
             _playerId,
             _locationId,
-            encounterGroupId
+            factionName: faction.Name,
+            members:
+            [
+                new HostileEncounterMemberSnapshot(
+                    monster.Id,
+                    monster.Name,
+                    monster.CreatureType,
+                    monster.Level
+                ),
+            ],
+            arrivalOriginLocationId: arrivalOriginLocationId
         );
         context.Encounters.Add(encounter);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -163,22 +173,24 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         );
     }
 
-    private async Task<Fight?> FindFight(Guid playerId)
+    private async Task<FightEncounter?> FindFight(Guid playerId)
     {
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        return await context.Fights.SingleOrDefaultAsync(
-            f => f.PlayerId == playerId,
-            TestContext.Current.CancellationToken
-        );
+        return await context
+            .Encounters.OfType<FightEncounter>()
+            .SingleOrDefaultAsync(
+                f => f.PlayerId == playerId,
+                TestContext.Current.CancellationToken
+            );
     }
 
     [Fact]
     public async Task ResolveEncounterAction_Attack_CompletesTheEncounter_AndStartsAFight_WithOnlyTheGroupsMembers()
     {
         // Arrange
-        var (_, monster, group) = await SeedHostileGroup();
-        var encounter = await SeedActiveEncounter(group.Id);
+        var (faction, monster) = await SeedHostileGroup();
+        var encounter = await SeedActiveEncounter(faction, monster);
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
@@ -199,7 +211,6 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
 
         var fight = await FindFight(_playerId);
         Assert.NotNull(fight);
-        Assert.Equal(encounter.Id, fight.EncounterId);
         Assert.Equal(
             new[] { _playerId, monster.Id }.OrderBy(id => id),
             fight.CombatantIds.OrderBy(id => id)
@@ -210,8 +221,8 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
     public async Task ResolveEncounterAction_Evade_AlwaysCompletesTheEncounter_AndConsistentlyLinksAnyFightThatStarts()
     {
         // Arrange
-        var (_, monster, group) = await SeedHostileGroup();
-        var encounter = await SeedActiveEncounter(group.Id);
+        var (faction, monster) = await SeedHostileGroup();
+        var encounter = await SeedActiveEncounter(faction, monster);
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
@@ -230,7 +241,6 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         var fight = await FindFight(_playerId);
         if (fight != null)
         {
-            Assert.Equal(encounter.Id, fight.EncounterId);
             Assert.Equal(
                 new[] { _playerId, monster.Id }.OrderBy(id => id),
                 fight.CombatantIds.OrderBy(id => id)
@@ -250,20 +260,8 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        var (_, _, group) = await SeedHostileGroup();
-        await using (var scope = fixture.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            var encounter = Builders.MakeHostileEncounter(
-                _worldId,
-                _playerId,
-                _locationId,
-                group.Id,
-                arrivalOriginLocationId: originLocation.Id
-            );
-            context.Encounters.Add(encounter);
-            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
+        var (faction, monster) = await SeedHostileGroup();
+        await SeedActiveEncounter(faction, monster, originLocation.Id);
 
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);

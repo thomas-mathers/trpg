@@ -83,7 +83,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<World> Worlds => Set<World>();
     public DbSet<GameSession> GameSessions => Set<GameSession>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
-    public DbSet<Fight> Fights => Set<Fight>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -123,19 +122,24 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.Property(c => c.ActiveBuffs).HasJsonConversion(() => []);
         });
 
-        modelBuilder.Entity<Fight>(entity =>
-        {
-            entity.HasIndex(f => f.WorldId);
-            entity.HasIndex(f => f.PlayerId);
-            entity.HasIndex(f => f.EncounterId);
-            entity.Property(f => f.CombatantIds).HasColumnType("uuid[]");
-        });
-
         modelBuilder.Entity<Encounter>(entity =>
         {
             entity.HasIndex(e => e.WorldId);
             entity.HasIndex(e => new { e.PlayerId, e.State });
-            entity.HasDiscriminator<string>("encounter_type").HasValue<HostileEncounter>("Hostile");
+            entity
+                .HasDiscriminator<string>("encounter_type")
+                .HasValue<HostileEncounter>("Hostile")
+                .HasValue<FightEncounter>("Fight");
+        });
+
+        modelBuilder.Entity<HostileEncounter>(entity =>
+        {
+            entity.Property(e => e.Members).HasJsonConversion(() => []);
+        });
+
+        modelBuilder.Entity<FightEncounter>(entity =>
+        {
+            entity.Property(e => e.CombatantIds).HasColumnType("uuid[]");
         });
 
         modelBuilder.Entity<EncounterGroup>(entity =>

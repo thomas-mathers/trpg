@@ -500,7 +500,10 @@ internal static class Builders
         Guid worldId,
         Guid playerId,
         Guid locationId,
-        Guid encounterGroupId,
+        Guid? factionId = null,
+        string factionName = "Faction",
+        string locationName = "Location",
+        IReadOnlyList<HostileEncounterMemberSnapshot>? members = null,
         Guid? arrivalOriginLocationId = null,
         EncounterState state = EncounterState.Active
     ) =>
@@ -509,7 +512,10 @@ internal static class Builders
             WorldId = worldId,
             PlayerId = playerId,
             LocationId = locationId,
-            EncounterGroupId = encounterGroupId,
+            FactionId = factionId ?? Guid.NewGuid(),
+            FactionName = factionName,
+            LocationName = locationName,
+            Members = members?.ToList() ?? [],
             ArrivalOriginLocationId = arrivalOriginLocationId,
             State = state,
         };
@@ -720,19 +726,17 @@ internal static class Builders
         };
     }
 
-    public static Fight MakeFight(
+    public static FightEncounter MakeFight(
         Guid worldId,
         Guid playerId,
-        IReadOnlyList<Guid> combatantIds,
-        DateTime? startedAt = null
+        IReadOnlyList<Guid> combatantIds
     )
     {
-        return new Fight
+        return new FightEncounter
         {
             WorldId = worldId,
             PlayerId = playerId,
-            CombatantIds = combatantIds,
-            StartedAt = startedAt ?? DateTime.UtcNow,
+            CombatantIds = combatantIds.ToList(),
         };
     }
 }

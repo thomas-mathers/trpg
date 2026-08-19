@@ -53,10 +53,10 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _context.DisposeAsync();
     }
 
-    private async Task<Fight> SeedFight()
+    private async Task<FightEncounter> SeedFight()
     {
         var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
-        _context.Fights.Add(fight);
+        _context.Encounters.Add(fight);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return fight;
     }
@@ -148,11 +148,10 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var updatedFight = await verifyContext.Fights.FindAsync(
-            [fight.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(updatedFight!.CompletedAt);
+        var updatedFight = await verifyContext
+            .Encounters.OfType<FightEncounter>()
+            .SingleAsync(f => f.Id == fight.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(updatedFight.CompletedAt);
         Assert.Equal(CombatOutcome.Fled, updatedFight.Outcome);
     }
 

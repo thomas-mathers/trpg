@@ -16,7 +16,7 @@ namespace TRPG.NpcConversations.Tools;
 
 internal class StartConversationTool(
     GameTurnContext turnContext,
-    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
     IQueryHandler<
@@ -51,7 +51,7 @@ internal class StartConversationTool(
         if (activeEncounter != null)
         {
             return new ToolError(
-                "A hostile encounter is underway — resolve it before starting a conversation."
+                "An encounter is underway — resolve it before starting a conversation."
             );
         }
 

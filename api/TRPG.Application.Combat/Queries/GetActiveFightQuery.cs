@@ -11,14 +11,15 @@ public class GetActiveFightQuery
 }
 
 internal class GetActiveFightQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetActiveFightQuery, Fight?>
+    : IQueryHandler<GetActiveFightQuery, FightEncounter?>
 {
-    public async Task<Fight?> Handle(
+    public async Task<FightEncounter?> Handle(
         GetActiveFightQuery query,
         CancellationToken cancellationToken = default
     ) =>
         await context
-            .Fights.AsNoTracking()
-            .Where(f => f.PlayerId == query.PlayerId && f.Outcome == CombatOutcome.Ongoing)
+            .Encounters.AsNoTracking()
+            .OfType<FightEncounter>()
+            .Where(f => f.PlayerId == query.PlayerId && f.State == EncounterState.Active)
             .FirstOrDefaultAsync(cancellationToken);
 }
