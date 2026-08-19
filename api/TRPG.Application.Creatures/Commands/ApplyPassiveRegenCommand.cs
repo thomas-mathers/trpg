@@ -3,9 +3,9 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;

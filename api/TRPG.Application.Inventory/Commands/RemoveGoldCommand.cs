@@ -13,7 +13,10 @@ public class RemoveGoldCommand
 
 internal class RemoveGoldCommandHandler(TrpgDbContext context) : ICommandHandler<RemoveGoldCommand>
 {
-    public async Task Handle(RemoveGoldCommand command, CancellationToken cancellationToken = default)
+    public async Task Handle(
+        RemoveGoldCommand command,
+        CancellationToken cancellationToken = default
+    )
     {
         if (command.Amount <= 0)
         {
@@ -28,12 +31,12 @@ internal class RemoveGoldCommandHandler(TrpgDbContext context) : ICommandHandler
                     && item.Ownership.OwnerType == command.Owner.Type,
                 cancellationToken
             );
-        if (gold is null)
+        if (gold is null || gold.Quantity < command.Amount)
         {
-            return;
+            throw new InvalidOperationException("Not enough gold to remove the requested amount.");
         }
 
-        gold.Quantity = Math.Max(0, gold.Quantity - command.Amount);
+        gold.Quantity -= command.Amount;
         await context.SaveChangesAsync(cancellationToken);
     }
 }

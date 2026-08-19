@@ -162,7 +162,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         );
         var destination = Builders.MakeDistrict(
             city.Id,
-            Domain.Models.DistrictType.Residential,
+            TRPG.Domain.Models.DistrictType.Residential,
             worldId: world.Id,
             id: destinationId,
             locationId: destinationLocation.Id

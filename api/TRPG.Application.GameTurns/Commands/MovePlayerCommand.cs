@@ -1,5 +1,6 @@
 using System.Transactions;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Buildings.Results;
 using TRPG.Application.Common.Commands;
@@ -12,7 +13,6 @@ using TRPG.Application.Creatures.Results;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
-using TRPG.Application.GameSessions;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
@@ -21,6 +21,7 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Commands;
@@ -65,6 +66,9 @@ internal class MovePlayerCommandHandler(
         GetBuildingEntryRequirementsQuery,
         BuildingEntryRequirements
     > getBuildingEntryRequirements,
+    IQueryHandler<GetDoorConnectorByConnectorIdQuery, DoorConnector?> getDoorConnectorByConnectorId,
+    ICommandHandler<ClearDoorTimedLockCommand> clearDoorTimedLock,
+    IQueryHandler<GetKeyItemIdsQuery, IReadOnlyList<Guid>> getKeyItemIds,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
@@ -288,6 +292,44 @@ internal class MovePlayerCommandHandler(
                 : EntryOutcome.ExitNotFound;
         }
 
+        var door = await getDoorConnectorByConnectorId.Handle(
+            new GetDoorConnectorByConnectorIdQuery { ConnectorId = exitMatch.ConnectorId!.Value },
+            cancellationToken
+        );
+
+        if (door is { IsLocked: true })
+        {
+            if (door.UnlocksAtPlaytime is { } unlocksAt)
+            {
+                var playtime = await getPlaytime.Handle(
+                    new GetPlaytimeQuery { SessionId = command.SessionId },
+                    cancellationToken
+                );
+
+                if (playtime >= unlocksAt)
+                {
+                    await clearDoorTimedLock.Handle(
+                        new ClearDoorTimedLockCommand { DoorConnectorId = door.Id },
+                        cancellationToken
+                    );
+                    door = null;
+                }
+            }
+        }
+
+        if (door is { IsLocked: true })
+        {
+            var validKeyItemIds = await getKeyItemIds.Handle(
+                new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
+                cancellationToken
+            );
+
+            if (!await HasAnyKey(player, validKeyItemIds, cancellationToken))
+            {
+                return EntryOutcome.Locked;
+            }
+        }
+
         player.LocationId = exitMatch.DestinationLocationId!.Value;
 
         return EntryOutcome.Entered;
@@ -343,7 +385,7 @@ internal class MovePlayerCommandHandler(
 
         if (
             requirements.Outcome == BuildingEntryResult.Locked
-            && !await HasAnyKey(player, requirements, cancellationToken)
+            && !await HasAnyKey(player, requirements.ValidKeyItemIds!, cancellationToken)
         )
         {
             return EntryOutcome.Locked;
@@ -356,7 +398,7 @@ internal class MovePlayerCommandHandler(
 
     private async Task<bool> HasAnyKey(
         Creature player,
-        BuildingEntryRequirements requirements,
+        IReadOnlyCollection<Guid> validKeyItemIds,
         CancellationToken cancellationToken
     )
     {
@@ -367,6 +409,6 @@ internal class MovePlayerCommandHandler(
             },
             cancellationToken
         );
-        return inventory.Any(item => requirements.ValidKeyItemIds!.Contains(item.Id));
+        return inventory.Any(item => validKeyItemIds.Contains(item.Id));
     }
 }

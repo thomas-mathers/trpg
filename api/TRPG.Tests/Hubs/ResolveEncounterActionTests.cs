@@ -153,7 +153,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         return encounter;
     }
 
-    private async Task<Domain.Models.Encounter> GetEncounter(Guid encounterId)
+    private async Task<Encounter> GetEncounter(Guid encounterId)
     {
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();

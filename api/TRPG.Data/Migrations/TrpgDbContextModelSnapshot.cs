@@ -732,6 +732,10 @@ namespace TRPG.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_locked");
 
+                    b.Property<TimeSpan?>("UnlocksAtPlaytime")
+                        .HasColumnType("interval")
+                        .HasColumnName("unlocks_at_playtime");
+
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
@@ -1922,6 +1926,19 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_world_events_world_id");
 
                     b.ToTable("world_events", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.GuardEncounter", b =>
+                {
+                    b.HasBaseType("TRPG.Domain.Models.Encounter");
+
+                    b.Property<Guid>("GuardCreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("guard_creature_id");
+
+                    b.ToTable("encounters", (string)null);
+
+                    b.HasDiscriminator().HasValue("Guard");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.HostileEncounter", b =>

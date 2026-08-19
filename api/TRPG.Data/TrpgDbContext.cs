@@ -136,7 +136,10 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         {
             entity.HasIndex(e => e.WorldId);
             entity.HasIndex(e => new { e.PlayerId, e.State });
-            entity.HasDiscriminator<string>("encounter_type").HasValue<HostileEncounter>("Hostile");
+            entity
+                .HasDiscriminator<string>("encounter_type")
+                .HasValue<HostileEncounter>("Hostile")
+                .HasValue<GuardEncounter>("Guard");
         });
 
         modelBuilder.Entity<EncounterGroup>(entity =>

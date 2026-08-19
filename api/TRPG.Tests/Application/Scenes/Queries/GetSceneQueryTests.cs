@@ -281,7 +281,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
         var exit = Assert.Single(result.Exits);
         var destination = Assert.IsType<SceneDistrictExitDestination>(exit.Destination);
         Assert.Equal("City Center", destination.Name);
-        Assert.Equal(Domain.Models.DistrictType.CityCenter, destination.DistrictType);
+        Assert.Equal(TRPG.Domain.Models.DistrictType.CityCenter, destination.DistrictType);
     }
 
     [Fact]

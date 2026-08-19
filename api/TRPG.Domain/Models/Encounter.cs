@@ -22,3 +22,8 @@ public class HostileEncounter : Encounter
 {
     public required Guid EncounterGroupId { get; init; }
 }
+
+public class GuardEncounter : Encounter
+{
+    public required Guid GuardCreatureId { get; init; }
+}
