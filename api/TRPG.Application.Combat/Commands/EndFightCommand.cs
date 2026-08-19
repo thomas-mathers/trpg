@@ -4,6 +4,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Reputations.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -19,6 +20,7 @@ internal class EndFightCommand
 internal class EndFightCommandHandler(
     TrpgDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<ApplyReputationPenaltyForKillsCommand> applyReputationPenaltyForKills,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
 ) : ICommandHandler<EndFightCommand>
 {
@@ -49,6 +51,24 @@ internal class EndFightCommandHandler(
             },
             cancellationToken
         );
+
+        var player = state.Combatants.FirstOrDefault(c => c.IsPlayer);
+        if (player != null)
+        {
+            var killedCreatureIds = state
+                .Combatants.Where(c => !c.IsPlayer && !c.IsAlive)
+                .Select(c => c.Id)
+                .ToArray();
+
+            await applyReputationPenaltyForKills.Handle(
+                new ApplyReputationPenaltyForKillsCommand
+                {
+                    KillerId = player.Id,
+                    KilledCreatureIds = killedCreatureIds,
+                },
+                cancellationToken
+            );
+        }
 
         await context
             .Encounters.OfType<FightEncounter>()

@@ -472,6 +472,20 @@ internal static class Builders
         };
     }
 
+    public static FactionMember MakeFactionMember(
+        Guid worldId,
+        Guid factionId,
+        Guid creatureId,
+        FactionRole role = FactionRole.Member
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            FactionId = factionId,
+            CreatureId = creatureId,
+            Role = role,
+        };
+
     public static EncounterGroup MakeEncounterGroup(
         Guid worldId,
         Guid locationId,
