@@ -72,6 +72,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<QuestReputationReward> QuestReputationRewards => Set<QuestReputationReward>();
     public DbSet<Relationship> Relationships => Set<Relationship>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
+    public DbSet<ReputationLogEntry> ReputationLogEntries => Set<ReputationLogEntry>();
     public DbSet<DoorConnectorKey> DoorConnectorKeys => Set<DoorConnectorKey>();
     public DbSet<Encounter> Encounters => Set<Encounter>();
     public DbSet<EncounterGroup> EncounterGroups => Set<EncounterGroup>();
@@ -434,6 +435,18 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.ToTable(table =>
                 table.HasCheckConstraint("ck_reputations_score", "score BETWEEN -100 AND 100")
             );
+        });
+
+        modelBuilder.Entity<ReputationLogEntry>(entity =>
+        {
+            entity.HasIndex(r => new
+            {
+                r.CreatureId,
+                r.TargetId,
+                r.TargetType,
+                r.CreatedAt,
+            });
+            entity.HasIndex(r => r.WorldId);
         });
 
         modelBuilder.Entity<QuestReputationReward>(entity =>
