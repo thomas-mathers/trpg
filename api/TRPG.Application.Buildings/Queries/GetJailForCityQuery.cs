@@ -20,21 +20,15 @@ internal class GetJailForCityQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var jail = await context
-            .Buildings.AsNoTracking()
-            .Join(
-                context.Locations.AsNoTracking(),
-                building => building.ExteriorLocationId,
-                location => location.Id,
-                (building, location) => new { building, location }
-            )
-            .Where(x =>
-                x.building.BuildingType == BuildingType.Jail && x.location.CityId == query.CityId
-            )
-            .Select(x => x.building)
-            .FirstOrDefaultAsync(cancellationToken);
+        var jailId = await (
+            from building in context.Buildings.AsNoTracking()
+            join location in context.Locations.AsNoTracking()
+                on building.ExteriorLocationId equals location.Id
+            where building.BuildingType == BuildingType.Jail && location.CityId == query.CityId
+            select (Guid?)building.Id
+        ).FirstOrDefaultAsync(cancellationToken);
 
-        if (jail == null)
+        if (jailId == null)
         {
             return null;
         }
@@ -42,7 +36,7 @@ internal class GetJailForCityQueryHandler(TrpgDbContext context)
         var cellsRoom = await context
             .Rooms.AsNoTracking()
             .FirstOrDefaultAsync(
-                r => r.BuildingId == jail.Id && r.Name == "Cells",
+                r => r.BuildingId == jailId.Value && r.Name == JailRoomNames.Cells,
                 cancellationToken
             );
 

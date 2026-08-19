@@ -1,3 +1,4 @@
+using TRPG.Application.Buildings;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Generators;
@@ -416,11 +417,7 @@ public class BuildingGenerator
             locationConnectors.Add(upConnector);
             locationConnectors.Add(downConnector);
 
-            // The jail cell door is locked independently of the front door and the
-            // schedule-driven lock sync (which only ever targets the exterior-facing
-            // ground-floor door) - it stays locked until a GoToJail resolution explicitly
-            // releases it, regardless of whether a jailer is on duty.
-            if (input.Type == BuildingType.Jail && roomAbove.Name == "Cells")
+            if (input.Type == BuildingType.Jail && roomAbove.Name == JailRoomNames.Cells)
             {
                 interiorDoors.Add(
                     new DoorConnector
@@ -1997,7 +1994,7 @@ public class BuildingGenerator
                 ]
             ),
             new RoomSpec(
-                "Cells",
+                JailRoomNames.Cells,
                 "A row of dark, damp cells.",
                 1,
                 4,

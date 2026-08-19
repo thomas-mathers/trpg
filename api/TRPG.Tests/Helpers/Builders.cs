@@ -514,6 +514,22 @@ internal static class Builders
             State = state,
         };
 
+    public static GuardEncounter MakeGuardEncounter(
+        Guid worldId,
+        Guid playerId,
+        Guid locationId,
+        Guid guardCreatureId,
+        EncounterState state = EncounterState.Active
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            PlayerId = playerId,
+            LocationId = locationId,
+            GuardCreatureId = guardCreatureId,
+            State = state,
+        };
+
     public static World MakeWorld()
     {
         return new World

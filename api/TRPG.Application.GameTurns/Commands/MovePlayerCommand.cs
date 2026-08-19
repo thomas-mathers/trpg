@@ -68,7 +68,7 @@ internal class MovePlayerCommandHandler(
         BuildingEntryRequirements
     > getBuildingEntryRequirements,
     IQueryHandler<GetDoorConnectorByConnectorIdQuery, DoorConnector?> getDoorConnectorByConnectorId,
-    ICommandHandler<ClearDoorTimedLockCommand> clearDoorTimedLock,
+    ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
     IQueryHandler<GetKeyItemIdsQuery, IReadOnlyList<Guid>> getKeyItemIds,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
@@ -76,11 +76,7 @@ internal class MovePlayerCommandHandler(
     IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
     IQueryHandler<GetActiveGuardEncounterQuery, GuardEncounter?> getActiveGuardEncounter,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
-    ICommandHandler<
-        EvaluateLocationEncountersCommand,
-        HostileEncounterState?
-    > evaluateLocationEncounters,
-    ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounterState?> evaluateGuardEncounter,
+    ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult> evaluateEncounters,
     SceneCatchUpCache catchUpCache,
     ILogger<MovePlayerCommandHandler> logger
 ) : ICommandHandler<MovePlayerCommand, MovePlayerResult>
@@ -172,8 +168,8 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        var encounter = await evaluateLocationEncounters.Handle(
-            new EvaluateLocationEncountersCommand
+        var encounters = await evaluateEncounters.Handle(
+            new EvaluateEncountersCommand
             {
                 WorldId = player.WorldId,
                 PlayerId = player.Id,
@@ -182,18 +178,14 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        var guardEncounter = await evaluateGuardEncounter.Handle(
-            new EvaluateGuardEncounterCommand { WorldId = player.WorldId, PlayerId = player.Id },
-            cancellationToken
-        );
-
         transaction.Complete();
+
         return new MovePlayerResult(
             EntryOutcome.Entered,
             player,
-            encounter,
+            encounters.HostileEncounter,
             refreshed.Scene,
-            guardEncounter
+            encounters.GuardEncounter
         );
     }
 
@@ -333,25 +325,29 @@ internal class MovePlayerCommandHandler(
 
                 if (playtime >= unlocksAt)
                 {
-                    await clearDoorTimedLock.Handle(
-                        new ClearDoorTimedLockCommand { DoorConnectorId = door.Id },
+                    await setDoorTimedLock.Handle(
+                        new SetDoorTimedLockCommand
+                        {
+                            DoorConnectorIds = [door.Id],
+                            UnlocksAtPlaytime = null,
+                        },
                         cancellationToken
                     );
                     door = null;
                 }
             }
-        }
 
-        if (door is { IsLocked: true })
-        {
-            var validKeyItemIds = await getKeyItemIds.Handle(
-                new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
-                cancellationToken
-            );
-
-            if (!await HasAnyKey(player, validKeyItemIds, cancellationToken))
+            if (door is { IsLocked: true })
             {
-                return EntryOutcome.Locked;
+                var validKeyItemIds = await getKeyItemIds.Handle(
+                    new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
+                    cancellationToken
+                );
+
+                if (!await HasAnyKey(player, validKeyItemIds, cancellationToken))
+                {
+                    return EntryOutcome.Locked;
+                }
             }
         }
 

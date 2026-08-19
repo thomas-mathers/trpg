@@ -1,3 +1,4 @@
+using System.Transactions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
@@ -50,6 +51,11 @@ internal class ResolveGuardEncounterActionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
@@ -105,6 +111,8 @@ internal class ResolveGuardEncounterActionCommandHandler(
             new CompleteEncounterCommand { EncounterId = command.EncounterId },
             cancellationToken
         );
+
+        transaction.Complete();
 
         return fact;
     }
@@ -199,6 +207,12 @@ internal class ResolveGuardEncounterActionCommandHandler(
             throw new InvalidOperationException($"City {location.CityId} has no jail.");
         }
 
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
+        var unlocksAt = playtime + GameClock.RealTimePerInGameHour * jailHours;
+
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
             {
@@ -208,23 +222,14 @@ internal class ResolveGuardEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        await setDoorTimedLock.Handle(
+            new SetDoorTimedLockCommand
+            {
+                DoorConnectorIds = jail.CellDoorConnectorIds,
+                UnlocksAtPlaytime = unlocksAt,
+            },
             cancellationToken
         );
-        var unlocksAt = playtime + GameClock.RealTimePerInGameHour * jailHours;
-
-        foreach (var doorConnectorId in jail.CellDoorConnectorIds)
-        {
-            await setDoorTimedLock.Handle(
-                new SetDoorTimedLockCommand
-                {
-                    DoorConnectorId = doorConnectorId,
-                    UnlocksAtPlaytime = unlocksAt,
-                },
-                cancellationToken
-            );
-        }
 
         return new GuardEncounterResolutionFact(
             command.EncounterId,

@@ -1,11 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -21,9 +19,6 @@ public class EvaluateGuardEncounterCommand
 internal class EvaluateGuardEncounterCommandHandler(
     TrpgDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
-    IQueryHandler<GetActiveGuardEncounterQuery, GuardEncounter?> getActiveGuardEncounter,
-    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
     IQueryHandler<
@@ -40,33 +35,6 @@ internal class EvaluateGuardEncounterCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var activeEncounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
-        if (activeEncounter != null)
-        {
-            return null;
-        }
-
-        var activeGuardEncounter = await getActiveGuardEncounter.Handle(
-            new GetActiveGuardEncounterQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
-        if (activeGuardEncounter != null)
-        {
-            return null;
-        }
-
-        var activeFight = await getActiveFight.Handle(
-            new GetActiveFightQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
-        if (activeFight != null)
-        {
-            return null;
-        }
-
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
@@ -92,7 +60,9 @@ internal class EvaluateGuardEncounterCommandHandler(
         );
         if (cityFactionId == null)
         {
-            return null;
+            throw new InvalidOperationException(
+                $"Guard {guard.Id} has no city faction membership."
+            );
         }
 
         var options = guardEncounterOptions.CurrentValue;

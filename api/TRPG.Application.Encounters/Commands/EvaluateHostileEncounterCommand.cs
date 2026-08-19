@@ -1,52 +1,30 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Mappers;
-using TRPG.Application.Encounters.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class EvaluateLocationEncountersCommand
+public class EvaluateHostileEncounterCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public Guid? OriginLocationId { get; init; }
 }
 
-internal class EvaluateLocationEncountersCommandHandler(
+internal class EvaluateHostileEncounterCommandHandler(
     TrpgDbContext context,
-    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
-    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight
-) : ICommandHandler<EvaluateLocationEncountersCommand, HostileEncounterState?>
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
+) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounterState?>
 {
     public async Task<HostileEncounterState?> Handle(
-        EvaluateLocationEncountersCommand command,
+        EvaluateHostileEncounterCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var activeEncounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
-        if (activeEncounter != null)
-        {
-            return null;
-        }
-
-        var activeFight = await getActiveFight.Handle(
-            new GetActiveFightQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
-        if (activeFight != null)
-        {
-            return null;
-        }
-
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
