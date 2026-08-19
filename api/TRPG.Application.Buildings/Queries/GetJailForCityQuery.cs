@@ -20,27 +20,19 @@ internal class GetJailForCityQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var jailId = await (
+        var cellsLocationId = await (
             from building in context.Buildings.AsNoTracking()
             join location in context.Locations.AsNoTracking()
                 on building.ExteriorLocationId equals location.Id
-            where building.BuildingType == BuildingType.Jail && location.CityId == query.CityId
-            select (Guid?)building.Id
+            join room in context.Rooms.AsNoTracking() on building.Id equals room.BuildingId
+            where
+                building.BuildingType == BuildingType.Jail
+                && location.CityId == query.CityId
+                && room.Name == JailRoomNames.Cells
+            select (Guid?)room.LocationId
         ).FirstOrDefaultAsync(cancellationToken);
 
-        if (jailId == null)
-        {
-            return null;
-        }
-
-        var cellsRoom = await context
-            .Rooms.AsNoTracking()
-            .FirstOrDefaultAsync(
-                r => r.BuildingId == jailId.Value && r.Name == JailRoomNames.Cells,
-                cancellationToken
-            );
-
-        if (cellsRoom == null)
+        if (cellsLocationId == null)
         {
             return null;
         }
@@ -50,11 +42,11 @@ internal class GetJailForCityQueryHandler(TrpgDbContext context)
             join connector in context.LocationConnectors.AsNoTracking()
                 on door.ConnectorId equals connector.Id
             where
-                connector.OriginLocationId == cellsRoom.LocationId
-                || connector.DestinationLocationId == cellsRoom.LocationId
+                connector.OriginLocationId == cellsLocationId.Value
+                || connector.DestinationLocationId == cellsLocationId.Value
             select door.Id
         ).ToArrayAsync(cancellationToken);
 
-        return new JailInfo(cellsRoom.LocationId, cellDoorConnectorIds);
+        return new JailInfo(cellsLocationId.Value, cellDoorConnectorIds);
     }
 }
