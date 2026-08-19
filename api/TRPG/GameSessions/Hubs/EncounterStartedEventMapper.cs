@@ -6,20 +6,22 @@ namespace TRPG.GameSessions.Hubs;
 
 internal sealed class EncounterStartedEventMapper : GameClientEventMapper<EncounterStartedEvent>
 {
+    private static readonly string[] AllowedActions = ["Attack", "Evade", "Retreat"];
+
     protected override IGameClientCall Map(EncounterStartedEvent gameEvent) =>
         new GameClientCall<HostileEncounterState>(
             new HostileEncounterState(
-                gameEvent.State.EncounterId,
-                gameEvent.State.FactionName,
-                gameEvent.State.LocationName,
+                gameEvent.Encounter.Id,
+                gameEvent.Encounter.FactionName,
+                gameEvent.Encounter.LocationName,
                 gameEvent
-                    .State.Members.Select(member => new HostileEncounterMemberState(
+                    .Encounter.Members.Select(member => new HostileEncounterMemberState(
                         member.Name,
                         (ContractCreatureType)member.CreatureType,
                         member.Level
                     ))
                     .ToArray(),
-                gameEvent.State.AllowedActions
+                AllowedActions
             ),
             static (client, arguments) => client.EncounterStarted(arguments)
         );

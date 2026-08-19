@@ -40,7 +40,7 @@ public class MovePlayerCommand
 public record MovePlayerResult(
     EntryOutcome Outcome,
     Creature Player,
-    HostileEncounterState? Encounter = null,
+    HostileEncounter? Encounter = null,
     SceneResult? Scene = null
 );
 
@@ -68,11 +68,11 @@ internal class MovePlayerCommandHandler(
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
-    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<
         EvaluateLocationEncountersCommand,
-        HostileEncounterState?
+        HostileEncounter?
     > evaluateLocationEncounters,
     SceneCatchUpCache catchUpCache,
     ILogger<MovePlayerCommandHandler> logger

@@ -51,11 +51,13 @@ internal class EndFightCommandHandler(
         );
 
         await context
-            .Fights.Where(f => f.WorldId == command.WorldId && f.Outcome == CombatOutcome.Ongoing)
+            .Encounters.OfType<FightEncounter>()
+            .Where(f => f.WorldId == command.WorldId && f.Outcome == CombatOutcome.Ongoing)
             .ExecuteUpdateAsync(
                 setters =>
                     setters
                         .SetProperty(f => f.CompletedAt, DateTime.UtcNow)
+                        .SetProperty(f => f.State, EncounterState.Completed)
                         .SetProperty(f => f.Outcome, state.Outcome),
                 cancellationToken
             );

@@ -11,22 +11,25 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
 
-internal class StreamEncounterActionTurnHandler(
+internal class StreamHostileEncounterActionTurnHandler(
     GameTurnStreamer streamer,
-    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
-    ICommandHandler<ResolveEncounterActionCommand, EncounterActionResult> resolveEncounterAction,
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
+    ICommandHandler<
+        ResolveHostileEncounterActionCommand,
+        HostileEncounterActionResult
+    > resolveHostileEncounterAction,
     IGameClientEventSink gameEvents
 )
 {
     public IAsyncEnumerable<string> Handle(
         GameTurnSession session,
-        PlayerEncounterAction action,
+        HostileEncounterAction action,
         CancellationToken cancellationToken = default
     ) => streamer.StreamTurn(session, ct => ResolveTurn(session, action, ct), cancellationToken);
 
     private async Task<GameTurnPrompt> ResolveTurn(
         GameTurnSession session,
-        PlayerEncounterAction action,
+        HostileEncounterAction action,
         CancellationToken cancellationToken
     )
     {
@@ -35,22 +38,23 @@ internal class StreamEncounterActionTurnHandler(
             cancellationToken
         );
 
-        if (encounter == null)
+        if (encounter is not HostileEncounter hostileEncounter)
         {
             return new GameTurnPrompt.Reply("There's no encounter to resolve right now.");
         }
 
-        var resolution = await resolveEncounterAction.Handle(
-            new ResolveEncounterActionCommand
+        var resolution = await resolveHostileEncounterAction.Handle(
+            new ResolveHostileEncounterActionCommand
             {
                 SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 Action = action,
-                EncounterId = encounter.Id,
-                EncounterGroupId = encounter.EncounterGroupId,
-                EncounterLocationId = encounter.LocationId,
-                ArrivalOriginLocationId = encounter.ArrivalOriginLocationId,
+                EncounterId = hostileEncounter.Id,
+                FactionName = hostileEncounter.FactionName,
+                LocationName = hostileEncounter.LocationName,
+                Members = hostileEncounter.Members,
+                ArrivalOriginLocationId = hostileEncounter.ArrivalOriginLocationId,
             },
             cancellationToken
         );
@@ -63,7 +67,7 @@ internal class StreamEncounterActionTurnHandler(
         );
     }
 
-    private void EnqueueEncounterResolutionEvents(EncounterActionResult resolution)
+    private void EnqueueEncounterResolutionEvents(HostileEncounterActionResult resolution)
     {
         gameEvents.Enqueue(new EncounterResolvedEvent(resolution.Fact));
     }

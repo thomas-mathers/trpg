@@ -1,5 +1,13 @@
 namespace TRPG.Domain.Models;
 
+public enum CombatOutcome
+{
+    Ongoing,
+    Victory,
+    Defeat,
+    Fled,
+}
+
 public enum EncounterState
 {
     Active,
@@ -18,7 +26,23 @@ public abstract class Encounter
     public Guid WorldId { get; init; }
 }
 
+public record HostileEncounterMemberSnapshot(
+    Guid Id,
+    string Name,
+    CreatureType CreatureType,
+    int Level
+);
+
 public class HostileEncounter : Encounter
 {
-    public required Guid EncounterGroupId { get; init; }
+    public required Guid FactionId { get; init; }
+    public required string FactionName { get; init; }
+    public required string LocationName { get; init; }
+    public List<HostileEncounterMemberSnapshot> Members { get; init; } = [];
+}
+
+public class FightEncounter : Encounter
+{
+    public List<Guid> CombatantIds { get; init; } = [];
+    public CombatOutcome Outcome { get; set; } = CombatOutcome.Ongoing;
 }

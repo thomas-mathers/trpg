@@ -1,10 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Encounters.Mappers;
-using TRPG.Application.Encounters.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -19,34 +16,14 @@ public class EvaluateLocationEncountersCommand
 
 internal class EvaluateLocationEncountersCommandHandler(
     TrpgDbContext context,
-    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
-    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight
-) : ICommandHandler<EvaluateLocationEncountersCommand, HostileEncounterState?>
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
+) : ICommandHandler<EvaluateLocationEncountersCommand, HostileEncounter?>
 {
-    public async Task<HostileEncounterState?> Handle(
+    public async Task<HostileEncounter?> Handle(
         EvaluateLocationEncountersCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var activeEncounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
-        if (activeEncounter != null)
-        {
-            return null;
-        }
-
-        var activeFight = await getActiveFight.Handle(
-            new GetActiveFightQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
-        if (activeFight != null)
-        {
-            return null;
-        }
-
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
@@ -131,12 +108,22 @@ internal class EvaluateLocationEncountersCommandHandler(
             PlayerId = command.PlayerId,
             LocationId = player.LocationId,
             ArrivalOriginLocationId = command.OriginLocationId,
-            EncounterGroupId = selectedGroupId.Value,
+            FactionId = selectedFaction.Id,
+            FactionName = selectedFaction.Name,
+            LocationName = location.Name,
+            Members = selectedLivingMembers
+                .Select(member => new HostileEncounterMemberSnapshot(
+                    member.Id,
+                    member.Name,
+                    member.CreatureType,
+                    member.Level
+                ))
+                .ToList(),
         };
         context.Encounters.Add(encounter);
         await context.SaveChangesAsync(cancellationToken);
 
-        return selectedFaction.ToState(encounter.Id, selectedLivingMembers, location);
+        return encounter;
     }
 
     private static HostileEncounterCandidateGroup BuildCandidate(

@@ -1,6 +1,6 @@
 namespace TRPG.Application.Encounters.Results;
 
-public record EncounterActionResult(
+public record HostileEncounterActionResult(
     HostileEncounterActionKind ActionKind,
-    EncounterResolutionFact Fact
+    HostileEncounterResolutionFact Fact
 );

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Narration.Queries;
@@ -66,7 +67,7 @@ public sealed class EndGameSessionCommandTests(DatabaseFixture db) : IAsyncLifet
     {
         // Arrange
         var fight = Builders.MakeFight(_world.Id, _player.Id, [_player.Id]);
-        _context.Fights.Add(fight);
+        _context.Encounters.Add(fight);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -77,11 +78,10 @@ public sealed class EndGameSessionCommandTests(DatabaseFixture db) : IAsyncLifet
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var updatedFight = await verifyContext.Fights.FindAsync(
-            [fight.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(updatedFight!.CompletedAt);
+        var updatedFight = await verifyContext
+            .Encounters.OfType<FightEncounter>()
+            .SingleAsync(f => f.Id == fight.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(updatedFight.CompletedAt);
         Assert.Equal(CombatOutcome.Fled, updatedFight.Outcome);
     }
 }

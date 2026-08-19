@@ -55,10 +55,9 @@ public sealed class AbandonActiveFightCommandTests(DatabaseFixture db) : IAsyncL
         );
 
         // Assert
-        var fightCount = await _context.Fights.CountAsync(
-            f => f.PlayerId == _player.Id,
-            TestContext.Current.CancellationToken
-        );
+        var fightCount = await _context
+            .Encounters.OfType<FightEncounter>()
+            .CountAsync(f => f.PlayerId == _player.Id, TestContext.Current.CancellationToken);
         Assert.Equal(0, fightCount);
     }
 
@@ -67,7 +66,7 @@ public sealed class AbandonActiveFightCommandTests(DatabaseFixture db) : IAsyncL
     {
         // Arrange
         var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
-        _context.Fights.Add(fight);
+        _context.Encounters.Add(fight);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -83,11 +82,10 @@ public sealed class AbandonActiveFightCommandTests(DatabaseFixture db) : IAsyncL
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var updatedFight = await verifyContext.Fights.FindAsync(
-            [fight.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.NotNull(updatedFight!.CompletedAt);
+        var updatedFight = await verifyContext
+            .Encounters.OfType<FightEncounter>()
+            .SingleAsync(f => f.Id == fight.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(updatedFight.CompletedAt);
         Assert.Equal(CombatOutcome.Fled, updatedFight.Outcome);
     }
 
@@ -96,7 +94,7 @@ public sealed class AbandonActiveFightCommandTests(DatabaseFixture db) : IAsyncL
     {
         // Arrange
         var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
-        _context.Fights.Add(fight);
+        _context.Encounters.Add(fight);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

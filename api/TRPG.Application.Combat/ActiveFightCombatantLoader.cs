@@ -6,7 +6,7 @@ using TRPG.Domain.Models;
 namespace TRPG.Application.Combat;
 
 internal class ActiveFightCombatantLoader(
-    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
+    IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     CombatantFactory combatantFactory
 )

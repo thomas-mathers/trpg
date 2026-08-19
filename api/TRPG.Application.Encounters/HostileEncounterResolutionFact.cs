@@ -1,6 +1,6 @@
 namespace TRPG.Application.Encounters;
 
-public enum EncounterResolutionOutcome
+public enum HostileEncounterResolutionOutcome
 {
     Evaded,
     EvadeFailed,
@@ -9,9 +9,9 @@ public enum EncounterResolutionOutcome
     Attacked,
 }
 
-public record EncounterResolutionFact(
+public record HostileEncounterResolutionFact(
     Guid EncounterId,
-    EncounterResolutionOutcome Outcome,
+    HostileEncounterResolutionOutcome Outcome,
     string FactionName,
     string LocationName,
     IReadOnlyCollection<string> MemberNames

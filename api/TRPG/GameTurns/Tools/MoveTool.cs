@@ -4,16 +4,24 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Domain.Models;
 using TRPG.Tools;
 
 namespace TRPG.GameTurns.Tools;
 
-internal record MoveToolResult(SceneResult Scene, HostileEncounterState? Encounter);
+internal record MoveToolEncounterMember(string Name, CreatureType CreatureType, int Level);
+
+internal record MoveToolEncounter(
+    string FactionName,
+    string LocationName,
+    IReadOnlyCollection<MoveToolEncounterMember> Members
+);
+
+internal record MoveToolResult(SceneResult Scene, MoveToolEncounter? Encounter);
 
 internal class MoveTool(
     GameTurnContext turnContext,
@@ -59,12 +67,24 @@ internal class MoveTool(
 
         var scene = moveResult.Scene!;
 
-        if (moveResult.Encounter != null)
+        MoveToolEncounter? encounterSummary = null;
+        if (moveResult.Encounter is HostileEncounter hostileEncounter)
         {
-            gameEvents.Enqueue(new EncounterStartedEvent(moveResult.Encounter));
+            gameEvents.Enqueue(new EncounterStartedEvent(hostileEncounter));
+            encounterSummary = new MoveToolEncounter(
+                hostileEncounter.FactionName,
+                hostileEncounter.LocationName,
+                hostileEncounter
+                    .Members.Select(member => new MoveToolEncounterMember(
+                        member.Name,
+                        member.CreatureType,
+                        member.Level
+                    ))
+                    .ToArray()
+            );
         }
 
-        var result = new MoveToolResult(scene, moveResult.Encounter);
+        var result = new MoveToolResult(scene, encounterSummary);
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",

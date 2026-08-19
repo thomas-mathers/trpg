@@ -70,12 +70,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
             encounterGroup.Id,
             creature.Id
         );
-        var encounter = Builders.MakeHostileEncounter(
-            worldId,
-            creature.Id,
-            location.Id,
-            encounterGroup.Id
-        );
+        var encounter = Builders.MakeHostileEncounter(worldId, creature.Id, location.Id);
 
         _context.Creatures.Add(creature);
         _context.Factions.Add(faction);

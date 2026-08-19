@@ -11,15 +11,14 @@ public class GetActiveEncounterQuery
 }
 
 internal class GetActiveEncounterQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetActiveEncounterQuery, HostileEncounter?>
+    : IQueryHandler<GetActiveEncounterQuery, Encounter?>
 {
-    public async Task<HostileEncounter?> Handle(
+    public async Task<Encounter?> Handle(
         GetActiveEncounterQuery query,
         CancellationToken cancellationToken = default
     ) =>
         await context
             .Encounters.AsNoTracking()
-            .OfType<HostileEncounter>()
             .Where(e => e.PlayerId == query.PlayerId && e.State == EncounterState.Active)
             .FirstOrDefaultAsync(cancellationToken);
 }

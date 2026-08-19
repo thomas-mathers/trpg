@@ -2,7 +2,6 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns.Events;
@@ -23,8 +22,7 @@ internal class PublishSessionStateCommandHandler(
     IGameClientEventDispatcher eventDispatcher,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
-    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
-    IQueryHandler<GetHostileEncounterStateQuery, HostileEncounterState> getHostileEncounterState
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter
 ) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
@@ -52,18 +50,9 @@ internal class PublishSessionStateCommandHandler(
             new GetActiveEncounterQuery { PlayerId = command.PlayerId },
             cancellationToken
         );
-        if (encounter != null)
+        if (encounter is HostileEncounter hostileEncounter)
         {
-            var state = await getHostileEncounterState.Handle(
-                new GetHostileEncounterStateQuery
-                {
-                    EncounterId = encounter.Id,
-                    EncounterGroupId = encounter.EncounterGroupId,
-                    LocationId = encounter.LocationId,
-                },
-                cancellationToken
-            );
-            gameEvents.Enqueue(new EncounterStartedEvent(state));
+            gameEvents.Enqueue(new EncounterStartedEvent(hostileEncounter));
         }
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);

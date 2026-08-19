@@ -18,7 +18,7 @@ public class AbandonActiveFightCommand
 
 internal class AbandonActiveFightCommandHandler(
     TrpgDbContext context,
-    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
+    IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures
 ) : ICommandHandler<AbandonActiveFightCommand>
@@ -62,11 +62,13 @@ internal class AbandonActiveFightCommandHandler(
         );
 
         await context
-            .Fights.Where(f => f.Id == fight.Id)
+            .Encounters.OfType<FightEncounter>()
+            .Where(f => f.Id == fight.Id)
             .ExecuteUpdateAsync(
                 setters =>
                     setters
                         .SetProperty(f => f.CompletedAt, DateTime.UtcNow)
+                        .SetProperty(f => f.State, EncounterState.Completed)
                         .SetProperty(f => f.Outcome, CombatOutcome.Fled),
                 cancellationToken
             );

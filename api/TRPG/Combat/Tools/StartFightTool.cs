@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Combat.Commands;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
@@ -16,8 +15,7 @@ namespace TRPG.Combat.Tools;
 
 internal class StartFightTool(
     GameTurnContext turnContext,
-    IQueryHandler<GetActiveFightQuery, Fight?> getActiveFight,
-    IQueryHandler<GetActiveEncounterQuery, HostileEncounter?> getActiveEncounter,
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
     IQueryHandler<
@@ -46,17 +44,6 @@ internal class StartFightTool(
         logger.LogInformation("[attack] targetName={TargetName}", targetName);
         var stopwatch = Stopwatch.StartNew();
 
-        var activeFight = await getActiveFight.Handle(
-            new GetActiveFightQuery { PlayerId = turnContext.PlayerId },
-            cancellationToken
-        );
-        if (activeFight != null)
-        {
-            return new ToolError(
-                "A fight is already underway — resolve it through the player's combat menu, not this tool."
-            );
-        }
-
         var activeEncounter = await getActiveEncounter.Handle(
             new GetActiveEncounterQuery { PlayerId = turnContext.PlayerId },
             cancellationToken
@@ -64,7 +51,7 @@ internal class StartFightTool(
         if (activeEncounter != null)
         {
             return new ToolError(
-                "A hostile encounter is already underway — resolve it before attacking."
+                "An encounter is already underway — resolve it through the player's combat menu, not this tool."
             );
         }
 

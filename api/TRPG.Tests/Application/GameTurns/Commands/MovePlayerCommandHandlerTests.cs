@@ -691,12 +691,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
         var faction = Builders.MakeFaction(WorldId);
         var group = Builders.MakeEncounterGroup(WorldId, oldLocation.Id, faction.Id);
-        var activeEncounter = Builders.MakeHostileEncounter(
-            WorldId,
-            player.Id,
-            oldLocation.Id,
-            group.Id
-        );
+        var activeEncounter = Builders.MakeHostileEncounter(WorldId, player.Id, oldLocation.Id);
         var connector = Builders.MakeLocationConnector(
             oldLocation.Id,
             destinationLocationId: newLocation.Id,
@@ -707,6 +702,41 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         _context.Factions.Add(faction);
         _context.EncounterGroups.Add(group);
         _context.Encounters.Add(activeEncounter);
+        _context.LocationConnectors.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Elsewhere",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(EntryOutcome.EncounterActive, result.Outcome);
+        Assert.Equal(oldLocation.Id, result.Player.LocationId);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsEncounterActive_WithoutMoving_WhenPlayerHasAnActiveFight()
+    {
+        // Arrange
+        var oldLocation = Builders.MakeLocation(WorldId, _stateId);
+        var newLocation = Builders.MakeLocation(WorldId, _stateId);
+        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
+        var activeFight = Builders.MakeFight(WorldId, player.Id, [player.Id]);
+        var connector = Builders.MakeLocationConnector(
+            oldLocation.Id,
+            destinationLocationId: newLocation.Id,
+            destinationLabel: "Elsewhere"
+        );
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.Add(player);
+        _context.Encounters.Add(activeFight);
         _context.LocationConnectors.Add(connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
