@@ -113,36 +113,41 @@ public class CityGenerator(
                 .ToList(),
         };
 
-        foreach (var type in ShopBuildingTypes.All)
+        var standardTypes = ShopBuildingTypes.All.Where(type =>
+            type is not (BuildingType.GuildHall or BuildingType.Barracks)
+        );
+        foreach (var type in standardTypes)
         {
             if (
-                !districtsByType.TryGetValue(
+                districtsByType.TryGetValue(
                     DistrictGenerator.DistrictTypeByBuildingType[type],
                     out var district
                 )
             )
             {
-                continue;
+                GenerateStandardBuilding(workspace, type, district);
             }
+        }
 
-            if (type == BuildingType.GuildHall)
-            {
-                if (_guildHallIndex >= input.NamedFactions.Count)
-                {
-                    continue;
-                }
+        if (
+            districtsByType.TryGetValue(
+                DistrictGenerator.DistrictTypeByBuildingType[BuildingType.GuildHall],
+                out var guildHallDistrict
+            )
+            && _guildHallIndex < input.NamedFactions.Count
+        )
+        {
+            GenerateGuildHallBuilding(workspace, guildHallDistrict);
+        }
 
-                GenerateGuildHallBuilding(workspace, district);
-                continue;
-            }
-
-            if (type == BuildingType.Barracks)
-            {
-                GenerateBarracksBuilding(workspace, district);
-                continue;
-            }
-
-            GenerateStandardBuilding(workspace, type, district);
+        if (
+            districtsByType.TryGetValue(
+                DistrictGenerator.DistrictTypeByBuildingType[BuildingType.Barracks],
+                out var barracksDistrict
+            )
+        )
+        {
+            GenerateBarracksBuilding(workspace, barracksDistrict);
         }
 
         for (var h = 0; h < input.GeneratorInput.HousesPerCity; h++)
