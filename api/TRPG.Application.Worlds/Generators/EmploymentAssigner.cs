@@ -11,6 +11,19 @@ internal record IdleCandidate(
     HourWindow? OpenHours = null
 );
 
+internal record ShopEmploymentSlot(
+    Guid LocationId,
+    Profession EmployeeProfession,
+    IReadOnlyList<DayOfWeek> DaysOff,
+    HourWindow WorkHours
+);
+
+internal record StaffDayOff(
+    Guid CreatureId,
+    IReadOnlyList<DayOfWeek> DaysOff,
+    HourWindow WorkHours
+);
+
 internal class CityEmploymentContext
 {
     public required List<ShopEmploymentSlot> OpenShopSlots { get; init; }
@@ -26,6 +39,37 @@ internal class CityEmploymentContext
 
 internal static class EmploymentAssigner
 {
+    internal static readonly Dictionary<BuildingType, int> BuildingPopularity = new()
+    {
+        [BuildingType.Tavern] = 10,
+        [BuildingType.Inn] = 8,
+        [BuildingType.GuildHall] = 7,
+        [BuildingType.GeneralGoods] = 6,
+        [BuildingType.Bakery] = 6,
+        [BuildingType.Temple] = 5,
+        [BuildingType.Barracks] = 4,
+        [BuildingType.Library] = 4,
+        [BuildingType.ArcaneShop] = 3,
+        [BuildingType.Apothecary] = 3,
+        [BuildingType.Blacksmith] = 3,
+        [BuildingType.House] = 3,
+        [BuildingType.Stable] = 2,
+        [BuildingType.Castle] = 2,
+        [BuildingType.Tailor] = 3,
+        [BuildingType.Carpenter] = 3,
+        [BuildingType.Jeweler] = 3,
+    };
+
+    internal static readonly Dictionary<DistrictType, int> DistrictPopularity = new()
+    {
+        [DistrictType.Residential] = 6,
+        [DistrictType.Scientific] = 3,
+        [DistrictType.CityCenter] = 10,
+        [DistrictType.Governmental] = 2,
+        [DistrictType.HolySite] = 4,
+        [DistrictType.Encampment] = 3,
+    };
+
     internal static readonly CreatureJobAction[] DayOffActivities =
     [
         CreatureJobAction.Idle,
@@ -79,7 +123,7 @@ internal static class EmploymentAssigner
             );
             CreatureJobGenerator.ApplySleepOverride(
                 adult.Id,
-                slot.SleepHours,
+                slot.WorkHours,
                 context.WorldId,
                 context.Jobs
             );
@@ -275,7 +319,7 @@ internal static class EmploymentAssigner
             .ToArray();
 
         var weights = eligibleIndices.Select(i => cityIdleCandidates[i].Weight).ToList();
-        weights.Add(BuildingGenerator.Popularity[BuildingType.House]);
+        weights.Add(BuildingPopularity[BuildingType.House]);
 
         var pickedIndex = WeightedSampler.SampleIndex(weights);
         if (pickedIndex == eligibleIndices.Length)

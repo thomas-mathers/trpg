@@ -85,47 +85,20 @@ public class HouseholdGenerator(
             BuildingType.House,
             input.UsedBuildingNames
         );
+        var memberIds = household.Select(m => m.Creature.Id).ToList();
+        var spec = BuildingSpecCatalog.GetSpecs(
+            BuildingType.House,
+            houseOwner.Creature.Id,
+            memberIds,
+            householdResult.BedroomGroups
+        );
         var houseResult = buildingGenerator.Generate(
-            new BuildingGeneratorInput(
-                input.ResidentialLocation,
-                houseOwner.Creature.Id,
-                BuildingType.House
-            )
+            new BuildingGeneratorInput(input.ResidentialLocation, spec)
             {
                 Name = houseName,
-                MemberIds = household.Select(m => m.Creature.Id).ToList(),
-                BedroomGroups = householdResult.BedroomGroups,
-                IsLockable = true,
+                MemberIds = memberIds,
             }
         );
-
-        var keyItems = new List<Item>();
-        var doorConnectorKeys = new List<DoorConnectorKey>();
-        var houseFrontDoor = houseResult.FrontDoor;
-        foreach (var resident in household)
-        {
-            var houseKeyItem = new Key
-            {
-                WorldId = input.WorldId,
-                Name = $"Key to {houseResult.Building.Name}",
-                Description = $"A key that unlocks {houseResult.Building.Name}.",
-                Quantity = 1,
-                Ownership = new ItemOwnership
-                {
-                    OwnerId = resident.Creature.Id,
-                    OwnerType = OwnerType.Creature,
-                },
-            };
-            keyItems.Add(houseKeyItem);
-            doorConnectorKeys.Add(
-                new DoorConnectorKey
-                {
-                    ItemId = houseKeyItem.Id,
-                    DoorConnectorId = houseFrontDoor.Id,
-                    WorldId = input.WorldId,
-                }
-            );
-        }
 
         var homeRoom = houseResult.Rooms.First(r => r.FloorNumber == 0);
         var homeLocationId = homeRoom.LocationId;
@@ -157,8 +130,8 @@ public class HouseholdGenerator(
             House = houseResult,
             HouseOwnerId = houseOwner.Creature.Id,
             HomeLocationId = homeLocationId,
-            KeyItems = keyItems.ToArray(),
-            DoorConnectorKeys = doorConnectorKeys.ToArray(),
+            KeyItems = houseResult.KeyItems,
+            DoorConnectorKeys = houseResult.DoorConnectorKeys,
             Jobs = jobs.ToArray(),
             DesignatedWorker = designatedWorker?.Creature,
             FatherId = fatherId,
