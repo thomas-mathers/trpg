@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260818231527_AddReputationLogEntries")]
+    partial class AddReputationLogEntries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -993,6 +996,58 @@ namespace TRPG.Migrations
                     b.ToTable("faction_members", (string)null);
                 });
 
+            modelBuilder.Entity("TRPG.Domain.Models.Fight", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.PrimitiveCollection<Guid[]>("CombatantIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("combatant_ids");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<Guid?>("EncounterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("encounter_id");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("outcome");
+
+                    b.Property<Guid>("PlayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("player_id");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_fights");
+
+                    b.HasIndex("EncounterId")
+                        .HasDatabaseName("ix_fights_encounter_id");
+
+                    b.HasIndex("PlayerId")
+                        .HasDatabaseName("ix_fights_player_id");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_fights_world_id");
+
+                    b.ToTable("fights", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Domain.Models.GameSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1872,47 +1927,13 @@ namespace TRPG.Migrations
                     b.ToTable("world_events", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Domain.Models.FightEncounter", b =>
-                {
-                    b.HasBaseType("TRPG.Domain.Models.Encounter");
-
-                    b.PrimitiveCollection<List<Guid>>("CombatantIds")
-                        .IsRequired()
-                        .HasColumnType("uuid[]")
-                        .HasColumnName("combatant_ids");
-
-                    b.Property<string>("Outcome")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("outcome");
-
-                    b.ToTable("encounters", (string)null);
-
-                    b.HasDiscriminator().HasValue("Fight");
-                });
-
             modelBuilder.Entity("TRPG.Domain.Models.HostileEncounter", b =>
                 {
                     b.HasBaseType("TRPG.Domain.Models.Encounter");
 
-                    b.Property<Guid>("FactionId")
+                    b.Property<Guid>("EncounterGroupId")
                         .HasColumnType("uuid")
-                        .HasColumnName("faction_id");
-
-                    b.Property<string>("FactionName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("faction_name");
-
-                    b.Property<string>("LocationName")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("location_name");
-
-                    b.Property<string>("Members")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("members");
+                        .HasColumnName("encounter_group_id");
 
                     b.ToTable("encounters", (string)null);
 
