@@ -4,6 +4,7 @@ public enum ReputationReason
 {
     QuestCompleted,
     KilledFactionMember,
+    PaidFineToGuard,
 }
 
 public class ReputationLogEntry

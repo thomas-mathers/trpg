@@ -460,7 +460,8 @@ internal static class Builders
         Guid? worldId = null,
         int aggression = 0,
         int reputationSensitivity = 0,
-        int riskAversion = 0
+        int riskAversion = 0,
+        bool isCityFaction = false
     )
     {
         return new Faction
@@ -471,6 +472,7 @@ internal static class Builders
             Aggression = aggression,
             ReputationSensitivity = reputationSensitivity,
             RiskAversion = riskAversion,
+            IsCityFaction = isCityFaction,
         };
     }
 

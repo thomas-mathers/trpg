@@ -7,20 +7,20 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class EvaluateLocationEncountersCommand
+public class EvaluateHostileEncounterCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public Guid? OriginLocationId { get; init; }
 }
 
-internal class EvaluateLocationEncountersCommandHandler(
+internal class EvaluateHostileEncounterCommandHandler(
     TrpgDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
-) : ICommandHandler<EvaluateLocationEncountersCommand, HostileEncounter?>
+) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?>
 {
     public async Task<HostileEncounter?> Handle(
-        EvaluateLocationEncountersCommand command,
+        EvaluateHostileEncounterCommand command,
         CancellationToken cancellationToken = default
     )
     {

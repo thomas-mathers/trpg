@@ -1,7 +1,7 @@
 namespace TRPG.Encounters.Responses;
 
 [Tapper.TranspilationSource]
-public enum EncounterResolutionOutcome
+public enum HostileEncounterResolutionOutcome
 {
     Evaded,
     EvadeFailed,
@@ -11,9 +11,9 @@ public enum EncounterResolutionOutcome
 }
 
 [Tapper.TranspilationSource]
-public record EncounterResolutionFact(
+public record HostileEncounterResolutionFact(
     Guid EncounterId,
-    EncounterResolutionOutcome Outcome,
+    HostileEncounterResolutionOutcome Outcome,
     string FactionName,
     string LocationName,
     IReadOnlyCollection<string> MemberNames

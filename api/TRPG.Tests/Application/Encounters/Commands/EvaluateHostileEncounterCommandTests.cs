@@ -8,13 +8,13 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Encounters.Commands;
 
 [Collection("Database")]
-public sealed class EvaluateLocationEncountersCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private EvaluateLocationEncountersCommandHandler _handler = null!;
+    private EvaluateHostileEncounterCommandHandler _handler = null!;
     private readonly Location _location = Builders.MakeLocation(WorldId, Guid.NewGuid());
     private readonly Creature _player = Builders.MakeCreature(WorldId, level: 1);
 
@@ -24,7 +24,7 @@ public sealed class EvaluateLocationEncountersCommandTests(DatabaseFixture db) :
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<EvaluateLocationEncountersCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<EvaluateHostileEncounterCommandHandler>();
 
         _player.LocationId = _location.Id;
         _context.Locations.Add(_location);
@@ -43,7 +43,7 @@ public sealed class EvaluateLocationEncountersCommandTests(DatabaseFixture db) :
     {
         // Act
         var result = await _handler.Handle(
-            new EvaluateLocationEncountersCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -72,7 +72,7 @@ public sealed class EvaluateLocationEncountersCommandTests(DatabaseFixture db) :
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateLocationEncountersCommand
+            new EvaluateHostileEncounterCommand
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
@@ -117,7 +117,7 @@ public sealed class EvaluateLocationEncountersCommandTests(DatabaseFixture db) :
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateLocationEncountersCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -159,7 +159,7 @@ public sealed class EvaluateLocationEncountersCommandTests(DatabaseFixture db) :
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateLocationEncountersCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 

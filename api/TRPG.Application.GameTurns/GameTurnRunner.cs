@@ -10,6 +10,7 @@ public class GameTurnRunner
     private readonly StreamWaitTurnHandler _streamWaitTurn;
     private readonly StreamFleeTurnHandler _streamFleeTurn;
     private readonly StreamHostileEncounterActionTurnHandler _streamHostileEncounterActionTurn;
+    private readonly StreamGuardEncounterActionTurnHandler _streamGuardEncounterActionTurn;
     private readonly ResolveCombatActionHandler _resolveCombatAction;
 
     internal GameTurnRunner(
@@ -18,6 +19,7 @@ public class GameTurnRunner
         StreamWaitTurnHandler streamWaitTurn,
         StreamFleeTurnHandler streamFleeTurn,
         StreamHostileEncounterActionTurnHandler streamHostileEncounterActionTurn,
+        StreamGuardEncounterActionTurnHandler streamGuardEncounterActionTurn,
         ResolveCombatActionHandler resolveCombatAction
     )
     {
@@ -26,6 +28,7 @@ public class GameTurnRunner
         _streamWaitTurn = streamWaitTurn;
         _streamFleeTurn = streamFleeTurn;
         _streamHostileEncounterActionTurn = streamHostileEncounterActionTurn;
+        _streamGuardEncounterActionTurn = streamGuardEncounterActionTurn;
         _resolveCombatAction = resolveCombatAction;
     }
 
@@ -57,6 +60,12 @@ public class GameTurnRunner
         HostileEncounterAction action,
         CancellationToken cancellationToken = default
     ) => _streamHostileEncounterActionTurn.Handle(session, action, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamGuardEncounterAction(
+        GameTurnSession session,
+        GuardEncounterAction action,
+        CancellationToken cancellationToken = default
+    ) => _streamGuardEncounterActionTurn.Handle(session, action, cancellationToken);
 
     public Task ResolveCombatAction(
         GameTurnSession session,

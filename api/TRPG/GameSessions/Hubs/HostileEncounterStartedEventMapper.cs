@@ -4,16 +4,17 @@ using ContractCreatureType = TRPG.GameSessions.Responses.CreatureType;
 
 namespace TRPG.GameSessions.Hubs;
 
-internal sealed class EncounterStartedEventMapper : GameClientEventMapper<EncounterStartedEvent>
+internal sealed class HostileEncounterStartedEventMapper
+    : GameClientEventMapper<HostileEncounterStartedEvent>
 {
     private static readonly string[] AllowedActions = ["Attack", "Evade", "Retreat"];
 
-    protected override IGameClientCall Map(EncounterStartedEvent gameEvent) =>
+    protected override IGameClientCall Map(HostileEncounterStartedEvent gameEvent) =>
         new GameClientCall<HostileEncounterState>(
             new HostileEncounterState(
                 gameEvent.Encounter.Id,
                 gameEvent.Encounter.FactionName,
-                gameEvent.Encounter.LocationName,
+                gameEvent.Encounter.LocationName!,
                 gameEvent
                     .Encounter.Members.Select(member => new HostileEncounterMemberState(
                         member.Name,
@@ -23,6 +24,6 @@ internal sealed class EncounterStartedEventMapper : GameClientEventMapper<Encoun
                     .ToArray(),
                 AllowedActions
             ),
-            static (client, arguments) => client.EncounterStarted(arguments)
+            static (client, arguments) => client.HostileEncounterStarted(arguments)
         );
 }

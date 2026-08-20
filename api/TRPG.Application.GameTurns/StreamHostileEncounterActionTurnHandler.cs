@@ -52,7 +52,7 @@ internal class StreamHostileEncounterActionTurnHandler(
                 Action = action,
                 EncounterId = hostileEncounter.Id,
                 FactionName = hostileEncounter.FactionName,
-                LocationName = hostileEncounter.LocationName,
+                LocationName = hostileEncounter.LocationName!,
                 Members = hostileEncounter.Members,
                 ArrivalOriginLocationId = hostileEncounter.ArrivalOriginLocationId,
             },
@@ -69,7 +69,7 @@ internal class StreamHostileEncounterActionTurnHandler(
 
     private void EnqueueEncounterResolutionEvents(HostileEncounterActionResult resolution)
     {
-        gameEvents.Enqueue(new EncounterResolvedEvent(resolution.Fact));
+        gameEvents.Enqueue(new HostileEncounterResolvedEvent(resolution.Fact));
     }
 
     private static string DescribeAction(HostileEncounterActionKind actionKind) =>

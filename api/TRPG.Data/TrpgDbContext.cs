@@ -144,6 +144,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.Property(e => e.CombatantIds).HasColumnType("uuid[]");
         });
 
+        modelBuilder.Entity<GuardEncounter>(entity =>
+        {
+            entity.Property(e => e.RecentOffenses).HasColumnType("text[]");
+        });
+
         modelBuilder.Entity<EncounterGroup>(entity =>
         {
             entity.HasIndex(g => g.WorldId);
