@@ -1,9 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Skull, User, Weight } from 'lucide-react';
+import {
+  Archive,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Skull,
+  User,
+  Weight,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { getCreatureInventoryOptions, transferInventoryMutation } from '@/api/client';
-import type { ItemDetail } from '@/api/client';
+import {
+  getContainerInventoryOptions,
+  getCreatureInventoryOptions,
+  transferInventoryMutation,
+} from '@/api/client';
+import type { ItemDetail, OwnerType } from '@/api/client';
 import { NumericStepper } from '@/components/numeric-stepper';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
@@ -15,6 +28,7 @@ import { useTransferDraft } from '@/features/inventory/hooks/use-transfer-draft'
 interface TransferTarget {
   id: string;
   name: string;
+  ownerType: OwnerType;
 }
 
 export interface TransferItemDialogProps {
@@ -67,10 +81,23 @@ function TransferDialogBody({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+  const playerOwner = { id: playerId, type: 'Creature' as const };
+  const targetOwner = { id: target.id, type: target.ownerType };
+  const targetCreatureInventory = useQuery({
+    ...getCreatureInventoryOptions({ path: { creatureId: target.id } }),
+    enabled: target.ownerType === 'Creature',
+  });
+  const targetContainerInventory = useQuery({
+    ...getContainerInventoryOptions({ path: { containerId: target.id } }),
+    enabled: target.ownerType === 'Container',
+  });
+  const targetInventoryOptions =
+    target.ownerType === 'Creature'
+      ? getCreatureInventoryOptions({ path: { creatureId: target.id } })
+      : getContainerInventoryOptions({ path: { containerId: target.id } });
   const playerInventory = useQuery(getCreatureInventoryOptions({ path: { creatureId: playerId } }));
-  const targetInventory = useQuery(
-    getCreatureInventoryOptions({ path: { creatureId: target.id } }),
-  );
+  const targetInventory =
+    target.ownerType === 'Creature' ? targetCreatureInventory : targetContainerInventory;
   const transfer = useMutation(transferInventoryMutation());
   const transferDraft = useTransferDraft(playerInventory.data?.items, targetInventory.data?.items);
 
@@ -79,8 +106,8 @@ function TransferDialogBody({
       await transfer.mutateAsync({
         path: { playerId },
         body: {
-          fromId: playerId,
-          toId: target.id,
+          from: playerOwner,
+          to: targetOwner,
           items: [...transferDraft.playerToOther].map(([itemId, quantity]) => ({
             itemId,
             quantity,
@@ -92,8 +119,8 @@ function TransferDialogBody({
       await transfer.mutateAsync({
         path: { playerId },
         body: {
-          fromId: target.id,
-          toId: playerId,
+          from: targetOwner,
+          to: playerOwner,
           items: [...transferDraft.otherToPlayer].map(([itemId, quantity]) => ({
             itemId,
             quantity,
@@ -105,9 +132,7 @@ function TransferDialogBody({
     await queryClient.invalidateQueries({
       queryKey: getCreatureInventoryOptions({ path: { creatureId: playerId } }).queryKey,
     });
-    await queryClient.invalidateQueries({
-      queryKey: getCreatureInventoryOptions({ path: { creatureId: target.id } }).queryKey,
-    });
+    await queryClient.invalidateQueries({ queryKey: targetInventoryOptions.queryKey });
     onClose();
   };
 
@@ -162,7 +187,12 @@ function TransferDialogBody({
         <InventorySidePanel
           title={
             <>
-              <Skull className="text-muted-foreground size-4" /> {target.name}
+              {target.ownerType === 'Creature' ? (
+                <Skull className="text-muted-foreground size-4" />
+              ) : (
+                <Archive className="text-muted-foreground size-4" />
+              )}{' '}
+              {target.name}
             </>
           }
           ariaLabel={`${target.name}'s inventory`}

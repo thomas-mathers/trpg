@@ -1,4 +1,4 @@
-import { CircleHelp, Crown, Skull } from 'lucide-react';
+import { Archive, CircleHelp, Crown, Skull } from 'lucide-react';
 import {
   Anvil,
   BedDouble,
@@ -29,7 +29,7 @@ import {
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
-import type { BuildingType, DistrictType } from '@/api/client';
+import type { BuildingType, DistrictType, OwnerType } from '@/api/client';
 import type {
   CreatureStatusSnapshot,
   NearbyExitDestination as SignalrNearbyExitDestination,
@@ -93,6 +93,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal }: NearbyPanelProps) {
   const [inventoryTarget, setInventoryTarget] = useState<{
     id: string;
     name: string;
+    ownerType: OwnerType;
     transfersEnabled: boolean;
   } | null>(null);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
@@ -105,6 +106,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal }: NearbyPanelProps) {
     ...b,
     entityType: 'Building' as const,
   }));
+  const nearbyContainers = scene.nearbyProps.filter((prop) => prop.type === 'Container');
 
   return (
     <div className="flex flex-col gap-6 p-4 text-sm">
@@ -140,6 +142,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal }: NearbyPanelProps) {
                 setInventoryTarget({
                   id: creature.id,
                   name: creature.name,
+                  ownerType: 'Creature',
                   transfersEnabled: creature.state === 'Dead',
                 });
                 setIsTransferOpen(true);
@@ -154,6 +157,35 @@ export function NearbyPanel({ scene, onOpenQuestJournal }: NearbyPanelProps) {
               }}
               tradeEnabled={Boolean(creature.tradeWorkstationId)}
             />
+          ))
+        )}
+      </Section>
+
+      <Section title="Nearby Containers">
+        {nearbyContainers.length === 0 ? (
+          <EmptyState />
+        ) : (
+          nearbyContainers.map((container) => (
+            <div key={container.id} className="flex items-center justify-between gap-2 py-1.5">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <Archive className="text-muted-foreground h-[15px] w-[15px] shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInventoryTarget({
+                      id: container.id,
+                      name: container.name,
+                      ownerType: 'Container',
+                      transfersEnabled: true,
+                    });
+                    setIsTransferOpen(true);
+                  }}
+                  className="cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2"
+                >
+                  {container.name}
+                </button>
+              </span>
+            </div>
           ))
         )}
       </Section>

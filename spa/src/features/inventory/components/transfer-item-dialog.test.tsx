@@ -9,7 +9,11 @@ import type {
   ItemDetailConsumableItemDetail,
   ItemDetailGoldDetail,
 } from '@/api/client';
-import { handleGetCreatureInventory, handleTransferInventory } from '@/api/client/msw.gen';
+import {
+  handleGetContainerInventory,
+  handleGetCreatureInventory,
+  handleTransferInventory,
+} from '@/api/client/msw.gen';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 
@@ -83,11 +87,15 @@ const potion = (overrides: Partial<ItemDetailConsumableItemDetail> = {}): ItemDe
   isStackable: true,
 });
 
-function renderDialog(onClose = vi.fn(), transfersEnabled = true) {
+function renderDialog(
+  onClose = vi.fn(),
+  transfersEnabled = true,
+  ownerType: 'Creature' | 'Container' = 'Creature',
+) {
   return renderWithProviders(
     <TransferItemDialog
       playerId="player-id"
-      target={{ id: 'target-id', name: 'Goblin' }}
+      target={{ id: 'target-id', name: 'Goblin', ownerType }}
       open
       transfersEnabled={transfersEnabled}
       onClose={onClose}
@@ -158,8 +166,8 @@ describe('TransferItemDialog', () => {
 
     await waitFor(() =>
       expect(requestBody).toEqual({
-        fromId: 'player-id',
-        toId: 'target-id',
+        from: { id: 'player-id', type: 'Creature' },
+        to: { id: 'target-id', type: 'Creature' },
         items: [{ itemId: 'item-1', quantity: 10 }],
       }),
     );
@@ -318,8 +326,38 @@ describe('TransferItemDialog', () => {
 
     await waitFor(() =>
       expect(requestBody).toEqual({
-        fromId: 'target-id',
-        toId: 'player-id',
+        from: { id: 'target-id', type: 'Creature' },
+        to: { id: 'player-id', type: 'Creature' },
+        items: [{ itemId: 'item-1', quantity: 10 }],
+      }),
+    );
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('loots a container by reading and transferring against its own inventory endpoint', async () => {
+    let requestBody: InventoryTransferRequest | undefined;
+    server.use(
+      handleGetCreatureInventory({ body: { gold: 0, items: [] } }),
+      handleGetContainerInventory(async () =>
+        HttpResponse.json({ gold: 0, items: [item({ name: 'Chest coins' })] }),
+      ),
+      handleTransferInventory(async ({ request }) => {
+        requestBody = await request.json();
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    const onClose = vi.fn();
+    const { user } = renderDialog(onClose, true, 'Container');
+    await ui.dialog.find();
+    await user.click(await ui.item('Chest coins').find());
+    await user.click(ui.moveToPlayer.get());
+    await user.click(ui.confirm.get());
+
+    await waitFor(() =>
+      expect(requestBody).toEqual({
+        from: { id: 'target-id', type: 'Container' },
+        to: { id: 'player-id', type: 'Creature' },
         items: [{ itemId: 'item-1', quantity: 10 }],
       }),
     );

@@ -3,7 +3,12 @@ import { HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { QuestJournalEntrySnapshot, TradeSnapshot } from '@/api/client';
-import { handleGetQuestJournal, handleGetTrade } from '@/api/client/msw.gen';
+import {
+  handleGetContainerInventory,
+  handleGetCreatureInventory,
+  handleGetQuestJournal,
+  handleGetTrade,
+} from '@/api/client/msw.gen';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
@@ -16,6 +21,7 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
     buildingName: 'The General Store',
     exits: [],
     nearbyBuildings: [],
+    nearbyProps: [],
     nearbyCreatures: [
       {
         id: 'merchant-id',
@@ -69,5 +75,24 @@ describe('NearbyPanel', () => {
     renderWithProviders(<NearbyPanel scene={scene(undefined)} onOpenQuestJournal={() => {}} />);
 
     expect(screen.queryByRole('button', { name: 'Trade' })).not.toBeInTheDocument();
+  });
+
+  it('opens a nearby container inventory when clicked', async () => {
+    server.use(
+      handleGetCreatureInventory({ body: { gold: 0, items: [] } }),
+      handleGetContainerInventory({ body: { gold: 0, items: [] } }),
+    );
+    const sceneWithContainer = {
+      ...scene(undefined),
+      nearbyProps: [{ id: 'chest-id', name: 'Wooden Chest', description: '', type: 'Container' }],
+    };
+    const { user } = renderWithProviders(
+      <NearbyPanel scene={sceneWithContainer} onOpenQuestJournal={() => {}} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Wooden Chest' }));
+
+    expect(await screen.findByRole('heading', { name: 'Transfer Items' })).toBeVisible();
+    expect(screen.getByRole('region', { name: "Wooden Chest's inventory" })).toBeVisible();
   });
 });

@@ -8,7 +8,9 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Inventory.Results;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Trading;
 using TRPG.Application.Trading.Commands;
 using TRPG.Application.Trading.Queries;
@@ -36,74 +38,98 @@ internal static class InventoryEndpoints
             .WithName("CompleteTrade");
         app.MapGet("/sessions/{sessionId:guid}/items/{itemId:guid}", GetItemById)
             .WithName("GetSessionItem");
+        app.MapGet("/containers/{containerId:guid}/inventory", GetContainerInventory)
+            .WithName("GetContainerInventory");
+    }
+
+    private static async Task<Ok<InventorySummary>> GetContainerInventory(
+        Guid containerId,
+        [FromServices] IQueryHandler<GetInventoryByOwnerQuery, InventoryResult> getInventoryByOwner,
+        CancellationToken cancellationToken
+    )
+    {
+        var snapshot = await getInventoryByOwner.Handle(
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(containerId, OwnerType.Container),
+            },
+            cancellationToken
+        );
+
+        return TypedResults.Ok(snapshot.ToSummary([]));
     }
 
     private static async Task<Results<NotFound, ProblemHttpResult, NoContent>> InventoryTransfer(
         Guid playerId,
         InventoryTransferRequest request,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices] IQueryHandler<GetPropByIdQuery, Prop?> getPropById,
         [FromServices] ICommandHandler<ReceivePlayerInventoryCommand> receiveInventory,
         [FromServices] ICommandHandler<TransferPlayerInventoryCommand> transferInventory,
         GameClientEventDispatcher eventDispatcher,
         CancellationToken cancellationToken
     )
     {
-        var fromCreature = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = request.FromId },
+        var from = await ResolveOwnerLocation(
+            request.From,
+            getCreatureById,
+            getPropById,
             cancellationToken
         );
-        if (fromCreature == null)
+        if (from == null)
         {
             return TypedResults.NotFound();
         }
 
-        var toCreature = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = request.ToId },
+        var to = await ResolveOwnerLocation(
+            request.To,
+            getCreatureById,
+            getPropById,
             cancellationToken
         );
-        if (toCreature == null)
+        if (to == null)
         {
             return TypedResults.NotFound();
         }
 
-        if (fromCreature.LocationId != toCreature.LocationId)
+        if (from.Value.LocationId != to.Value.LocationId)
         {
             return TypedResults.Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "Creatures are not nearby",
-                detail: "Inventory can only be transferred between creatures at the same location."
+                title: "Owners are not nearby",
+                detail: "Inventory can only be transferred between owners at the same location."
             );
         }
 
-        if (fromCreature.WorldId != toCreature.WorldId)
+        if (from.Value.WorldId != to.Value.WorldId)
         {
             return TypedResults.Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "Creatures are in different worlds"
+                title: "Owners are in different worlds"
             );
         }
 
-        if (request.FromId == playerId)
+        if (request.From.Id == playerId && request.From.Type == OwnerType.Creature)
         {
             await transferInventory.Handle(
                 new TransferPlayerInventoryCommand
                 {
-                    To = new ItemOwnerReference(request.ToId, OwnerType.Creature),
+                    To = new ItemOwnerReference(request.To.Id, request.To.Type),
                     Items = request.Items,
                     PlayerId = playerId,
                 },
                 cancellationToken
             );
         }
-        else if (request.ToId == playerId)
+        else if (request.To.Id == playerId && request.To.Type == OwnerType.Creature)
         {
             await receiveInventory.Handle(
                 new ReceivePlayerInventoryCommand
                 {
-                    From = new ItemOwnerReference(request.FromId, OwnerType.Creature),
+                    From = new ItemOwnerReference(request.From.Id, request.From.Type),
                     Items = request.Items,
                     PlayerId = playerId,
-                    WorldId = fromCreature.WorldId,
+                    WorldId = from.Value.WorldId,
                 },
                 cancellationToken
             );
@@ -116,9 +142,32 @@ internal static class InventoryEndpoints
             );
         }
 
-        await eventDispatcher.FlushAsync(fromCreature.WorldId, cancellationToken);
+        await eventDispatcher.FlushAsync(from.Value.WorldId, cancellationToken);
 
         return TypedResults.NoContent();
+    }
+
+    private static async Task<(Guid LocationId, Guid WorldId)?> ResolveOwnerLocation(
+        OwnerReferenceRequest owner,
+        IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        IQueryHandler<GetPropByIdQuery, Prop?> getPropById,
+        CancellationToken cancellationToken
+    )
+    {
+        if (owner.Type == OwnerType.Creature)
+        {
+            var creature = await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = owner.Id },
+                cancellationToken
+            );
+            return creature == null ? null : (creature.LocationId, creature.WorldId);
+        }
+
+        var prop = await getPropById.Handle(
+            new GetPropByIdQuery { Id = owner.Id },
+            cancellationToken
+        );
+        return prop == null ? null : (prop.LocationId, prop.WorldId);
     }
 
     private static async Task<Results<NotFound, Ok<ItemDetail>>> GetItemById(
