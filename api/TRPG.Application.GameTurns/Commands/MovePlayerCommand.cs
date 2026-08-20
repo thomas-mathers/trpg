@@ -42,6 +42,7 @@ public record MovePlayerResult(
     EntryOutcome Outcome,
     Creature Player,
     HostileEncounter? Encounter = null,
+    GuardEncounter? GuardEncounter = null,
     SceneResult? Scene = null
 );
 
@@ -74,10 +75,7 @@ internal class MovePlayerCommandHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
-    ICommandHandler<
-        EvaluateLocationEncountersCommand,
-        HostileEncounter?
-    > evaluateLocationEncounters,
+    ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult> evaluateEncounters,
     SceneCatchUpCache catchUpCache,
     ILogger<MovePlayerCommandHandler> logger
 ) : ICommandHandler<MovePlayerCommand, MovePlayerResult>
@@ -158,8 +156,8 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        var encounter = await evaluateLocationEncounters.Handle(
-            new EvaluateLocationEncountersCommand
+        var evaluation = await evaluateEncounters.Handle(
+            new EvaluateEncountersCommand
             {
                 WorldId = player.WorldId,
                 PlayerId = player.Id,
@@ -169,7 +167,13 @@ internal class MovePlayerCommandHandler(
         );
 
         transaction.Complete();
-        return new MovePlayerResult(EntryOutcome.Entered, player, encounter, refreshed.Scene);
+        return new MovePlayerResult(
+            EntryOutcome.Entered,
+            player,
+            evaluation.HostileEncounter,
+            evaluation.GuardEncounter,
+            refreshed.Scene
+        );
     }
 
     private async Task CleanUpDeadCreatures(

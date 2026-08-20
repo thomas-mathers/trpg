@@ -54,6 +54,10 @@ internal class PublishSessionStateCommandHandler(
         {
             gameEvents.Enqueue(new EncounterStartedEvent(hostileEncounter));
         }
+        else if (encounter is GuardEncounter guardEncounter)
+        {
+            gameEvents.Enqueue(new GuardEncounterStartedEvent(guardEncounter));
+        }
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);
     }

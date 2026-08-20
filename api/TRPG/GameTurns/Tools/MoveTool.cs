@@ -21,7 +21,19 @@ internal record MoveToolEncounter(
     IReadOnlyCollection<MoveToolEncounterMember> Members
 );
 
-internal record MoveToolResult(SceneResult Scene, MoveToolEncounter? Encounter);
+internal record MoveToolGuardEncounter(
+    string GuardName,
+    string LocationName,
+    int FineAmount,
+    int JailHours,
+    IReadOnlyCollection<string> RecentOffenses
+);
+
+internal record MoveToolResult(
+    SceneResult Scene,
+    MoveToolEncounter? Encounter,
+    MoveToolGuardEncounter? GuardEncounter
+);
 
 internal class MoveTool(
     GameTurnContext turnContext,
@@ -73,7 +85,7 @@ internal class MoveTool(
             gameEvents.Enqueue(new EncounterStartedEvent(hostileEncounter));
             encounterSummary = new MoveToolEncounter(
                 hostileEncounter.FactionName,
-                hostileEncounter.LocationName,
+                hostileEncounter.LocationName!,
                 hostileEncounter
                     .Members.Select(member => new MoveToolEncounterMember(
                         member.Name,
@@ -84,7 +96,20 @@ internal class MoveTool(
             );
         }
 
-        var result = new MoveToolResult(scene, encounterSummary);
+        MoveToolGuardEncounter? guardEncounterSummary = null;
+        if (moveResult.GuardEncounter is { } guardEncounter)
+        {
+            gameEvents.Enqueue(new GuardEncounterStartedEvent(guardEncounter));
+            guardEncounterSummary = new MoveToolGuardEncounter(
+                guardEncounter.GuardName,
+                guardEncounter.LocationName!,
+                guardEncounter.FineAmount,
+                guardEncounter.JailHours,
+                guardEncounter.RecentOffenses
+            );
+        }
+
+        var result = new MoveToolResult(scene, encounterSummary, guardEncounterSummary);
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",

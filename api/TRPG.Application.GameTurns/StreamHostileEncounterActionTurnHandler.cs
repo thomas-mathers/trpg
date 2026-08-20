@@ -52,7 +52,7 @@ internal class StreamHostileEncounterActionTurnHandler(
                 Action = action,
                 EncounterId = hostileEncounter.Id,
                 FactionName = hostileEncounter.FactionName,
-                LocationName = hostileEncounter.LocationName,
+                LocationName = hostileEncounter.LocationName!,
                 Members = hostileEncounter.Members,
                 ArrivalOriginLocationId = hostileEncounter.ArrivalOriginLocationId,
             },
