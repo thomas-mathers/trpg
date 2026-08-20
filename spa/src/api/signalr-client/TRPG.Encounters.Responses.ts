@@ -3,15 +3,52 @@
 /* tslint:disable */
 import type { CreatureType } from './TRPG.GameSessions.Responses';
 
-/** Transpiled from TRPG.Encounters.Responses.EncounterResolutionOutcome */
-export type EncounterResolutionOutcome = "Evaded" | "EvadeFailed" | "Retreated" | "RetreatFailed" | "Attacked";
+/** Transpiled from TRPG.Encounters.Responses.GuardEncounterResolutionOutcome */
+export type GuardEncounterResolutionOutcome = "PaidFine" | "WentToJail" | "ResistedArrest";
 
-/** Transpiled from TRPG.Encounters.Responses.EncounterResolutionFact */
-export type EncounterResolutionFact = {
+/** Transpiled from TRPG.Encounters.Responses.GuardEncounterResolutionFact */
+export type GuardEncounterResolutionFact = {
     /** Transpiled from System.Guid */
     encounterId: string;
-    /** Transpiled from TRPG.Encounters.Responses.EncounterResolutionOutcome */
-    outcome: EncounterResolutionOutcome;
+    /** Transpiled from TRPG.Encounters.Responses.GuardEncounterResolutionOutcome */
+    outcome: GuardEncounterResolutionOutcome;
+    /** Transpiled from string */
+    guardName: string;
+    /** Transpiled from string */
+    locationName: string;
+    /** Transpiled from int */
+    fineAmount?: number;
+    /** Transpiled from int */
+    jailHours?: number;
+}
+
+/** Transpiled from TRPG.Encounters.Responses.GuardEncounterState */
+export type GuardEncounterState = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from string */
+    guardName: string;
+    /** Transpiled from string */
+    locationName: string;
+    /** Transpiled from int */
+    fineAmount: number;
+    /** Transpiled from int */
+    jailHours: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    recentOffenses: string[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    allowedActions: string[];
+}
+
+/** Transpiled from TRPG.Encounters.Responses.HostileEncounterResolutionOutcome */
+export type HostileEncounterResolutionOutcome = "Evaded" | "EvadeFailed" | "Retreated" | "RetreatFailed" | "Attacked";
+
+/** Transpiled from TRPG.Encounters.Responses.HostileEncounterResolutionFact */
+export type HostileEncounterResolutionFact = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from TRPG.Encounters.Responses.HostileEncounterResolutionOutcome */
+    outcome: HostileEncounterResolutionOutcome;
     /** Transpiled from string */
     factionName: string;
     /** Transpiled from string */

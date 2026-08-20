@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { getQuestJournalQueryKey } from '@/api/client';
 import { CharacterDialog } from '@/features/character/components/character-dialog';
-import { useHasActiveEncounter } from '@/features/encounters/hooks/use-encounter-state';
+import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
 import { gameEventBus, type QuestDialogRequested } from '../../../lib/game-event-bus';
