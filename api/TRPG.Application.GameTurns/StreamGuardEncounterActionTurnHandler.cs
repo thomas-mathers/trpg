@@ -97,14 +97,21 @@ internal class StreamGuardEncounterActionTurnHandler(
 
         if (action is GoToJailEncounterAction)
         {
-            return $"The player chose to go to jail with {resolution.GuardName}. Result: {json}. "
-                + "Narrate ONLY the guard escorting the player into a locked cell and stating the "
-                + "sentence length. The player has NOT served their time or been released yet — do "
-                + "not narrate the sentence passing, the player leaving, or any time skip forward. "
-                + "End the narration with the player now confined in the cell. Do not call any tools.";
+            return $"""
+                The player chose to go to jail with {resolution.GuardName}. Result: {json}.
+                Narrate ONLY the guard escorting the player into a locked cell and stating the
+                sentence length. The player has NOT served their time or been released yet — do
+                not narrate the sentence passing, the player leaving, or any time skip forward.
+                End the narration with the player now confined in the cell. Do not call any tools.
+                """;
         }
 
-        return $"The player chose to {DescribeAction(action)} with {resolution.GuardName}. Result: {json}. Narrate the outcome vividly based on this result. Do not call any tools.";
+        var actionDescription = DescribeAction(action);
+
+        return $"""
+            The player chose to {actionDescription} with {resolution.GuardName}. Result: {json}.
+            Narrate the outcome vividly based on this result. Do not call any tools.
+            """;
     }
 
     private static string DescribeAction(GuardEncounterAction action) =>

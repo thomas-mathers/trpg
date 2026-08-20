@@ -104,6 +104,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - No alignment padding — do not add extra spaces to align `=`, `:`, or other tokens across lines
 - Investigate the root cause of a bug before patching around it — treat the underlying issue, not just the symptom
 - Prefer affirmative conditionals over negated ones (`if (combatant.IsAlive)` not `if (!combatant.IsDead)`) — double negatives are harder to read at a glance
+- For a multiline string, use a raw string literal (`"""..."""`, with `$"""..."""` for interpolation) instead of concatenating single-line string literals with `+`
 
 ### Comments
 - Explain *why*, never *how* — well-named identifiers make the what and how obvious
