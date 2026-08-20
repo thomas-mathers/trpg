@@ -246,8 +246,8 @@ export type InventorySummary = {
 };
 
 export type InventoryTransferRequest = {
-    fromId: string;
-    toId: string;
+    from: OwnerReferenceRequest;
+    to: OwnerReferenceRequest;
     items: Array<ItemSelection>;
 };
 
@@ -560,6 +560,13 @@ export type NearbyPropSnapshot = {
     name: string;
     type: string;
 };
+
+export type OwnerReferenceRequest = {
+    id: string;
+    type: OwnerType;
+};
+
+export type OwnerType = 'Creature' | 'Container' | 'Workstation';
 
 export type PlayerClass = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric';
 
@@ -1305,6 +1312,24 @@ export type GetSessionItemResponses = {
 };
 
 export type GetSessionItemResponse = GetSessionItemResponses[keyof GetSessionItemResponses];
+
+export type GetContainerInventoryData = {
+    body?: never;
+    path: {
+        containerId: string;
+    };
+    query?: never;
+    url: '/containers/{containerId}/inventory';
+};
+
+export type GetContainerInventoryResponses = {
+    /**
+     * OK
+     */
+    200: InventorySummary;
+};
+
+export type GetContainerInventoryResponse = GetContainerInventoryResponses[keyof GetContainerInventoryResponses];
 
 export type GetQuestJournalData = {
     body?: never;

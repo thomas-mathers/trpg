@@ -2,7 +2,7 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTradeResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTradeResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
@@ -997,6 +997,37 @@ export function handleGetSessionItem(response?: HandleGetSessionItemResponse | H
     }, options);
 }
 
+export type HandleGetContainerInventoryResponse = {
+    body: GetContainerInventoryResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `GET /containers/{containerId}/inventory` operation.
+ */
+export function handleGetContainerInventory(response?: HandleGetContainerInventoryResponse | HttpResponseResolver<{
+    containerId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.get<{
+        containerId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/containers/:containerId/inventory`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
 export type HandleGetQuestJournalResponse = {
     body: GetQuestJournalResponses[200];
     status?: 200;
@@ -1257,6 +1288,10 @@ export type MswHandlerFactories = {
      */
     getSessionItem: typeof handleGetSessionItem;
     /**
+     * Handler for the `GET /containers/{containerId}/inventory` operation.
+     */
+    getContainerInventory: typeof handleGetContainerInventory;
+    /**
      * Handler for the `GET /players/{playerId}/quests` operation.
      */
     getQuestJournal: typeof handleGetQuestJournal;
@@ -1321,6 +1356,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         proposeTrade: wrap(handleProposeTrade),
         completeTrade: wrap(handleCompleteTrade),
         getSessionItem: wrap(handleGetSessionItem),
+        getContainerInventory: wrap(handleGetContainerInventory),
         getQuestJournal: wrap(handleGetQuestJournal),
         acceptQuest: wrap(handleAcceptQuest),
         completeQuest: wrap(handleCompleteQuest),
@@ -1364,6 +1400,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
             invoke(pick.getSessionScene, overrides.getSessionScene),
             invoke(pick.listSessionLoreAnchors, overrides.listSessionLoreAnchors),
             invoke(pick.transferInventory, overrides.transferInventory),
+            invoke(pick.getContainerInventory, overrides.getContainerInventory),
             invoke(pick.getQuestJournal, overrides.getQuestJournal),
             invoke(pick.getCreatureGenerationOptions, overrides.getCreatureGenerationOptions),
             invoke(pick.dropWorld, overrides.dropWorld),
