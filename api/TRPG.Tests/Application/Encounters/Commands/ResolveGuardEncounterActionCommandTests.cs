@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Buildings;
+using TRPG.Application.Configuration;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Inventory;
@@ -33,6 +35,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .Configure<GuardEncounterOptions>(new ConfigurationBuilder().Build())
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ResolveGuardEncounterActionCommandHandler>();
 
@@ -252,6 +255,58 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
             _session.Playtime + GameClock.RealTimePerInGameHour * 24,
             updatedDoor.UnlocksAtPlaytime
         );
+    }
+
+    [Fact]
+    public async Task Handle_GoToJail_RestoresEnoughReputationToClearTheEncounterThreshold()
+    {
+        // Arrange
+        var cityId = Guid.NewGuid();
+        var jailLocation = Builders.MakeLocation(cityId: cityId);
+        var jail = Builders.MakeBuilding(
+            exteriorLocationId: jailLocation.Id,
+            buildingType: BuildingType.Jail
+        );
+        var guardStationRoom = Builders.MakeRoom(jail.Id, name: "Guard Station");
+        var cellsRoom = Builders.MakeRoom(jail.Id, name: JailRoomNames.Cells);
+        var exitConnector = Builders.MakeLocationConnector(
+            cellsRoom.LocationId,
+            destinationLocationId: guardStationRoom.LocationId
+        );
+        var exitDoor = Builders.MakeDoorConnector(exitConnector.Id);
+        var encounterLocation = Builders.MakeLocation(cityId: cityId);
+        _context.Locations.AddRange(jailLocation, encounterLocation);
+        _context.Buildings.Add(jail);
+        _context.Rooms.AddRange(guardStationRoom, cellsRoom);
+        _context.LocationConnectors.Add(exitConnector);
+        _context.DoorConnectors.Add(exitDoor);
+        _context.Reputations.Add(
+            new Reputation
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                TargetId = _cityFaction.Id,
+                TargetType = ReputationTargetType.Faction,
+                Score = -50,
+            }
+        );
+        var encounter = await SeedActiveEncounter(encounterLocation.Id);
+
+        // Act
+        await _handler.Handle(
+            MakeCommand(new GoToJailEncounterAction(), encounter.Id, encounter.LocationId),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var reputation = await verifyContext.Reputations.SingleAsync(
+            r => r.CreatureId == _player.Id && r.TargetId == _cityFaction.Id,
+            TestContext.Current.CancellationToken
+        );
+        // MakeCommand uses ReputationScore = -50; default ReputationThreshold is -25, so the
+        // restored score must land strictly above -25 to avoid immediately re-triggering.
+        Assert.Equal(-24, reputation.Score);
     }
 
     [Fact]

@@ -1,9 +1,11 @@
 using System.Transactions;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
@@ -41,7 +43,8 @@ internal class ResolveGuardEncounterActionCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetJailForCityQuery, JailInfo?> getJailForCity,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
 ) : ICommandHandler<ResolveGuardEncounterActionCommand, GuardEncounterResolutionFact>
 {
     public async Task<GuardEncounterResolutionFact> Handle(
@@ -154,6 +157,22 @@ internal class ResolveGuardEncounterActionCommandHandler(
             {
                 DoorConnectorIds = [jail.ExitDoorConnectorId],
                 UnlocksAtPlaytime = unlocksAt,
+            },
+            cancellationToken
+        );
+
+        var options = guardEncounterOptions.CurrentValue;
+        var restoreAmount = options.ReputationThreshold + 1 - command.ReputationScore;
+
+        await adjustReputation.Handle(
+            new AdjustReputationCommand
+            {
+                CreatureId = command.PlayerId,
+                TargetIds = [command.CityFactionId],
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = restoreAmount,
+                Reason = ReputationReason.ServedJailTime,
+                Detail = $"Served a {command.JailHours}-hour jail sentence",
             },
             cancellationToken
         );
