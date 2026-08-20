@@ -25,29 +25,27 @@ export function GuardEncounterDialog() {
       label: string;
       description: string;
       icon: typeof Swords;
-      submit: (displayText: string) => void;
+      submit: () => void;
     }
   > = {
     PayFine: {
       label: `Pay ${encounter?.fineAmount ?? 0} gold`,
       description: 'Settle the matter and clear your name.',
       icon: Coins,
-      submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolvePayFineEncounterAction()),
+      submit: () => submitNarratedTurn('Pay the fine', chatHub.resolvePayFineEncounterAction()),
     },
     GoToJail: {
       label: `Serve ${encounter?.jailHours ?? 0} hours`,
       description: 'Surrender and serve your sentence.',
       icon: Lock,
-      submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolveGoToJailEncounterAction()),
+      submit: () => submitNarratedTurn('Go to jail', chatHub.resolveGoToJailEncounterAction()),
     },
     ResistArrest: {
       label: 'Resist arrest',
       description: 'Fight your way free.',
       icon: Swords,
-      submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolveResistArrestEncounterAction()),
+      submit: () =>
+        submitNarratedTurn('Resist arrest', chatHub.resolveResistArrestEncounterAction()),
     },
   };
 
@@ -95,14 +93,21 @@ export function GuardEncounterDialog() {
                 return null;
               }
               const details = actionDetails[actionName];
+              const isDisabled =
+                isStreaming || (actionName === 'PayFine' && !encounter.canAffordFine);
 
               const Icon = details.icon;
               return (
                 <button
                   key={actionName}
                   type="button"
-                  disabled={isStreaming}
-                  onClick={() => details.submit(actionName)}
+                  disabled={isDisabled}
+                  onClick={() => details.submit()}
+                  title={
+                    actionName === 'PayFine' && !encounter.canAffordFine
+                      ? "You don't have enough gold to pay this fine."
+                      : undefined
+                  }
                   className="border-border bg-card hover:bg-accent focus-visible:ring-ring flex min-h-24 flex-col items-start gap-2 rounded-lg border p-3 text-left shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Icon className="h-5 w-5 text-amber-500" />

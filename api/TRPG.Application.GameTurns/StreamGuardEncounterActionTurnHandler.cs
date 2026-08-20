@@ -6,6 +6,8 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameTurns.Events;
+using TRPG.Application.Scenes.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -17,6 +19,7 @@ internal class StreamGuardEncounterActionTurnHandler(
         ResolveGuardEncounterActionCommand,
         GuardEncounterResolutionFact
     > resolveGuardEncounterAction,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     IGameClientEventSink gameEvents
 )
 {
@@ -64,10 +67,51 @@ internal class StreamGuardEncounterActionTurnHandler(
 
         gameEvents.Enqueue(new GuardEncounterResolvedEvent(resolution));
 
+        var refreshed = await refreshScene.Handle(
+            new RefreshSceneCommand
+            {
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                SessionId = session.SessionId,
+            },
+            cancellationToken
+        );
+
+        gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
+
         return new GameTurnPrompt.Narrate(
-            $"The player chose to {DescribeAction(action)} with {resolution.GuardName}. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
+            BuildNarrationPrompt(action, resolution),
             IncludeTools: false
         );
+    }
+
+    private static string BuildNarrationPrompt(
+        GuardEncounterAction action,
+        GuardEncounterResolutionFact resolution
+    )
+    {
+        var json = JsonSerializer.Serialize(
+            resolution,
+            TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+        );
+
+        if (action is GoToJailEncounterAction)
+        {
+            return $"""
+                The player chose to go to jail with {resolution.GuardName}. Result: {json}.
+                Narrate ONLY the guard escorting the player into a locked cell and stating the
+                sentence length. The player has NOT served their time or been released yet — do
+                not narrate the sentence passing, the player leaving, or any time skip forward.
+                End the narration with the player now confined in the cell. Do not call any tools.
+                """;
+        }
+
+        var actionDescription = DescribeAction(action);
+
+        return $"""
+            The player chose to {actionDescription} with {resolution.GuardName}. Result: {json}.
+            Narrate the outcome vividly based on this result. Do not call any tools.
+            """;
     }
 
     private static string DescribeAction(GuardEncounterAction action) =>

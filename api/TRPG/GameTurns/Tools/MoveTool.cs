@@ -4,9 +4,12 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Domain.Models;
 using TRPG.Tools;
@@ -39,6 +42,7 @@ internal class MoveTool(
     GameTurnContext turnContext,
     IGameClientEventSink gameEvents,
     ICommandHandler<MovePlayerCommand, MovePlayerResult> movePlayer,
+    IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
     ILogger<MoveTool> logger
 ) : IGameTool
 {
@@ -99,7 +103,19 @@ internal class MoveTool(
         MoveToolGuardEncounter? guardEncounterSummary = null;
         if (moveResult.GuardEncounter is { } guardEncounter)
         {
-            gameEvents.Enqueue(new GuardEncounterStartedEvent(guardEncounter));
+            var playerGold = await getGoldQuantity.Handle(
+                new GetGoldQuantityQuery
+                {
+                    Owner = new ItemOwnerReference(turnContext.PlayerId, OwnerType.Creature),
+                },
+                cancellationToken
+            );
+            gameEvents.Enqueue(
+                new GuardEncounterStartedEvent(
+                    guardEncounter,
+                    playerGold >= guardEncounter.FineAmount
+                )
+            );
             guardEncounterSummary = new MoveToolGuardEncounter(
                 guardEncounter.GuardName,
                 guardEncounter.LocationName!,
