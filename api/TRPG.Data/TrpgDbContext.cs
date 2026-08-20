@@ -130,7 +130,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity
                 .HasDiscriminator<string>("encounter_type")
                 .HasValue<HostileEncounter>("Hostile")
-                .HasValue<FightEncounter>("Fight");
+                .HasValue<FightEncounter>("Fight")
+                .HasValue<GuardEncounter>("Guard");
         });
 
         modelBuilder.Entity<HostileEncounter>(entity =>

@@ -1,5 +1,6 @@
 using System.Transactions;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Buildings.Results;
 using TRPG.Application.Common.Commands;
@@ -67,6 +68,7 @@ internal class MovePlayerCommandHandler(
     > getBuildingEntryRequirements,
     IQueryHandler<GetDoorConnectorByConnectorIdQuery, DoorConnector?> getDoorConnectorByConnectorId,
     IQueryHandler<GetKeyItemIdsQuery, IReadOnlyList<Guid>> getKeyItemIds,
+    ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
@@ -297,14 +299,38 @@ internal class MovePlayerCommandHandler(
 
         if (door is { IsLocked: true })
         {
-            var validKeyItemIds = await getKeyItemIds.Handle(
-                new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
-                cancellationToken
-            );
-
-            if (!await HasAnyKey(player, validKeyItemIds, cancellationToken))
+            if (door.UnlocksAtPlaytime is { } unlocksAt)
             {
-                return EntryOutcome.Locked;
+                var playtime = await getPlaytime.Handle(
+                    new GetPlaytimeQuery { SessionId = command.SessionId },
+                    cancellationToken
+                );
+
+                if (playtime >= unlocksAt)
+                {
+                    await setDoorTimedLock.Handle(
+                        new SetDoorTimedLockCommand
+                        {
+                            DoorConnectorIds = [door.Id],
+                            UnlocksAtPlaytime = null,
+                        },
+                        cancellationToken
+                    );
+                    door = null;
+                }
+            }
+
+            if (door is { IsLocked: true })
+            {
+                var validKeyItemIds = await getKeyItemIds.Handle(
+                    new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
+                    cancellationToken
+                );
+
+                if (!await HasAnyKey(player, validKeyItemIds, cancellationToken))
+                {
+                    return EntryOutcome.Locked;
+                }
             }
         }
 
