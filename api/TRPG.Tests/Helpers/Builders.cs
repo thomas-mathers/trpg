@@ -82,12 +82,14 @@ internal static class Builders
     public static DoorConnector MakeDoorConnector(
         Guid connectorId,
         bool isLocked = false,
-        Guid? worldId = null
+        Guid? worldId = null,
+        TimeSpan? unlocksAtPlaytime = null
     ) =>
         new()
         {
             ConnectorId = connectorId,
             IsLocked = isLocked,
+            UnlocksAtPlaytime = unlocksAtPlaytime,
             WorldId = worldId ?? Guid.NewGuid(),
         };
 
@@ -635,7 +637,8 @@ internal static class Builders
         int capacity = 4,
         Guid? worldId = null,
         Guid? id = null,
-        Guid? locationId = null
+        Guid? locationId = null,
+        string? name = null
     )
     {
         return new Room
@@ -643,7 +646,7 @@ internal static class Builders
             Id = id ?? Guid.NewGuid(),
             BuildingId = buildingId,
             Capacity = capacity,
-            Name = $"Room-{Guid.NewGuid():N}",
+            Name = name ?? $"Room-{Guid.NewGuid():N}",
             Description = "A test room",
             FloorNumber = 0,
             WorldId = worldId ?? Guid.NewGuid(),

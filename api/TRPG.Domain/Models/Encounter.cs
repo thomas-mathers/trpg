@@ -46,3 +46,8 @@ public class FightEncounter : Encounter
     public List<Guid> CombatantIds { get; init; } = [];
     public CombatOutcome Outcome { get; set; } = CombatOutcome.Ongoing;
 }
+
+public class GuardEncounter : Encounter
+{
+    public required Guid GuardCreatureId { get; init; }
+}

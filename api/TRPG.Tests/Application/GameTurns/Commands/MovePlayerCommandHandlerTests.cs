@@ -468,6 +468,130 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
+    public async Task Handle_ReturnsDoorLocked_WhenTheTimedUnlockHasNotElapsedYet()
+    {
+        // Arrange
+        var session = Builders.MakeGameSession(
+            WorldId,
+            Guid.NewGuid(),
+            playtime: TimeSpan.FromHours(5)
+        );
+        var building = Builders.MakeBuilding();
+        var currentRoomId = Guid.NewGuid();
+        var currentLocation = Builders.MakeLocation(WorldId, _stateId, roomId: currentRoomId);
+        var currentRoom = Builders.MakeRoom(
+            building.Id,
+            id: currentRoomId,
+            locationId: currentLocation.Id
+        );
+        var nextRoomId = Guid.NewGuid();
+        var nextLocation = Builders.MakeLocation(WorldId, _stateId, roomId: nextRoomId);
+        var nextRoom = Builders.MakeRoom(building.Id, id: nextRoomId, locationId: nextLocation.Id);
+        var connector = Builders.MakeLocationConnector(
+            currentRoom.LocationId,
+            destinationLocationId: nextRoom.LocationId,
+            name: "Cell Door",
+            description: "A locked cell door.",
+            destinationLabel: nextRoom.Name
+        );
+        var door = Builders.MakeDoorConnector(
+            connector.Id,
+            isLocked: true,
+            unlocksAtPlaytime: TimeSpan.FromHours(10)
+        );
+        var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
+        _context.GameSessions.Add(session);
+        _context.Buildings.Add(building);
+        _context.Rooms.AddRange(currentRoom, nextRoom);
+        _context.Locations.AddRange(currentLocation, nextLocation);
+        _context.LocationConnectors.Add(connector);
+        _context.DoorConnectors.Add(door);
+        _context.Creatures.Add(player);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = session.Id,
+                DestinationName = nextRoom.Name,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(EntryOutcome.Locked, result.Outcome);
+        Assert.Equal(currentRoom.LocationId, result.Player.LocationId);
+    }
+
+    [Fact]
+    public async Task Handle_MovesThroughTheExit_AndPersistsTheUnlock_WhenTheTimedUnlockHasElapsed()
+    {
+        // Arrange
+        var session = Builders.MakeGameSession(
+            WorldId,
+            Guid.NewGuid(),
+            playtime: TimeSpan.FromHours(10)
+        );
+        var building = Builders.MakeBuilding();
+        var currentRoomId = Guid.NewGuid();
+        var currentLocation = Builders.MakeLocation(WorldId, _stateId, roomId: currentRoomId);
+        var currentRoom = Builders.MakeRoom(
+            building.Id,
+            id: currentRoomId,
+            locationId: currentLocation.Id
+        );
+        var nextRoomId = Guid.NewGuid();
+        var nextLocation = Builders.MakeLocation(WorldId, _stateId, roomId: nextRoomId);
+        var nextRoom = Builders.MakeRoom(building.Id, id: nextRoomId, locationId: nextLocation.Id);
+        var connector = Builders.MakeLocationConnector(
+            currentRoom.LocationId,
+            destinationLocationId: nextRoom.LocationId,
+            name: "Cell Door",
+            description: "A locked cell door.",
+            destinationLabel: nextRoom.Name
+        );
+        var door = Builders.MakeDoorConnector(
+            connector.Id,
+            isLocked: true,
+            unlocksAtPlaytime: TimeSpan.FromHours(5)
+        );
+        var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
+        _context.GameSessions.Add(session);
+        _context.Buildings.Add(building);
+        _context.Rooms.AddRange(currentRoom, nextRoom);
+        _context.Locations.AddRange(currentLocation, nextLocation);
+        _context.LocationConnectors.Add(connector);
+        _context.DoorConnectors.Add(door);
+        _context.Creatures.Add(player);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = session.Id,
+                DestinationName = nextRoom.Name,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(EntryOutcome.Entered, result.Outcome);
+        Assert.Equal(nextRoom.LocationId, result.Player.LocationId);
+
+        await using var verifyContext = db.CreateContext();
+        var updatedDoor = await verifyContext.DoorConnectors.FindAsync(
+            [door.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.False(updatedDoor!.IsLocked);
+        Assert.Null(updatedDoor.UnlocksAtPlaytime);
+    }
+
+    [Fact]
     public async Task Handle_MovesThroughAHubConnector_WhenAlreadyPlacedInAConnectedDistrict()
     {
         // Arrange - a placed (non-unplaced) player travels via a real hub LocationConnector, not the
