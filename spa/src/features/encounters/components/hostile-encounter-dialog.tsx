@@ -51,7 +51,7 @@ export function HostileEncounterDialog() {
     <Dialog open onOpenChange={() => undefined}>
       <DialogContent
         showCloseButton={false}
-        className="w-[min(100vw-2rem,42rem)] max-w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[42rem]"
+        className="top-4 w-[min(100vw-2rem,42rem)] max-w-[calc(100%-2rem)] translate-y-0 gap-0 overflow-hidden p-0 shadow-2xl ring-2 ring-amber-500/40 sm:max-w-[42rem]"
       >
         <header className="bg-card border-b px-5 py-4">
           <DialogTitle className="flex items-center gap-2 text-base">

@@ -18,7 +18,7 @@ namespace TRPG.GameTurns.Tools;
 
 internal record MoveToolEncounterMember(string Name, CreatureType CreatureType, int Level);
 
-internal record MoveToolEncounter(
+internal record MoveToolHostileEncounter(
     string FactionName,
     string LocationName,
     IReadOnlyCollection<MoveToolEncounterMember> Members
@@ -34,7 +34,7 @@ internal record MoveToolGuardEncounter(
 
 internal record MoveToolResult(
     SceneResult Scene,
-    MoveToolEncounter? Encounter,
+    MoveToolHostileEncounter? HostileEncounter,
     MoveToolGuardEncounter? GuardEncounter
 );
 
@@ -83,11 +83,11 @@ internal class MoveTool(
 
         var scene = moveResult.Scene!;
 
-        MoveToolEncounter? encounterSummary = null;
+        MoveToolHostileEncounter? hostileEncounterSummary = null;
         if (moveResult.Encounter is HostileEncounter hostileEncounter)
         {
             gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
-            encounterSummary = new MoveToolEncounter(
+            hostileEncounterSummary = new MoveToolHostileEncounter(
                 hostileEncounter.FactionName,
                 hostileEncounter.LocationName!,
                 hostileEncounter
@@ -125,7 +125,7 @@ internal class MoveTool(
             );
         }
 
-        var result = new MoveToolResult(scene, encounterSummary, guardEncounterSummary);
+        var result = new MoveToolResult(scene, hostileEncounterSummary, guardEncounterSummary);
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
