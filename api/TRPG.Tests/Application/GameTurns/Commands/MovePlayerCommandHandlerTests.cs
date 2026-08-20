@@ -1,5 +1,8 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Configuration;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.Scenes;
@@ -868,6 +871,77 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             .SingleAsync(e => e.PlayerId == player.Id, TestContext.Current.CancellationToken);
         Assert.Equal(EncounterState.Active, encounter.State);
         Assert.Equal(oldLocation.Id, encounter.ArrivalOriginLocationId);
+    }
+
+    [Fact]
+    public async Task Handle_CreatesAnActiveGuardEncounter_WhenMovingToALowRepGuardsLocation()
+    {
+        // Arrange
+        var oldLocation = Builders.MakeLocation(WorldId, _stateId);
+        var newLocation = Builders.MakeLocation(WorldId, _stateId);
+        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
+        var cityFaction = Builders.MakeFaction(WorldId, isCityFaction: true);
+        var guard = Builders.MakeCreature(
+            WorldId,
+            profession: Profession.Guard,
+            locationId: newLocation.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            oldLocation.Id,
+            destinationLocationId: newLocation.Id,
+            destinationLabel: "Elsewhere"
+        );
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.AddRange(player, guard);
+        _context.Factions.Add(cityFaction);
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, cityFaction.Id, guard.Id));
+        _context.Reputations.Add(
+            new Reputation
+            {
+                WorldId = WorldId,
+                CreatureId = player.Id,
+                TargetId = cityFaction.Id,
+                TargetType = ReputationTargetType.Faction,
+                Score = -50,
+            }
+        );
+        _context.LocationConnectors.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["EncounterChance"] = 1f.ToString(CultureInfo.InvariantCulture),
+                }
+            )
+            .Build();
+        await using var guardServiceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .Configure<GuardEncounterOptions>(configuration)
+            .BuildServiceProvider();
+        var guardHandler = guardServiceProvider.GetRequiredService<MovePlayerCommandHandler>();
+
+        // Act
+        var result = await guardHandler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Elsewhere",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.NotNull(result.GuardEncounter);
+        Assert.Equal(guard.Id, result.GuardEncounter.GuardCreatureId);
+
+        await using var verifyContext = db.CreateContext();
+        var encounter = await verifyContext
+            .Encounters.OfType<GuardEncounter>()
+            .SingleAsync(e => e.PlayerId == player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(EncounterState.Active, encounter.State);
     }
 
     [Fact]
