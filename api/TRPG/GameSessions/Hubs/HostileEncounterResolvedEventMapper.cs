@@ -3,7 +3,8 @@ using TRPG.Encounters.Responses;
 
 namespace TRPG.GameSessions.Hubs;
 
-internal sealed class HostileEncounterResolvedEventMapper : GameClientEventMapper<HostileEncounterResolvedEvent>
+internal sealed class HostileEncounterResolvedEventMapper
+    : GameClientEventMapper<HostileEncounterResolvedEvent>
 {
     protected override IGameClientCall Map(HostileEncounterResolvedEvent gameEvent) =>
         new GameClientCall<HostileEncounterResolutionFact>(

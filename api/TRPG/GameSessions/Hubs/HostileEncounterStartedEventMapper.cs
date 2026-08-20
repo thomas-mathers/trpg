@@ -4,7 +4,8 @@ using ContractCreatureType = TRPG.GameSessions.Responses.CreatureType;
 
 namespace TRPG.GameSessions.Hubs;
 
-internal sealed class HostileEncounterStartedEventMapper : GameClientEventMapper<HostileEncounterStartedEvent>
+internal sealed class HostileEncounterStartedEventMapper
+    : GameClientEventMapper<HostileEncounterStartedEvent>
 {
     private static readonly string[] AllowedActions = ["Attack", "Evade", "Retreat"];
 
