@@ -21,6 +21,7 @@ public abstract class Encounter
     public DateTime? CompletedAt { get; set; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public Guid LocationId { get; init; }
+    public string? LocationName { get; init; }
     public Guid PlayerId { get; init; }
     public EncounterState State { get; set; } = EncounterState.Active;
     public Guid WorldId { get; init; }
@@ -37,7 +38,6 @@ public class HostileEncounter : Encounter
 {
     public required Guid FactionId { get; init; }
     public required string FactionName { get; init; }
-    public required string LocationName { get; init; }
     public List<HostileEncounterMemberSnapshot> Members { get; init; } = [];
 }
 
@@ -50,4 +50,10 @@ public class FightEncounter : Encounter
 public class GuardEncounter : Encounter
 {
     public required Guid GuardCreatureId { get; init; }
+    public required Guid CityFactionId { get; init; }
+    public required string GuardName { get; init; }
+    public required int ReputationScore { get; init; }
+    public required int FineAmount { get; init; }
+    public required int JailHours { get; init; }
+    public List<string> RecentOffenses { get; init; } = [];
 }
