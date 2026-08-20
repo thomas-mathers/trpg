@@ -54,39 +54,26 @@ internal class SyncSceneCommandHandler(
             return;
         }
 
+        await AdvanceJobsTargetingLocation(command.LocationId, command.CurrentDate, cancellationToken);
+
         if (location.RoomId != null)
         {
-            await AdvanceDueJobsDirectly(
-                command.LocationId,
-                "Room",
-                command.CurrentDate,
-                cancellationToken
-            );
             await SyncFrontDoorLock(location.RoomId.Value, command.CurrentDate, cancellationToken);
         }
-        else if (location.DistrictId != null)
+
+        if (location.DistrictId != null)
         {
-            await AdvanceDueJobsInDistrict(
+            await AdvanceJobsForCreaturesInDistrict(
                 command.WorldId,
                 location.DistrictId.Value,
                 command.CurrentDate,
                 cancellationToken
             );
         }
-        else if (location.Kind == LocationKind.Wilderness)
-        {
-            await AdvanceDueJobsDirectly(
-                command.LocationId,
-                "Wilderness",
-                command.CurrentDate,
-                cancellationToken
-            );
-        }
     }
 
-    private async Task AdvanceDueJobsDirectly(
+    private async Task AdvanceJobsTargetingLocation(
         Guid locationId,
-        string scope,
         InGameDate currentDate,
         CancellationToken cancellationToken
     )
@@ -95,10 +82,10 @@ internal class SyncSceneCommandHandler(
             new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = locationId },
             cancellationToken
         );
-        await AdvanceDueJobs(scope, creatureIds, currentDate, cancellationToken);
+        await AdvanceDueJobs(creatureIds, currentDate, cancellationToken);
     }
 
-    private async Task AdvanceDueJobsInDistrict(
+    private async Task AdvanceJobsForCreaturesInDistrict(
         Guid worldId,
         Guid districtId,
         InGameDate currentDate,
@@ -109,11 +96,10 @@ internal class SyncSceneCommandHandler(
             new GetCreatureIdsByDistrictQuery { WorldId = worldId, DistrictId = districtId },
             cancellationToken
         );
-        await AdvanceDueJobs("District", creatureIds, currentDate, cancellationToken);
+        await AdvanceDueJobs(creatureIds, currentDate, cancellationToken);
     }
 
     private async Task AdvanceDueJobs(
-        string scope,
         IReadOnlyCollection<Guid> creatureIds,
         InGameDate currentDate,
         CancellationToken cancellationToken
