@@ -17,7 +17,8 @@ internal sealed class GuardEncounterStartedEventMapper
                 gameEvent.Encounter.FineAmount,
                 gameEvent.Encounter.JailHours,
                 gameEvent.Encounter.RecentOffenses,
-                AllowedActions
+                AllowedActions,
+                gameEvent.CanAffordFine
             ),
             static (client, arguments) => client.GuardEncounterStarted(arguments)
         );

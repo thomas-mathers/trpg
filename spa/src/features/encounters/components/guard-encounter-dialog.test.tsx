@@ -22,6 +22,7 @@ const encounter: GuardEncounterState = {
   jailHours: 8,
   recentOffenses: ['Killed a guard'],
   allowedActions: ['PayFine', 'GoToJail', 'ResistArrest'],
+  canAffordFine: true,
 };
 
 function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
@@ -122,9 +123,17 @@ describe('GuardEncounterDialog', () => {
 
     expect(chatHub.resolvePayFineEncounterAction).toHaveBeenCalledOnce();
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'PayFine',
+      'Pay the fine',
       vi.mocked(chatHub.resolvePayFineEncounterAction).mock.results[0]?.value,
     );
+  });
+
+  it('disables paying the fine when the player cannot afford it', async () => {
+    renderDialog();
+
+    gameEventBus.emit('GuardEncounterStarted', { ...encounter, canAffordFine: false });
+
+    expect(await screen.findByRole('button', { name: /pay 120 gold/i })).toBeDisabled();
   });
 
   it('closes when the encounter resolves', async () => {

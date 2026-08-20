@@ -10,5 +10,6 @@ public record GuardEncounterState(
     int FineAmount,
     int JailHours,
     IReadOnlyCollection<string> RecentOffenses,
-    IReadOnlyCollection<string> AllowedActions
+    IReadOnlyCollection<string> AllowedActions,
+    bool CanAffordFine
 );
