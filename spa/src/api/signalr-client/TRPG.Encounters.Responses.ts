@@ -38,6 +38,8 @@ export type GuardEncounterState = {
     recentOffenses: string[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
     allowedActions: string[];
+    /** Transpiled from bool */
+    canAffordFine: boolean;
 }
 
 /** Transpiled from TRPG.Encounters.Responses.HostileEncounterResolutionOutcome */

@@ -233,6 +233,50 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Handle_MovesCreatureIntoDistrict_WhenDueJobArrivesFromElsewhere()
+    {
+        // Arrange — the creature is currently in a different district entirely (e.g. sleeping
+        // in a barracks across town), not merely a different location within the target district
+        var otherDistrictId = Guid.NewGuid();
+        var targetDistrictId = Guid.NewGuid();
+        var currentLocation = await SeedLocation(
+            roomId: Guid.NewGuid(),
+            districtId: otherDistrictId
+        );
+        var gateLocation = await SeedLocation(districtId: targetDistrictId);
+        var creature = await SeedCreature(currentLocation.Id);
+        await AddJob(
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Work,
+                startHour: 6,
+                endHour: 18,
+                locationId: gateLocation.Id,
+                priority: 50
+            )
+        );
+
+        // Act — hour 10 is inside the Work window, syncing the district the guard should arrive at
+        await _handler.Handle(
+            new SyncSceneCommand
+            {
+                WorldId = WorldId,
+                LocationId = gateLocation.Id,
+                CurrentDate = Builders.MakeInGameDate(10),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(gateLocation.Id, updated!.LocationId);
+    }
+
+    [Fact]
     public async Task Handle_AssignsBothWorkersToDifferentWorkstations_WhenTwoArePresent()
     {
         // Arrange

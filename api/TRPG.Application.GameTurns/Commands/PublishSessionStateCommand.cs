@@ -5,6 +5,8 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns.Events;
+using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Domain.Models;
 
@@ -22,7 +24,8 @@ internal class PublishSessionStateCommandHandler(
     IGameClientEventDispatcher eventDispatcher,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
-    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
+    IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity
 ) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
@@ -56,7 +59,19 @@ internal class PublishSessionStateCommandHandler(
         }
         else if (encounter is GuardEncounter guardEncounter)
         {
-            gameEvents.Enqueue(new GuardEncounterStartedEvent(guardEncounter));
+            var playerGold = await getGoldQuantity.Handle(
+                new GetGoldQuantityQuery
+                {
+                    Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+                },
+                cancellationToken
+            );
+            gameEvents.Enqueue(
+                new GuardEncounterStartedEvent(
+                    guardEncounter,
+                    playerGold >= guardEncounter.FineAmount
+                )
+            );
         }
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);
