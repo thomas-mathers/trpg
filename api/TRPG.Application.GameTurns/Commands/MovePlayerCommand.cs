@@ -299,28 +299,28 @@ internal class MovePlayerCommandHandler(
 
         if (door is { IsLocked: true })
         {
+            var timedUnlockElapsed = false;
             if (door.UnlocksAtPlaytime is { } unlocksAt)
             {
                 var playtime = await getPlaytime.Handle(
                     new GetPlaytimeQuery { SessionId = command.SessionId },
                     cancellationToken
                 );
-
-                if (playtime >= unlocksAt)
-                {
-                    await setDoorTimedLock.Handle(
-                        new SetDoorTimedLockCommand
-                        {
-                            DoorConnectorIds = [door.Id],
-                            UnlocksAtPlaytime = null,
-                        },
-                        cancellationToken
-                    );
-                    door = null;
-                }
+                timedUnlockElapsed = playtime >= unlocksAt;
             }
 
-            if (door is { IsLocked: true })
+            if (timedUnlockElapsed)
+            {
+                await setDoorTimedLock.Handle(
+                    new SetDoorTimedLockCommand
+                    {
+                        DoorConnectorIds = [door.Id],
+                        UnlocksAtPlaytime = null,
+                    },
+                    cancellationToken
+                );
+            }
+            else
             {
                 var validKeyItemIds = await getKeyItemIds.Handle(
                     new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
