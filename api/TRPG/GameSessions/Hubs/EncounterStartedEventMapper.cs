@@ -13,7 +13,7 @@ internal sealed class EncounterStartedEventMapper : GameClientEventMapper<Encoun
             new HostileEncounterState(
                 gameEvent.Encounter.Id,
                 gameEvent.Encounter.FactionName,
-                gameEvent.Encounter.LocationName,
+                gameEvent.Encounter.LocationName!,
                 gameEvent
                     .Encounter.Members.Select(member => new HostileEncounterMemberState(
                         member.Name,
