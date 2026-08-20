@@ -54,7 +54,11 @@ internal class SyncSceneCommandHandler(
             return;
         }
 
-        await AdvanceJobsTargetingLocation(command.LocationId, command.CurrentDate, cancellationToken);
+        await AdvanceJobsTargetingLocation(
+            command.LocationId,
+            command.CurrentDate,
+            cancellationToken
+        );
 
         if (location.RoomId != null)
         {
