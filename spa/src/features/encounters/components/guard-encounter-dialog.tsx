@@ -1,45 +1,53 @@
-import { Footprints, ShieldAlert, Swords } from 'lucide-react';
+import { Coins, Lock, Shield, Swords } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import type { EncounterActionName, HostileEncounterState } from '@/features/encounters/encounter';
-import { useHostileEncounterState } from '@/features/encounters/hooks/use-hostile-encounter-state';
+import type { GuardEncounterActionName } from '@/features/encounters/encounter';
+import { useGuardEncounterState } from '@/features/encounters/hooks/use-guard-encounter-state';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 
-const ACTION_NAMES: readonly EncounterActionName[] = ['Attack', 'Evade', 'Retreat'];
+const ACTION_NAMES: readonly GuardEncounterActionName[] = ['PayFine', 'GoToJail', 'ResistArrest'];
 
-function isEncounterActionName(name: string): name is EncounterActionName {
+function isGuardEncounterActionName(name: string): name is GuardEncounterActionName {
   return (ACTION_NAMES as readonly string[]).includes(name);
 }
 
-export function HostileEncounterDialog() {
-  const encounter = useHostileEncounterState();
+export function GuardEncounterDialog() {
+  const encounter = useGuardEncounterState();
   const { isStreaming, submitNarratedTurn } = useGameChat();
   const chatHub = useChatHub();
   const isRevealed = useDelayedReveal(!!encounter && !isStreaming);
 
   const actionDetails: Record<
-    EncounterActionName,
-    { description: string; icon: typeof Swords; submit: (displayText: string) => void }
+    GuardEncounterActionName,
+    {
+      label: string;
+      description: string;
+      icon: typeof Swords;
+      submit: (displayText: string) => void;
+    }
   > = {
-    Attack: {
-      description: 'Meet the threat head-on.',
+    PayFine: {
+      label: `Pay ${encounter?.fineAmount ?? 0} gold`,
+      description: 'Settle the matter and clear your name.',
+      icon: Coins,
+      submit: (displayText) =>
+        submitNarratedTurn(displayText, chatHub.resolvePayFineEncounterAction()),
+    },
+    GoToJail: {
+      label: `Serve ${encounter?.jailHours ?? 0} hours`,
+      description: 'Surrender and serve your sentence.',
+      icon: Lock,
+      submit: (displayText) =>
+        submitNarratedTurn(displayText, chatHub.resolveGoToJailEncounterAction()),
+    },
+    ResistArrest: {
+      label: 'Resist arrest',
+      description: 'Fight your way free.',
       icon: Swords,
       submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolveAttackEncounterAction()),
-    },
-    Evade: {
-      description: 'Try to slip past unnoticed.',
-      icon: Footprints,
-      submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolveEvadeEncounterAction()),
-    },
-    Retreat: {
-      description: 'Fall back the way you came.',
-      icon: ShieldAlert,
-      submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolveRetreatEncounterAction()),
+        submitNarratedTurn(displayText, chatHub.resolveResistArrestEncounterAction()),
     },
   };
 
@@ -55,19 +63,35 @@ export function HostileEncounterDialog() {
       >
         <header className="bg-card border-b px-5 py-4">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <ShieldAlert className="h-5 w-5 text-amber-500" />
-            Hostile encounter
+            <Shield className="h-5 w-5 text-amber-500" />
+            Guard encounter
           </DialogTitle>
           <DialogDescription className="mt-1.5">
-            {encounter.factionName} confront you at {encounter.locationName}.
+            {encounter.guardName} confronts you at {encounter.locationName}.
           </DialogDescription>
         </header>
 
         <div className="space-y-5 p-5">
-          <EncounterMembers encounter={encounter} />
+          {encounter.recentOffenses.length > 0 && (
+            <section aria-labelledby="guard-encounter-offenses">
+              <h2
+                id="guard-encounter-offenses"
+                className="text-muted-foreground text-xs font-semibold tracking-wide uppercase"
+              >
+                Recent offenses
+              </h2>
+              <ul className="mt-2 divide-y rounded-lg border">
+                {encounter.recentOffenses.map((offense, index) => (
+                  <li key={`${offense}-${index}`} className="px-3 py-2.5 text-sm">
+                    {offense}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <div className="grid gap-2 sm:grid-cols-3">
             {encounter.allowedActions.map((actionName) => {
-              if (!isEncounterActionName(actionName)) {
+              if (!isGuardEncounterActionName(actionName)) {
                 return null;
               }
               const details = actionDetails[actionName];
@@ -82,7 +106,7 @@ export function HostileEncounterDialog() {
                   className="border-border bg-card hover:bg-accent focus-visible:ring-ring flex min-h-24 flex-col items-start gap-2 rounded-lg border p-3 text-left shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Icon className="h-5 w-5 text-amber-500" />
-                  <span className="text-sm font-semibold">{actionName}</span>
+                  <span className="text-sm font-semibold">{details.label}</span>
                   <span className="text-muted-foreground text-xs">{details.description}</span>
                 </button>
               );
@@ -91,31 +115,5 @@ export function HostileEncounterDialog() {
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function EncounterMembers({ encounter }: { encounter: HostileEncounterState }) {
-  return (
-    <section aria-labelledby="encounter-members">
-      <h2
-        id="encounter-members"
-        className="text-muted-foreground text-xs font-semibold tracking-wide uppercase"
-      >
-        Threats
-      </h2>
-      <ul className="mt-2 divide-y rounded-lg border">
-        {encounter.members.map((member, index) => (
-          <li
-            key={`${member.name}-${index}`}
-            className="flex items-center justify-between px-3 py-2.5 text-sm"
-          >
-            <span className="font-medium">{member.name}</span>
-            <span className="text-muted-foreground">
-              {member.creatureType} · Lv {member.level}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }

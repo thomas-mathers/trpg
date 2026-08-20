@@ -3,7 +3,7 @@ import { configure, screen, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
-import type { HostileEncounterState } from '@/features/encounters/encounter';
+import type { GuardEncounterState } from '@/features/encounters/encounter';
 import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
@@ -12,17 +12,16 @@ import {
 import { gameEventBus } from '@/lib/game-event-bus';
 import { renderWithProviders } from '@/test/test-utils';
 
-import { HostileEncounterDialog } from './hostile-encounter-dialog';
+import { GuardEncounterDialog } from './guard-encounter-dialog';
 
-const encounter: HostileEncounterState = {
+const encounter: GuardEncounterState = {
   encounterId: 'encounter-id',
-  factionName: 'Goblin Raiders',
-  locationName: 'The Old Road',
-  members: [
-    { name: 'Snag', creatureType: 'Goblin', level: 2 },
-    { name: 'Rusk', creatureType: 'Goblin', level: 3 },
-  ],
-  allowedActions: ['Attack', 'Evade', 'Retreat'],
+  guardName: 'Officer Brann',
+  locationName: 'Market Square',
+  fineAmount: 120,
+  jailHours: 8,
+  recentOffenses: ['Killed a guard'],
+  allowedActions: ['PayFine', 'GoToJail', 'ResistArrest'],
 };
 
 function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
@@ -43,9 +42,9 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     sendFlee: vi.fn(),
     resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
-    resolveAttackEncounterAction: vi.fn(),
-    resolveEvadeEncounterAction: vi.fn(),
-    resolveRetreatEncounterAction: vi.fn(),
+    resolvePayFineEncounterAction: vi.fn(),
+    resolveGoToJailEncounterAction: vi.fn(),
+    resolveResistArrestEncounterAction: vi.fn(),
     ...overrides,
   } as IChatHub;
 }
@@ -65,7 +64,7 @@ function renderDialog(overrides: Partial<GameChat> = {}) {
   const result = renderWithProviders(
     <GameHubConnectionContext.Provider value={hubConnection}>
       <GameChatContext.Provider value={gameChat}>
-        <HostileEncounterDialog />
+        <GuardEncounterDialog />
       </GameChatContext.Provider>
     </GameHubConnectionContext.Provider>,
   );
@@ -77,24 +76,23 @@ function renderDialog(overrides: Partial<GameChat> = {}) {
 beforeAll(() => configure({ asyncUtilTimeout: 2000 }));
 afterAll(() => configure({ asyncUtilTimeout: 1000 }));
 
-afterEach(() => gameEventBus.emit('HostileEncounterResolved', {} as never));
+afterEach(() => gameEventBus.emit('GuardEncounterResolved', {} as never));
 
-describe('HostileEncounterDialog', () => {
-  it('shows a received hostile encounter', async () => {
+describe('GuardEncounterDialog', () => {
+  it('shows a received guard encounter', async () => {
     renderDialog();
 
-    gameEventBus.emit('HostileEncounterStarted', encounter);
+    gameEventBus.emit('GuardEncounterStarted', encounter);
 
-    expect(await screen.findByRole('dialog')).toHaveTextContent('Goblin Raiders');
-    expect(screen.getByRole('dialog')).toHaveTextContent('The Old Road');
-    expect(screen.getByText('Snag')).toBeInTheDocument();
-    expect(screen.getByText('Rusk')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Officer Brann');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Market Square');
+    expect(screen.getByText('Killed a guard')).toBeInTheDocument();
   });
 
   it('stays hidden while narration is still streaming', async () => {
     renderDialog({ isStreaming: true });
 
-    gameEventBus.emit('HostileEncounterStarted', encounter);
+    gameEventBus.emit('GuardEncounterStarted', encounter);
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
@@ -102,45 +100,45 @@ describe('HostileEncounterDialog', () => {
   it('appears once narration finishes streaming', async () => {
     const { rerender } = renderDialog({ isStreaming: true });
 
-    gameEventBus.emit('HostileEncounterStarted', encounter);
+    gameEventBus.emit('GuardEncounterStarted', encounter);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     rerender(
       <GameHubConnectionContext.Provider value={buildGameHubConnection()}>
         <GameChatContext.Provider value={buildGameChat({ isStreaming: false })}>
-          <HostileEncounterDialog />
+          <GuardEncounterDialog />
         </GameChatContext.Provider>
       </GameHubConnectionContext.Provider>,
     );
 
-    expect(await screen.findByRole('dialog')).toHaveTextContent('Goblin Raiders');
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Officer Brann');
   });
 
   it('sends the selected typed encounter action', async () => {
     const { user, gameChat, chatHub } = renderDialog();
 
-    gameEventBus.emit('HostileEncounterStarted', encounter);
-    await user.click(await screen.findByRole('button', { name: /evade/i }));
+    gameEventBus.emit('GuardEncounterStarted', encounter);
+    await user.click(await screen.findByRole('button', { name: /pay 120 gold/i }));
 
-    expect(chatHub.resolveEvadeEncounterAction).toHaveBeenCalledOnce();
+    expect(chatHub.resolvePayFineEncounterAction).toHaveBeenCalledOnce();
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Evade',
-      vi.mocked(chatHub.resolveEvadeEncounterAction).mock.results[0]?.value,
+      'PayFine',
+      vi.mocked(chatHub.resolvePayFineEncounterAction).mock.results[0]?.value,
     );
   });
 
   it('closes when the encounter resolves', async () => {
     renderDialog();
 
-    gameEventBus.emit('HostileEncounterStarted', encounter);
+    gameEventBus.emit('GuardEncounterStarted', encounter);
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    gameEventBus.emit('HostileEncounterResolved', {
+    gameEventBus.emit('GuardEncounterResolved', {
       encounterId: encounter.encounterId,
-      outcome: 'Evaded',
-      factionName: encounter.factionName,
+      outcome: 'PaidFine',
+      guardName: encounter.guardName,
       locationName: encounter.locationName,
-      memberNames: encounter.members.map((member) => member.name),
+      fineAmount: encounter.fineAmount,
     });
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());

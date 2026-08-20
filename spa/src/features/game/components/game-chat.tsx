@@ -2,8 +2,9 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { useState } from 'react';
 
 import { CombatDialog } from '@/features/combat/components/combat-dialog';
+import { GuardEncounterDialog } from '@/features/encounters/components/guard-encounter-dialog';
 import { HostileEncounterDialog } from '@/features/encounters/components/hostile-encounter-dialog';
-import { useHasActiveEncounter } from '@/features/encounters/hooks/use-encounter-state';
+import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub, useGameHubConnection } from '@/features/game/hooks/use-game-hub-connection';
 import { useIsInCombat } from '@/features/game/hooks/use-is-in-combat';
@@ -66,6 +67,7 @@ function GameChatControls({
     <div className="mx-auto w-full max-w-2xl p-4">
       <CombatDialog />
       <HostileEncounterDialog />
+      <GuardEncounterDialog />
       {!isInCombat && (
         <ChatInput
           value={input}

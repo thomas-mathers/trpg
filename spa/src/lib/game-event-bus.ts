@@ -4,7 +4,9 @@ import type {
 } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type { CharacterLevelUp, SkillLevelUp } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type {
-  EncounterResolutionFact,
+  GuardEncounterResolutionFact,
+  GuardEncounterState,
+  HostileEncounterResolutionFact,
   HostileEncounterState,
 } from '@/api/signalr-client/TRPG.Encounters.Responses';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
@@ -23,8 +25,10 @@ interface GameEventMap {
   CombatStarted: CombatantState[];
   CombatUpdated: CombatUpdatePayload;
   CombatResolved: TerminalCombatOutcome;
-  EncounterStarted: HostileEncounterState;
-  EncounterResolved: EncounterResolutionFact;
+  HostileEncounterStarted: HostileEncounterState;
+  HostileEncounterResolved: HostileEncounterResolutionFact;
+  GuardEncounterStarted: GuardEncounterState;
+  GuardEncounterResolved: GuardEncounterResolutionFact;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;
   QuestDialogRequested: QuestDialogRequested;
