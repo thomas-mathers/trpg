@@ -13,8 +13,8 @@ public interface IGameClient
     Task SceneSnapshot(SceneSnapshot snapshot);
     Task CombatStarted(IReadOnlyCollection<CombatantState> combatants);
     Task CombatUpdated(CombatUpdatePayload update);
-    Task EncounterStarted(HostileEncounterState encounter);
-    Task EncounterResolved(EncounterResolutionFact fact);
+    Task HostileEncounterStarted(HostileEncounterState encounter);
+    Task HostileEncounterResolved(HostileEncounterResolutionFact fact);
     Task GuardEncounterStarted(GuardEncounterState encounter);
     Task GuardEncounterResolved(GuardEncounterResolutionFact fact);
     Task SkillLevelUp(SkillLevelUp skillLevelUp);

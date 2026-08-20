@@ -69,7 +69,7 @@ internal class StreamHostileEncounterActionTurnHandler(
 
     private void EnqueueEncounterResolutionEvents(HostileEncounterActionResult resolution)
     {
-        gameEvents.Enqueue(new EncounterResolvedEvent(resolution.Fact));
+        gameEvents.Enqueue(new HostileEncounterResolvedEvent(resolution.Fact));
     }
 
     private static string DescribeAction(HostileEncounterActionKind actionKind) =>

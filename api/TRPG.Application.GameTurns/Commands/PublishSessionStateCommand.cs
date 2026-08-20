@@ -52,7 +52,7 @@ internal class PublishSessionStateCommandHandler(
         );
         if (encounter is HostileEncounter hostileEncounter)
         {
-            gameEvents.Enqueue(new EncounterStartedEvent(hostileEncounter));
+            gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
         }
         else if (encounter is GuardEncounter guardEncounter)
         {

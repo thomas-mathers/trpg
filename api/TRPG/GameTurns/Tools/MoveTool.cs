@@ -82,7 +82,7 @@ internal class MoveTool(
         MoveToolEncounter? encounterSummary = null;
         if (moveResult.Encounter is HostileEncounter hostileEncounter)
         {
-            gameEvents.Enqueue(new EncounterStartedEvent(hostileEncounter));
+            gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
             encounterSummary = new MoveToolEncounter(
                 hostileEncounter.FactionName,
                 hostileEncounter.LocationName!,
