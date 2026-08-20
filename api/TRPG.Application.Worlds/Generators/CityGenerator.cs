@@ -275,8 +275,8 @@ public class CityGenerator(
                 input.WorldId,
                 district.LocationId,
                 Count: 1,
-                MinLevel: 101,
-                MaxLevel: 120
+                MinLevel: 55,
+                MaxLevel: 60
             )
         );
         var owner = ownerCreatures[0].Creature;
@@ -292,8 +292,8 @@ public class CityGenerator(
                 input.WorldId,
                 district.LocationId,
                 numMembers - 1,
-                MinLevel: 5,
-                MaxLevel: 100
+                MinLevel: 25,
+                MaxLevel: 50
             )
         );
         var memberList = memberCreatures.Select(m => m.Creature).ToList();
@@ -370,17 +370,29 @@ public class CityGenerator(
     {
         var input = workspace.Input;
 
-        var guardCreatures = creatureGroupGenerator.Generate(
+        var officerCreatures = creatureGroupGenerator.Generate(
             new CreatureGroupGeneratorInput(
                 input.DominantRace,
                 Profession.Guard,
                 input.WorldId,
                 district.LocationId,
-                Count: TotalGuards,
-                MinLevel: 3,
-                MaxLevel: 30
+                Count: 1,
+                MinLevel: 55,
+                MaxLevel: 60
             )
         );
+        var rankAndFileCreatures = creatureGroupGenerator.Generate(
+            new CreatureGroupGeneratorInput(
+                input.DominantRace,
+                Profession.Guard,
+                input.WorldId,
+                district.LocationId,
+                Count: TotalGuards - 1,
+                MinLevel: 25,
+                MaxLevel: 50
+            )
+        );
+        var guardCreatures = officerCreatures.Concat(rankAndFileCreatures).ToList();
         var guards = guardCreatures.Select(g => g.Creature).ToList();
         var officer = guards[0];
         var memberIds = guards.Select(g => g.Id).ToList();
