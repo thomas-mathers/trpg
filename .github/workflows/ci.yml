@@ -31,10 +31,11 @@ jobs:
             
   api:
     needs: changes
-    
+
     if: needs.changes.outputs.api == 'true'
-    
+
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     defaults:
       run:
@@ -62,14 +63,16 @@ jobs:
         run: dotnet build TRPG.sln --no-restore
 
       - name: Test
+        timeout-minutes: 10
         run: dotnet test TRPG.sln --no-build
 
   spa:
     needs: changes
-    
+
     if: needs.changes.outputs.spa == 'true'
-    
+
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     defaults:
       run:

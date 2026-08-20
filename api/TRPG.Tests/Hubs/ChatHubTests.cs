@@ -6,8 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.GameSessions.Hubs;
 using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
+using TypedSignalR.Client;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
 using DataDistrictType = TRPG.Domain.Models.DistrictType;
 
@@ -16,6 +18,8 @@ namespace TRPG.Tests.Hubs;
 [Collection("Endpoints")]
 public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 {
+    private static readonly TimeSpan PushTimeout = TimeSpan.FromSeconds(10);
+
     private TestApiClient _client = null!;
     private Guid _worldId;
     private Guid _playerId;
@@ -193,18 +197,21 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Arrange
         var sessionId = await StartSession();
         await using var connection = fixture.CreateHubConnection(sessionId);
-        var snapshotReceived =
-            new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
-        connection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
-            "SceneSnapshot",
-            snapshot => snapshotReceived.TrySetResult(snapshot)
-        );
+        var snapshotReceived = new TaskCompletionSource<SceneSnapshot>();
+        var gameClient = new TestGameClient
+        {
+            OnSceneSnapshot = snapshot => snapshotReceived.TrySetResult(snapshot),
+        };
+        connection.Register<IGameClient>(gameClient);
 
         // Act
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        var snapshot = await snapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
+        var snapshot = await snapshotReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(_playerId, snapshot.PlayerStatus.Id);
     }
 
@@ -233,12 +240,14 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var firstConnection = fixture.CreateHubConnection(sessionId);
         var firstSnapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
-        firstConnection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
-            "SceneSnapshot",
-            snapshot => firstSnapshotReceived.TrySetResult(snapshot)
-        );
+        var firstGameClient = new TestGameClient
+        {
+            OnSceneSnapshot = snapshot => firstSnapshotReceived.TrySetResult(snapshot),
+        };
+        firstConnection.Register<IGameClient>(firstGameClient);
         await firstConnection.StartAsync(TestContext.Current.CancellationToken);
         var firstSnapshot = await firstSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
             TestContext.Current.CancellationToken
         );
         await firstConnection.DisposeAsync();
@@ -246,16 +255,18 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var secondConnection = fixture.CreateHubConnection(sessionId);
         var secondSnapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
-        secondConnection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
-            "SceneSnapshot",
-            snapshot => secondSnapshotReceived.TrySetResult(snapshot)
-        );
+        var secondGameClient = new TestGameClient
+        {
+            OnSceneSnapshot = snapshot => secondSnapshotReceived.TrySetResult(snapshot),
+        };
+        secondConnection.Register<IGameClient>(secondGameClient);
 
         // Act
         await secondConnection.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         var secondSnapshot = await secondSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_playerId, firstSnapshot.PlayerStatus.Id);
@@ -395,16 +406,20 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var snapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
         var initialSnapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
-        connection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
-            "SceneSnapshot",
-            snapshot =>
+        var gameClient = new TestGameClient
+        {
+            OnSceneSnapshot = snapshot =>
             {
                 snapshots.Add(snapshot);
                 initialSnapshotReceived.TrySetResult(snapshot);
-            }
-        );
+            },
+        };
+        connection.Register<IGameClient>(gameClient);
         await connection.StartAsync(TestContext.Current.CancellationToken);
-        await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
         snapshots.Clear();
         await using var gameHub = connection;
 
@@ -452,10 +467,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var connection = fixture.CreateHubConnection(sessionId);
         var combatUpdatedReceived =
             new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdatePayload>();
-        connection.On<TRPG.Combat.Responses.CombatUpdatePayload>(
-            "CombatUpdated",
-            payload => combatUpdatedReceived.TrySetResult(payload)
-        );
+        var gameClient = new TestGameClient
+        {
+            OnCombatUpdated = payload => combatUpdatedReceived.TrySetResult(payload),
+        };
+        connection.Register<IGameClient>(gameClient);
         await connection.StartAsync(TestContext.Current.CancellationToken);
         await using var gameHub = connection;
 
@@ -464,6 +480,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         var updated = await combatUpdatedReceived.Task.WaitAsync(
+            PushTimeout,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
@@ -483,20 +500,21 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var initialSnapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
-        connection.On<TRPG.Combat.Responses.CombatUpdatePayload>(
-            "CombatUpdated",
-            payload => combatUpdatedReceived.TrySetResult(payload)
-        );
-        connection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
-            "SceneSnapshot",
-            snapshot =>
+        var gameClient = new TestGameClient
+        {
+            OnCombatUpdated = payload => combatUpdatedReceived.TrySetResult(payload),
+            OnSceneSnapshot = snapshot =>
             {
                 sceneSnapshots.Add(snapshot);
                 initialSnapshotReceived.TrySetResult(snapshot);
-            }
-        );
+            },
+        };
+        connection.Register<IGameClient>(gameClient);
         await connection.StartAsync(TestContext.Current.CancellationToken);
-        await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
         sceneSnapshots.Clear();
         await using var gameHub = connection;
 
@@ -510,6 +528,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         var updated = await combatUpdatedReceived.Task.WaitAsync(
+            PushTimeout,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
@@ -562,16 +581,20 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
         var initialSnapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
-        connection.On<TRPG.GameSessions.Responses.SceneSnapshot>(
-            "SceneSnapshot",
-            snapshot =>
+        var gameClient = new TestGameClient
+        {
+            OnSceneSnapshot = snapshot =>
             {
                 sceneSnapshots.Add(snapshot);
                 initialSnapshotReceived.TrySetResult(snapshot);
-            }
-        );
+            },
+        };
+        connection.Register<IGameClient>(gameClient);
         await connection.StartAsync(TestContext.Current.CancellationToken);
-        await initialSnapshotReceived.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
         sceneSnapshots.Clear();
         await using var gameHub = connection;
 
@@ -733,16 +756,18 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var encounterStartedReceived =
             new TaskCompletionSource<TRPG.Encounters.Responses.HostileEncounterState>();
         await using var connection = fixture.CreateHubConnection(sessionId);
-        connection.On<TRPG.Encounters.Responses.HostileEncounterState>(
-            "EncounterStarted",
-            state => encounterStartedReceived.TrySetResult(state)
-        );
+        var gameClient = new TestGameClient
+        {
+            OnHostileEncounterStarted = state => encounterStartedReceived.TrySetResult(state),
+        };
+        connection.Register<IGameClient>(gameClient);
 
         // Act
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         var state = await encounterStartedReceived.Task.WaitAsync(
+            PushTimeout,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(faction.Name, state.FactionName);
