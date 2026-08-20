@@ -31,7 +31,7 @@ internal static class StaffingPolicy
             BuildingType.Bakery => Profession.Baker,
             BuildingType.Stable => Profession.StableMaster,
             BuildingType.ArcaneShop => Profession.Mage,
-            BuildingType.GuildHall => Profession.Politician,
+            BuildingType.GuildHall => Profession.Mercenary,
             BuildingType.Castle => Profession.Politician,
             BuildingType.Jail => Profession.Guard,
             BuildingType.Inn => Profession.Innkeeper,

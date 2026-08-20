@@ -40,6 +40,8 @@ public class CityGenerator(
     CreatureGroupGenerator creatureGroupGenerator
 )
 {
+    private const int TotalGuards = 7;
+
     private int _guildHallIndex;
 
     private sealed class CityWorkspace
@@ -111,30 +113,41 @@ public class CityGenerator(
                 .ToList(),
         };
 
-        foreach (var type in ShopBuildingTypes.All)
+        var standardTypes = ShopBuildingTypes.All.Where(type =>
+            type is not (BuildingType.GuildHall or BuildingType.Barracks)
+        );
+        foreach (var type in standardTypes)
         {
             if (
-                !districtsByType.TryGetValue(
+                districtsByType.TryGetValue(
                     DistrictGenerator.DistrictTypeByBuildingType[type],
                     out var district
                 )
             )
             {
-                continue;
+                GenerateStandardBuilding(workspace, type, district);
             }
+        }
 
-            if (type == BuildingType.GuildHall)
-            {
-                if (_guildHallIndex >= input.NamedFactions.Count)
-                {
-                    continue;
-                }
+        if (
+            districtsByType.TryGetValue(
+                DistrictGenerator.DistrictTypeByBuildingType[BuildingType.GuildHall],
+                out var guildHallDistrict
+            )
+            && _guildHallIndex < input.NamedFactions.Count
+        )
+        {
+            GenerateGuildHallBuilding(workspace, guildHallDistrict);
+        }
 
-                GenerateGuildHallBuilding(workspace, district);
-                continue;
-            }
-
-            GenerateStandardBuilding(workspace, type, district);
+        if (
+            districtsByType.TryGetValue(
+                DistrictGenerator.DistrictTypeByBuildingType[BuildingType.Barracks],
+                out var barracksDistrict
+            )
+        )
+        {
+            GenerateBarracksBuilding(workspace, barracksDistrict);
         }
 
         for (var h = 0; h < input.GeneratorInput.HousesPerCity; h++)
@@ -248,6 +261,7 @@ public class CityGenerator(
         workspace.Props.AddRange(buildingResult.Props);
         workspace.LocationConnectors.AddRange(buildingResult.LocationConnectors);
         workspace.DoorConnectors.Add(buildingResult.FrontDoor);
+        workspace.DoorConnectors.AddRange(buildingResult.InteriorDoors);
     }
 
     private void GenerateGuildHallBuilding(CityWorkspace workspace, District district)
@@ -261,8 +275,8 @@ public class CityGenerator(
                 input.WorldId,
                 district.LocationId,
                 Count: 1,
-                MinLevel: 1,
-                MaxLevel: 20
+                MinLevel: 55,
+                MaxLevel: 60
             )
         );
         var owner = ownerCreatures[0].Creature;
@@ -278,8 +292,8 @@ public class CityGenerator(
                 input.WorldId,
                 district.LocationId,
                 numMembers - 1,
-                MinLevel: 5,
-                MaxLevel: 100
+                MinLevel: 25,
+                MaxLevel: 50
             )
         );
         var memberList = memberCreatures.Select(m => m.Creature).ToList();
@@ -349,6 +363,119 @@ public class CityGenerator(
         workspace.Props.AddRange(buildingResult.Props);
         workspace.LocationConnectors.AddRange(buildingResult.LocationConnectors);
         workspace.DoorConnectors.Add(buildingResult.FrontDoor);
+        workspace.DoorConnectors.AddRange(buildingResult.InteriorDoors);
+    }
+
+    private void GenerateBarracksBuilding(CityWorkspace workspace, District district)
+    {
+        var input = workspace.Input;
+
+        var officerCreatures = creatureGroupGenerator.Generate(
+            new CreatureGroupGeneratorInput(
+                input.DominantRace,
+                Profession.Guard,
+                input.WorldId,
+                district.LocationId,
+                Count: 1,
+                MinLevel: 55,
+                MaxLevel: 60
+            )
+        );
+        var rankAndFileCreatures = creatureGroupGenerator.Generate(
+            new CreatureGroupGeneratorInput(
+                input.DominantRace,
+                Profession.Guard,
+                input.WorldId,
+                district.LocationId,
+                Count: TotalGuards - 1,
+                MinLevel: 25,
+                MaxLevel: 50
+            )
+        );
+        var guardCreatures = officerCreatures.Concat(rankAndFileCreatures).ToList();
+        var guards = guardCreatures.Select(g => g.Creature).ToList();
+        var officer = guards[0];
+        var memberIds = guards.Select(g => g.Id).ToList();
+
+        var buildingName = SettlementNameGenerator.GenerateBuildingName(
+            input.DominantRace,
+            BuildingType.Barracks,
+            workspace.HouseholdInput.UsedBuildingNames
+        );
+
+        var spec = BuildingSpecCatalog.GetSpecs(
+            BuildingType.Barracks,
+            officer.Id,
+            memberIds,
+            bedroomGroups: null
+        );
+
+        var buildingResult = buildingGenerator.Generate(
+            new BuildingGeneratorInput(input.LocationsById[district.LocationId], spec)
+            {
+                Name = buildingName,
+                MemberIds = memberIds,
+            }
+        );
+
+        workspace.Items.AddRange(buildingResult.KeyItems);
+        workspace.DoorConnectorKeys.AddRange(buildingResult.DoorConnectorKeys);
+
+        var groundFloorRoom = buildingResult.Rooms.First(r => r.FloorNumber == 0);
+        var gateLocationId = workspace.DistrictsByType.TryGetValue(
+            DistrictType.CityEntrance,
+            out var gateDistrict
+        )
+            ? gateDistrict.LocationId
+            : groundFloorRoom.LocationId;
+        var patrolWaypoints = ResolvePatrolWaypoints(input, groundFloorRoom.LocationId);
+
+        var registration = BarracksGuardDutyAssigner.Generate(
+            new BarracksGuardDutyAssignerInput(
+                input.WorldId,
+                workspace.CityFaction.Id,
+                groundFloorRoom.LocationId,
+                gateLocationId,
+                patrolWaypoints,
+                buildingResult.Props.OfType<Bed>().ToList(),
+                guards
+            )
+        );
+
+        workspace.FactionMembers.AddRange(registration.FactionMembers);
+        workspace.Jobs.AddRange(registration.Jobs);
+        workspace.Creatures.AddRange(guards);
+        workspace.Items.AddRange(guardCreatures.SelectMany(g => g.Items));
+        workspace.Skills.AddRange(guardCreatures.SelectMany(g => g.Skills));
+
+        workspace.Buildings.Add(buildingResult.Building);
+        workspace.BuildingOwners.Add(
+            new BuildingOwner
+            {
+                BuildingId = buildingResult.Building.Id,
+                OwnerId = officer.Id,
+                WorldId = input.WorldId,
+            }
+        );
+        workspace.Rooms.AddRange(buildingResult.Rooms);
+        workspace.Locations.AddRange(buildingResult.Locations);
+        workspace.Props.AddRange(buildingResult.Props);
+        workspace.LocationConnectors.AddRange(buildingResult.LocationConnectors);
+        workspace.DoorConnectors.Add(buildingResult.FrontDoor);
+        workspace.DoorConnectors.AddRange(buildingResult.InteriorDoors);
+    }
+
+    private static IReadOnlyList<Guid> ResolvePatrolWaypoints(
+        CityGeneratorInput input,
+        Guid fallbackLocationId
+    )
+    {
+        var waypoints = input
+            .Districts.Where(d => d.DistrictType != DistrictType.CityEntrance)
+            .Select(d => d.LocationId)
+            .ToArray();
+
+        return waypoints.Length > 0 ? waypoints : [fallbackLocationId];
     }
 
     private static void RegisterShopStaffing(
@@ -474,5 +601,6 @@ public class CityGenerator(
         workspace.Props.AddRange(household.House.Props);
         workspace.LocationConnectors.AddRange(household.House.LocationConnectors);
         workspace.DoorConnectors.Add(household.House.FrontDoor);
+        workspace.DoorConnectors.AddRange(household.House.InteriorDoors);
     }
 }
