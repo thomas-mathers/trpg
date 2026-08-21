@@ -265,31 +265,47 @@ internal class AttemptTheftCommandHandler(
         return new TheftAttemptResult(TheftAttemptOutcome.Completed);
     }
 
-    private async Task<TheftSource?> GetTheftSource(
+    private Task<TheftSource?> GetTheftSource(
+        AttemptTheftCommand command,
+        CancellationToken cancellationToken
+    ) =>
+        command.From.Type switch
+        {
+            OwnerType.Creature => GetCreatureTheftSource(command, cancellationToken),
+            OwnerType.Container => GetContainerTheftSource(command, cancellationToken),
+            OwnerType.Workstation => GetWorkstationTheftSource(command, cancellationToken),
+            _ => throw new InvalidOperationException(
+                $"Owner type {command.From.Type} is not valid for theft."
+            ),
+        };
+
+    private async Task<TheftSource?> GetCreatureTheftSource(
         AttemptTheftCommand command,
         CancellationToken cancellationToken
     )
     {
-        if (command.From.Type == OwnerType.Creature)
-        {
-            var owner =
-                await context.Creatures.FirstOrDefaultAsync(
-                    creature =>
-                        creature.Id == command.From.Id && creature.WorldId == command.WorldId,
-                    cancellationToken
-                ) ?? throw new EntityNotFoundException(nameof(Creature), command.From.Id);
+        var owner =
+            await context.Creatures.FirstOrDefaultAsync(
+                creature => creature.Id == command.From.Id && creature.WorldId == command.WorldId,
+                cancellationToken
+            ) ?? throw new EntityNotFoundException(nameof(Creature), command.From.Id);
 
-            return owner.State == CreatureState.Dead
-                ? null
-                : new TheftSource(
-                    Owner: owner,
-                    LocationId: owner.LocationId,
-                    Skill: Skill.Pickpocketing,
-                    IsPickpocketing: true,
-                    WorkstationOccupantId: null
-                );
-        }
+        return owner.State == CreatureState.Dead
+            ? null
+            : new TheftSource(
+                Owner: owner,
+                LocationId: owner.LocationId,
+                Skill: Skill.Pickpocketing,
+                IsPickpocketing: true,
+                WorkstationOccupantId: null
+            );
+    }
 
+    private async Task<TheftSource?> GetContainerTheftSource(
+        AttemptTheftCommand command,
+        CancellationToken cancellationToken
+    )
+    {
         var prop =
             await context.Props.FirstOrDefaultAsync(
                 candidate =>
@@ -297,15 +313,55 @@ internal class AttemptTheftCommandHandler(
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Prop), command.From.Id);
 
-        var workstationOccupantId = (command.From.Type, prop) switch
+        if (prop is not Container container)
         {
-            (OwnerType.Container, Container _) => null,
-            (OwnerType.Workstation, Workstation workstation) => workstation.OccupantId,
-            _ => throw new InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Owner type {command.From.Type} does not match prop type {prop.GetType().Name}."
-            ),
-        };
+            );
+        }
 
+        return await GetOwnedPropTheftSource(
+            command,
+            container,
+            workstationOccupantId: null,
+            cancellationToken
+        );
+    }
+
+    private async Task<TheftSource?> GetWorkstationTheftSource(
+        AttemptTheftCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var prop =
+            await context.Props.FirstOrDefaultAsync(
+                candidate =>
+                    candidate.Id == command.From.Id && candidate.WorldId == command.WorldId,
+                cancellationToken
+            ) ?? throw new EntityNotFoundException(nameof(Prop), command.From.Id);
+
+        if (prop is not Workstation workstation)
+        {
+            throw new InvalidOperationException(
+                $"Owner type {command.From.Type} does not match prop type {prop.GetType().Name}."
+            );
+        }
+
+        return await GetOwnedPropTheftSource(
+            command,
+            workstation,
+            workstation.OccupantId,
+            cancellationToken
+        );
+    }
+
+    private async Task<TheftSource?> GetOwnedPropTheftSource(
+        AttemptTheftCommand command,
+        Prop prop,
+        Guid? workstationOccupantId,
+        CancellationToken cancellationToken
+    )
+    {
         if (prop.OwnerCreatureId is not { } ownerId)
         {
             return null;
