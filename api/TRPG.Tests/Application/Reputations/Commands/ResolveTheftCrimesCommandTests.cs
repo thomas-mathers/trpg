@@ -180,6 +180,10 @@ public sealed class ResolveTheftCrimesCommandTests(DatabaseFixture db) : IAsyncL
         Assert.Equal(ConfiguredReputationOptions.TheftReputationPenalty, log.DeltaScore);
         Assert.Equal(CrimeWitnessResolution.Reported, witnesses[movedWitness.Id]);
         Assert.Equal(CrimeWitnessResolution.Dead, witnesses[deadWitness.Id]);
+        Assert.DoesNotContain(
+            _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
+            gameEvent => gameEvent is CrimeWitnessesRemovedEvent
+        );
     }
 
     [Fact]

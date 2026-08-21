@@ -99,14 +99,13 @@ internal class ResolveKillCrimesCommandHandler(
 
         await context.SaveChangesAsync(cancellationToken);
 
-        if (
-            crimes.Any(crime =>
-                crime.Resolution == CrimeResolution.Unreported
-                && witnesses.Any(witness =>
-                    witness.CrimeId == crime.Id && witness.Resolution == CrimeWitnessResolution.Dead
-                )
-            )
-        )
+        var hasCrimeWithNoLivingWitnesses = crimes.Any(crime =>
+        {
+            var crimeWitnesses = witnesses.Where(witness => witness.CrimeId == crime.Id);
+            return crimeWitnesses.Any()
+                && crimeWitnesses.All(witness => witness.Resolution == CrimeWitnessResolution.Dead);
+        });
+        if (hasCrimeWithNoLivingWitnesses)
         {
             gameEvents.Enqueue(new CrimeWitnessesRemovedEvent(CrimeKind.Killing));
         }
