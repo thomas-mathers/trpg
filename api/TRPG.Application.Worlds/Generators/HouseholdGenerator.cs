@@ -97,6 +97,7 @@ public class HouseholdGenerator(
             {
                 Name = houseName,
                 MemberIds = memberIds,
+                OwnerCreatureId = houseOwner.Creature.Id,
             }
         );
 

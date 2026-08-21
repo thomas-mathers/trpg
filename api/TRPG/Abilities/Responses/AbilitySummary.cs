@@ -6,6 +6,7 @@ public enum Skill
     Melee,
     Unarmed,
     Sneak,
+    Pickpocketing,
     Destruction,
     Illusion,
     Archery,

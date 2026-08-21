@@ -77,6 +77,42 @@ describe('NearbyPanel', () => {
     expect(screen.queryByRole('button', { name: 'Trade' })).not.toBeInTheDocument();
   });
 
+  it('allows transferring items from a nearby living creature', async () => {
+    server.use(
+      handleGetCreatureInventory(async ({ params }) =>
+        HttpResponse.json({
+          gold: 0,
+          items:
+            params.creatureId === 'merchant-id'
+              ? [
+                  {
+                    $type: 'Gold',
+                    itemId: 'coins-id',
+                    name: 'Silver coins',
+                    description: '',
+                    weight: 0,
+                    quantity: 10,
+                    equippedSlot: null,
+                    type: 'Gold',
+                    rarity: null,
+                    goldValue: 1,
+                    modifiers: [],
+                    isStackable: true,
+                  },
+                ]
+              : [],
+        }),
+      ),
+    );
+    const { user } = renderWithProviders(
+      <NearbyPanel scene={scene(undefined)} onOpenQuestJournal={() => {}} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Tessa' }));
+
+    expect(await screen.findByRole('checkbox', { name: 'Select Silver coins' })).toBeEnabled();
+  });
+
   it('opens a nearby container inventory when clicked', async () => {
     server.use(
       handleGetCreatureInventory({ body: { gold: 0, items: [] } }),

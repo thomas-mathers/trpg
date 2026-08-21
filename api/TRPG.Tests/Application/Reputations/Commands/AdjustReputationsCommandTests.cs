@@ -7,18 +7,18 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Reputations.Commands;
 
 [Collection("Database")]
-public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
     private Guid _creatureId;
     private GetAllReputationsByCreatureIdQueryHandler _getAllByCreatureId = null!;
-    private AdjustReputationCommandHandler _handler = null!;
+    private AdjustReputationsCommandHandler _handler = null!;
     private readonly Faction _faction = Builders.MakeFaction();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new AdjustReputationCommandHandler(_context);
+        _handler = new AdjustReputationsCommandHandler(_context);
         _getAllByCreatureId = new GetAllReputationsByCreatureIdQueryHandler(_context);
 
         _context.Factions.Add(_faction);
@@ -44,12 +44,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
     {
         // Act
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, 10)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 10,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -65,7 +64,7 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
     }
 
     [Fact]
-    public async Task Handle_AdjustsEveryTarget_InOneBatchedCall()
+    public async Task Handle_AppliesEachAdjustment_InOneBatchedCall()
     {
         // Arrange
         var existingTargetFaction = Builders.MakeFaction();
@@ -73,12 +72,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         _context.Factions.AddRange(existingTargetFaction, newTargetFaction);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
-                TargetIds = [existingTargetFaction.Id],
+                Adjustments = [new ReputationAdjustment(existingTargetFaction.Id, 5)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 5,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -86,12 +84,15 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
 
         // Act
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
-                TargetIds = [existingTargetFaction.Id, newTargetFaction.Id],
+                Adjustments =
+                [
+                    new ReputationAdjustment(existingTargetFaction.Id, 10),
+                    new ReputationAdjustment(newTargetFaction.Id, 12),
+                ],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 10,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -103,12 +104,47 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
             TestContext.Current.CancellationToken
         );
         Assert.Equal(15, reputations.Single(r => r.TargetId == existingTargetFaction.Id).Score);
-        Assert.Equal(10, reputations.Single(r => r.TargetId == newTargetFaction.Id).Score);
+        Assert.Equal(12, reputations.Single(r => r.TargetId == newTargetFaction.Id).Score);
 
-        var logEntries = _context.ReputationLogEntries.Where(e =>
-            e.CreatureId == _creatureId && e.DeltaScore == 10
+        Assert.Contains(
+            _context.ReputationLogEntries,
+            entry => entry.TargetId == existingTargetFaction.Id && entry.DeltaScore == 10
         );
-        Assert.Equal(2, logEntries.Count());
+        Assert.Contains(
+            _context.ReputationLogEntries,
+            entry => entry.TargetId == newTargetFaction.Id && entry.DeltaScore == 12
+        );
+    }
+
+    [Fact]
+    public async Task Handle_AggregatesDuplicateTargetAdjustments()
+    {
+        // Act
+        await _handler.Handle(
+            new AdjustReputationsCommand
+            {
+                CreatureId = _creatureId,
+                Adjustments =
+                [
+                    new ReputationAdjustment(_faction.Id, 7),
+                    new ReputationAdjustment(_faction.Id, 5),
+                ],
+                TargetType = ReputationTargetType.Faction,
+                Reason = ReputationReason.QuestCompleted,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var reputation = Assert.Single(
+            _context.Reputations.Where(item => item.TargetId == _faction.Id)
+        );
+        var log = Assert.Single(
+            _context.ReputationLogEntries.Where(item => item.TargetId == _faction.Id)
+        );
+
+        Assert.Equal(12, reputation.Score);
+        Assert.Equal(12, log.DeltaScore);
     }
 
     [Fact]
@@ -117,12 +153,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         // Arrange
         var creatureId = await SeedCreatureId();
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, 10)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 10,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -130,12 +165,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
 
         // Act
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, 5)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 5,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -156,12 +190,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         // Arrange
         var creatureId = await SeedCreatureId();
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, 20)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 20,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -169,12 +202,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
 
         // Act
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, -8)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = -8,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -194,12 +226,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         // Arrange
         var creatureId = await SeedCreatureId();
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, 90)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 90,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -207,12 +238,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
 
         // Act
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, 90)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 90,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -232,12 +262,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         // Arrange
         var creatureId = await SeedCreatureId();
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, -90)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = -90,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -245,12 +274,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
 
         // Act
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, -90)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = -90,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
@@ -269,12 +297,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
     {
         // Act
         await _handler.Handle(
-            new AdjustReputationCommand
+            new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, -30)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = -30,
                 Reason = ReputationReason.KilledFactionMember,
                 Detail = "Killed a guard",
             },
@@ -298,12 +325,11 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _handler.Handle(
-                new AdjustReputationCommand
+                new AdjustReputationsCommand
                 {
                     CreatureId = _creatureId,
-                    TargetIds = [Guid.NewGuid()],
+                    Adjustments = [new ReputationAdjustment(Guid.NewGuid(), 10)],
                     TargetType = ReputationTargetType.Faction,
-                    DeltaScore = 10,
                     Reason = ReputationReason.QuestCompleted,
                 },
                 TestContext.Current.CancellationToken
@@ -317,16 +343,53 @@ public sealed class AdjustReputationCommandTests(DatabaseFixture db) : IAsyncLif
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _handler.Handle(
-                new AdjustReputationCommand
+                new AdjustReputationsCommand
                 {
                     CreatureId = _creatureId,
-                    TargetIds = [Guid.NewGuid()],
+                    Adjustments = [new ReputationAdjustment(Guid.NewGuid(), 10)],
                     TargetType = ReputationTargetType.Creature,
-                    DeltaScore = 10,
                     Reason = ReputationReason.QuestCompleted,
                 },
                 TestContext.Current.CancellationToken
             )
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ListsEveryMissingTargetId_WhenMultipleTargetsDoNotExist()
+    {
+        // Arrange
+        var firstMissingTargetId = Guid.NewGuid();
+        var secondMissingTargetId = Guid.NewGuid();
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                new AdjustReputationsCommand
+                {
+                    CreatureId = _creatureId,
+                    Adjustments =
+                    [
+                        new ReputationAdjustment(firstMissingTargetId, 10),
+                        new ReputationAdjustment(secondMissingTargetId, 20),
+                    ],
+                    TargetType = ReputationTargetType.Faction,
+                    Reason = ReputationReason.QuestCompleted,
+                },
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Contains(
+            firstMissingTargetId.ToString(),
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            secondMissingTargetId.ToString(),
+            exception.Message,
+            StringComparison.Ordinal
         );
     }
 }

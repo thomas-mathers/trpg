@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
@@ -29,7 +31,9 @@ internal static class InventoryEndpoints
     {
         app.MapPost("/players/{playerId:guid}/inventory-transfers", InventoryTransfer)
             .WithName("TransferInventory")
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .Produces<InventoryTransferResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict);
         app.MapGet("/players/{playerId:guid}/trades/{workstationId:guid}", GetTrade)
             .WithName("GetTrade");
         app.MapPost("/players/{playerId:guid}/trades/{workstationId:guid}/proposal", ProposeTrade)
@@ -59,17 +63,34 @@ internal static class InventoryEndpoints
         return TypedResults.Ok(snapshot.ToSummary([]));
     }
 
-    private static async Task<Results<NotFound, ProblemHttpResult, NoContent>> InventoryTransfer(
+    private static async Task<
+        Results<NotFound, ProblemHttpResult, Ok<InventoryTransferResponse>>
+    > InventoryTransfer(
         Guid playerId,
         InventoryTransferRequest request,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         [FromServices] IQueryHandler<GetPropByIdQuery, Prop?> getPropById,
+        [FromServices] IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
         [FromServices] ICommandHandler<ReceivePlayerInventoryCommand> receiveInventory,
+        [FromServices] ICommandHandler<AttemptTheftCommand, TheftAttemptResult> attemptTheft,
         [FromServices] ICommandHandler<TransferPlayerInventoryCommand> transferInventory,
         GameClientEventDispatcher eventDispatcher,
         CancellationToken cancellationToken
     )
     {
+        var activeEncounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = playerId },
+            cancellationToken
+        );
+        if (activeEncounter != null)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Encounter active",
+                detail: "Resolve the active encounter before transferring inventory."
+            );
+        }
+
         var from = await ResolveOwnerLocation(
             request.From,
             getCreatureById,
@@ -109,6 +130,7 @@ internal static class InventoryEndpoints
             );
         }
 
+        var response = new InventoryTransferResponse(null);
         if (request.From.Id == playerId && request.From.Type == OwnerType.Creature)
         {
             await transferInventory.Handle(
@@ -123,8 +145,8 @@ internal static class InventoryEndpoints
         }
         else if (request.To.Id == playerId && request.To.Type == OwnerType.Creature)
         {
-            await receiveInventory.Handle(
-                new ReceivePlayerInventoryCommand
+            var theftAttempt = await attemptTheft.Handle(
+                new AttemptTheftCommand
                 {
                     From = new ItemOwnerReference(request.From.Id, request.From.Type),
                     Items = request.Items,
@@ -133,6 +155,20 @@ internal static class InventoryEndpoints
                 },
                 cancellationToken
             );
+            if (theftAttempt.Outcome == TheftAttemptOutcome.NotTheft)
+            {
+                await receiveInventory.Handle(
+                    new ReceivePlayerInventoryCommand
+                    {
+                        From = new ItemOwnerReference(request.From.Id, request.From.Type),
+                        Items = request.Items,
+                        PlayerId = playerId,
+                        WorldId = from.Value.WorldId,
+                    },
+                    cancellationToken
+                );
+            }
+            response = new InventoryTransferResponse(theftAttempt.EncounterId);
         }
         else
         {
@@ -144,7 +180,7 @@ internal static class InventoryEndpoints
 
         await eventDispatcher.FlushAsync(from.Value.WorldId, cancellationToken);
 
-        return TypedResults.NoContent();
+        return TypedResults.Ok(response);
     }
 
     private static async Task<(Guid LocationId, Guid WorldId)?> ResolveOwnerLocation(

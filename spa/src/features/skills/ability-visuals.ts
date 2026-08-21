@@ -156,6 +156,7 @@ export const SKILL_FALLBACK_ICON: Record<Skill, LucideIcon> = {
   Melee: Sword,
   Unarmed: Hand,
   Sneak: Footprints,
+  Pickpocketing: Hand,
   Destruction: Flame,
   Illusion: Ghost,
   Archery: BowArrow,

@@ -122,7 +122,10 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 c.PlayerId,
                 c.LocationId,
             });
-            entity.HasDiscriminator<string>("crime_type").HasValue<KillCrime>("Kill");
+            entity
+                .HasDiscriminator<string>("crime_type")
+                .HasValue<KillCrime>("Kill")
+                .HasValue<TheftCrime>("Theft");
         });
 
         modelBuilder.Entity<CrimeWitness>(entity =>
@@ -130,6 +133,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(w => w.WorldId);
             entity.HasIndex(w => new { w.CrimeId, w.CreatureId }).IsUnique();
             entity.HasIndex(w => new { w.WorldId, w.CreatureId });
+        });
+
+        modelBuilder.Entity<TheftCrime>(entity =>
+        {
+            entity.Property(crime => crime.Items).HasJsonConversion(() => []);
         });
 
         modelBuilder.Entity<Creature>(entity =>
@@ -152,7 +160,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
                 .HasDiscriminator<string>("encounter_type")
                 .HasValue<HostileEncounter>("Hostile")
                 .HasValue<FightEncounter>("Fight")
-                .HasValue<GuardEncounter>("Guard");
+                .HasValue<GuardEncounter>("Guard")
+                .HasValue<TheftEncounter>("Theft");
         });
 
         modelBuilder.Entity<HostileEncounter>(entity =>
@@ -168,6 +177,14 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         modelBuilder.Entity<GuardEncounter>(entity =>
         {
             entity.Property(e => e.RecentOffenses).HasColumnType("text[]");
+        });
+
+        modelBuilder.Entity<TheftEncounter>(entity =>
+        {
+            entity.Property(e => e.ItemIds).HasColumnType("uuid[]");
+            entity.Property(e => e.ItemNames).HasColumnType("text[]");
+            entity.Property(e => e.ItemSelections).HasJsonConversion(() => []);
+            entity.Property(e => e.WitnessCreatureIds).HasColumnType("uuid[]");
         });
 
         modelBuilder.Entity<EncounterGroup>(entity =>

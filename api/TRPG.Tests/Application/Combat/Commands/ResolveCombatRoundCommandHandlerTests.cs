@@ -13,35 +13,28 @@ namespace TRPG.Tests.Application.Combat.Commands;
 [Collection("Database")]
 public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private static readonly Guid WorldId = Guid.NewGuid();
+    private readonly Guid _worldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private ResolveCombatRoundCommandHandler _handler = null!;
     private Guid _sessionId;
-    private readonly Creature _player = Builders.MakeCreature(
-        WorldId,
-        currentHp: 50,
-        currentAp: 10,
-        currentMp: 5
-    );
-    private readonly Creature _enemy = Builders.MakeCreature(
-        WorldId,
-        currentHp: 30,
-        currentAp: 8,
-        currentMp: 4
-    );
+    private Creature _player = null!;
+    private Creature _enemy = null!;
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
+
+        _player = Builders.MakeCreature(_worldId, currentHp: 50, currentAp: 10, currentMp: 5);
+        _enemy = Builders.MakeCreature(_worldId, currentHp: 30, currentAp: 8, currentMp: 4);
 
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ResolveCombatRoundCommandHandler>();
 
-        var session = Builders.MakeGameSession(WorldId, _player.Id, TimeSpan.FromHours(1));
+        var session = Builders.MakeGameSession(_worldId, _player.Id, TimeSpan.FromHours(1));
         _context.Creatures.AddRange(_player, _enemy);
         _context.GameSessions.Add(session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -56,7 +49,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
 
     private async Task<FightEncounter> SeedFight()
     {
-        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
+        var fight = Builders.MakeFight(_worldId, _player.Id, [_player.Id, _enemy.Id]);
         _context.Encounters.Add(fight);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return fight;
@@ -103,7 +96,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             new ResolveCombatRoundCommand
             {
                 SessionId = _sessionId,
-                WorldId = WorldId,
+                WorldId = _worldId,
                 PlayerId = _player.Id,
                 Combatants = [playerCombatant, MakeEnemyCombatant(currentHp: 12)],
                 State = state,
@@ -139,7 +132,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             new ResolveCombatRoundCommand
             {
                 SessionId = _sessionId,
-                WorldId = WorldId,
+                WorldId = _worldId,
                 PlayerId = _player.Id,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant()],
                 State = state,
@@ -151,7 +144,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
         await using var verifyContext = db.CreateContext();
         var proficiency = await verifyContext.CreatureWeaponProficiencies.SingleOrDefaultAsync(
             p =>
-                p.WorldId == WorldId
+                p.WorldId == _worldId
                 && p.CreatureId == _player.Id
                 && p.WeaponType == WeaponType.Sword,
             TestContext.Current.CancellationToken
@@ -179,7 +172,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             new ResolveCombatRoundCommand
             {
                 SessionId = _sessionId,
-                WorldId = WorldId,
+                WorldId = _worldId,
                 PlayerId = _player.Id,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant()],
                 State = state,
@@ -214,7 +207,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             new ResolveCombatRoundCommand
             {
                 SessionId = _sessionId,
-                WorldId = WorldId,
+                WorldId = _worldId,
                 PlayerId = _player.Id,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant()],
                 State = state,
@@ -246,7 +239,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             new ResolveCombatRoundCommand
             {
                 SessionId = _sessionId,
-                WorldId = WorldId,
+                WorldId = _worldId,
                 PlayerId = _player.Id,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant(currentHp: 12)],
                 State = state,
@@ -281,7 +274,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             new ResolveCombatRoundCommand
             {
                 SessionId = _sessionId,
-                WorldId = WorldId,
+                WorldId = _worldId,
                 PlayerId = _player.Id,
                 Combatants =
                 [
@@ -316,7 +309,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             new ResolveCombatRoundCommand
             {
                 SessionId = _sessionId,
-                WorldId = WorldId,
+                WorldId = _worldId,
                 PlayerId = _player.Id,
                 Combatants =
                 [
@@ -368,7 +361,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             new ResolveCombatRoundCommand
             {
                 SessionId = _sessionId,
-                WorldId = WorldId,
+                WorldId = _worldId,
                 PlayerId = _player.Id,
                 Combatants =
                 [
@@ -395,7 +388,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
     {
         // Arrange
         await SeedFight();
-        var potion = Builders.MakeConsumable(WorldId);
+        var potion = Builders.MakeConsumable(_worldId);
         potion.Quantity = 2;
         potion.Ownership.OwnerId = _player.Id;
         potion.Ownership.OwnerType = OwnerType.Creature;
@@ -420,7 +413,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : 
             new ResolveCombatRoundCommand
             {
                 SessionId = _sessionId,
-                WorldId = WorldId,
+                WorldId = _worldId,
                 PlayerId = _player.Id,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant(currentHp: 12)],
                 State = state,

@@ -20,7 +20,7 @@ public class CompleteQuestCommand
 internal class CompleteQuestCommandHandler(
     TrpgDbContext context,
     ICommandHandler<AddGoldCommand> addGold,
-    ICommandHandler<AdjustReputationCommand> adjustReputation
+    ICommandHandler<AdjustReputationsCommand> adjustReputations
 ) : ICommandHandler<CompleteQuestCommand>
 {
     public async Task Handle(
@@ -67,18 +67,19 @@ internal class CompleteQuestCommandHandler(
         );
 
         var rewardGroups = creatureQuest.Quest.ReputationRewards.GroupBy(reward =>
-            (reward.TargetType, reward.Score)
+            reward.TargetType
         );
 
         foreach (var group in rewardGroups)
         {
-            await adjustReputation.Handle(
-                new AdjustReputationCommand
+            await adjustReputations.Handle(
+                new AdjustReputationsCommand
                 {
                     CreatureId = command.PlayerId,
-                    TargetIds = group.Select(reward => reward.TargetId).ToArray(),
-                    TargetType = group.Key.TargetType,
-                    DeltaScore = group.Key.Score,
+                    Adjustments = group
+                        .Select(reward => new ReputationAdjustment(reward.TargetId, reward.Score))
+                        .ToArray(),
+                    TargetType = group.Key,
                     Reason = ReputationReason.QuestCompleted,
                     Detail = $"Completed quest: {creatureQuest.Quest.Name}",
                 },

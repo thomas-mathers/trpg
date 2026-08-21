@@ -34,6 +34,7 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
         await DeleteRelationships(ids, cancellationToken);
         await DeleteKnowledge(ids, cancellationToken);
         await ClearOccupancy(ids, cancellationToken);
+        await ClearPropOwnership(ids, cancellationToken);
         await context
             .Creatures.Where(c => ids.Contains(c.Id))
             .ExecuteDeleteAsync(cancellationToken);
@@ -182,6 +183,22 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
             .Where(seat => seat.OccupantId != null && ids.Contains(seat.OccupantId.Value))
             .ExecuteUpdateAsync(
                 s => s.SetProperty(seat => seat.OccupantId, (Guid?)null),
+                cancellationToken
+            );
+    }
+
+    private async Task ClearPropOwnership(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken
+    )
+    {
+        await context
+            .Props.Where(prop =>
+                prop.OwnerCreatureId != null
+                && ids.AsEnumerable().Contains(prop.OwnerCreatureId.Value)
+            )
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(prop => prop.OwnerCreatureId, (Guid?)null),
                 cancellationToken
             );
     }

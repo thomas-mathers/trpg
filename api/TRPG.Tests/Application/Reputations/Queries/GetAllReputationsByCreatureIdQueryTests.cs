@@ -9,7 +9,7 @@ namespace TRPG.Tests.Application.Reputations.Queries;
 [Collection("Database")]
 public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private AdjustReputationCommandHandler _adjustReputation = null!;
+    private AdjustReputationsCommandHandler _adjustReputations = null!;
     private TrpgDbContext _context = null!;
     private GetAllReputationsByCreatureIdQueryHandler _handler = null!;
     private readonly Faction _faction = Builders.MakeFaction();
@@ -18,7 +18,7 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
     {
         _context = db.CreateContext();
         _handler = new GetAllReputationsByCreatureIdQueryHandler(_context);
-        _adjustReputation = new AdjustReputationCommandHandler(_context);
+        _adjustReputations = new AdjustReputationsCommandHandler(_context);
 
         _context.Factions.Add(_faction);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -40,24 +40,22 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var creatureId = creature.Id;
 
-        await _adjustReputation.Handle(
-            new AdjustReputationCommand
+        await _adjustReputations.Handle(
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [_faction.Id],
+                Adjustments = [new ReputationAdjustment(_faction.Id, 5)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 5,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken
         );
-        await _adjustReputation.Handle(
-            new AdjustReputationCommand
+        await _adjustReputations.Handle(
+            new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
-                TargetIds = [faction2.Id],
+                Adjustments = [new ReputationAdjustment(faction2.Id, 10)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = 10,
                 Reason = ReputationReason.QuestCompleted,
             },
             TestContext.Current.CancellationToken

@@ -5,7 +5,7 @@
 import type { IStreamResult, Subject } from '@microsoft/signalr';
 import type { SceneSnapshot } from '../TRPG.GameSessions.Responses';
 import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.Responses';
 
@@ -78,6 +78,22 @@ export type IChatHub = {
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
     resolveResistArrestEncounterAction(): IStreamResult<string>;
+    /**
+    * @param encounterId Transpiled from System.Guid
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    startTheftEncounterNarration(encounterId: string): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveApologizeTheftEncounterAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveFightTheftEncounterAction(): IStreamResult<string>;
 }
 
 export type IGameClient = {
@@ -116,6 +132,16 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     guardEncounterResolved(fact: GuardEncounterResolutionFact): Promise<void>;
+    /**
+    * @param encounter Transpiled from TRPG.Encounters.Responses.TheftEncounterState
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    theftEncounterStarted(encounter: TheftEncounterState): Promise<void>;
+    /**
+    * @param fact Transpiled from TRPG.Encounters.Responses.TheftEncounterResolutionFact
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    theftEncounterResolved(fact: TheftEncounterResolutionFact): Promise<void>;
     /**
     * @param skillLevelUp Transpiled from TRPG.Creatures.Responses.SkillLevelUp
     * @returns Transpiled from System.Threading.Tasks.Task

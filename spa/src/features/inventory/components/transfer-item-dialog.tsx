@@ -37,6 +37,7 @@ export interface TransferItemDialogProps {
   open: boolean;
   transfersEnabled?: boolean;
   onClose: () => void;
+  onTheftEncounter?: (encounterId: string) => void;
 }
 
 export function TransferItemDialog({
@@ -45,6 +46,7 @@ export function TransferItemDialog({
   open,
   transfersEnabled = true,
   onClose,
+  onTheftEncounter,
 }: TransferItemDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -62,6 +64,7 @@ export function TransferItemDialog({
             target={target}
             transfersEnabled={transfersEnabled}
             onClose={onClose}
+            onTheftEncounter={onTheftEncounter}
           />
         )}
       </DialogContent>
@@ -74,11 +77,13 @@ function TransferDialogBody({
   target,
   transfersEnabled,
   onClose,
+  onTheftEncounter,
 }: {
   playerId: string;
   target: TransferTarget;
   transfersEnabled: boolean;
   onClose: () => void;
+  onTheftEncounter?: (encounterId: string) => void;
 }) {
   const queryClient = useQueryClient();
   const playerOwner = { id: playerId, type: 'Creature' as const };
@@ -102,8 +107,10 @@ function TransferDialogBody({
   const transferDraft = useTransferDraft(playerInventory.data?.items, targetInventory.data?.items);
 
   const handleConfirm = async () => {
+    let theftEncounterId: string | null = null;
+
     if (transferDraft.playerToOther.size > 0) {
-      await transfer.mutateAsync({
+      const response = await transfer.mutateAsync({
         path: { playerId },
         body: {
           from: playerOwner,
@@ -114,9 +121,10 @@ function TransferDialogBody({
           })),
         },
       });
+      theftEncounterId ??= response.theftEncounterId;
     }
     if (transferDraft.otherToPlayer.size > 0) {
-      await transfer.mutateAsync({
+      const response = await transfer.mutateAsync({
         path: { playerId },
         body: {
           from: targetOwner,
@@ -127,6 +135,7 @@ function TransferDialogBody({
           })),
         },
       });
+      theftEncounterId ??= response.theftEncounterId;
     }
 
     await queryClient.invalidateQueries({
@@ -134,6 +143,9 @@ function TransferDialogBody({
     });
     await queryClient.invalidateQueries({ queryKey: targetInventoryOptions.queryKey });
     onClose();
+    if (theftEncounterId) {
+      onTheftEncounter?.(theftEncounterId);
+    }
   };
 
   return (

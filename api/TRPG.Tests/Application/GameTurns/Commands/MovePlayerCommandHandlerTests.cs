@@ -333,6 +333,83 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
+    public async Task Handle_ResolvesWitnessedTheft_WhenThePlayerLeavesTheCrimeScene()
+    {
+        var building = Builders.MakeBuilding();
+        var currentRoomId = Guid.NewGuid();
+        var currentLocation = Builders.MakeLocation(WorldId, _stateId, roomId: currentRoomId);
+        var currentRoom = Builders.MakeRoom(
+            building.Id,
+            id: currentRoomId,
+            locationId: currentLocation.Id
+        );
+        var nextRoomId = Guid.NewGuid();
+        var nextLocation = Builders.MakeLocation(WorldId, _stateId, roomId: nextRoomId);
+        var nextRoom = Builders.MakeRoom(building.Id, id: nextRoomId, locationId: nextLocation.Id);
+        var connector = Builders.MakeLocationConnector(
+            currentRoom.LocationId,
+            destinationLocationId: nextRoom.LocationId,
+            name: "Hallway",
+            description: "A hallway.",
+            destinationLabel: nextRoom.Name
+        );
+        var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
+        var witness = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
+        var faction = Builders.MakeFaction(WorldId);
+        var crime = new TheftCrime
+        {
+            WorldId = WorldId,
+            PlayerId = player.Id,
+            LocationId = currentRoom.LocationId,
+            OwnerFactionId = faction.Id,
+            OwnerCreatureId = witness.Id,
+            OwnerName = witness.Name,
+            Outcome = TheftCrimeOutcome.Taken,
+            SourceOwnerId = Guid.NewGuid(),
+            SourceOwnerType = OwnerType.Container,
+        };
+        _context.Buildings.Add(building);
+        _context.Rooms.AddRange(currentRoom, nextRoom);
+        _context.Locations.AddRange(currentLocation, nextLocation);
+        _context.LocationConnectors.Add(connector);
+        _context.Creatures.AddRange(player, witness);
+        _context.Factions.Add(faction);
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(
+            new CrimeWitness
+            {
+                WorldId = WorldId,
+                CrimeId = crime.Id,
+                CreatureId = witness.Id,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = nextRoom.Name,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var persistedCrime = await verifyContext.Crimes.FindAsync(
+            [crime.Id],
+            TestContext.Current.CancellationToken
+        );
+        var persistedWitness = await verifyContext.CrimeWitnesses.SingleAsync(
+            candidate => candidate.CrimeId == crime.Id,
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(CrimeResolution.Reported, persistedCrime!.Resolution);
+        Assert.Equal(CrimeWitnessResolution.Reported, persistedWitness.Resolution);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsExitNotFound_WhenIndoorsAndNoExitMatches()
     {
         // Arrange

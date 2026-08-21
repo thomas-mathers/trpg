@@ -83,3 +83,32 @@ export type HostileEncounterState = {
     allowedActions: string[];
 }
 
+/** Transpiled from TRPG.Encounters.Responses.TheftEncounterResolutionOutcome */
+export type TheftEncounterResolutionOutcome = "Apologized" | "Fought";
+
+/** Transpiled from TRPG.Encounters.Responses.TheftEncounterResolutionFact */
+export type TheftEncounterResolutionFact = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from TRPG.Encounters.Responses.TheftEncounterResolutionOutcome */
+    outcome: TheftEncounterResolutionOutcome;
+    /** Transpiled from string */
+    confrontingName: string;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    itemNames: string[];
+    /** Transpiled from bool */
+    itemsReturned: boolean;
+}
+
+/** Transpiled from TRPG.Encounters.Responses.TheftEncounterState */
+export type TheftEncounterState = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from string */
+    confrontingName: string;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    itemNames: string[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    allowedActions: string[];
+}
+

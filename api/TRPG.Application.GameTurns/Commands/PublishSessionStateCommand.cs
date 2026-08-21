@@ -53,25 +53,29 @@ internal class PublishSessionStateCommandHandler(
             new GetActiveEncounterQuery { PlayerId = command.PlayerId },
             cancellationToken
         );
-        if (encounter is HostileEncounter hostileEncounter)
+        switch (encounter)
         {
-            gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
-        }
-        else if (encounter is GuardEncounter guardEncounter)
-        {
-            var playerGold = await getGoldQuantity.Handle(
-                new GetGoldQuantityQuery
-                {
-                    Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
-                },
-                cancellationToken
-            );
-            gameEvents.Enqueue(
-                new GuardEncounterStartedEvent(
-                    guardEncounter,
-                    playerGold >= guardEncounter.FineAmount
-                )
-            );
+            case HostileEncounter hostileEncounter:
+                gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
+                break;
+            case GuardEncounter guardEncounter:
+                var playerGold = await getGoldQuantity.Handle(
+                    new GetGoldQuantityQuery
+                    {
+                        Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+                    },
+                    cancellationToken
+                );
+                gameEvents.Enqueue(
+                    new GuardEncounterStartedEvent(
+                        guardEncounter,
+                        playerGold >= guardEncounter.FineAmount
+                    )
+                );
+                break;
+            case TheftEncounter theftEncounter:
+                gameEvents.Enqueue(new TheftEncounterStartedEvent(theftEncounter));
+                break;
         }
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);

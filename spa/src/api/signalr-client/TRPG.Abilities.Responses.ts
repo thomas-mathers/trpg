@@ -3,7 +3,7 @@
 /* tslint:disable */
 
 /** Transpiled from TRPG.Abilities.Responses.Skill */
-export type Skill = "Melee" | "Unarmed" | "Sneak" | "Destruction" | "Illusion" | "Archery" | "Restoration" | "Alteration" | "General" | "Blocking";
+export type Skill = "Melee" | "Unarmed" | "Sneak" | "Pickpocketing" | "Destruction" | "Illusion" | "Archery" | "Restoration" | "Alteration" | "General" | "Blocking";
 
 /** Transpiled from TRPG.Abilities.Responses.AbilityCategory */
 export type AbilityCategory = "Offensive" | "Support";
