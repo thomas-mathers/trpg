@@ -84,6 +84,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<World> Worlds => Set<World>();
     public DbSet<GameSession> GameSessions => Set<GameSession>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+    public DbSet<Crime> Crimes => Set<Crime>();
+    public DbSet<CrimeWitness> CrimeWitnesses => Set<CrimeWitness>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -109,6 +111,25 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         {
             entity.HasIndex(k => new { k.KnowerId, k.SubjectType });
             entity.HasIndex(k => k.WorldId);
+        });
+
+        modelBuilder.Entity<Crime>(entity =>
+        {
+            entity.HasIndex(c => c.WorldId);
+            entity.HasIndex(c => new
+            {
+                c.WorldId,
+                c.PlayerId,
+                c.LocationId,
+            });
+            entity.HasDiscriminator<string>("crime_type").HasValue<KillCrime>("Kill");
+        });
+
+        modelBuilder.Entity<CrimeWitness>(entity =>
+        {
+            entity.HasIndex(w => w.WorldId);
+            entity.HasIndex(w => new { w.CrimeId, w.CreatureId }).IsUnique();
+            entity.HasIndex(w => new { w.WorldId, w.CreatureId });
         });
 
         modelBuilder.Entity<Creature>(entity =>

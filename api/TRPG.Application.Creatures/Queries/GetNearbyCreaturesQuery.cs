@@ -32,7 +32,7 @@ internal class GetNearbyCreaturesQueryHandler(TrpgDbContext context)
 
         creatureQuery = CreatureLocationFiltering.ApplyFilters(
             creatureQuery,
-            query.ExcludingCreatureId,
+            query.ExcludingCreatureId is { } excludingCreatureId ? [excludingCreatureId] : [],
             query.CreatureTypes,
             query.IncludeDead
         );

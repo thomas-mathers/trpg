@@ -4,7 +4,6 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Reputations.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -20,7 +19,6 @@ internal class EndFightCommand
 internal class EndFightCommandHandler(
     TrpgDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<ApplyReputationPenaltyForKillsCommand> applyReputationPenaltyForKills,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
 ) : ICommandHandler<EndFightCommand>
 {
@@ -60,28 +58,92 @@ internal class EndFightCommandHandler(
                 .Select(c => c.Id)
                 .ToArray();
 
-            await applyReputationPenaltyForKills.Handle(
-                new ApplyReputationPenaltyForKillsCommand
-                {
-                    KillerId = player.Id,
-                    KilledCreatureIds = killedCreatureIds,
-                },
+            await RecordKillCrimes(
+                command.WorldId,
+                player.Id,
+                killedCreatureIds,
+                state,
                 cancellationToken
             );
         }
 
-        await context
+        var fight = await context
             .Encounters.OfType<FightEncounter>()
-            .Where(f => f.WorldId == command.WorldId && f.Outcome == CombatOutcome.Ongoing)
-            .ExecuteUpdateAsync(
-                setters =>
-                    setters
-                        .SetProperty(f => f.CompletedAt, DateTime.UtcNow)
-                        .SetProperty(f => f.State, EncounterState.Completed)
-                        .SetProperty(f => f.Outcome, state.Outcome),
+            .FirstOrDefaultAsync(
+                item => item.WorldId == command.WorldId && item.Outcome == CombatOutcome.Ongoing,
                 cancellationToken
             );
+        if (fight != null)
+        {
+            fight.CompletedAt = DateTime.UtcNow;
+            fight.State = EncounterState.Completed;
+            fight.Outcome = state.Outcome;
+            await context.SaveChangesAsync(cancellationToken);
+        }
 
         transaction.Complete();
+    }
+
+    private async Task RecordKillCrimes(
+        Guid worldId,
+        Guid playerId,
+        IReadOnlyCollection<Guid> killedCreatureIds,
+        CombatState state,
+        CancellationToken cancellationToken
+    )
+    {
+        if (killedCreatureIds.Count == 0)
+        {
+            return;
+        }
+
+        var fight = await context
+            .Encounters.OfType<FightEncounter>()
+            .FirstOrDefaultAsync(
+                item => item.WorldId == worldId && item.Outcome == CombatOutcome.Ongoing,
+                cancellationToken
+            );
+        if (fight == null)
+        {
+            return;
+        }
+
+        var witnesses = await context
+            .Creatures.AsNoTracking()
+            .Where(creature =>
+                creature.WorldId == worldId
+                && creature.LocationId == fight.LocationId
+                && creature.State != CreatureState.Dead
+                && !fight.CombatantIds.AsEnumerable().Contains(creature.Id)
+            )
+            .Select(creature => creature.Id)
+            .ToArrayAsync(cancellationToken);
+
+        var killedCombatants = state
+            .Combatants.Where(combatant => killedCreatureIds.Contains(combatant.Id))
+            .ToDictionary(combatant => combatant.Id);
+
+        foreach (var killedCreatureId in killedCreatureIds)
+        {
+            var crime = new KillCrime
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                LocationId = fight.LocationId,
+                VictimId = killedCreatureId,
+                VictimName = killedCombatants[killedCreatureId].Name,
+            };
+            context.Crimes.Add(crime);
+            context.CrimeWitnesses.AddRange(
+                witnesses.Select(witnessId => new CrimeWitness
+                {
+                    WorldId = worldId,
+                    CrimeId = crime.Id,
+                    CreatureId = witnessId,
+                })
+            );
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
     }
 }
