@@ -95,7 +95,9 @@ internal class AttemptTheftCommandHandler(
         );
 
         var requiresTheftDetectionRoll = source.IsPickpocketing || witnesses.Length > 0;
+
         var options = theftOptions.CurrentValue;
+
         var isDetected =
             requiresTheftDetectionRoll
             && await skillCheckService.Roll(
@@ -265,15 +267,15 @@ internal class AttemptTheftCommandHandler(
         return new TheftAttemptResult(TheftAttemptOutcome.Completed);
     }
 
-    private Task<TheftSource?> GetTheftSource(
+    private async Task<TheftSource?> GetTheftSource(
         AttemptTheftCommand command,
         CancellationToken cancellationToken
     ) =>
         command.From.Type switch
         {
-            OwnerType.Creature => GetCreatureTheftSource(command, cancellationToken),
-            OwnerType.Container => GetContainerTheftSource(command, cancellationToken),
-            OwnerType.Workstation => GetWorkstationTheftSource(command, cancellationToken),
+            OwnerType.Creature => await GetCreatureTheftSource(command, cancellationToken),
+            OwnerType.Container => await GetContainerTheftSource(command, cancellationToken),
+            OwnerType.Workstation => await GetWorkstationTheftSource(command, cancellationToken),
             _ => throw new InvalidOperationException(
                 $"Owner type {command.From.Type} is not valid for theft."
             ),

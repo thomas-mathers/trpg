@@ -11,7 +11,7 @@ public enum CrimeWitnessResolution
 {
     Pending,
     Reported,
-    Silenced,
+    Dead,
 }
 
 public abstract class Crime

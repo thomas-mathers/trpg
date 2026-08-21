@@ -107,6 +107,43 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     }
 
     [Fact]
+    public async Task Handle_Apologize_LeavesPickpocketedItemsWithTheirOwner()
+    {
+        var item = Builders.MakeWeapon(WorldId);
+        item.Quantity = 1;
+        item.Ownership.OwnerId = _owner.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            item
+        );
+        _context.Items.Add(item);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var fact = await _handler.Handle(
+            MakeCommand(new ApologizeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var persistedItem = await verifyContext.Items.FindAsync(
+            [item.Id],
+            TestContext.Current.CancellationToken
+        );
+        var crime = await verifyContext
+            .Crimes.OfType<TheftCrime>()
+            .SingleAsync(
+                candidate => candidate.Id == encounter.TheftCrimeId,
+                TestContext.Current.CancellationToken
+            );
+
+        Assert.Equal(_owner.Id, persistedItem!.Ownership.OwnerId);
+        Assert.False(fact.ItemsReturned);
+        Assert.Equal(TheftCrimeOutcome.Apologized, crime.Outcome);
+    }
+
+    [Fact]
     public async Task Handle_Fight_AlertsTheConfrontingCreatureStartsAFightAndMarksTheCrimeResisted()
     {
         // Arrange

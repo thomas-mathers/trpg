@@ -231,7 +231,7 @@ internal class GetNpcConversationBriefingQueryHandler(
             .Where(witness =>
                 witness.WorldId == query.WorldId
                 && witness.CreatureId == query.NpcId
-                && witness.Resolution != CrimeWitnessResolution.Silenced
+                && witness.Resolution != CrimeWitnessResolution.Dead
             )
             .Join(
                 context.Crimes.OfType<KillCrime>().AsNoTracking(),
@@ -262,7 +262,7 @@ internal class GetNpcConversationBriefingQueryHandler(
             .Where(witness =>
                 witness.WorldId == query.WorldId
                 && witness.CreatureId == query.NpcId
-                && witness.Resolution != CrimeWitnessResolution.Silenced
+                && witness.Resolution != CrimeWitnessResolution.Dead
             )
             .Join(
                 context.Crimes.OfType<TheftCrime>().AsNoTracking(),

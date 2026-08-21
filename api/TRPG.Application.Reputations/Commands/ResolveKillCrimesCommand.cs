@@ -43,11 +43,15 @@ internal class ResolveKillCrimesCommandHandler(
                 && witness.Resolution == CrimeWitnessResolution.Pending
             )
             .ToArrayAsync(cancellationToken);
+        var witnessCreatureIds = witnesses
+            .Select(witness => witness.CreatureId)
+            .Distinct()
+            .ToArray();
         var liveWitnessIds = await context
             .Creatures.AsNoTracking()
             .Where(creature =>
                 creature.WorldId == command.WorldId
-                && creature.LocationId == command.LocationId
+                && witnessCreatureIds.AsEnumerable().Contains(creature.Id)
                 && creature.State != CreatureState.Dead
             )
             .Select(creature => creature.Id)
@@ -57,7 +61,7 @@ internal class ResolveKillCrimesCommandHandler(
         {
             witness.Resolution = liveWitnessIds.Contains(witness.CreatureId)
                 ? CrimeWitnessResolution.Reported
-                : CrimeWitnessResolution.Silenced;
+                : CrimeWitnessResolution.Dead;
             witness.ResolvedAt = DateTime.UtcNow;
         }
 

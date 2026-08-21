@@ -379,7 +379,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     }
 
     [Fact]
-    public async Task Handle_ReturnsPendingWitnessedTheftAsAnObservedCrime()
+    public async Task Handle_ReturnsReportedTheftAndExcludesDeadWitnessedTheft()
     {
         // Arrange
         var crime = new TheftCrime
@@ -393,13 +393,32 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
             SourceOwnerId = Guid.NewGuid(),
             SourceOwnerType = OwnerType.Container,
         };
-        _context.Crimes.Add(crime);
-        _context.CrimeWitnesses.Add(
+        var deadWitnessCrime = new TheftCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = _npc.LocationId,
+            OwnerCreatureId = Guid.NewGuid(),
+            OwnerName = "Nora",
+            Outcome = TheftCrimeOutcome.Taken,
+            SourceOwnerId = Guid.NewGuid(),
+            SourceOwnerType = OwnerType.Container,
+        };
+        _context.Crimes.AddRange(crime, deadWitnessCrime);
+        _context.CrimeWitnesses.AddRange(
             new CrimeWitness
             {
                 WorldId = WorldId,
                 CrimeId = crime.Id,
                 CreatureId = _npc.Id,
+                Resolution = CrimeWitnessResolution.Reported,
+            },
+            new CrimeWitness
+            {
+                WorldId = WorldId,
+                CrimeId = deadWitnessCrime.Id,
+                CreatureId = _npc.Id,
+                Resolution = CrimeWitnessResolution.Dead,
             }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

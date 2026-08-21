@@ -93,7 +93,7 @@ public sealed class ResolveTheftCrimesCommandTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
-    public async Task Handle_AppliesNoPenalty_WhenAllWitnessesWereSilenced()
+    public async Task Handle_AppliesNoPenalty_WhenAllWitnessesAreDead()
     {
         // Arrange
         var faction = Builders.MakeFaction(WorldId);
@@ -134,7 +134,47 @@ public sealed class ResolveTheftCrimesCommandTests(DatabaseFixture db) : IAsyncL
                 .ToArrayAsync(TestContext.Current.CancellationToken)
         );
         Assert.Equal(CrimeResolution.Unreported, persistedCrime!.Resolution);
-        Assert.Equal(CrimeWitnessResolution.Silenced, persistedWitness.Resolution);
+        Assert.Equal(CrimeWitnessResolution.Dead, persistedWitness.Resolution);
+    }
+
+    [Fact]
+    public async Task Handle_ReportsLivingWitnessesElsewhereAndAppliesOnePenaltyPerCrime()
+    {
+        var faction = Builders.MakeFaction(WorldId);
+        var movedWitness = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
+        var deadWitness = Builders.MakeCreature(
+            WorldId,
+            locationId: LocationId,
+            state: CreatureState.Dead
+        );
+        var crime = MakeCrime(faction.Id, TheftCrimeOutcome.Taken);
+        _context.Factions.Add(faction);
+        _context.Creatures.AddRange(movedWitness, deadWitness);
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.AddRange(
+            MakeWitness(crime.Id, movedWitness.Id),
+            MakeWitness(crime.Id, deadWitness.Id)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await Resolve();
+
+        await using var verifyContext = db.CreateContext();
+        var log = await verifyContext.ReputationLogEntries.SingleAsync(
+            entry => entry.CreatureId == _player.Id && entry.TargetId == faction.Id,
+            TestContext.Current.CancellationToken
+        );
+        var witnesses = await verifyContext
+            .CrimeWitnesses.Where(witness => witness.CrimeId == crime.Id)
+            .ToDictionaryAsync(
+                witness => witness.CreatureId,
+                witness => witness.Resolution,
+                TestContext.Current.CancellationToken
+            );
+
+        Assert.Equal(ConfiguredReputationOptions.TheftReputationPenalty, log.DeltaScore);
+        Assert.Equal(CrimeWitnessResolution.Reported, witnesses[movedWitness.Id]);
+        Assert.Equal(CrimeWitnessResolution.Dead, witnesses[deadWitness.Id]);
     }
 
     [Fact]

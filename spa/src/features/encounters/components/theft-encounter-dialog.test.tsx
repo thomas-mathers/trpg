@@ -107,6 +107,21 @@ describe('TheftEncounterDialog', () => {
     await resolveEncounter();
   });
 
+  it('sends the selected fight action', async () => {
+    const { user, gameChat, chatHub } = renderDialog();
+
+    gameEventBus.emit('TheftEncounterStarted', encounter);
+
+    await user.click(await screen.findByRole('button', { name: /Fight/ }));
+
+    expect(chatHub.resolveFightTheftEncounterAction).toHaveBeenCalledOnce();
+    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
+      'Fight',
+      vi.mocked(chatHub.resolveFightTheftEncounterAction).mock.results[0]?.value,
+    );
+    await resolveEncounter();
+  });
+
   it('stays hidden while detection narration is still streaming', async () => {
     renderDialog({ isStreaming: true });
 

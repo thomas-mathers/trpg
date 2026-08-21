@@ -19,6 +19,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private readonly Guid _theftLocationId = Guid.NewGuid();
+    private readonly TestChanceRoller _chanceRoller = new();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private AttemptTheftCommandHandler _handler = null!;
@@ -40,7 +41,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
                     }
                 )
             )
-            .AddSingleton<IChanceRoller>(new TestChanceRoller())
+            .AddSingleton<IChanceRoller>(_chanceRoller)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<AttemptTheftCommandHandler>();
 
@@ -143,6 +144,79 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
                 )
         );
         Assert.Equal(0, sneakExperience);
+    }
+
+    [Fact]
+    public async Task Handle_MovesPickpocketedItemAndAwardsPickpocketingExperience_WhenUndetected()
+    {
+        var owner = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var item = await SeedItem(owner.Id, OwnerType.Creature);
+        _context.Creatures.Add(owner);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _chanceRoller.Result = false;
+
+        var result = await AttemptTheft(new ItemOwnerReference(owner.Id, OwnerType.Creature), item);
+
+        Assert.Equal(TheftAttemptOutcome.Completed, result.Outcome);
+        await using var verifyContext = db.CreateContext();
+        var movedItem = await verifyContext.Items.FindAsync(
+            [item.Id],
+            TestContext.Current.CancellationToken
+        );
+        var experience = await verifyContext
+            .CreatureSkills.Where(skill =>
+                skill.CreatureId == _player.Id && skill.Skill == Skill.Pickpocketing
+            )
+            .Select(skill => skill.Experience)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(_player.Id, movedItem!.Ownership.OwnerId);
+        Assert.Equal(10, experience);
+        Assert.Empty(
+            await verifyContext
+                .CrimeWitnesses.Where(witness => witness.CreatureId == owner.Id)
+                .ToArrayAsync(TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_MovesContainerItemAndAwardsSneakExperience_WhenWitnessDoesNotDetectTheft()
+    {
+        var owner = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
+        var witness = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var container = Builders.MakeContainer(WorldId, _theftLocationId);
+        container.OwnerCreatureId = owner.Id;
+        var item = await SeedItem(container.Id, OwnerType.Container);
+        _context.Creatures.AddRange(owner, witness);
+        _context.Props.Add(container);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _chanceRoller.Result = false;
+
+        var result = await AttemptTheft(
+            new ItemOwnerReference(container.Id, OwnerType.Container),
+            item
+        );
+
+        Assert.Equal(TheftAttemptOutcome.Completed, result.Outcome);
+        await using var verifyContext = db.CreateContext();
+        var movedItem = await verifyContext.Items.FindAsync(
+            [item.Id],
+            TestContext.Current.CancellationToken
+        );
+        var experience = await verifyContext
+            .CreatureSkills.Where(skill =>
+                skill.CreatureId == _player.Id && skill.Skill == Skill.Sneak
+            )
+            .Select(skill => skill.Experience)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(_player.Id, movedItem!.Ownership.OwnerId);
+        Assert.Equal(10, experience);
+        Assert.Empty(
+            await verifyContext
+                .CrimeWitnesses.Where(crimeWitness => crimeWitness.CreatureId == witness.Id)
+                .ToArrayAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     [Fact]
@@ -458,6 +532,8 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
 
     private sealed class TestChanceRoller : IChanceRoller
     {
-        public bool Roll(float chance) => true;
+        public bool Result { get; set; } = true;
+
+        public bool Roll(float chance) => Result;
     }
 }
