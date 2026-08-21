@@ -202,8 +202,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             PlayerId = _playerId,
             LocationId = _locationId,
             TheftCrimeId = crime.Id,
-            OwnerCreatureId = owner.Id,
-            OwnerName = owner.Name,
+            ConfrontingCreatureId = owner.Id,
+            ConfrontingName = owner.Name,
             SourceOwnerId = owner.Id,
             SourceOwnerType = OwnerType.Creature,
             ItemNames = ["Silver Ring"],
@@ -794,7 +794,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(encounter.Id, state.EncounterId);
-        Assert.Equal(owner.Name, state.OwnerName);
+        Assert.Equal(owner.Name, state.ConfrontingName);
         Assert.Equal(["Silver Ring"], state.ItemNames);
         Assert.Equal(["Apologize", "Fight"], state.AllowedActions);
     }
@@ -824,7 +824,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(encounter.Id, state.EncounterId);
-        Assert.Equal(owner.Name, state.OwnerName);
+        Assert.Equal(owner.Name, state.ConfrontingName);
         Assert.Equal(["Silver Ring"], state.ItemNames);
         Assert.Equal(["Apologize", "Fight"], state.AllowedActions);
     }

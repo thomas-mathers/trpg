@@ -11,7 +11,7 @@ internal sealed class TheftEncounterResolvedEventMapper
             new TheftEncounterResolutionFact(
                 gameEvent.Fact.EncounterId,
                 (TheftEncounterResolutionOutcome)gameEvent.Fact.Outcome,
-                gameEvent.Fact.OwnerName,
+                gameEvent.Fact.ConfrontingName,
                 gameEvent.Fact.ItemNames,
                 gameEvent.Fact.ItemsReturned
             ),

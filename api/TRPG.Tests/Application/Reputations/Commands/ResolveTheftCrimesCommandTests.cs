@@ -171,6 +171,76 @@ public sealed class ResolveTheftCrimesCommandTests(DatabaseFixture db) : IAsyncL
         Assert.Equal(ConfiguredReputationOptions.ApologizedTheftReputationPenalty, log.DeltaScore);
     }
 
+    [Fact]
+    public async Task Handle_AggregatesPenaltiesAndLogsOncePerFaction_WhenMultipleCrimesAreReported()
+    {
+        // Arrange
+        var firstFaction = Builders.MakeFaction(WorldId);
+        var secondFaction = Builders.MakeFaction(WorldId);
+        var crimes = new[]
+        {
+            MakeCrime(firstFaction.Id, TheftCrimeOutcome.Taken),
+            MakeCrime(firstFaction.Id, TheftCrimeOutcome.Apologized),
+            MakeCrime(secondFaction.Id, TheftCrimeOutcome.Resisted),
+        };
+        var witnesses = crimes
+            .Select(crime => Builders.MakeCreature(WorldId, locationId: LocationId))
+            .ToArray();
+
+        _context.Factions.AddRange(firstFaction, secondFaction);
+        _context.Crimes.AddRange(crimes);
+        _context.Creatures.AddRange(witnesses);
+        _context.CrimeWitnesses.AddRange(
+            crimes.Select((crime, index) => MakeWitness(crime.Id, witnesses[index].Id))
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await Resolve();
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var reputations = await verifyContext
+            .Reputations.Where(item => item.CreatureId == _player.Id)
+            .ToDictionaryAsync(
+                item => item.TargetId,
+                item => item.Score,
+                TestContext.Current.CancellationToken
+            );
+        var logs = await verifyContext
+            .ReputationLogEntries.Where(item => item.CreatureId == _player.Id)
+            .ToDictionaryAsync(
+                item => item.TargetId,
+                item => item,
+                TestContext.Current.CancellationToken
+            );
+
+        Assert.Equal(2, reputations.Count);
+        Assert.Equal(
+            ConfiguredReputationOptions.TheftReputationPenalty
+                + ConfiguredReputationOptions.ApologizedTheftReputationPenalty,
+            reputations[firstFaction.Id]
+        );
+        Assert.Equal(
+            ConfiguredReputationOptions.TheftReputationPenalty,
+            reputations[secondFaction.Id]
+        );
+        Assert.Equal(2, logs.Count);
+        Assert.Equal(
+            ConfiguredReputationOptions.TheftReputationPenalty
+                + ConfiguredReputationOptions.ApologizedTheftReputationPenalty,
+            logs[firstFaction.Id].DeltaScore
+        );
+        Assert.Equal(
+            ConfiguredReputationOptions.TheftReputationPenalty,
+            logs[secondFaction.Id].DeltaScore
+        );
+        Assert.All(
+            logs.Values,
+            log => Assert.Equal(ReputationReason.StoleFromFactionMember, log.Reason)
+        );
+    }
+
     private TheftCrime MakeCrime(Guid factionId, TheftCrimeOutcome outcome) =>
         new()
         {

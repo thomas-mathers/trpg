@@ -328,9 +328,9 @@ public class BuildingGenerator
             )
             .ToList();
 
-        foreach (var container in props.OfType<Container>())
+        foreach (var prop in props)
         {
-            container.OwnerCreatureId = input.OwnerCreatureId;
+            prop.OwnerCreatureId = input.OwnerCreatureId;
         }
 
         var roomsByFloor = rooms.GroupBy(r => r.FloorNumber).OrderBy(g => g.Key).ToArray();

@@ -47,13 +47,13 @@ internal class StreamTheftEncounterNarrationTurnHandler(
         gameEvents.Enqueue(new TheftEncounterStartedEvent(theftEncounter));
 
         var details = JsonSerializer.Serialize(
-            new { theftEncounter.OwnerName, theftEncounter.ItemNames },
-            TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
+            new { theftEncounter.ConfrontingName, theftEncounter.ItemNames },
+            Common.Serialization.TrpgJsonOptions.Default
         );
         return new GameTurnPrompt.Narrate(
             $"""
             The player was caught stealing. Details: {details}.
-            Narrate the confrontation vividly from the owner's perspective. The theft encounter
+            Narrate the confrontation vividly from the confronting creature's perspective. The theft encounter
             has not been resolved: do not narrate an apology, a fight, the item's return, or the
             player leaving. Do not call any tools.
             """,

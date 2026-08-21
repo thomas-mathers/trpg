@@ -1463,6 +1463,10 @@ namespace TRPG.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
+                    b.Property<Guid?>("OwnerCreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_creature_id");
+
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
@@ -2361,10 +2365,6 @@ namespace TRPG.Data.Migrations
                     b.Property<Guid?>("KeyItemId")
                         .HasColumnType("uuid")
                         .HasColumnName("key_item_id");
-
-                    b.Property<Guid?>("OwnerCreatureId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("owner_creature_id");
 
                     b.Property<int?>("StorageSize")
                         .HasColumnType("integer")

@@ -15,7 +15,7 @@ public class ApplyReputationPenaltyForKillsCommand
 
 internal class ApplyReputationPenaltyForKillsCommandHandler(
     TrpgDbContext context,
-    ICommandHandler<AdjustReputationCommand> adjustReputation,
+    ICommandHandler<AdjustReputationsCommand> adjustReputations,
     IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICommandHandler<ApplyReputationPenaltyForKillsCommand>
 {
@@ -41,13 +41,15 @@ internal class ApplyReputationPenaltyForKillsCommandHandler(
             return;
         }
 
-        await adjustReputation.Handle(
-            new AdjustReputationCommand
+        var penalty = reputationOptions.CurrentValue.KillReputationPenalty;
+        await adjustReputations.Handle(
+            new AdjustReputationsCommand
             {
                 CreatureId = command.KillerId,
-                TargetIds = killedFactionIds,
+                Adjustments = killedFactionIds
+                    .Select(factionId => new ReputationAdjustment(factionId, penalty))
+                    .ToArray(),
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = reputationOptions.CurrentValue.KillReputationPenalty,
                 Reason = ReputationReason.KilledFactionMember,
             },
             cancellationToken

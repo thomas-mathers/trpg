@@ -53,7 +53,7 @@ export function TheftEncounterDialog() {
             Theft encounter
           </DialogTitle>
           <DialogDescription className="mt-1.5">
-            {encounter.ownerName} catches you trying to take their property.
+            {encounter.confrontingName} catches you trying to steal.
           </DialogDescription>
         </header>
 

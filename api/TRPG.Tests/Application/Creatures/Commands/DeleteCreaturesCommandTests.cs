@@ -291,6 +291,71 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
         );
     }
 
+    [Fact]
+    public async Task Handle_ClearsPropOwnership_WhenOwnerIsDeleted()
+    {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var owner = Builders.MakeCreature(worldId);
+        var employee = Builders.MakeCreature(worldId);
+        var locationId = Guid.NewGuid();
+        var container = new Container
+        {
+            LocationId = locationId,
+            Name = "Container",
+            Description = "A test container",
+            OwnerCreatureId = owner.Id,
+            WorldId = worldId,
+        };
+        var workstation = new Workstation
+        {
+            LocationId = locationId,
+            Name = "Workstation",
+            Description = "A test workstation",
+            OwnerCreatureId = owner.Id,
+            AssignedCreatureId = employee.Id,
+            OccupantId = employee.Id,
+            WorkstationType = WorkstationType.Cooking,
+            WorldId = worldId,
+        };
+        var employeeOwnedContainer = new Container
+        {
+            LocationId = locationId,
+            Name = "Employee container",
+            Description = "A test container",
+            OwnerCreatureId = employee.Id,
+            WorldId = worldId,
+        };
+        _context.Creatures.AddRange(owner, employee);
+        _context.Props.AddRange(container, workstation, employeeOwnedContainer);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new DeleteCreaturesCommand { CreatureIds = [owner.Id] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var updatedContainer = await verifyContext
+            .Set<Container>()
+            .SingleAsync(prop => prop.Id == container.Id, cancellationToken);
+        var updatedWorkstation = await verifyContext
+            .Set<Workstation>()
+            .SingleAsync(prop => prop.Id == workstation.Id, cancellationToken);
+        var updatedEmployeeOwnedContainer = await verifyContext
+            .Set<Container>()
+            .SingleAsync(prop => prop.Id == employeeOwnedContainer.Id, cancellationToken);
+
+        Assert.Null(updatedContainer.OwnerCreatureId);
+        Assert.Null(updatedWorkstation.OwnerCreatureId);
+        Assert.Equal(employee.Id, updatedWorkstation.AssignedCreatureId);
+        Assert.Equal(employee.Id, updatedWorkstation.OccupantId);
+        Assert.Equal(employee.Id, updatedEmployeeOwnedContainer.OwnerCreatureId);
+    }
+
     private async Task SeedCreatureData(
         Guid worldId,
         Guid creatureId,

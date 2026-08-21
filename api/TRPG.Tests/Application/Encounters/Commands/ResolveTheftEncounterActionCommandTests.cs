@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
+using TRPG.Application.Creatures;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Inventory;
@@ -21,6 +22,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     private ServiceProvider _serviceProvider = null!;
     private ResolveTheftEncounterActionCommandHandler _handler = null!;
     private AttemptTheftCommandHandler _attemptTheftHandler = null!;
+    private Creature _confronter = null!;
     private Creature _owner = null!;
     private Creature _player = null!;
     private GameSession _session = null!;
@@ -29,10 +31,11 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     {
         _context = db.CreateContext();
         _player = Builders.MakeCreature(WorldId, locationId: _locationId);
+        _confronter = Builders.MakeCreature(WorldId, locationId: _locationId, name: "Tessa");
         _owner = Builders.MakeCreature(WorldId, locationId: _locationId, name: "Mara");
         _session = Builders.MakeGameSession(WorldId, _player.Id);
 
-        _context.Creatures.AddRange(_player, _owner);
+        _context.Creatures.AddRange(_player, _confronter, _owner);
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -41,7 +44,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             .AddSingleton<IOptionsMonitor<TheftOptions>>(
                 new TestOptionsMonitor<TheftOptions>(new TheftOptions())
             )
-            .AddSingleton<ITheftDetectionRoller>(new AlwaysDetectedTheftRoller())
+            .AddSingleton<IChanceRoller>(new AlwaysSuccessfulChanceRoller())
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ResolveTheftEncounterActionCommandHandler>();
         _attemptTheftHandler = _serviceProvider.GetRequiredService<AttemptTheftCommandHandler>();
@@ -99,16 +102,18 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         Assert.Equal(EncounterState.Completed, persistedEncounter.State);
         Assert.Equal(TheftCrimeOutcome.Apologized, crime.Outcome);
         Assert.Equal(TheftEncounterResolutionOutcome.Apologized, fact.Outcome);
+        Assert.Equal(_owner.Name, fact.ConfrontingName);
         Assert.True(fact.ItemsReturned);
     }
 
     [Fact]
-    public async Task Handle_Fight_AlertsTheOwnerStartsAFightAndMarksTheCrimeResisted()
+    public async Task Handle_Fight_AlertsTheConfrontingCreatureStartsAFightAndMarksTheCrimeResisted()
     {
         // Arrange
         var encounter = await SeedEncounter(
             sourceOwnerId: _owner.Id,
-            sourceOwnerType: OwnerType.Creature
+            sourceOwnerType: OwnerType.Creature,
+            confrontingCreature: _confronter
         );
 
         // Act
@@ -119,8 +124,8 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var updatedOwner = await verifyContext.Creatures.FindAsync(
-            [_owner.Id],
+        var updatedConfronter = await verifyContext.Creatures.FindAsync(
+            [_confronter.Id],
             TestContext.Current.CancellationToken
         );
         var fight = await verifyContext
@@ -139,11 +144,12 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             .Encounters.OfType<TheftEncounter>()
             .SingleAsync(item => item.Id == encounter.Id, TestContext.Current.CancellationToken);
 
-        Assert.Equal(CreatureState.Alerted, updatedOwner!.State);
-        Assert.Contains(_owner.Id, fight.CombatantIds);
+        Assert.Equal(CreatureState.Alerted, updatedConfronter!.State);
+        Assert.Contains(_confronter.Id, fight.CombatantIds);
         Assert.Equal(TheftCrimeOutcome.Resisted, crime.Outcome);
         Assert.Equal(EncounterState.Completed, persistedEncounter.State);
         Assert.Equal(TheftEncounterResolutionOutcome.Fought, fact.Outcome);
+        Assert.Equal(_confronter.Name, fact.ConfrontingName);
     }
 
     [Fact]
@@ -235,9 +241,11 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     private async Task<TheftEncounter> SeedEncounter(
         Guid sourceOwnerId,
         OwnerType sourceOwnerType,
-        Item? item = null
+        Item? item = null,
+        Creature? confrontingCreature = null
     )
     {
+        var confrontingCreatureToUse = confrontingCreature ?? _owner;
         var crime = new TheftCrime
         {
             WorldId = WorldId,
@@ -255,8 +263,8 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             PlayerId = _player.Id,
             LocationId = _locationId,
             TheftCrimeId = crime.Id,
-            OwnerCreatureId = _owner.Id,
-            OwnerName = _owner.Name,
+            ConfrontingCreatureId = confrontingCreatureToUse.Id,
+            ConfrontingName = confrontingCreatureToUse.Name,
             SourceOwnerId = sourceOwnerId,
             SourceOwnerType = sourceOwnerType,
             ItemIds = item == null ? [] : [item.Id],
@@ -270,9 +278,9 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         return encounter;
     }
 
-    private sealed class AlwaysDetectedTheftRoller : ITheftDetectionRoller
+    private sealed class AlwaysSuccessfulChanceRoller : IChanceRoller
     {
-        public bool IsDetected(float chance) => true;
+        public bool Roll(float chance) => true;
     }
 
     private sealed class TestOptionsMonitor<T>(T value) : IOptionsMonitor<T>

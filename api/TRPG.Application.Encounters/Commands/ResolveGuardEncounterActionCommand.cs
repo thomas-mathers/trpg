@@ -37,7 +37,7 @@ public class ResolveGuardEncounterActionCommand
 internal class ResolveGuardEncounterActionCommandHandler(
     ICommandHandler<CompleteEncounterCommand> completeEncounter,
     ICommandHandler<RemoveGoldCommand> removeGold,
-    ICommandHandler<AdjustReputationCommand> adjustReputation,
+    ICommandHandler<AdjustReputationsCommand> adjustReputations,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<StartFightCommand> startFight,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
@@ -89,13 +89,15 @@ internal class ResolveGuardEncounterActionCommandHandler(
             cancellationToken
         );
 
-        await adjustReputation.Handle(
-            new AdjustReputationCommand
+        await adjustReputations.Handle(
+            new AdjustReputationsCommand
             {
                 CreatureId = command.PlayerId,
-                TargetIds = [command.CityFactionId],
+                Adjustments =
+                [
+                    new ReputationAdjustment(command.CityFactionId, -command.ReputationScore),
+                ],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = -command.ReputationScore,
                 Reason = ReputationReason.PaidFineToGuard,
                 Detail = $"Paid a {command.FineAmount} gold fine to the city guard",
             },
@@ -164,13 +166,12 @@ internal class ResolveGuardEncounterActionCommandHandler(
         var options = guardEncounterOptions.CurrentValue;
         var restoreAmount = options.ReputationThreshold + 1 - command.ReputationScore;
 
-        await adjustReputation.Handle(
-            new AdjustReputationCommand
+        await adjustReputations.Handle(
+            new AdjustReputationsCommand
             {
                 CreatureId = command.PlayerId,
-                TargetIds = [command.CityFactionId],
+                Adjustments = [new ReputationAdjustment(command.CityFactionId, restoreAmount)],
                 TargetType = ReputationTargetType.Faction,
-                DeltaScore = restoreAmount,
                 Reason = ReputationReason.ServedJailTime,
                 Detail = $"Served a {command.JailHours}-hour jail sentence",
             },

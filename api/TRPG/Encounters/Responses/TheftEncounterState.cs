@@ -5,7 +5,7 @@ namespace TRPG.Encounters.Responses;
 [TranspilationSource]
 public record TheftEncounterState(
     Guid EncounterId,
-    string OwnerName,
+    string ConfrontingName,
     IReadOnlyCollection<string> ItemNames,
     IReadOnlyCollection<string> AllowedActions
 );

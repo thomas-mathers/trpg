@@ -16,7 +16,7 @@ import { TheftEncounterDialog } from './theft-encounter-dialog';
 
 const encounter: TheftEncounterState = {
   encounterId: 'encounter-id',
-  ownerName: 'Tessa',
+  confrontingName: 'Tessa',
   itemNames: ['Silver necklace'],
   allowedActions: ['Apologize', 'Fight'],
 };
@@ -80,7 +80,7 @@ async function resolveEncounter() {
   gameEventBus.emit('TheftEncounterResolved', {
     encounterId: encounter.encounterId,
     outcome: 'Apologized',
-    ownerName: encounter.ownerName,
+    confrontingName: encounter.confrontingName,
     itemNames: encounter.itemNames,
     itemsReturned: true,
   });

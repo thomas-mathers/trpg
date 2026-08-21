@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
+using TRPG.Application.Creatures;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
@@ -390,14 +391,14 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
                     LlmRoleKeys.Gameplay,
                     (_, _) => fixture.ChatClient.AsBuilder().UseFunctionInvocation().Build()
                 );
-                services.RemoveAll<ITheftDetectionRoller>();
-                services.AddSingleton<ITheftDetectionRoller, AlwaysDetectedTheftRoller>();
+                services.RemoveAll<IChanceRoller>();
+                services.AddSingleton<IChanceRoller, AlwaysSuccessfulChanceRoller>();
             });
         });
     }
 
-    private sealed class AlwaysDetectedTheftRoller : ITheftDetectionRoller
+    private sealed class AlwaysSuccessfulChanceRoller : IChanceRoller
     {
-        public bool IsDetected(float chance) => true;
+        public bool Roll(float chance) => true;
     }
 }

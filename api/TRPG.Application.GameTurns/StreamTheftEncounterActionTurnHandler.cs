@@ -74,7 +74,7 @@ internal class StreamTheftEncounterActionTurnHandler(
         gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
 
         return new GameTurnPrompt.Narrate(
-            $"The player chose to {DescribeAction(action)} after {resolution.OwnerName} caught them stealing. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
+            $"The player chose to {DescribeAction(action)} after {resolution.ConfrontingName} caught them stealing. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
             IncludeTools: false
         );
     }

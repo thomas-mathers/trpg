@@ -29,7 +29,7 @@ namespace TRPG.Data.Migrations
                     ORDER BY building_owner.owner_id
                     LIMIT 1
                 )
-                WHERE prop.behavior_type = 'Container' AND prop.owner_creature_id IS NULL;
+                WHERE prop.owner_creature_id IS NULL;
                 """
             );
         }

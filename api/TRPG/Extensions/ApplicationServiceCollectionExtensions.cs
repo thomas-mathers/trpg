@@ -5,7 +5,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
-using TRPG.Application.Encounters.Extensions;
+using TRPG.Application.Creatures.Extensions;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Extensions;
 using TRPG.Application.Quests.Extensions;
@@ -53,7 +53,7 @@ public static class ApplicationServiceCollectionExtensions
                     .WithTransientLifetime()
             )
             .AddTradingServices()
-            .AddEncountersServices()
+            .AddCreaturesServices()
             .AddTransient<SceneCatchUpCache>()
             .AddQuestServices()
             .AddWorldsServices()

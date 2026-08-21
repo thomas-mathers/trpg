@@ -1460,6 +1460,10 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
+                    b.Property<Guid?>("OwnerCreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_creature_id");
+
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
@@ -2144,14 +2148,14 @@ namespace TRPG.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("item_selections");
 
-                    b.Property<Guid>("OwnerCreatureId")
+                    b.Property<Guid>("ConfrontingCreatureId")
                         .HasColumnType("uuid")
-                        .HasColumnName("owner_creature_id");
+                        .HasColumnName("confronting_creature_id");
 
-                    b.Property<string>("OwnerName")
+                    b.Property<string>("ConfrontingName")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("owner_name");
+                        .HasColumnName("confronting_name");
 
                     b.Property<Guid?>("SourceOwnerId")
                         .HasColumnType("uuid")
@@ -2448,10 +2452,6 @@ namespace TRPG.Migrations
                     b.Property<Guid?>("KeyItemId")
                         .HasColumnType("uuid")
                         .HasColumnName("key_item_id");
-
-                    b.Property<Guid?>("OwnerCreatureId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("owner_creature_id");
 
                     b.Property<int?>("StorageSize")
                         .HasColumnType("integer")

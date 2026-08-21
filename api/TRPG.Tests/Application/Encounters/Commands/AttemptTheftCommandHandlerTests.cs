@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Configuration;
+using TRPG.Application.Creatures;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Inventory;
@@ -38,7 +40,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
                     }
                 )
             )
-            .AddSingleton<ITheftDetectionRoller>(new TestTheftDetectionRoller())
+            .AddSingleton<IChanceRoller>(new TestChanceRoller())
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<AttemptTheftCommandHandler>();
 
@@ -66,6 +68,23 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
     {
         await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNotTheft_WhenNoItemsAreSelected()
+    {
+        var result = await _handler.Handle(
+            new AttemptTheftCommand
+            {
+                From = new ItemOwnerReference(_player.Id, OwnerType.Creature),
+                Items = [],
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(TheftAttemptOutcome.NotTheft, result.Outcome);
     }
 
     [Fact]
@@ -127,6 +146,185 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
     }
 
     [Fact]
+    public async Task Handle_ReturnsNotTheft_WhenContainerHasNoOwner()
+    {
+        var container = Builders.MakeContainer(WorldId, _theftLocationId);
+        var item = await SeedItem(container.Id, OwnerType.Container);
+        _context.Props.Add(container);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await AttemptTheft(
+            new ItemOwnerReference(container.Id, OwnerType.Container),
+            item
+        );
+
+        Assert.Equal(TheftAttemptOutcome.NotTheft, result.Outcome);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNotTheft_WhenWorkstationHasNoOwner()
+    {
+        var workstation = Builders.MakeWorkstation(WorldId, _theftLocationId);
+        var item = await SeedItem(workstation.Id, OwnerType.Workstation);
+        _context.Props.Add(workstation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await AttemptTheft(
+            new ItemOwnerReference(workstation.Id, OwnerType.Workstation),
+            item
+        );
+
+        Assert.Equal(TheftAttemptOutcome.NotTheft, result.Outcome);
+    }
+
+    [Fact]
+    public async Task Handle_Throws_WhenOwnerTypeDoesNotMatchThePropType()
+    {
+        var container = Builders.MakeContainer(WorldId, _theftLocationId);
+        var item = await SeedItem(container.Id, OwnerType.Container);
+        _context.Props.Add(container);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            AttemptTheft(new ItemOwnerReference(container.Id, OwnerType.Workstation), item)
+        );
+
+        Assert.Equal(
+            "Owner type Workstation does not match prop type Container.",
+            exception.Message
+        );
+    }
+
+    [Fact]
+    public async Task Handle_Throws_WhenContainerOwnerDoesNotExist()
+    {
+        var container = Builders.MakeContainer(WorldId, _theftLocationId);
+        container.OwnerCreatureId = Guid.NewGuid();
+        var item = await SeedItem(container.Id, OwnerType.Container);
+        _context.Props.Add(container);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            AttemptTheft(new ItemOwnerReference(container.Id, OwnerType.Container), item)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_CreatesEncounterWithWorkstationOccupant_WhenOwnerIsAbsent()
+    {
+        var owner = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
+        var worker = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var workstation = Builders.MakeWorkstation(WorldId, _theftLocationId);
+        workstation.OwnerCreatureId = owner.Id;
+        workstation.OccupantId = worker.Id;
+        var item = await SeedItem(workstation.Id, OwnerType.Workstation);
+        _context.Creatures.AddRange(owner, worker);
+        _context.Props.Add(workstation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await AttemptTheft(
+            new ItemOwnerReference(workstation.Id, OwnerType.Workstation),
+            item
+        );
+
+        Assert.Equal(TheftAttemptOutcome.EncounterPending, result.Outcome);
+        await using var verifyContext = db.CreateContext();
+        var encounter = await verifyContext
+            .Encounters.OfType<TheftEncounter>()
+            .SingleAsync(
+                candidate => candidate.Id == result.EncounterId,
+                TestContext.Current.CancellationToken
+            );
+        var crime = await verifyContext
+            .Crimes.OfType<TheftCrime>()
+            .SingleAsync(
+                candidate => candidate.Id == encounter.TheftCrimeId,
+                TestContext.Current.CancellationToken
+            );
+
+        Assert.Equal(worker.Id, encounter.ConfrontingCreatureId);
+        Assert.Equal(worker.Name, encounter.ConfrontingName);
+        Assert.Equal(owner.Id, crime.OwnerCreatureId);
+        Assert.Equal(owner.Name, crime.OwnerName);
+    }
+
+    [Fact]
+    public async Task Handle_CreatesEncounterWithOwner_WhenOwnerAndWorkstationOccupantArePresent()
+    {
+        var owner = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var worker = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var workstation = Builders.MakeWorkstation(WorldId, _theftLocationId);
+        workstation.OwnerCreatureId = owner.Id;
+        workstation.OccupantId = worker.Id;
+        var item = await SeedItem(workstation.Id, OwnerType.Workstation);
+        _context.Creatures.AddRange(owner, worker);
+        _context.Props.Add(workstation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await AttemptTheft(
+            new ItemOwnerReference(workstation.Id, OwnerType.Workstation),
+            item
+        );
+
+        Assert.Equal(TheftAttemptOutcome.EncounterPending, result.Outcome);
+        await using var verifyContext = db.CreateContext();
+        var encounter = await verifyContext
+            .Encounters.OfType<TheftEncounter>()
+            .SingleAsync(
+                candidate => candidate.Id == result.EncounterId,
+                TestContext.Current.CancellationToken
+            );
+
+        Assert.Equal(owner.Id, encounter.ConfrontingCreatureId);
+        Assert.Equal(owner.Name, encounter.ConfrontingName);
+    }
+
+    [Fact]
+    public async Task Handle_CompletesTheftWithoutEncounter_WhenOnlyAnOrdinaryWitnessIsPresent()
+    {
+        var owner = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
+        var worker = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
+        var witness = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var workstation = Builders.MakeWorkstation(WorldId, _theftLocationId);
+        workstation.OwnerCreatureId = owner.Id;
+        workstation.OccupantId = worker.Id;
+        var item = await SeedItem(workstation.Id, OwnerType.Workstation);
+        _context.Creatures.AddRange(owner, worker, witness);
+        _context.Props.Add(workstation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await AttemptTheft(
+            new ItemOwnerReference(workstation.Id, OwnerType.Workstation),
+            item
+        );
+
+        Assert.Equal(TheftAttemptOutcome.Completed, result.Outcome);
+        await using var verifyContext = db.CreateContext();
+        var crime = await verifyContext
+            .Crimes.OfType<TheftCrime>()
+            .SingleAsync(
+                candidate => candidate.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+
+        Assert.Contains(
+            witness.Id,
+            await verifyContext
+                .CrimeWitnesses.Where(candidate => candidate.CrimeId == crime.Id)
+                .Select(candidate => candidate.CreatureId)
+                .ToArrayAsync(TestContext.Current.CancellationToken)
+        );
+        Assert.False(
+            await verifyContext
+                .Encounters.OfType<TheftEncounter>()
+                .AnyAsync(
+                    candidate => candidate.TheftCrimeId == crime.Id,
+                    TestContext.Current.CancellationToken
+                )
+        );
+    }
+
+    [Fact]
     public async Task Handle_LeavesPickpocketedItemWithOwnerAndRecordsWitnesses_WhenCaught()
     {
         // Arrange
@@ -166,7 +364,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
         Assert.Equal(owner.Id, retainedItem.Ownership.OwnerId);
         Assert.Equal(OwnerType.Creature, retainedItem.Ownership.OwnerType);
         Assert.Equal(EncounterState.Active, encounter.State);
-        Assert.Equal(owner.Id, encounter.OwnerCreatureId);
+        Assert.Equal(owner.Id, encounter.ConfrontingCreatureId);
         Assert.Equal(owner.Id, encounter.SourceOwnerId);
         Assert.Equal(OwnerType.Creature, encounter.SourceOwnerType);
         Assert.Equal(CrimeResolution.Pending, crime.Resolution);
@@ -258,8 +456,8 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
         public IDisposable? OnChange(Action<T, string?> listener) => null;
     }
 
-    private sealed class TestTheftDetectionRoller : ITheftDetectionRoller
+    private sealed class TestChanceRoller : IChanceRoller
     {
-        public bool IsDetected(float chance) => true;
+        public bool Roll(float chance) => true;
     }
 }

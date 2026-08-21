@@ -12,7 +12,7 @@ internal sealed class TheftEncounterStartedEventMapper
         new GameClientCall<TheftEncounterState>(
             new TheftEncounterState(
                 gameEvent.Encounter.Id,
-                gameEvent.Encounter.OwnerName,
+                gameEvent.Encounter.ConfrontingName,
                 gameEvent.Encounter.ItemNames.ToArray(),
                 AllowedActions
             ),

@@ -11,7 +11,7 @@ public enum TheftEncounterResolutionOutcome
 public record TheftEncounterResolutionFact(
     Guid EncounterId,
     TheftEncounterResolutionOutcome Outcome,
-    string OwnerName,
+    string ConfrontingName,
     IReadOnlyCollection<string> ItemNames,
     bool ItemsReturned
 );

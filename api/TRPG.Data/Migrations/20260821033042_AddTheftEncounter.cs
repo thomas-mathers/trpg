@@ -34,14 +34,14 @@ namespace TRPG.Data.Migrations
             );
 
             migrationBuilder.AddColumn<Guid>(
-                name: "owner_creature_id",
+                name: "confronting_creature_id",
                 table: "encounters",
                 type: "uuid",
                 nullable: true
             );
 
             migrationBuilder.AddColumn<string>(
-                name: "owner_name",
+                name: "confronting_name",
                 table: "encounters",
                 type: "text",
                 nullable: true
@@ -85,9 +85,9 @@ namespace TRPG.Data.Migrations
 
             migrationBuilder.DropColumn(name: "item_selections", table: "encounters");
 
-            migrationBuilder.DropColumn(name: "owner_creature_id", table: "encounters");
+            migrationBuilder.DropColumn(name: "confronting_creature_id", table: "encounters");
 
-            migrationBuilder.DropColumn(name: "owner_name", table: "encounters");
+            migrationBuilder.DropColumn(name: "confronting_name", table: "encounters");
 
             migrationBuilder.DropColumn(name: "source_owner_id", table: "encounters");
 

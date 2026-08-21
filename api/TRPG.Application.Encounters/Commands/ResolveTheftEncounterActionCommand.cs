@@ -95,7 +95,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
         return new TheftEncounterResolutionFact(
             encounter.Id,
             TheftEncounterResolutionOutcome.Apologized,
-            encounter.OwnerName,
+            encounter.ConfrontingName,
             encounter.ItemNames.ToArray(),
             itemsReturned
         );
@@ -113,7 +113,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
             {
-                CreatureIds = [encounter.OwnerCreatureId],
+                CreatureIds = [encounter.ConfrontingCreatureId],
                 State = CreatureState.Alerted,
             },
             cancellationToken
@@ -124,7 +124,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
                 SessionId = command.SessionId,
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                EnemyCreatureIds = [encounter.OwnerCreatureId],
+                EnemyCreatureIds = [encounter.ConfrontingCreatureId],
             },
             cancellationToken
         );
@@ -132,7 +132,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
         return new TheftEncounterResolutionFact(
             encounter.Id,
             TheftEncounterResolutionOutcome.Fought,
-            encounter.OwnerName,
+            encounter.ConfrontingName,
             encounter.ItemNames.ToArray(),
             false
         );

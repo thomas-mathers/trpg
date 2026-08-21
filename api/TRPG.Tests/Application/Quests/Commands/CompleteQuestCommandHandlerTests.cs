@@ -124,8 +124,9 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db) : IAsyn
     public async Task Handle_AppliesReputationRewards_WhenQuestIsCompleted()
     {
         // Arrange
-        var faction = Builders.MakeFaction(WorldId);
-        _context.Factions.Add(faction);
+        var firstFaction = Builders.MakeFaction(WorldId);
+        var secondFaction = Builders.MakeFaction(WorldId);
+        _context.Factions.AddRange(firstFaction, secondFaction);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var quest = Builders.MakeQuest(_giver.Id, WorldId);
@@ -145,9 +146,17 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db) : IAsyn
                 {
                     WorldId = WorldId,
                     QuestId = quest.Id,
-                    TargetId = faction.Id,
+                    TargetId = firstFaction.Id,
                     TargetType = ReputationTargetType.Faction,
                     Score = 4,
+                },
+                new QuestReputationReward
+                {
+                    WorldId = WorldId,
+                    QuestId = quest.Id,
+                    TargetId = secondFaction.Id,
+                    TargetType = ReputationTargetType.Faction,
+                    Score = 7,
                 },
             ]
         );
@@ -167,17 +176,14 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db) : IAsyn
         var reputations = await _context
             .Reputations.Where(reputation => reputation.CreatureId == _player.Id)
             .ToArrayAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(
-            10,
-            reputations
-                .Single(reputation => reputation.TargetType == ReputationTargetType.Creature)
-                .Score
-        );
+        Assert.Equal(10, reputations.Single(reputation => reputation.TargetId == _giver.Id).Score);
         Assert.Equal(
             4,
-            reputations
-                .Single(reputation => reputation.TargetType == ReputationTargetType.Faction)
-                .Score
+            reputations.Single(reputation => reputation.TargetId == firstFaction.Id).Score
+        );
+        Assert.Equal(
+            7,
+            reputations.Single(reputation => reputation.TargetId == secondFaction.Id).Score
         );
     }
 

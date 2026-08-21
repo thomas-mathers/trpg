@@ -17,7 +17,13 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
         ItemOwnerReference from,
         IReadOnlyList<ItemSelection> selections,
         CancellationToken cancellationToken = default
-    ) => _ = await ValidateTransfer(from, selections, cancellationToken);
+    ) =>
+        _ = await GetValidatedTransferItems(
+            from,
+            selections,
+            context.Items.AsNoTracking(),
+            cancellationToken
+        );
 
     public async Task<IReadOnlyCollection<InventoryItemTransferResult>> Transfer(
         ItemOwnerReference from,
@@ -26,15 +32,21 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
         CancellationToken cancellationToken = default
     )
     {
-        var transferItems = await ValidateTransfer(from, selections, cancellationToken);
+        var transferItems = await GetValidatedTransferItems(
+            from,
+            selections,
+            context.Items,
+            cancellationToken
+        );
         var results = await MoveItems(transferItems, to, cancellationToken);
         await RecalculateSourceAttributes(from, cancellationToken);
         return results;
     }
 
-    private async Task<IReadOnlyCollection<TransferItem>> ValidateTransfer(
+    private async Task<IReadOnlyCollection<TransferItem>> GetValidatedTransferItems(
         ItemOwnerReference from,
         IReadOnlyList<ItemSelection> selections,
+        IQueryable<Item> items,
         CancellationToken cancellationToken
     )
     {
@@ -42,8 +54,8 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
             .GroupBy(selection => selection.ItemId)
             .ToDictionary(group => group.Key, group => group.Sum(selection => selection.Quantity));
 
-        var itemsById = await context
-            .Items.Where(item => quantitiesByItemId.Keys.AsEnumerable().Contains(item.Id))
+        var itemsById = await items
+            .Where(item => quantitiesByItemId.Keys.AsEnumerable().Contains(item.Id))
             .ToDictionaryAsync(item => item.Id, cancellationToken);
 
         var missingItemIds = quantitiesByItemId.Keys.Except(itemsById.Keys).ToArray();

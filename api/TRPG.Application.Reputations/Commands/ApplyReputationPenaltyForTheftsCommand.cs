@@ -15,7 +15,7 @@ public class ApplyReputationPenaltyForTheftsCommand
 
 internal class ApplyReputationPenaltyForTheftsCommandHandler(
     TrpgDbContext context,
-    ICommandHandler<AdjustReputationCommand> adjustReputation,
+    ICommandHandler<AdjustReputationsCommand> adjustReputations,
     IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICommandHandler<ApplyReputationPenaltyForTheftsCommand>
 {
@@ -48,20 +48,18 @@ internal class ApplyReputationPenaltyForTheftsCommandHandler(
                     )
             );
 
-        foreach (var (factionId, penalty) in penaltyByFactionId)
-        {
-            await adjustReputation.Handle(
-                new AdjustReputationCommand
-                {
-                    CreatureId = command.PlayerId,
-                    TargetIds = [factionId],
-                    TargetType = ReputationTargetType.Faction,
-                    DeltaScore = penalty,
-                    Reason = ReputationReason.StoleFromFactionMember,
-                    Detail = "Witnessed theft",
-                },
-                cancellationToken
-            );
-        }
+        await adjustReputations.Handle(
+            new AdjustReputationsCommand
+            {
+                CreatureId = command.PlayerId,
+                Adjustments = penaltyByFactionId
+                    .Select(pair => new ReputationAdjustment(pair.Key, pair.Value))
+                    .ToArray(),
+                TargetType = ReputationTargetType.Faction,
+                Reason = ReputationReason.StoleFromFactionMember,
+                Detail = "Witnessed theft",
+            },
+            cancellationToken
+        );
     }
 }

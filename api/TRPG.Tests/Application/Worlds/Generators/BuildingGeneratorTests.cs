@@ -8,33 +8,28 @@ public class BuildingGeneratorTests
     private readonly Guid _worldId = Guid.NewGuid();
 
     [Fact]
-    public void Generate_AssignsOwnerToEveryContainer_WhenBuildingHasAnOwner()
+    public void Generate_AssignsOwnerToEveryProp_WhenBuildingHasAnOwner()
     {
         // Arrange
         var ownerCreatureId = Guid.NewGuid();
 
         // Act
         var result = GenerateBuilding(ownerCreatureId);
-        var containers = result.Props.OfType<Container>().ToArray();
 
         // Assert
-        Assert.NotEmpty(containers);
-        Assert.All(
-            containers,
-            container => Assert.Equal(ownerCreatureId, container.OwnerCreatureId)
-        );
+        Assert.NotEmpty(result.Props);
+        Assert.All(result.Props, prop => Assert.Equal(ownerCreatureId, prop.OwnerCreatureId));
     }
 
     [Fact]
-    public void Generate_LeavesContainersUnowned_WhenBuildingHasNoOwner()
+    public void Generate_LeavesPropsUnowned_WhenBuildingHasNoOwner()
     {
         // Act
         var result = GenerateBuilding(ownerCreatureId: null);
-        var containers = result.Props.OfType<Container>().ToArray();
 
         // Assert
-        Assert.NotEmpty(containers);
-        Assert.All(containers, container => Assert.Null(container.OwnerCreatureId));
+        Assert.NotEmpty(result.Props);
+        Assert.All(result.Props, prop => Assert.Null(prop.OwnerCreatureId));
     }
 
     private BuildingGeneratorResult GenerateBuilding(Guid? ownerCreatureId)

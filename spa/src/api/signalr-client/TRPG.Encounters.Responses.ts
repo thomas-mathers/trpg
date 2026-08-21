@@ -93,7 +93,7 @@ export type TheftEncounterResolutionFact = {
     /** Transpiled from TRPG.Encounters.Responses.TheftEncounterResolutionOutcome */
     outcome: TheftEncounterResolutionOutcome;
     /** Transpiled from string */
-    ownerName: string;
+    confrontingName: string;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
     itemNames: string[];
     /** Transpiled from bool */
@@ -105,7 +105,7 @@ export type TheftEncounterState = {
     /** Transpiled from System.Guid */
     encounterId: string;
     /** Transpiled from string */
-    ownerName: string;
+    confrontingName: string;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
     itemNames: string[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
