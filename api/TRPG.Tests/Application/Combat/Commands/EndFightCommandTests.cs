@@ -55,10 +55,57 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
 
     private async Task<FightEncounter> SeedFight()
     {
-        var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
+        var fight = new FightEncounter
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = _player.LocationId,
+            CombatantIds = [_player.Id, _enemy.Id],
+        };
         _context.Encounters.Add(fight);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return fight;
+    }
+
+    [Fact]
+    public async Task Handle_RecordsLivingBystandersAsKillWitnesses_WhenPlayerKillsAnEnemy()
+    {
+        // Arrange
+        var bystander = Builders.MakeCreature(WorldId, locationId: _player.LocationId);
+        _context.Creatures.Add(bystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Victory,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new EndFightCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var crime = await verifyContext
+            .Crimes.OfType<KillCrime>()
+            .SingleAsync(item => item.VictimId == _enemy.Id, TestContext.Current.CancellationToken);
+        var witness = await verifyContext.CrimeWitnesses.SingleAsync(
+            item => item.CrimeId == crime.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_enemy.Id, crime.VictimId);
+        Assert.Equal(bystander.Id, witness.CreatureId);
+        Assert.Equal(crime.Id, witness.CrimeId);
     }
 
     private CombatantResult MakeCombatantState(

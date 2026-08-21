@@ -11,14 +11,14 @@ internal static class CreatureLocationFiltering
 {
     public static IQueryable<Creature> ApplyFilters(
         IQueryable<Creature> query,
-        Guid? excludingCreatureId,
+        IReadOnlyCollection<Guid> excludedCreatureIds,
         IReadOnlyCollection<CreatureType>? creatureTypes,
         bool includeDead
     )
     {
-        if (excludingCreatureId is not null)
+        if (excludedCreatureIds.Count > 0)
         {
-            query = query.Where(p => p.Id != excludingCreatureId);
+            query = query.Where(p => !excludedCreatureIds.AsEnumerable().Contains(p.Id));
         }
 
         if (creatureTypes is not null)
@@ -81,6 +81,7 @@ public class GetCreaturesAtLocationQuery
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
     public Guid? ExcludingCreatureId { get; init; }
+    public IReadOnlyCollection<Guid> ExcludedCreatureIds { get; init; } = [];
     public IReadOnlyCollection<CreatureType>? CreatureTypes { get; init; }
     public bool IncludeDead { get; init; } = true;
 }
@@ -99,7 +100,9 @@ internal class GetCreaturesAtLocationQueryHandler(TrpgDbContext context)
 
         creatureQuery = CreatureLocationFiltering.ApplyFilters(
             creatureQuery,
-            query.ExcludingCreatureId,
+            query.ExcludingCreatureId is { } excludingCreatureId
+                ? [excludingCreatureId, .. query.ExcludedCreatureIds]
+                : query.ExcludedCreatureIds,
             query.CreatureTypes,
             query.IncludeDead
         );

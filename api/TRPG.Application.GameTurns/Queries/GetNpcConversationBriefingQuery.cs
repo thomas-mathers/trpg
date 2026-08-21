@@ -51,11 +51,14 @@ public record NpcConversationDurableFact(int Id, string Text);
 
 public record NpcConversationOpenThread(int Id, string Text);
 
+public record NpcConversationObservedCrime(string Text);
+
 public record NpcConversationHistoryResult(
     string Summary,
     IReadOnlyCollection<NpcConversationRecord> Recent,
     IReadOnlyCollection<NpcConversationDurableFact> DurableFacts,
-    IReadOnlyCollection<NpcConversationOpenThread> OpenThreads
+    IReadOnlyCollection<NpcConversationOpenThread> OpenThreads,
+    IReadOnlyCollection<NpcConversationObservedCrime> ObservedCrimes
 );
 
 public record NpcConversationQuest(string Name);
@@ -134,6 +137,7 @@ internal class GetNpcConversationBriefingQueryHandler(
 
         var attitude = await GetAttitude(query, profile, cancellationToken);
         var quests = await GetQuests(query, cancellationToken);
+        var observedCrimes = await GetObservedCrimes(query, cancellationToken);
 
         return new NpcConversationBriefing(
             new NpcConversationIdentity(
@@ -175,7 +179,8 @@ internal class GetNpcConversationBriefingQueryHandler(
                     history?.Summary ?? "",
                     recent,
                     ToActiveFacts(history),
-                    ToActiveThreads(history)
+                    ToActiveThreads(history),
+                    observedCrimes
                 ),
                 quests
             )
@@ -197,6 +202,36 @@ internal class GetNpcConversationBriefingQueryHandler(
                 .OpenThreads.Where(thread => !thread.IsResolved)
                 .Select((thread, index) => new NpcConversationOpenThread(index + 1, thread.Text))
                 .ToArray();
+
+    private async Task<NpcConversationObservedCrime[]> GetObservedCrimes(
+        GetNpcConversationBriefingQuery query,
+        CancellationToken cancellationToken
+    ) =>
+        await context
+            .CrimeWitnesses.AsNoTracking()
+            .Where(witness =>
+                witness.WorldId == query.WorldId
+                && witness.CreatureId == query.NpcId
+                && witness.Resolution != CrimeWitnessResolution.Silenced
+            )
+            .Join(
+                context.Crimes.OfType<KillCrime>().AsNoTracking(),
+                witness => witness.CrimeId,
+                crime => crime.Id,
+                (witness, crime) =>
+                    new
+                    {
+                        crime.PlayerId,
+                        crime.VictimName,
+                        crime.OccurredAt,
+                    }
+            )
+            .Where(crime => crime.PlayerId == query.PlayerId)
+            .OrderByDescending(crime => crime.OccurredAt)
+            .Select(crime => new NpcConversationObservedCrime(
+                $"You witnessed the player kill {crime.VictimName}."
+            ))
+            .ToArrayAsync(cancellationToken);
 
     private async Task<NpcConversationAttitude> GetAttitude(
         GetNpcConversationBriefingQuery query,

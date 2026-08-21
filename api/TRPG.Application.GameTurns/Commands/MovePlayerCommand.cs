@@ -17,6 +17,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
@@ -61,6 +62,7 @@ internal class MovePlayerCommandHandler(
     > getCreatureIdsHoldingItems,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<DeleteCreaturesCommand> deleteCreatures,
+    ICommandHandler<ResolveKillCrimesCommand> resolveKillCrimes,
     IQueryHandler<GetBuildingByNameAtLocationQuery, Building?> getBuildingByNameAtLocation,
     IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
     IQueryHandler<
@@ -120,6 +122,15 @@ internal class MovePlayerCommandHandler(
             return new MovePlayerResult(outcome, player);
         }
 
+        await resolveKillCrimes.Handle(
+            new ResolveKillCrimesCommand
+            {
+                WorldId = player.WorldId,
+                PlayerId = player.Id,
+                LocationId = oldLocationId,
+            },
+            cancellationToken
+        );
         await CleanUpDeadCreatures(player, oldLocationId, cancellationToken);
         await BustAlertedCreaturesCache(
             player,
