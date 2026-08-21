@@ -24,4 +24,6 @@ public interface IGameClient
     Task QuestDialogRequested(QuestDialogRequested questDialog);
     Task QuestObjectiveCompleted(QuestObjectiveCompleted objective);
     Task QuestJournalUpdated();
+    Task CrimeWitnessed(CrimeNotification notification);
+    Task CrimeWitnessesRemoved(CrimeNotification notification);
 }

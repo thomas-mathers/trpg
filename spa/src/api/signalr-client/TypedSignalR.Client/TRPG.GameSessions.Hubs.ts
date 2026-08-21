@@ -3,7 +3,7 @@
 /* tslint:disable */
 // @ts-nocheck
 import type { IStreamResult, Subject } from '@microsoft/signalr';
-import type { SceneSnapshot } from '../TRPG.GameSessions.Responses';
+import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -166,5 +166,15 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     questJournalUpdated(): Promise<void>;
+    /**
+    * @param notification Transpiled from TRPG.GameSessions.Responses.CrimeNotification
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    crimeWitnessed(notification: CrimeNotification): Promise<void>;
+    /**
+    * @param notification Transpiled from TRPG.GameSessions.Responses.CrimeNotification
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    crimeWitnessesRemoved(notification: CrimeNotification): Promise<void>;
 }
 

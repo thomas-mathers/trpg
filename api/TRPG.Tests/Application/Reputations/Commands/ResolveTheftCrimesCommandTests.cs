@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.Reputations.Commands;
+using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -135,6 +136,10 @@ public sealed class ResolveTheftCrimesCommandTests(DatabaseFixture db) : IAsyncL
         );
         Assert.Equal(CrimeResolution.Unreported, persistedCrime!.Resolution);
         Assert.Equal(CrimeWitnessResolution.Dead, persistedWitness.Resolution);
+        Assert.Contains(
+            _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
+            gameEvent => gameEvent == new CrimeWitnessesRemovedEvent(CrimeKind.Theft)
+        );
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.Reputations.Commands;
+using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -107,6 +108,54 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
         Assert.Equal(CrimeWitnessResolution.Reported, witnesses[movedWitness.Id]);
         Assert.Equal(CrimeWitnessResolution.Dead, witnesses[deadWitness.Id]);
         Assert.Equal(-31, log.DeltaScore);
+    }
+
+    [Fact]
+    public async Task Handle_EnqueuesRemovedWitnessesNotification_WhenAllKillWitnessesAreDead()
+    {
+        // Arrange
+        var victim = Builders.MakeCreature(WorldId, locationId: LocationId);
+        var witness = Builders.MakeCreature(
+            WorldId,
+            locationId: LocationId,
+            state: CreatureState.Dead
+        );
+        var crime = new KillCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = LocationId,
+            VictimId = victim.Id,
+            VictimName = victim.Name,
+        };
+        _context.Creatures.AddRange(victim, witness);
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(
+            new CrimeWitness
+            {
+                WorldId = WorldId,
+                CrimeId = crime.Id,
+                CreatureId = witness.Id,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ResolveKillCrimesCommand
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                LocationId = LocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Contains(
+            _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
+            gameEvent => gameEvent == new CrimeWitnessesRemovedEvent(CrimeKind.Killing)
+        );
     }
 
     private sealed class TestOptionsMonitor<T>(T value) : IOptionsMonitor<T>

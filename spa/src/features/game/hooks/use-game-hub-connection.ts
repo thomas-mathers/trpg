@@ -114,6 +114,9 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       questObjectiveCompleted: async (objective) =>
         gameEventBus.emit('QuestObjectiveCompleted', objective),
       questJournalUpdated: async () => gameEventBus.emit('QuestJournalUpdated'),
+      crimeWitnessed: async (notification) => gameEventBus.emit('CrimeWitnessed', notification),
+      crimeWitnessesRemoved: async (notification) =>
+        gameEventBus.emit('CrimeWitnessesRemoved', notification),
     };
     const receiverSubscription = getReceiverRegister('IGameClient').register(
       connection,

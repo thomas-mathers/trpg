@@ -47,6 +47,16 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 
 Keep this section in sync: when a change adds, removes, or moves a top-level project, a feature folder, or alters one of the flows above, update this section in the same commit. This section is structural only (project/folder map, request-flow shapes) — it should rarely need touching for ordinary feature work, which is exactly why it's worth keeping accurate.
 
+### Gameplay workflows
+- Trace a player action end-to-end before coding: UI submission, command validation, mutation, resulting events, narration, and follow-up UI state. A command result should make the next workflow step explicit.
+- Validate the operation's domain/source before generic validation that assumes it is authorized or meaningful. Keep validation before mutation, but do not force every rule into a command validator.
+- Keep stable ownership, current occupancy/assignment, and historical attribution distinct. Choose the field whose lifecycle matches the rule rather than inferring a live actor from a static assignment.
+- Make materially different domain variants explicit. Prefer a small dispatcher with descriptive variant-specific helpers to an abstraction that hides different rules.
+- Persist deterministic gameplay facts in gameplay-owned storage, separate from LLM-authored conversation memory. Store enough immutable context to resolve later consequences without reconstructing the past scene.
+- Name persisted states for the fact they represent, not an assumed cause. Aggregate consequences at their intended domain level rather than multiplying them per witness.
+- For cross-layer workflows, cover the critical seams: command outcome, event/transport mapping, and UI handoff. Exercise both outcomes of probabilistic or stateful branches through deterministic seams.
+- When a design review asks for a proposal or plan before edits, stop at the proposal until the shape is agreed.
+
 ---
 
 ## SPA

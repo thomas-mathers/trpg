@@ -2,6 +2,12 @@
 /* eslint-disable */
 /* tslint:disable */
 
+/** Transpiled from TRPG.GameSessions.Responses.CrimeNotification */
+export type CrimeNotification = {
+    /** Transpiled from string */
+    crimeName: string;
+}
+
 /** Transpiled from TRPG.GameSessions.Responses.CreatureType */
 export type CreatureType = "Human" | "Elf" | "Dwarf" | "Orc" | "Halfling" | "Gnome" | "Undead" | "Demon" | "Beast" | "Construct" | "Elemental" | "Goblin" | "Wraith" | "Giant" | "Dragon";
 

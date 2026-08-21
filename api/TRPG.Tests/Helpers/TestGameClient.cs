@@ -23,6 +23,8 @@ internal sealed class TestGameClient : IGameClient
     public Action<QuestDialogRequested>? OnQuestDialogRequested { get; set; }
     public Action<QuestObjectiveCompleted>? OnQuestObjectiveCompleted { get; set; }
     public Action? OnQuestJournalUpdated { get; set; }
+    public Action<CrimeNotification>? OnCrimeWitnessed { get; set; }
+    public Action<CrimeNotification>? OnCrimeWitnessesRemoved { get; set; }
 
     public Task SceneSnapshot(SceneSnapshot snapshot)
     {
@@ -105,6 +107,18 @@ internal sealed class TestGameClient : IGameClient
     public Task QuestJournalUpdated()
     {
         OnQuestJournalUpdated?.Invoke();
+        return Task.CompletedTask;
+    }
+
+    public Task CrimeWitnessed(CrimeNotification notification)
+    {
+        OnCrimeWitnessed?.Invoke(notification);
+        return Task.CompletedTask;
+    }
+
+    public Task CrimeWitnessesRemoved(CrimeNotification notification)
+    {
+        OnCrimeWitnessesRemoved?.Invoke(notification);
         return Task.CompletedTask;
     }
 }
