@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Events;
-using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -16,8 +14,7 @@ public class ResolveTheftCrimesCommand
 
 internal class ResolveTheftCrimesCommandHandler(
     TrpgDbContext context,
-    ICommandHandler<ApplyReputationPenaltyForTheftsCommand> applyReputationPenaltyForThefts,
-    IGameClientEventSink gameEvents
+    ICommandHandler<ApplyReputationPenaltyForTheftsCommand> applyReputationPenaltyForThefts
 ) : ICommandHandler<ResolveTheftCrimesCommand>
 {
     public async Task Handle(
@@ -98,16 +95,5 @@ internal class ResolveTheftCrimesCommandHandler(
         }
 
         await context.SaveChangesAsync(cancellationToken);
-
-        var hasCrimeWithNoLivingWitnesses = crimes.Any(crime =>
-        {
-            var crimeWitnesses = witnesses.Where(witness => witness.CrimeId == crime.Id);
-            return crimeWitnesses.Any()
-                && crimeWitnesses.All(witness => witness.Resolution == CrimeWitnessResolution.Dead);
-        });
-        if (hasCrimeWithNoLivingWitnesses)
-        {
-            gameEvents.Enqueue(new CrimeWitnessesRemovedEvent(CrimeKind.Theft));
-        }
     }
 }

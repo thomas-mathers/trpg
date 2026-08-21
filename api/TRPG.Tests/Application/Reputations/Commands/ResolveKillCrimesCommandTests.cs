@@ -115,7 +115,7 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
-    public async Task Handle_EnqueuesRemovedWitnessesNotification_WhenAllKillWitnessesAreDead()
+    public async Task Handle_DoesNotEnqueueRemovedWitnessesNotification_WhenAllKillWitnessesAreDead()
     {
         // Arrange
         var victim = Builders.MakeCreature(WorldId, locationId: LocationId);
@@ -156,9 +156,9 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.Contains(
+        Assert.DoesNotContain(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent == new CrimeWitnessesRemovedEvent(CrimeKind.Killing)
+            gameEvent => gameEvent is CrimeWitnessesRemovedEvent
         );
     }
 

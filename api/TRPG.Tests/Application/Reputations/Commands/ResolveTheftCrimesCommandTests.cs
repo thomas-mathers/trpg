@@ -136,9 +136,9 @@ public sealed class ResolveTheftCrimesCommandTests(DatabaseFixture db) : IAsyncL
         );
         Assert.Equal(CrimeResolution.Unreported, persistedCrime!.Resolution);
         Assert.Equal(CrimeWitnessResolution.Dead, persistedWitness.Resolution);
-        Assert.Contains(
+        Assert.DoesNotContain(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent == new CrimeWitnessesRemovedEvent(CrimeKind.Theft)
+            gameEvent => gameEvent is CrimeWitnessesRemovedEvent
         );
     }
 
