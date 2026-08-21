@@ -1,8 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Serialization;
+using TRPG.Application.Configuration;
+using TRPG.Application.Encounters;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Inventory.Requests;
@@ -72,18 +80,24 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
                 new OwnerReferenceRequest(_toCreature.Id, OwnerType.Creature),
                 [new ItemSelection(item.Id, 1)]
             ),
-            routeValues: new { playerId = _toCreature.Id },
+            routeValues: new { playerId = _fromCreature.Id },
             cancellationToken: TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await _client.ReadContentFromJsonAsync<InventoryTransferResponse>(
+            response,
+            TestContext.Current.CancellationToken
+        );
         await using var verifyScope = fixture.CreateScope();
         var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var movedItem = await verifyContext.Items.SingleAsync(
             i => i.Id == item.Id,
             cancellationToken: TestContext.Current.CancellationToken
         );
+        Assert.NotNull(result);
+        Assert.Null(result.TheftEncounterId);
         Assert.Equal(_toCreature.Id, movedItem.Ownership.OwnerId);
     }
 
@@ -180,13 +194,19 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         );
 
         // Assert
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await _client.ReadContentFromJsonAsync<InventoryTransferResponse>(
+            response,
+            TestContext.Current.CancellationToken
+        );
         await using var verifyScope = fixture.CreateScope();
         var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var movedItem = await verifyContext.Items.SingleAsync(
             i => i.Id == item.Id,
             cancellationToken: TestContext.Current.CancellationToken
         );
+        Assert.NotNull(result);
+        Assert.Null(result.TheftEncounterId);
         Assert.Equal(_toCreature.Id, movedItem.Ownership.OwnerId);
         Assert.Equal(OwnerType.Creature, movedItem.Ownership.OwnerType);
     }
@@ -264,6 +284,48 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
     }
 
     [Fact]
+    public async Task Transfer_ReturnsTheftEncounterId_WhenTheftIsCaught()
+    {
+        // Arrange
+        var owner = Builders.MakeCreature(_worldId, locationId: LocationId);
+        var item = Builders.MakeWeapon(_worldId);
+        item.Quantity = 1;
+        item.Ownership.OwnerId = owner.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            context.Creatures.Add(owner);
+            context.Items.Add(item);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        using var caughtTheftFactory = CreateCaughtTheftFactory();
+        using var caughtTheftClient = caughtTheftFactory.CreateClient();
+
+        // Act
+        var response = await caughtTheftClient.PostAsJsonAsync(
+            $"/players/{_toCreature.Id}/inventory-transfers",
+            new InventoryTransferRequest(
+                new OwnerReferenceRequest(owner.Id, OwnerType.Creature),
+                new OwnerReferenceRequest(_toCreature.Id, OwnerType.Creature),
+                [new ItemSelection(item.Id, 1)]
+            ),
+            TrpgJsonOptions.Default,
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<InventoryTransferResponse>(
+            TrpgJsonOptions.Default,
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(result);
+        Assert.NotNull(result.TheftEncounterId);
+    }
+
+    [Fact]
     public async Task GetContainerInventory_ReturnsItemsOwnedByContainer()
     {
         // Arrange
@@ -294,5 +356,48 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         Assert.NotNull(result);
         var itemDetail = Assert.Single(result.Items);
         Assert.Equal(item.Id, itemDetail.ItemId);
+    }
+
+    private WebApplicationFactory<Program> CreateCaughtTheftFactory()
+    {
+        using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var connectionString = context.Database.GetConnectionString();
+
+        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration(
+                (_, configuration) =>
+                    configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["ConnectionStrings:Trpg"] = connectionString,
+                        }
+                    )
+            );
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<DbContextOptions<TrpgDbContext>>();
+                services.AddDbContext<TrpgDbContext>(options =>
+                    options.UseNpgsql(connectionString)
+                );
+                services.RemoveAll<IChatClient>();
+                services.AddKeyedSingleton<IChatClient>(
+                    LlmRoleKeys.WorldGeneration,
+                    fixture.ChatClient
+                );
+                services.AddKeyedSingleton<IChatClient>(
+                    LlmRoleKeys.Gameplay,
+                    (_, _) => fixture.ChatClient.AsBuilder().UseFunctionInvocation().Build()
+                );
+                services.RemoveAll<ITheftDetectionRoller>();
+                services.AddSingleton<ITheftDetectionRoller, AlwaysDetectedTheftRoller>();
+            });
+        });
+    }
+
+    private sealed class AlwaysDetectedTheftRoller : ITheftDetectionRoller
+    {
+        public bool IsDetected(float chance) => true;
     }
 }

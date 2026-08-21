@@ -31,6 +31,26 @@ public class KillCrime : Crime
     public string VictimName { get; init; } = "";
 }
 
+public enum TheftCrimeOutcome
+{
+    Taken,
+    Apologized,
+    Resisted,
+}
+
+public class TheftCrime : Crime
+{
+    public Guid? OwnerFactionId { get; init; }
+    public Guid OwnerCreatureId { get; init; }
+    public string OwnerName { get; init; } = "";
+    public List<TheftCrimeItem> Items { get; init; } = [];
+    public TheftCrimeOutcome? Outcome { get; set; }
+    public Guid SourceOwnerId { get; init; }
+    public OwnerType SourceOwnerType { get; init; }
+}
+
+public record TheftCrimeItem(string Name, int Quantity);
+
 public class CrimeWitness
 {
     public Guid Id { get; init; } = Guid.NewGuid();

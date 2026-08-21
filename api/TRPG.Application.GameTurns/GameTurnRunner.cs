@@ -11,6 +11,8 @@ public class GameTurnRunner
     private readonly StreamFleeTurnHandler _streamFleeTurn;
     private readonly StreamHostileEncounterActionTurnHandler _streamHostileEncounterActionTurn;
     private readonly StreamGuardEncounterActionTurnHandler _streamGuardEncounterActionTurn;
+    private readonly StreamTheftEncounterNarrationTurnHandler _streamTheftEncounterNarrationTurn;
+    private readonly StreamTheftEncounterActionTurnHandler _streamTheftEncounterActionTurn;
     private readonly ResolveCombatActionHandler _resolveCombatAction;
 
     internal GameTurnRunner(
@@ -20,6 +22,8 @@ public class GameTurnRunner
         StreamFleeTurnHandler streamFleeTurn,
         StreamHostileEncounterActionTurnHandler streamHostileEncounterActionTurn,
         StreamGuardEncounterActionTurnHandler streamGuardEncounterActionTurn,
+        StreamTheftEncounterNarrationTurnHandler streamTheftEncounterNarrationTurn,
+        StreamTheftEncounterActionTurnHandler streamTheftEncounterActionTurn,
         ResolveCombatActionHandler resolveCombatAction
     )
     {
@@ -29,6 +33,8 @@ public class GameTurnRunner
         _streamFleeTurn = streamFleeTurn;
         _streamHostileEncounterActionTurn = streamHostileEncounterActionTurn;
         _streamGuardEncounterActionTurn = streamGuardEncounterActionTurn;
+        _streamTheftEncounterNarrationTurn = streamTheftEncounterNarrationTurn;
+        _streamTheftEncounterActionTurn = streamTheftEncounterActionTurn;
         _resolveCombatAction = resolveCombatAction;
     }
 
@@ -66,6 +72,18 @@ public class GameTurnRunner
         GuardEncounterAction action,
         CancellationToken cancellationToken = default
     ) => _streamGuardEncounterActionTurn.Handle(session, action, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamTheftEncounterNarration(
+        GameTurnSession session,
+        Guid encounterId,
+        CancellationToken cancellationToken = default
+    ) => _streamTheftEncounterNarrationTurn.Handle(session, encounterId, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamTheftEncounterAction(
+        GameTurnSession session,
+        TheftEncounterAction action,
+        CancellationToken cancellationToken = default
+    ) => _streamTheftEncounterActionTurn.Handle(session, action, cancellationToken);
 
     public Task ResolveCombatAction(
         GameTurnSession session,

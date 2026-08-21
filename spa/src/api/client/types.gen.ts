@@ -251,6 +251,10 @@ export type InventoryTransferRequest = {
     items: Array<ItemSelection>;
 };
 
+export type InventoryTransferResponse = {
+    theftEncounterId: null | string;
+};
+
 export type ItemDetail = ({
     $type: 'Weapon';
 } & ItemDetailWeaponDetail) | ({
@@ -636,7 +640,7 @@ export type SetQuestTrackingRequest = {
     isTracked: boolean;
 };
 
-export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Destruction' | 'Illusion' | 'Archery' | 'Restoration' | 'Alteration' | 'General' | 'Blocking';
+export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Pickpocketing' | 'Destruction' | 'Illusion' | 'Archery' | 'Restoration' | 'Alteration' | 'General' | 'Blocking';
 
 export type SkillProgressSummary = {
     skill: Skill;
@@ -1208,15 +1212,19 @@ export type TransferInventoryErrors = {
      * Not Found
      */
     404: unknown;
+    /**
+     * Conflict
+     */
+    409: ProblemDetails;
 };
 
 export type TransferInventoryError = TransferInventoryErrors[keyof TransferInventoryErrors];
 
 export type TransferInventoryResponses = {
     /**
-     * No Content
+     * OK
      */
-    204: void;
+    200: InventoryTransferResponse;
 };
 
 export type TransferInventoryResponse = TransferInventoryResponses[keyof TransferInventoryResponses];

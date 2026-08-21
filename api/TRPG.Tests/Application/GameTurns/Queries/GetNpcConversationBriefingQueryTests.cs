@@ -377,4 +377,38 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         Assert.Equal(ready.Name, Assert.Single(result.RuntimeState.Quests.ReadyToComplete).Name);
         Assert.Equal(completed.Name, Assert.Single(result.RuntimeState.Quests.Completed).Name);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsPendingWitnessedTheftAsAnObservedCrime()
+    {
+        // Arrange
+        var crime = new TheftCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = _npc.LocationId,
+            OwnerCreatureId = Guid.NewGuid(),
+            OwnerName = "Mara",
+            Outcome = TheftCrimeOutcome.Taken,
+            SourceOwnerId = Guid.NewGuid(),
+            SourceOwnerType = OwnerType.Container,
+        };
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(
+            new CrimeWitness
+            {
+                WorldId = WorldId,
+                CrimeId = crime.Id,
+                CreatureId = _npc.Id,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var observedCrime = Assert.Single(result.RuntimeState.ConversationHistory.ObservedCrimes);
+        Assert.Equal("You witnessed the player steal from Mara.", observedCrime.Text);
+    }
 }

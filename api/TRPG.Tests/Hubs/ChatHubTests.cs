@@ -179,6 +179,43 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
     }
 
+    private async Task<(TheftEncounter Encounter, Creature Owner)> SeedActiveTheftEncounter()
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+
+        var owner = Builders.MakeCreature(_worldId, name: "Mara", locationId: _locationId);
+        var crime = new TheftCrime
+        {
+            WorldId = _worldId,
+            PlayerId = _playerId,
+            LocationId = _locationId,
+            OwnerCreatureId = owner.Id,
+            OwnerName = owner.Name,
+            SourceOwnerId = owner.Id,
+            SourceOwnerType = OwnerType.Creature,
+            Items = [new TheftCrimeItem("Silver Ring", 1)],
+        };
+        var encounter = new TheftEncounter
+        {
+            WorldId = _worldId,
+            PlayerId = _playerId,
+            LocationId = _locationId,
+            TheftCrimeId = crime.Id,
+            OwnerCreatureId = owner.Id,
+            OwnerName = owner.Name,
+            SourceOwnerId = owner.Id,
+            SourceOwnerType = OwnerType.Creature,
+            ItemNames = ["Silver Ring"],
+        };
+        context.Creatures.Add(owner);
+        context.Crimes.Add(crime);
+        context.Encounters.Add(encounter);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return (encounter, owner);
+    }
+
     [Fact]
     public async Task Connect_Succeeds_WhenNoOtherConnectionIsActiveForTheWorld()
     {
@@ -716,6 +753,80 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Assert
         var world = await GetWorld();
         Assert.True(world.Playtime > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task StartTheftEncounterNarration_NarratesAndPublishesTheEncounter()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        var initialSceneReceived = new TaskCompletionSource<SceneSnapshot>();
+        var encounterStarted =
+            new TaskCompletionSource<TRPG.Encounters.Responses.TheftEncounterState>();
+        connection.Register<IGameClient>(
+            new TestGameClient
+            {
+                OnSceneSnapshot = snapshot => initialSceneReceived.TrySetResult(snapshot),
+                OnTheftEncounterStarted = state => encounterStarted.TrySetResult(state),
+            }
+        );
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSceneReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        var (encounter, owner) = await SeedActiveTheftEncounter();
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>(
+                "StartTheftEncounterNarration",
+                encounter.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        var state = await encounterStarted.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(encounter.Id, state.EncounterId);
+        Assert.Equal(owner.Name, state.OwnerName);
+        Assert.Equal(["Silver Ring"], state.ItemNames);
+        Assert.Equal(["Apologize", "Fight"], state.AllowedActions);
+    }
+
+    [Fact]
+    public async Task Reconnect_PushesTheftEncounterStarted_WhenPlayerHasAnActiveTheftEncounter()
+    {
+        // Arrange
+        var (encounter, owner) = await SeedActiveTheftEncounter();
+        var sessionId = await StartSession();
+        var encounterStarted =
+            new TaskCompletionSource<TRPG.Encounters.Responses.TheftEncounterState>();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        connection.Register<IGameClient>(
+            new TestGameClient
+            {
+                OnTheftEncounterStarted = state => encounterStarted.TrySetResult(state),
+            }
+        );
+
+        // Act
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var state = await encounterStarted.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(encounter.Id, state.EncounterId);
+        Assert.Equal(owner.Name, state.OwnerName);
+        Assert.Equal(["Silver Ring"], state.ItemNames);
+        Assert.Equal(["Apologize", "Fight"], state.AllowedActions);
     }
 
     [Fact]

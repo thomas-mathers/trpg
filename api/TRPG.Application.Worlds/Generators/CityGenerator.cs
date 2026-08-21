@@ -224,6 +224,7 @@ public class CityGenerator(
             {
                 Name = buildingName,
                 MemberIds = memberIds,
+                OwnerCreatureId = owner.Id,
             }
         );
 
@@ -319,6 +320,7 @@ public class CityGenerator(
             {
                 Name = buildingName,
                 MemberIds = memberIds,
+                OwnerCreatureId = owner.Id,
             }
         );
 
@@ -415,6 +417,7 @@ public class CityGenerator(
             {
                 Name = buildingName,
                 MemberIds = memberIds,
+                OwnerCreatureId = officer.Id,
             }
         );
 

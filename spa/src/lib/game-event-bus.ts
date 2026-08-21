@@ -8,6 +8,8 @@ import type {
   GuardEncounterState,
   HostileEncounterResolutionFact,
   HostileEncounterState,
+  TheftEncounterResolutionFact,
+  TheftEncounterState,
 } from '@/api/signalr-client/TRPG.Encounters.Responses';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type {
@@ -29,6 +31,8 @@ interface GameEventMap {
   HostileEncounterResolved: HostileEncounterResolutionFact;
   GuardEncounterStarted: GuardEncounterState;
   GuardEncounterResolved: GuardEncounterResolutionFact;
+  TheftEncounterStarted: TheftEncounterState;
+  TheftEncounterResolved: TheftEncounterResolutionFact;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;
   QuestDialogRequested: QuestDialogRequested;

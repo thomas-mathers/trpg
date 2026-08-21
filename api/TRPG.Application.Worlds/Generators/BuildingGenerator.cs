@@ -7,6 +7,7 @@ internal record BuildingGeneratorInput(Location ExteriorLocation, BuildingSpec S
 {
     public IReadOnlyList<Guid> MemberIds { get; init; } = [];
     public required string Name { get; init; }
+    public Guid? OwnerCreatureId { get; init; }
 }
 
 internal record BuildingGeneratorResult(
@@ -326,6 +327,11 @@ public class BuildingGenerator
                 pair.First.Props.Select(p => p.Factory(pair.Second.LocationId, worldId))
             )
             .ToList();
+
+        foreach (var container in props.OfType<Container>())
+        {
+            container.OwnerCreatureId = input.OwnerCreatureId;
+        }
 
         var roomsByFloor = rooms.GroupBy(r => r.FloorNumber).OrderBy(g => g.Key).ToArray();
         var interiorDoors = new List<DoorConnector>();

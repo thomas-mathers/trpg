@@ -87,9 +87,10 @@ const DISTRICT_TYPE_ICONS: Record<DistrictType, LucideIcon> = {
 interface NearbyPanelProps {
   scene: SceneSnapshot;
   onOpenQuestJournal: () => void;
+  onTheftEncounter?: (encounterId: string) => void;
 }
 
-export function NearbyPanel({ scene, onOpenQuestJournal }: NearbyPanelProps) {
+export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: NearbyPanelProps) {
   const [inventoryTarget, setInventoryTarget] = useState<{
     id: string;
     name: string;
@@ -143,7 +144,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal }: NearbyPanelProps) {
                   id: creature.id,
                   name: creature.name,
                   ownerType: 'Creature',
-                  transfersEnabled: creature.state === 'Dead',
+                  transfersEnabled: true,
                 });
                 setIsTransferOpen(true);
               }}
@@ -224,6 +225,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal }: NearbyPanelProps) {
         open={isTransferOpen}
         transfersEnabled={inventoryTarget?.transfersEnabled}
         onClose={() => setIsTransferOpen(false)}
+        onTheftEncounter={onTheftEncounter}
       />
       {tradeWorker && (
         <TradeDialog

@@ -265,6 +265,9 @@ function WorkbenchProviders({
     resolvePayFineEncounterAction: noopStream,
     resolveGoToJailEncounterAction: noopStream,
     resolveResistArrestEncounterAction: noopStream,
+    startTheftEncounterNarration: noopStream,
+    resolveApologizeTheftEncounterAction: noopStream,
+    resolveFightTheftEncounterAction: noopStream,
   };
 
   const hubConnection: GameHubConnection = {

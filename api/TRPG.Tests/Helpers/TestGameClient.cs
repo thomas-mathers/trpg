@@ -16,6 +16,8 @@ internal sealed class TestGameClient : IGameClient
     public Action<HostileEncounterResolutionFact>? OnHostileEncounterResolved { get; set; }
     public Action<GuardEncounterState>? OnGuardEncounterStarted { get; set; }
     public Action<GuardEncounterResolutionFact>? OnGuardEncounterResolved { get; set; }
+    public Action<TheftEncounterState>? OnTheftEncounterStarted { get; set; }
+    public Action<TheftEncounterResolutionFact>? OnTheftEncounterResolved { get; set; }
     public Action<SkillLevelUp>? OnSkillLevelUp { get; set; }
     public Action<CharacterLevelUp>? OnCharacterLevelUp { get; set; }
     public Action<QuestDialogRequested>? OnQuestDialogRequested { get; set; }
@@ -61,6 +63,18 @@ internal sealed class TestGameClient : IGameClient
     public Task GuardEncounterResolved(GuardEncounterResolutionFact fact)
     {
         OnGuardEncounterResolved?.Invoke(fact);
+        return Task.CompletedTask;
+    }
+
+    public Task TheftEncounterStarted(TheftEncounterState encounter)
+    {
+        OnTheftEncounterStarted?.Invoke(encounter);
+        return Task.CompletedTask;
+    }
+
+    public Task TheftEncounterResolved(TheftEncounterResolutionFact fact)
+    {
+        OnTheftEncounterResolved?.Invoke(fact);
         return Task.CompletedTask;
     }
 

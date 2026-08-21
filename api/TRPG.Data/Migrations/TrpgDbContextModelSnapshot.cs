@@ -2004,6 +2004,46 @@ namespace TRPG.Migrations
                     b.HasDiscriminator().HasValue("Kill");
                 });
 
+            modelBuilder.Entity("TRPG.Domain.Models.TheftCrime", b =>
+                {
+                    b.HasBaseType("TRPG.Domain.Models.Crime");
+
+                    b.Property<string>("Items")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("items");
+
+                    b.Property<string>("Outcome")
+                        .HasColumnType("text")
+                        .HasColumnName("outcome");
+
+                    b.Property<Guid>("OwnerCreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_creature_id");
+
+                    b.Property<Guid?>("OwnerFactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_faction_id");
+
+                    b.Property<string>("OwnerName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_name");
+
+                    b.Property<Guid>("SourceOwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_owner_id");
+
+                    b.Property<string>("SourceOwnerType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source_owner_type");
+
+                    b.ToTable("crimes", (string)null);
+
+                    b.HasDiscriminator().HasValue("Theft");
+                });
+
             modelBuilder.Entity("TRPG.Domain.Models.FightEncounter", b =>
                 {
                     b.HasBaseType("TRPG.Domain.Models.Encounter");
@@ -2083,6 +2123,56 @@ namespace TRPG.Migrations
                     b.ToTable("encounters", (string)null);
 
                     b.HasDiscriminator().HasValue("Hostile");
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.TheftEncounter", b =>
+                {
+                    b.HasBaseType("TRPG.Domain.Models.Encounter");
+
+                    b.PrimitiveCollection<List<Guid>>("ItemIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("item_ids");
+
+                    b.PrimitiveCollection<List<string>>("ItemNames")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("item_names");
+
+                    b.Property<string>("ItemSelections")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("item_selections");
+
+                    b.Property<Guid>("OwnerCreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_creature_id");
+
+                    b.Property<string>("OwnerName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_name");
+
+                    b.Property<Guid?>("SourceOwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_owner_id");
+
+                    b.Property<string>("SourceOwnerType")
+                        .HasColumnType("text")
+                        .HasColumnName("source_owner_type");
+
+                    b.Property<Guid>("TheftCrimeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("theft_crime_id");
+
+                    b.PrimitiveCollection<List<Guid>>("WitnessCreatureIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("witness_creature_ids");
+
+                    b.ToTable("encounters", (string)null);
+
+                    b.HasDiscriminator().HasValue("Theft");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.Accessory", b =>
@@ -2358,6 +2448,10 @@ namespace TRPG.Migrations
                     b.Property<Guid?>("KeyItemId")
                         .HasColumnType("uuid")
                         .HasColumnName("key_item_id");
+
+                    b.Property<Guid?>("OwnerCreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_creature_id");
 
                     b.Property<int?>("StorageSize")
                         .HasColumnType("integer")

@@ -57,6 +57,15 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
             Role = FactionRole.Member,
             WorldId = worldId,
         };
+        var reputationLogEntry = new ReputationLogEntry
+        {
+            WorldId = worldId,
+            CreatureId = creature.Id,
+            TargetId = faction.Id,
+            TargetType = ReputationTargetType.Faction,
+            DeltaScore = -1,
+            Reason = ReputationReason.QuestCompleted,
+        };
         var weaponProficiency = new CreatureWeaponProficiency
         {
             WorldId = worldId,
@@ -71,6 +80,20 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
             creature.Id
         );
         var encounter = Builders.MakeHostileEncounter(worldId, creature.Id, location.Id);
+        var crime = new KillCrime
+        {
+            WorldId = worldId,
+            PlayerId = creature.Id,
+            LocationId = location.Id,
+            VictimId = Guid.NewGuid(),
+            VictimName = "Victim",
+        };
+        var crimeWitness = new CrimeWitness
+        {
+            WorldId = worldId,
+            CrimeId = crime.Id,
+            CreatureId = creature.Id,
+        };
 
         _context.Creatures.Add(creature);
         _context.Factions.Add(faction);
@@ -80,10 +103,13 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         _context.Props.Add(bed);
         _context.Items.Add(item);
         _context.FactionMembers.Add(factionMember);
+        _context.ReputationLogEntries.Add(reputationLogEntry);
         _context.CreatureWeaponProficiencies.Add(weaponProficiency);
         _context.EncounterGroups.Add(encounterGroup);
         _context.EncounterGroupMembers.Add(encounterGroupMember);
         _context.Encounters.Add(encounter);
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(crimeWitness);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -143,6 +169,13 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
         Assert.Equal(
             expected,
+            await verifyContext.ReputationLogEntries.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
             await verifyContext.CreatureWeaponProficiencies.AnyAsync(
                 x => x.WorldId == worldId,
                 cancellationToken
@@ -165,6 +198,17 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         Assert.Equal(
             expected,
             await verifyContext.Encounters.AnyAsync(x => x.WorldId == worldId, cancellationToken)
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.Crimes.AnyAsync(x => x.WorldId == worldId, cancellationToken)
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.CrimeWitnesses.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
         );
     }
 }

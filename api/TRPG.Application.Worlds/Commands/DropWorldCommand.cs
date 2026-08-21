@@ -35,6 +35,12 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
+            .CrimeWitnesses.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context.Crimes.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+
+        await context
             .DoorConnectorKeys.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
@@ -72,6 +78,10 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
 
         await context
             .Reputations.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .ReputationLogEntries.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context

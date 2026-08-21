@@ -63,6 +63,7 @@ internal class MovePlayerCommandHandler(
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<DeleteCreaturesCommand> deleteCreatures,
     ICommandHandler<ResolveKillCrimesCommand> resolveKillCrimes,
+    ICommandHandler<ResolveTheftCrimesCommand> resolveTheftCrimes,
     IQueryHandler<GetBuildingByNameAtLocationQuery, Building?> getBuildingByNameAtLocation,
     IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
     IQueryHandler<
@@ -124,6 +125,15 @@ internal class MovePlayerCommandHandler(
 
         await resolveKillCrimes.Handle(
             new ResolveKillCrimesCommand
+            {
+                WorldId = player.WorldId,
+                PlayerId = player.Id,
+                LocationId = oldLocationId,
+            },
+            cancellationToken
+        );
+        await resolveTheftCrimes.Handle(
+            new ResolveTheftCrimesCommand
             {
                 WorldId = player.WorldId,
                 PlayerId = player.Id,

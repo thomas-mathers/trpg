@@ -6,7 +6,7 @@ import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
 import type { SceneSnapshot } from '../TRPG.GameSessions.Responses';
 import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.Responses';
 
@@ -135,6 +135,18 @@ class IChatHub_HubProxy implements IChatHub {
     public readonly resolveResistArrestEncounterAction = (): IStreamResult<string> => {
         return this.connection.stream("ResolveResistArrestEncounterAction");
     }
+
+    public readonly startTheftEncounterNarration = (encounterId: string): IStreamResult<string> => {
+        return this.connection.stream("StartTheftEncounterNarration", encounterId);
+    }
+
+    public readonly resolveApologizeTheftEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveApologizeTheftEncounterAction");
+    }
+
+    public readonly resolveFightTheftEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveFightTheftEncounterAction");
+    }
 }
 
 
@@ -156,6 +168,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __hostileEncounterResolved = (...args: [HostileEncounterResolutionFact]) => receiver.hostileEncounterResolved(...args);
         const __guardEncounterStarted = (...args: [GuardEncounterState]) => receiver.guardEncounterStarted(...args);
         const __guardEncounterResolved = (...args: [GuardEncounterResolutionFact]) => receiver.guardEncounterResolved(...args);
+        const __theftEncounterStarted = (...args: [TheftEncounterState]) => receiver.theftEncounterStarted(...args);
+        const __theftEncounterResolved = (...args: [TheftEncounterResolutionFact]) => receiver.theftEncounterResolved(...args);
         const __skillLevelUp = (...args: [SkillLevelUp]) => receiver.skillLevelUp(...args);
         const __characterLevelUp = (...args: [CharacterLevelUp]) => receiver.characterLevelUp(...args);
         const __questDialogRequested = (...args: [QuestDialogRequested]) => receiver.questDialogRequested(...args);
@@ -169,6 +183,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("HostileEncounterResolved", __hostileEncounterResolved);
         connection.on("GuardEncounterStarted", __guardEncounterStarted);
         connection.on("GuardEncounterResolved", __guardEncounterResolved);
+        connection.on("TheftEncounterStarted", __theftEncounterStarted);
+        connection.on("TheftEncounterResolved", __theftEncounterResolved);
         connection.on("SkillLevelUp", __skillLevelUp);
         connection.on("CharacterLevelUp", __characterLevelUp);
         connection.on("QuestDialogRequested", __questDialogRequested);
@@ -183,6 +199,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "HostileEncounterResolved", method: __hostileEncounterResolved },
             { methodName: "GuardEncounterStarted", method: __guardEncounterStarted },
             { methodName: "GuardEncounterResolved", method: __guardEncounterResolved },
+            { methodName: "TheftEncounterStarted", method: __theftEncounterStarted },
+            { methodName: "TheftEncounterResolved", method: __theftEncounterResolved },
             { methodName: "SkillLevelUp", method: __skillLevelUp },
             { methodName: "CharacterLevelUp", method: __characterLevelUp },
             { methodName: "QuestDialogRequested", method: __questDialogRequested },

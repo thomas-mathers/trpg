@@ -9,9 +9,17 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Trading;
 
+public record InventoryItemTransferResult(Guid SourceItemId, Guid DestinationItemId, int Quantity);
+
 public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGoldCommand> addGold)
 {
-    public async Task Transfer(
+    public async Task Validate(
+        ItemOwnerReference from,
+        IReadOnlyList<ItemSelection> selections,
+        CancellationToken cancellationToken = default
+    ) => _ = await ValidateTransfer(from, selections, cancellationToken);
+
+    public async Task<IReadOnlyCollection<InventoryItemTransferResult>> Transfer(
         ItemOwnerReference from,
         ItemOwnerReference to,
         IReadOnlyList<ItemSelection> selections,
@@ -19,8 +27,9 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
     )
     {
         var transferItems = await ValidateTransfer(from, selections, cancellationToken);
-        await MoveItems(transferItems, to, cancellationToken);
+        var results = await MoveItems(transferItems, to, cancellationToken);
         await RecalculateSourceAttributes(from, cancellationToken);
+        return results;
     }
 
     private async Task<IReadOnlyCollection<TransferItem>> ValidateTransfer(
@@ -58,12 +67,14 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
         return transferItems;
     }
 
-    private async Task MoveItems(
+    private async Task<IReadOnlyCollection<InventoryItemTransferResult>> MoveItems(
         IReadOnlyCollection<TransferItem> transferItems,
         ItemOwnerReference to,
         CancellationToken cancellationToken
     )
     {
+        var results = new List<InventoryItemTransferResult>();
+
         foreach (var (item, quantity) in transferItems)
         {
             if (item is Gold goldItem)
@@ -78,6 +89,15 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
                     },
                     cancellationToken
                 );
+                var destinationGold = await context
+                    .Items.OfType<Gold>()
+                    .FirstAsync(
+                        candidate =>
+                            candidate.Ownership.OwnerId == to.Id
+                            && candidate.Ownership.OwnerType == to.Type,
+                        cancellationToken
+                    );
+                results.Add(new(item.Id, destinationGold.Id, quantity));
             }
             else if (quantity == item.Quantity)
             {
@@ -85,13 +105,18 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
                 item.Ownership.OwnerType = to.Type;
                 item.Ownership.EquippedSlot = null;
                 item.Ownership.AcquiredAt = DateTime.UtcNow;
+                results.Add(new(item.Id, item.Id, quantity));
             }
             else
             {
                 item.Quantity -= quantity;
-                context.Items.Add(Split(item, quantity, to));
+                var splitItem = Split(item, quantity, to);
+                context.Items.Add(splitItem);
+                results.Add(new(item.Id, splitItem.Id, quantity));
             }
         }
+
+        return results;
     }
 
     private static void ValidateItem(Item item, Guid itemId, int quantity, ItemOwnerReference from)

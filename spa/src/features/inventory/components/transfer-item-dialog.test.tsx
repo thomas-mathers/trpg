@@ -91,6 +91,7 @@ function renderDialog(
   onClose = vi.fn(),
   transfersEnabled = true,
   ownerType: 'Creature' | 'Container' = 'Creature',
+  onTheftEncounter?: (encounterId: string) => void,
 ) {
   return renderWithProviders(
     <TransferItemDialog
@@ -99,6 +100,7 @@ function renderDialog(
       open
       transfersEnabled={transfersEnabled}
       onClose={onClose}
+      onTheftEncounter={onTheftEncounter}
     />,
   );
 }
@@ -145,7 +147,7 @@ describe('TransferItemDialog', () => {
       }),
       handleTransferInventory(async ({ request }) => {
         requestBody = await request.json();
-        return new HttpResponse(null, { status: 204 });
+        return HttpResponse.json({ theftEncounterId: null });
       }),
     );
 
@@ -313,7 +315,7 @@ describe('TransferItemDialog', () => {
       ),
       handleTransferInventory(async ({ request }) => {
         requestBody = await request.json();
-        return new HttpResponse(null, { status: 204 });
+        return HttpResponse.json({ theftEncounterId: null });
       }),
     );
 
@@ -343,7 +345,7 @@ describe('TransferItemDialog', () => {
       ),
       handleTransferInventory(async ({ request }) => {
         requestBody = await request.json();
-        return new HttpResponse(null, { status: 204 });
+        return HttpResponse.json({ theftEncounterId: null });
       }),
     );
 
@@ -362,6 +364,24 @@ describe('TransferItemDialog', () => {
       }),
     );
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('closes before starting a caught theft encounter', async () => {
+    server.use(
+      handleGetCreatureInventory({ body: { gold: 0, items: [] } }),
+      handleGetContainerInventory({ body: { gold: 0, items: [item({ name: 'Chest coins' })] } }),
+      handleTransferInventory(() => HttpResponse.json({ theftEncounterId: 'theft-encounter-id' })),
+    );
+
+    const onClose = vi.fn();
+    const onTheftEncounter = vi.fn(() => expect(onClose).toHaveBeenCalledOnce());
+    const { user } = renderDialog(onClose, true, 'Container', onTheftEncounter);
+    await ui.dialog.find();
+    await user.click(await ui.item('Chest coins').find());
+    await user.click(ui.moveToPlayer.get());
+    await user.click(ui.confirm.get());
+
+    await waitFor(() => expect(onTheftEncounter).toHaveBeenCalledWith('theft-encounter-id'));
   });
 
   it('closes without transferring when cancelled', async () => {

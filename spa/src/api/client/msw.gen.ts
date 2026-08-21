@@ -835,8 +835,8 @@ export function handleGetJob(response?: HandleGetJobResponse | HttpResponseResol
 }
 
 export type HandleTransferInventoryResponse = {
-    body: TransferInventoryResponses[204];
-    status?: 204;
+    body: TransferInventoryResponses[200];
+    status?: 200;
 };
 
 /**
@@ -853,7 +853,7 @@ export function handleTransferInventory(response?: HandleTransferInventoryRespon
         }
         const body = response?.body;
         if (body !== undefined) {
-            return new HttpResponse(body, { status: response?.status ?? 204 });
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
         }
         if (options?.responseFallback === 'passthrough') {
             return;

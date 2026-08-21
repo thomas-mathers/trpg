@@ -73,6 +73,10 @@ internal class PublishSessionStateCommandHandler(
                 )
             );
         }
+        else if (encounter is TheftEncounter theftEncounter)
+        {
+            gameEvents.Enqueue(new TheftEncounterStartedEvent(theftEncounter));
+        }
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);
     }

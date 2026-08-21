@@ -57,3 +57,18 @@ public class GuardEncounter : Encounter
     public required int JailHours { get; init; }
     public List<string> RecentOffenses { get; init; } = [];
 }
+
+public class TheftEncounter : Encounter
+{
+    public Guid TheftCrimeId { get; init; }
+    public Guid OwnerCreatureId { get; init; }
+    public string OwnerName { get; init; } = "";
+    public Guid? SourceOwnerId { get; init; }
+    public OwnerType? SourceOwnerType { get; init; }
+    public List<Guid> ItemIds { get; init; } = [];
+    public List<string> ItemNames { get; init; } = [];
+    public List<TheftEncounterItem> ItemSelections { get; init; } = [];
+    public List<Guid> WitnessCreatureIds { get; init; } = [];
+}
+
+public record TheftEncounterItem(Guid ItemId, int Quantity);
