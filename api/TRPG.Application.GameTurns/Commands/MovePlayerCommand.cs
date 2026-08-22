@@ -357,19 +357,15 @@ internal class MovePlayerCommandHandler(
                     new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
                     cancellationToken
                 );
+                var playerHasKey = await HasAnyKey(player, validKeyItemIds, cancellationToken);
 
-                // A locked door with no key ever configured and no pending timed unlock can
-                // never be unlocked any other way, so it isn't enforced — this is what lets an
-                // ownerless/keyless building stay enterable instead of a permanent soft-lock.
-                // A pending timed unlock (e.g. a jail cell) keeps enforcing even with zero keys,
-                // so it can't be trivially bypassed just because nobody happens to hold a key.
-                var hasAnyReleaseMechanism =
-                    validKeyItemIds.Count > 0 || door.UnlocksAtPlaytime != null;
+                if (door.UnlocksAtPlaytime != null && !playerHasKey)
+                {
+                    return EntryOutcome.Locked;
+                }
 
-                if (
-                    hasAnyReleaseMechanism
-                    && !await HasAnyKey(player, validKeyItemIds, cancellationToken)
-                )
+                // A lock with no key ever configured would otherwise soft-lock the building forever, so it's not enforced.
+                if (validKeyItemIds.Count > 0 && !playerHasKey)
                 {
                     return EntryOutcome.Locked;
                 }

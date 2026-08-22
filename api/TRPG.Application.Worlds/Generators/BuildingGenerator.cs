@@ -425,8 +425,7 @@ public class BuildingGenerator
         locationConnectors.Add(exitConnector);
         locationConnectors.Add(entryConnector);
 
-        // Only the entry side is lockable — someone already inside can always leave;
-        // the exit connector deliberately has no DoorConnector, so it's never checked.
+        // Only the entry side is lockable — someone already inside can always leave.
         var frontDoor = new DoorConnector
         {
             ConnectorId = entryConnector.Id,
