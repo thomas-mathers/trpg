@@ -289,6 +289,12 @@ public class WorldGenerator(
             rooms
         );
 
+        var anchoredLocations = LocationCoarseAnchorGenerator.Generate(
+            namedLocations,
+            geography.Districts,
+            wildernessLocationByStateId
+        );
+
         var knowledge = KnowledgeGenerator.Generate(
             new KnowledgeGeneratorInput
             {
@@ -298,7 +304,7 @@ public class WorldGenerator(
                 FactionMembers = factionMembers,
                 Factions = factions,
                 Cities = geography.Cities,
-                Locations = namedLocations,
+                Locations = anchoredLocations,
                 States = geography.States,
                 Countries = geography.Countries,
             }
@@ -309,7 +315,7 @@ public class WorldGenerator(
         var npcProfiles = NpcProfileGenerator.Generate(
             new NpcProfileGeneratorInput(
                 creatures,
-                namedLocations.ToDictionary(location => location.Id),
+                anchoredLocations.ToDictionary(location => location.Id),
                 factionMembers,
                 factions,
                 relationships,
@@ -341,7 +347,7 @@ public class WorldGenerator(
             FactionMembers = factionMembers,
             Items = items,
             Rooms = rooms,
-            Locations = namedLocations,
+            Locations = anchoredLocations,
             NpcProfiles = npcProfiles,
             Props = props,
             Skills = skills,

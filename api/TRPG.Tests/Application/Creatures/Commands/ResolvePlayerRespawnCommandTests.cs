@@ -122,7 +122,8 @@ public sealed class ResolvePlayerRespawnCommandTests(DatabaseFixture db) : IAsyn
             stateId: state.Id,
             cityId: city.Id,
             districtId: cityEntranceDistrict.Id,
-            id: deathLocationId
+            id: deathLocationId,
+            coarseAnchorLocationId: deathLocationId
         );
 
         var holySiteDistrict = Builders.MakeDistrict(city.Id, DistrictType.HolySite, WorldId);
@@ -138,7 +139,11 @@ public sealed class ResolvePlayerRespawnCommandTests(DatabaseFixture db) : IAsyn
             worldId: WorldId,
             buildingType: BuildingType.Temple
         );
-        var sanctuaryLocation = Builders.MakeLocation(WorldId, stateId: state.Id);
+        var sanctuaryLocation = Builders.MakeLocation(
+            WorldId,
+            stateId: state.Id,
+            coarseAnchorLocationId: deathLocationId
+        );
         var sanctuaryRoom = Builders.MakeRoom(
             temple.Id,
             worldId: WorldId,

@@ -9,6 +9,7 @@ public enum LocationKind
 
 public class Location
 {
+    public Guid CoarseAnchorLocationId { get; init; }
     public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();
     public LocationKind Kind { get; init; }

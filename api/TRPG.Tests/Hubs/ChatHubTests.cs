@@ -253,7 +253,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             worldId: _worldId,
             buildingType: DataBuildingType.Temple
         );
-        var sanctuaryLocation = Builders.MakeLocation(_worldId, _stateId);
+        var sanctuaryLocation = Builders.MakeLocation(
+            _worldId,
+            _stateId,
+            coarseAnchorLocationId: cityEntranceLocation.Id
+        );
         var sanctuaryRoom = Builders.MakeRoom(
             temple.Id,
             worldId: _worldId,
@@ -266,6 +270,17 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         context.Buildings.Add(temple);
         context.Rooms.Add(sanctuaryRoom);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await context
+            .Locations.Where(location => location.Id == _locationId)
+            .ExecuteUpdateAsync(
+                s =>
+                    s.SetProperty(
+                        location => location.CoarseAnchorLocationId,
+                        cityEntranceLocation.Id
+                    ),
+                TestContext.Current.CancellationToken
+            );
 
         return sanctuaryLocation.Id;
     }

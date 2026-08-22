@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Buildings;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Worlds.Algorithms;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -15,85 +14,44 @@ public class GetNearestTempleSanctuaryFromLocationQuery
 
 public record NearestTemple(Guid SanctuaryLocationId, string CityName);
 
-internal record TempleCandidate(
-    Guid SanctuaryLocationId,
-    Guid CityEntranceLocationId,
-    string CityName
-);
-
-internal class GetNearestTempleSanctuaryFromLocationQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetNearestTempleSanctuaryFromLocationQuery, NearestTemple?>
+internal class GetNearestTempleSanctuaryFromLocationQueryHandler(
+    TrpgDbContext context,
+    IQueryHandler<GetNearestReachableLocationQuery, Guid?> getNearestReachableLocation
+) : IQueryHandler<GetNearestTempleSanctuaryFromLocationQuery, NearestTemple?>
 {
     public async Task<NearestTemple?> Handle(
         GetNearestTempleSanctuaryFromLocationQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var candidates = await GetTempleCandidates(query.WorldId, cancellationToken);
-        if (candidates.Length == 0)
+        var cityNameBySanctuaryLocationId = await GetTempleCandidates(
+            query.WorldId,
+            cancellationToken
+        );
+        if (cityNameBySanctuaryLocationId.Count == 0)
         {
             return null;
         }
 
-        var edges = await context
-            .LocationConnectors.AsNoTracking()
-            .Where(connector => connector.WorldId == query.WorldId)
-            .Join(
-                context
-                    .TravelConnectors.AsNoTracking()
-                    .Where(travel => travel.WorldId == query.WorldId),
-                connector => connector.Id,
-                travel => travel.ConnectorId,
-                (connector, travel) =>
-                    new
-                    {
-                        connector.OriginLocationId,
-                        connector.DestinationLocationId,
-                        travel.Distance,
-                    }
-            )
-            .ToArrayAsync(cancellationToken);
-
-        var neighborsByOrigin = edges
-            .GroupBy(edge => edge.OriginLocationId)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(edge => edge.DestinationLocationId).ToArray()
-            );
-
-        var costByEdge = edges.ToDictionary(
-            edge => (edge.OriginLocationId, edge.DestinationLocationId),
-            edge => edge.Distance
-        );
-
-        var startNode = await ResolveStartNode(
-            query.WorldId,
-            query.FromLocationId,
-            neighborsByOrigin,
+        var nearestSanctuaryLocationId = await getNearestReachableLocation.Handle(
+            new GetNearestReachableLocationQuery
+            {
+                WorldId = query.WorldId,
+                FromLocationId = query.FromLocationId,
+                CandidateLocationIds = cityNameBySanctuaryLocationId.Keys.ToArray(),
+            },
             cancellationToken
         );
 
-        var candidatesByCityEntranceLocationId = candidates.ToDictionary(candidate =>
-            candidate.CityEntranceLocationId
-        );
-
-        var path = Graphs.ShortestPathToNearest(
-            startNode,
-            candidatesByCityEntranceLocationId.Keys.ToHashSet(),
-            locationId => neighborsByOrigin.GetValueOrDefault(locationId, []),
-            (from, to) => costByEdge[(from, to)]
-        );
-
-        if (path.Count == 0)
-        {
-            return null;
-        }
-
-        var reached = candidatesByCityEntranceLocationId[path[^1]];
-        return new NearestTemple(reached.SanctuaryLocationId, reached.CityName);
+        return nearestSanctuaryLocationId == null
+            ? null
+            : new NearestTemple(
+                nearestSanctuaryLocationId.Value,
+                cityNameBySanctuaryLocationId[nearestSanctuaryLocationId.Value]
+            );
     }
 
-    private async Task<TempleCandidate[]> GetTempleCandidates(
+    private async Task<Dictionary<Guid, string>> GetTempleCandidates(
         Guid worldId,
         CancellationToken cancellationToken
     )
@@ -110,75 +68,14 @@ internal class GetNearestTempleSanctuaryFromLocationQueryHandler(TrpgDbContext c
                 && buildingLocation.CityId != null
             select new
             {
-                CityId = buildingLocation.CityId!.Value,
                 SanctuaryLocationId = room.LocationId,
-            };
-
-        var cityEntrances =
-            from district in context.Districts.AsNoTracking()
-            join city in context.Cities.AsNoTracking() on district.CityId equals city.Id
-            where district.WorldId == worldId && district.DistrictType == DistrictType.CityEntrance
-            select new
-            {
-                district.CityId,
-                CityEntranceLocationId = district.LocationId,
-                CityName = city.Name,
+                CityId = buildingLocation.CityId!.Value,
             };
 
         return await (
             from temple in temples
-            join entrance in cityEntrances on temple.CityId equals entrance.CityId
-            select new TempleCandidate(
-                temple.SanctuaryLocationId,
-                entrance.CityEntranceLocationId,
-                entrance.CityName
-            )
-        ).ToArrayAsync(cancellationToken);
-    }
-
-    private async Task<Guid> ResolveStartNode(
-        Guid worldId,
-        Guid fromLocationId,
-        IReadOnlyDictionary<Guid, Guid[]> neighborsByOrigin,
-        CancellationToken cancellationToken
-    )
-    {
-        var fromLocationCityId = await context
-            .Locations.AsNoTracking()
-            .Where(location => location.Id == fromLocationId)
-            .Select(location => location.CityId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (fromLocationCityId != null)
-        {
-            var cityEntranceLocationId = await context
-                .Districts.AsNoTracking()
-                .Where(district =>
-                    district.CityId == fromLocationCityId.Value
-                    && district.DistrictType == DistrictType.CityEntrance
-                )
-                .Select(district => (Guid?)district.LocationId)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (cityEntranceLocationId != null)
-            {
-                return cityEntranceLocationId.Value;
-            }
-        }
-
-        if (neighborsByOrigin.ContainsKey(fromLocationId))
-        {
-            return fromLocationId;
-        }
-
-        var oneHopDestinationId = await context
-            .LocationConnectors.AsNoTracking()
-            .Where(connector =>
-                connector.WorldId == worldId && connector.OriginLocationId == fromLocationId
-            )
-            .Select(connector => (Guid?)connector.DestinationLocationId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return oneHopDestinationId ?? fromLocationId;
+            join city in context.Cities.AsNoTracking() on temple.CityId equals city.Id
+            select new { temple.SanctuaryLocationId, city.Name }
+        ).ToDictionaryAsync(x => x.SanctuaryLocationId, x => x.Name, cancellationToken);
     }
 }
