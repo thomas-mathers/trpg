@@ -335,6 +335,8 @@ public class BuildingGenerator
 
         var roomsByFloor = rooms.GroupBy(r => r.FloorNumber).OrderBy(g => g.Key).ToArray();
         var interiorDoors = new List<DoorConnector>();
+        var keyItems = new List<Item>();
+        var doorConnectorKeys = new List<DoorConnectorKey>();
 
         for (var i = 0; i < roomsByFloor.Length - 1; i++)
         {
@@ -366,19 +368,43 @@ public class BuildingGenerator
 
             if (input.Spec.Type == BuildingType.Jail && roomAbove.Name == JailRoomNames.Cells)
             {
-                interiorDoors.Add(
-                    new DoorConnector
+                var cellsDoor = new DoorConnector
+                {
+                    ConnectorId = downConnector.Id,
+                    IsLocked = true,
+                    WorldId = worldId,
+                };
+                interiorDoors.Add(cellsDoor);
+
+                foreach (var guardId in input.MemberIds)
+                {
+                    var cellKeyItem = new Key
                     {
-                        ConnectorId = downConnector.Id,
-                        IsLocked = true,
                         WorldId = worldId,
-                    }
-                );
+                        Name = "Cell Key",
+                        Description = $"A key that unlocks the cells in {building.Name}.",
+                        Quantity = 1,
+                        Ownership = new ItemOwnership
+                        {
+                            OwnerId = guardId,
+                            OwnerType = OwnerType.Creature,
+                        },
+                    };
+                    keyItems.Add(cellKeyItem);
+                    doorConnectorKeys.Add(
+                        new DoorConnectorKey
+                        {
+                            ItemId = cellKeyItem.Id,
+                            DoorConnectorId = cellsDoor.Id,
+                            WorldId = worldId,
+                        }
+                    );
+                }
             }
         }
 
         var entranceRoom = rooms.First(r => r.FloorNumber == 0);
-        var frontDoorConnector = new LocationConnector
+        var exitConnector = new LocationConnector
         {
             OriginLocationId = entranceRoom.LocationId,
             Name = "Front Door",
@@ -387,16 +413,26 @@ public class BuildingGenerator
             DestinationLabel = "Outside",
             WorldId = worldId,
         };
-        locationConnectors.Add(frontDoorConnector);
+        var entryConnector = new LocationConnector
+        {
+            OriginLocationId = input.ExteriorLocation.Id,
+            Name = "Front Door",
+            Description = $"The door leading into {building.Name}.",
+            DestinationLocationId = entranceRoom.LocationId,
+            DestinationLabel = building.Name,
+            WorldId = worldId,
+        };
+        locationConnectors.Add(exitConnector);
+        locationConnectors.Add(entryConnector);
+
+        // Only the entry side is lockable — someone already inside can always leave.
         var frontDoor = new DoorConnector
         {
-            ConnectorId = frontDoorConnector.Id,
+            ConnectorId = entryConnector.Id,
             IsLocked = input.Spec.IsLockable,
             WorldId = worldId,
         };
 
-        var keyItems = new List<Item>();
-        var doorConnectorKeys = new List<DoorConnectorKey>();
         if (input.Spec.IsLockable)
         {
             foreach (var residentId in input.MemberIds)

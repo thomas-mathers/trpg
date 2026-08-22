@@ -52,10 +52,10 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
             .DoorConnectors.AsNoTracking()
             .FirstAsync(c => c.Id == doorConnectorId, TestContext.Current.CancellationToken);
 
-    private Task<Guid> GetOriginLocationId(Guid connectorId) =>
+    private Task<Guid> GetDestinationLocationId(Guid connectorId) =>
         _context
             .LocationConnectors.Where(connector => connector.Id == connectorId)
-            .Select(connector => connector.OriginLocationId)
+            .Select(connector => connector.DestinationLocationId)
             .FirstAsync(TestContext.Current.CancellationToken);
 
     [Fact]
@@ -191,7 +191,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
-        var workLocationId = await GetOriginLocationId(frontDoor.ConnectorId);
+        var workLocationId = await GetDestinationLocationId(frontDoor.ConnectorId);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -226,7 +226,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
-        var workLocationId = await GetOriginLocationId(frontDoor.ConnectorId);
+        var workLocationId = await GetDestinationLocationId(frontDoor.ConnectorId);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -270,7 +270,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
-        var workLocationId = await GetOriginLocationId(frontDoor.ConnectorId);
+        var workLocationId = await GetDestinationLocationId(frontDoor.ConnectorId);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -337,17 +337,17 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLif
     {
         var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
         var outsideLocation = Builders.MakeLocation(WorldId);
-        var frontDoor = Builders.MakeLocationConnector(
-            entranceRoom.LocationId,
-            destinationLocationId: outsideLocation.Id,
+        var entryConnector = Builders.MakeLocationConnector(
+            outsideLocation.Id,
+            destinationLocationId: entranceRoom.LocationId,
             worldId: WorldId,
             name: "Front Door",
-            description: "The door leading outside."
+            description: "The door leading in."
         );
-        var door = Builders.MakeDoorConnector(frontDoor.Id, worldId: WorldId);
+        var door = Builders.MakeDoorConnector(entryConnector.Id, worldId: WorldId);
         _context.Rooms.Add(entranceRoom);
         _context.Locations.Add(outsideLocation);
-        _context.LocationConnectors.Add(frontDoor);
+        _context.LocationConnectors.Add(entryConnector);
         _context.DoorConnectors.Add(door);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return door;

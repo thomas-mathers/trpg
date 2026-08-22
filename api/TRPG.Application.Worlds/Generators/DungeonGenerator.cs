@@ -13,6 +13,7 @@ internal record DungeonGeneratorResult(
     Room Room,
     Location Location,
     LocationConnector FrontDoor,
+    LocationConnector Entrance,
     DoorConnector Door
 );
 
@@ -158,7 +159,16 @@ internal static class DungeonGenerator
             DestinationLabel = "Outside",
             WorldId = input.WorldId,
         };
+        var entrance = new LocationConnector
+        {
+            OriginLocationId = input.WildernessLocation.Id,
+            Name = "Entrance",
+            Description = $"The way into {name}.",
+            DestinationLocationId = room.LocationId,
+            DestinationLabel = name,
+            WorldId = input.WorldId,
+        };
         var door = new DoorConnector { ConnectorId = frontDoor.Id, WorldId = input.WorldId };
-        return new DungeonGeneratorResult(building, room, location, frontDoor, door);
+        return new DungeonGeneratorResult(building, room, location, frontDoor, entrance, door);
     }
 }

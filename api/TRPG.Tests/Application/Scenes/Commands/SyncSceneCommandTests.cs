@@ -508,16 +508,16 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
     private async Task<DoorConnector> SeedFrontDoor(Room entranceRoom)
     {
         var outsideLocation = Builders.MakeLocation(WorldId);
-        var frontDoor = Builders.MakeLocationConnector(
-            entranceRoom.LocationId,
-            destinationLocationId: outsideLocation.Id,
+        var entryConnector = Builders.MakeLocationConnector(
+            outsideLocation.Id,
+            destinationLocationId: entranceRoom.LocationId,
             worldId: WorldId,
             name: "Front Door",
-            description: "The door leading outside."
+            description: "The door leading in."
         );
-        var door = Builders.MakeDoorConnector(frontDoor.Id, worldId: WorldId);
+        var door = Builders.MakeDoorConnector(entryConnector.Id, worldId: WorldId);
         _context.Locations.Add(outsideLocation);
-        _context.LocationConnectors.Add(frontDoor);
+        _context.LocationConnectors.Add(entryConnector);
         _context.DoorConnectors.Add(door);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return door;

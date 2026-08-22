@@ -240,6 +240,7 @@ public class WorldGenerator(
                 rooms.Add(result.Room);
                 locations.Add(result.Location);
                 locationConnectors.Add(result.FrontDoor);
+                locationConnectors.Add(result.Entrance);
                 doorConnectors.Add(result.Door);
 
                 var dungeonMonsters = dungeonPopulator.Generate(

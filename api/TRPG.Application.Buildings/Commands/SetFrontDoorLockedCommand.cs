@@ -18,15 +18,13 @@ internal class SetFrontDoorLockedCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
+        // Only the entry connector (exterior -> entrance room) carries a lockable door.
         var updatedCount = await (
             from door in context.DoorConnectors
             join c in context.LocationConnectors on door.ConnectorId equals c.Id
-            join destination in context.Locations on c.DestinationLocationId equals destination.Id
-            join r in context.Rooms on c.OriginLocationId equals r.LocationId
-            where
-                r.BuildingId == command.BuildingId
-                && r.FloorNumber == 0
-                && destination.RoomId == null
+            join origin in context.Locations on c.OriginLocationId equals origin.Id
+            join r in context.Rooms on c.DestinationLocationId equals r.LocationId
+            where r.BuildingId == command.BuildingId && r.FloorNumber == 0 && origin.RoomId == null
             select door
         ).ExecuteUpdateAsync(
             s => s.SetProperty(c => c.IsLocked, command.IsLocked),
