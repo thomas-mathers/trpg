@@ -40,7 +40,7 @@ interface GameEventMap {
   CharacterLevelUp: CharacterLevelUp;
   QuestDialogRequested: QuestDialogRequested;
   QuestObjectiveCompleted: QuestObjectiveCompleted;
-  QuestJournalUpdated: undefined;
+  QuestJournalUpdated: string | null;
   CrimeWitnessed: CrimeNotification;
   CrimeWitnessesRemoved: CrimeNotification;
   ConnectionStatusChanged: ConnectionStatus;

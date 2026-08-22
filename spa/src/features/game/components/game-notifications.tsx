@@ -1,4 +1,4 @@
-import { Award, BookOpen, CircleCheck, Eye, ShieldOff, Trophy } from 'lucide-react';
+import { Award, BookOpen, CircleCheck, Eye, ShieldOff, Trophy, XCircle } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -68,6 +68,26 @@ export function GameNotifications() {
         );
       },
     );
+    const unsubscribeQuestJournal = gameEventBus.on(
+      'QuestJournalUpdated',
+      (notificationMessage) => {
+        if (!notificationMessage) {
+          return;
+        }
+
+        toast.custom(
+          (toastId) => (
+            <GameToast
+              toastId={toastId}
+              icon={XCircle}
+              title="Quest failed"
+              description={notificationMessage}
+            />
+          ),
+          { duration: 3800 },
+        );
+      },
+    );
     const unsubscribeCrimeWitnessed = gameEventBus.on('CrimeWitnessed', ({ crimeName }) => {
       toast.custom(
         (toastId) => (
@@ -102,6 +122,7 @@ export function GameNotifications() {
       unsubscribeCharacter();
       unsubscribeCombatResolved();
       unsubscribeQuestObjective();
+      unsubscribeQuestJournal();
       unsubscribeCrimeWitnessed();
       unsubscribeCrimeWitnessesRemoved();
     };

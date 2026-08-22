@@ -33,6 +33,12 @@ export type QuestDialogRequested = {
     mode: QuestDialogMode;
 }
 
+/** Transpiled from TRPG.Quests.Responses.QuestJournalUpdated */
+export type QuestJournalUpdated = {
+    /** Transpiled from string? */
+    notificationMessage?: string;
+}
+
 /** Transpiled from TRPG.Quests.Responses.QuestObjectiveCompleted */
 export type QuestObjectiveCompleted = {
     /** Transpiled from string */

@@ -3,6 +3,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Validation;
 using TRPG.Data;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.Commands;
 
@@ -33,6 +34,10 @@ internal class SetQuestTrackingCommandHandler(TrpgDbContext context)
                 quest.CreatureId == command.PlayerId
                 && quest.QuestId == command.QuestId
                 && quest.WorldId == command.WorldId
+                && (
+                    quest.Status == QuestStatus.Accepted
+                    || quest.Status == QuestStatus.ReadyToComplete
+                )
             )
             .ExecuteUpdateAsync(
                 setters => setters.SetProperty(quest => quest.IsTracked, command.IsTracked),

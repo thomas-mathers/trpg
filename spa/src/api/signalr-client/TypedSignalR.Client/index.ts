@@ -8,7 +8,7 @@ import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Resp
 import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
-import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.Responses';
+import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
 
 // components
@@ -174,7 +174,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __characterLevelUp = (...args: [CharacterLevelUp]) => receiver.characterLevelUp(...args);
         const __questDialogRequested = (...args: [QuestDialogRequested]) => receiver.questDialogRequested(...args);
         const __questObjectiveCompleted = (...args: [QuestObjectiveCompleted]) => receiver.questObjectiveCompleted(...args);
-        const __questJournalUpdated = () => receiver.questJournalUpdated();
+        const __questJournalUpdated = (...args: [QuestJournalUpdated]) => receiver.questJournalUpdated(...args);
         const __crimeWitnessed = (...args: [CrimeNotification]) => receiver.crimeWitnessed(...args);
         const __crimeWitnessesRemoved = (...args: [CrimeNotification]) => receiver.crimeWitnessesRemoved(...args);
 

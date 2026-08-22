@@ -13,6 +13,10 @@ public static class QuestsServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreatureKilledQuestEventHandler>()
             )
+            .AddTransient<CreatureKilledQuestGiverEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreatureKilledQuestGiverEventHandler>()
+            )
             .AddTransient<PlayerMovedQuestEventHandler>()
             .AddTransient<ConversationStartedQuestEventHandler>()
             .AddTransient<IDomainEventConsumer<NpcConversationStartedEvent>>(serviceProvider =>

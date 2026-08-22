@@ -25,5 +25,9 @@ describe('GameNotifications', () => {
     gameEventBus.emit('CrimeWitnessesRemoved', { crimeName: 'killing' });
 
     expect(await screen.findByText('A killing will go unreported.')).toBeVisible();
+
+    gameEventBus.emit('QuestJournalUpdated', 'Recover the Ledger');
+
+    expect(await screen.findByText('Recover the Ledger')).toBeVisible();
   });
 });

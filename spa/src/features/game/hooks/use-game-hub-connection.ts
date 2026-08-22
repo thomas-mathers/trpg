@@ -113,7 +113,8 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
         gameEventBus.emit('QuestDialogRequested', questDialog),
       questObjectiveCompleted: async (objective) =>
         gameEventBus.emit('QuestObjectiveCompleted', objective),
-      questJournalUpdated: async () => gameEventBus.emit('QuestJournalUpdated'),
+      questJournalUpdated: async ({ notificationMessage }) =>
+        gameEventBus.emit('QuestJournalUpdated', notificationMessage),
       crimeWitnessed: async (notification) => gameEventBus.emit('CrimeWitnessed', notification),
       crimeWitnessesRemoved: async (notification) =>
         gameEventBus.emit('CrimeWitnessesRemoved', notification),
