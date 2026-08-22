@@ -18,15 +18,14 @@ internal class SetFrontDoorLockedCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
+        // The lockable door lives on the entry connector (exterior -> entrance room), not the
+        // exit connector (entrance room -> exterior) — someone already inside can always leave.
         var updatedCount = await (
             from door in context.DoorConnectors
             join c in context.LocationConnectors on door.ConnectorId equals c.Id
-            join destination in context.Locations on c.DestinationLocationId equals destination.Id
-            join r in context.Rooms on c.OriginLocationId equals r.LocationId
-            where
-                r.BuildingId == command.BuildingId
-                && r.FloorNumber == 0
-                && destination.RoomId == null
+            join origin in context.Locations on c.OriginLocationId equals origin.Id
+            join r in context.Rooms on c.DestinationLocationId equals r.LocationId
+            where r.BuildingId == command.BuildingId && r.FloorNumber == 0 && origin.RoomId == null
             select door
         ).ExecuteUpdateAsync(
             s => s.SetProperty(c => c.IsLocked, command.IsLocked),

@@ -2,7 +2,6 @@ using System.Transactions;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
-using TRPG.Application.Buildings.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
@@ -64,12 +63,8 @@ internal class MovePlayerCommandHandler(
     ICommandHandler<DeleteCreaturesCommand> deleteCreatures,
     ICommandHandler<ResolveKillCrimesCommand> resolveKillCrimes,
     ICommandHandler<ResolveTheftCrimesCommand> resolveTheftCrimes,
-    IQueryHandler<GetBuildingByNameAtLocationQuery, Building?> getBuildingByNameAtLocation,
     IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
-    IQueryHandler<
-        GetBuildingEntryRequirementsQuery,
-        BuildingEntryRequirements
-    > getBuildingEntryRequirements,
+    IQueryHandler<GetBuildingByEntranceLocationQuery, Building?> getBuildingByEntranceLocation,
     IQueryHandler<GetDoorConnectorByConnectorIdQuery, DoorConnector?> getDoorConnectorByConnectorId,
     IQueryHandler<GetKeyItemIdsQuery, IReadOnlyList<Guid>> getKeyItemIds,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
@@ -306,20 +301,6 @@ internal class MovePlayerCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        if (currentLocation.RoomId == null)
-        {
-            var buildingOutcome = await TryEnterBuildingByName(
-                player,
-                currentLocation,
-                command,
-                cancellationToken
-            );
-            if (buildingOutcome != null)
-            {
-                return buildingOutcome.Value;
-            }
-        }
-
         var exitMatch = await getExitByDestinationName.Handle(
             new GetExitByDestinationNameQuery
             {
@@ -335,6 +316,12 @@ internal class MovePlayerCommandHandler(
                 ? EntryOutcome.DestinationNotFound
                 : EntryOutcome.ExitNotFound;
         }
+
+        await SyncScheduleLockIfEnteringABuilding(
+            exitMatch.DestinationLocationId!.Value,
+            command.SessionId,
+            cancellationToken
+        );
 
         var door = await getDoorConnectorByConnectorId.Handle(
             new GetDoorConnectorByConnectorIdQuery { ConnectorId = exitMatch.ConnectorId!.Value },
@@ -371,7 +358,18 @@ internal class MovePlayerCommandHandler(
                     cancellationToken
                 );
 
-                if (!await HasAnyKey(player, validKeyItemIds, cancellationToken))
+                // A locked door with no key ever configured and no pending timed unlock can
+                // never be unlocked any other way, so it isn't enforced — this is what lets an
+                // ownerless/keyless building stay enterable instead of a permanent soft-lock.
+                // A pending timed unlock (e.g. a jail cell) keeps enforcing even with zero keys,
+                // so it can't be trivially bypassed just because nobody happens to hold a key.
+                var hasAnyReleaseMechanism =
+                    validKeyItemIds.Count > 0 || door.UnlocksAtPlaytime != null;
+
+                if (
+                    hasAnyReleaseMechanism
+                    && !await HasAnyKey(player, validKeyItemIds, cancellationToken)
+                )
                 {
                     return EntryOutcome.Locked;
                 }
@@ -383,32 +381,26 @@ internal class MovePlayerCommandHandler(
         return EntryOutcome.Entered;
     }
 
-    private async Task<EntryOutcome?> TryEnterBuildingByName(
-        Creature player,
-        Location currentLocation,
-        MovePlayerCommand command,
+    private async Task SyncScheduleLockIfEnteringABuilding(
+        Guid destinationLocationId,
+        Guid sessionId,
         CancellationToken cancellationToken
     )
     {
-        var building = await getBuildingByNameAtLocation.Handle(
-            new GetBuildingByNameAtLocationQuery
-            {
-                LocationId = currentLocation.Id,
-                Name = command.DestinationName,
-            },
+        var building = await getBuildingByEntranceLocation.Handle(
+            new GetBuildingByEntranceLocationQuery { LocationId = destinationLocationId },
             cancellationToken
         );
 
         if (building == null)
         {
-            return null;
+            return;
         }
 
         var schedulePlaytime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+            new GetPlaytimeQuery { SessionId = sessionId },
             cancellationToken
         );
-
         var currentDate = GameClock.GetCurrentInGameDate(schedulePlaytime);
 
         await syncScheduleLock.Handle(
@@ -420,28 +412,6 @@ internal class MovePlayerCommandHandler(
             },
             cancellationToken
         );
-
-        var requirements = await getBuildingEntryRequirements.Handle(
-            new GetBuildingEntryRequirementsQuery { BuildingId = building.Id },
-            cancellationToken
-        );
-
-        if (requirements.Outcome == BuildingEntryResult.NoEntrance)
-        {
-            return EntryOutcome.NoEntrance;
-        }
-
-        if (
-            requirements.Outcome == BuildingEntryResult.Locked
-            && !await HasAnyKey(player, requirements.ValidKeyItemIds!, cancellationToken)
-        )
-        {
-            return EntryOutcome.Locked;
-        }
-
-        player.LocationId = requirements.EntranceLocationId!.Value;
-
-        return EntryOutcome.Entered;
     }
 
     private async Task<bool> HasAnyKey(

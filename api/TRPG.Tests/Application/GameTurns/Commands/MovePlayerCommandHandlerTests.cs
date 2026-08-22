@@ -70,10 +70,18 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             roomId: entranceRoomId,
             id: entranceLocationId
         );
+        var entryConnector = Builders.MakeLocationConnector(
+            _outdoorLocation.Id,
+            destinationLocationId: entranceRoom.LocationId,
+            name: "Front Door",
+            description: "The door leading in.",
+            destinationLabel: "The Rusty Anchor"
+        );
         _context.Creatures.Add(player);
         _context.Buildings.Add(building);
         _context.Rooms.Add(entranceRoom);
         _context.Locations.Add(entranceLocation);
+        _context.LocationConnectors.Add(entryConnector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -123,34 +131,6 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
-    public async Task Handle_ReturnsBuildingHasNoEntrance_WhenTheBuildingHasNoRoomAtFloorZero()
-    {
-        // Arrange
-        var player = Builders.MakeCreature(WorldId, locationId: _outdoorLocation.Id);
-        var building = Builders.MakeBuilding(
-            exteriorLocationId: _outdoorLocation.Id,
-            name: "The Empty Shell"
-        );
-        _context.Creatures.Add(player);
-        _context.Buildings.Add(building);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var result = await _handler.Handle(
-            new MovePlayerCommand
-            {
-                PlayerId = player.Id,
-                SessionId = _session.Id,
-                DestinationName = "The Empty Shell",
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(EntryOutcome.NoEntrance, result.Outcome);
-    }
-
-    [Fact]
     public async Task Handle_ReturnsDoorLocked_WhenTheEntranceDoorIsLockedAndPlayerHasNoKey()
     {
         // Arrange
@@ -160,20 +140,19 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             name: "The Locked Vault"
         );
         var entranceRoom = Builders.MakeRoom(building.Id);
-        var outsideLocation = Builders.MakeLocation(stateId: _stateId);
-        var frontDoor = Builders.MakeLocationConnector(
-            entranceRoom.LocationId,
-            destinationLocationId: outsideLocation.Id,
+        var entryConnector = Builders.MakeLocationConnector(
+            _outdoorLocation.Id,
+            destinationLocationId: entranceRoom.LocationId,
             name: "Front Door",
-            description: "The door leading outside."
+            description: "The door leading in.",
+            destinationLabel: "The Locked Vault"
         );
-        var door = Builders.MakeDoorConnector(frontDoor.Id, isLocked: true);
+        var door = Builders.MakeDoorConnector(entryConnector.Id, isLocked: true);
         var keyItem = new Item { Name = "Vault Key", Description = "A test key." };
         _context.Creatures.Add(player);
         _context.Buildings.Add(building);
         _context.Rooms.Add(entranceRoom);
-        _context.Locations.Add(outsideLocation);
-        _context.LocationConnectors.Add(frontDoor);
+        _context.LocationConnectors.Add(entryConnector);
         _context.DoorConnectors.Add(door);
         _context.Items.Add(keyItem);
         _context.DoorConnectorKeys.Add(
@@ -218,14 +197,14 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             roomId: entranceRoomId,
             id: entranceLocationId
         );
-        var outsideLocation = Builders.MakeLocation(stateId: _stateId);
-        var frontDoor = Builders.MakeLocationConnector(
-            entranceRoom.LocationId,
-            destinationLocationId: outsideLocation.Id,
+        var entryConnector = Builders.MakeLocationConnector(
+            _outdoorLocation.Id,
+            destinationLocationId: entranceRoom.LocationId,
             name: "Front Door",
-            description: "The door leading outside."
+            description: "The door leading in.",
+            destinationLabel: "The Guarded Vault"
         );
-        var door = Builders.MakeDoorConnector(frontDoor.Id, isLocked: true);
+        var door = Builders.MakeDoorConnector(entryConnector.Id, isLocked: true);
         var keyItem = new Item { Name = "Vault Key", Description = "A test key." };
         keyItem.Quantity = 1;
         keyItem.Ownership.OwnerId = player.Id;
@@ -234,8 +213,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         _context.Buildings.Add(building);
         _context.Rooms.Add(entranceRoom);
         _context.Locations.Add(entranceLocation);
-        _context.Locations.Add(outsideLocation);
-        _context.LocationConnectors.Add(frontDoor);
+        _context.LocationConnectors.Add(entryConnector);
         _context.DoorConnectors.Add(door);
         _context.Items.Add(keyItem);
         _context.DoorConnectorKeys.Add(
@@ -467,12 +445,21 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         );
         var door = Builders.MakeDoorConnector(connector.Id, isLocked: true);
         var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
+        var guard = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
+        var keyItem = new Item { Name = "Cell Key", Description = "A test key." };
+        keyItem.Quantity = 1;
+        keyItem.Ownership.OwnerId = guard.Id;
+        keyItem.Ownership.OwnerType = OwnerType.Creature;
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(currentRoom, nextRoom);
         _context.Locations.AddRange(currentLocation, nextLocation);
         _context.LocationConnectors.Add(connector);
         _context.DoorConnectors.Add(door);
-        _context.Creatures.Add(player);
+        _context.Creatures.AddRange(player, guard);
+        _context.Items.Add(keyItem);
+        _context.DoorConnectorKeys.Add(
+            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = door.Id }
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
