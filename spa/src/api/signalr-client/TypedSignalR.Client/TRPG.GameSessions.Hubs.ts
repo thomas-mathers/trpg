@@ -3,11 +3,11 @@
 /* tslint:disable */
 // @ts-nocheck
 import type { IStreamResult, Subject } from '@microsoft/signalr';
-import type { SceneSnapshot } from '../TRPG.GameSessions.Responses';
+import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
-import type { QuestDialogRequested, QuestObjectiveCompleted } from '../TRPG.Quests.Responses';
+import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
 export type IChatHub = {
     /**
@@ -163,8 +163,19 @@ export type IGameClient = {
     */
     questObjectiveCompleted(objective: QuestObjectiveCompleted): Promise<void>;
     /**
+    * @param questJournal Transpiled from TRPG.Quests.Responses.QuestJournalUpdated
     * @returns Transpiled from System.Threading.Tasks.Task
     */
-    questJournalUpdated(): Promise<void>;
+    questJournalUpdated(questJournal: QuestJournalUpdated): Promise<void>;
+    /**
+    * @param notification Transpiled from TRPG.GameSessions.Responses.CrimeNotification
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    crimeWitnessed(notification: CrimeNotification): Promise<void>;
+    /**
+    * @param notification Transpiled from TRPG.GameSessions.Responses.CrimeNotification
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    crimeWitnessesRemoved(notification: CrimeNotification): Promise<void>;
 }
 

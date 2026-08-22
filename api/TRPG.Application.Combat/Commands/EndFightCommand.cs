@@ -1,9 +1,11 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -19,7 +21,8 @@ internal class EndFightCommand
 internal class EndFightCommandHandler(
     TrpgDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IGameClientEventSink gameEvents
 ) : ICommandHandler<EndFightCommand>
 {
     public async Task Handle(EndFightCommand command, CancellationToken cancellationToken = default)
@@ -145,5 +148,10 @@ internal class EndFightCommandHandler(
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        if (witnesses.Length > 0)
+        {
+            gameEvents.Enqueue(new CrimeWitnessedEvent(CrimeKind.Killing));
+        }
     }
 }

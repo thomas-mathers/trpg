@@ -199,7 +199,7 @@ function QuestJournalEntry({
           <h3 className="font-heading text-xl font-medium">{quest.name}</h3>
           <p className="text-muted-foreground mt-1 text-xs">{formatQuestStatus(quest.status)}</p>
         </div>
-        {quest.status !== 'Completed' && (
+        {(quest.status === 'Accepted' || quest.status === 'ReadyToComplete') && (
           <Button
             variant="outline"
             size="sm"

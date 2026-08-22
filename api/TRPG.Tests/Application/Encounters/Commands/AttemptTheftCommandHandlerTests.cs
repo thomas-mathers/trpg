@@ -7,6 +7,7 @@ using TRPG.Application.Creatures;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Inventory;
+using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -445,6 +446,10 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
         Assert.Null(crime.Outcome);
         Assert.Contains(owner.Id, witnessIds);
         Assert.Contains(bystander.Id, witnessIds);
+        Assert.Contains(
+            _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
+            gameEvent => gameEvent == new CrimeWitnessedEvent(CrimeKind.Theft)
+        );
     }
 
     [Fact]

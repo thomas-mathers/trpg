@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameTurns;
 using TRPG.Combat.Tools;
@@ -40,6 +41,34 @@ public sealed class StartFightToolTests(DatabaseFixture db) : IAsyncLifetime
     {
         await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Invoke_StartsFight_WhenTargetIsHumanoid()
+    {
+        // Arrange
+        var target = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Human,
+            locationId: LocationId,
+            name: "Tavern Keeper"
+        );
+        _context.Creatures.Add(target);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        await invoke(target.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var fight = await verifyContext
+            .Encounters.OfType<FightEncounter>()
+            .SingleAsync(
+                fight => fight.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Contains(target.Id, fight.CombatantIds);
     }
 
     [Fact]

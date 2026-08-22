@@ -444,13 +444,13 @@ internal static class Builders
         };
     }
 
-    public static Quest MakeQuest(Guid giverId, Guid? worldId = null)
+    public static Quest MakeQuest(Guid giverId, Guid? worldId = null, string? name = null)
     {
         return new Quest
         {
             WorldId = worldId ?? Guid.NewGuid(),
             GiverId = giverId,
-            Name = $"Quest-{Guid.NewGuid():N}",
+            Name = name ?? $"Quest-{Guid.NewGuid():N}",
             Description = "A test quest",
             GoldReward = 100,
         };

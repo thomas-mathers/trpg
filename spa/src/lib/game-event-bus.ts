@@ -11,7 +11,10 @@ import type {
   TheftEncounterResolutionFact,
   TheftEncounterState,
 } from '@/api/signalr-client/TRPG.Encounters.Responses';
-import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type {
+  CrimeNotification,
+  SceneSnapshot,
+} from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type {
   QuestDialogRequested,
   QuestObjectiveCompleted,
@@ -37,7 +40,9 @@ interface GameEventMap {
   CharacterLevelUp: CharacterLevelUp;
   QuestDialogRequested: QuestDialogRequested;
   QuestObjectiveCompleted: QuestObjectiveCompleted;
-  QuestJournalUpdated: undefined;
+  QuestJournalUpdated: string | null;
+  CrimeWitnessed: CrimeNotification;
+  CrimeWitnessesRemoved: CrimeNotification;
   ConnectionStatusChanged: ConnectionStatus;
 }
 

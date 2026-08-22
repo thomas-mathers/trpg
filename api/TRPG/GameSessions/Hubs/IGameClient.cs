@@ -23,5 +23,7 @@ public interface IGameClient
     Task CharacterLevelUp(CharacterLevelUp characterLevelUp);
     Task QuestDialogRequested(QuestDialogRequested questDialog);
     Task QuestObjectiveCompleted(QuestObjectiveCompleted objective);
-    Task QuestJournalUpdated();
+    Task QuestJournalUpdated(QuestJournalUpdated questJournal);
+    Task CrimeWitnessed(CrimeNotification notification);
+    Task CrimeWitnessesRemoved(CrimeNotification notification);
 }

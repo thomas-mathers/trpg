@@ -11,6 +11,7 @@ using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Reputations.Events;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Trading;
 using TRPG.Data;
@@ -44,6 +45,7 @@ internal class AttemptTheftCommandHandler(
     IQueryHandler<GetItemNamesByIdsQuery, IReadOnlyDictionary<Guid, string>> getItemNamesByIds,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IDomainEventPublisher<ItemAcquiredEvent> itemAcquiredEvents,
+    IGameClientEventSink gameEvents,
     IOptionsMonitor<TheftOptions> theftOptions
 ) : ICommandHandler<AttemptTheftCommand, TheftAttemptResult>
 {
@@ -194,12 +196,14 @@ internal class AttemptTheftCommandHandler(
         );
 
         var confrontingCreature = GetConfrontingCreature(theft.Source, theft.Witnesses);
-        if (confrontingCreature != null)
-        {
-            return await StartTheftEncounter(theft, confrontingCreature, cancellationToken);
-        }
+        var result =
+            confrontingCreature != null
+                ? await StartTheftEncounter(theft, confrontingCreature, cancellationToken)
+                : await CompleteDetectedTheftWithoutEncounter(theft, cancellationToken);
 
-        return await CompleteDetectedTheftWithoutEncounter(theft, cancellationToken);
+        gameEvents.Enqueue(new CrimeWitnessedEvent(CrimeKind.Theft));
+
+        return result;
     }
 
     private async Task<TheftAttemptResult> StartTheftEncounter(

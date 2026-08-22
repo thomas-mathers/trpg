@@ -71,11 +71,7 @@ internal class StartFightTool(
             cancellationToken
         );
 
-        if (
-            target == null
-            || target.State == CreatureState.Dead
-            || CreatureTypes.Humanoid.Contains(target.CreatureType)
-        )
+        if (target == null || target.State == CreatureState.Dead)
         {
             return new ToolError(
                 $"No '{targetName}' found nearby to attack. Call look to see what's around."

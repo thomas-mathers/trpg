@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Results;
+using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -106,6 +107,10 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
         Assert.Equal(_enemy.Id, crime.VictimId);
         Assert.Equal(bystander.Id, witness.CreatureId);
         Assert.Equal(crime.Id, witness.CrimeId);
+        Assert.Contains(
+            _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
+            gameEvent => gameEvent == new CrimeWitnessedEvent(CrimeKind.Killing)
+        );
     }
 
     private CombatantResult MakeCombatantState(

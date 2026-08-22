@@ -9,6 +9,7 @@ using TRPG.Application.Creatures.Extensions;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Extensions;
 using TRPG.Application.Quests.Extensions;
+using TRPG.Application.Reputations.Extensions;
 using TRPG.Application.Scenes;
 using TRPG.Application.Trading.Extensions;
 using TRPG.Application.Worlds.Extensions;
@@ -56,6 +57,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddCreaturesServices()
             .AddTransient<SceneCatchUpCache>()
             .AddQuestServices()
+            .AddReputationsServices()
             .AddWorldsServices()
             .AddCombatServices()
             .AddGameTurnsServices()

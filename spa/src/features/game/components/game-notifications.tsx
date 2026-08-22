@@ -1,4 +1,4 @@
-import { Award, BookOpen, CircleCheck, Trophy } from 'lucide-react';
+import { Award, BookOpen, CircleCheck, Eye, ShieldOff, Trophy, XCircle } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -68,11 +68,63 @@ export function GameNotifications() {
         );
       },
     );
+    const unsubscribeQuestJournal = gameEventBus.on(
+      'QuestJournalUpdated',
+      (notificationMessage) => {
+        if (!notificationMessage) {
+          return;
+        }
+
+        toast.custom(
+          (toastId) => (
+            <GameToast
+              toastId={toastId}
+              icon={XCircle}
+              title="Quest failed"
+              description={notificationMessage}
+            />
+          ),
+          { duration: 3800 },
+        );
+      },
+    );
+    const unsubscribeCrimeWitnessed = gameEventBus.on('CrimeWitnessed', ({ crimeName }) => {
+      toast.custom(
+        (toastId) => (
+          <GameToast
+            toastId={toastId}
+            icon={Eye}
+            title="Crime witnessed"
+            description={`Someone saw your ${crimeName}.`}
+          />
+        ),
+        { duration: 3800 },
+      );
+    });
+    const unsubscribeCrimeWitnessesRemoved = gameEventBus.on(
+      'CrimeWitnessesRemoved',
+      ({ crimeName }) => {
+        toast.custom(
+          (toastId) => (
+            <GameToast
+              toastId={toastId}
+              icon={ShieldOff}
+              title="No living witnesses"
+              description={`A ${crimeName} will go unreported.`}
+            />
+          ),
+          { duration: 3800 },
+        );
+      },
+    );
     return () => {
       unsubscribeSkill();
       unsubscribeCharacter();
       unsubscribeCombatResolved();
       unsubscribeQuestObjective();
+      unsubscribeQuestJournal();
+      unsubscribeCrimeWitnessed();
+      unsubscribeCrimeWitnessesRemoved();
     };
   }, []);
 
