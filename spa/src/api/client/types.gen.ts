@@ -651,11 +651,20 @@ export type SkillProgressSummary = {
 
 export type SpecialHitType = 'CrushingBlow' | 'DeadlyStrike' | 'OpenWounds';
 
+export type TheftDetectionChanceRequest = {
+    from: OwnerReferenceRequest;
+    items: Array<ItemSelection>;
+};
+
+export type TheftDetectionChanceResponse = {
+    successChance: null | number;
+};
+
 export type TradeProposalResponse = {
     status: TradeProposalStatus;
 };
 
-export type TradeProposalStatus = 'Accepted' | 'Rejected';
+export type TradeProposalStatus = 'Accepted' | 'Rejected' | 'Refused';
 
 export type TradeRequest = {
     playerOffer: Array<ItemSelection>;
@@ -1228,6 +1237,31 @@ export type TransferInventoryResponses = {
 };
 
 export type TransferInventoryResponse = TransferInventoryResponses[keyof TransferInventoryResponses];
+
+export type GetTheftDetectionChanceData = {
+    body: TheftDetectionChanceRequest;
+    path: {
+        playerId: string;
+    };
+    query?: never;
+    url: '/players/{playerId}/theft-detection-chance';
+};
+
+export type GetTheftDetectionChanceErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type GetTheftDetectionChanceResponses = {
+    /**
+     * OK
+     */
+    200: TheftDetectionChanceResponse;
+};
+
+export type GetTheftDetectionChanceResponse = GetTheftDetectionChanceResponses[keyof GetTheftDetectionChanceResponses];
 
 export type GetTradeData = {
     body?: never;

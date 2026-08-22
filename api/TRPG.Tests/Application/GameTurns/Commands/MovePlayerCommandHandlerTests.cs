@@ -1022,7 +1022,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
-    public async Task Handle_EvictsCatchUpCache_WhenLeavingALocationWithAnAlertedCreature()
+    public async Task Handle_EvictsCatchUpCacheAndClearsAlert_WhenLeavingALocationWithAnAlertedCreature()
     {
         // Arrange — the session's fresh Playtime maps to in-game hour 8
         var oldLocation = Builders.MakeLocation(WorldId, _stateId);
@@ -1059,6 +1059,81 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         Assert.False(catchUpCache.HasCaughtUp(WorldId, oldLocation.Id, hour: 8));
+
+        await using var verifyContext = db.CreateContext();
+        var updatedMonster = await verifyContext.Creatures.FindAsync(
+            [alertedMonster.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CreatureState.Idle, updatedMonster!.State);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsAlertedCreatureToItsSchedule_WhenPlayerLeavesAndComesBack()
+    {
+        // Arrange — the session's fresh Playtime maps to in-game hour 8
+        var oldLocation = Builders.MakeLocation(WorldId, _stateId);
+        var newLocation = Builders.MakeLocation(WorldId, _stateId);
+        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
+        var alertedMonster = Builders.MakeCreature(
+            WorldId,
+            locationId: oldLocation.Id,
+            state: CreatureState.Alerted
+        );
+        var sleepJob = Builders.MakeCreatureJob(
+            alertedMonster.Id,
+            action: CreatureJobAction.Sleep,
+            startHour: 6,
+            endHour: 10,
+            locationId: oldLocation.Id,
+            worldId: WorldId
+        );
+        var outboundConnector = Builders.MakeLocationConnector(
+            oldLocation.Id,
+            destinationLocationId: newLocation.Id,
+            destinationLabel: "Elsewhere"
+        );
+        var returnConnector = Builders.MakeLocationConnector(
+            newLocation.Id,
+            destinationLocationId: oldLocation.Id,
+            destinationLabel: "Back"
+        );
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.AddRange(player, alertedMonster);
+        _context.CreatureJobs.Add(sleepJob);
+        _context.LocationConnectors.AddRange(outboundConnector, returnConnector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var catchUpCache = _serviceProvider.GetRequiredService<SceneCatchUpCache>();
+        catchUpCache.MarkCaughtUp(WorldId, oldLocation.Id, hour: 8);
+
+        // Act
+        await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Elsewhere",
+            },
+            TestContext.Current.CancellationToken
+        );
+        await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Back",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedMonster = await verifyContext.Creatures.FindAsync(
+            [alertedMonster.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CreatureState.Sleeping, updatedMonster!.State);
     }
 
     [Fact]

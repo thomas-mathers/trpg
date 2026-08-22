@@ -265,7 +265,8 @@ internal static class Builders
     public static Workstation MakeWorkstation(
         Guid? worldId = null,
         Guid? locationId = null,
-        Guid? occupantId = null
+        Guid? occupantId = null,
+        Guid? assignedCreatureId = null
     ) =>
         new()
         {
@@ -275,6 +276,7 @@ internal static class Builders
             LocationId = locationId ?? Guid.NewGuid(),
             WorkstationType = WorkstationType.Trade,
             OccupantId = occupantId,
+            AssignedCreatureId = assignedCreatureId,
         };
 
     public static Attributes MakeAttributes()

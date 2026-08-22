@@ -132,6 +132,7 @@ internal class MovePlayerCommandHandler(
             },
             cancellationToken
         );
+
         await resolveTheftCrimes.Handle(
             new ResolveTheftCrimesCommand
             {
@@ -141,13 +142,10 @@ internal class MovePlayerCommandHandler(
             },
             cancellationToken
         );
+
         await CleanUpDeadCreatures(player, oldLocationId, cancellationToken);
-        await BustAlertedCreaturesCache(
-            player,
-            oldLocationId,
-            command.SessionId,
-            cancellationToken
-        );
+
+        await ResetAlertedCreatures(player, oldLocationId, command.SessionId, cancellationToken);
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
@@ -188,6 +186,7 @@ internal class MovePlayerCommandHandler(
         );
 
         transaction.Complete();
+
         return new MovePlayerResult(
             EntryOutcome.Entered,
             player,
@@ -249,7 +248,7 @@ internal class MovePlayerCommandHandler(
         );
     }
 
-    private async Task BustAlertedCreaturesCache(
+    private async Task ResetAlertedCreatures(
         Creature player,
         Guid oldLocationId,
         Guid sessionId,
@@ -265,16 +264,30 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        var hasAlertedCreature = nearby.Any(creature => creature.State == CreatureState.Alerted);
-        if (!hasAlertedCreature)
+        var alertedCreatureIds = nearby
+            .Where(creature => creature.State == CreatureState.Alerted)
+            .Select(creature => creature.Id)
+            .ToArray();
+
+        if (alertedCreatureIds.Length == 0)
         {
             return;
         }
+
+        await updateCreatures.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = alertedCreatureIds,
+                State = CreatureState.Idle,
+            },
+            cancellationToken
+        );
 
         var schedulePlaytime = await getPlaytime.Handle(
             new GetPlaytimeQuery { SessionId = sessionId },
             cancellationToken
         );
+
         var currentDate = GameClock.GetCurrentInGameDate(schedulePlaytime);
 
         catchUpCache.Evict(player.WorldId, oldLocationId, currentDate.Hour);

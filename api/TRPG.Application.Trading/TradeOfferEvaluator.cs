@@ -6,10 +6,12 @@ public enum TradeOutcome
 {
     Accepted,
     Rejected,
+    Refused,
 }
 
 internal record ValidatedTradeOffer(
     ItemOwnerReference ShopOwner,
+    Guid? AssignedCreatureId,
     int PlayerOfferValue,
     int ShopOfferValue
 );

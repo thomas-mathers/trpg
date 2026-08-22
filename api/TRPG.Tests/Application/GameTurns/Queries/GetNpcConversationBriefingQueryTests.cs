@@ -162,6 +162,14 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
                 },
             }
         );
+        _context.FactionMembers.Add(
+            new FactionMember
+            {
+                WorldId = WorldId,
+                CreatureId = _npc.Id,
+                FactionId = factionId,
+            }
+        );
         _context.Reputations.AddRange(
             new Reputation
             {
@@ -212,6 +220,14 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
                         ),
                     ],
                 },
+            }
+        );
+        _context.FactionMembers.Add(
+            new FactionMember
+            {
+                WorldId = WorldId,
+                CreatureId = _npc.Id,
+                FactionId = cityFactionId,
             }
         );
         _context.Reputations.Add(

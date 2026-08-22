@@ -23,12 +23,14 @@ internal class TradeOfferValidator(TrpgDbContext context)
         if (!playerExists)
             throw new EntityNotFoundException("Player", playerId);
 
-        var workstationExists = await context
-            .Props.OfType<Workstation>()
-            .AnyAsync(workstation => workstation.Id == workstationId, cancellationToken);
-
-        if (!workstationExists)
-            throw new EntityNotFoundException("Trade workstation", workstationId);
+        var workstation =
+            await context
+                .Props.OfType<Workstation>()
+                .FirstOrDefaultAsync(
+                    workstation => workstation.Id == workstationId,
+                    cancellationToken
+                )
+            ?? throw new EntityNotFoundException("Trade workstation", workstationId);
 
         var shopOwner = new ItemOwnerReference(workstationId, OwnerType.Workstation);
 
@@ -40,7 +42,12 @@ internal class TradeOfferValidator(TrpgDbContext context)
 
         var shopValue = await GetOfferValue(shopOffer, shopOwner, cancellationToken);
 
-        return new ValidatedTradeOffer(shopOwner, playerValue, shopValue);
+        return new ValidatedTradeOffer(
+            shopOwner,
+            workstation.AssignedCreatureId,
+            playerValue,
+            shopValue
+        );
     }
 
     private async Task<int> GetOfferValue(

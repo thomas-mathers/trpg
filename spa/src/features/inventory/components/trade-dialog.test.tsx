@@ -207,4 +207,25 @@ describe('TradeDialog', () => {
     expect(screen.queryByRole('button', { name: 'Complete trade' })).not.toBeInTheDocument();
     expect(completion).toBeUndefined();
   });
+
+  it('does not complete a refused proposal', async () => {
+    let completion: TradeRequest | undefined;
+    server.use(
+      handleGetTrade({ body: tradeSnapshot() }),
+      handleProposeTrade({ body: { status: 'Refused' } }),
+      handleCompleteTrade(async ({ request }) => {
+        completion = await request.json();
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { user } = renderDialog();
+
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Add Gold coins to offer' }));
+    await user.click(screen.getByRole('button', { name: 'Propose trade' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Tessa refuses to deal with you.');
+    expect(screen.queryByRole('button', { name: 'Complete trade' })).not.toBeInTheDocument();
+    expect(completion).toBeUndefined();
+  });
 });
