@@ -4,12 +4,15 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Buildings;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;
 using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
 using TypedSignalR.Client;
+using DataBuildingType = TRPG.Domain.Models.BuildingType;
+using DataCreatureState = TRPG.Domain.Models.CreatureState;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
 using DataDistrictType = TRPG.Domain.Models.DistrictType;
 
@@ -214,6 +217,70 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return (encounter, owner);
+    }
+
+    private async Task<Guid> SeedTempleInExistingCity()
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+
+        var cityEntranceDistrict = Builders.MakeDistrict(
+            _cityId,
+            DataDistrictType.CityEntrance,
+            worldId: _worldId
+        );
+        var cityEntranceLocation = Builders.MakeLocation(
+            _worldId,
+            _stateId,
+            cityId: _cityId,
+            districtId: cityEntranceDistrict.Id,
+            id: cityEntranceDistrict.LocationId
+        );
+        var holySiteDistrict = Builders.MakeDistrict(
+            _cityId,
+            DataDistrictType.HolySite,
+            worldId: _worldId
+        );
+        var templeExteriorLocation = Builders.MakeLocation(
+            _worldId,
+            _stateId,
+            cityId: _cityId,
+            districtId: holySiteDistrict.Id,
+            id: holySiteDistrict.LocationId
+        );
+        var temple = Builders.MakeBuilding(
+            exteriorLocationId: templeExteriorLocation.Id,
+            worldId: _worldId,
+            buildingType: DataBuildingType.Temple
+        );
+        var sanctuaryLocation = Builders.MakeLocation(_worldId, _stateId);
+        var sanctuaryRoom = Builders.MakeRoom(
+            temple.Id,
+            worldId: _worldId,
+            locationId: sanctuaryLocation.Id,
+            name: TempleRoomNames.Sanctuary
+        );
+
+        context.Districts.AddRange(cityEntranceDistrict, holySiteDistrict);
+        context.Locations.AddRange(cityEntranceLocation, templeExteriorLocation, sanctuaryLocation);
+        context.Buildings.Add(temple);
+        context.Rooms.Add(sanctuaryRoom);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return sanctuaryLocation.Id;
+    }
+
+    private async Task KillPlayer()
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var player = await context.Creatures.SingleAsync(
+            c => c.Id == _playerId,
+            TestContext.Current.CancellationToken
+        );
+        player.State = DataCreatureState.Dead;
+        player.CurrentHp = 0;
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -716,6 +783,53 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal("There's no fight to flee from right now.", narration);
+    }
+
+    [Fact]
+    public async Task SendRespawn_RelocatesPlayerAndDropsCorpse_AndNarratesTheRespawn()
+    {
+        // Arrange
+        var sanctuaryLocationId = await SeedTempleInExistingCity();
+        await KillPlayer();
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        // Act
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendRespawn", TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var player = await context.Creatures.SingleAsync(
+            c => c.Id == _playerId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(sanctuaryLocationId, player.LocationId);
+        Assert.Equal(DataCreatureState.Idle, player.State);
+        var corpse = await context.Creatures.SingleAsync(
+            c => c.PlayerCorpseOwnerId == _playerId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_locationId, corpse.LocationId);
+    }
+
+    [Fact]
+    public async Task SendRespawn_ReturnsAMessage_WhenPlayerIsNotDead()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        // Act
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendRespawn", TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal("There's nothing to respawn from right now.", narration);
     }
 
     [Fact]

@@ -9,6 +9,7 @@ public class GameTurnRunner
     private readonly StreamChatTurnHandler _streamChatTurn;
     private readonly StreamWaitTurnHandler _streamWaitTurn;
     private readonly StreamFleeTurnHandler _streamFleeTurn;
+    private readonly StreamRespawnTurnHandler _streamRespawnTurn;
     private readonly StreamHostileEncounterActionTurnHandler _streamHostileEncounterActionTurn;
     private readonly StreamGuardEncounterActionTurnHandler _streamGuardEncounterActionTurn;
     private readonly StreamTheftEncounterNarrationTurnHandler _streamTheftEncounterNarrationTurn;
@@ -20,6 +21,7 @@ public class GameTurnRunner
         StreamChatTurnHandler streamChatTurn,
         StreamWaitTurnHandler streamWaitTurn,
         StreamFleeTurnHandler streamFleeTurn,
+        StreamRespawnTurnHandler streamRespawnTurn,
         StreamHostileEncounterActionTurnHandler streamHostileEncounterActionTurn,
         StreamGuardEncounterActionTurnHandler streamGuardEncounterActionTurn,
         StreamTheftEncounterNarrationTurnHandler streamTheftEncounterNarrationTurn,
@@ -31,6 +33,7 @@ public class GameTurnRunner
         _streamChatTurn = streamChatTurn;
         _streamWaitTurn = streamWaitTurn;
         _streamFleeTurn = streamFleeTurn;
+        _streamRespawnTurn = streamRespawnTurn;
         _streamHostileEncounterActionTurn = streamHostileEncounterActionTurn;
         _streamGuardEncounterActionTurn = streamGuardEncounterActionTurn;
         _streamTheftEncounterNarrationTurn = streamTheftEncounterNarrationTurn;
@@ -60,6 +63,11 @@ public class GameTurnRunner
         GameTurnSession session,
         CancellationToken cancellationToken = default
     ) => _streamFleeTurn.Handle(session, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamRespawn(
+        GameTurnSession session,
+        CancellationToken cancellationToken = default
+    ) => _streamRespawnTurn.Handle(session, cancellationToken);
 
     public IAsyncEnumerable<string> StreamHostileEncounterAction(
         GameTurnSession session,

@@ -104,6 +104,10 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("SendFlee");
     }
 
+    public readonly sendRespawn = (): IStreamResult<string> => {
+        return this.connection.stream("SendRespawn");
+    }
+
     public readonly resolveUseAbilityCombatAction = async (targetId: string, abilityName: string): Promise<void> => {
         return await this.connection.invoke("ResolveUseAbilityCombatAction", targetId, abilityName);
     }

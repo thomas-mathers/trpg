@@ -1,4 +1,4 @@
-import { Award, BookOpen, CircleCheck, Eye, ShieldOff, Trophy, XCircle } from 'lucide-react';
+import { Award, BookOpen, CircleCheck, Eye, ShieldOff, Skull, Trophy, XCircle } from 'lucide-react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -36,21 +36,34 @@ export function GameNotifications() {
       );
     });
     const unsubscribeCombatResolved = gameEventBus.on('CombatResolved', (outcome) => {
-      if (outcome !== 'Victory') {
+      if (outcome === 'Victory') {
+        toast.custom(
+          (toastId) => (
+            <GameToast
+              toastId={toastId}
+              icon={Trophy}
+              title="Victory"
+              description="Your enemies have been defeated."
+            />
+          ),
+          { duration: 3800 },
+        );
         return;
       }
 
-      toast.custom(
-        (toastId) => (
-          <GameToast
-            toastId={toastId}
-            icon={Trophy}
-            title="Victory"
-            description="Your enemies have been defeated."
-          />
-        ),
-        { duration: 3800 },
-      );
+      if (outcome === 'Defeat') {
+        toast.custom(
+          (toastId) => (
+            <GameToast
+              toastId={toastId}
+              icon={Skull}
+              title="You have fallen"
+              description="Your consciousness fades..."
+            />
+          ),
+          { duration: 3800 },
+        );
+      }
     });
     const unsubscribeQuestObjective = gameEventBus.on(
       'QuestObjectiveCompleted',

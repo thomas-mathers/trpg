@@ -93,6 +93,22 @@ internal static class Builders
             WorldId = worldId ?? Guid.NewGuid(),
         };
 
+    public static TravelConnector MakeTravelConnector(
+        Guid connectorId,
+        float distance = 1,
+        int travelTimeHours = 1,
+        float dangerLevel = 0,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            ConnectorId = connectorId,
+            Distance = distance,
+            TravelTimeHours = travelTimeHours,
+            DangerLevel = dangerLevel,
+            WorldId = worldId ?? Guid.NewGuid(),
+        };
+
     public static CombatantResult MakeCombatantState(
         Guid id,
         string name,
@@ -211,7 +227,8 @@ internal static class Builders
         int? currentMp = null,
         CreatureState state = default,
         int naturalWeaponMinDamage = 3,
-        int naturalWeaponMaxDamage = 3
+        int naturalWeaponMaxDamage = 3,
+        Guid? playerCorpseOwnerId = null
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -227,6 +244,7 @@ internal static class Builders
             LocationId = locationId ?? Guid.NewGuid(),
             Level = level,
             State = state,
+            PlayerCorpseOwnerId = playerCorpseOwnerId,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,
