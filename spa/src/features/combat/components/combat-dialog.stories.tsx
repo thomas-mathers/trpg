@@ -256,6 +256,7 @@ function WorkbenchProviders({
     sendChat: noopStream,
     sendWait: noopStream,
     sendFlee: noopStream,
+    sendRespawn: noopStream,
     resolveUseAbilityCombatAction: (targetId, abilityName) =>
       resolveAction({ type: 'UseAbilityAction', targetId, abilityName }),
     resolveUseItemCombatAction: (itemName) => resolveAction({ type: 'UseItemAction', itemName }),

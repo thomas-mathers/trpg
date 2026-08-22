@@ -14,6 +14,7 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<StreamWaitTurnHandler>()
             .AddTransient<StreamChatTurnHandler>()
             .AddTransient<StreamFleeTurnHandler>()
+            .AddTransient<StreamRespawnTurnHandler>()
             .AddTransient<StreamHostileEncounterActionTurnHandler>()
             .AddTransient<StreamGuardEncounterActionTurnHandler>()
             .AddTransient<StreamTheftEncounterNarrationTurnHandler>()
@@ -24,6 +25,7 @@ public static class GameTurnsServiceCollectionExtensions
                 serviceProvider.GetRequiredService<StreamChatTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamWaitTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamFleeTurnHandler>(),
+                serviceProvider.GetRequiredService<StreamRespawnTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamHostileEncounterActionTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamGuardEncounterActionTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamTheftEncounterNarrationTurnHandler>(),

@@ -22,6 +22,7 @@ internal static class CreatureMapper
             creature.Level,
             creature.BirthYear,
             creature.State,
+            creature.PlayerCorpseOwnerId,
             gold,
             stateId,
             creature.LocationId,

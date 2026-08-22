@@ -38,6 +38,11 @@ export type IChatHub = {
     */
     sendFlee(): IStreamResult<string>;
     /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    sendRespawn(): IStreamResult<string>;
+    /**
     * @param targetId Transpiled from System.Guid
     * @param abilityName Transpiled from string
     * @returns Transpiled from System.Threading.Tasks.Task

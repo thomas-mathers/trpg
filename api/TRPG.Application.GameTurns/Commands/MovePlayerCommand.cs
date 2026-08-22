@@ -229,7 +229,13 @@ internal class MovePlayerCommandHandler(
             new GetCreatureIdsHoldingItemsQuery { ItemIds = questItemIds },
             cancellationToken
         );
-        var removableCreatureIds = deadCreatureIds.Except(questItemOwnerIds).ToArray();
+        var playerCorpseIds = nearby
+            .Where(creature => creature.PlayerCorpseOwnerId != null)
+            .Select(creature => creature.Id);
+        var removableCreatureIds = deadCreatureIds
+            .Except(questItemOwnerIds)
+            .Except(playerCorpseIds)
+            .ToArray();
 
         if (removableCreatureIds.Length == 0)
         {

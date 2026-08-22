@@ -29,5 +29,9 @@ describe('GameNotifications', () => {
     gameEventBus.emit('QuestJournalUpdated', 'Recover the Ledger');
 
     expect(await screen.findByText('Recover the Ledger')).toBeVisible();
+
+    gameEventBus.emit('CombatResolved', 'Defeat');
+
+    expect(await screen.findByText('You have fallen')).toBeVisible();
   });
 });

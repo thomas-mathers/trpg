@@ -11,6 +11,7 @@ public record CreatureResult(
     int Level,
     int BirthYear,
     CreatureState State,
+    Guid? PlayerCorpseOwnerId,
     int Gold,
     Guid StateId,
     Guid LocationId,

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { getQuestJournalQueryKey } from '@/api/client';
 import { CharacterDialog } from '@/features/character/components/character-dialog';
+import { DeathRespawnEffect } from '@/features/combat/hooks/use-death-respawn';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
@@ -221,6 +222,7 @@ function GameScreenContent({
 
         <ConnectionLostDialog open={isConnectionLostDialogOpen} onClose={onConnectionLostClose} />
         <GameNotifications />
+        <DeathRespawnEffect />
       </SidebarProvider>
     </GameChatContext.Provider>
   );
