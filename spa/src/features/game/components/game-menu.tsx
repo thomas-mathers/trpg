@@ -1,4 +1,4 @@
-import { MenuIcon } from 'lucide-react';
+import { GiTiedScroll } from 'react-icons/gi';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -33,7 +33,7 @@ export function GameMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon">
-          <MenuIcon />
+          <GiTiedScroll />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

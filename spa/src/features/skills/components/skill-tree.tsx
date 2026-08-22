@@ -11,8 +11,9 @@ import {
   type NodeProps,
   useReactFlow,
 } from '@xyflow/react';
-import { Clock3, Droplet, Sparkles, Zap, Lock } from 'lucide-react';
+import { Clock3, Lock } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
+import { GiWingfoot, GiSparkles, GiWaterDrop } from 'react-icons/gi';
 
 import type { AbilitySummary } from '@/api/client';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -56,7 +57,7 @@ export function SkillTree({ abilities, level }: SkillTreeProps) {
     return (
       <Empty>
         <EmptyMedia variant="icon">
-          <Sparkles />
+          <GiSparkles />
         </EmptyMedia>
         <EmptyTitle>No abilities yet</EmptyTitle>
         <EmptyDescription>This skill has no abilities defined.</EmptyDescription>
@@ -209,12 +210,12 @@ function AbilityTooltip({ ability, isUnlocked }: { ability: AbilitySummary; isUn
       <p>{ability.description}</p>
 
       <div className="flex gap-3 text-xs opacity-80">
-        <span className="flex items-center gap-1 text-amber-500">
-          <Zap className="h-4 w-4" />
+        <span className="text-stamina flex items-center gap-1">
+          <GiWingfoot className="h-4 w-4" />
           {ability.apCost}
         </span>
-        <span className="flex items-center gap-1 text-blue-500">
-          <Droplet className="h-4 w-4" />
+        <span className="text-mp flex items-center gap-1">
+          <GiWaterDrop className="h-4 w-4" />
           {ability.mpCost}
         </span>
         <span className="flex items-center gap-1">

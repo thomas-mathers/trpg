@@ -1,6 +1,14 @@
-import { DoorOpen, FlaskConical, Shield, Sparkles, Sword, Swords } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { forwardRef, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import type { IconType } from 'react-icons';
+import {
+  GiBubblingFlask,
+  GiCrossedSwords,
+  GiShield,
+  GiSparkles,
+  GiSprint,
+  GiSwordBrandish,
+} from 'react-icons/gi';
 import { toast } from 'sonner';
 
 import type { AbilityCategory, AbilitySummary, ConsumableSummary } from '@/api/client';
@@ -180,7 +188,7 @@ export function CombatDialog() {
       (toastId) => (
         <GameToast
           toastId={toastId}
-          icon={Sparkles}
+          icon={GiSparkles}
           title={`${activeCombatEvent.attackerName} · ${activeCombatEvent.abilityName}`}
           description={narration}
         />
@@ -240,7 +248,7 @@ export function CombatDialog() {
                     <ActionButton
                       combatAction="attack"
                       disabled={disabled}
-                      icon={Sword}
+                      icon={GiSwordBrandish}
                       label="Attack"
                     />
                   }
@@ -252,14 +260,14 @@ export function CombatDialog() {
                   onOpenChange={(open) => setOpenMenu(open ? 'defend' : null)}
                   open={openMenu === 'defend'}
                   playerId={currentPlayerId}
-                  trigger={<ActionButton disabled={disabled} icon={Shield} label="Defend" />}
+                  trigger={<ActionButton disabled={disabled} icon={GiShield} label="Defend" />}
                 />
                 <Popover
                   open={openMenu === 'item'}
                   onOpenChange={(open) => setOpenMenu(open ? 'item' : null)}
                 >
                   <PopoverTrigger asChild>
-                    <ActionButton disabled={disabled} icon={FlaskConical} label="Item" />
+                    <ActionButton disabled={disabled} icon={GiBubblingFlask} label="Item" />
                   </PopoverTrigger>
                   <PopoverContent
                     align="start"
@@ -279,7 +287,7 @@ export function CombatDialog() {
               <ActionButton
                 className="w-20"
                 disabled={disabled}
-                icon={DoorOpen}
+                icon={GiSprint}
                 label="Flee"
                 onClick={submitFlee}
                 destructive
@@ -316,7 +324,7 @@ export function CombatDialog() {
           <div ref={setPopoverContainer} className="bg-muted flex h-full min-h-0 flex-col">
             <header className="bg-card flex items-center justify-between border-b px-5 py-3">
               <span className="flex items-center gap-2 text-sm font-semibold">
-                <Swords className="h-4 w-4 text-amber-500" />
+                <GiCrossedSwords className="text-stamina h-4 w-4" />
                 {encounterTitle}
               </span>
             </header>
@@ -408,7 +416,7 @@ function InitiativeTrack({ combatants, activeAttackerId }: InitiativeTrackProps)
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
                     isActive
-                      ? 'bg-amber-500/15 text-amber-600'
+                      ? 'bg-stamina/15 text-stamina'
                       : combatant.isPlayer
                         ? 'bg-muted text-foreground'
                         : 'bg-destructive/10 text-destructive'
@@ -463,7 +471,7 @@ function ActionPickerPopover({
 }
 
 interface ActionButtonProps {
-  icon: typeof Sword;
+  icon: IconType;
   label: string;
   onClick?: () => void;
   combatAction?: string;

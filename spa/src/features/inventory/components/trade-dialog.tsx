@@ -1,15 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  CircleCheck,
-  CircleX,
-  Coins,
-  PackageOpen,
-  Store,
-  UserRound,
-  Weight,
-  X,
-} from 'lucide-react';
+import { CircleCheck, CircleX, UserRound, X } from 'lucide-react';
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import type { IconType } from 'react-icons';
+import { GiOpenTreasureChest, GiShop, GiTwoCoins, GiWeight } from 'react-icons/gi';
 
 import {
   completeTradeMutation,
@@ -24,6 +17,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Empty, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -127,10 +121,10 @@ export function TradeDialog({
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="flex h-[min(94dvh,880px)] w-[calc(100vw-2rem)] max-w-none flex-col gap-4 sm:max-w-none">
-        <div>
+        <DialogHeader>
           <DialogTitle>Trade with {workerName}</DialogTitle>
-          <DialogDescription className="mt-1">{shopName}</DialogDescription>
-        </div>
+          <DialogDescription>{shopName}</DialogDescription>
+        </DialogHeader>
 
         <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(15rem,0.65fr)_minmax(0,1fr)] lg:overflow-hidden">
           <InventoryPanel
@@ -163,7 +157,7 @@ export function TradeDialog({
           </div>
 
           <InventoryPanel
-            icon={Store}
+            icon={GiShop}
             title="Shop inventory"
             items={shopItems}
             offerItems={shopOffer}
@@ -204,7 +198,7 @@ function InventoryPanel({
   filterKey,
   onAdd,
 }: {
-  icon: typeof UserRound;
+  icon: IconType;
   title: string;
   items: readonly ItemDetail[];
   offerItems: readonly ItemDetail[];
@@ -230,7 +224,7 @@ function InventoryPanel({
           {title}
         </h2>
         <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
-          {items.length} items · {totalWeight} <Weight className="size-3 shrink-0" /> total
+          {items.length} items · {totalWeight} <GiWeight className="size-4 shrink-0" /> total
         </p>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
@@ -281,13 +275,13 @@ function OfferPanel({
       <div className="flex items-center justify-between border-b px-3 py-2">
         <h2 className="text-sm font-semibold">{title}</h2>
         <span className="text-muted-foreground flex items-center gap-1 font-mono text-xs tabular-nums">
-          {total} <Coins className="size-3" />
+          {total} <GiTwoCoins className="size-4" />
         </span>
       </div>
       {items.length === 0 ? (
         <Empty className="min-h-28">
           <EmptyMedia variant="icon">
-            <PackageOpen />
+            <GiOpenTreasureChest />
           </EmptyMedia>
           <EmptyTitle>{emptyMessage}</EmptyTitle>
         </Empty>
@@ -351,7 +345,7 @@ function TradeSummary({
 
   return (
     <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
-      <Coins className="size-4" />
+      <GiTwoCoins className="size-4" />
       {summary}
     </p>
   );
@@ -377,7 +371,7 @@ function TradeResponse({
     <p
       className={
         accepted
-          ? 'flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400'
+          ? 'text-heal flex items-center gap-1.5 text-sm'
           : 'text-destructive flex items-center gap-1.5 text-sm'
       }
       role="status"

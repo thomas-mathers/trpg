@@ -1,4 +1,4 @@
-import { Coins, Weight } from 'lucide-react';
+import { GiTwoCoins, GiWeight } from 'react-icons/gi';
 
 import type { ItemDetail } from '@/api/client';
 import { formatItemModifier } from '@/features/inventory/item-modifier-format';
@@ -47,11 +47,11 @@ export function ItemTooltip({ item }: { item: ItemDetail }) {
   const statLines: React.ReactNode[] = [
     <span key="weight" className="inline-flex items-center gap-1">
       Weight: {item.weight}
-      <Weight className="size-3" />
+      <GiWeight className="size-4" />
     </span>,
     <span key="value" className="inline-flex items-center gap-1">
       Value: {item.goldValue}
-      <Coins className="size-3" />
+      <GiTwoCoins className="size-4" />
     </span>,
     ...getStatLines(item),
   ];

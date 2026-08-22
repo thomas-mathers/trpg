@@ -1,16 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Archive,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  Eye,
-  Skull,
-  User,
-  Weight,
-} from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Eye, User } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { GiChest, GiTombstone, GiWeight } from 'react-icons/gi';
 
 import {
   getContainerInventoryOptions,
@@ -21,7 +12,13 @@ import {
 import type { ItemDetail, OwnerType } from '@/api/client';
 import { NumericStepper } from '@/components/numeric-stepper';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ItemName } from '@/features/inventory/components/item-name';
 import { ItemTable } from '@/features/inventory/components/item-table';
 import { useItemTable } from '@/features/inventory/hooks/use-item-table';
@@ -57,7 +54,9 @@ export function TransferItemDialog({
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         {target && (
-          <DialogTitle>{transfersEnabled ? 'Transfer Items' : 'Inspect Inventory'}</DialogTitle>
+          <DialogHeader>
+            <DialogTitle>{transfersEnabled ? 'Transfer Items' : 'Inspect Inventory'}</DialogTitle>
+          </DialogHeader>
         )}
         {target && (
           <TransferDialogBody
@@ -217,9 +216,9 @@ function TransferDialogBody({
           title={
             <>
               {target.ownerType === 'Creature' ? (
-                <Skull className="text-muted-foreground size-4" />
+                <GiTombstone className="text-muted-foreground size-4" />
               ) : (
-                <Archive className="text-muted-foreground size-4" />
+                <GiChest className="text-muted-foreground size-4" />
               )}{' '}
               {target.name}
             </>
@@ -241,7 +240,7 @@ function TransferDialogBody({
               : `${transferDraft.changedCount} stack${transferDraft.changedCount === 1 ? '' : 's'} to transfer.`}
           </p>
           {theftDetectionChance.data != null && (
-            <p className="flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
+            <p className="text-stamina flex items-center gap-1.5 text-sm">
               <Eye className="size-4" />
               {Math.round(theftDetectionChance.data * 100)}% chance to avoid detection.
             </p>
@@ -339,7 +338,7 @@ function InventorySidePanel({
       <div className="border-b px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-semibold">{title}</div>
         <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
-          {items.length} items · {totalWeight} <Weight className="size-3 shrink-0" /> total
+          {items.length} items · {totalWeight} <GiWeight className="size-4 shrink-0" /> total
         </p>
       </div>
 

@@ -32,7 +32,7 @@ export function QuestTracker({ playerId, worldId, onOpenJournal }: QuestTrackerP
           <li key={objective.name} className="flex items-center gap-1.5">
             <span className="flex size-3 shrink-0 items-center justify-center" aria-hidden>
               {objective.amount >= objective.requiredAmount ? (
-                <CircleCheck className="size-3 text-emerald-600 dark:text-emerald-400" />
+                <CircleCheck className="text-heal size-3" />
               ) : (
                 <span>•</span>
               )}

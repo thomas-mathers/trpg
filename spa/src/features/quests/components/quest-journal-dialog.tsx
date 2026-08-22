@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Empty, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -43,8 +44,10 @@ export function QuestJournalDialog({ playerId, worldId, open, onClose }: QuestJo
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="flex h-[min(90dvh,44rem)] w-[calc(100vw-2rem)] max-w-none flex-col gap-4 sm:h-[min(88dvh,56rem)] sm:w-[min(92vw,72rem)] sm:max-w-none">
-        <DialogTitle>Quest Journal</DialogTitle>
-        <DialogDescription>Your current work and its progress.</DialogDescription>
+        <DialogHeader>
+          <DialogTitle>Quest Journal</DialogTitle>
+          <DialogDescription>Your current work and its progress.</DialogDescription>
+        </DialogHeader>
 
         <Tabs value={tab} onValueChange={setTab} className="min-h-0 flex-1">
           <TabsList>
@@ -144,7 +147,7 @@ function QuestJournalListItem({
       }`}
       onClick={onSelect}
     >
-      <span className="font-heading block truncate font-medium">{quest.name}</span>
+      <span className="font-heading block truncate tracking-wide">{quest.name}</span>
       {locationName && (
         <span
           className={`mt-1 flex items-center gap-1 text-xs ${
@@ -196,7 +199,7 @@ function QuestJournalEntry({
     <section className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-heading text-xl font-medium">{quest.name}</h3>
+          <h3 className="font-heading text-xl tracking-wide">{quest.name}</h3>
           <p className="text-muted-foreground mt-1 text-xs">{formatQuestStatus(quest.status)}</p>
         </div>
         {(quest.status === 'Accepted' || quest.status === 'ReadyToComplete') && (
@@ -225,7 +228,7 @@ function QuestJournalEntry({
             >
               <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center" aria-hidden>
                 {objective.amount >= objective.requiredAmount ? (
-                  <CircleCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                  <CircleCheck className="text-heal size-4" />
                 ) : (
                   <Circle className="text-muted-foreground size-3" />
                 )}

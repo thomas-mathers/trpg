@@ -1,5 +1,5 @@
-import { Coins, Weight } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { GiTwoCoins, GiWeight } from 'react-icons/gi';
 
 import type { ItemDetail } from '@/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -291,9 +291,9 @@ function ItemGoldValueCell({ value }: { value: number }) {
 
   return (
     <td className="overflow-hidden px-2 py-1.5 text-right align-middle font-mono text-sm tabular-nums">
-      <div className="flex h-5 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
+      <div className="flex h-7 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
         <span className="truncate">{displayValue}</span>
-        <Coins className="text-muted-foreground size-3 shrink-0" />
+        <GiTwoCoins className="text-muted-foreground size-5 shrink-0" />
       </div>
     </td>
   );
@@ -304,9 +304,9 @@ function ItemWeightCell({ value }: { value: number }) {
 
   return (
     <td className="overflow-hidden px-2 py-1.5 text-right align-middle font-mono text-sm tabular-nums">
-      <div className="flex h-5 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
+      <div className="flex h-7 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
         <span className="truncate">{displayValue}</span>
-        <Weight className="text-muted-foreground size-3 shrink-0" />
+        <GiWeight className="text-muted-foreground size-5 shrink-0" />
       </div>
     </td>
   );

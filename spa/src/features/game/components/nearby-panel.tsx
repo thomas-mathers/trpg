@@ -1,4 +1,4 @@
-import { Archive, CircleHelp, Crown, Skull } from 'lucide-react';
+import { Archive, CircleHelp, Crown } from 'lucide-react';
 import {
   Anvil,
   BedDouble,
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import { GiDeathSkull, GiTombstone } from 'react-icons/gi';
 
 import type { BuildingType, DistrictType, OwnerType } from '@/api/client';
 import type {
@@ -276,22 +277,25 @@ function CreatureRow({
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="flex h-[15px] w-[15px] shrink-0 items-center justify-center">
           {dead ? (
-            <Skull className="h-[15px] w-[15px]" aria-label="Dead" />
+            <GiTombstone className="h-[15px] w-[15px]" aria-label="Dead" />
           ) : creature.questMarker === 'Available' ? (
             <CircleHelp
-              className="h-[15px] w-[15px] text-amber-500"
+              className="text-stamina h-[15px] w-[15px]"
               aria-label="Has a quest available"
             />
           ) : creature.questMarker === 'ReadyToTurnIn' ? (
             <span
-              className="text-sm font-bold text-amber-500"
+              className="text-stamina text-sm font-bold"
               aria-label="Has a quest ready to turn in"
             >
               !
             </span>
           ) : (
             dangerous && (
-              <Crown className="h-[15px] w-[15px]" aria-label="Much more powerful than you" />
+              <GiDeathSkull
+                className="h-[15px] w-[15px]"
+                aria-label="Much more powerful than you"
+              />
             )
           )}
         </span>
@@ -300,8 +304,8 @@ function CreatureRow({
           onClick={onOpenInventory}
           className={cn(
             'cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2',
-            reputation != null && reputation > 0 && 'text-green-500',
-            reputation != null && reputation < 0 && 'text-red-500',
+            reputation != null && reputation > 0 && 'text-heal',
+            reputation != null && reputation < 0 && 'text-destructive',
           )}
         >
           {creature.name}

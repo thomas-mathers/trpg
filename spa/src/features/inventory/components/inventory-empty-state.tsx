@@ -1,4 +1,4 @@
-import { PackageOpen } from 'lucide-react';
+import { GiOpenTreasureChest } from 'react-icons/gi';
 
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyContent, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -17,7 +17,7 @@ export function InventoryEmptyState({
   return (
     <Empty className="h-full">
       <EmptyMedia variant="icon">
-        <PackageOpen />
+        <GiOpenTreasureChest />
       </EmptyMedia>
       <EmptyTitle>{itemCount === 0 ? emptyMessage : 'No items match your filters.'}</EmptyTitle>
       {itemCount > 0 && onClearFilters && (

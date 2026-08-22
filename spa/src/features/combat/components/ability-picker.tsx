@@ -113,10 +113,10 @@ export function AbilityPicker({
                     </span>
                     <span className="flex shrink-0 gap-2 text-[11px] tabular-nums">
                       {Number(ability.apCost) > 0 && (
-                        <span className="text-amber-500">AP {ability.apCost}</span>
+                        <span className="text-stamina">AP {ability.apCost}</span>
                       )}
                       {Number(ability.mpCost) > 0 && (
-                        <span className="text-blue-500">MP {ability.mpCost}</span>
+                        <span className="text-mp">MP {ability.mpCost}</span>
                       )}
                     </span>
                   </button>

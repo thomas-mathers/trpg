@@ -107,7 +107,7 @@ function StatRow({
           <span
             className={cn(
               'inline-flex items-center gap-0.5',
-              delta > 0 ? 'text-emerald-500' : 'text-red-500',
+              delta > 0 ? 'text-heal' : 'text-destructive',
             )}
           >
             {delta > 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}

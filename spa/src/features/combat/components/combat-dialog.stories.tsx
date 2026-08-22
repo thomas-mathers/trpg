@@ -1,9 +1,17 @@
 import { HubConnectionState, type IStreamResult } from '@microsoft/signalr';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { DoorOpen, FlaskConical, Shield, Sparkles, Swords, type LucideIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { forwardRef, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { IconType } from 'react-icons';
+import {
+  GiBubblingFlask,
+  GiCrossedSwords,
+  GiShield,
+  GiSparkles,
+  GiSprint,
+  GiSwordBrandish,
+} from 'react-icons/gi';
 
 import type {
   AbilityAvailabilityResponse,
@@ -650,7 +658,7 @@ function NarrationToastMock({
     >
       <div className="border-border/80 bg-popover/95 shadow-foreground/10 rounded-lg border px-3 py-2.5 shadow-lg backdrop-blur-sm">
         <div className="text-muted-foreground mb-1 flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase">
-          <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+          <GiSparkles className="text-stamina h-3.5 w-3.5" />
           <span>{actor}</span>
           <span className="text-muted-foreground/60">•</span>
           <span>{ability}</span>
@@ -747,7 +755,7 @@ function CombatEncounterDialogMock({
         <div ref={setPopoverContainer} className="bg-muted flex h-full min-h-0 flex-col">
           <header className="bg-card flex items-center justify-between border-b px-5 py-3">
             <span className="flex items-center gap-2 text-sm font-semibold">
-              <Swords className="h-4 w-4 text-amber-500" />
+              <GiCrossedSwords className="text-stamina h-4 w-4" />
               Ambush at Ashen Ford
             </span>
             <span className="text-muted-foreground text-xs">Round 4</span>
@@ -963,7 +971,7 @@ function FullRoundDialogMock({ fight }: { fight: CombatantState[] }) {
         <div ref={setPopoverContainer} className="bg-muted flex h-full min-h-0 flex-col">
           <header className="bg-card flex items-center justify-between border-b px-5 py-3">
             <span className="flex items-center gap-2 text-sm font-semibold">
-              <Swords className="h-4 w-4 text-amber-500" />
+              <GiCrossedSwords className="text-stamina h-4 w-4" />
               Ambush at Ashen Ford
             </span>
             <span className="text-muted-foreground text-xs">Full round preview</span>
@@ -1117,7 +1125,7 @@ function InitiativePreview({
             <span
               className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                 combatant.id === activeCombatantId
-                  ? 'bg-amber-500/15 text-amber-600'
+                  ? 'bg-stamina/15 text-stamina'
                   : combatant.isPlayer
                     ? 'bg-muted text-foreground'
                     : 'bg-destructive/10 text-destructive'
@@ -1156,12 +1164,12 @@ function CombatantPreviewCard({
     hit: {
       frame: '',
       label: '−18',
-      labelClass: 'text-yellow-400',
+      labelClass: 'text-stamina',
     },
     crit: {
       frame: 'scale-[1.02]',
       label: 'CRIT −24',
-      labelClass: 'text-red-500',
+      labelClass: 'text-crit',
     },
     miss: {
       frame: 'translate-x-1',
@@ -1171,7 +1179,7 @@ function CombatantPreviewCard({
     block: {
       frame: '',
       label: 'BLOCKED',
-      labelClass: 'text-sky-500',
+      labelClass: 'text-mp',
     },
   } as const;
   const current = feedback ? treatment[feedback] : undefined;
@@ -1247,7 +1255,7 @@ function EncounterActionMenuMock({
             open={openMenu === 'attack'}
             playerId={playerId}
             popoverContainer={popoverContainer}
-            trigger={<EncounterAction icon={Swords} label="Attack" />}
+            trigger={<EncounterAction icon={GiSwordBrandish} label="Attack" />}
           />
           <PickerPopover
             category="Support"
@@ -1255,14 +1263,14 @@ function EncounterActionMenuMock({
             open={openMenu === 'defend'}
             playerId={playerId}
             popoverContainer={popoverContainer}
-            trigger={<EncounterAction icon={Shield} label="Defend" />}
+            trigger={<EncounterAction icon={GiShield} label="Defend" />}
           />
           <Popover
             open={openMenu === 'item'}
             onOpenChange={(open) => setOpenMenu(open ? 'item' : null)}
           >
             <PopoverTrigger asChild>
-              <EncounterAction icon={FlaskConical} label="Item" />
+              <EncounterAction icon={GiBubblingFlask} label="Item" />
             </PopoverTrigger>
             <PopoverContent
               align="start"
@@ -1279,7 +1287,7 @@ function EncounterActionMenuMock({
             </PopoverContent>
           </Popover>
         </div>
-        <EncounterAction className="w-20" destructive icon={DoorOpen} label="Flee" />
+        <EncounterAction className="w-20" destructive icon={GiSprint} label="Flee" />
       </div>
     </section>
   );
@@ -1322,7 +1330,7 @@ function PickerPopover({
 }
 
 interface EncounterActionProps extends React.ComponentProps<'button'> {
-  icon: LucideIcon;
+  icon: IconType;
   label: string;
   destructive?: boolean;
 }

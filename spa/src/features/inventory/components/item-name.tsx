@@ -19,8 +19,8 @@ export function ItemName({ item, equippedLabel = 'Equipped' }: ItemNameProps) {
   const rarityColor = item.rarity ? RARITY_COLOR[item.rarity] : undefined;
 
   return (
-    <div className="flex h-5 min-w-0 items-center gap-1.5 text-sm">
-      <Icon className="text-muted-foreground size-3.5 shrink-0" />
+    <div className="flex h-7 min-w-0 items-center gap-1.5 text-sm">
+      <Icon className="text-muted-foreground size-6 shrink-0" />
       {rarityColor && (
         <span
           className="size-1.5 shrink-0 rounded-full"

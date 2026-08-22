@@ -55,7 +55,7 @@ export function HostileEncounterDialog() {
       >
         <header className="bg-card border-b px-5 py-4">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <ShieldAlert className="h-5 w-5 text-amber-500" />
+            <ShieldAlert className="text-stamina h-5 w-5" />
             Hostile encounter
           </DialogTitle>
           <DialogDescription className="mt-1.5">
@@ -81,7 +81,7 @@ export function HostileEncounterDialog() {
                   onClick={() => details.submit(actionName)}
                   className="border-border bg-card hover:bg-accent focus-visible:ring-ring flex min-h-24 flex-col items-start gap-2 rounded-lg border p-3 text-left shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
-                  <Icon className="h-5 w-5 text-amber-500" />
+                  <Icon className="text-stamina h-5 w-5" />
                   <span className="text-sm font-semibold">{actionName}</span>
                   <span className="text-muted-foreground text-xs">{details.description}</span>
                 </button>

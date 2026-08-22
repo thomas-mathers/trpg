@@ -38,12 +38,15 @@ function TitleScreen() {
   };
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-6">
-      <h1 className="font-cinzel text-2xl font-semibold">TRPG</h1>
+    <div className="flex h-screen flex-col items-center justify-center gap-8">
+      <div className="flex flex-col items-center gap-2">
+        <h1 className="font-heading text-primary text-5xl tracking-widest">TRPG</h1>
+        <div className="h-px w-32 bg-[linear-gradient(to_right,transparent,var(--primary),transparent)]" />
+      </div>
 
-      <div className="flex w-80 flex-col gap-3">
+      <div className="border-border bg-card flex w-full max-w-xl flex-col gap-3 rounded-xl border p-4 shadow-[0_8px_30px_-8px_color-mix(in_oklch,var(--foreground)_20%,transparent)]">
         <div className="flex items-center justify-between">
-          <h2 className="text-muted-foreground text-sm font-medium">Worlds</h2>
+          <h2 className="font-heading text-muted-foreground text-sm tracking-wide">Worlds</h2>
           <NewWorldDialog />
         </div>
 
@@ -58,9 +61,9 @@ function TitleScreen() {
           {worlds.map((world) => (
             <li
               key={world.worldId}
-              className="flex items-center justify-between gap-2 rounded-md border p-2"
+              className="border-border bg-secondary/40 flex items-center justify-between gap-2 rounded-md border p-2"
             >
-              <span>{world.name}</span>
+              <span className="font-heading tracking-wide">{world.name}</span>
               <div className="flex gap-2">
                 {world.hasPlayer && (
                   <Button
@@ -82,6 +85,14 @@ function TitleScreen() {
           ))}
         </ul>
       </div>
+
+      <p className="text-muted-foreground/60 text-xs">
+        Game icons by{' '}
+        <a className="underline" href="https://game-icons.net" target="_blank" rel="noreferrer">
+          game-icons.net
+        </a>{' '}
+        (CC BY 3.0)
+      </p>
     </div>
   );
 }
