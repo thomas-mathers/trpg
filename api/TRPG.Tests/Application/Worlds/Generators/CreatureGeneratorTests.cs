@@ -256,10 +256,9 @@ public class CreatureGeneratorTests
     public void Generate_ScalesOnlyProfessionSkills_AboveFloor()
     {
         // Act — Knight's profession skills are Melee and Blocking
-        var result = _creatureGenerator.Generate(MakeInput(Profession.Knight, level: 10));
+        var result = _creatureGenerator.Generate(MakeInput(Profession.Knight, level: 60));
 
-        // Assert — the random weighted split between the two profession skills means neither
-        // one reliably lands on an exact level, only that both scale above the floor
+        // Assert — a high enough level makes the random split overwhelmingly likely to raise both above the floor
         var skillLevels = result.Skills.ToDictionary(s => s.Skill, s => s.Level);
         Assert.True(skillLevels[Skill.Melee] > 1);
         Assert.True(skillLevels[Skill.Blocking] > 1);
