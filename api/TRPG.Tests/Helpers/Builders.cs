@@ -683,17 +683,21 @@ internal static class Builders
         Guid? districtId = null,
         Guid? roomId = null,
         Guid? id = null,
-        LocationKind kind = LocationKind.District
+        LocationKind kind = LocationKind.District,
+        Guid? coarseAnchorLocationId = null
     )
     {
+        var locationId = id ?? Guid.NewGuid();
+
         return new Location
         {
-            Id = id ?? Guid.NewGuid(),
+            Id = locationId,
             WorldId = worldId ?? Guid.NewGuid(),
             StateId = stateId ?? Guid.NewGuid(),
             CityId = cityId,
             DistrictId = districtId,
             RoomId = roomId,
+            CoarseAnchorLocationId = coarseAnchorLocationId ?? locationId,
             Kind = kind,
         };
     }
