@@ -106,4 +106,64 @@ internal static class Graphs
 
         return path.ToArray();
     }
+
+    public static IReadOnlyList<TKey> ShortestPathToNearest<TKey>(
+        TKey origin,
+        IReadOnlySet<TKey> destinations,
+        Func<TKey, IEnumerable<TKey>> getNeighbors,
+        Func<TKey, TKey, double> getCost
+    )
+        where TKey : notnull
+    {
+        var costs = new Dictionary<TKey, double> { [origin] = 0 };
+        var cameFrom = new Dictionary<TKey, TKey>();
+        var frontier = new PriorityQueue<TKey, double>();
+
+        frontier.Enqueue(origin, 0);
+
+        var reached = origin;
+        var found = false;
+
+        while (frontier.Count > 0)
+        {
+            var from = frontier.Dequeue();
+
+            if (destinations.Contains(from))
+            {
+                reached = from;
+                found = true;
+                break;
+            }
+
+            foreach (var to in getNeighbors(from))
+            {
+                var cost = costs[from] + getCost(from, to);
+
+                if (!costs.TryGetValue(to, out var bestCost) || cost < bestCost)
+                {
+                    costs[to] = cost;
+                    cameFrom[to] = from;
+                    frontier.Enqueue(to, cost);
+                }
+            }
+        }
+
+        if (!found)
+        {
+            return [];
+        }
+
+        var path = new List<TKey>();
+        var node = reached;
+
+        while (cameFrom.TryGetValue(node, out var prev))
+        {
+            path.Insert(0, node);
+            node = prev;
+        }
+
+        path.Insert(0, origin);
+
+        return path.ToArray();
+    }
 }

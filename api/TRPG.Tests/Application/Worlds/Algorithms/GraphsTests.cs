@@ -131,6 +131,76 @@ public class GraphsTests
     }
 
     [Fact]
+    public void ShortestPathToNearest_PicksTheCheaperDestination_WhenMultipleAreReachable()
+    {
+        // Arrange — B is 1 hop away, D is 3 hops away
+        var graph = new Dictionary<string, Dictionary<string, float>>
+        {
+            ["A"] = new() { ["B"] = 1, ["X"] = 1 },
+            ["X"] = new() { ["Y"] = 1 },
+            ["Y"] = new() { ["D"] = 1 },
+            ["B"] = new(),
+            ["D"] = new(),
+        };
+
+        // Act
+        var result = Graphs.ShortestPathToNearest(
+            "A",
+            new HashSet<string> { "B", "D" },
+            n => Neighbors(graph, n),
+            (from, to) => graph[from][to]
+        );
+
+        // Assert
+        Assert.Equal(["A", "B"], result);
+    }
+
+    [Fact]
+    public void ShortestPathToNearest_ReturnsOnlyOrigin_WhenOriginIsADestination()
+    {
+        // Arrange
+        var graph = new Dictionary<string, Dictionary<string, float>>
+        {
+            ["A"] = new() { ["B"] = 1 },
+            ["B"] = new(),
+        };
+
+        // Act
+        var result = Graphs.ShortestPathToNearest(
+            "A",
+            new HashSet<string> { "A", "B" },
+            n => Neighbors(graph, n),
+            (from, to) => graph[from][to]
+        );
+
+        // Assert
+        Assert.Equal(["A"], result);
+    }
+
+    [Fact]
+    public void ShortestPathToNearest_ReturnsEmpty_WhenNoDestinationIsReachable()
+    {
+        // Arrange
+        var graph = new Dictionary<string, Dictionary<string, float>>
+        {
+            ["A"] = new() { ["B"] = 1 },
+            ["B"] = new(),
+            ["C"] = new(),
+        };
+
+        // Act
+        var result = Graphs.ShortestPathToNearest(
+            "A",
+            new HashSet<string> { "C" },
+            n => Neighbors(graph, n),
+            (from, to) => graph[from][to]
+        );
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
     public void MinimumSpanningTree_ReturnsNMinusOneEdges_ForConnectedGraph()
     {
         // Arrange — 4 vertices, fully connected with varying costs

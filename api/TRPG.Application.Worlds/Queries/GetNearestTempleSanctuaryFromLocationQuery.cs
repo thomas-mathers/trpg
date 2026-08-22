@@ -39,7 +39,9 @@ internal class GetNearestTempleSanctuaryFromLocationQueryHandler(TrpgDbContext c
             .LocationConnectors.AsNoTracking()
             .Where(connector => connector.WorldId == query.WorldId)
             .Join(
-                context.TravelConnectors.AsNoTracking(),
+                context
+                    .TravelConnectors.AsNoTracking()
+                    .Where(travel => travel.WorldId == query.WorldId),
                 connector => connector.Id,
                 travel => travel.ConnectorId,
                 (connector, travel) =>
@@ -56,12 +58,12 @@ internal class GetNearestTempleSanctuaryFromLocationQueryHandler(TrpgDbContext c
             .GroupBy(edge => edge.OriginLocationId)
             .ToDictionary(
                 group => group.Key,
-                group =>
-                    (IEnumerable<Guid>)group.Select(edge => edge.DestinationLocationId).ToArray()
+                group => group.Select(edge => edge.DestinationLocationId).ToArray()
             );
+
         var costByEdge = edges.ToDictionary(
             edge => (edge.OriginLocationId, edge.DestinationLocationId),
-            edge => (double)edge.Distance
+            edge => edge.Distance
         );
 
         var startNode = await ResolveStartNode(
@@ -71,32 +73,24 @@ internal class GetNearestTempleSanctuaryFromLocationQueryHandler(TrpgDbContext c
             cancellationToken
         );
 
-        NearestTemple? nearest = null;
-        var nearestCost = double.PositiveInfinity;
+        var candidatesByCityEntranceLocationId = candidates.ToDictionary(candidate =>
+            candidate.CityEntranceLocationId
+        );
 
-        foreach (var candidate in candidates)
+        var path = Graphs.ShortestPathToNearest(
+            startNode,
+            candidatesByCityEntranceLocationId.Keys.ToHashSet(),
+            locationId => neighborsByOrigin.GetValueOrDefault(locationId, []),
+            (from, to) => costByEdge[(from, to)]
+        );
+
+        if (path.Count == 0)
         {
-            var path = Graphs.ShortestPath(
-                startNode,
-                candidate.CityEntranceLocationId,
-                locationId => neighborsByOrigin.GetValueOrDefault(locationId, []),
-                (from, to) => costByEdge[(from, to)]
-            );
-
-            if (path.Count == 0)
-            {
-                continue;
-            }
-
-            var cost = SumPathCost(path, costByEdge);
-            if (cost < nearestCost)
-            {
-                nearestCost = cost;
-                nearest = new NearestTemple(candidate.SanctuaryLocationId, candidate.CityName);
-            }
+            return null;
         }
 
-        return nearest;
+        var reached = candidatesByCityEntranceLocationId[path[^1]];
+        return new NearestTemple(reached.SanctuaryLocationId, reached.CityName);
     }
 
     private async Task<TempleCandidate[]> GetTempleCandidates(
@@ -123,7 +117,7 @@ internal class GetNearestTempleSanctuaryFromLocationQueryHandler(TrpgDbContext c
         var cityEntrances =
             from district in context.Districts.AsNoTracking()
             join city in context.Cities.AsNoTracking() on district.CityId equals city.Id
-            where district.DistrictType == DistrictType.CityEntrance
+            where district.WorldId == worldId && district.DistrictType == DistrictType.CityEntrance
             select new
             {
                 district.CityId,
@@ -145,7 +139,7 @@ internal class GetNearestTempleSanctuaryFromLocationQueryHandler(TrpgDbContext c
     private async Task<Guid> ResolveStartNode(
         Guid worldId,
         Guid fromLocationId,
-        IReadOnlyDictionary<Guid, IEnumerable<Guid>> neighborsByOrigin,
+        IReadOnlyDictionary<Guid, Guid[]> neighborsByOrigin,
         CancellationToken cancellationToken
     )
     {
@@ -186,18 +180,5 @@ internal class GetNearestTempleSanctuaryFromLocationQueryHandler(TrpgDbContext c
             .FirstOrDefaultAsync(cancellationToken);
 
         return oneHopDestinationId ?? fromLocationId;
-    }
-
-    private static double SumPathCost(
-        IReadOnlyList<Guid> path,
-        IReadOnlyDictionary<(Guid, Guid), double> costByEdge
-    )
-    {
-        var total = 0.0;
-        for (var i = 0; i < path.Count - 1; i++)
-        {
-            total += costByEdge[(path[i], path[i + 1])];
-        }
-        return total;
     }
 }

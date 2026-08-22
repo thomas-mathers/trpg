@@ -58,6 +58,7 @@ internal class ResolvePlayerRespawnCommandHandler(
                 new GetCreatureByIdQuery { Id = command.PlayerId },
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
+
         var deathLocationId = player.LocationId;
 
         var deathLocation = await getLocationById.Handle(
@@ -92,6 +93,7 @@ internal class ResolvePlayerRespawnCommandHandler(
             BaseAttributes = player.BaseAttributes with { },
             PlayerCorpseOwnerId = player.Id,
         };
+
         await addCreature.Handle(new AddCreatureCommand { Creature = corpse }, cancellationToken);
 
         var playerItems = await getInventoryItemsByOwner.Handle(
@@ -131,6 +133,7 @@ internal class ResolvePlayerRespawnCommandHandler(
             },
             cancellationToken
         );
+
         var cleric = sanctuaryOccupants.FirstOrDefault(occupant =>
             occupant.Profession == Profession.Cleric
         );

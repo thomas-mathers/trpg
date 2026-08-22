@@ -32,6 +32,7 @@ internal class StreamRespawnTurnHandler(
             new GetCreatureByIdQuery { Id = session.PlayerId },
             cancellationToken
         );
+
         if (player?.State != CreatureState.Dead)
         {
             return new GameTurnPrompt.Reply("There's nothing to respawn from right now.");
@@ -55,6 +56,7 @@ internal class StreamRespawnTurnHandler(
             },
             cancellationToken
         );
+
         gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
 
         return new GameTurnPrompt.Narrate(BuildNarrationPrompt(fact), IncludeTools: false);
@@ -62,10 +64,7 @@ internal class StreamRespawnTurnHandler(
 
     private static string BuildNarrationPrompt(PlayerRespawnFact fact)
     {
-        var json = JsonSerializer.Serialize(
-            fact,
-            TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
-        );
+        var json = JsonSerializer.Serialize(fact, Common.Serialization.TrpgJsonOptions.Default);
 
         return $"""
             The player died and has been revived at a temple in {fact.TempleCityName}. Result: {json}.
