@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  Eye,
   Skull,
   User,
   Weight,
@@ -14,6 +15,7 @@ import type { ReactNode } from 'react';
 import {
   getContainerInventoryOptions,
   getCreatureInventoryOptions,
+  getTheftDetectionChance,
   transferInventoryMutation,
 } from '@/api/client';
 import type { ItemDetail, OwnerType } from '@/api/client';
@@ -105,6 +107,21 @@ function TransferDialogBody({
     target.ownerType === 'Creature' ? targetCreatureInventory : targetContainerInventory;
   const transfer = useMutation(transferInventoryMutation());
   const transferDraft = useTransferDraft(playerInventory.data?.items, targetInventory.data?.items);
+  const theftItems = [...transferDraft.otherSelection].map(([itemId, quantity]) => ({
+    itemId,
+    quantity,
+  }));
+  const theftDetectionChance = useQuery({
+    queryKey: ['theft-detection-chance', playerId, target.id, target.ownerType, theftItems],
+    queryFn: async () => {
+      const response = await getTheftDetectionChance({
+        path: { playerId },
+        body: { from: targetOwner, items: theftItems },
+      });
+      return response.data?.successChance ?? null;
+    },
+    enabled: transfersEnabled && theftItems.length > 0,
+  });
 
   const handleConfirm = async () => {
     let theftEncounterId: string | null = null;
@@ -217,11 +234,19 @@ function TransferDialogBody({
       </div>
 
       <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-muted-foreground text-sm">
-          {transferDraft.changedCount === 0
-            ? 'No changes yet.'
-            : `${transferDraft.changedCount} stack${transferDraft.changedCount === 1 ? '' : 's'} to transfer.`}
-        </p>
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-sm">
+            {transferDraft.changedCount === 0
+              ? 'No changes yet.'
+              : `${transferDraft.changedCount} stack${transferDraft.changedCount === 1 ? '' : 's'} to transfer.`}
+          </p>
+          {theftDetectionChance.data != null && (
+            <p className="flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
+              <Eye className="size-4" />
+              {Math.round(theftDetectionChance.data * 100)}% chance to avoid detection.
+            </p>
+          )}
+        </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={onClose}>
             Cancel

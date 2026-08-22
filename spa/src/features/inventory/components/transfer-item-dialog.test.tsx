@@ -12,6 +12,7 @@ import type {
 import {
   handleGetContainerInventory,
   handleGetCreatureInventory,
+  handleGetTheftDetectionChance,
   handleTransferInventory,
 } from '@/api/client/msw.gen';
 import { server } from '@/test/server';
@@ -334,6 +335,32 @@ describe('TransferItemDialog', () => {
       }),
     );
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('shows the detection chance when items are selected from the other inventory', async () => {
+    let requestBody: unknown;
+    server.use(
+      handleGetCreatureInventory(async ({ params }) =>
+        HttpResponse.json({
+          gold: 0,
+          items: params.creatureId === 'target-id' ? [item({ name: 'Target coins' })] : [],
+        }),
+      ),
+      handleGetTheftDetectionChance(async ({ request }) => {
+        requestBody = await request.json();
+        return HttpResponse.json({ successChance: 0.75 });
+      }),
+    );
+
+    const { user } = renderDialog();
+    await ui.dialog.find();
+    await user.click(await ui.item('Target coins').find());
+
+    expect(await screen.findByText('75% chance to avoid detection.')).toBeVisible();
+    expect(requestBody).toEqual({
+      from: { id: 'target-id', type: 'Creature' },
+      items: [{ itemId: 'item-1', quantity: 10 }],
+    });
   });
 
   it('loots a container by reading and transferring against its own inventory endpoint', async () => {

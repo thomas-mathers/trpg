@@ -359,6 +359,48 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         Assert.Equal(item.Id, itemDetail.ItemId);
     }
 
+    [Fact]
+    public async Task GetTheftDetectionChance_ReturnsSuccessChance_ForAnExistingCreatureSource()
+    {
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            "GetTheftDetectionChance",
+            new TheftDetectionChanceRequest(
+                new OwnerReferenceRequest(_fromCreature.Id, OwnerType.Creature),
+                [new ItemSelection(Guid.NewGuid(), 1)]
+            ),
+            routeValues: new { playerId = _toCreature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await _client.ReadContentFromJsonAsync<TheftDetectionChanceResponse>(
+            response,
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(result);
+        Assert.Equal(0.45f, result.SuccessChance);
+    }
+
+    [Fact]
+    public async Task GetTheftDetectionChance_ReturnsNotFound_WhenSourceDoesNotExist()
+    {
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            "GetTheftDetectionChance",
+            new TheftDetectionChanceRequest(
+                new OwnerReferenceRequest(Guid.NewGuid(), OwnerType.Creature),
+                [new ItemSelection(Guid.NewGuid(), 1)]
+            ),
+            routeValues: new { playerId = _toCreature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private WebApplicationFactory<Program> CreateCaughtTheftFactory()
     {
         using var scope = fixture.CreateScope();

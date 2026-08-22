@@ -34,6 +34,8 @@ internal static class InventoryEndpoints
             .Produces<InventoryTransferResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
+        app.MapPost("/players/{playerId:guid}/theft-detection-chance", GetTheftDetectionChance)
+            .WithName("GetTheftDetectionChance");
         app.MapGet("/players/{playerId:guid}/trades/{workstationId:guid}", GetTrade)
             .WithName("GetTrade");
         app.MapPost("/players/{playerId:guid}/trades/{workstationId:guid}/proposal", ProposeTrade)
@@ -206,6 +208,42 @@ internal static class InventoryEndpoints
         return prop == null ? null : (prop.LocationId, prop.WorldId);
     }
 
+    private static async Task<
+        Results<NotFound, Ok<TheftDetectionChanceResponse>>
+    > GetTheftDetectionChance(
+        Guid playerId,
+        TheftDetectionChanceRequest request,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices] IQueryHandler<GetPropByIdQuery, Prop?> getPropById,
+        [FromServices] IQueryHandler<GetTheftDetectionChanceQuery, float?> getTheftDetectionChance,
+        CancellationToken cancellationToken
+    )
+    {
+        var from = await ResolveOwnerLocation(
+            request.From,
+            getCreatureById,
+            getPropById,
+            cancellationToken
+        );
+        if (from == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var chance = await getTheftDetectionChance.Handle(
+            new GetTheftDetectionChanceQuery
+            {
+                PlayerId = playerId,
+                WorldId = from.Value.WorldId,
+                From = new ItemOwnerReference(request.From.Id, request.From.Type),
+                Items = request.Items,
+            },
+            cancellationToken
+        );
+
+        return TypedResults.Ok(new TheftDetectionChanceResponse(chance));
+    }
+
     private static async Task<Results<NotFound, Ok<ItemDetail>>> GetItemById(
         Guid sessionId,
         Guid itemId,
@@ -273,13 +311,7 @@ internal static class InventoryEndpoints
             },
             cancellationToken
         );
-        return TypedResults.Ok(
-            new TradeProposalResponse(
-                outcome == TradeOutcome.Accepted
-                    ? TradeProposalStatus.Accepted
-                    : TradeProposalStatus.Rejected
-            )
-        );
+        return TypedResults.Ok(new TradeProposalResponse(outcome.ToStatus()));
     }
 
     private static async Task<NoContent> CompleteTrade(

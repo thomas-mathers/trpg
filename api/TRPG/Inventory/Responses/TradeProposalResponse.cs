@@ -4,6 +4,7 @@ public enum TradeProposalStatus
 {
     Accepted,
     Rejected,
+    Refused,
 }
 
 public record TradeSnapshot(InventorySummary PlayerInventory, InventorySummary ShopInventory);

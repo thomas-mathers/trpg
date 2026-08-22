@@ -6,9 +6,9 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Encounters;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Reputations.Events;
@@ -39,6 +39,7 @@ public class AttemptTheftCommand
 
 internal class AttemptTheftCommandHandler(
     TrpgDbContext context,
+    TheftSourceResolver theftSourceResolver,
     InventoryItemTransfer itemTransfer,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
     SkillCheckService skillCheckService,
@@ -54,7 +55,11 @@ internal class AttemptTheftCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var source = await GetTheftSource(command, cancellationToken);
+        var source = await theftSourceResolver.Resolve(
+            command.From,
+            command.WorldId,
+            cancellationToken
+        );
         if (source == null)
         {
             return new TheftAttemptResult(TheftAttemptOutcome.NotTheft);
@@ -86,7 +91,12 @@ internal class AttemptTheftCommandHandler(
             cancellationToken
         );
 
-        var witnesses = await GetLiveWitnesses(command, source.LocationId, cancellationToken);
+        var witnesses = await theftSourceResolver.GetLiveWitnesses(
+            command.WorldId,
+            source.LocationId,
+            command.PlayerId,
+            cancellationToken
+        );
 
         var crime = await CreateCrime(
             command,
@@ -99,18 +109,15 @@ internal class AttemptTheftCommandHandler(
         var requiresTheftDetectionRoll = source.IsPickpocketing || witnesses.Length > 0;
 
         var options = theftOptions.CurrentValue;
+        var totalQuantity = selections.Sum(selection => selection.Quantity);
+        var curve = TheftDetectionChanceCalculator.BuildCurve(options, totalQuantity);
 
         var isDetected =
             requiresTheftDetectionRoll
             && await skillCheckService.Roll(
                 command.PlayerId,
                 source.Skill,
-                new SkillCheckCurve(
-                    BaseChance: options.BaseDetectionChance,
-                    ChanceChangePerSkillLevel: -options.DetectionChanceReductionPerSkillLevel,
-                    MinimumChance: options.MinimumDetectionChance,
-                    MaximumChance: options.MaximumDetectionChance
-                ),
+                curve,
                 cancellationToken
             );
 
@@ -271,123 +278,6 @@ internal class AttemptTheftCommandHandler(
         return new TheftAttemptResult(TheftAttemptOutcome.Completed);
     }
 
-    private async Task<TheftSource?> GetTheftSource(
-        AttemptTheftCommand command,
-        CancellationToken cancellationToken
-    ) =>
-        command.From.Type switch
-        {
-            OwnerType.Creature => await GetCreatureTheftSource(command, cancellationToken),
-            OwnerType.Container => await GetContainerTheftSource(command, cancellationToken),
-            OwnerType.Workstation => await GetWorkstationTheftSource(command, cancellationToken),
-            _ => throw new InvalidOperationException(
-                $"Owner type {command.From.Type} is not valid for theft."
-            ),
-        };
-
-    private async Task<TheftSource?> GetCreatureTheftSource(
-        AttemptTheftCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var owner =
-            await context.Creatures.FirstOrDefaultAsync(
-                creature => creature.Id == command.From.Id && creature.WorldId == command.WorldId,
-                cancellationToken
-            ) ?? throw new EntityNotFoundException(nameof(Creature), command.From.Id);
-
-        return owner.State == CreatureState.Dead
-            ? null
-            : new TheftSource(
-                Owner: owner,
-                LocationId: owner.LocationId,
-                Skill: Skill.Pickpocketing,
-                IsPickpocketing: true,
-                WorkstationOccupantId: null
-            );
-    }
-
-    private async Task<TheftSource?> GetContainerTheftSource(
-        AttemptTheftCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var prop =
-            await context.Props.FirstOrDefaultAsync(
-                candidate =>
-                    candidate.Id == command.From.Id && candidate.WorldId == command.WorldId,
-                cancellationToken
-            ) ?? throw new EntityNotFoundException(nameof(Prop), command.From.Id);
-
-        if (prop is not Container container)
-        {
-            throw new InvalidOperationException(
-                $"Owner type {command.From.Type} does not match prop type {prop.GetType().Name}."
-            );
-        }
-
-        return await GetOwnedPropTheftSource(
-            command,
-            container,
-            workstationOccupantId: null,
-            cancellationToken
-        );
-    }
-
-    private async Task<TheftSource?> GetWorkstationTheftSource(
-        AttemptTheftCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var prop =
-            await context.Props.FirstOrDefaultAsync(
-                candidate =>
-                    candidate.Id == command.From.Id && candidate.WorldId == command.WorldId,
-                cancellationToken
-            ) ?? throw new EntityNotFoundException(nameof(Prop), command.From.Id);
-
-        if (prop is not Workstation workstation)
-        {
-            throw new InvalidOperationException(
-                $"Owner type {command.From.Type} does not match prop type {prop.GetType().Name}."
-            );
-        }
-
-        return await GetOwnedPropTheftSource(
-            command,
-            workstation,
-            workstation.OccupantId,
-            cancellationToken
-        );
-    }
-
-    private async Task<TheftSource?> GetOwnedPropTheftSource(
-        AttemptTheftCommand command,
-        Prop prop,
-        Guid? workstationOccupantId,
-        CancellationToken cancellationToken
-    )
-    {
-        if (prop.OwnerCreatureId is not { } ownerId)
-        {
-            return null;
-        }
-
-        var sourceOwner =
-            await context.Creatures.FirstOrDefaultAsync(
-                creature => creature.Id == ownerId && creature.WorldId == command.WorldId,
-                cancellationToken
-            ) ?? throw new EntityNotFoundException(nameof(Creature), ownerId);
-
-        return new TheftSource(
-            Owner: sourceOwner,
-            LocationId: prop.LocationId,
-            Skill: Skill.Sneak,
-            IsPickpocketing: false,
-            WorkstationOccupantId: workstationOccupantId
-        );
-    }
-
     private async Task<TheftCrime> CreateCrime(
         AttemptTheftCommand command,
         TheftSource source,
@@ -422,22 +312,6 @@ internal class AttemptTheftCommandHandler(
 
         return crime;
     }
-
-    private async Task<TheftWitness[]> GetLiveWitnesses(
-        AttemptTheftCommand command,
-        Guid locationId,
-        CancellationToken cancellationToken
-    ) =>
-        await context
-            .Creatures.AsNoTracking()
-            .Where(creature =>
-                creature.WorldId == command.WorldId
-                && creature.LocationId == locationId
-                && creature.State != CreatureState.Dead
-                && creature.Id != command.PlayerId
-            )
-            .Select(creature => new TheftWitness(creature.Id, creature.Name))
-            .ToArrayAsync(cancellationToken);
 
     private static ConfrontingCreature? GetConfrontingCreature(
         TheftSource source,
@@ -479,16 +353,6 @@ internal class AttemptTheftCommandHandler(
             );
         }
     }
-
-    private sealed record TheftSource(
-        Creature Owner,
-        Guid LocationId,
-        Skill Skill,
-        bool IsPickpocketing,
-        Guid? WorkstationOccupantId
-    );
-
-    private sealed record TheftWitness(Guid Id, string Name);
 
     private sealed record ConfrontingCreature(Guid Id, string Name);
 

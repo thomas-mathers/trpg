@@ -35,7 +35,7 @@ internal class StreamFleeTurnHandler(
         }
 
         return new GameTurnPrompt.Narrate(
-            $"The player attempted to flee combat. Result: {JsonSerializer.Serialize(result, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the escape attempt vividly based on this result. Do not call any tools.",
+            $"The player attempted to flee combat. Result: {JsonSerializer.Serialize(result, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Fleeing only ends the fight — the player has not moved and is still in the same location as the enemy. Narrate them breaking away from the immediate danger (putting distance from their attacker, taking cover, ending the confrontation) without describing them as having left the building, room, or area. Do not call any tools.",
             IncludeTools: false
         );
     }

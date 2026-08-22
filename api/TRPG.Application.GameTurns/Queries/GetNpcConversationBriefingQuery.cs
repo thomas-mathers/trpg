@@ -3,6 +3,8 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;
+using TRPG.Application.Reputations;
+using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -89,7 +91,8 @@ public record NpcConversationBriefing(
 internal class GetNpcConversationBriefingQueryHandler(
     TrpgDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult> getQuestInteractions
+    IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult> getQuestInteractions,
+    IQueryHandler<GetEffectiveReputationQuery, int> getEffectiveReputation
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
     public async Task<NpcConversationBriefing> Handle(
@@ -137,7 +140,7 @@ internal class GetNpcConversationBriefingQueryHandler(
                     .Select(conversation => new NpcConversationRecord(conversation.Summary))
                     .ToArrayAsync(cancellationToken);
 
-        var attitude = await GetAttitude(query, profile, cancellationToken);
+        var attitude = await GetAttitude(query, cancellationToken);
         var quests = await GetQuests(query, cancellationToken);
         var observedCrimes = await GetObservedCrimes(query, cancellationToken);
 
@@ -286,43 +289,36 @@ internal class GetNpcConversationBriefingQueryHandler(
 
     private async Task<NpcConversationAttitude> GetAttitude(
         GetNpcConversationBriefingQuery query,
-        NpcProfile profile,
         CancellationToken cancellationToken
     )
     {
-        var factionIds = profile.PrivateBackground.Factions.Select(faction => faction.Id).ToArray();
+        var score = await getEffectiveReputation.Handle(
+            new GetEffectiveReputationQuery
+            {
+                ObserverCreatureId = query.PlayerId,
+                TargetCreatureId = query.NpcId,
+            },
+            cancellationToken
+        );
 
-        var scores = await context
-            .Reputations.AsNoTracking()
-            .Where(reputation =>
-                reputation.CreatureId == query.PlayerId
-                && (
-                    (
-                        reputation.TargetType == ReputationTargetType.Creature
-                        && reputation.TargetId == query.NpcId
-                    )
-                    || (
-                        reputation.TargetType == ReputationTargetType.Faction
-                        && factionIds.AsEnumerable().Contains(reputation.TargetId)
-                    )
-                )
-            )
-            .ToArrayAsync(cancellationToken);
-
-        var score = Math.Clamp(scores.Sum(reputation => reputation.Score), -100, 100);
-
-        return score switch
+        return ReputationAttitudeCalculator.FromScore(score) switch
         {
-            <= -50 => new NpcConversationAttitude(
+            ReputationAttitude.Hostile => new NpcConversationAttitude(
                 "Hostile",
                 "Openly hostile and unwilling to help."
             ),
-            <= -15 => new NpcConversationAttitude(
+            ReputationAttitude.Wary => new NpcConversationAttitude(
                 "Wary",
                 "Suspicious, guarded, and reluctant to cooperate."
             ),
-            < 15 => new NpcConversationAttitude("Neutral", "Civil but not personally invested."),
-            < 50 => new NpcConversationAttitude("Warm", "Openly appreciative and willing to help."),
+            ReputationAttitude.Neutral => new NpcConversationAttitude(
+                "Neutral",
+                "Civil but not personally invested."
+            ),
+            ReputationAttitude.Warm => new NpcConversationAttitude(
+                "Warm",
+                "Openly appreciative and willing to help."
+            ),
             _ => new NpcConversationAttitude(
                 "Trusting",
                 "Warm, candid, and inclined to trust the player."

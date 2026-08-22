@@ -41,7 +41,7 @@ export interface TradeDialogProps {
   onClose: () => void;
 }
 
-export type TradeProposalStatus = 'accepted' | 'rejected';
+export type TradeProposalStatus = 'accepted' | 'rejected' | 'refused';
 
 function toTradeRequest(playerOffer: readonly ItemDetail[], shopOffer: readonly ItemDetail[]) {
   return {
@@ -366,6 +366,12 @@ function TradeResponse({
 }) {
   const accepted = status === 'accepted';
   const Icon = accepted ? CircleCheck : CircleX;
+  const message =
+    status === 'accepted'
+      ? `${workerName} accepts your offer.`
+      : status === 'refused'
+        ? `${workerName} refuses to deal with you.`
+        : `${workerName} declines your offer.`;
 
   return (
     <p
@@ -377,7 +383,7 @@ function TradeResponse({
       role="status"
     >
       <Icon className="size-4" />
-      {accepted ? `${workerName} accepts your offer.` : `${workerName} declines your offer.`}
+      {message}
     </p>
   );
 }

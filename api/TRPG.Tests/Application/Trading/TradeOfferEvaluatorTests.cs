@@ -14,6 +14,7 @@ public sealed class TradeOfferEvaluatorTests
         // Arrange
         var offer = new ValidatedTradeOffer(
             new ItemOwnerReference(Guid.NewGuid(), OwnerType.Workstation),
+            AssignedCreatureId: null,
             PlayerOfferValue: 50,
             ShopOfferValue: 40
         );
@@ -31,6 +32,7 @@ public sealed class TradeOfferEvaluatorTests
         // Arrange
         var offer = new ValidatedTradeOffer(
             new ItemOwnerReference(Guid.NewGuid(), OwnerType.Workstation),
+            AssignedCreatureId: null,
             PlayerOfferValue: 40,
             ShopOfferValue: 50
         );

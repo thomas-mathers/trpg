@@ -30,13 +30,24 @@ public class SkillCheckService(
         CancellationToken cancellationToken = default
     )
     {
+        var chance = await CalculateChance(creatureId, skill, curve, cancellationToken);
+
+        return chanceRoller.Roll(chance);
+    }
+
+    public async Task<float> CalculateChance(
+        Guid creatureId,
+        Skill skill,
+        SkillCheckCurve curve,
+        CancellationToken cancellationToken = default
+    )
+    {
         var skills = await getCreatureSkills.Handle(
             new GetCreatureSkillsQuery { CreatureId = creatureId },
             cancellationToken
         );
         var skillLevel = skills.SingleOrDefault(progress => progress.Skill == skill)?.Level ?? 0;
-        var chance = SkillCheckCalculator.CalculateChance(skillLevel, curve);
 
-        return chanceRoller.Roll(chance);
+        return SkillCheckCalculator.CalculateChance(skillLevel, curve);
     }
 }
