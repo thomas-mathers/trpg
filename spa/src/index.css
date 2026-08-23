@@ -211,6 +211,17 @@
   box-shadow: none;
 }
 
+.drop-cap {
+  float: left;
+  font-family: var(--font-heading);
+  font-size: 3.4em;
+  line-height: 0.78;
+  font-weight: 600;
+  color: var(--primary);
+  padding-right: 0.08em;
+  padding-top: 0.05em;
+}
+
 .chrome-surface {
   background-color: var(--chrome);
 }

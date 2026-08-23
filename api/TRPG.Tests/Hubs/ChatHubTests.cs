@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text;
 using Microsoft.AspNetCore.SignalR;
@@ -734,6 +735,86 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Single(sceneSnapshots);
+    }
+
+    [Fact]
+    public async Task SendChat_PublishesSceneSnapshotBeforeNarrationToken_WhenMovingTriggersCatchUp()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var destinationDistrictId = Guid.NewGuid();
+        var destinationLocation = Builders.MakeLocation(
+            _worldId,
+            _stateId,
+            districtId: destinationDistrictId
+        );
+        var destinationDistrict = Builders.MakeDistrict(
+            _cityId,
+            DataDistrictType.Residential,
+            worldId: _worldId,
+            name: "Market Row",
+            id: destinationDistrictId,
+            locationId: destinationLocation.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            _locationId,
+            destinationLocationId: destinationDistrict.LocationId,
+            worldId: _worldId,
+            name: "Path",
+            description: "A path leading to Market Row.",
+            destinationLabel: destinationDistrict.Name
+        );
+        context.Districts.Add(destinationDistrict);
+        context.Locations.Add(destinationLocation);
+        context.LocationConnectors.Add(connector);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sessionId = await StartSession();
+        var connection = fixture.CreateHubConnection(sessionId);
+        var order = new ConcurrentQueue<string>();
+        var initialSnapshotReceived = new TaskCompletionSource<SceneSnapshot>();
+        var gameClient = new TestGameClient
+        {
+            OnSceneSnapshot = snapshot => initialSnapshotReceived.TrySetResult(snapshot),
+        };
+        connection.Register<IGameClient>(gameClient);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        await using var gameHub = connection;
+
+        var movedSnapshotReceived = new TaskCompletionSource();
+        gameClient.OnSceneSnapshot = _ =>
+        {
+            order.Enqueue("scene");
+            movedSnapshotReceived.TrySetResult();
+        };
+
+        fixture.ChatClient.PendingToolCallName = "move";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["destinationName"] = destinationDistrict.Name,
+        };
+
+        // Act
+        var tokens = gameHub.StreamAsync<string>(
+            "SendChat",
+            $"I head to {destinationDistrict.Name}",
+            TestContext.Current.CancellationToken
+        );
+        await foreach (var _ in tokens)
+        {
+            order.Enqueue("token");
+        }
+
+        // Assert - the scene change must arrive before any narration token, however many there are
+        var received = order.ToArray();
+        Assert.NotEmpty(received);
+        Assert.Equal("scene", received[0]);
+        Assert.All(received.Skip(1), item => Assert.Equal("token", item));
     }
 
     [Fact]

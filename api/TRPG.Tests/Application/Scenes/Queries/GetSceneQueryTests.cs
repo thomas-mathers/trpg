@@ -190,10 +190,12 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
             id: roomId,
             locationId: location.Id
         );
+        // Room locations also carry their containing district's id; Kind must take priority over it.
         var destinationRoomId = Guid.NewGuid();
         var destinationLocation = Builders.MakeLocation(
             WorldId,
             _state.Id,
+            districtId: Guid.NewGuid(),
             roomId: destinationRoomId
         );
         var destinationRoom = Builders.MakeRoom(
@@ -439,5 +441,50 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
             new[] { shop.Name, cave.Name }.OrderBy(name => name),
             result.NearbyBuildings.Select(b => b.Name).OrderBy(name => name)
         );
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesBuildingEntranceFromExits_WhenOutdoors()
+    {
+        // Arrange
+        var building = Builders.MakeBuilding(
+            exteriorLocationId: _player.LocationId,
+            worldId: WorldId
+        );
+        var entranceRoomId = Guid.NewGuid();
+        var entranceLocation = Builders.MakeLocation(WorldId, _state.Id, roomId: entranceRoomId);
+        var entranceRoom = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            id: entranceRoomId,
+            locationId: entranceLocation.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            _player.LocationId,
+            destinationLocationId: entranceRoom.LocationId,
+            worldId: WorldId,
+            name: "Front Door",
+            description: $"The door leading into {building.Name}.",
+            destinationLabel: building.Name
+        );
+        _context.Buildings.Add(building);
+        _context.Rooms.Add(entranceRoom);
+        _context.Locations.Add(entranceLocation);
+        _context.LocationConnectors.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Contains(result.NearbyBuildings, b => b.Name == building.Name);
+        Assert.Empty(result.Exits);
     }
 }

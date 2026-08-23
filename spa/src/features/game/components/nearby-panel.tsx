@@ -24,6 +24,7 @@ import {
   GiDragonHead,
   GiDwarfFace,
   GiElfHelmet,
+  GiExitDoor,
   GiFireSilhouette,
   GiFountain,
   GiGems,
@@ -296,12 +297,14 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
 
 function ExitDestinationIcon({ destination }: { destination: NearbyExitDestination }) {
   const Icon =
-    destination.$type === 'District' && destination.districtType
-      ? DISTRICT_TYPE_ICONS[destination.districtType]
-      : (destination.$type === 'Building' || destination.$type === 'Room') &&
-          destination.buildingType
-        ? BUILDING_TYPE_ICONS[destination.buildingType]
-        : GiMountains;
+    destination.name === 'Outside'
+      ? GiExitDoor
+      : destination.$type === 'District' && destination.districtType
+        ? DISTRICT_TYPE_ICONS[destination.districtType]
+        : (destination.$type === 'Building' || destination.$type === 'Room') &&
+            destination.buildingType
+          ? BUILDING_TYPE_ICONS[destination.buildingType]
+          : GiMountains;
 
   return <Icon className="text-muted-foreground size-4 shrink-0" />;
 }
