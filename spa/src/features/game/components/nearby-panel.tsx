@@ -1,4 +1,4 @@
-import { Archive, CircleHelp, Crown } from 'lucide-react';
+import { Archive, CircleHelp, Crown, MoreVertical } from 'lucide-react';
 import {
   Anvil,
   BedDouble,
@@ -28,20 +28,65 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { GiDeathSkull, GiTombstone } from 'react-icons/gi';
+import type { IconType } from 'react-icons';
+import {
+  GiBadGnome,
+  GiDeathSkull,
+  GiDevilMask,
+  GiDragonHead,
+  GiDwarfFace,
+  GiElfHelmet,
+  GiFireSilhouette,
+  GiGhost,
+  GiGiant,
+  GiGoblinHead,
+  GiGolemHead,
+  GiHobbitDoor,
+  GiOrcHead,
+  GiPerson,
+  GiSkeleton,
+  GiTombstone,
+  GiWolfHead,
+} from 'react-icons/gi';
 
 import type { BuildingType, DistrictType, OwnerType } from '@/api/client';
 import type {
   CreatureStatusSnapshot,
+  CreatureType,
   NearbyExitDestination as SignalrNearbyExitDestination,
   SceneSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
 import { QuestTracker } from '@/features/quests/components/quest-tracker';
 import { cn } from '@/lib/utils';
+
+const CREATURE_TYPE_ICON: Record<CreatureType, IconType> = {
+  Human: GiPerson,
+  Elf: GiElfHelmet,
+  Dwarf: GiDwarfFace,
+  Orc: GiOrcHead,
+  Halfling: GiHobbitDoor,
+  Gnome: GiBadGnome,
+  Goblin: GiGoblinHead,
+  Undead: GiSkeleton,
+  Wraith: GiGhost,
+  Demon: GiDevilMask,
+  Beast: GiWolfHead,
+  Construct: GiGolemHead,
+  Elemental: GiFireSilhouette,
+  Giant: GiGiant,
+  Dragon: GiDragonHead,
+};
 
 type NearbyExitDestination = SignalrNearbyExitDestination & {
   $type?: 'District' | 'Building' | 'Room' | 'Wilderness';
@@ -271,57 +316,78 @@ function CreatureRow({
   const dead = creature.state === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
   const reputation = creature.reputation == null ? null : Number(creature.reputation);
+  const RaceIcon = CREATURE_TYPE_ICON[creature.creatureType];
 
   return (
-    <div className={cn('flex items-center justify-between gap-2 py-1.5', dead && 'opacity-45')}>
-      <span className="flex min-w-0 items-center gap-1.5">
-        <span className="flex h-[15px] w-[15px] shrink-0 items-center justify-center">
-          {dead ? (
-            <GiTombstone className="h-[15px] w-[15px]" aria-label="Dead" />
-          ) : creature.questMarker === 'Available' ? (
-            <CircleHelp
-              className="text-stamina h-[15px] w-[15px]"
-              aria-label="Has a quest available"
-            />
-          ) : creature.questMarker === 'ReadyToTurnIn' ? (
+    <div className={cn('flex items-center gap-2 py-1.5', dead && 'opacity-45')}>
+      <span className="border-border bg-muted relative flex size-8 shrink-0 items-center justify-center rounded-full border">
+        <RaceIcon className="text-muted-foreground size-4" aria-label={creature.creatureType} />
+        {dead ? (
+          <span
+            className="bg-muted text-muted-foreground border-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2"
+            aria-label="Dead"
+          >
+            <GiTombstone className="size-2.5" />
+          </span>
+        ) : creature.questMarker === 'Available' ? (
+          <span
+            className="bg-stamina border-sidebar text-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2"
+            aria-label="Has a quest available"
+          >
+            <CircleHelp className="size-2.5" />
+          </span>
+        ) : creature.questMarker === 'ReadyToTurnIn' ? (
+          <span
+            className="bg-stamina border-sidebar text-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2 text-[10px] font-black"
+            aria-label="Has a quest ready to turn in"
+          >
+            !
+          </span>
+        ) : (
+          dangerous && (
             <span
-              className="text-stamina text-sm font-bold"
-              aria-label="Has a quest ready to turn in"
+              className="bg-muted border-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2"
+              aria-label="Much more powerful than you"
             >
-              !
+              <GiDeathSkull className="size-2.5" />
             </span>
-          ) : (
-            dangerous && (
-              <GiDeathSkull
-                className="h-[15px] w-[15px]"
-                aria-label="Much more powerful than you"
-              />
-            )
-          )}
+          )
+        )}
+        <span className="text-muted-foreground absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-1 text-[9px] font-bold tabular-nums">
+          {creature.level}
         </span>
+      </span>
+
+      <span className="min-w-0 flex-1">
         <button
           type="button"
           onClick={onOpenInventory}
           className={cn(
-            'cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2',
+            'block w-full cursor-pointer truncate text-left font-medium underline decoration-dotted underline-offset-2',
             reputation != null && reputation > 0 && 'text-heal',
             reputation != null && reputation < 0 && 'text-destructive',
           )}
         >
           {creature.name}
         </button>
-        <span className="text-muted-foreground shrink-0 text-xs">Lv {creature.level}</span>
+        {creature.state && (
+          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]">
+            {creature.state}
+          </span>
+        )}
       </span>
-      {creature.state && (
-        <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[10px]">
-          {creature.state}
-        </span>
-      )}
-      {!dead && tradeEnabled && (
-        <button type="button" onClick={onTrade} className="text-muted-foreground text-xs underline">
-          Trade
-        </button>
-      )}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${creature.name}`}>
+            <MoreVertical />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onOpenInventory}>Inspect</DropdownMenuItem>
+          {!dead && tradeEnabled && <DropdownMenuItem onClick={onTrade}>Trade</DropdownMenuItem>}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

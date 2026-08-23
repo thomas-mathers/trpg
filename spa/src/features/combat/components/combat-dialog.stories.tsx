@@ -753,7 +753,7 @@ function CombatEncounterDialogMock({
       >
         <DialogTitle className="sr-only">Combat encounter</DialogTitle>
         <div ref={setPopoverContainer} className="bg-muted flex h-full min-h-0 flex-col">
-          <header className="bg-card flex items-center justify-between border-b px-5 py-3">
+          <header className="chrome-surface text-chrome-foreground chrome-scope flex items-center justify-between px-5 py-3">
             <span className="flex items-center gap-2 text-sm font-semibold">
               <GiCrossedSwords className="text-stamina h-4 w-4" />
               Ambush at Ashen Ford
@@ -969,7 +969,7 @@ function FullRoundDialogMock({ fight }: { fight: CombatantState[] }) {
       >
         <DialogTitle className="sr-only">Full combat round</DialogTitle>
         <div ref={setPopoverContainer} className="bg-muted flex h-full min-h-0 flex-col">
-          <header className="bg-card flex items-center justify-between border-b px-5 py-3">
+          <header className="chrome-surface text-chrome-foreground chrome-scope flex items-center justify-between px-5 py-3">
             <span className="flex items-center gap-2 text-sm font-semibold">
               <GiCrossedSwords className="text-stamina h-4 w-4" />
               Ambush at Ashen Ford
@@ -1194,7 +1194,7 @@ function CombatantPreviewCard({
           turnActive
             ? {
                 boxShadow:
-                  '0 0 0 1px rgba(245, 158, 11, 0.12), 0 0 16px 2px rgba(245, 158, 11, 0.16)',
+                  '0 0 0 1px color-mix(in oklch, var(--stamina) 12%, transparent), 0 0 16px 2px color-mix(in oklch, var(--stamina) 16%, transparent)',
               }
             : undefined
         }

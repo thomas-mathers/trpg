@@ -21,6 +21,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled = false }: ChatI
 
   return (
     <Input
+      className="bg-card"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}

@@ -49,7 +49,7 @@ export function ItemTable({
         equippedOnly={table.equippedOnly}
         onEquippedOnlyChange={table.setEquippedOnly}
       />
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 scrollbar-gutter-stable overflow-auto">
         <ItemTableContent
           table={table}
           renderItemName={renderItemName}
@@ -129,7 +129,7 @@ function ItemTableContent({
         {renderAction && <col className="w-24" />}
       </colgroup>
       <thead>
-        <tr className="bg-muted/50 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+        <tr className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
           {renderLeadingCell && <th className="px-2 py-2">{renderLeadingHeader}</th>}
           <SortableHeader
             label="Item"
@@ -184,7 +184,7 @@ function ItemTableContent({
           return (
             <tr
               key={item.itemId}
-              className={cn(onRowClick && 'cursor-pointer', isSelected?.(item) && 'bg-accent')}
+              className={cn(onRowClick && 'cursor-pointer', isSelected?.(item) && 'bg-primary/10')}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
             >
               {renderLeadingCell && (
@@ -233,7 +233,7 @@ function ItemTableSkeleton({
         {hasAction && <col className="w-24" />}
       </colgroup>
       <thead>
-        <tr className="bg-muted/50 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+        <tr className="bg-primary/10 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
           {hasLeadingCell && <th className="px-2 py-2" />}
           <th className="px-2 py-2 text-left">Item</th>
           {showDamage && <th className="px-2 py-2 text-right">Damage</th>}
@@ -306,7 +306,7 @@ function ItemWeightCell({ value }: { value: number }) {
     <td className="overflow-hidden px-2 py-1.5 text-right align-middle font-mono text-sm tabular-nums">
       <div className="flex h-7 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
         <span className="truncate">{displayValue}</span>
-        <GiWeight className="text-muted-foreground size-5 shrink-0" />
+        <GiWeight className="text-muted-foreground mb-1 size-5 shrink-0" />
       </div>
     </td>
   );

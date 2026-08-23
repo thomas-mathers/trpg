@@ -40,7 +40,7 @@ export function ItemName({ item, equippedLabel = 'Equipped' }: ItemNameProps) {
         </HoverPopoverContent>
       </HoverPopover>
       {item.equippedSlot != null && (
-        <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase">
+        <span className="bg-primary/15 text-primary shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase">
           {equippedLabel}
         </span>
       )}

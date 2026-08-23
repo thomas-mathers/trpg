@@ -162,7 +162,7 @@ function GameScreenContent({
         onOpenChange={onNearbyOpenChange}
         className="h-screen flex-col"
       >
-        <div className="bg-chrome text-chrome-foreground chrome-scope border-chrome-border border-b-2 px-4 py-2 shadow-md">
+        <div className="chrome-surface chrome-surface-elevated text-chrome-foreground chrome-scope px-4 py-2">
           <StatusBar
             connectionStatus={connectionStatus}
             isInCombat={isInCombat}

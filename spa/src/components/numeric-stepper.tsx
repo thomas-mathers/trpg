@@ -2,6 +2,7 @@ import { MinusIcon, PlusIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 interface NumericStepperProps {
   value: number;
@@ -9,6 +10,7 @@ interface NumericStepperProps {
   min?: number;
   max?: number;
   ariaLabel?: string;
+  size?: 'default' | 'sm';
 }
 
 export function NumericStepper({
@@ -17,15 +19,17 @@ export function NumericStepper({
   min = 0,
   max = 99,
   ariaLabel,
+  size = 'default',
 }: NumericStepperProps) {
   const clamp = (next: number) => Math.min(max, Math.max(min, next));
+  const buttonSize = size === 'sm' ? 'icon-sm' : 'icon';
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <Button
         type="button"
         variant="outline"
-        size="icon"
+        size={buttonSize}
         aria-label={`Decrease ${ariaLabel ?? 'value'}`}
         onClick={() => onChange(clamp(value - 1))}
         disabled={value <= min}
@@ -35,7 +39,10 @@ export function NumericStepper({
       <Input
         type="number"
         aria-label={ariaLabel}
-        className="w-16 text-center"
+        className={cn(
+          'bg-card text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+          size === 'sm' ? 'h-7 w-14' : 'w-16',
+        )}
         value={value}
         onChange={(e) => {
           const parsed = Number.parseInt(e.target.value, 10);
@@ -49,7 +56,7 @@ export function NumericStepper({
       <Button
         type="button"
         variant="outline"
-        size="icon"
+        size={buttonSize}
         aria-label={`Increase ${ariaLabel ?? 'value'}`}
         onClick={() => onChange(clamp(value + 1))}
         disabled={value >= max}

@@ -53,7 +53,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground shadow-[0_8px_30px_-6px_color-mix(in_oklch,var(--foreground)_25%,transparent)] duration-300 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+          'bg-parchment text-parchment-foreground fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl p-4 text-sm shadow-[0_8px_30px_-6px_color-mix(in_oklch,var(--foreground)_25%,transparent)] duration-300 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
           className,
         )}
         {...props}
@@ -86,7 +86,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="dialog-header"
       className={cn(
-        'chrome-scope bg-chrome text-chrome-foreground border-chrome-border -mx-4 -mt-4 flex flex-col gap-1 rounded-t-xl border-b-2 px-4 py-3',
+        'chrome-scope chrome-surface text-chrome-foreground -mx-4 -mt-4 flex flex-col gap-1 rounded-t-xl px-4 py-3',
         className,
       )}
       {...props}

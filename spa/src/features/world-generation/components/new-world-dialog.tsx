@@ -279,6 +279,7 @@ export function NewWorldDialog() {
                           <Field data-invalid={isInvalid}>
                             <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                             <Input
+                              className="bg-card"
                               id={field.name}
                               value={field.state.value}
                               onBlur={field.handleBlur}
@@ -420,6 +421,7 @@ export function NewWorldDialog() {
                         <Field>
                           <FieldLabel htmlFor={field.name}>Description</FieldLabel>
                           <Input
+                            className="bg-card"
                             id={field.name}
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}

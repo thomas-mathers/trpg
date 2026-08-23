@@ -171,7 +171,7 @@ function AbilityNode({ data, sourcePosition, targetPosition }: NodeProps<Ability
             height: NODE_HEIGHT,
           }}
           className={cn(
-            'flex cursor-help items-center justify-center rounded border bg-white transition-colors',
+            'bg-card flex cursor-help items-center justify-center rounded border transition-colors',
             isUnlocked
               ? 'border-primary/50 hover:border-primary hover:shadow-sm'
               : 'border-muted bg-muted/50 opacity-60',

@@ -73,7 +73,7 @@ export function WaitDialog({ open, onClose }: WaitDialogProps) {
             id="wait-target-time"
             value={targetTime}
             onChange={(event) => setTargetTime(event.target.value)}
-            className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            className="bg-card appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
           />
         </div>
         <DialogFooter>

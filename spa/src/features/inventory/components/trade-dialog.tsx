@@ -235,11 +235,7 @@ function InventoryPanel({
             offeredItemIds.has(item.itemId) ? (
               <div className="h-8" />
             ) : (
-              <Button
-                variant="outline"
-                aria-label={`Add ${item.name} to offer`}
-                onClick={() => onAdd(item)}
-              >
+              <Button aria-label={`Add ${item.name} to offer`} onClick={() => onAdd(item)}>
                 Add
               </Button>
             )
