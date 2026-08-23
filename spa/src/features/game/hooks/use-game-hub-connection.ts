@@ -93,6 +93,8 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       }
     });
 
+    const chatHubProxy = getHubProxyFactory('IChatHub').createHubProxy(connection);
+
     const gameClient: IGameClient = {
       sceneSnapshot: async (snapshot) => gameEventBus.emit('SceneSnapshot', snapshot),
       combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
@@ -118,6 +120,9 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       crimeWitnessed: async (notification) => gameEventBus.emit('CrimeWitnessed', notification),
       crimeWitnessesRemoved: async (notification) =>
         gameEventBus.emit('CrimeWitnessesRemoved', notification),
+      requestAck: async (flushId) => {
+        await chatHubProxy.acknowledgeEvents(flushId);
+      },
     };
     const receiverSubscription = getReceiverRegister('IGameClient').register(
       connection,
@@ -129,7 +134,7 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       .then(() => {
         setConnectionStatus(connection.state);
         setConnectionError(false);
-        setChatHub(getHubProxyFactory('IChatHub').createHubProxy(connection));
+        setChatHub(chatHubProxy);
       })
       .catch((e) => {
         console.error('Error connecting to game hub', e);

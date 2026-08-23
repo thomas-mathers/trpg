@@ -110,9 +110,9 @@ internal class GameTurnStreamer(
         var linkedTokens = LoreAnchorLinker.Link(tokens, automaton, cancellationToken);
 
         // The move (and any other client events) already happened before the LLM starts
-        // narrating it, so flush before the first token instead of after the last one —
-        // otherwise the marker/dialog for what's being narrated arrives only once the
-        // narration has already finished streaming.
+        // narrating it, so flush and wait for the client to ack before the first token
+        // instead of after the last one, or the marker/dialog for what's being narrated
+        // would only ever appear once the narration has already finished streaming.
         var flushed = false;
 
         await foreach (var token in linkedTokens)
@@ -149,7 +149,7 @@ internal class GameTurnStreamer(
             gameEvents.Enqueue(new SceneUpdatedEvent(after));
         }
 
-        await eventDispatcher.FlushAsync(turnContext.WorldId, cancellationToken);
+        await eventDispatcher.FlushAndAwaitAckAsync(turnContext.WorldId, cancellationToken);
     }
 
     private async Task BeginTurn(GameTurnSession session, CancellationToken cancellationToken)

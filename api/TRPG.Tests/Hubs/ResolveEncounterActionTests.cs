@@ -348,6 +348,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         connection.Register<IGameClient>(
             new TestGameClient
             {
+                Connection = connection,
                 OnTheftEncounterStarted = state => encounterStarted.TrySetResult(state),
             }
         );
@@ -386,6 +387,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         connection.Register<IGameClient>(
             new TestGameClient
             {
+                Connection = connection,
                 OnTheftEncounterStarted = _ =>
                 {
                     Interlocked.Increment(ref started);
@@ -425,6 +427,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         connection.Register<IGameClient>(
             new TestGameClient
             {
+                Connection = connection,
                 OnTheftEncounterStarted = state => encounterStarted.TrySetResult(state),
             }
         );
@@ -455,6 +458,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         connection.Register<IGameClient>(
             new TestGameClient
             {
+                Connection = connection,
                 OnTheftEncounterResolved = fact => encounterResolved.TrySetResult(fact),
                 OnSceneSnapshot = scene => sceneUpdated.TrySetResult(scene),
             }
@@ -495,6 +499,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         connection.Register<IGameClient>(
             new TestGameClient
             {
+                Connection = connection,
                 OnTheftEncounterResolved = fact => encounterResolved.TrySetResult(fact),
             }
         );

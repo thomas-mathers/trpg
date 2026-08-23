@@ -320,6 +320,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var snapshotReceived = new TaskCompletionSource<SceneSnapshot>();
         var gameClient = new TestGameClient
         {
+            Connection = connection,
             OnSceneSnapshot = snapshot => snapshotReceived.TrySetResult(snapshot),
         };
         connection.Register<IGameClient>(gameClient);
@@ -362,6 +363,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         var firstGameClient = new TestGameClient
         {
+            Connection = firstConnection,
             OnSceneSnapshot = snapshot => firstSnapshotReceived.TrySetResult(snapshot),
         };
         firstConnection.Register<IGameClient>(firstGameClient);
@@ -377,6 +379,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         var secondGameClient = new TestGameClient
         {
+            Connection = secondConnection,
             OnSceneSnapshot = snapshot => secondSnapshotReceived.TrySetResult(snapshot),
         };
         secondConnection.Register<IGameClient>(secondGameClient);
@@ -528,6 +531,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         var gameClient = new TestGameClient
         {
+            Connection = connection,
             OnSceneSnapshot = snapshot =>
             {
                 snapshots.Add(snapshot);
@@ -589,6 +593,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdatePayload>();
         var gameClient = new TestGameClient
         {
+            Connection = connection,
             OnCombatUpdated = payload => combatUpdatedReceived.TrySetResult(payload),
         };
         connection.Register<IGameClient>(gameClient);
@@ -622,6 +627,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
         var gameClient = new TestGameClient
         {
+            Connection = connection,
             OnCombatUpdated = payload => combatUpdatedReceived.TrySetResult(payload),
             OnSceneSnapshot = snapshot =>
             {
@@ -703,6 +709,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         var gameClient = new TestGameClient
         {
+            Connection = connection,
             OnSceneSnapshot = snapshot =>
             {
                 sceneSnapshots.Add(snapshot);
@@ -776,6 +783,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var initialSnapshotReceived = new TaskCompletionSource<SceneSnapshot>();
         var gameClient = new TestGameClient
         {
+            Connection = connection,
             OnSceneSnapshot = snapshot => initialSnapshotReceived.TrySetResult(snapshot),
         };
         connection.Register<IGameClient>(gameClient);
@@ -977,6 +985,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         connection.Register<IGameClient>(
             new TestGameClient
             {
+                Connection = connection,
                 OnSceneSnapshot = snapshot => initialSceneReceived.TrySetResult(snapshot),
                 OnTheftEncounterStarted = state => encounterStarted.TrySetResult(state),
             }
@@ -1021,6 +1030,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         connection.Register<IGameClient>(
             new TestGameClient
             {
+                Connection = connection,
                 OnTheftEncounterStarted = state => encounterStarted.TrySetResult(state),
             }
         );
@@ -1079,6 +1089,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var connection = fixture.CreateHubConnection(sessionId);
         var gameClient = new TestGameClient
         {
+            Connection = connection,
             OnHostileEncounterStarted = state => encounterStartedReceived.TrySetResult(state),
         };
         connection.Register<IGameClient>(gameClient);
