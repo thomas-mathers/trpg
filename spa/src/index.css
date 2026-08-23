@@ -183,6 +183,7 @@
 .parchment-surface {
   background-color: var(--parchment);
   color: var(--parchment-foreground);
+  font-weight: 500;
   background-repeat: no-repeat, no-repeat, no-repeat, repeat;
   background-blend-mode: normal, normal, normal, multiply;
   background-size:
@@ -208,13 +209,6 @@
     ),
     url('./assets/parchment-texture-tile.png');
   box-shadow: none;
-}
-
-.parchment-bubble {
-  background-color: oklch(from var(--parchment) calc(l - 0.08) c h);
-  color: var(--parchment-foreground);
-  border: 1px solid color-mix(in oklch, var(--parchment-foreground) 20%, transparent);
-  box-shadow: inset 0 1px 2px color-mix(in oklch, var(--parchment-foreground) 20%, transparent);
 }
 
 .chrome-surface {

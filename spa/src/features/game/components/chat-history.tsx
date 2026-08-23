@@ -83,7 +83,7 @@ export function ChatHistory({ messages }: ChatHistoryProps) {
                           <NarrationText segments={message.segments} />
                         </div>
                       ) : (
-                        <p className="parchment-bubble inline-block self-end rounded-lg px-3 py-1.5 text-right">
+                        <p className="typeset typeset-chat border-primary/25 text-parchment-foreground border-r-2 pr-4 text-right whitespace-pre-line">
                           {message.content}
                         </p>
                       )}
