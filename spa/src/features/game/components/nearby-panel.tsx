@@ -1,50 +1,54 @@
-import { Archive, CircleHelp, Crown, MoreVertical } from 'lucide-react';
-import {
-  Anvil,
-  BedDouble,
-  Beer,
-  BookOpen,
-  Building2,
-  Castle,
-  Church,
-  Croissant,
-  Cross,
-  DoorOpen,
-  FlaskConical,
-  Gem,
-  Hammer,
-  House,
-  Landmark,
-  type LucideIcon,
-  Lock,
-  Mountain,
-  Pickaxe,
-  Shirt,
-  ShoppingBag,
-  Sparkles,
-  Swords,
-  Users,
-  Warehouse,
-} from 'lucide-react';
+import { CircleHelp, MoreVertical } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import type { IconType } from 'react-icons';
 import {
+  GiAncientRuins,
+  GiAnvil,
+  GiApothecary,
   GiBadGnome,
+  GiBed,
+  GiBeerStein,
+  GiBubblingFlask,
+  GiCampingTent,
+  GiCastle,
+  GiChest,
+  GiChurch,
+  GiCroissant,
+  GiCrossedSwords,
+  GiCrown,
+  GiCrystalBall,
+  GiCryptEntrance,
   GiDeathSkull,
   GiDevilMask,
   GiDragonHead,
   GiDwarfFace,
   GiElfHelmet,
   GiFireSilhouette,
+  GiFountain,
+  GiGems,
   GiGhost,
   GiGiant,
   GiGoblinHead,
+  GiGoldMine,
   GiGolemHead,
+  GiHammerNails,
+  GiHandcuffs,
   GiHobbitDoor,
+  GiHolySymbol,
+  GiHouse,
+  GiMedievalGate,
+  GiMeepleGroup,
+  GiMountainCave,
+  GiMountains,
+  GiOpenBook,
   GiOrcHead,
   GiPerson,
+  GiShirt,
+  GiShoppingBag,
   GiSkeleton,
+  GiStable,
+  GiStoneTower,
   GiTombstone,
   GiWolfHead,
 } from 'react-icons/gi';
@@ -94,40 +98,40 @@ type NearbyExitDestination = SignalrNearbyExitDestination & {
   districtType?: DistrictType;
 };
 
-const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
-  ArcaneShop: Sparkles,
-  Apothecary: FlaskConical,
-  Bakery: Croissant,
-  Barracks: Swords,
-  Blacksmith: Anvil,
-  Carpenter: Hammer,
-  Castle: Castle,
-  Cave: Mountain,
-  Crypt: Cross,
-  GeneralGoods: ShoppingBag,
-  GuildHall: Users,
-  House: House,
-  Inn: BedDouble,
-  Jail: Lock,
-  Jeweler: Gem,
-  Library: BookOpen,
-  Mine: Pickaxe,
-  Ruins: Landmark,
-  Stable: Warehouse,
-  Tailor: Shirt,
-  Tavern: Beer,
-  Temple: Church,
-  Tower: Building2,
+const BUILDING_TYPE_ICONS: Record<BuildingType, IconType> = {
+  ArcaneShop: GiCrystalBall,
+  Apothecary: GiApothecary,
+  Bakery: GiCroissant,
+  Barracks: GiCrossedSwords,
+  Blacksmith: GiAnvil,
+  Carpenter: GiHammerNails,
+  Castle: GiCastle,
+  Cave: GiMountainCave,
+  Crypt: GiCryptEntrance,
+  GeneralGoods: GiShoppingBag,
+  GuildHall: GiMeepleGroup,
+  House: GiHouse,
+  Inn: GiBed,
+  Jail: GiHandcuffs,
+  Jeweler: GiGems,
+  Library: GiOpenBook,
+  Mine: GiGoldMine,
+  Ruins: GiAncientRuins,
+  Stable: GiStable,
+  Tailor: GiShirt,
+  Tavern: GiBeerStein,
+  Temple: GiChurch,
+  Tower: GiStoneTower,
 };
 
-const DISTRICT_TYPE_ICONS: Record<DistrictType, LucideIcon> = {
-  Residential: House,
-  Scientific: FlaskConical,
-  CityCenter: Landmark,
-  CityEntrance: DoorOpen,
-  Governmental: Crown,
-  HolySite: Church,
-  Encampment: Swords,
+const DISTRICT_TYPE_ICONS: Record<DistrictType, IconType> = {
+  Residential: GiHouse,
+  Scientific: GiBubblingFlask,
+  CityCenter: GiFountain,
+  CityEntrance: GiMedievalGate,
+  Governmental: GiCrown,
+  HolySite: GiHolySymbol,
+  Encampment: GiCampingTent,
 };
 
 interface NearbyPanelProps {
@@ -148,6 +152,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
     name: string;
     workstationId: string;
   } | null>(null);
+  const [isTradeOpen, setIsTradeOpen] = useState(false);
 
   const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
     ...b,
@@ -200,6 +205,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                     name: creature.name,
                     workstationId: creature.tradeWorkstationId,
                   });
+                  setIsTradeOpen(true);
                 }
               }}
               tradeEnabled={Boolean(creature.tradeWorkstationId)}
@@ -215,7 +221,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
           nearbyContainers.map((container) => (
             <div key={container.id} className="flex items-center justify-between gap-2 py-1.5">
               <span className="flex min-w-0 items-center gap-1.5">
-                <Archive className="text-muted-foreground h-[15px] w-[15px] shrink-0" />
+                <GiChest className="text-muted-foreground size-[18px] shrink-0" />
                 <button
                   type="button"
                   onClick={() => {
@@ -246,7 +252,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
             return (
               <div key={poi.id} className="flex items-center justify-between gap-2 py-1.5">
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <Icon className="text-muted-foreground h-[15px] w-[15px] shrink-0" />
+                  <Icon className="text-muted-foreground size-[18px] shrink-0" />
                   <EntityTooltip
                     id={poi.id}
                     name={poi.name}
@@ -280,8 +286,8 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
           workstationId={tradeWorker.workstationId}
           workerName={tradeWorker.name}
           shopName={scene.buildingName ?? 'Shop'}
-          open
-          onClose={() => setTradeWorker(null)}
+          open={isTradeOpen}
+          onClose={() => setIsTradeOpen(false)}
         />
       )}
     </div>
@@ -295,9 +301,9 @@ function ExitDestinationIcon({ destination }: { destination: NearbyExitDestinati
       : (destination.$type === 'Building' || destination.$type === 'Room') &&
           destination.buildingType
         ? BUILDING_TYPE_ICONS[destination.buildingType]
-        : Mountain;
+        : GiMountains;
 
-  return <Icon className="text-muted-foreground size-3 shrink-0" />;
+  return <Icon className="text-muted-foreground size-4 shrink-0" />;
 }
 
 function CreatureRow({

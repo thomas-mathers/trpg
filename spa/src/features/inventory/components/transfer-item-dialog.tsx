@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Eye, User } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { GiChest, GiTombstone, GiWeight } from 'react-icons/gi';
+import { GiChest, GiTombstone } from 'react-icons/gi';
 
 import {
   getContainerInventoryOptions,
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { ItemName } from '@/features/inventory/components/item-name';
 import { ItemTable } from '@/features/inventory/components/item-table';
+import { WeightIcon } from '@/features/inventory/components/item-unit-icon';
 import { useItemTable } from '@/features/inventory/hooks/use-item-table';
 import { useTransferDraft } from '@/features/inventory/hooks/use-transfer-draft';
 import { cn } from '@/lib/utils';
@@ -343,7 +344,7 @@ function InventorySidePanel({
       <div className="border-b px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-semibold">{title}</div>
         <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
-          {items.length} items · {totalWeight} <GiWeight className="size-4 shrink-0" /> total
+          {items.length} items · {totalWeight} <WeightIcon /> total
         </p>
       </div>
 

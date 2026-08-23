@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Empty, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NarrationText } from '@/features/game/components/narration-text';
 import { parseNarrationMarkup } from '@/features/game/narration-markup';
@@ -57,6 +58,7 @@ export function QuestJournalDialog({ playerId, worldId, open, onClose }: QuestJo
           <TabsContent value="active" className="mt-4 min-h-0 overflow-hidden">
             <QuestJournalContent
               emptyMessage="You have no active quests."
+              loading={journal.isLoading}
               playerId={playerId}
               worldId={worldId}
               quests={quests}
@@ -67,6 +69,7 @@ export function QuestJournalDialog({ playerId, worldId, open, onClose }: QuestJo
           <TabsContent value="completed" className="mt-4 min-h-0 overflow-hidden">
             <QuestJournalContent
               emptyMessage="You have not completed any quests."
+              loading={journal.isLoading}
               playerId={playerId}
               worldId={worldId}
               quests={quests}
@@ -88,6 +91,7 @@ export function QuestJournalDialog({ playerId, worldId, open, onClose }: QuestJo
 
 function QuestJournalContent({
   emptyMessage,
+  loading,
   playerId,
   worldId,
   quests,
@@ -95,12 +99,30 @@ function QuestJournalContent({
   onSelectQuest,
 }: {
   emptyMessage: string;
+  loading: boolean;
   playerId: string;
   worldId: string;
   quests: readonly QuestJournalEntrySnapshot[];
   selectedQuest: QuestJournalEntrySnapshot | undefined;
   onSelectQuest: (questId: string) => void;
 }) {
+  if (loading) {
+    return (
+      <div className="bg-muted/40 grid h-full min-h-0 overflow-hidden rounded-lg border md:grid-cols-[18rem_minmax(0,1fr)]">
+        <div className="max-h-40 space-y-2 overflow-hidden border-b p-2 md:max-h-none md:border-r md:border-b-0">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-11 w-full rounded-md" />
+          ))}
+        </div>
+        <div className="bg-card min-h-0 p-5 shadow-sm">
+          <Skeleton className="h-6 w-2/3" />
+          <Skeleton className="mt-4 h-4 w-full" />
+          <Skeleton className="mt-2 h-4 w-5/6" />
+        </div>
+      </div>
+    );
+  }
+
   if (quests.length === 0) {
     return <QuestJournalEmptyState message={emptyMessage} />;
   }

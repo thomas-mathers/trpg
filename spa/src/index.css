@@ -78,7 +78,7 @@
   --primary-foreground: var(--chrome-foreground);
   --secondary: oklch(0.9 0.025 75);
   --secondary-foreground: oklch(0.28 0.035 50);
-  --muted: oklch(0.92 0.02 78);
+  --muted: oklch(0.88 0.035 78);
   --muted-foreground: oklch(0.48 0.035 55);
   --accent: oklch(0.89 0.045 80);
   --accent-foreground: oklch(0.28 0.035 50);
@@ -108,7 +108,7 @@
   --sidebar-accent-foreground: oklch(0.93 0.02 85);
   --sidebar-border: oklch(0.42 0.07 55);
   --sidebar-ring: oklch(0.6 0.1 60);
-  --parchment: oklch(0.9 0.045 78);
+  --parchment: oklch(0.94 0.03 78);
   --parchment-foreground: oklch(0.24 0.035 45);
   --chrome: oklch(0.3 0.09 55);
   --chrome-foreground: oklch(0.96 0.02 85);
@@ -183,22 +183,22 @@
 .parchment-surface {
   background-color: var(--parchment);
   color: var(--parchment-foreground);
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  background-blend-mode: normal, normal, normal, multiply;
   background-size:
     auto,
     auto,
     auto,
-    220px 220px,
-    100% 100%;
+    600px 600px;
   background-image:
     radial-gradient(
-      ellipse 60% 45% at 12% 18%,
-      color-mix(in oklch, var(--parchment-foreground) 22%, transparent) 0%,
+      ellipse 55% 42% at 8% 10%,
+      color-mix(in oklch, var(--parchment-foreground) 30%, transparent) 0%,
       transparent 100%
     ),
     radial-gradient(
-      ellipse 55% 40% at 88% 82%,
-      color-mix(in oklch, var(--parchment-foreground) 20%, transparent) 0%,
+      ellipse 50% 38% at 92% 90%,
+      color-mix(in oklch, var(--parchment-foreground) 28%, transparent) 0%,
       transparent 100%
     ),
     radial-gradient(
@@ -206,35 +206,25 @@
       color-mix(in oklch, var(--primary) 25%, transparent) 0%,
       transparent 100%
     ),
-    url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMjAnIGhlaWdodD0nMjIwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC44NScgbnVtT2N0YXZlcz0nMicgc3RpdGNoVGlsZXM9J3N0aXRjaCcvPjxmZUNvbG9yTWF0cml4IHR5cGU9J21hdHJpeCcgdmFsdWVzPScwIDAgMCAwIDAgIDAgMCAwIDAgMCAgMCAwIDAgMCAwICAwIDAgMCAwLjE4IDAnLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyBmaWx0ZXI9J3VybCgjbiknLz48L3N2Zz4K'),
-    radial-gradient(
-      ellipse 75% 75% at 50% 50%,
-      transparent 52%,
-      color-mix(in oklch, var(--parchment-foreground) 28%, transparent) 100%
-    );
+    url('./assets/parchment-texture-tile.png');
+  box-shadow: none;
 }
 
 .parchment-bubble {
   background-color: oklch(from var(--parchment) calc(l - 0.08) c h);
   color: var(--parchment-foreground);
+  border: 1px solid color-mix(in oklch, var(--parchment-foreground) 20%, transparent);
+  box-shadow: inset 0 1px 2px color-mix(in oklch, var(--parchment-foreground) 20%, transparent);
 }
 
 .chrome-surface {
   background-color: var(--chrome);
-  background-image: linear-gradient(
-    to bottom,
-    color-mix(in oklch, var(--chrome), white 16%),
-    var(--chrome)
-  );
-  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--chrome), white 35%);
 }
 
 .chrome-surface-elevated {
   position: relative;
   z-index: 1;
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklch, var(--chrome), white 35%),
-    0 8px 16px -2px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.45);
 }
 
 /*
