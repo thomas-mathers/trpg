@@ -89,9 +89,8 @@ describe('TradeDialog', () => {
     );
     const { user } = renderDialog();
 
-    await screen.findByRole('dialog');
-    const playerInventory = screen.getByLabelText('Your available items');
-    await user.click(within(playerInventory).getByRole('button', { name: 'Value' }));
+    const playerInventory = await screen.findByLabelText('Your available items');
+    await user.click(await within(playerInventory).findByRole('button', { name: 'Value' }));
 
     expect(within(playerInventory).getAllByRole('row')[1]).toHaveTextContent('Iron Sword');
 
@@ -123,15 +122,16 @@ describe('TradeDialog', () => {
 
     const playerInventory = await screen.findByLabelText('Your available items');
 
-    expect(within(playerInventory).getByText('Equipped', { selector: 'span' })).toBeVisible();
+    expect(
+      await within(playerInventory).findByText('Equipped', { selector: 'span' }),
+    ).toBeVisible();
   });
 
   it('updates a stack quantity and removes it from the offer', async () => {
     server.use(handleGetTrade({ body: tradeSnapshot() }));
     const { user } = renderDialog();
 
-    await screen.findByRole('dialog');
-    await user.click(screen.getByRole('button', { name: 'Add Gold coins to offer' }));
+    await user.click(await screen.findByRole('button', { name: 'Add Gold coins to offer' }));
     await user.click(screen.getByRole('button', { name: 'Decrease Gold coins quantity' }));
 
     expect(screen.getByRole('spinbutton', { name: 'Gold coins quantity' })).toHaveValue(9);
@@ -163,8 +163,7 @@ describe('TradeDialog', () => {
     const onClose = vi.fn();
     const { user } = renderDialog(onClose);
 
-    await screen.findByRole('dialog');
-    await user.click(screen.getByRole('button', { name: 'Add Gold coins to offer' }));
+    await user.click(await screen.findByRole('button', { name: 'Add Gold coins to offer' }));
     await user.click(screen.getByRole('button', { name: 'Add Iron Sword to offer' }));
     await user.click(screen.getByRole('button', { name: 'Propose trade' }));
 
@@ -199,8 +198,7 @@ describe('TradeDialog', () => {
     );
     const { user } = renderDialog();
 
-    await screen.findByRole('dialog');
-    await user.click(screen.getByRole('button', { name: 'Add Gold coins to offer' }));
+    await user.click(await screen.findByRole('button', { name: 'Add Gold coins to offer' }));
     await user.click(screen.getByRole('button', { name: 'Propose trade' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Tessa declines your offer.');
@@ -220,8 +218,7 @@ describe('TradeDialog', () => {
     );
     const { user } = renderDialog();
 
-    await screen.findByRole('dialog');
-    await user.click(screen.getByRole('button', { name: 'Add Gold coins to offer' }));
+    await user.click(await screen.findByRole('button', { name: 'Add Gold coins to offer' }));
     await user.click(screen.getByRole('button', { name: 'Propose trade' }));
 
     expect(await screen.findByRole('status')).toHaveTextContent('Tessa refuses to deal with you.');

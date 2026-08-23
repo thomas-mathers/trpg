@@ -26,6 +26,7 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
       {
         id: 'merchant-id',
         name: 'Tessa',
+        creatureType: 'Human',
         level: 1,
         state: 'Idle',
         reputation: null,
@@ -60,7 +61,8 @@ describe('NearbyPanel', () => {
       <NearbyPanel scene={scene('workstation-id')} onOpenQuestJournal={() => {}} />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Trade' }));
+    await user.click(screen.getByRole('button', { name: 'Actions for Tessa' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Trade' }));
 
     expect(await screen.findByRole('heading', { name: 'Trade with Tessa' })).toBeVisible();
     await waitFor(() =>
@@ -71,10 +73,14 @@ describe('NearbyPanel', () => {
     );
   });
 
-  it('does not show trade when a scene snapshot omits the trade workstation ID', () => {
-    renderWithProviders(<NearbyPanel scene={scene(undefined)} onOpenQuestJournal={() => {}} />);
+  it('does not show trade when a scene snapshot omits the trade workstation ID', async () => {
+    const { user } = renderWithProviders(
+      <NearbyPanel scene={scene(undefined)} onOpenQuestJournal={() => {}} />,
+    );
 
-    expect(screen.queryByRole('button', { name: 'Trade' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Actions for Tessa' }));
+
+    expect(screen.queryByRole('menuitem', { name: 'Trade' })).not.toBeInTheDocument();
   });
 
   it('allows transferring items from a nearby living creature', async () => {

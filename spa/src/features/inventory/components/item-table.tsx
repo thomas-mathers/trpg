@@ -1,4 +1,3 @@
-import { Coins, Weight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ItemDetail } from '@/api/client';
@@ -10,6 +9,7 @@ import {
   ItemDefenseCell,
   ItemStatisticCell,
 } from '@/features/inventory/components/item-table-cells';
+import { GoldIcon, WeightIcon } from '@/features/inventory/components/item-unit-icon';
 import { SortableHeader } from '@/features/inventory/components/sortable-header';
 import type { ItemTableState } from '@/features/inventory/hooks/use-item-table';
 import { cn } from '@/lib/utils';
@@ -49,7 +49,7 @@ export function ItemTable({
         equippedOnly={table.equippedOnly}
         onEquippedOnlyChange={table.setEquippedOnly}
       />
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 scrollbar-gutter-stable overflow-auto">
         <ItemTableContent
           table={table}
           renderItemName={renderItemName}
@@ -129,7 +129,7 @@ function ItemTableContent({
         {renderAction && <col className="w-24" />}
       </colgroup>
       <thead>
-        <tr className="bg-muted/50 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+        <tr className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
           {renderLeadingCell && <th className="px-2 py-2">{renderLeadingHeader}</th>}
           <SortableHeader
             label="Item"
@@ -184,7 +184,7 @@ function ItemTableContent({
           return (
             <tr
               key={item.itemId}
-              className={cn(onRowClick && 'cursor-pointer', isSelected?.(item) && 'bg-accent')}
+              className={cn(onRowClick && 'cursor-pointer', isSelected?.(item) && 'bg-primary/10')}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
             >
               {renderLeadingCell && (
@@ -233,7 +233,7 @@ function ItemTableSkeleton({
         {hasAction && <col className="w-24" />}
       </colgroup>
       <thead>
-        <tr className="bg-muted/50 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+        <tr className="bg-primary/10 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
           {hasLeadingCell && <th className="px-2 py-2" />}
           <th className="px-2 py-2 text-left">Item</th>
           {showDamage && <th className="px-2 py-2 text-right">Damage</th>}
@@ -253,7 +253,7 @@ function ItemTableSkeleton({
               </td>
             )}
             <td className="px-2 py-1.5">
-              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-7 w-3/4" />
             </td>
             {showDamage && (
               <td className="px-2 py-1.5">
@@ -269,10 +269,10 @@ function ItemTableSkeleton({
               <Skeleton className="ml-auto h-5 w-6" />
             </td>
             <td className="px-2 py-1.5">
-              <Skeleton className="ml-auto h-5 w-10" />
+              <Skeleton className="ml-auto h-7 w-10" />
             </td>
             <td className="px-2 py-1.5">
-              <Skeleton className="ml-auto h-5 w-10" />
+              <Skeleton className="ml-auto h-7 w-10" />
             </td>
             {hasAction && (
               <td className="px-2 py-1.5">
@@ -291,9 +291,9 @@ function ItemGoldValueCell({ value }: { value: number }) {
 
   return (
     <td className="overflow-hidden px-2 py-1.5 text-right align-middle font-mono text-sm tabular-nums">
-      <div className="flex h-5 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
+      <div className="flex h-7 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
         <span className="truncate">{displayValue}</span>
-        <Coins className="text-muted-foreground size-3 shrink-0" />
+        <GoldIcon className="text-muted-foreground size-5" />
       </div>
     </td>
   );
@@ -304,9 +304,9 @@ function ItemWeightCell({ value }: { value: number }) {
 
   return (
     <td className="overflow-hidden px-2 py-1.5 text-right align-middle font-mono text-sm tabular-nums">
-      <div className="flex h-5 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
+      <div className="flex h-7 w-full min-w-0 items-center justify-end gap-1" title={displayValue}>
         <span className="truncate">{displayValue}</span>
-        <Weight className="text-muted-foreground size-3 shrink-0" />
+        <WeightIcon className="text-muted-foreground size-5" />
       </div>
     </td>
   );

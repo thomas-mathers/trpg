@@ -29,7 +29,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        'fixed inset-0 isolate z-50 bg-black/10 duration-300 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        'fixed inset-0 isolate z-50 bg-[color-mix(in_oklch,var(--foreground)_45%,transparent)]',
         className,
       )}
       {...props}
@@ -53,7 +53,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-300 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+          'bg-parchment text-parchment-foreground fixed top-1/2 left-1/2 z-50 flex w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-xl p-4 text-sm shadow-[0_8px_30px_-6px_color-mix(in_oklch,var(--foreground)_25%,transparent)] outline-none sm:max-w-sm',
           className,
         )}
         {...props}
@@ -67,7 +67,7 @@ function DialogContent({
           >
             <Button
               variant="ghost"
-              className="absolute top-2 right-2"
+              className="text-chrome-foreground hover:bg-chrome-foreground/15 hover:text-chrome-foreground absolute top-2 right-2"
               size="icon-sm"
               disabled={closeButtonDisabled}
             >
@@ -83,7 +83,14 @@ function DialogContent({
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div data-slot="dialog-header" className={cn('flex flex-col gap-2', className)} {...props} />
+    <div
+      data-slot="dialog-header"
+      className={cn(
+        'chrome-scope chrome-surface text-chrome-foreground -mx-4 -mt-4 flex flex-col gap-1 rounded-t-xl px-4 py-3',
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
@@ -118,7 +125,7 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('font-heading text-base leading-none font-medium', className)}
+      className={cn('font-heading text-lg leading-none tracking-wide', className)}
       {...props}
     />
   );

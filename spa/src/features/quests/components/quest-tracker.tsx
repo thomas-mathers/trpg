@@ -3,6 +3,7 @@ import { CircleCheck } from 'lucide-react';
 
 import { getQuestJournalOptions } from '@/api/client';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface QuestTrackerProps {
   playerId: string;
@@ -14,6 +15,19 @@ export function QuestTracker({ playerId, worldId, onOpenJournal }: QuestTrackerP
   const journal = useQuery(getQuestJournalOptions({ path: { playerId }, query: { worldId } }));
   const tracked = journal.data?.filter((quest) => quest.isTracked) ?? [];
   const quest = tracked.find((entry) => entry.status === 'ReadyToComplete') ?? tracked[0];
+
+  if (journal.isLoading) {
+    return (
+      <section>
+        <p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+          Tracked Quest
+        </p>
+        <Skeleton className="mt-1.5 h-4 w-2/3" />
+        <Skeleton className="mt-2 h-3 w-full" />
+        <Skeleton className="mt-1.5 h-3 w-4/5" />
+      </section>
+    );
+  }
 
   if (!quest) {
     return null;
@@ -32,7 +46,7 @@ export function QuestTracker({ playerId, worldId, onOpenJournal }: QuestTrackerP
           <li key={objective.name} className="flex items-center gap-1.5">
             <span className="flex size-3 shrink-0 items-center justify-center" aria-hidden>
               {objective.amount >= objective.requiredAmount ? (
-                <CircleCheck className="size-3 text-emerald-600 dark:text-emerald-400" />
+                <CircleCheck className="text-heal size-3" />
               ) : (
                 <span>•</span>
               )}

@@ -1,4 +1,4 @@
-import { Compass } from 'lucide-react';
+import { GiCompass } from 'react-icons/gi';
 
 import { useSidebar } from '@/components/ui/sidebar';
 import { Toggle } from '@/components/ui/toggle';
@@ -15,7 +15,7 @@ export function NearbyToggleButton() {
       onPressedChange={toggleSidebar}
       aria-label="What's nearby"
     >
-      <Compass />
+      <GiCompass />
     </Toggle>
   );
 }

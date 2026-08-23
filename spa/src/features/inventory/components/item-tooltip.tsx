@@ -1,6 +1,5 @@
-import { Coins, Weight } from 'lucide-react';
-
 import type { ItemDetail } from '@/api/client';
+import { GoldIcon, WeightIcon } from '@/features/inventory/components/item-unit-icon';
 import { formatItemModifier } from '@/features/inventory/item-modifier-format';
 import { RARITY_COLOR, TYPE_ICON } from '@/features/inventory/item-visuals';
 
@@ -47,11 +46,11 @@ export function ItemTooltip({ item }: { item: ItemDetail }) {
   const statLines: React.ReactNode[] = [
     <span key="weight" className="inline-flex items-center gap-1">
       Weight: {item.weight}
-      <Weight className="size-3" />
+      <WeightIcon />
     </span>,
     <span key="value" className="inline-flex items-center gap-1">
       Value: {item.goldValue}
-      <Coins className="size-3" />
+      <GoldIcon />
     </span>,
     ...getStatLines(item),
   ];

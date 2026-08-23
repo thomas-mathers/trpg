@@ -28,8 +28,8 @@ interface ChatMarkerProps {
 
 const VARIANT_CLASSES: Record<ChatMarkerVariant, string> = {
   location: 'text-muted-foreground',
-  reconnecting: 'text-amber-500',
-  reconnected: 'text-green-500',
+  reconnecting: 'text-stamina',
+  reconnected: 'text-heal',
   disconnected: 'text-destructive',
   'combat-start': 'text-destructive',
   'combat-end': 'text-muted-foreground',
@@ -41,7 +41,7 @@ export function ChatMarker({ text, variant = 'location' }: ChatMarkerProps) {
   return (
     <div className={cn('flex items-center gap-3 py-2 text-xs', colorClass)}>
       <Separator className={cn('flex-1 bg-current opacity-30', colorClass)} />
-      <span className="shrink-0 font-medium">{text}</span>
+      <span className="font-heading shrink-0 tracking-wide uppercase">{text}</span>
       <Separator className={cn('flex-1 bg-current opacity-30', colorClass)} />
     </div>
   );
@@ -79,11 +79,13 @@ export function ChatHistory({ messages }: ChatHistoryProps) {
                         <MessageHeader className="justify-end">You</MessageHeader>
                       )}
                       {message.role === 'narrator' ? (
-                        <div className="typeset typeset-chat whitespace-pre-line">
+                        <div className="typeset typeset-chat border-primary/25 border-l-2 pl-4 whitespace-pre-line">
                           <NarrationText segments={message.segments} />
                         </div>
                       ) : (
-                        <p className="text-right">{message.content}</p>
+                        <p className="typeset typeset-chat border-primary/25 text-parchment-foreground border-r-2 pr-4 text-right whitespace-pre-line">
+                          {message.content}
+                        </p>
                       )}
                     </MessageContent>
                   </Message>

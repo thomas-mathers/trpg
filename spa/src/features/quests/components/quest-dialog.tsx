@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { NarrationText } from '@/features/game/components/narration-text';
@@ -47,7 +48,9 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
-        <DialogTitle>{quest.name}</DialogTitle>
+        <DialogHeader>
+          <DialogTitle>{quest.name}</DialogTitle>
+        </DialogHeader>
         <DialogDescription>
           <NarrationText segments={parseNarrationMarkup(quest.description)} />
         </DialogDescription>

@@ -10,6 +10,7 @@ import {
   previewCreatureEquipmentOptions,
   getCreatureAttributesOptions,
 } from '@/api/client';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 import { ATTRIBUTE_LABEL } from '../display-names';
@@ -89,33 +90,39 @@ function StatRow({
   current,
   delta,
   isPercent = false,
+  loading = false,
 }: {
   label: string;
   current: number;
   delta: number | null;
   isPercent?: boolean;
+  loading?: boolean;
 }) {
   const suffix = isPercent ? '%' : '';
 
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="flex items-center gap-1.5 font-medium tabular-nums">
-        {formatNumber(current)}
-        {suffix}
-        {delta != null && delta !== 0 && (
-          <span
-            className={cn(
-              'inline-flex items-center gap-0.5',
-              delta > 0 ? 'text-emerald-500' : 'text-red-500',
-            )}
-          >
-            {delta > 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
-            {formatNumber(Math.abs(delta))}
-            {suffix}
-          </span>
-        )}
-      </span>
+      {loading ? (
+        <Skeleton className="h-4 w-10" />
+      ) : (
+        <span className="flex items-center gap-1.5 font-medium tabular-nums">
+          {formatNumber(current)}
+          {suffix}
+          {delta != null && delta !== 0 && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-0.5',
+                delta > 0 ? 'text-heal' : 'text-destructive',
+              )}
+            >
+              {delta > 0 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
+              {formatNumber(Math.abs(delta))}
+              {suffix}
+            </span>
+          )}
+        </span>
+      )}
     </div>
   );
 }
@@ -152,13 +159,10 @@ export function CharacterStatsPanel({
     placeholderData: keepPreviousData,
   });
 
-  if (!current || !currentDamage) {
-    return null;
-  }
-
-  const currentMap = toAttributeMap(current);
+  const loading = !current || !currentDamage;
+  const currentMap = current ? toAttributeMap(current) : null;
   const previewMap = previewItem && preview ? toAttributeMap(preview) : null;
-  const currentDamagePerTurn = Number(currentDamage.damagePerTurn);
+  const currentDamagePerTurn = currentDamage ? Number(currentDamage.damagePerTurn) : 0;
   const previewDamagePerTurn =
     previewItem && previewDamage ? Number(previewDamage.damagePerTurn) : null;
 
@@ -170,6 +174,7 @@ export function CharacterStatsPanel({
           label="Basic Attack"
           current={currentDamagePerTurn}
           delta={previewDamagePerTurn != null ? previewDamagePerTurn - currentDamagePerTurn : null}
+          loading={loading}
         />
       </div>
       {STAT_GROUPS.map((group) => (
@@ -179,9 +184,12 @@ export function CharacterStatsPanel({
             <StatRow
               key={attribute}
               label={ATTRIBUTE_LABEL[attribute]}
-              current={currentMap[attribute]}
-              delta={previewMap ? previewMap[attribute] - currentMap[attribute] : null}
+              current={currentMap ? currentMap[attribute] : 0}
+              delta={
+                currentMap && previewMap ? previewMap[attribute] - currentMap[attribute] : null
+              }
               isPercent={PERCENT_ATTRIBUTES.has(attribute)}
+              loading={loading}
             />
           ))}
         </div>

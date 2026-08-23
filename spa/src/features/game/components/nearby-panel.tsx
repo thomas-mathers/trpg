@@ -1,40 +1,72 @@
-import { Archive, CircleHelp, Crown, Skull } from 'lucide-react';
-import {
-  Anvil,
-  BedDouble,
-  Beer,
-  BookOpen,
-  Building2,
-  Castle,
-  Church,
-  Croissant,
-  Cross,
-  DoorOpen,
-  FlaskConical,
-  Gem,
-  Hammer,
-  House,
-  Landmark,
-  type LucideIcon,
-  Lock,
-  Mountain,
-  Pickaxe,
-  Shirt,
-  ShoppingBag,
-  Sparkles,
-  Swords,
-  Users,
-  Warehouse,
-} from 'lucide-react';
+import { CircleHelp, MoreVertical } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import type { IconType } from 'react-icons';
+import {
+  GiAncientRuins,
+  GiAnvil,
+  GiApothecary,
+  GiBadGnome,
+  GiBed,
+  GiBeerStein,
+  GiBubblingFlask,
+  GiCampingTent,
+  GiCastle,
+  GiChest,
+  GiChurch,
+  GiCroissant,
+  GiCrossedSwords,
+  GiCrown,
+  GiCrystalBall,
+  GiCryptEntrance,
+  GiDeathSkull,
+  GiDevilMask,
+  GiDragonHead,
+  GiDwarfFace,
+  GiElfHelmet,
+  GiFireSilhouette,
+  GiFountain,
+  GiGems,
+  GiGhost,
+  GiGiant,
+  GiGoblinHead,
+  GiGoldMine,
+  GiGolemHead,
+  GiHammerNails,
+  GiHandcuffs,
+  GiHobbitDoor,
+  GiHolySymbol,
+  GiHouse,
+  GiMedievalGate,
+  GiMeepleGroup,
+  GiMountainCave,
+  GiMountains,
+  GiOpenBook,
+  GiOrcHead,
+  GiPerson,
+  GiShirt,
+  GiShoppingBag,
+  GiSkeleton,
+  GiStable,
+  GiStoneTower,
+  GiTombstone,
+  GiWolfHead,
+} from 'react-icons/gi';
 
 import type { BuildingType, DistrictType, OwnerType } from '@/api/client';
 import type {
   CreatureStatusSnapshot,
+  CreatureType,
   NearbyExitDestination as SignalrNearbyExitDestination,
   SceneSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
@@ -42,46 +74,64 @@ import { TransferItemDialog } from '@/features/inventory/components/transfer-ite
 import { QuestTracker } from '@/features/quests/components/quest-tracker';
 import { cn } from '@/lib/utils';
 
+const CREATURE_TYPE_ICON: Record<CreatureType, IconType> = {
+  Human: GiPerson,
+  Elf: GiElfHelmet,
+  Dwarf: GiDwarfFace,
+  Orc: GiOrcHead,
+  Halfling: GiHobbitDoor,
+  Gnome: GiBadGnome,
+  Goblin: GiGoblinHead,
+  Undead: GiSkeleton,
+  Wraith: GiGhost,
+  Demon: GiDevilMask,
+  Beast: GiWolfHead,
+  Construct: GiGolemHead,
+  Elemental: GiFireSilhouette,
+  Giant: GiGiant,
+  Dragon: GiDragonHead,
+};
+
 type NearbyExitDestination = SignalrNearbyExitDestination & {
   $type?: 'District' | 'Building' | 'Room' | 'Wilderness';
   buildingType?: BuildingType;
   districtType?: DistrictType;
 };
 
-const BUILDING_TYPE_ICONS: Record<BuildingType, LucideIcon> = {
-  ArcaneShop: Sparkles,
-  Apothecary: FlaskConical,
-  Bakery: Croissant,
-  Barracks: Swords,
-  Blacksmith: Anvil,
-  Carpenter: Hammer,
-  Castle: Castle,
-  Cave: Mountain,
-  Crypt: Cross,
-  GeneralGoods: ShoppingBag,
-  GuildHall: Users,
-  House: House,
-  Inn: BedDouble,
-  Jail: Lock,
-  Jeweler: Gem,
-  Library: BookOpen,
-  Mine: Pickaxe,
-  Ruins: Landmark,
-  Stable: Warehouse,
-  Tailor: Shirt,
-  Tavern: Beer,
-  Temple: Church,
-  Tower: Building2,
+const BUILDING_TYPE_ICONS: Record<BuildingType, IconType> = {
+  ArcaneShop: GiCrystalBall,
+  Apothecary: GiApothecary,
+  Bakery: GiCroissant,
+  Barracks: GiCrossedSwords,
+  Blacksmith: GiAnvil,
+  Carpenter: GiHammerNails,
+  Castle: GiCastle,
+  Cave: GiMountainCave,
+  Crypt: GiCryptEntrance,
+  GeneralGoods: GiShoppingBag,
+  GuildHall: GiMeepleGroup,
+  House: GiHouse,
+  Inn: GiBed,
+  Jail: GiHandcuffs,
+  Jeweler: GiGems,
+  Library: GiOpenBook,
+  Mine: GiGoldMine,
+  Ruins: GiAncientRuins,
+  Stable: GiStable,
+  Tailor: GiShirt,
+  Tavern: GiBeerStein,
+  Temple: GiChurch,
+  Tower: GiStoneTower,
 };
 
-const DISTRICT_TYPE_ICONS: Record<DistrictType, LucideIcon> = {
-  Residential: House,
-  Scientific: FlaskConical,
-  CityCenter: Landmark,
-  CityEntrance: DoorOpen,
-  Governmental: Crown,
-  HolySite: Church,
-  Encampment: Swords,
+const DISTRICT_TYPE_ICONS: Record<DistrictType, IconType> = {
+  Residential: GiHouse,
+  Scientific: GiBubblingFlask,
+  CityCenter: GiFountain,
+  CityEntrance: GiMedievalGate,
+  Governmental: GiCrown,
+  HolySite: GiHolySymbol,
+  Encampment: GiCampingTent,
 };
 
 interface NearbyPanelProps {
@@ -102,6 +152,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
     name: string;
     workstationId: string;
   } | null>(null);
+  const [isTradeOpen, setIsTradeOpen] = useState(false);
 
   const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
     ...b,
@@ -154,6 +205,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                     name: creature.name,
                     workstationId: creature.tradeWorkstationId,
                   });
+                  setIsTradeOpen(true);
                 }
               }}
               tradeEnabled={Boolean(creature.tradeWorkstationId)}
@@ -169,7 +221,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
           nearbyContainers.map((container) => (
             <div key={container.id} className="flex items-center justify-between gap-2 py-1.5">
               <span className="flex min-w-0 items-center gap-1.5">
-                <Archive className="text-muted-foreground h-[15px] w-[15px] shrink-0" />
+                <GiChest className="text-muted-foreground size-[18px] shrink-0" />
                 <button
                   type="button"
                   onClick={() => {
@@ -200,7 +252,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
             return (
               <div key={poi.id} className="flex items-center justify-between gap-2 py-1.5">
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <Icon className="text-muted-foreground h-[15px] w-[15px] shrink-0" />
+                  <Icon className="text-muted-foreground size-[18px] shrink-0" />
                   <EntityTooltip
                     id={poi.id}
                     name={poi.name}
@@ -234,8 +286,8 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
           workstationId={tradeWorker.workstationId}
           workerName={tradeWorker.name}
           shopName={scene.buildingName ?? 'Shop'}
-          open
-          onClose={() => setTradeWorker(null)}
+          open={isTradeOpen}
+          onClose={() => setIsTradeOpen(false)}
         />
       )}
     </div>
@@ -249,9 +301,9 @@ function ExitDestinationIcon({ destination }: { destination: NearbyExitDestinati
       : (destination.$type === 'Building' || destination.$type === 'Room') &&
           destination.buildingType
         ? BUILDING_TYPE_ICONS[destination.buildingType]
-        : Mountain;
+        : GiMountains;
 
-  return <Icon className="text-muted-foreground size-3 shrink-0" />;
+  return <Icon className="text-muted-foreground size-4 shrink-0" />;
 }
 
 function CreatureRow({
@@ -270,54 +322,78 @@ function CreatureRow({
   const dead = creature.state === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
   const reputation = creature.reputation == null ? null : Number(creature.reputation);
+  const RaceIcon = CREATURE_TYPE_ICON[creature.creatureType];
 
   return (
-    <div className={cn('flex items-center justify-between gap-2 py-1.5', dead && 'opacity-45')}>
-      <span className="flex min-w-0 items-center gap-1.5">
-        <span className="flex h-[15px] w-[15px] shrink-0 items-center justify-center">
-          {dead ? (
-            <Skull className="h-[15px] w-[15px]" aria-label="Dead" />
-          ) : creature.questMarker === 'Available' ? (
-            <CircleHelp
-              className="h-[15px] w-[15px] text-amber-500"
-              aria-label="Has a quest available"
-            />
-          ) : creature.questMarker === 'ReadyToTurnIn' ? (
+    <div className={cn('flex items-center gap-2 py-1.5', dead && 'opacity-45')}>
+      <span className="border-border bg-muted relative flex size-8 shrink-0 items-center justify-center rounded-full border">
+        <RaceIcon className="text-muted-foreground size-4" aria-label={creature.creatureType} />
+        {dead ? (
+          <span
+            className="bg-muted text-muted-foreground border-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2"
+            aria-label="Dead"
+          >
+            <GiTombstone className="size-2.5" />
+          </span>
+        ) : creature.questMarker === 'Available' ? (
+          <span
+            className="bg-stamina border-sidebar text-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2"
+            aria-label="Has a quest available"
+          >
+            <CircleHelp className="size-2.5" />
+          </span>
+        ) : creature.questMarker === 'ReadyToTurnIn' ? (
+          <span
+            className="bg-stamina border-sidebar text-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2 text-[10px] font-black"
+            aria-label="Has a quest ready to turn in"
+          >
+            !
+          </span>
+        ) : (
+          dangerous && (
             <span
-              className="text-sm font-bold text-amber-500"
-              aria-label="Has a quest ready to turn in"
+              className="bg-muted border-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2"
+              aria-label="Much more powerful than you"
             >
-              !
+              <GiDeathSkull className="size-2.5" />
             </span>
-          ) : (
-            dangerous && (
-              <Crown className="h-[15px] w-[15px]" aria-label="Much more powerful than you" />
-            )
-          )}
+          )
+        )}
+        <span className="text-muted-foreground absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-1 text-[9px] font-bold tabular-nums">
+          {creature.level}
         </span>
+      </span>
+
+      <span className="min-w-0 flex-1">
         <button
           type="button"
           onClick={onOpenInventory}
           className={cn(
-            'cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2',
-            reputation != null && reputation > 0 && 'text-green-500',
-            reputation != null && reputation < 0 && 'text-red-500',
+            'block w-full cursor-pointer truncate text-left font-medium underline decoration-dotted underline-offset-2',
+            reputation != null && reputation > 0 && 'text-heal',
+            reputation != null && reputation < 0 && 'text-destructive',
           )}
         >
           {creature.name}
         </button>
-        <span className="text-muted-foreground shrink-0 text-xs">Lv {creature.level}</span>
+        {creature.state && (
+          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]">
+            {creature.state}
+          </span>
+        )}
       </span>
-      {creature.state && (
-        <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[10px]">
-          {creature.state}
-        </span>
-      )}
-      {!dead && tradeEnabled && (
-        <button type="button" onClick={onTrade} className="text-muted-foreground text-xs underline">
-          Trade
-        </button>
-      )}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${creature.name}`}>
+            <MoreVertical />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onOpenInventory}>Inspect</DropdownMenuItem>
+          {!dead && tradeEnabled && <DropdownMenuItem onClick={onTrade}>Trade</DropdownMenuItem>}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

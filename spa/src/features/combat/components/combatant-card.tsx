@@ -1,5 +1,6 @@
-import { Crown, Droplet, Heart, type LucideIcon, Skull, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
+import type { IconType } from 'react-icons';
+import { GiDeathSkull, GiHeartBeats, GiTombstone, GiWingfoot, GiWaterDrop } from 'react-icons/gi';
 
 import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.Responses';
 import { EffectBadge } from '@/features/combat/components/effect-badge';
@@ -78,7 +79,7 @@ export function CombatantCard({
           : undefined
       }
       className={cn(
-        'bg-card relative min-w-[156px] overflow-hidden rounded-lg p-2.5 text-left shadow-sm transition-[box-shadow,transform] duration-150',
+        'bg-card relative min-w-[156px] overflow-hidden rounded-lg border border-border p-2.5 text-left shadow-sm transition-[box-shadow,transform] duration-150',
         !combatant.isAlive && 'opacity-45',
         canTarget &&
           'cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-foreground/50',
@@ -103,10 +104,13 @@ export function CombatantCard({
       <div className="mb-1.5 flex items-baseline justify-between gap-1.5">
         <span className="flex min-w-0 items-center gap-1">
           {danger && (
-            <Crown className="h-3 w-3 shrink-0" aria-label="Much more powerful than you" />
+            <GiDeathSkull className="h-3 w-3 shrink-0" aria-label="Much more powerful than you" />
           )}
           {!combatant.isAlive && (
-            <Skull className="text-muted-foreground h-3.5 w-3.5 shrink-0" aria-label="Defeated" />
+            <GiTombstone
+              className="text-muted-foreground h-3.5 w-3.5 shrink-0"
+              aria-label="Defeated"
+            />
           )}
           <span className="flex min-w-0 items-center gap-1 text-[13px] font-semibold">
             <span className="truncate">
@@ -119,26 +123,26 @@ export function CombatantCard({
       </div>
 
       <StatBar
-        icon={Heart}
-        colorClass="text-red-500"
-        fillClass="bg-red-500"
+        icon={GiHeartBeats}
+        colorClass="text-hp"
+        fillClass="bg-hp"
         current={Number(combatant.currentHp)}
         max={Number(combatant.maximumHp)}
         delta={hpDelta}
         hideDelta={Boolean(flash)}
       />
       <StatBar
-        icon={Zap}
-        colorClass="text-amber-500"
-        fillClass="bg-amber-500"
+        icon={GiWingfoot}
+        colorClass="text-stamina"
+        fillClass="bg-stamina"
         current={Number(combatant.currentAp)}
         max={Number(combatant.maximumAp)}
         delta={apDelta}
       />
       <StatBar
-        icon={Droplet}
-        colorClass="text-blue-500"
-        fillClass="bg-blue-500"
+        icon={GiWaterDrop}
+        colorClass="text-mp"
+        fillClass="bg-mp"
         current={Number(combatant.currentMp)}
         max={Number(combatant.maximumMp)}
         delta={mpDelta}
@@ -150,7 +154,7 @@ export function CombatantCard({
 }
 
 interface StatBarProps {
-  icon: LucideIcon;
+  icon: IconType;
   colorClass: string;
   fillClass: string;
   current: number;
@@ -189,7 +193,7 @@ function StatBar({
         <span
           className={cn(
             'combat-float-up pointer-events-none absolute -top-0.5 right-0 text-[13px] font-bold tabular-nums [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]',
-            delta > 0 ? 'text-green-500' : colorClass,
+            delta > 0 ? 'text-heal' : colorClass,
           )}
         >
           {delta > 0 ? `+${delta}` : delta}
@@ -201,10 +205,10 @@ function StatBar({
 
 function FlashFloat({ flash }: { flash: CombatFlash }) {
   const treatment = {
-    hit: { label: `−${flash.damage}`, className: 'text-yellow-400 text-lg' },
-    crit: { label: `CRIT −${flash.damage}`, className: 'text-red-500 text-2xl' },
+    hit: { label: `−${flash.damage}`, className: 'text-stamina text-lg' },
+    crit: { label: `CRIT −${flash.damage}`, className: 'text-crit text-2xl' },
     miss: { label: 'MISS', className: 'text-muted-foreground text-lg italic' },
-    block: { label: 'BLOCKED', className: 'text-sky-500 text-lg' },
+    block: { label: 'BLOCKED', className: 'text-mp text-lg' },
   } as const;
   const current = treatment[flash.kind];
 

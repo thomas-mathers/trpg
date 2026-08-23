@@ -1,6 +1,6 @@
 import { HubConnectionState } from '@microsoft/signalr';
-import { Droplet, Heart, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { GiHeartBeats, GiWingfoot, GiWaterDrop } from 'react-icons/gi';
 
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -14,13 +14,13 @@ interface StatusBarProps {
 }
 
 const connectionStatusStyles: Record<HubConnectionState, { className: string; label: string }> = {
-  [HubConnectionState.Connected]: { className: 'bg-green-500', label: 'Connected' },
+  [HubConnectionState.Connected]: { className: 'bg-heal', label: 'Connected' },
   [HubConnectionState.Connecting]: {
-    className: 'animate-pulse bg-amber-500',
+    className: 'animate-pulse bg-stamina',
     label: 'Connecting...',
   },
   [HubConnectionState.Reconnecting]: {
-    className: 'animate-pulse bg-amber-500',
+    className: 'animate-pulse bg-stamina',
     label: 'Reconnecting...',
   },
   [HubConnectionState.Disconnecting]: { className: 'bg-destructive', label: 'Connection lost' },
@@ -62,16 +62,16 @@ export function StatusBar({ isInCombat = false, connectionStatus, controls }: St
       <div className="ml-auto flex shrink-0 items-center gap-4 lg:col-start-3 lg:row-start-1 lg:ml-0 lg:justify-self-end">
         {scene && !isInCombat && (
           <div className="hidden shrink-0 items-center gap-4 lg:flex">
-            <span className="flex items-center gap-1 text-red-500">
-              <Heart className="h-4 w-4" />
+            <span className="text-hp flex items-center gap-1 drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.6)]">
+              <GiHeartBeats className="h-4 w-4" />
               {scene.playerStatus.currentHp}/{scene.playerStatus.maximumHp}
             </span>
-            <span className="flex items-center gap-1 text-amber-500">
-              <Zap className="h-4 w-4" />
+            <span className="text-stamina flex items-center gap-1 drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.6)]">
+              <GiWingfoot className="h-4 w-4" />
               {scene.playerStatus.currentAp}/{scene.playerStatus.maximumAp}
             </span>
-            <span className="flex items-center gap-1 text-blue-500">
-              <Droplet className="h-4 w-4" />
+            <span className="text-mp flex items-center gap-1 drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.6)]">
+              <GiWaterDrop className="h-4 w-4" />
               {scene.playerStatus.currentMp}/{scene.playerStatus.maximumMp}
             </span>
           </div>
@@ -94,7 +94,7 @@ function PlayerName({
   const status = connectionStatusStyles[connectionStatus];
 
   return (
-    <span className="flex shrink-0 items-center gap-1.5 font-bold">
+    <span className="flex shrink-0 items-center gap-1.5 font-semibold">
       {name}
       <span className="text-muted-foreground text-xs font-medium">Lv {level}</span>
       <TooltipProvider>
@@ -127,7 +127,7 @@ function ExperienceProgress({
     <div className="flex items-center gap-1.5" title={`${value}/${maximum} XP`}>
       <div className="bg-muted h-1.5 w-16 overflow-hidden rounded-full">
         <div
-          className="h-full rounded-full bg-amber-500 transition-[width] duration-500"
+          className="bg-stamina h-full rounded-full transition-[width] duration-500"
           style={{ width: `${percent}%` }}
         />
       </div>

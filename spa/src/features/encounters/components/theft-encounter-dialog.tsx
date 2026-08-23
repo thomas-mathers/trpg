@@ -45,11 +45,11 @@ export function TheftEncounterDialog() {
     <Dialog open onOpenChange={() => undefined}>
       <DialogContent
         showCloseButton={false}
-        className="top-4 w-[min(100vw-2rem,42rem)] max-w-[calc(100%-2rem)] translate-y-0 gap-0 overflow-hidden p-0 shadow-2xl ring-2 ring-amber-500/40 sm:max-w-[42rem]"
+        className="ring-stamina/40 top-4 w-[min(100vw-2rem,42rem)] max-w-[calc(100%-2rem)] translate-y-0 gap-0 overflow-hidden p-0 shadow-2xl ring-2 sm:max-w-[42rem]"
       >
-        <header className="bg-card border-b px-5 py-4">
+        <header className="chrome-surface text-chrome-foreground chrome-scope rounded-t-xl px-5 py-4">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <ShieldAlert className="h-5 w-5 text-amber-500" />
+            <ShieldAlert className="text-stamina h-5 w-5" />
             Theft encounter
           </DialogTitle>
           <DialogDescription className="mt-1.5">
@@ -91,7 +91,7 @@ export function TheftEncounterDialog() {
                   onClick={() => details.submit()}
                   className="border-border bg-card hover:bg-accent focus-visible:ring-ring flex min-h-24 flex-col items-start gap-2 rounded-lg border p-3 text-left shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
-                  <Icon className="h-5 w-5 text-amber-500" />
+                  <Icon className="text-stamina h-5 w-5" />
                   <span className="text-sm font-semibold">{details.label}</span>
                   <span className="text-muted-foreground text-xs">{details.description}</span>
                 </button>

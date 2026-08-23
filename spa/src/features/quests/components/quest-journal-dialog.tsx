@@ -14,9 +14,11 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Empty, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NarrationText } from '@/features/game/components/narration-text';
 import { parseNarrationMarkup } from '@/features/game/narration-markup';
@@ -43,8 +45,10 @@ export function QuestJournalDialog({ playerId, worldId, open, onClose }: QuestJo
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="flex h-[min(90dvh,44rem)] w-[calc(100vw-2rem)] max-w-none flex-col gap-4 sm:h-[min(88dvh,56rem)] sm:w-[min(92vw,72rem)] sm:max-w-none">
-        <DialogTitle>Quest Journal</DialogTitle>
-        <DialogDescription>Your current work and its progress.</DialogDescription>
+        <DialogHeader>
+          <DialogTitle>Quest Journal</DialogTitle>
+          <DialogDescription>Your current work and its progress.</DialogDescription>
+        </DialogHeader>
 
         <Tabs value={tab} onValueChange={setTab} className="min-h-0 flex-1">
           <TabsList>
@@ -54,6 +58,7 @@ export function QuestJournalDialog({ playerId, worldId, open, onClose }: QuestJo
           <TabsContent value="active" className="mt-4 min-h-0 overflow-hidden">
             <QuestJournalContent
               emptyMessage="You have no active quests."
+              loading={journal.isLoading}
               playerId={playerId}
               worldId={worldId}
               quests={quests}
@@ -64,6 +69,7 @@ export function QuestJournalDialog({ playerId, worldId, open, onClose }: QuestJo
           <TabsContent value="completed" className="mt-4 min-h-0 overflow-hidden">
             <QuestJournalContent
               emptyMessage="You have not completed any quests."
+              loading={journal.isLoading}
               playerId={playerId}
               worldId={worldId}
               quests={quests}
@@ -85,6 +91,7 @@ export function QuestJournalDialog({ playerId, worldId, open, onClose }: QuestJo
 
 function QuestJournalContent({
   emptyMessage,
+  loading,
   playerId,
   worldId,
   quests,
@@ -92,12 +99,30 @@ function QuestJournalContent({
   onSelectQuest,
 }: {
   emptyMessage: string;
+  loading: boolean;
   playerId: string;
   worldId: string;
   quests: readonly QuestJournalEntrySnapshot[];
   selectedQuest: QuestJournalEntrySnapshot | undefined;
   onSelectQuest: (questId: string) => void;
 }) {
+  if (loading) {
+    return (
+      <div className="bg-muted/40 grid h-full min-h-0 overflow-hidden rounded-lg border md:grid-cols-[18rem_minmax(0,1fr)]">
+        <div className="max-h-40 space-y-2 overflow-hidden border-b p-2 md:max-h-none md:border-r md:border-b-0">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-11 w-full rounded-md" />
+          ))}
+        </div>
+        <div className="bg-card min-h-0 p-5 shadow-sm">
+          <Skeleton className="h-6 w-2/3" />
+          <Skeleton className="mt-4 h-4 w-full" />
+          <Skeleton className="mt-2 h-4 w-5/6" />
+        </div>
+      </div>
+    );
+  }
+
   if (quests.length === 0) {
     return <QuestJournalEmptyState message={emptyMessage} />;
   }
@@ -144,7 +169,7 @@ function QuestJournalListItem({
       }`}
       onClick={onSelect}
     >
-      <span className="font-heading block truncate font-medium">{quest.name}</span>
+      <span className="font-heading block truncate tracking-wide">{quest.name}</span>
       {locationName && (
         <span
           className={`mt-1 flex items-center gap-1 text-xs ${
@@ -196,7 +221,7 @@ function QuestJournalEntry({
     <section className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-heading text-xl font-medium">{quest.name}</h3>
+          <h3 className="font-heading text-xl tracking-wide">{quest.name}</h3>
           <p className="text-muted-foreground mt-1 text-xs">{formatQuestStatus(quest.status)}</p>
         </div>
         {(quest.status === 'Accepted' || quest.status === 'ReadyToComplete') && (
@@ -225,7 +250,7 @@ function QuestJournalEntry({
             >
               <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center" aria-hidden>
                 {objective.amount >= objective.requiredAmount ? (
-                  <CircleCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                  <CircleCheck className="text-heal size-4" />
                 ) : (
                   <Circle className="text-muted-foreground size-3" />
                 )}

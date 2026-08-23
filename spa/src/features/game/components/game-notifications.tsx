@@ -1,5 +1,6 @@
-import { Award, BookOpen, CircleCheck, Eye, ShieldOff, Skull, Trophy, XCircle } from 'lucide-react';
+import { Award, BookOpen, CircleCheck, Eye, ShieldOff, Trophy, XCircle } from 'lucide-react';
 import { useEffect } from 'react';
+import { GiTombstone } from 'react-icons/gi';
 import { toast } from 'sonner';
 
 import { Toaster } from '@/components/ui/sonner';
@@ -56,7 +57,7 @@ export function GameNotifications() {
           (toastId) => (
             <GameToast
               toastId={toastId}
-              icon={Skull}
+              icon={GiTombstone}
               title="You have fallen"
               description="Your consciousness fades..."
             />

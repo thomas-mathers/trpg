@@ -1,16 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Archive,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  Eye,
-  Skull,
-  User,
-  Weight,
-} from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Eye, User } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { GiChest, GiTombstone } from 'react-icons/gi';
 
 import {
   getContainerInventoryOptions,
@@ -21,11 +12,20 @@ import {
 import type { ItemDetail, OwnerType } from '@/api/client';
 import { NumericStepper } from '@/components/numeric-stepper';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ItemName } from '@/features/inventory/components/item-name';
 import { ItemTable } from '@/features/inventory/components/item-table';
+import { WeightIcon } from '@/features/inventory/components/item-unit-icon';
 import { useItemTable } from '@/features/inventory/hooks/use-item-table';
 import { useTransferDraft } from '@/features/inventory/hooks/use-transfer-draft';
+import { cn } from '@/lib/utils';
 
 interface TransferTarget {
   id: string;
@@ -57,7 +57,9 @@ export function TransferItemDialog({
         onPointerDownOutside={(event) => event.preventDefault()}
       >
         {target && (
-          <DialogTitle>{transfersEnabled ? 'Transfer Items' : 'Inspect Inventory'}</DialogTitle>
+          <DialogHeader>
+            <DialogTitle>{transfersEnabled ? 'Transfer Items' : 'Inspect Inventory'}</DialogTitle>
+          </DialogHeader>
         )}
         {target && (
           <TransferDialogBody
@@ -217,9 +219,9 @@ function TransferDialogBody({
           title={
             <>
               {target.ownerType === 'Creature' ? (
-                <Skull className="text-muted-foreground size-4" />
+                <GiTombstone className="text-muted-foreground size-4" />
               ) : (
-                <Archive className="text-muted-foreground size-4" />
+                <GiChest className="text-muted-foreground size-4" />
               )}{' '}
               {target.name}
             </>
@@ -240,12 +242,15 @@ function TransferDialogBody({
               ? 'No changes yet.'
               : `${transferDraft.changedCount} stack${transferDraft.changedCount === 1 ? '' : 's'} to transfer.`}
           </p>
-          {theftDetectionChance.data != null && (
-            <p className="flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
-              <Eye className="size-4" />
-              {Math.round(theftDetectionChance.data * 100)}% chance to avoid detection.
-            </p>
-          )}
+          <p
+            className={cn(
+              'text-stamina flex items-center gap-1.5 text-sm',
+              theftDetectionChance.data == null && 'invisible',
+            )}
+          >
+            <Eye className="size-4" />
+            {Math.round((theftDetectionChance.data ?? 0) * 100)}% chance to avoid detection.
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={onClose}>
@@ -339,7 +344,7 @@ function InventorySidePanel({
       <div className="border-b px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-semibold">{title}</div>
         <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
-          {items.length} items · {totalWeight} <Weight className="size-3 shrink-0" /> total
+          {items.length} items · {totalWeight} <WeightIcon /> total
         </p>
       </div>
 
@@ -358,17 +363,10 @@ function InventorySidePanel({
           isSelected={(item) => selected.has(item.itemId)}
           renderLeadingHeader={
             <div className="flex items-center">
-              <input
-                type="checkbox"
-                className="accent-primary size-4"
-                checked={allSelected}
-                ref={(element) => {
-                  if (element) {
-                    element.indeterminate = !allSelected && someSelected;
-                  }
-                }}
+              <Checkbox
+                checked={allSelected ? true : someSelected ? 'indeterminate' : false}
                 disabled={!selectionEnabled || itemTable.visibleItems.length === 0}
-                onChange={toggleSelectAll}
+                onCheckedChange={toggleSelectAll}
                 aria-label="Select all"
               />
             </div>
@@ -398,24 +396,27 @@ function TransferItemName({
   selectionEnabled: boolean;
   onSelectedQuantityChange: (quantity: number) => void;
 }) {
-  const showQuantityStepper =
-    selectionEnabled && selectedQuantity !== undefined && Number(item.quantity) > 1;
+  const isStackable = Number(item.quantity) > 1;
+  const showQuantityStepper = selectionEnabled && selectedQuantity !== undefined && isStackable;
 
   return (
-    <>
-      <ItemName item={item} />
-      {showQuantityStepper && (
-        <div className="mt-1">
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="min-w-0">
+        <ItemName item={item} />
+      </div>
+      {isStackable && (
+        <div className={cn('shrink-0 [&_*]:!transition-none', !showQuantityStepper && 'invisible')}>
           <NumericStepper
-            value={selectedQuantity}
+            value={selectedQuantity ?? 1}
             onChange={onSelectedQuantityChange}
             min={1}
             max={Number(item.quantity)}
             ariaLabel={`Transfer ${item.name} quantity`}
+            size="sm"
           />
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -434,12 +435,10 @@ function TransferSelectionCell({
 
   return (
     <div className="flex h-5 items-center">
-      <input
-        type="checkbox"
-        className="accent-primary size-4"
+      <Checkbox
         checked={checked}
         disabled={!selectionEnabled}
-        onChange={onToggle}
+        onCheckedChange={onToggle}
         aria-label={`Select ${item.name}`}
       />
     </div>

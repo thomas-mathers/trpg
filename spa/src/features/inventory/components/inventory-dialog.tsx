@@ -207,7 +207,7 @@ function InventoryItemAction({
     return (
       <Button
         size="sm"
-        variant="outline"
+        className="w-full"
         disabled={busy}
         onClick={(event) => {
           event.stopPropagation();
@@ -223,6 +223,7 @@ function InventoryItemAction({
     return (
       <Button
         size="sm"
+        className="w-full"
         disabled={busy}
         onClick={(event) => {
           event.stopPropagation();

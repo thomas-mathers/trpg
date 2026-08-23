@@ -1,16 +1,19 @@
+import type { IconType } from 'react-icons';
 import {
-  ArrowDown,
-  ArrowUp,
-  Ban,
-  Droplet,
-  EyeOff,
-  Flame,
-  Link2,
-  type LucideIcon,
-  Snowflake,
-  Sparkles,
-  VolumeX,
-} from 'lucide-react';
+  GiBleedingWound,
+  GiBlindfold,
+  GiCaltrops,
+  GiFlame,
+  GiHealing,
+  GiMute,
+  GiPoisonBottle,
+  GiSnowflake1,
+  GiStarSwirl,
+  GiStarsStack,
+  GiSwordBreak,
+  GiWeightLiftingDown,
+  GiWeightLiftingUp,
+} from 'react-icons/gi';
 
 import type { ActiveBuff, ActiveDot, ActiveHot } from '@/api/client';
 import {
@@ -22,16 +25,16 @@ import { ATTRIBUTE_LABEL } from '@/features/inventory/display-names';
 import { formatAmount } from '@/lib/formatting';
 import { cn } from '@/lib/utils';
 
-const CONDITION_ICON: Record<string, LucideIcon> = {
-  Blinded: EyeOff,
-  Bleeding: Droplet,
-  Burning: Flame,
-  Disarmed: Ban,
-  Frozen: Snowflake,
-  Poisoned: Droplet,
-  Silenced: VolumeX,
-  Snared: Link2,
-  Stunned: Sparkles,
+const CONDITION_ICON: Record<string, IconType> = {
+  Blinded: GiBlindfold,
+  Bleeding: GiBleedingWound,
+  Burning: GiFlame,
+  Disarmed: GiSwordBreak,
+  Frozen: GiSnowflake1,
+  Poisoned: GiPoisonBottle,
+  Silenced: GiMute,
+  Snared: GiCaltrops,
+  Stunned: GiStarSwirl,
 };
 
 function turnLabel(turns: number): string {
@@ -45,7 +48,7 @@ type EffectBadgeProps =
   | { kind: 'buff'; buff: ActiveBuff };
 
 interface Description {
-  icon: LucideIcon;
+  icon: IconType;
   variant: 'status' | 'dot' | 'hot' | 'buff' | 'debuff';
   title: string;
   body: string;
@@ -57,7 +60,7 @@ function describe(props: EffectBadgeProps): Description {
     case 'condition': {
       const turns = Number(props.remainingTurns);
       return {
-        icon: CONDITION_ICON[props.type] ?? Sparkles,
+        icon: CONDITION_ICON[props.type] ?? GiStarsStack,
         variant: 'status',
         title: props.type,
         body: turnLabel(turns),
@@ -67,7 +70,7 @@ function describe(props: EffectBadgeProps): Description {
     case 'dot': {
       const turns = Number(props.dot.remainingTurns);
       return {
-        icon: Flame,
+        icon: GiFlame,
         variant: 'dot',
         title: props.dot.abilityName,
         body: `${props.dot.amount} ${props.dot.damageType.toLowerCase()} damage per turn — ${turnLabel(turns)}`,
@@ -77,7 +80,7 @@ function describe(props: EffectBadgeProps): Description {
     case 'hot': {
       const turns = Number(props.hot.remainingTurns);
       return {
-        icon: Droplet,
+        icon: GiHealing,
         variant: 'hot',
         title: props.hot.abilityName,
         body: `Heals ${props.hot.amount} per turn — ${turnLabel(turns)}`,
@@ -89,7 +92,7 @@ function describe(props: EffectBadgeProps): Description {
       const isDebuff = Number(props.buff.amount) < 0;
       const attribute = ATTRIBUTE_LABEL[props.buff.attribute] ?? props.buff.attribute;
       return {
-        icon: isDebuff ? ArrowDown : ArrowUp,
+        icon: isDebuff ? GiWeightLiftingDown : GiWeightLiftingUp,
         variant: isDebuff ? 'debuff' : 'buff',
         title: props.buff.abilityName,
         body: `${formatAmount(Number(props.buff.amount), props.buff.amountType)} ${attribute} — ${turnLabel(turns)}`,
@@ -101,10 +104,10 @@ function describe(props: EffectBadgeProps): Description {
 
 const VARIANT_CLASSES: Record<Description['variant'], string> = {
   status: 'bg-muted text-muted-foreground',
-  dot: 'bg-red-500/15 text-red-500',
-  debuff: 'bg-red-500/15 text-red-500',
-  hot: 'bg-green-500/15 text-green-500',
-  buff: 'bg-green-500/15 text-green-500',
+  dot: 'bg-hp/15 text-hp',
+  debuff: 'bg-hp/15 text-hp',
+  hot: 'bg-heal/15 text-heal',
+  buff: 'bg-heal/15 text-heal',
 };
 
 export function EffectBadge(props: EffectBadgeProps) {

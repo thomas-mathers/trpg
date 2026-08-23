@@ -1,12 +1,12 @@
 import type { EntityType } from '@/api/client';
 
 export const ENTITY_TYPE_COLORS: Record<EntityType, string> = {
-  Creature: '#E8A33D',
-  Building: '#C9A66B',
-  District: '#6BBF59',
-  World: '#4DD0C4',
-  Country: '#5B9BD9',
-  State: '#A67BD9',
-  City: '#D97BB0',
-  Item: '#C8B6FF',
+  Creature: 'oklch(0.5 0.15 55)',
+  Building: 'oklch(0.42 0.08 75)',
+  District: 'oklch(0.48 0.15 140)',
+  World: 'oklch(0.5 0.13 190)',
+  Country: 'oklch(0.48 0.15 250)',
+  State: 'oklch(0.48 0.17 305)',
+  City: 'oklch(0.52 0.17 350)',
+  Item: 'oklch(0.48 0.18 290)',
 };

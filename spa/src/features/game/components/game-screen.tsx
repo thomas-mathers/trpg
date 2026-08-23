@@ -162,7 +162,7 @@ function GameScreenContent({
         onOpenChange={onNearbyOpenChange}
         className="h-screen flex-col"
       >
-        <div className="border-b px-4 py-2">
+        <div className="chrome-surface chrome-surface-elevated text-chrome-foreground chrome-scope px-4 py-2">
           <StatusBar
             connectionStatus={connectionStatus}
             isInCombat={isInCombat}
@@ -183,7 +183,7 @@ function GameScreenContent({
         </div>
 
         <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
-          <SidebarInset>
+          <SidebarInset className="parchment-surface">
             <GameChat />
           </SidebarInset>
 

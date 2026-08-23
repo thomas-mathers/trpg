@@ -30,7 +30,7 @@ export function NearbySidebar({ onOpenQuestJournal }: NearbySidebarProps) {
   if (isMobile) {
     return (
       <Sidebar side="right">
-        <SidebarContent>{panel}</SidebarContent>
+        <SidebarContent className="chrome-scope">{panel}</SidebarContent>
       </Sidebar>
     );
   }
@@ -42,7 +42,7 @@ export function NearbySidebar({ onOpenQuestJournal }: NearbySidebarProps) {
         open ? 'translate-x-0' : 'translate-x-full',
       )}
     >
-      <SidebarContent>{panel}</SidebarContent>
+      <SidebarContent className="chrome-scope">{panel}</SidebarContent>
     </div>
   );
 }
