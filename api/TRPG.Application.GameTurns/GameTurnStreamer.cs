@@ -40,7 +40,7 @@ internal class GameTurnStreamer(
     > getLoreAnchorAutomatonByWorld,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     IGameClientEventSink gameEvents,
-    IGameClientEventDispatcher eventDispatcher,
+    IGameClientEventAckGate eventAckGate,
     IOptionsSnapshot<GameClockOptions> gameClockOptions,
     ILogger<GameTurnStreamer> logger
 )
@@ -146,7 +146,7 @@ internal class GameTurnStreamer(
             gameEvents.Enqueue(new SceneUpdatedEvent(after));
         }
 
-        await eventDispatcher.FlushAndAwaitAckAsync(turnContext.WorldId, cancellationToken);
+        await eventAckGate.FlushAndAwaitAckAsync(turnContext.WorldId, cancellationToken);
     }
 
     private async Task BeginTurn(GameTurnSession session, CancellationToken cancellationToken)

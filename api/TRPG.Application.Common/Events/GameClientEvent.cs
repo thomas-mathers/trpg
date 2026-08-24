@@ -9,8 +9,11 @@ public interface IGameClientEventSink
 
 public interface IGameClientEventDispatcher
 {
-    Task FlushAsync(Guid worldId, CancellationToken cancellationToken = default);
+    // Returns whether anything was actually sent.
+    Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default);
+}
 
-    // Like FlushAsync, but waits for the client to acknowledge receipt before returning.
+public interface IGameClientEventAckGate
+{
     Task FlushAndAwaitAckAsync(Guid worldId, CancellationToken cancellationToken = default);
 }
