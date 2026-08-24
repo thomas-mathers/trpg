@@ -54,13 +54,17 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
             new ApplyReputationPenaltyForKillsCommand
             {
                 KillerId = _killer.Id,
-                KilledCreatureIds = [victim.Id],
+                Kills = [new KillCrimeReport(victim.Id, [])],
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var reputations = _context.Reputations.Where(r => r.CreatureId == _killer.Id).ToArray();
+        var reputations = _context
+            .Reputations.Where(r =>
+                r.CreatureId == _killer.Id && r.TargetType == ReputationTargetType.Faction
+            )
+            .ToArray();
         Assert.Equal(2, reputations.Length);
         Assert.All(reputations, r => Assert.Equal(-100, r.Score));
     }
@@ -70,11 +74,7 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
     {
         // Act
         await _handler.Handle(
-            new ApplyReputationPenaltyForKillsCommand
-            {
-                KillerId = _killer.Id,
-                KilledCreatureIds = [],
-            },
+            new ApplyReputationPenaltyForKillsCommand { KillerId = _killer.Id, Kills = [] },
             TestContext.Current.CancellationToken
         );
 
@@ -83,7 +83,7 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
     }
 
     [Fact]
-    public async Task Handle_DoesNothing_WhenTheKilledCreatureHasNoFactions()
+    public async Task Handle_AppliesNoFactionPenalty_WhenTheKilledCreatureHasNoFactions()
     {
         // Arrange
         var victim = Builders.MakeCreature(WorldId);
@@ -95,12 +95,40 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
             new ApplyReputationPenaltyForKillsCommand
             {
                 KillerId = _killer.Id,
-                KilledCreatureIds = [victim.Id],
+                Kills = [new KillCrimeReport(victim.Id, [])],
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Empty(_context.Reputations.Where(r => r.CreatureId == _killer.Id));
+    }
+
+    [Fact]
+    public async Task Handle_PenalizesEachReportedWitness_Personally()
+    {
+        // Arrange
+        var victim = Builders.MakeCreature(WorldId);
+        var witness = Builders.MakeCreature(WorldId);
+        _context.Creatures.AddRange(victim, witness);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ApplyReputationPenaltyForKillsCommand
+            {
+                KillerId = _killer.Id,
+                Kills = [new KillCrimeReport(victim.Id, [witness.Id])],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var reputation = _context.Reputations.Single(r =>
+            r.CreatureId == _killer.Id
+            && r.TargetType == ReputationTargetType.Creature
+            && r.TargetId == witness.Id
+        );
+        Assert.Equal(-100, reputation.Score);
     }
 }

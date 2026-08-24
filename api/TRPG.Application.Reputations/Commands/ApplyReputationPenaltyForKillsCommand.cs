@@ -7,10 +7,12 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Reputations.Commands;
 
+public record KillCrimeReport(Guid VictimId, IReadOnlyCollection<Guid> ReportedWitnessIds);
+
 public class ApplyReputationPenaltyForKillsCommand
 {
     public required Guid KillerId { get; init; }
-    public required IReadOnlyCollection<Guid> KilledCreatureIds { get; init; }
+    public required IReadOnlyCollection<KillCrimeReport> Kills { get; init; }
 }
 
 internal class ApplyReputationPenaltyForKillsCommandHandler(
@@ -24,14 +26,27 @@ internal class ApplyReputationPenaltyForKillsCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        if (command.KilledCreatureIds.Count == 0)
+        if (command.Kills.Count == 0)
         {
             return;
         }
 
+        var penalty = reputationOptions.CurrentValue.KillReputationPenalty;
+
+        await ApplyFactionPenalty(command, penalty, cancellationToken);
+        await ApplyWitnessPenalty(command, penalty, cancellationToken);
+    }
+
+    private async Task ApplyFactionPenalty(
+        ApplyReputationPenaltyForKillsCommand command,
+        int penalty,
+        CancellationToken cancellationToken
+    )
+    {
+        var victimIds = command.Kills.Select(kill => kill.VictimId).ToArray();
         var killedFactionIds = await context
             .FactionMembers.AsNoTracking()
-            .Where(m => command.KilledCreatureIds.Contains(m.CreatureId))
+            .Where(m => victimIds.Contains(m.CreatureId))
             .Select(m => m.FactionId)
             .Distinct()
             .ToArrayAsync(cancellationToken);
@@ -41,7 +56,6 @@ internal class ApplyReputationPenaltyForKillsCommandHandler(
             return;
         }
 
-        var penalty = reputationOptions.CurrentValue.KillReputationPenalty;
         await adjustReputations.Handle(
             new AdjustReputationsCommand
             {
@@ -51,6 +65,38 @@ internal class ApplyReputationPenaltyForKillsCommandHandler(
                     .ToArray(),
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.KilledFactionMember,
+            },
+            cancellationToken
+        );
+    }
+
+    private async Task ApplyWitnessPenalty(
+        ApplyReputationPenaltyForKillsCommand command,
+        int penalty,
+        CancellationToken cancellationToken
+    )
+    {
+        var witnessAdjustments = command
+            .Kills.SelectMany(kill =>
+                kill.ReportedWitnessIds.Select(witnessId => new ReputationAdjustment(
+                    witnessId,
+                    penalty
+                ))
+            )
+            .ToArray();
+
+        if (witnessAdjustments.Length == 0)
+        {
+            return;
+        }
+
+        await adjustReputations.Handle(
+            new AdjustReputationsCommand
+            {
+                CreatureId = command.KillerId,
+                Adjustments = witnessAdjustments,
+                TargetType = ReputationTargetType.Creature,
+                Reason = ReputationReason.WitnessedKilling,
             },
             cancellationToken
         );

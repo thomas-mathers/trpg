@@ -176,6 +176,14 @@ export type CombatResourceState = {
     maximumMp: number;
 }
 
+/** Transpiled from TRPG.Combat.Responses.CombatStartedPayload */
+export type CombatStartedPayload = {
+    /** Transpiled from System.Guid */
+    fightId: string;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.CombatantState> */
+    combatants: CombatantState[];
+}
+
 /** Transpiled from TRPG.Combat.Responses.CombatUpdatePayload */
 export type CombatUpdatePayload = {
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.CombatantState> */

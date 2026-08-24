@@ -23,11 +23,11 @@ export function ConnectionLostDialog({ open, onClose }: ConnectionLostDialogProp
       >
         <DialogHeader>
           <DialogTitle>Connection Lost</DialogTitle>
-          <DialogDescription>
-            The connection to the server was lost and couldn't be restored. Returning to the main
-            menu.
-          </DialogDescription>
         </DialogHeader>
+        <DialogDescription>
+          The connection to the server was lost and couldn't be restored. Returning to the main
+          menu.
+        </DialogDescription>
         <DialogFooter>
           <Button onClick={onClose}>OK</Button>
         </DialogFooter>

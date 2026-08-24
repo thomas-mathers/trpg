@@ -201,4 +201,36 @@ public sealed class EvaluateGuardEncounterCommandTests(DatabaseFixture db) : IAs
         Assert.NotNull(result);
         Assert.Equal("Killed a guard", Assert.Single(result.RecentOffenses));
     }
+
+    [Fact]
+    public async Task Handle_MapsReasonToOffenseText_WhenNoDetailWasRecorded()
+    {
+        // Arrange — a real kill penalty never sets Detail; the offense text must not fall back
+        // to the raw enum name
+        await SeedGuard(reputationScore: -50);
+        _context.ReputationLogEntries.Add(
+            new ReputationLogEntry
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                TargetId = _cityFaction.Id,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = -100,
+                Reason = ReputationReason.KilledFactionMember,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _serviceProvider = BuildServiceProvider(encounterChance: 1f);
+        _handler = _serviceProvider.GetRequiredService<EvaluateGuardEncounterCommandHandler>();
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateGuardEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("Killed a local", Assert.Single(result.RecentOffenses));
+    }
 }

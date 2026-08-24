@@ -1,5 +1,5 @@
 import type {
-  CombatantState,
+  CombatStartedPayload,
   CombatUpdatePayload,
 } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type { CharacterLevelUp, SkillLevelUp } from '@/api/signalr-client/TRPG.Creatures.Responses';
@@ -27,7 +27,7 @@ export type { CharacterLevelUp, QuestDialogRequested, QuestObjectiveCompleted, S
 
 interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
-  CombatStarted: CombatantState[];
+  CombatStarted: CombatStartedPayload;
   CombatUpdated: CombatUpdatePayload;
   CombatResolved: TerminalCombatOutcome;
   HostileEncounterStarted: HostileEncounterState;

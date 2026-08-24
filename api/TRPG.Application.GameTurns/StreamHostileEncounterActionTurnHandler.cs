@@ -61,16 +61,24 @@ internal class StreamHostileEncounterActionTurnHandler(
 
         EnqueueEncounterResolutionEvents(resolution);
 
-        return new GameTurnPrompt.Narrate(
-            $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution.Fact, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
-            IncludeTools: false
-        );
+        return new GameTurnPrompt.Narrate(BuildNarrationPrompt(resolution), IncludeTools: false);
     }
 
     private void EnqueueEncounterResolutionEvents(HostileEncounterActionResult resolution)
     {
         gameEvents.Enqueue(new HostileEncounterResolvedEvent(resolution.Fact));
     }
+
+    private static string BuildNarrationPrompt(HostileEncounterActionResult resolution) =>
+        resolution.Fact.Outcome switch
+        {
+            HostileEncounterResolutionOutcome.Attacked
+            or HostileEncounterResolutionOutcome.EvadeFailed
+            or HostileEncounterResolutionOutcome.RetreatFailed =>
+                $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter, and it has erupted into a fight. Narrate only the confrontation beginning. The fight has not been resolved yet: do not describe who wins, who is hurt, or how it ends. Do not call any tools.",
+            _ =>
+                $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution.Fact, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
+        };
 
     private static string DescribeAction(HostileEncounterActionKind actionKind) =>
         actionKind switch

@@ -1,6 +1,12 @@
 import { Footprints, ShieldAlert, Swords } from 'lucide-react';
 
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { EncounterActionName, HostileEncounterState } from '@/features/encounters/encounter';
 import { useHostileEncounterState } from '@/features/encounters/hooks/use-hostile-encounter-state';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
@@ -53,15 +59,15 @@ export function HostileEncounterDialog() {
         showCloseButton={false}
         className="ring-stamina/40 top-4 w-[min(100vw-2rem,42rem)] max-w-[calc(100%-2rem)] translate-y-0 gap-0 overflow-hidden p-0 shadow-2xl ring-2 sm:max-w-[42rem]"
       >
-        <header className="chrome-surface text-chrome-foreground chrome-scope rounded-t-xl px-5 py-4">
-          <DialogTitle className="flex items-center gap-2 text-base">
+        <DialogHeader>
+          <DialogTitle className="mx-0 mt-0 flex items-center gap-2 rounded-none px-5 py-4 text-base">
             <ShieldAlert className="text-stamina h-5 w-5" />
             Hostile encounter
           </DialogTitle>
-          <DialogDescription className="mt-1.5">
-            {encounter.factionName} confront you at {encounter.locationName}.
-          </DialogDescription>
-        </header>
+        </DialogHeader>
+        <DialogDescription className="px-5 pt-3">
+          {encounter.factionName} confront you at {encounter.locationName}.
+        </DialogDescription>
 
         <div className="space-y-5 p-5">
           <EncounterMembers encounter={encounter} />

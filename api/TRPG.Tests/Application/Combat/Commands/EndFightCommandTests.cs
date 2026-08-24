@@ -113,6 +113,82 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
         );
     }
 
+    [Fact]
+    public async Task Handle_SetsWitnessesToAlerted_WhenPlayerKillsAnEnemy()
+    {
+        // Arrange
+        var bystander = Builders.MakeCreature(WorldId, locationId: _player.LocationId);
+        _context.Creatures.Add(bystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Victory,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new EndFightCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedBystander = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == bystander.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CreatureState.Alerted, updatedBystander.State);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesSleepingCreatures_FromKillWitnesses()
+    {
+        // Arrange
+        var sleepingBystander = Builders.MakeCreature(
+            WorldId,
+            locationId: _player.LocationId,
+            state: CreatureState.Sleeping
+        );
+        _context.Creatures.Add(sleepingBystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Victory,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new EndFightCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        Assert.Empty(
+            verifyContext.CrimeWitnesses.Where(witness =>
+                witness.CreatureId == sleepingBystander.Id
+            )
+        );
+    }
+
     private CombatantResult MakeCombatantState(
         Guid id,
         bool isPlayer,

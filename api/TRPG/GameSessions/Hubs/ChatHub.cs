@@ -45,6 +45,10 @@ public interface IChatHub
         CancellationToken cancellationToken
     );
     IAsyncEnumerable<string> ResolveFightTheftEncounterAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> StreamCombatConclusionNarration(
+        Guid fightId,
+        CancellationToken cancellationToken
+    );
     Task AcknowledgeEvents(Guid flushId);
 }
 
@@ -209,6 +213,11 @@ internal sealed class ChatHub(
             new FightTheftEncounterAction(),
             cancellationToken
         );
+
+    public IAsyncEnumerable<string> StreamCombatConclusionNarration(
+        Guid fightId,
+        CancellationToken cancellationToken
+    ) => gameTurnRunner.StreamCombatConclusionNarration(Session, fightId, cancellationToken);
 
     public Task ResolveUseAbilityCombatAction(Guid targetId, string abilityName) =>
         ResolveCombatAction(new UseAbilityAction(targetId, abilityName));

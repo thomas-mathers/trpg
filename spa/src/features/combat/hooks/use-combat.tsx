@@ -45,6 +45,7 @@ type AnimationStep =
   | { kind: 'settle'; combatants: CombatantState[]; delayMs: number };
 
 interface CombatState {
+  fightId: string | null;
   fight: CombatantState[] | null;
   activeAttackerId: string | null;
   activeDefenderId: string | null;
@@ -58,12 +59,13 @@ interface CombatState {
 }
 
 type CombatStateAction =
-  | { type: 'FIGHT_STARTED'; fight: CombatantState[] }
+  | { type: 'FIGHT_STARTED'; fightId: string; fight: CombatantState[] }
   | { type: 'ROUND_RECEIVED'; payload: CombatUpdatePayload; skipAnimation: boolean }
   | { type: 'STEP_ADVANCED' }
   | { type: 'RESOLVED' };
 
 const initialState: CombatState = {
+  fightId: null,
   fight: null,
   activeAttackerId: null,
   activeDefenderId: null,
@@ -245,7 +247,7 @@ function reduceStep(state: CombatState, step: AnimationStep): CombatState {
 function combatReducer(state: CombatState, action: CombatStateAction): CombatState {
   switch (action.type) {
     case 'FIGHT_STARTED':
-      return { ...initialState, fight: action.fight };
+      return { ...initialState, fightId: action.fightId, fight: action.fight };
 
     case 'ROUND_RECEIVED': {
       const outcome = action.payload.outcome === 'Ongoing' ? undefined : action.payload.outcome;
@@ -286,7 +288,7 @@ function combatReducer(state: CombatState, action: CombatStateAction): CombatSta
     }
 
     case 'RESOLVED':
-      return { ...state, combatOutcome: null, fight: null };
+      return { ...state, combatOutcome: null, fight: null, fightId: null };
 
     default:
       return state;
@@ -318,7 +320,7 @@ export function useCombat() {
 
   useEffect(() => {
     const unsubscribeCombatStarted = gameEventBus.on('CombatStarted', (payload) => {
-      dispatch({ type: 'FIGHT_STARTED', fight: payload });
+      dispatch({ type: 'FIGHT_STARTED', fightId: payload.fightId, fight: payload.combatants });
     });
     const unsubscribeCombatUpdated = gameEventBus.on('CombatUpdated', (payload) => {
       dispatch({ type: 'ROUND_RECEIVED', payload, skipAnimation: prefersReducedMotion() });
@@ -331,12 +333,13 @@ export function useCombat() {
   }, []);
 
   useEffect(() => {
-    if (!state.combatOutcome) {
+    if (!state.combatOutcome || !state.fightId) {
       return;
     }
 
     gameEventBus.emit('CombatResolved', state.combatOutcome);
     dispatch({ type: 'RESOLVED' });
+    submitNarratedTurn(null, chatHub.streamCombatConclusionNarration(state.fightId));
   }, [state.combatOutcome]);
 
   const runCombatAction = (action: Promise<void>) => {

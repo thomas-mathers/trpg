@@ -74,16 +74,21 @@ internal class StreamTheftEncounterActionTurnHandler(
         gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
 
         return new GameTurnPrompt.Narrate(
-            $"The player chose to {DescribeAction(action)} after {resolution.ConfrontingName} caught them stealing. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
+            BuildNarrationPrompt(action, resolution),
             IncludeTools: false
         );
     }
 
-    private static string DescribeAction(TheftEncounterAction action) =>
+    private static string BuildNarrationPrompt(
+        TheftEncounterAction action,
+        TheftEncounterResolutionFact resolution
+    ) =>
         action switch
         {
-            ApologizeTheftEncounterAction => "apologize",
-            FightTheftEncounterAction => "fight",
+            FightTheftEncounterAction =>
+                $"The player chose to fight after {resolution.ConfrontingName} caught them stealing. Narrate only the confrontation erupting into violence — {resolution.ConfrontingName} readying to defend themselves and the fight beginning. The fight has not been resolved yet: do not describe who wins, who is hurt, or how it ends. Do not call any tools.",
+            ApologizeTheftEncounterAction =>
+                $"The player chose to apologize after {resolution.ConfrontingName} caught them stealing. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
             _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
 }

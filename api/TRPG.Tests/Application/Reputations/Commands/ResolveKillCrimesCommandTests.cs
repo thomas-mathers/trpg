@@ -104,10 +104,15 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
             entry => entry.CreatureId == _player.Id && entry.TargetId == faction.Id,
             TestContext.Current.CancellationToken
         );
+        var witnessLog = await verifyContext.ReputationLogEntries.SingleAsync(
+            entry => entry.CreatureId == _player.Id && entry.TargetId == movedWitness.Id,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(CrimeWitnessResolution.Reported, witnesses[movedWitness.Id]);
         Assert.Equal(CrimeWitnessResolution.Dead, witnesses[deadWitness.Id]);
         Assert.Equal(-31, log.DeltaScore);
+        Assert.Equal(-31, witnessLog.DeltaScore);
         Assert.DoesNotContain(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
             gameEvent => gameEvent is CrimeWitnessesRemovedEvent

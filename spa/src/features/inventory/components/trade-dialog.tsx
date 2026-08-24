@@ -124,8 +124,8 @@ export function TradeDialog({
       >
         <DialogHeader>
           <DialogTitle>Trade with {workerName}</DialogTitle>
-          <DialogDescription>{shopName}</DialogDescription>
         </DialogHeader>
+        <DialogDescription>{shopName}</DialogDescription>
 
         <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(15rem,0.65fr)_minmax(0,1fr)] lg:overflow-hidden">
           <InventoryPanel

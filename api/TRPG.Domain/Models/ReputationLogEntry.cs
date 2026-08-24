@@ -7,6 +7,8 @@ public enum ReputationReason
     StoleFromFactionMember,
     PaidFineToGuard,
     ServedJailTime,
+    WitnessedKilling,
+    WitnessedTheft,
 }
 
 public class ReputationLogEntry
