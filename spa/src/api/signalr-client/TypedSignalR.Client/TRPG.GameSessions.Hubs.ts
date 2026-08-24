@@ -99,6 +99,11 @@ export type IChatHub = {
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
     resolveFightTheftEncounterAction(): IStreamResult<string>;
+    /**
+    * @param flushId Transpiled from System.Guid
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    acknowledgeEvents(flushId: string): Promise<void>;
 }
 
 export type IGameClient = {
@@ -182,5 +187,10 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     crimeWitnessesRemoved(notification: CrimeNotification): Promise<void>;
+    /**
+    * @param flushId Transpiled from System.Guid
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    requestAck(flushId: string): Promise<void>;
 }
 

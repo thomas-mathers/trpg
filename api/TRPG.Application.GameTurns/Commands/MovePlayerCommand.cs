@@ -59,6 +59,10 @@ internal class MovePlayerCommandHandler(
         GetCreatureIdsHoldingItemsQuery,
         IReadOnlyCollection<Guid>
     > getCreatureIdsHoldingItems,
+    IQueryHandler<
+        GetInventoryItemsByOwnersQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Item>>
+    > getInventoryItemsByOwners,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<DeleteCreaturesCommand> deleteCreatures,
     ICommandHandler<ResolveKillCrimesCommand> resolveKillCrimes,
@@ -226,10 +230,16 @@ internal class MovePlayerCommandHandler(
         );
         var playerCorpseIds = nearby
             .Where(creature => creature.PlayerCorpseOwnerId != null)
-            .Select(creature => creature.Id);
+            .Select(creature => creature.Id)
+            .ToArray();
+        var itemsByPlayerCorpse = await getInventoryItemsByOwners.Handle(
+            new GetInventoryItemsByOwnersQuery { CreatureIds = playerCorpseIds },
+            cancellationToken
+        );
+        var unlootedPlayerCorpseIds = playerCorpseIds.Where(itemsByPlayerCorpse.ContainsKey);
         var removableCreatureIds = deadCreatureIds
             .Except(questItemOwnerIds)
-            .Except(playerCorpseIds)
+            .Except(unlootedPlayerCorpseIds)
             .ToArray();
 
         if (removableCreatureIds.Length == 0)

@@ -62,7 +62,7 @@ export function ChatHistory({ messages }: ChatHistoryProps) {
       <MessageScroller className="flex-1">
         <MessageScrollerViewport>
           <MessageScrollerContent className="mx-auto w-full max-w-2xl p-4">
-            {messages.map((message) =>
+            {messages.map((message, index) =>
               message.role === 'marker' ? (
                 <MessageScrollerItem key={message.id} messageId={message.id}>
                   <ChatMarker text={message.text} variant={message.variant} />
@@ -80,7 +80,10 @@ export function ChatHistory({ messages }: ChatHistoryProps) {
                       )}
                       {message.role === 'narrator' ? (
                         <div className="typeset typeset-chat border-primary/25 border-l-2 pl-4 whitespace-pre-line">
-                          <NarrationText segments={message.segments} />
+                          <NarrationText
+                            segments={message.segments}
+                            dropCap={index === 0 || messages[index - 1]?.role === 'marker'}
+                          />
                         </div>
                       ) : (
                         <p className="typeset typeset-chat border-primary/25 text-parchment-foreground border-r-2 pr-4 text-right whitespace-pre-line">

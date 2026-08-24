@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR.Client;
 using TRPG.Combat.Responses;
 using TRPG.Creatures.Responses;
 using TRPG.Encounters.Responses;
@@ -9,6 +10,7 @@ namespace TRPG.Tests.Helpers;
 
 internal sealed class TestGameClient : IGameClient
 {
+    public required HubConnection Connection { get; init; }
     public Action<SceneSnapshot>? OnSceneSnapshot { get; set; }
     public Action<IReadOnlyCollection<CombatantState>>? OnCombatStarted { get; set; }
     public Action<CombatUpdatePayload>? OnCombatUpdated { get; set; }
@@ -121,4 +123,7 @@ internal sealed class TestGameClient : IGameClient
         OnCrimeWitnessesRemoved?.Invoke(notification);
         return Task.CompletedTask;
     }
+
+    public Task RequestAck(Guid flushId) =>
+        Connection.InvokeAsync("AcknowledgeEvents", flushId, CancellationToken.None);
 }

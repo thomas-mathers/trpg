@@ -506,6 +506,12 @@ internal class GetSceneQueryHandler(
             .ToArrayAsync(cancellationToken);
 
         return connectors
+            // Outdoors, a building's front door duplicates its NearbyBuildings entry.
+            .Where(connector =>
+                sourceIsRoom
+                || destinations.GetValueOrDefault(connector.DestinationLocationId)?.Kind
+                    != LocationKind.Room
+            )
             .Select(connector => new SceneExitInfo(
                 connector.Description,
                 ToExitDestination(
@@ -530,27 +536,35 @@ internal class GetSceneQueryHandler(
         bool sourceIsRoom
     )
     {
-        if (location?.DistrictId is { } districtId)
+        return location?.Kind switch
         {
-            var district = districts[districtId];
-            return new SceneDistrictExitDestination(
+            LocationKind.Room => ToRoomExitDestination(
+                connector,
+                location.RoomId!.Value,
+                rooms,
+                buildings,
+                sourceIsRoom
+            ),
+            LocationKind.District => new SceneDistrictExitDestination(
                 connector.DestinationLabel,
-                district.DistrictType
-            );
-        }
+                districts[location.DistrictId!.Value].DistrictType
+            ),
+            _ => new SceneWildernessExitDestination(connector.DestinationLabel),
+        };
+    }
 
-        if (location?.RoomId is { } roomId)
-        {
-            var building = buildings[rooms[roomId].BuildingId];
-            return sourceIsRoom
-                ? new SceneRoomExitDestination(connector.DestinationLabel, building.BuildingType)
-                : new SceneBuildingExitDestination(
-                    connector.DestinationLabel,
-                    building.BuildingType
-                );
-        }
-
-        return new SceneWildernessExitDestination(connector.DestinationLabel);
+    private static SceneExitDestination ToRoomExitDestination(
+        LocationConnector connector,
+        Guid roomId,
+        IReadOnlyDictionary<Guid, Room> rooms,
+        IReadOnlyDictionary<Guid, Building> buildings,
+        bool sourceIsRoom
+    )
+    {
+        var building = buildings[rooms[roomId].BuildingId];
+        return sourceIsRoom
+            ? new SceneRoomExitDestination(connector.DestinationLabel, building.BuildingType)
+            : new SceneBuildingExitDestination(connector.DestinationLabel, building.BuildingType);
     }
 
     private static string GetPropType(Prop prop)

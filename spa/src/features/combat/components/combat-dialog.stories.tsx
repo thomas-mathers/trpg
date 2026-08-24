@@ -277,6 +277,7 @@ function WorkbenchProviders({
     startTheftEncounterNarration: noopStream,
     resolveApologizeTheftEncounterAction: noopStream,
     resolveFightTheftEncounterAction: noopStream,
+    acknowledgeEvents: async () => undefined,
   };
 
   const hubConnection: GameHubConnection = {

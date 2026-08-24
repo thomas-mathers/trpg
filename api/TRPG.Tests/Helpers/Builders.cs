@@ -683,7 +683,7 @@ internal static class Builders
         Guid? districtId = null,
         Guid? roomId = null,
         Guid? id = null,
-        LocationKind kind = LocationKind.District,
+        LocationKind? kind = null,
         Guid? coarseAnchorLocationId = null
     )
     {
@@ -698,7 +698,13 @@ internal static class Builders
             DistrictId = districtId,
             RoomId = roomId,
             CoarseAnchorLocationId = coarseAnchorLocationId ?? locationId,
-            Kind = kind,
+            Kind =
+                kind
+                ?? (
+                    roomId != null ? LocationKind.Room
+                    : districtId != null ? LocationKind.District
+                    : LocationKind.Wilderness
+                ),
         };
     }
 

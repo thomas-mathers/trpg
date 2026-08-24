@@ -109,11 +109,28 @@ internal class GameTurnStreamer(
 
         var linkedTokens = LoreAnchorLinker.Link(tokens, automaton, cancellationToken);
 
+        // The state change already happened, so the client must learn of it before the narration describing it.
+        var flushed = false;
+
         await foreach (var token in linkedTokens)
         {
+            if (!flushed)
+            {
+                await FlushSceneChange(before, cancellationToken);
+                flushed = true;
+            }
+
             yield return token;
         }
 
+        if (!flushed)
+        {
+            await FlushSceneChange(before, cancellationToken);
+        }
+    }
+
+    private async Task FlushSceneChange(SceneResult before, CancellationToken cancellationToken)
+    {
         var after = await getCurrentScene.Handle(
             new GetCurrentSceneQuery
             {
@@ -129,7 +146,7 @@ internal class GameTurnStreamer(
             gameEvents.Enqueue(new SceneUpdatedEvent(after));
         }
 
-        await eventDispatcher.FlushAsync(turnContext.WorldId, cancellationToken);
+        await eventDispatcher.FlushAndAwaitAckAsync(turnContext.WorldId, cancellationToken);
     }
 
     private async Task BeginTurn(GameTurnSession session, CancellationToken cancellationToken)

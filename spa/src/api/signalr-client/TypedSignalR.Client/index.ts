@@ -151,6 +151,10 @@ class IChatHub_HubProxy implements IChatHub {
     public readonly resolveFightTheftEncounterAction = (): IStreamResult<string> => {
         return this.connection.stream("ResolveFightTheftEncounterAction");
     }
+
+    public readonly acknowledgeEvents = async (flushId: string): Promise<void> => {
+        return await this.connection.invoke("AcknowledgeEvents", flushId);
+    }
 }
 
 
@@ -181,6 +185,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __questJournalUpdated = (...args: [QuestJournalUpdated]) => receiver.questJournalUpdated(...args);
         const __crimeWitnessed = (...args: [CrimeNotification]) => receiver.crimeWitnessed(...args);
         const __crimeWitnessesRemoved = (...args: [CrimeNotification]) => receiver.crimeWitnessesRemoved(...args);
+        const __requestAck = (...args: [string]) => receiver.requestAck(...args);
 
         connection.on("SceneSnapshot", __sceneSnapshot);
         connection.on("CombatStarted", __combatStarted);
@@ -198,6 +203,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("QuestJournalUpdated", __questJournalUpdated);
         connection.on("CrimeWitnessed", __crimeWitnessed);
         connection.on("CrimeWitnessesRemoved", __crimeWitnessesRemoved);
+        connection.on("RequestAck", __requestAck);
 
         const methodList: ReceiverMethod[] = [
             { methodName: "SceneSnapshot", method: __sceneSnapshot },
@@ -215,7 +221,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "QuestObjectiveCompleted", method: __questObjectiveCompleted },
             { methodName: "QuestJournalUpdated", method: __questJournalUpdated },
             { methodName: "CrimeWitnessed", method: __crimeWitnessed },
-            { methodName: "CrimeWitnessesRemoved", method: __crimeWitnessesRemoved }
+            { methodName: "CrimeWitnessesRemoved", method: __crimeWitnessesRemoved },
+            { methodName: "RequestAck", method: __requestAck }
         ]
 
         return new ReceiverMethodSubscription(connection, methodList);

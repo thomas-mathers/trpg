@@ -23,7 +23,16 @@ export function EntityLink({ id, name, entityType }: EntityLinkProps) {
   );
 }
 
-export function NarrationText({ segments }: { segments: NarrationSegment[] }) {
+export function NarrationText({
+  segments,
+  dropCap = false,
+}: {
+  segments: NarrationSegment[];
+  dropCap?: boolean;
+}) {
+  const firstSegment = segments[0];
+  const showDropCap = dropCap && firstSegment?.type === 'text' && firstSegment.text.length > 0;
+
   return (
     <>
       {segments.map((segment, index) =>
@@ -34,6 +43,11 @@ export function NarrationText({ segments }: { segments: NarrationSegment[] }) {
             name={segment.name}
             entityType={segment.entityType}
           />
+        ) : showDropCap && index === 0 ? (
+          <span key={index}>
+            <span className="drop-cap">{segment.text.charAt(0)}</span>
+            {segment.text.slice(1)}
+          </span>
         ) : (
           <span key={index}>{segment.text}</span>
         ),

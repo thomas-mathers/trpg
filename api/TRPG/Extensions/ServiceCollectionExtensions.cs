@@ -209,7 +209,8 @@ internal static class ServiceCollectionExtensions
             .AddScoped<IGameClientEventDispatcher>(sp =>
                 sp.GetRequiredService<GameClientEventDispatcher>()
             )
-            .AddSingleton<PendingSessionEndRegistry>();
+            .AddSingleton<PendingSessionEndRegistry>()
+            .AddSingleton<PendingEventAckRegistry>();
     }
 
     public static IServiceCollection AddTrpgJobs(

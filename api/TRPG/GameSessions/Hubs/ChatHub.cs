@@ -45,6 +45,7 @@ public interface IChatHub
         CancellationToken cancellationToken
     );
     IAsyncEnumerable<string> ResolveFightTheftEncounterAction(CancellationToken cancellationToken);
+    Task AcknowledgeEvents(Guid flushId);
 }
 
 internal sealed class ChatHub(
@@ -53,7 +54,8 @@ internal sealed class ChatHub(
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<EndGameSessionCommand> endGameSession,
-    PendingSessionEndRegistry pendingSessionEnds
+    PendingSessionEndRegistry pendingSessionEnds,
+    PendingEventAckRegistry pendingEventAcks
 ) : Hub<IGameClient>, IChatHub
 {
     private const string SessionKey = "Session";
@@ -218,6 +220,12 @@ internal sealed class ChatHub(
     {
         await gameTurnRunner.ResolveCombatAction(Session, action, Context.ConnectionAborted);
         await eventDispatcher.FlushAsync(Session.WorldId, Context.ConnectionAborted);
+    }
+
+    public Task AcknowledgeEvents(Guid flushId)
+    {
+        pendingEventAcks.Acknowledge(flushId);
+        return Task.CompletedTask;
     }
 
     private GameTurnSession Session => (GameTurnSession)Context.Items[SessionKey]!;
