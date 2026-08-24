@@ -4,6 +4,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -93,8 +94,10 @@ internal class EvaluateGuardEncounterCommandHandler(
             new GetRecentReputationLogQuery
             {
                 CreatureId = command.PlayerId,
-                TargetId = cityFactionId.Value,
-                TargetType = ReputationTargetType.Faction,
+                Targets =
+                [
+                    new ReputationLogTarget(cityFactionId.Value, ReputationTargetType.Faction),
+                ],
                 Limit = RecentOffenseLimit,
                 NegativeOnly = true,
             },
@@ -114,7 +117,7 @@ internal class EvaluateGuardEncounterCommandHandler(
             FineAmount = GuardEncounterCalculator.ComputeFineGold(score, options),
             JailHours = GuardEncounterCalculator.ComputeJailHours(score, options),
             RecentOffenses = recentOffenses
-                .Select(entry => entry.Detail ?? entry.Reason.ToString())
+                .Select(entry => entry.Detail ?? entry.Reason.ToDisplayText())
                 .ToList(),
         };
         context.Encounters.Add(encounter);

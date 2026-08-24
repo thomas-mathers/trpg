@@ -49,6 +49,7 @@ internal class TheftSourceResolver(TrpgDbContext context)
                 creature.WorldId == worldId
                 && creature.LocationId == locationId
                 && creature.State != CreatureState.Dead
+                && creature.State != CreatureState.Sleeping
                 && creature.Id != excludeCreatureId
             )
             .Select(creature => new TheftWitness(creature.Id, creature.Name))

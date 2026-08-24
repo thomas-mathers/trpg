@@ -3,7 +3,7 @@ using TRPG.Application.Common.Events;
 
 namespace TRPG.Application.Combat.Events;
 
-public record CombatStartedEvent(IReadOnlyCollection<CombatantResult> Combatants)
+public record CombatStartedEvent(Guid FightId, IReadOnlyCollection<CombatantResult> Combatants)
     : GameClientEvent { }
 
 public record CombatUpdatedEvent(

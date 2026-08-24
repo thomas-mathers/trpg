@@ -85,10 +85,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn(
-        'chrome-scope chrome-surface text-chrome-foreground -mx-4 -mt-4 flex flex-col gap-1 rounded-t-xl px-4 py-3',
-        className,
-      )}
+      className={cn('flex flex-col gap-1', className)}
       {...props}
     />
   );
@@ -125,7 +122,10 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('font-heading text-lg leading-none tracking-wide', className)}
+      className={cn(
+        'chrome-scope chrome-surface text-chrome-foreground font-heading -mx-4 -mt-4 rounded-t-xl px-4 py-3 text-lg leading-none tracking-wide',
+        className,
+      )}
       {...props}
     />
   );

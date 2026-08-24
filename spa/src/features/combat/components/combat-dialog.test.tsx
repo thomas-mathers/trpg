@@ -136,7 +136,7 @@ function renderConsole(
   );
 
   gameEventBus.emit('SceneSnapshot', { playerStatus: { id: 'player-id' } } as SceneSnapshot);
-  gameEventBus.emit('CombatStarted', fight);
+  gameEventBus.emit('CombatStarted', { fightId: 'fight-id', combatants: fight });
 
   return {
     submitNarratedTurn: gameChat.submitNarratedTurn,

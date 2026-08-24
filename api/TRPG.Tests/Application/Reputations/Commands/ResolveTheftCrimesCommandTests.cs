@@ -77,6 +77,13 @@ public sealed class ResolveTheftCrimesCommandTests(DatabaseFixture db) : IAsyncL
             item => item.CreatureId == _player.Id && item.TargetId == faction.Id,
             TestContext.Current.CancellationToken
         );
+        var witnessReputation = await verifyContext.Reputations.SingleAsync(
+            item =>
+                item.CreatureId == _player.Id
+                && item.TargetId == witness.Id
+                && item.TargetType == ReputationTargetType.Creature,
+            TestContext.Current.CancellationToken
+        );
         var persistedCrime = await verifyContext.Crimes.FindAsync(
             [crime.Id],
             TestContext.Current.CancellationToken
@@ -89,6 +96,7 @@ public sealed class ResolveTheftCrimesCommandTests(DatabaseFixture db) : IAsyncL
         Assert.Equal(ConfiguredReputationOptions.TheftReputationPenalty, reputation.Score);
         Assert.Equal(ConfiguredReputationOptions.TheftReputationPenalty, log.DeltaScore);
         Assert.Equal(ReputationReason.StoleFromFactionMember, log.Reason);
+        Assert.Equal(ConfiguredReputationOptions.TheftReputationPenalty, witnessReputation.Score);
         Assert.Equal(CrimeResolution.Reported, persistedCrime!.Resolution);
         Assert.Equal(CrimeWitnessResolution.Reported, persistedWitness.Resolution);
     }
@@ -250,14 +258,18 @@ public sealed class ResolveTheftCrimesCommandTests(DatabaseFixture db) : IAsyncL
         // Assert
         await using var verifyContext = db.CreateContext();
         var reputations = await verifyContext
-            .Reputations.Where(item => item.CreatureId == _player.Id)
+            .Reputations.Where(item =>
+                item.CreatureId == _player.Id && item.TargetType == ReputationTargetType.Faction
+            )
             .ToDictionaryAsync(
                 item => item.TargetId,
                 item => item.Score,
                 TestContext.Current.CancellationToken
             );
         var logs = await verifyContext
-            .ReputationLogEntries.Where(item => item.CreatureId == _player.Id)
+            .ReputationLogEntries.Where(item =>
+                item.CreatureId == _player.Id && item.TargetType == ReputationTargetType.Faction
+            )
             .ToDictionaryAsync(
                 item => item.TargetId,
                 item => item,

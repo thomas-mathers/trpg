@@ -4,6 +4,7 @@ using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;
 
@@ -13,6 +14,7 @@ public class PublishCombatStateCommand
 }
 
 internal class PublishCombatStateCommandHandler(
+    IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     IQueryHandler<GetActiveFightCombatantsQuery, IReadOnlyList<CombatantResult>> getCombatants,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<PublishCombatStateCommand>
@@ -22,11 +24,20 @@ internal class PublishCombatStateCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        var fight = await getActiveFight.Handle(
+            new GetActiveFightQuery { PlayerId = command.PlayerId },
+            cancellationToken
+        );
+        if (fight == null)
+        {
+            return;
+        }
+
         var combatants = await getCombatants.Handle(
             new GetActiveFightCombatantsQuery { PlayerId = command.PlayerId },
             cancellationToken
         );
         if (combatants.Count > 0)
-            gameEvents.Enqueue(new CombatStartedEvent(combatants));
+            gameEvents.Enqueue(new CombatStartedEvent(fight.Id, combatants));
     }
 }

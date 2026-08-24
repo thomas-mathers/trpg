@@ -57,6 +57,20 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     }
 
     [Fact]
+    public async Task Handle_ReturnsTheCreaturesCurrentState()
+    {
+        // Arrange
+        _npc.State = CreatureState.Alerted;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(CreatureState.Alerted, result.RuntimeState.State);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsProfileData_WhenAProfileExists()
     {
         // Arrange
@@ -445,5 +459,99 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         // Assert
         var observedCrime = Assert.Single(result.RuntimeState.ConversationHistory.ObservedCrimes);
         Assert.Equal("You witnessed the player steal from Mara.", observedCrime.Text);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsReputationLogEntriesTargetingTheNpcPersonally()
+    {
+        // Arrange
+        _context.ReputationLogEntries.Add(
+            new ReputationLogEntry
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                TargetId = _npc.Id,
+                TargetType = ReputationTargetType.Creature,
+                DeltaScore = -100,
+                Reason = ReputationReason.WitnessedKilling,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var reputationEvent = Assert.Single(
+            result.RuntimeState.ConversationHistory.ReputationHistory
+        );
+        Assert.Equal("Witnessed a killing", reputationEvent.Text);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsReputationLogEntriesTargetingTheNpcsFaction()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(WorldId);
+        _context.Factions.Add(faction);
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, _npc.Id));
+        _context.ReputationLogEntries.Add(
+            new ReputationLogEntry
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                TargetId = faction.Id,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = -100,
+                Reason = ReputationReason.KilledFactionMember,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var reputationEvent = Assert.Single(
+            result.RuntimeState.ConversationHistory.ReputationHistory
+        );
+        Assert.Equal("Killed a local", reputationEvent.Text);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesFinesAndJailTime_FromReputationHistory()
+    {
+        // Arrange — these are processed by the guard/court system, not spread by witnesses or
+        // gossip, so ordinary NPCs have no plausible way of knowing about them
+        var faction = Builders.MakeFaction(WorldId);
+        _context.Factions.Add(faction);
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, _npc.Id));
+        _context.ReputationLogEntries.AddRange(
+            new ReputationLogEntry
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                TargetId = faction.Id,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = 50,
+                Reason = ReputationReason.PaidFineToGuard,
+            },
+            new ReputationLogEntry
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                TargetId = faction.Id,
+                TargetType = ReputationTargetType.Faction,
+                DeltaScore = 50,
+                Reason = ReputationReason.ServedJailTime,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Empty(result.RuntimeState.ConversationHistory.ReputationHistory);
     }
 }

@@ -47,8 +47,8 @@ export function QuestJournalDialog({ playerId, worldId, open, onClose }: QuestJo
       <DialogContent className="flex h-[min(90dvh,44rem)] w-[calc(100vw-2rem)] max-w-none flex-col gap-4 sm:h-[min(88dvh,56rem)] sm:w-[min(92vw,72rem)] sm:max-w-none">
         <DialogHeader>
           <DialogTitle>Quest Journal</DialogTitle>
-          <DialogDescription>Your current work and its progress.</DialogDescription>
         </DialogHeader>
+        <DialogDescription>Your current work and its progress.</DialogDescription>
 
         <Tabs value={tab} onValueChange={setTab} className="min-h-0 flex-1">
           <TabsList>

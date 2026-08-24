@@ -42,6 +42,7 @@ internal class AttemptTheftCommandHandler(
     TheftSourceResolver theftSourceResolver,
     InventoryItemTransfer itemTransfer,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     SkillCheckService skillCheckService,
     IQueryHandler<GetItemNamesByIdsQuery, IReadOnlyDictionary<Guid, string>> getItemNamesByIds,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
@@ -201,6 +202,18 @@ internal class AttemptTheftCommandHandler(
                 CreatureId = witness.Id,
             })
         );
+
+        if (theft.Witnesses.Count > 0)
+        {
+            await updateCreatures.Handle(
+                new UpdateCreaturesCommand
+                {
+                    CreatureIds = theft.Witnesses.Select(witness => witness.Id).ToArray(),
+                    State = CreatureState.Alerted,
+                },
+                cancellationToken
+            );
+        }
 
         var confrontingCreature = GetConfrontingCreature(theft.Source, theft.Witnesses);
         var result =

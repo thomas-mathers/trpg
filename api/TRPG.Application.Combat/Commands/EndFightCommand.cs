@@ -117,6 +117,7 @@ internal class EndFightCommandHandler(
                 creature.WorldId == worldId
                 && creature.LocationId == fight.LocationId
                 && creature.State != CreatureState.Dead
+                && creature.State != CreatureState.Sleeping
                 && !fight.CombatantIds.AsEnumerable().Contains(creature.Id)
             )
             .Select(creature => creature.Id)
@@ -151,6 +152,14 @@ internal class EndFightCommandHandler(
 
         if (witnesses.Length > 0)
         {
+            await updateCreatures.Handle(
+                new UpdateCreaturesCommand
+                {
+                    CreatureIds = witnesses,
+                    State = CreatureState.Alerted,
+                },
+                cancellationToken
+            );
             gameEvents.Enqueue(new CrimeWitnessedEvent(CrimeKind.Killing));
         }
     }

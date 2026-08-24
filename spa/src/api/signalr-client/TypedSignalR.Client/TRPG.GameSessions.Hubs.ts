@@ -4,7 +4,7 @@
 // @ts-nocheck
 import type { IStreamResult, Subject } from '@microsoft/signalr';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
-import type { CombatantState, CombatUpdatePayload } from '../TRPG.Combat.Responses';
+import type { CombatStartedPayload, CombatUpdatePayload } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
@@ -100,6 +100,12 @@ export type IChatHub = {
     */
     resolveFightTheftEncounterAction(): IStreamResult<string>;
     /**
+    * @param fightId Transpiled from System.Guid
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    streamCombatConclusionNarration(fightId: string): IStreamResult<string>;
+    /**
     * @param flushId Transpiled from System.Guid
     * @returns Transpiled from System.Threading.Tasks.Task
     */
@@ -113,10 +119,10 @@ export type IGameClient = {
     */
     sceneSnapshot(snapshot: SceneSnapshot): Promise<void>;
     /**
-    * @param combatants Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.CombatantState>
+    * @param payload Transpiled from TRPG.Combat.Responses.CombatStartedPayload
     * @returns Transpiled from System.Threading.Tasks.Task
     */
-    combatStarted(combatants: CombatantState[]): Promise<void>;
+    combatStarted(payload: CombatStartedPayload): Promise<void>;
     /**
     * @param update Transpiled from TRPG.Combat.Responses.CombatUpdatePayload
     * @returns Transpiled from System.Threading.Tasks.Task

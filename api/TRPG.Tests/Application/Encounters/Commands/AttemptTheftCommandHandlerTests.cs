@@ -453,6 +453,61 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
     }
 
     [Fact]
+    public async Task Handle_SetsWitnessesToAlerted_WhenCaught()
+    {
+        // Arrange
+        var owner = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var bystander = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var item = await SeedItem(owner.Id, OwnerType.Creature);
+        _context.Creatures.AddRange(owner, bystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await AttemptTheft(new ItemOwnerReference(owner.Id, OwnerType.Creature), item);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedBystander = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == bystander.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CreatureState.Alerted, updatedBystander.State);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesSleepingCreatures_FromTheftWitnesses()
+    {
+        // Arrange
+        var owner = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var sleepingBystander = Builders.MakeCreature(
+            WorldId,
+            locationId: _theftLocationId,
+            state: CreatureState.Sleeping
+        );
+        var item = await SeedItem(owner.Id, OwnerType.Creature);
+        _context.Creatures.AddRange(owner, sleepingBystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await AttemptTheft(new ItemOwnerReference(owner.Id, OwnerType.Creature), item);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var encounter = await verifyContext
+            .Encounters.OfType<TheftEncounter>()
+            .SingleAsync(
+                candidate => candidate.Id == result.EncounterId,
+                TestContext.Current.CancellationToken
+            );
+        var witnessIds = await verifyContext
+            .CrimeWitnesses.Where(candidate => candidate.CrimeId == encounter.TheftCrimeId)
+            .Select(candidate => candidate.CreatureId)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain(sleepingBystander.Id, witnessIds);
+    }
+
+    [Fact]
     public async Task Handle_MovesContainerItemAndCreatesEncounter_WhenOwnerCatchesThePlayer()
     {
         // Arrange

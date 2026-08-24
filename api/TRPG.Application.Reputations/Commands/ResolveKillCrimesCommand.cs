@@ -80,7 +80,18 @@ internal class ResolveKillCrimesCommandHandler(
                 new ApplyReputationPenaltyForKillsCommand
                 {
                     KillerId = command.PlayerId,
-                    KilledCreatureIds = reportedCrimes.Select(crime => crime.VictimId).ToArray(),
+                    Kills = reportedCrimes
+                        .Select(crime => new KillCrimeReport(
+                            crime.VictimId,
+                            witnesses
+                                .Where(witness =>
+                                    witness.CrimeId == crime.Id
+                                    && witness.Resolution == CrimeWitnessResolution.Reported
+                                )
+                                .Select(witness => witness.CreatureId)
+                                .ToArray()
+                        ))
+                        .ToArray(),
                 },
                 cancellationToken
             );

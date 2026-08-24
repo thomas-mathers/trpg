@@ -240,7 +240,7 @@ function WorkbenchProviders({
 
   useEffect(() => {
     setFight(initialFight);
-    gameEventBus.emit('CombatStarted', initialFight);
+    gameEventBus.emit('CombatStarted', { fightId: 'story-fight-id', combatants: initialFight });
   }, [initialFight]);
 
   const resolveAction = useCallback(
@@ -277,6 +277,7 @@ function WorkbenchProviders({
     startTheftEncounterNarration: noopStream,
     resolveApologizeTheftEncounterAction: noopStream,
     resolveFightTheftEncounterAction: noopStream,
+    streamCombatConclusionNarration: noopStream,
     acknowledgeEvents: async () => undefined,
   };
 

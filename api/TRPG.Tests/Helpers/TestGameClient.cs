@@ -12,7 +12,7 @@ internal sealed class TestGameClient : IGameClient
 {
     public required HubConnection Connection { get; init; }
     public Action<SceneSnapshot>? OnSceneSnapshot { get; set; }
-    public Action<IReadOnlyCollection<CombatantState>>? OnCombatStarted { get; set; }
+    public Action<CombatStartedPayload>? OnCombatStarted { get; set; }
     public Action<CombatUpdatePayload>? OnCombatUpdated { get; set; }
     public Action<HostileEncounterState>? OnHostileEncounterStarted { get; set; }
     public Action<HostileEncounterResolutionFact>? OnHostileEncounterResolved { get; set; }
@@ -34,9 +34,9 @@ internal sealed class TestGameClient : IGameClient
         return Task.CompletedTask;
     }
 
-    public Task CombatStarted(IReadOnlyCollection<CombatantState> combatants)
+    public Task CombatStarted(CombatStartedPayload payload)
     {
-        OnCombatStarted?.Invoke(combatants);
+        OnCombatStarted?.Invoke(payload);
         return Task.CompletedTask;
     }
 

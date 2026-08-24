@@ -55,18 +55,18 @@ internal class StartFightCommandHandler(
             cancellationToken
         );
 
-        context.Encounters.Add(
-            new FightEncounter
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-                LocationId = player!.LocationId,
-                CombatantIds = combatants.Select(c => c.CreatureId).ToList(),
-            }
-        );
+        var fight = new FightEncounter
+        {
+            WorldId = command.WorldId,
+            PlayerId = command.PlayerId,
+            LocationId = player!.LocationId,
+            CombatantIds = combatants.Select(c => c.CreatureId).ToList(),
+        };
+        context.Encounters.Add(fight);
         await context.SaveChangesAsync(cancellationToken);
         gameEvents.Enqueue(
             new CombatStartedEvent(
+                fight.Id,
                 combatants
                     .OrderByDescending(combatant => combatant.TurnOrder)
                     .Select(combatant => combatant.ToCombatantResult())

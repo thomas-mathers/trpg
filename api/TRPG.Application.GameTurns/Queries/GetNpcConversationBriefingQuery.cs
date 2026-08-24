@@ -4,6 +4,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations;
+using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds;
 using TRPG.Data;
@@ -55,6 +56,8 @@ public record NpcConversationOpenThread(int Id, string Text);
 
 public record NpcConversationObservedCrime(string Text);
 
+public record NpcConversationReputationEvent(string Text);
+
 internal record ObservedCrime(DateTime OccurredAt, string Text);
 
 public record NpcConversationHistoryResult(
@@ -62,7 +65,8 @@ public record NpcConversationHistoryResult(
     IReadOnlyCollection<NpcConversationRecord> Recent,
     IReadOnlyCollection<NpcConversationDurableFact> DurableFacts,
     IReadOnlyCollection<NpcConversationOpenThread> OpenThreads,
-    IReadOnlyCollection<NpcConversationObservedCrime> ObservedCrimes
+    IReadOnlyCollection<NpcConversationObservedCrime> ObservedCrimes,
+    IReadOnlyCollection<NpcConversationReputationEvent> ReputationHistory
 );
 
 public record NpcConversationQuest(string Name);
@@ -75,6 +79,7 @@ public record NpcConversationQuests(
 );
 
 public record NpcConversationRuntimeState(
+    CreatureState State,
     NpcConversationAttitude Attitude,
     NpcConversationHistoryResult ConversationHistory,
     NpcConversationQuests Quests
@@ -92,9 +97,15 @@ internal class GetNpcConversationBriefingQueryHandler(
     TrpgDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult> getQuestInteractions,
-    IQueryHandler<GetEffectiveReputationQuery, int> getEffectiveReputation
+    IQueryHandler<GetEffectiveReputationQuery, int> getEffectiveReputation,
+    IQueryHandler<
+        GetRecentReputationLogQuery,
+        IReadOnlyCollection<ReputationLogEntry>
+    > getRecentReputationLog
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
+    private const int ReputationHistoryLimit = 5;
+
     public async Task<NpcConversationBriefing> Handle(
         GetNpcConversationBriefingQuery query,
         CancellationToken cancellationToken = default
@@ -143,6 +154,7 @@ internal class GetNpcConversationBriefingQueryHandler(
         var attitude = await GetAttitude(query, cancellationToken);
         var quests = await GetQuests(query, cancellationToken);
         var observedCrimes = await GetObservedCrimes(query, cancellationToken);
+        var reputationHistory = await GetReputationHistory(query, cancellationToken);
 
         return new NpcConversationBriefing(
             new NpcConversationIdentity(
@@ -179,13 +191,15 @@ internal class GetNpcConversationBriefingQueryHandler(
                 profile.PrivateBackground.Home
             ),
             new NpcConversationRuntimeState(
+                npc.State,
                 attitude,
                 new NpcConversationHistoryResult(
                     history?.Summary ?? "",
                     recent,
                     ToActiveFacts(history),
                     ToActiveThreads(history),
-                    observedCrimes
+                    observedCrimes,
+                    reputationHistory
                 ),
                 quests
             )
@@ -286,6 +300,51 @@ internal class GetNpcConversationBriefingQueryHandler(
                 $"You witnessed the player steal from {crime.OwnerName}."
             ))
             .ToArrayAsync(cancellationToken);
+
+    private async Task<NpcConversationReputationEvent[]> GetReputationHistory(
+        GetNpcConversationBriefingQuery query,
+        CancellationToken cancellationToken
+    )
+    {
+        var factionIds = await context
+            .FactionMembers.AsNoTracking()
+            .Where(member => member.CreatureId == query.NpcId)
+            .Select(member => member.FactionId)
+            .ToArrayAsync(cancellationToken);
+
+        var targets = new List<ReputationLogTarget>
+        {
+            new(query.NpcId, ReputationTargetType.Creature),
+        };
+        targets.AddRange(
+            factionIds.Select(factionId => new ReputationLogTarget(
+                factionId,
+                ReputationTargetType.Faction
+            ))
+        );
+
+        var entries = await getRecentReputationLog.Handle(
+            new GetRecentReputationLogQuery
+            {
+                CreatureId = query.PlayerId,
+                Targets = targets,
+                Limit = ReputationHistoryLimit,
+            },
+            cancellationToken
+        );
+
+        return entries
+            .Where(entry => !IsCivicRecord(entry.Reason))
+            .Select(entry => new NpcConversationReputationEvent(
+                entry.Detail ?? entry.Reason.ToDisplayText()
+            ))
+            .ToArray();
+    }
+
+    // Fines and jail time are processed by the guard/court system, not spread by witnesses or
+    // gossip, so ordinary NPCs have no plausible way of knowing about them.
+    private static bool IsCivicRecord(ReputationReason reason) =>
+        reason is ReputationReason.PaidFineToGuard or ReputationReason.ServedJailTime;
 
     private async Task<NpcConversationAttitude> GetAttitude(
         GetNpcConversationBriefingQuery query,
