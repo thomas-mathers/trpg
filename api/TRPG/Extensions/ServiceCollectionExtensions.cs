@@ -209,6 +209,10 @@ internal static class ServiceCollectionExtensions
             .AddScoped<IGameClientEventDispatcher>(sp =>
                 sp.GetRequiredService<GameClientEventDispatcher>()
             )
+            .AddScoped<GameClientEventAckGate>()
+            .AddScoped<IGameClientEventAckGate>(sp =>
+                sp.GetRequiredService<GameClientEventAckGate>()
+            )
             .AddSingleton<PendingSessionEndRegistry>()
             .AddSingleton<PendingEventAckRegistry>();
     }
