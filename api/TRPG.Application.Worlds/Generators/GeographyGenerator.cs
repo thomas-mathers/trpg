@@ -307,7 +307,7 @@ public class GeographyGenerator(
                         Description = $"The territory surrounding {cityName}.",
                         Width = CityTileSize,
                         Height = CityTileSize,
-                        Center = PolygonCentroid(mapState.Boundary),
+                        Center = mapState.Centroid,
                         Boundary = new Polygon
                         {
                             Points = new List<Point>(mapState.Boundary.Points.ToArray()),
@@ -374,7 +374,7 @@ public class GeographyGenerator(
                     Description = "An untamed wilderness region.",
                     Width = CityTileSize,
                     Height = CityTileSize,
-                    Center = PolygonCentroid(mapState.Boundary),
+                    Center = mapState.Centroid,
                     Boundary = new Polygon
                     {
                         Points = new List<Point>(mapState.Boundary.Points.ToArray()),
@@ -413,33 +413,6 @@ public class GeographyGenerator(
             .Where(state => state is not null)
             .Select(state => state!.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-    private static Point PolygonCentroid(Polygon boundary)
-    {
-        var points = boundary.Points;
-        var area = 0.0;
-        var centroidX = 0.0;
-        var centroidY = 0.0;
-
-        for (var i = 0; i < points.Count; i++)
-        {
-            var current = points[i];
-            var next = points[(i + 1) % points.Count];
-            var cross = current.X * next.Y - next.X * current.Y;
-            area += cross;
-            centroidX += (current.X + next.X) * cross;
-            centroidY += (current.Y + next.Y) * cross;
-        }
-
-        area *= 0.5;
-        // Degenerate polygon (collinear points) falls back to a plain vertex average.
-        if (Math.Abs(area) < 1e-6)
-        {
-            return new Point(points.Average(p => p.X), points.Average(p => p.Y));
-        }
-
-        return new Point(centroidX / (6 * area), centroidY / (6 * area));
-    }
 
     private static string CreateCityDescription(
         string cityName,

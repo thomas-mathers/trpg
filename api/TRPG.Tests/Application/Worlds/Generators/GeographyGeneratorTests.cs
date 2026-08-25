@@ -118,9 +118,20 @@ public class GeographyGeneratorTests
             result.States,
             state =>
             {
+                // Center is stored as a truncated integer, computed from the Voronoi cell's own
+                // (untruncated) centroid — while this reference value is computed from Boundary's
+                // own already-truncated points. Truncating at two different stages of the same
+                // computation can legitimately land a fraction of a unit apart, so this checks
+                // Center is close to the boundary's centroid, not bit-for-bit equal to it.
                 var expectedCenter = PolygonCentroid(state.Boundary);
-                Assert.Equal(expectedCenter.X, state.Center.X, 3);
-                Assert.Equal(expectedCenter.Y, state.Center.Y, 3);
+                Assert.True(
+                    Math.Abs(expectedCenter.X - state.Center.X) < 1.5,
+                    $"State '{state.Name}': Center.X {state.Center.X} is too far from the boundary's own centroid {expectedCenter.X}."
+                );
+                Assert.True(
+                    Math.Abs(expectedCenter.Y - state.Center.Y) < 1.5,
+                    $"State '{state.Name}': Center.Y {state.Center.Y} is too far from the boundary's own centroid {expectedCenter.Y}."
+                );
             }
         );
     }
