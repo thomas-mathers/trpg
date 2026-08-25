@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { GiScrollUnfurled } from 'react-icons/gi';
 
 import type { ItemDetail } from '@/api/client';
 import {
@@ -39,6 +40,13 @@ export function ItemName({ item, equippedLabel = 'Equipped' }: ItemNameProps) {
           <ItemTooltip item={item} />
         </HoverPopoverContent>
       </HoverPopover>
+      {item.isQuestItem && (
+        <GiScrollUnfurled
+          className="text-primary size-4 shrink-0"
+          aria-label="Quest item"
+          title="Quest item — cannot be given away or dropped"
+        />
+      )}
       {item.equippedSlot != null && (
         <span className="bg-primary/15 text-primary shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase">
           {equippedLabel}

@@ -14,6 +14,7 @@ export const ATTRIBUTE_LABEL: Record<AttributeName, string> = {
   MaximumHp: 'Maximum HP',
   MaximumAp: 'Maximum AP',
   MaximumMp: 'Maximum MP',
+  CarryingCapacity: 'Carrying Capacity',
   Strength: 'Strength',
   Defense: 'Defense',
   Dexterity: 'Dexterity',

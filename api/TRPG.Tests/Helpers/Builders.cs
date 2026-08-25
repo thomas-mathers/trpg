@@ -259,6 +259,7 @@ internal static class Builders
             MaximumHp = attributes.MaximumHp,
             MaximumAp = attributes.MaximumAp,
             MaximumMp = attributes.MaximumMp,
+            CarryingCapacity = attributes.CarryingCapacity,
             MovementSpeed = attributes.MovementSpeed,
             PhysicalResistance = attributes.PhysicalResistance,
             FireResistance = attributes.FireResistance,
@@ -316,6 +317,7 @@ internal static class Builders
             MaximumHp = StatFormulas.CalculateMaximumHp(baseAttributes, options),
             MaximumAp = StatFormulas.CalculateMaximumAp(baseAttributes, options),
             MaximumMp = StatFormulas.CalculateMaximumMp(baseAttributes, options),
+            CarryingCapacity = StatFormulas.CalculateCarryingCapacity(baseAttributes, options),
         };
     }
 
@@ -348,6 +350,7 @@ internal static class Builders
         int attacksPerTurn = 1,
         bool isTwoHanded = false,
         int quantity = 0,
+        int weight = 8,
         IReadOnlyCollection<ItemModifier>? modifiers = null
     )
     {
@@ -356,7 +359,7 @@ internal static class Builders
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Item-{Guid.NewGuid():N}",
             Description = "A test weapon",
-            Weight = 8,
+            Weight = weight,
             Quantity = quantity,
             GoldValue = 50,
             Type = type,
@@ -419,7 +422,8 @@ internal static class Builders
         Guid? worldId = null,
         string? name = null,
         ResourceType resource = ResourceType.Hp,
-        int amount = 50
+        int amount = 50,
+        int weight = 1
     )
     {
         return new Consumable
@@ -427,7 +431,7 @@ internal static class Builders
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name ?? $"Item-{Guid.NewGuid():N}",
             Description = "A test consumable",
-            Weight = 1,
+            Weight = weight,
             GoldValue = 10,
             Resource = resource,
             RestoreAmount = amount,

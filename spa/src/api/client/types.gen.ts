@@ -74,7 +74,7 @@ export type AttributeAllocation = {
     intelligence?: number;
 };
 
-export type AttributeName = 'MaximumHp' | 'MaximumAp' | 'MaximumMp' | 'Strength' | 'Defense' | 'Dexterity' | 'Endurance' | 'Stamina' | 'Mana' | 'Intelligence' | 'PhysicalResistance' | 'FireResistance' | 'IceResistance' | 'LightningResistance' | 'PoisonResistance' | 'MagicResistance' | 'MovementSpeed';
+export type AttributeName = 'MaximumHp' | 'MaximumAp' | 'MaximumMp' | 'CarryingCapacity' | 'Strength' | 'Defense' | 'Dexterity' | 'Endurance' | 'Stamina' | 'Mana' | 'Intelligence' | 'PhysicalResistance' | 'FireResistance' | 'IceResistance' | 'LightningResistance' | 'PoisonResistance' | 'MagicResistance' | 'MovementSpeed';
 
 export type AttributePointsResponse = {
     unallocatedPoints: number;
@@ -205,6 +205,10 @@ export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 
 
 export type DistrictType = 'Residential' | 'Scientific' | 'CityCenter' | 'CityEntrance' | 'Governmental' | 'HolySite' | 'Encampment';
 
+export type DropInventoryItemRequest = {
+    quantity: number;
+};
+
 export type EffectiveAttributesResponse = {
     strength: number;
     dexterity: number;
@@ -216,6 +220,7 @@ export type EffectiveAttributesResponse = {
     maximumHp: number;
     maximumAp: number;
     maximumMp: number;
+    carryingCapacity: number;
     movementSpeed: number;
     physicalResistance: number;
     fireResistance: number;
@@ -243,6 +248,8 @@ export type Gender = 'Male' | 'Female';
 export type InventorySummary = {
     gold: number;
     items: Array<ItemDetail>;
+    weight: number;
+    carryingCapacity: null | number;
 };
 
 export type InventoryTransferRequest = {
@@ -1237,6 +1244,34 @@ export type TransferInventoryResponses = {
 };
 
 export type TransferInventoryResponse = TransferInventoryResponses[keyof TransferInventoryResponses];
+
+export type DropInventoryItemData = {
+    body: DropInventoryItemRequest;
+    path: {
+        playerId: string;
+        itemId: string;
+    };
+    query?: never;
+    url: '/players/{playerId}/inventory-items/{itemId}/drop';
+};
+
+export type DropInventoryItemErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetails;
+};
+
+export type DropInventoryItemError = DropInventoryItemErrors[keyof DropInventoryItemErrors];
+
+export type DropInventoryItemResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type DropInventoryItemResponse = DropInventoryItemResponses[keyof DropInventoryItemResponses];
 
 export type GetTheftDetectionChanceData = {
     body: TheftDetectionChanceRequest;

@@ -33,6 +33,7 @@ public static class StatFormulas
             AttributeName.MaximumHp => attributes.MaximumHp,
             AttributeName.MaximumAp => attributes.MaximumAp,
             AttributeName.MaximumMp => attributes.MaximumMp,
+            AttributeName.CarryingCapacity => attributes.CarryingCapacity,
             AttributeName.MovementSpeed => attributes.MovementSpeed,
             AttributeName.PhysicalResistance => attributes.PhysicalResistance,
             AttributeName.FireResistance => attributes.FireResistance,
@@ -98,6 +99,7 @@ public static class StatFormulas
             MaximumHp = (int)CalculateEffective(AttributeName.MaximumHp),
             MaximumAp = (int)CalculateEffective(AttributeName.MaximumAp),
             MaximumMp = (int)CalculateEffective(AttributeName.MaximumMp),
+            CarryingCapacity = (int)CalculateEffective(AttributeName.CarryingCapacity),
             MovementSpeed = CalculateEffective(AttributeName.MovementSpeed),
             PhysicalResistance = CalculateEffective(AttributeName.PhysicalResistance),
             FireResistance = CalculateEffective(AttributeName.FireResistance),
@@ -116,6 +118,15 @@ public static class StatFormulas
 
     public static int CalculateMaximumMp(Attributes attributes, CreatureGeneratorOptions options) =>
         Math.Max(0, attributes.Mana * options.MpPerMana);
+
+    public static int CalculateCarryingCapacity(
+        Attributes attributes,
+        CreatureGeneratorOptions options
+    ) =>
+        Math.Max(
+            1,
+            options.BaseCarryingCapacity + attributes.Endurance * options.CarryWeightPerEndurance
+        );
 
     public static int CalculateUnallocatedAttributePoints(
         Attributes attributes,
@@ -151,6 +162,7 @@ public static class StatFormulas
         creature.MaximumHp = effective.MaximumHp;
         creature.MaximumAp = effective.MaximumAp;
         creature.MaximumMp = effective.MaximumMp;
+        creature.CarryingCapacity = effective.CarryingCapacity;
         creature.MovementSpeed = effective.MovementSpeed;
         creature.PhysicalResistance = effective.PhysicalResistance;
         creature.FireResistance = effective.FireResistance;

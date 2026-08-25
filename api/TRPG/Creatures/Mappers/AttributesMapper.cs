@@ -17,6 +17,7 @@ internal static class AttributesMapper
             attributes.MaximumHp,
             attributes.MaximumAp,
             attributes.MaximumMp,
+            attributes.CarryingCapacity,
             attributes.MovementSpeed,
             attributes.PhysicalResistance,
             attributes.FireResistance,

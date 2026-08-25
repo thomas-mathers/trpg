@@ -63,7 +63,7 @@ export type CombatActionResult = {
 export type DamageType = "Physical" | "Fire" | "Ice" | "Lightning" | "Poison" | "Magic";
 
 /** Transpiled from TRPG.Combat.Responses.AttributeName */
-export type AttributeName = "MaximumHp" | "MaximumAp" | "MaximumMp" | "Strength" | "Defense" | "Dexterity" | "Endurance" | "Stamina" | "Mana" | "Intelligence" | "PhysicalResistance" | "FireResistance" | "IceResistance" | "LightningResistance" | "PoisonResistance" | "MagicResistance" | "MovementSpeed";
+export type AttributeName = "MaximumHp" | "MaximumAp" | "MaximumMp" | "CarryingCapacity" | "Strength" | "Defense" | "Dexterity" | "Endurance" | "Stamina" | "Mana" | "Intelligence" | "PhysicalResistance" | "FireResistance" | "IceResistance" | "LightningResistance" | "PoisonResistance" | "MagicResistance" | "MovementSpeed";
 
 /** Transpiled from TRPG.Combat.Responses.AmountType */
 export type AmountType = "Flat" | "Percent";

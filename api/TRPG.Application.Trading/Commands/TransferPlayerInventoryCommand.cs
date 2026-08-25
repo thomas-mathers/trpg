@@ -1,8 +1,6 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory;
-using TRPG.Application.Quests.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -18,7 +16,7 @@ public class TransferPlayerInventoryCommand
 internal class TransferPlayerInventoryCommandHandler(
     TrpgDbContext context,
     InventoryItemTransfer itemTransfer,
-    IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>> getActiveQuestItemIds
+    QuestItemGuard questItemGuard
 ) : ICommandHandler<TransferPlayerInventoryCommand>
 {
     public async Task Handle(
@@ -36,7 +34,11 @@ internal class TransferPlayerInventoryCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        await EnsureQuestItemsRemainWithPlayer(command, cancellationToken);
+        await questItemGuard.EnsureNotActiveQuestItems(
+            command.PlayerId,
+            command.Items.Select(item => item.ItemId).ToArray(),
+            cancellationToken
+        );
 
         await itemTransfer.Transfer(
             new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
@@ -48,26 +50,5 @@ internal class TransferPlayerInventoryCommandHandler(
         await context.SaveChangesAsync(cancellationToken);
 
         transaction.Complete();
-    }
-
-    private async Task EnsureQuestItemsRemainWithPlayer(
-        TransferPlayerInventoryCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var questItemIds = await getActiveQuestItemIds.Handle(
-            new GetActiveQuestItemIdsQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
-        var questItemId = command
-            .Items.Select(item => item.ItemId)
-            .FirstOrDefault(questItemIds.Contains);
-
-        if (questItemId != Guid.Empty)
-        {
-            throw new InvalidOperationException(
-                $"Item {questItemId} is required for an active quest and cannot be transferred."
-            );
-        }
     }
 }

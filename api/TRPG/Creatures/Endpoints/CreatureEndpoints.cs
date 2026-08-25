@@ -19,6 +19,7 @@ using TRPG.Creatures.Mappers;
 using TRPG.Creatures.Requests;
 using TRPG.Creatures.Responses;
 using TRPG.Domain.Models;
+using TRPG.Inventory.Mappers;
 using TRPG.Inventory.Requests;
 using TRPG.Inventory.Responses;
 
@@ -100,9 +101,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(
-            new InventorySummary(snapshot.Gold, snapshot.Items.ToDetails(questItemIds))
-        );
+        return TypedResults.Ok(snapshot.ToSummary(questItemIds));
     }
 
     private static async Task<Ok<ConsumableSummary[]>> GetConsumables(

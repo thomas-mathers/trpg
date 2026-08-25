@@ -11,6 +11,7 @@ internal static class AttributeNameMapper
             DataAttributeName.MaximumHp => ContractAttributeName.MaximumHp,
             DataAttributeName.MaximumAp => ContractAttributeName.MaximumAp,
             DataAttributeName.MaximumMp => ContractAttributeName.MaximumMp,
+            DataAttributeName.CarryingCapacity => ContractAttributeName.CarryingCapacity,
             DataAttributeName.Strength => ContractAttributeName.Strength,
             DataAttributeName.Defense => ContractAttributeName.Defense,
             DataAttributeName.Dexterity => ContractAttributeName.Dexterity,

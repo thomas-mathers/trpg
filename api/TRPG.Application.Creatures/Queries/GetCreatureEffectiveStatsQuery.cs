@@ -34,6 +34,7 @@ internal class GetCreatureEffectiveStatsQueryHandler(TrpgDbContext context)
             MaximumHp = creature.MaximumHp,
             MaximumAp = creature.MaximumAp,
             MaximumMp = creature.MaximumMp,
+            CarryingCapacity = creature.CarryingCapacity,
             MovementSpeed = creature.MovementSpeed,
             PhysicalResistance = creature.PhysicalResistance,
             FireResistance = creature.FireResistance,

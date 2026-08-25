@@ -25,6 +25,7 @@ import { ItemTable } from '@/features/inventory/components/item-table';
 import { WeightIcon } from '@/features/inventory/components/item-unit-icon';
 import { useItemTable } from '@/features/inventory/hooks/use-item-table';
 import { useTransferDraft } from '@/features/inventory/hooks/use-transfer-draft';
+import { sumItemWeight, sumSelectedWeight } from '@/features/inventory/item-weight';
 import { cn } from '@/lib/utils';
 
 interface TransferTarget {
@@ -125,6 +126,23 @@ function TransferDialogBody({
     enabled: transfersEnabled && theftItems.length > 0,
   });
 
+  const playerCapacity = playerInventory.data?.carryingCapacity ?? null;
+  const otherCapacity = targetInventory.data?.carryingCapacity ?? null;
+  const playerWeight = sumItemWeight(transferDraft.playerItems ?? []);
+  const otherWeight = sumItemWeight(transferDraft.otherItems ?? []);
+  const incomingToPlayerWeight = sumSelectedWeight(
+    transferDraft.otherItems ?? [],
+    transferDraft.otherSelection,
+  );
+  const incomingToOtherWeight = sumSelectedWeight(
+    transferDraft.playerItems ?? [],
+    transferDraft.playerSelection,
+  );
+  const moveToPlayerExceedsCapacity =
+    playerCapacity != null && playerWeight + incomingToPlayerWeight > playerCapacity;
+  const moveToOtherExceedsCapacity =
+    otherCapacity != null && otherWeight + incomingToOtherWeight > otherCapacity;
+
   const handleConfirm = async () => {
     let theftEncounterId: string | null = null;
 
@@ -182,6 +200,7 @@ function TransferDialogBody({
           selected={transferDraft.playerSelection}
           selectionEnabled={transfersEnabled}
           onSelectedChange={transferDraft.setPlayerSelection}
+          capacity={playerCapacity}
         />
 
         <div className="flex flex-shrink-0 flex-row items-center justify-center gap-2 md:flex-col">
@@ -190,8 +209,16 @@ function TransferDialogBody({
             size="icon"
             className="relative rounded-full"
             onClick={transferDraft.moveToPlayer}
-            disabled={!transfersEnabled || transferDraft.otherSelection.size === 0}
-            title={`Move selected items to your inventory`}
+            disabled={
+              !transfersEnabled ||
+              transferDraft.otherSelection.size === 0 ||
+              moveToPlayerExceedsCapacity
+            }
+            title={
+              moveToPlayerExceedsCapacity
+                ? 'Carrying too much weight to take this'
+                : `Move selected items to your inventory`
+            }
           >
             <ArrowUp className="md:hidden" />
             <ArrowLeft className="hidden md:inline" />
@@ -204,8 +231,16 @@ function TransferDialogBody({
             size="icon"
             className="relative rounded-full"
             onClick={transferDraft.moveToOther}
-            disabled={!transfersEnabled || transferDraft.playerSelection.size === 0}
-            title={`Move selected items to ${target.name}`}
+            disabled={
+              !transfersEnabled ||
+              transferDraft.playerSelection.size === 0 ||
+              moveToOtherExceedsCapacity
+            }
+            title={
+              moveToOtherExceedsCapacity
+                ? `${target.name} is carrying too much weight to take this`
+                : `Move selected items to ${target.name}`
+            }
           >
             <ArrowDown className="md:hidden" />
             <ArrowRight className="hidden md:inline" />
@@ -232,6 +267,7 @@ function TransferDialogBody({
           selected={transferDraft.otherSelection}
           selectionEnabled={transfersEnabled}
           onSelectedChange={transferDraft.setOtherSelection}
+          capacity={otherCapacity}
         />
       </div>
 
@@ -284,6 +320,7 @@ interface InventorySidePanelProps {
   selected: Map<string, number>;
   selectionEnabled: boolean;
   onSelectedChange: (selected: Map<string, number>) => void;
+  capacity: number | null;
 }
 
 function InventorySidePanel({
@@ -294,12 +331,10 @@ function InventorySidePanel({
   selected,
   selectionEnabled,
   onSelectedChange,
+  capacity,
 }: InventorySidePanelProps) {
   const itemTable = useItemTable(items);
-  const totalWeight = items.reduce(
-    (sum, item) => sum + Number(item.weight) * Number(item.quantity),
-    0,
-  );
+  const totalWeight = sumItemWeight(items);
   const allSelected =
     itemTable.visibleItems.length > 0 &&
     itemTable.visibleItems.every((item) => selected.has(item.itemId));
@@ -344,7 +379,8 @@ function InventorySidePanel({
       <div className="border-b px-3 py-2">
         <div className="flex items-center gap-1.5 text-sm font-semibold">{title}</div>
         <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
-          {items.length} items · {totalWeight} <WeightIcon /> total
+          {items.length} items · {totalWeight}
+          {capacity != null && ` / ${capacity}`} <WeightIcon />
         </p>
       </div>
 

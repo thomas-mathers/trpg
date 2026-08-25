@@ -11,6 +11,7 @@ public record EffectiveAttributesResponse(
     int MaximumHp,
     int MaximumAp,
     int MaximumMp,
+    int CarryingCapacity,
     float MovementSpeed,
     float PhysicalResistance,
     float FireResistance,

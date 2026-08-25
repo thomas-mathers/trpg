@@ -52,8 +52,8 @@ function tradeSnapshot(
   shopItems: ItemDetail[] = [sword()],
 ): TradeSnapshot {
   return {
-    playerInventory: { gold: 0, items: playerItems },
-    shopInventory: { gold: 0, items: shopItems },
+    playerInventory: { gold: 0, items: playerItems, weight: 0, carryingCapacity: null },
+    shopInventory: { gold: 0, items: shopItems, weight: 0, carryingCapacity: null },
   };
 }
 
@@ -224,5 +224,24 @@ describe('TradeDialog', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Tessa refuses to deal with you.');
     expect(screen.queryByRole('button', { name: 'Complete trade' })).not.toBeInTheDocument();
     expect(completion).toBeUndefined();
+  });
+
+  it('disables proposing an offer that would exceed the player carrying capacity', async () => {
+    server.use(
+      handleGetTrade({
+        body: {
+          playerInventory: { gold: 0, items: [gold()], weight: 0, carryingCapacity: 1 },
+          shopInventory: { gold: 0, items: [sword()], weight: 0, carryingCapacity: null },
+        },
+      }),
+    );
+    const { user } = renderDialog();
+
+    await user.click(await screen.findByRole('button', { name: 'Add Iron Sword to offer' }));
+
+    expect(await screen.findByRole('button', { name: 'Propose trade' })).toBeDisabled();
+    expect(
+      screen.getByText("You can't carry that much weight; drop or offer more to make room."),
+    ).toBeVisible();
   });
 });

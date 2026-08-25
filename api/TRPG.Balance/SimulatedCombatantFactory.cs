@@ -20,6 +20,10 @@ internal static class SimulatedCombatantFactory
             MaximumHp = StatFormulas.CalculateMaximumHp(spec.Attributes, creatureGeneratorOptions),
             MaximumAp = StatFormulas.CalculateMaximumAp(spec.Attributes, creatureGeneratorOptions),
             MaximumMp = StatFormulas.CalculateMaximumMp(spec.Attributes, creatureGeneratorOptions),
+            CarryingCapacity = StatFormulas.CalculateCarryingCapacity(
+                spec.Attributes,
+                creatureGeneratorOptions
+            ),
         };
 
         var creature = new Creature

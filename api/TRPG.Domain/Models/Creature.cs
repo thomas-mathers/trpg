@@ -129,6 +129,7 @@ public class Creature
     public int MaximumHp { get; set; }
     public int MaximumAp { get; set; }
     public int MaximumMp { get; set; }
+    public int CarryingCapacity { get; set; }
     public float MovementSpeed { get; set; }
     public float PhysicalResistance { get; set; }
     public float FireResistance { get; set; }

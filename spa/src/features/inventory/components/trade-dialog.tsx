@@ -25,6 +25,7 @@ import { ItemName } from '@/features/inventory/components/item-name';
 import { ItemTable } from '@/features/inventory/components/item-table';
 import { GoldIcon, WeightIcon } from '@/features/inventory/components/item-unit-icon';
 import { useItemTable } from '@/features/inventory/hooks/use-item-table';
+import { sumItemWeight } from '@/features/inventory/item-weight';
 
 export interface TradeDialogProps {
   open: boolean;
@@ -97,6 +98,10 @@ export function TradeDialog({
     setStatus(undefined);
   };
   const hasOffer = playerOffer.length > 0 || shopOffer.length > 0;
+  const playerCapacity = trade.data?.playerInventory.carryingCapacity ?? null;
+  const prospectivePlayerWeight =
+    sumItemWeight(playerItems) - sumItemWeight(playerOffer) + sumItemWeight(shopOffer);
+  const exceedsPlayerCapacity = playerCapacity != null && prospectivePlayerWeight > playerCapacity;
   const proposeTrade = async () => {
     const result = await propose.mutateAsync({
       path: { playerId, workstationId },
@@ -137,6 +142,7 @@ export function TradeDialog({
             ariaLabel="Your available items"
             filterKey={playerId}
             onAdd={add(setPlayerOffer)}
+            capacity={playerCapacity}
           />
 
           <div className="flex min-h-0 flex-col gap-3">
@@ -167,6 +173,7 @@ export function TradeDialog({
             ariaLabel="Shop available items"
             filterKey={workstationId}
             onAdd={add(setShopOffer)}
+            capacity={null}
           />
         </div>
 
@@ -174,13 +181,18 @@ export function TradeDialog({
           <div className="space-y-1.5">
             {status && <TradeResponse status={status} workerName={workerName} />}
             <TradeSummary playerOffer={playerOffer} shopOffer={shopOffer} />
+            {exceedsPlayerCapacity && (
+              <p className="text-destructive text-sm">
+                You can&apos;t carry that much weight; drop or offer more to make room.
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>
               {status === 'accepted' ? 'Close' : 'Cancel'}
             </Button>
             <Button
-              disabled={status !== 'accepted' && !hasOffer}
+              disabled={(status !== 'accepted' && !hasOffer) || exceedsPlayerCapacity}
               onClick={status === 'accepted' ? completeTrade : proposeTrade}
             >
               {status === 'accepted' ? 'Complete trade' : 'Propose trade'}
@@ -201,6 +213,7 @@ function InventoryPanel({
   ariaLabel,
   filterKey,
   onAdd,
+  capacity,
 }: {
   icon: IconType;
   title: string;
@@ -210,12 +223,10 @@ function InventoryPanel({
   ariaLabel: string;
   filterKey: string;
   onAdd: (item: ItemDetail) => void;
+  capacity: number | null;
 }) {
   const itemTable = useItemTable(items, { resetKey: filterKey });
-  const totalWeight = items.reduce(
-    (sum, item) => sum + Number(item.weight) * Number(item.quantity),
-    0,
-  );
+  const totalWeight = sumItemWeight(items);
   const offeredItemIds = new Set(offerItems.map((item) => item.itemId));
 
   return (
@@ -229,7 +240,8 @@ function InventoryPanel({
           {title}
         </h2>
         <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
-          {items.length} items · {totalWeight} <WeightIcon /> total
+          {items.length} items · {totalWeight}
+          {capacity != null && ` / ${capacity}`} <WeightIcon />
         </p>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">

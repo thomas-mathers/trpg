@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -7,6 +8,7 @@ import {
   getCreatureAttributesOptions,
   equipCreatureItemMutation,
   unequipCreatureItemMutation,
+  dropInventoryItemMutation,
 } from '@/api/client';
 import type { EquipmentSlot, ItemDetail, ItemType } from '@/api/client';
 import { Button } from '@/components/ui/button';
@@ -17,12 +19,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   CharacterStatsPanel,
   type EquipItemPreview,
 } from '@/features/inventory/components/character-stats-panel';
 import { ItemName } from '@/features/inventory/components/item-name';
 import { ItemTable } from '@/features/inventory/components/item-table';
+import { WeightIcon } from '@/features/inventory/components/item-unit-icon';
 import { useItemTable } from '@/features/inventory/hooks/use-item-table';
 
 import { EQUIPMENT_SLOT_LABEL } from '../display-names';
@@ -123,11 +127,18 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
     ...unequipCreatureItemMutation(),
     onSuccess: invalidateCreatureData,
   });
+  const drop = useMutation({
+    ...dropInventoryItemMutation(),
+    onSuccess: () => {
+      invalidateCreatureData();
+      setSelectedItemId(null);
+    },
+  });
 
   const equippedSlots = new Set(
     items.map((item) => item.equippedSlot).filter((slot): slot is EquipmentSlot => slot != null),
   );
-  const busy = equip.isPending || unequip.isPending;
+  const busy = equip.isPending || unequip.isPending || drop.isPending;
 
   const selectedItem = selectedItemId ? items.find((i) => i.itemId === selectedItemId) : null;
   const selectedSlot =
@@ -141,6 +152,11 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
     <>
       <DialogHeader>
         <DialogTitle>Inventory</DialogTitle>
+        {inventory.data && (
+          <p className="text-muted-foreground flex items-center gap-1 text-xs">
+            {inventory.data.weight} / {inventory.data.carryingCapacity} <WeightIcon /> carried
+          </p>
+        )}
       </DialogHeader>
 
       <div className="flex min-h-0 flex-1 gap-4">
@@ -170,6 +186,12 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
                   equip.mutate({ path: { creatureId: playerId }, body: { itemId, slot } })
                 }
                 onUnequip={(slot) => unequip.mutate({ path: { creatureId: playerId, slot } })}
+                onDrop={() =>
+                  drop.mutate({
+                    path: { playerId, itemId: item.itemId },
+                    body: { quantity: Number(item.quantity) },
+                  })
+                }
               />
             )}
           />
@@ -193,47 +215,89 @@ function InventoryItemAction({
   busy,
   onEquip,
   onUnequip,
+  onDrop,
 }: {
   item: ItemDetail;
   equippedSlots: Set<EquipmentSlot>;
   busy: boolean;
   onEquip: (itemId: string, slot: EquipmentSlot) => void;
   onUnequip: (slot: EquipmentSlot) => void;
+  onDrop: () => void;
 }) {
   const targetSlot = equipSlotFor(item, equippedSlots);
   const equippedSlot = item.equippedSlot;
 
-  if (equippedSlot != null) {
-    return (
-      <Button
-        size="sm"
-        className="w-full"
-        disabled={busy}
-        onClick={(event) => {
-          event.stopPropagation();
-          onUnequip(equippedSlot);
-        }}
-      >
-        Unequip
-      </Button>
-    );
-  }
+  return (
+    <div className="flex items-center justify-end gap-1">
+      {equippedSlot != null && (
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={(event) => {
+            event.stopPropagation();
+            onUnequip(equippedSlot);
+          }}
+        >
+          Unequip
+        </Button>
+      )}
+      {equippedSlot == null && targetSlot != null && (
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={(event) => {
+            event.stopPropagation();
+            onEquip(item.itemId, targetSlot);
+          }}
+        >
+          Equip
+        </Button>
+      )}
+      <DropItemButton item={item} busy={busy} onDrop={onDrop} />
+    </div>
+  );
+}
 
-  if (targetSlot != null) {
-    return (
-      <Button
-        size="sm"
-        className="w-full"
-        disabled={busy}
-        onClick={(event) => {
-          event.stopPropagation();
-          onEquip(item.itemId, targetSlot);
-        }}
+function DropItemButton({
+  item,
+  busy,
+  onDrop,
+}: {
+  item: ItemDetail;
+  busy: boolean;
+  onDrop: () => void;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Drop ${item.name}`}
+          disabled={busy || item.isQuestItem}
+          title={item.isQuestItem ? 'Quest items cannot be dropped' : undefined}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <Trash2 />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-64 space-y-2 p-3 text-sm"
+        onClick={(event) => event.stopPropagation()}
       >
-        Equip
-      </Button>
-    );
-  }
-
-  return null;
+        <p>Drop {item.name}? It will be lost for good.</p>
+        <Button
+          variant="destructive"
+          size="sm"
+          className="w-full"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDrop();
+          }}
+        >
+          Drop item
+        </Button>
+      </PopoverContent>
+    </Popover>
+  );
 }

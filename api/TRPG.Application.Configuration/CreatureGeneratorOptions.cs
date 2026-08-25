@@ -7,6 +7,8 @@ public class CreatureGeneratorOptions
     public int HpPerEndurance { get; init; } = 5;
     public int ApPerStamina { get; init; } = 2;
     public int MpPerMana { get; init; } = 2;
+    public int BaseCarryingCapacity { get; init; } = 20;
+    public int CarryWeightPerEndurance { get; init; } = 10;
     public StartingAttributes BaseAttributes { get; init; } = new();
 }
 

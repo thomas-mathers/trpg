@@ -224,4 +224,36 @@ public class StatFormulasTests
         Assert.Equal(20, StatFormulas.CalculateMaximumMp(MakeAttributes(mana: 10), options));
         Assert.Equal(0, StatFormulas.CalculateMaximumMp(MakeAttributes(mana: 0), options));
     }
+
+    [Fact]
+    public void CalculateCarryingCapacity_AddsEnduranceWeightToBase_WithFloorOfOne()
+    {
+        // Arrange
+        var options = new CreatureGeneratorOptions
+        {
+            BaseCarryingCapacity = 20,
+            CarryWeightPerEndurance = 10,
+        };
+
+        // Act & Assert
+        Assert.Equal(
+            120,
+            StatFormulas.CalculateCarryingCapacity(MakeAttributes(endurance: 10), options)
+        );
+        Assert.Equal(
+            20,
+            StatFormulas.CalculateCarryingCapacity(MakeAttributes(endurance: 0), options)
+        );
+        Assert.Equal(
+            1,
+            StatFormulas.CalculateCarryingCapacity(
+                MakeAttributes(endurance: -5),
+                new CreatureGeneratorOptions
+                {
+                    BaseCarryingCapacity = 0,
+                    CarryWeightPerEndurance = 10,
+                }
+            )
+        );
+    }
 }

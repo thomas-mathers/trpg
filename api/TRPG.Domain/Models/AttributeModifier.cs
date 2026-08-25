@@ -11,6 +11,7 @@ public enum AttributeName
     MaximumHp,
     MaximumAp,
     MaximumMp,
+    CarryingCapacity,
     Strength,
     Defense,
     Dexterity,

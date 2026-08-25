@@ -38,9 +38,50 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
             context.Items,
             cancellationToken
         );
+        await EnsureDestinationCapacity(to, transferItems, cancellationToken);
         var results = await MoveItems(transferItems, to, cancellationToken);
         await RecalculateSourceAttributes(from, cancellationToken);
         return results;
+    }
+
+    private async Task EnsureDestinationCapacity(
+        ItemOwnerReference to,
+        IReadOnlyCollection<TransferItem> transferItems,
+        CancellationToken cancellationToken
+    )
+    {
+        if (to.Type != OwnerType.Creature)
+        {
+            return;
+        }
+
+        var creature =
+            await context
+                .Creatures.AsNoTracking()
+                .FirstOrDefaultAsync(creature => creature.Id == to.Id, cancellationToken)
+            ?? throw new InvalidOperationException($"Creature {to.Id} not found.");
+
+        if (creature.State == CreatureState.Dead)
+        {
+            return;
+        }
+
+        var currentWeight = await context
+            .Items.Where(item =>
+                item.Ownership.OwnerType == OwnerType.Creature && item.Ownership.OwnerId == to.Id
+            )
+            .SumAsync(item => item.Weight * item.Quantity, cancellationToken);
+
+        var incomingWeight = transferItems.Sum(transferItem =>
+            transferItem.Item.Weight * transferItem.Quantity
+        );
+
+        if (currentWeight + incomingWeight > creature.CarryingCapacity)
+        {
+            throw new InvalidOperationException(
+                $"Creature {to.Id} cannot carry any more weight; carrying capacity is {creature.CarryingCapacity}."
+            );
+        }
     }
 
     private async Task<IReadOnlyCollection<TransferItem>> GetValidatedTransferItems(
