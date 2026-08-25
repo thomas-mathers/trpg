@@ -93,6 +93,62 @@ public class GeographyGeneratorTests
         );
     }
 
+    [Fact]
+    public async Task Generate_SetsEachStatesCenterToItsBoundarysPolygonCentroid()
+    {
+        // Arrange
+        var generator = new GeographyGenerator(
+            new FakeChatClient(),
+            NullLogger<GeographyGenerator>.Instance
+        );
+        var input = new GeographyGeneratorInput
+        {
+            Description = "A test world.",
+            MinCityStates = 1,
+            MaxCityStates = 1,
+            MinRuralStates = 5,
+            MaxRuralStates = 5,
+        };
+
+        // Act
+        var result = await generator.Generate(input, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.All(
+            result.States,
+            state =>
+            {
+                var expectedCenter = PolygonCentroid(state.Boundary);
+                Assert.Equal(expectedCenter.X, state.Center.X, 3);
+                Assert.Equal(expectedCenter.Y, state.Center.Y, 3);
+            }
+        );
+    }
+
+    // Independently re-derives the expected centroid via the standard shoelace-formula
+    // computation, rather than calling the generator's own private helper, so this actually
+    // verifies the contract rather than restating it.
+    private static Point PolygonCentroid(Polygon boundary)
+    {
+        var points = boundary.Points;
+        var area = 0.0;
+        var centroidX = 0.0;
+        var centroidY = 0.0;
+
+        for (var i = 0; i < points.Count; i++)
+        {
+            var current = points[i];
+            var next = points[(i + 1) % points.Count];
+            var cross = current.X * next.Y - next.X * current.Y;
+            area += cross;
+            centroidX += (current.X + next.X) * cross;
+            centroidY += (current.Y + next.Y) * cross;
+        }
+
+        area *= 0.5;
+        return new Point(centroidX / (6 * area), centroidY / (6 * area));
+    }
+
     private static string GetFocusDescription(CountryFocus focus) =>
         focus switch
         {
