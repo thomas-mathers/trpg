@@ -1229,12 +1229,6 @@ public class CreatureGenerator(
                 }
             );
         }
-        var startingWeight = items.Sum(item => item.Weight * item.Quantity);
-        if (startingWeight > creature.BaseAttributes.CarryingCapacity)
-        {
-            creature.BaseAttributes.CarryingCapacity = startingWeight;
-        }
-
         var equippedItems = items.Where(item => item.Ownership.EquippedSlot != null).ToArray();
 
         StatFormulas.Recalculate(creature, equippedItems);

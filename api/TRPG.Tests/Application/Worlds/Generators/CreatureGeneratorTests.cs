@@ -364,25 +364,4 @@ public class CreatureGeneratorTests
         // Assert
         Assert.NotEmpty(result.Skills);
     }
-
-    [Fact]
-    public void Generate_EnsuresCarryingCapacityCoversStartingInventoryWeight()
-    {
-        // Arrange — a near-zero capacity formula guarantees any starting gear would otherwise
-        // exceed capacity, regardless of how Endurance happens to roll
-        var generator = Builders.MakeCreatureGenerator(
-            new CreatureGeneratorOptions { BaseCarryingCapacity = 0, CarryWeightPerEndurance = 0 }
-        );
-
-        // Act — Ranger starts with a bow and 20 arrows, giving it real starting weight
-        var result = generator.Generate(MakeInput(Profession.Ranger, level: 1));
-
-        // Assert
-        var startingWeight = result.Items.Sum(item => item.Weight * item.Quantity);
-        Assert.True(
-            startingWeight > 1,
-            "Expected the Ranger to start with meaningful gear weight."
-        );
-        Assert.Equal(startingWeight, result.Creature.CarryingCapacity);
-    }
 }
