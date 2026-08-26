@@ -7,7 +7,6 @@ public class EvaluateEncountersCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public Guid? OriginLocationId { get; init; }
 }
 
 public record EncounterEvaluationResult(
@@ -33,7 +32,6 @@ internal class EvaluateEncountersCommandHandler(
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                OriginLocationId = command.OriginLocationId,
             },
             cancellationToken
         );

@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826141258_AddCreaturePreviousLocationId")]
+    partial class AddCreaturePreviousLocationId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -273,10 +276,6 @@ namespace TRPG.Migrations
                     b.Property<int>("BirthYear")
                         .HasColumnType("integer")
                         .HasColumnName("birth_year");
-
-                    b.Property<int>("CarryingCapacity")
-                        .HasColumnType("integer")
-                        .HasColumnName("carrying_capacity");
 
                     b.Property<string>("CooldownRemainingByAbility")
                         .IsRequired()
@@ -2651,8 +2650,6 @@ namespace TRPG.Migrations
                     b.OwnsOne("TRPG.Domain.Models.Attributes", "BaseAttributes", b1 =>
                         {
                             b1.Property<Guid>("CreatureId");
-
-                            b1.Property<int>("CarryingCapacity");
 
                             b1.Property<int>("Defense");
 

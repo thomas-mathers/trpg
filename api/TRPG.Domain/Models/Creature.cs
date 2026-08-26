@@ -116,6 +116,7 @@ public class Creature
     public string Name { get; init; } = "";
     public Profession? Profession { get; set; }
     public Guid? PlayerCorpseOwnerId { get; init; }
+    public Guid? PreviousLocationId { get; set; }
     public CreatureState State { get; set; }
     public Guid WorldId { get; init; }
 

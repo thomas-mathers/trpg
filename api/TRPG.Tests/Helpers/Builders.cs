@@ -218,6 +218,7 @@ internal static class Builders
         Profession? profession = Profession.Knight,
         Guid? birthLocationId = null,
         Guid? locationId = null,
+        Guid? previousLocationId = null,
         int birthYear = 1000,
         string name = "Test Creature",
         int level = 1,
@@ -242,6 +243,7 @@ internal static class Builders
             BirthYear = birthYear,
             Profession = profession,
             LocationId = locationId ?? Guid.NewGuid(),
+            PreviousLocationId = previousLocationId,
             Level = level,
             State = state,
             PlayerCorpseOwnerId = playerCorpseOwnerId,
@@ -577,7 +579,6 @@ internal static class Builders
         string factionName = "Faction",
         string locationName = "Location",
         IReadOnlyList<HostileEncounterMemberSnapshot>? members = null,
-        Guid? arrivalOriginLocationId = null,
         EncounterState state = EncounterState.Active
     ) =>
         new()
@@ -589,7 +590,6 @@ internal static class Builders
             FactionName = factionName,
             LocationName = locationName,
             Members = members?.ToList() ?? [],
-            ArrivalOriginLocationId = arrivalOriginLocationId,
             State = state,
         };
 

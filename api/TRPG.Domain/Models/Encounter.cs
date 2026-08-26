@@ -17,7 +17,6 @@ public enum EncounterState
 public abstract class Encounter
 {
     public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid? ArrivalOriginLocationId { get; init; }
     public DateTime? CompletedAt { get; set; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public Guid LocationId { get; init; }

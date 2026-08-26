@@ -54,7 +54,6 @@ internal class StreamHostileEncounterActionTurnHandler(
                 FactionName = hostileEncounter.FactionName,
                 LocationName = hostileEncounter.LocationName!,
                 Members = hostileEncounter.Members,
-                ArrivalOriginLocationId = hostileEncounter.ArrivalOriginLocationId,
             },
             cancellationToken
         );

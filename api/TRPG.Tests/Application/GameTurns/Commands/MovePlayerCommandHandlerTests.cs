@@ -1026,7 +1026,12 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             .Encounters.OfType<HostileEncounter>()
             .SingleAsync(e => e.PlayerId == player.Id, TestContext.Current.CancellationToken);
         Assert.Equal(EncounterState.Active, encounter.State);
-        Assert.Equal(oldLocation.Id, encounter.ArrivalOriginLocationId);
+
+        var movedPlayer = await verifyContext.Creatures.SingleAsync(
+            c => c.Id == player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(oldLocation.Id, movedPlayer.PreviousLocationId);
     }
 
     [Fact]

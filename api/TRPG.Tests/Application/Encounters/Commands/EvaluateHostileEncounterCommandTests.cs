@@ -72,12 +72,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db) : I
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                OriginLocationId = Guid.NewGuid(),
-            },
+            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
