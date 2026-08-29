@@ -111,7 +111,16 @@ internal class AttemptTheftCommandHandler(
 
         var options = theftOptions.CurrentValue;
         var totalQuantity = selections.Sum(selection => selection.Quantity);
-        var curve = TheftDetectionChanceCalculator.BuildCurve(options, totalQuantity);
+        var equippedItemCount = await theftSourceResolver.GetEquippedItemCount(
+            command.WorldId,
+            selections.Select(selection => selection.ItemId).ToArray(),
+            cancellationToken
+        );
+        var curve = TheftDetectionChanceCalculator.BuildCurve(
+            options,
+            totalQuantity,
+            equippedItemCount
+        );
 
         var isDetected =
             requiresTheftDetectionRoll

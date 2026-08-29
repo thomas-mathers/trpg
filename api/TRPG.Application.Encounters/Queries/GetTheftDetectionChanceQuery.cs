@@ -54,9 +54,15 @@ internal class GetTheftDetectionChanceQueryHandler(
         }
 
         var totalQuantity = query.Items.Sum(item => item.Quantity);
+        var equippedItemCount = await theftSourceResolver.GetEquippedItemCount(
+            query.WorldId,
+            query.Items.Select(item => item.ItemId).ToArray(),
+            cancellationToken
+        );
         var curve = TheftDetectionChanceCalculator.BuildCurve(
             theftOptions.CurrentValue,
-            totalQuantity
+            totalQuantity,
+            equippedItemCount
         );
         var detectionChance = await skillCheckService.CalculateChance(
             query.PlayerId,

@@ -5,10 +5,15 @@ namespace TRPG.Application.Encounters;
 
 internal static class TheftDetectionChanceCalculator
 {
-    public static SkillCheckCurve BuildCurve(TheftOptions options, int totalQuantity) =>
+    public static SkillCheckCurve BuildCurve(
+        TheftOptions options,
+        int totalQuantity,
+        int equippedItemCount
+    ) =>
         new(
             BaseChance: options.BaseDetectionChance
-                + totalQuantity * options.DetectionChanceIncreasePerItem,
+                + totalQuantity * options.DetectionChanceIncreasePerItem
+                + equippedItemCount * options.DetectionChanceIncreasePerEquippedItem,
             ChanceChangePerSkillLevel: -options.DetectionChanceReductionPerSkillLevel,
             MinimumChance: options.MinimumDetectionChance,
             MaximumChance: options.MaximumDetectionChance

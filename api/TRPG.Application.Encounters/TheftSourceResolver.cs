@@ -55,6 +55,20 @@ internal class TheftSourceResolver(TrpgDbContext context)
             .Select(creature => new TheftWitness(creature.Id, creature.Name))
             .ToArrayAsync(cancellationToken);
 
+    public async Task<int> GetEquippedItemCount(
+        Guid worldId,
+        IReadOnlyCollection<Guid> itemIds,
+        CancellationToken cancellationToken
+    ) =>
+        await context
+            .Items.AsNoTracking()
+            .Where(item =>
+                item.WorldId == worldId
+                && itemIds.AsEnumerable().Contains(item.Id)
+                && item.Ownership.EquippedSlot != null
+            )
+            .CountAsync(cancellationToken);
+
     private async Task<TheftSource?> GetCreatureTheftSource(
         ItemOwnerReference from,
         Guid worldId,

@@ -34,6 +34,7 @@ public sealed class GetTheftDetectionChanceQueryTests(DatabaseFixture db) : IAsy
                         MinimumDetectionChance = 0.05f,
                         DetectionChanceReductionPerSkillLevel = 0.05f,
                         DetectionChanceIncreasePerItem = 0.05f,
+                        DetectionChanceIncreasePerEquippedItem = 0.2f,
                     }
                 )
             )
@@ -155,6 +156,44 @@ public sealed class GetTheftDetectionChanceQueryTests(DatabaseFixture db) : IAsy
         );
 
         // Assert — detectionChance = 0.5 + 5*0.05 - 10*0.05 = 0.25, success = 0.75
+        Assert.Equal(0.75f, result);
+    }
+
+    [Fact]
+    public async Task Handle_ScalesDownFurther_WhenTheSelectedItemIsEquipped()
+    {
+        // Arrange
+        var owner = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var item = Builders.MakeWeapon(WorldId, quantity: 1);
+        item.Ownership.OwnerId = owner.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        item.Ownership.EquippedSlot = EquipmentSlot.RightHand;
+        _context.Creatures.Add(owner);
+        _context.Items.Add(item);
+        _context.CreatureSkills.Add(
+            new CreatureSkill
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                Skill = Skill.Pickpocketing,
+                Level = 10,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetTheftDetectionChanceQuery
+            {
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+                From = new ItemOwnerReference(owner.Id, OwnerType.Creature),
+                Items = [new ItemSelection(item.Id, 1)],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — detectionChance = 0.5 + 1*0.05 - 10*0.05 + 1*0.2 = 0.25, success = 0.75
         Assert.Equal(0.75f, result);
     }
 

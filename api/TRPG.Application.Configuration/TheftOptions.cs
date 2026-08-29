@@ -7,4 +7,5 @@ public class TheftOptions
     public float MinimumDetectionChance { get; init; } = 0.05f;
     public float DetectionChanceReductionPerSkillLevel { get; init; } = 0.05f;
     public float DetectionChanceIncreasePerItem { get; init; } = 0.05f;
+    public float DetectionChanceIncreasePerEquippedItem { get; init; } = 0.2f;
 }
