@@ -92,6 +92,36 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
         Assert.Equal(originalState, updated.State);
     }
 
+    [Fact]
+    public async Task Handle_LeavesCreatureUnchanged_WhenDead()
+    {
+        // Arrange
+        var originalLocationId = _creature.LocationId;
+        var originalState = _creature.State;
+
+        // Act — a due Sleep job would normally move and re-state the creature
+        await _handler.Handle(
+            new ExecuteCreatureJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentLocationId = originalLocationId,
+                CurrentState = CreatureState.Dead,
+                CreatureJobAction = CreatureJobAction.Sleep,
+                JobLocationId = Guid.NewGuid(),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(originalLocationId, updated!.LocationId);
+        Assert.Equal(originalState, updated.State);
+    }
+
     private async Task AssertLocationIdUpdated(
         CreatureJobAction action,
         CreatureState expectedState
