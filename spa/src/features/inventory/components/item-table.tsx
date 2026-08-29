@@ -126,7 +126,7 @@ function ItemTableContent({
         <col className="w-20" />
         <col className="w-20" />
         <col className="w-20" />
-        {renderAction && <col className="w-24" />}
+        {renderAction && <col className="w-32" />}
       </colgroup>
       <thead>
         <tr className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
@@ -230,7 +230,7 @@ function ItemTableSkeleton({
         <col className="w-20" />
         <col className="w-20" />
         <col className="w-16" />
-        {hasAction && <col className="w-24" />}
+        {hasAction && <col className="w-32" />}
       </colgroup>
       <thead>
         <tr className="bg-primary/10 text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">

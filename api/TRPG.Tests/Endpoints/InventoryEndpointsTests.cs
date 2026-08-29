@@ -103,6 +103,61 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
     }
 
     [Fact]
+    public async Task Transfer_ReturnsBadRequest_WhenDestinationCarryingCapacityExceeded()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var item = Builders.MakeWeapon(_worldId, weight: _toCreature.CarryingCapacity + 1);
+        item.Quantity = 1;
+        item.Ownership.OwnerId = _fromCreature.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        context.Items.Add(item);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            "TransferInventory",
+            new InventoryTransferRequest(
+                new OwnerReferenceRequest(_fromCreature.Id, OwnerType.Creature),
+                new OwnerReferenceRequest(_toCreature.Id, OwnerType.Creature),
+                [new ItemSelection(item.Id, 1)]
+            ),
+            routeValues: new { playerId = _fromCreature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DropInventoryItem_DeletesItem_FromPlayerInventory()
+    {
+        // Arrange
+        var item = await SeedItemOnFromCreature();
+
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            "DropInventoryItem",
+            new DropInventoryItemRequest(1),
+            routeValues: new { playerId = _fromCreature.Id, itemId = item.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        await using var verifyScope = fixture.CreateScope();
+        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        Assert.False(
+            await verifyContext.Items.AnyAsync(
+                i => i.Id == item.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
     public async Task Transfer_ReturnsBadRequest_WhenCreaturesAreNotNearby()
     {
         // Arrange

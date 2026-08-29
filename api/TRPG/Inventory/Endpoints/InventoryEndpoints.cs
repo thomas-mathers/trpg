@@ -34,6 +34,12 @@ internal static class InventoryEndpoints
             .Produces<InventoryTransferResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
+        app.MapPost(
+                "/players/{playerId:guid}/inventory-items/{itemId:guid}/drop",
+                DropInventoryItem
+            )
+            .WithName("DropInventoryItem")
+            .ProducesProblem(StatusCodes.Status400BadRequest);
         app.MapPost("/players/{playerId:guid}/theft-detection-chance", GetTheftDetectionChance)
             .WithName("GetTheftDetectionChance");
         app.MapGet("/players/{playerId:guid}/trades/{workstationId:guid}", GetTrade)
@@ -183,6 +189,27 @@ internal static class InventoryEndpoints
         await eventDispatcher.FlushAsync(from.Value.WorldId, cancellationToken);
 
         return TypedResults.Ok(response);
+    }
+
+    private static async Task<NoContent> DropInventoryItem(
+        Guid playerId,
+        Guid itemId,
+        DropInventoryItemRequest request,
+        [FromServices] ICommandHandler<DropInventoryItemCommand> dropInventoryItem,
+        CancellationToken cancellationToken
+    )
+    {
+        await dropInventoryItem.Handle(
+            new DropInventoryItemCommand
+            {
+                PlayerId = playerId,
+                ItemId = itemId,
+                Quantity = request.Quantity,
+            },
+            cancellationToken
+        );
+
+        return TypedResults.NoContent();
     }
 
     private static async Task<(Guid LocationId, Guid WorldId)?> ResolveOwnerLocation(

@@ -104,8 +104,12 @@ describe('NearbySidebar', () => {
   it('starts theft narration after a caught container transfer closes', async () => {
     server.use(
       handleGetQuestJournal({ body: [] }),
-      handleGetCreatureInventory({ body: { gold: 0, items: [] } }),
-      handleGetContainerInventory({ body: { gold: 0, items: [item] } }),
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
+      handleGetContainerInventory({
+        body: { gold: 0, items: [item], weight: 0, carryingCapacity: null },
+      }),
       handleTransferInventory(() => HttpResponse.json({ theftEncounterId: 'theft-encounter-id' })),
     );
     const { chatHub, gameChat, user } = renderSidebar();

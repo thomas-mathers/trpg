@@ -9,5 +9,11 @@ internal static class InventorySnapshotMapper
     public static InventorySummary ToSummary(
         this InventoryResult snapshot,
         IReadOnlyCollection<Guid> questItemIds
-    ) => new(snapshot.Gold, snapshot.Items.ToDetails(questItemIds));
+    ) =>
+        new(
+            snapshot.Gold,
+            snapshot.Items.ToDetails(questItemIds),
+            snapshot.Weight,
+            snapshot.CarryingCapacity
+        );
 }

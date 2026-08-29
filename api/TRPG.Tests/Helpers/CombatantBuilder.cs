@@ -224,6 +224,10 @@ internal sealed class CombatantBuilder
             creature.BaseAttributes,
             Options
         );
+        creature.BaseAttributes.CarryingCapacity = StatFormulas.CalculateCarryingCapacity(
+            creature.BaseAttributes,
+            Options
+        );
         creature.CurrentHp = _currentHp ?? creature.BaseAttributes.MaximumHp;
         creature.CurrentAp = _currentAp ?? creature.BaseAttributes.MaximumAp;
         creature.CurrentMp = _currentMp ?? creature.BaseAttributes.MaximumMp;

@@ -38,8 +38,8 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
 }
 
 const emptyTrade: TradeSnapshot = {
-  playerInventory: { gold: 0, items: [] },
-  shopInventory: { gold: 0, items: [] },
+  playerInventory: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+  shopInventory: { gold: 0, items: [], weight: 0, carryingCapacity: null },
 };
 
 const emptyJournal: QuestJournalEntrySnapshot[] = [];
@@ -121,8 +121,12 @@ describe('NearbyPanel', () => {
 
   it('opens a nearby container inventory when clicked', async () => {
     server.use(
-      handleGetCreatureInventory({ body: { gold: 0, items: [] } }),
-      handleGetContainerInventory({ body: { gold: 0, items: [] } }),
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
+      handleGetContainerInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
     );
     const sceneWithContainer = {
       ...scene(undefined),

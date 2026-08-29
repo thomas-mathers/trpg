@@ -3,8 +3,14 @@ import { HttpResponse } from 'msw';
 import { byRole, byText } from 'testing-library-selector';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { EquipItemRequest, ItemDetail, ItemDetailGoldDetail } from '@/api/client';
+import type {
+  DropInventoryItemRequest,
+  EquipItemRequest,
+  ItemDetail,
+  ItemDetailGoldDetail,
+} from '@/api/client';
 import {
+  handleDropInventoryItem,
   handleEquipCreatureItem,
   handleGetCreatureInventory,
   handleUnequipCreatureItem,
@@ -27,6 +33,8 @@ const ui = {
   clearFilters: byRole('button', { name: 'Clear filters' }),
   category: (name: string) => byRole('button', { name }),
   sort: (name: string) => byRole('button', { name }),
+  drop: (itemName: string) => byRole('button', { name: `Drop ${itemName}` }),
+  confirmDrop: byRole('button', { name: 'Drop item' }),
 };
 
 const sword = (overrides: Partial<ItemDetail> = {}): ItemDetail =>
@@ -94,7 +102,11 @@ function renderDialog(onClose = vi.fn()) {
 
 describe('InventoryDialog', () => {
   it('shows an empty state and closes when requested', async () => {
-    server.use(handleGetCreatureInventory({ body: { gold: 0, items: [] } }));
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
+    );
     const onClose = vi.fn();
     const { user } = renderDialog(onClose);
 
@@ -111,6 +123,8 @@ describe('InventoryDialog', () => {
         body: {
           gold: 0,
           items: [sword(), sword({ itemId: 'steel-sword-1', name: 'Steel Sword' })],
+          weight: 0,
+          carryingCapacity: null,
         },
       }),
     );
@@ -130,7 +144,9 @@ describe('InventoryDialog', () => {
   it('submits an equip request for a selected item', async () => {
     let requestBody: EquipItemRequest | undefined;
     server.use(
-      handleGetCreatureInventory({ body: { gold: 0, items: [sword()] } }),
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [sword()], weight: 0, carryingCapacity: null },
+      }),
       handleEquipCreatureItem(async ({ request }) => {
         requestBody = await request.json();
         return new HttpResponse(null, { status: 204 });
@@ -148,7 +164,12 @@ describe('InventoryDialog', () => {
     let slot: string | undefined;
     server.use(
       handleGetCreatureInventory({
-        body: { gold: 0, items: [sword({ equippedSlot: 'RightHand' })] },
+        body: {
+          gold: 0,
+          items: [sword({ equippedSlot: 'RightHand' })],
+          weight: 0,
+          carryingCapacity: null,
+        },
       }),
       handleUnequipCreatureItem(({ params }) => {
         slot = params.slot;
@@ -164,7 +185,11 @@ describe('InventoryDialog', () => {
   });
 
   it('filters items by category', async () => {
-    server.use(handleGetCreatureInventory({ body: { gold: 0, items: [sword(), gold()] } }));
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [sword(), gold()], weight: 0, carryingCapacity: null },
+      }),
+    );
     const { user } = renderDialog();
     await ui.dialog.find();
     expect(await ui.item('Iron Sword').find()).toBeVisible();
@@ -185,6 +210,8 @@ describe('InventoryDialog', () => {
             sword({ itemId: 'low-value', name: 'Low Value Sword', goldValue: 10 }),
             sword({ itemId: 'high-value', name: 'High Value Sword', goldValue: 100 }),
           ],
+          weight: 0,
+          carryingCapacity: null,
         },
       }),
     );
@@ -209,6 +236,8 @@ describe('InventoryDialog', () => {
             sword({ itemId: 'high-damage', name: 'High Damage Sword', minDamage: 6 }),
             armor(),
           ],
+          weight: 0,
+          carryingCapacity: null,
         },
       }),
     );
@@ -231,5 +260,54 @@ describe('InventoryDialog', () => {
     expect(screen.getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(
       ['Item', 'Damage', 'Defense', 'Qty', 'Value', 'Weight', ''],
     );
+  });
+
+  it('shows carried weight and capacity', async () => {
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [sword()], weight: 2, carryingCapacity: 100 },
+      }),
+    );
+    renderDialog();
+    await ui.dialog.find();
+
+    expect(await screen.findByText(/2 \/ 100/)).toBeVisible();
+  });
+
+  it('drops an item after confirming', async () => {
+    let requestBody: DropInventoryItemRequest | undefined;
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [sword()], weight: 2, carryingCapacity: 100 },
+      }),
+      handleDropInventoryItem(async ({ request }) => {
+        requestBody = await request.json();
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { user } = renderDialog();
+    await ui.dialog.find();
+
+    await user.click(await ui.drop('Iron Sword').find());
+    await user.click(ui.confirmDrop.get());
+
+    await waitFor(() => expect(requestBody).toEqual({ quantity: 1 }));
+  });
+
+  it('disables dropping a quest item', async () => {
+    server.use(
+      handleGetCreatureInventory({
+        body: {
+          gold: 0,
+          items: [sword({ isQuestItem: true })],
+          weight: 2,
+          carryingCapacity: 100,
+        },
+      }),
+    );
+    renderDialog();
+    await ui.dialog.find();
+
+    expect(await ui.drop('Iron Sword').find()).toBeDisabled();
   });
 });

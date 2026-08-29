@@ -74,6 +74,10 @@ internal class AllocateAttributePointsCommandHandler(
             creature.BaseAttributes,
             optionsSnapshot.Value
         );
+        creature.BaseAttributes.CarryingCapacity = StatFormulas.CalculateCarryingCapacity(
+            creature.BaseAttributes,
+            optionsSnapshot.Value
+        );
 
         var items = await getInventoryItemsByOwner.Handle(
             new GetInventoryItemsByOwnerQuery

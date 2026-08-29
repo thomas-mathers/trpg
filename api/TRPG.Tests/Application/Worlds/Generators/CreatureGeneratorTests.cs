@@ -364,4 +364,23 @@ public class CreatureGeneratorTests
         // Assert
         Assert.NotEmpty(result.Skills);
     }
+
+    [Fact]
+    public void Generate_GivesEnoughCarryingCapacity_ForTheHeaviestStartingGear()
+    {
+        // Arrange — Ranger's fixed 20-arrow starting kit is the heaviest starting loadout,
+        // and its Endurance affinity is low enough that a bad roll can land near the floor
+        for (var level = 1; level <= 20; level++)
+        {
+            // Act
+            var result = _creatureGenerator.Generate(MakeInput(Profession.Ranger, level));
+
+            // Assert
+            var startingWeight = result.Items.Sum(item => item.Weight * item.Quantity);
+            Assert.True(
+                result.Creature.CarryingCapacity >= startingWeight,
+                $"Level {level} Ranger's carrying capacity {result.Creature.CarryingCapacity} was below starting inventory weight {startingWeight}."
+            );
+        }
+    }
 }

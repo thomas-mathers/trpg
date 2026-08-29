@@ -26,6 +26,9 @@ public enum AttributeName
 
     [Description("Maximum MP")]
     MaximumMp,
+
+    [Description("Carrying Capacity")]
+    CarryingCapacity,
     Strength,
     Defense,
     Dexterity,

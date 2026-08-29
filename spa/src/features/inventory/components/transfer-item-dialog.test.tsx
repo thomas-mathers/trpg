@@ -108,7 +108,11 @@ function renderDialog(
 
 describe('TransferItemDialog', () => {
   it('does not allow transfer until an item is selected', async () => {
-    server.use(handleGetCreatureInventory({ body: { gold: 0, items: [] } }));
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
+    );
 
     renderDialog();
 
@@ -366,9 +370,16 @@ describe('TransferItemDialog', () => {
   it('loots a container by reading and transferring against its own inventory endpoint', async () => {
     let requestBody: InventoryTransferRequest | undefined;
     server.use(
-      handleGetCreatureInventory({ body: { gold: 0, items: [] } }),
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
       handleGetContainerInventory(async () =>
-        HttpResponse.json({ gold: 0, items: [item({ name: 'Chest coins' })] }),
+        HttpResponse.json({
+          gold: 0,
+          items: [item({ name: 'Chest coins' })],
+          weight: 0,
+          carryingCapacity: null,
+        }),
       ),
       handleTransferInventory(async ({ request }) => {
         requestBody = await request.json();
@@ -393,10 +404,41 @@ describe('TransferItemDialog', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it('disables moving an item to the player when it would exceed carrying capacity', async () => {
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: 1 },
+      }),
+      handleGetContainerInventory({
+        body: {
+          gold: 0,
+          items: [sword({ weight: 5 })],
+          weight: 5,
+          carryingCapacity: null,
+        },
+      }),
+    );
+
+    const { user } = renderDialog(vi.fn(), true, 'Container');
+    await ui.dialog.find();
+    await user.click(await ui.item('Iron Sword').find());
+
+    expect(byTitle('Carrying too much weight to take this').get()).toBeDisabled();
+  });
+
   it('closes before starting a caught theft encounter', async () => {
     server.use(
-      handleGetCreatureInventory({ body: { gold: 0, items: [] } }),
-      handleGetContainerInventory({ body: { gold: 0, items: [item({ name: 'Chest coins' })] } }),
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
+      handleGetContainerInventory({
+        body: {
+          gold: 0,
+          items: [item({ name: 'Chest coins' })],
+          weight: 0,
+          carryingCapacity: null,
+        },
+      }),
       handleTransferInventory(() => HttpResponse.json({ theftEncounterId: 'theft-encounter-id' })),
     );
 
@@ -412,7 +454,11 @@ describe('TransferItemDialog', () => {
   });
 
   it('closes without transferring when cancelled', async () => {
-    server.use(handleGetCreatureInventory({ body: { gold: 0, items: [] } }));
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
+    );
     const onClose = vi.fn();
     const { user } = renderDialog(onClose);
 

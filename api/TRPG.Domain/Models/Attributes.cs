@@ -2,6 +2,7 @@ namespace TRPG.Domain.Models;
 
 public record Attributes
 {
+    public int CarryingCapacity { get; set; }
     public int Defense { get; set; }
     public int Dexterity { get; set; }
     public int Endurance { get; set; }

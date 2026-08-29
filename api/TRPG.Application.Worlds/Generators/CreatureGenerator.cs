@@ -1307,6 +1307,10 @@ public class CreatureGenerator(
             MaximumHp = StatFormulas.CalculateMaximumHp(baseAttributes, optionsSnapshot.Value),
             MaximumAp = StatFormulas.CalculateMaximumAp(baseAttributes, optionsSnapshot.Value),
             MaximumMp = StatFormulas.CalculateMaximumMp(baseAttributes, optionsSnapshot.Value),
+            CarryingCapacity = StatFormulas.CalculateCarryingCapacity(
+                baseAttributes,
+                optionsSnapshot.Value
+            ),
         };
     }
 
@@ -1376,6 +1380,10 @@ public class CreatureGenerator(
             MaximumHp = StatFormulas.CalculateMaximumHp(baseAttributes, optionsSnapshot.Value),
             MaximumAp = StatFormulas.CalculateMaximumAp(baseAttributes, optionsSnapshot.Value),
             MaximumMp = StatFormulas.CalculateMaximumMp(baseAttributes, optionsSnapshot.Value),
+            CarryingCapacity = StatFormulas.CalculateCarryingCapacity(
+                baseAttributes,
+                optionsSnapshot.Value
+            ),
         };
     }
 

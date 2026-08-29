@@ -44,7 +44,7 @@ const STAT_GROUPS: Array<{ label: string; attributes: AttributeName[] }> = [
   },
   {
     label: 'Vitals',
-    attributes: ['MaximumHp', 'MaximumAp', 'MaximumMp', 'MovementSpeed'],
+    attributes: ['MaximumHp', 'MaximumAp', 'MaximumMp', 'CarryingCapacity', 'MovementSpeed'],
   },
   {
     label: 'Resistances',
@@ -71,6 +71,7 @@ function toAttributeMap(stats: EffectiveAttributesResponse): Record<AttributeNam
     MaximumHp: Number(stats.maximumHp),
     MaximumAp: Number(stats.maximumAp),
     MaximumMp: Number(stats.maximumMp),
+    CarryingCapacity: Number(stats.carryingCapacity),
     MovementSpeed: Number(stats.movementSpeed),
     PhysicalResistance: Number(stats.physicalResistance),
     FireResistance: Number(stats.fireResistance),
