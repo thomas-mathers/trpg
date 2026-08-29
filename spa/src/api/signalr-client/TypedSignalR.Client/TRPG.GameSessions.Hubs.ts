@@ -45,14 +45,16 @@ export type IChatHub = {
     /**
     * @param targetId Transpiled from System.Guid
     * @param abilityName Transpiled from string
-    * @returns Transpiled from System.Threading.Tasks.Task
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
-    resolveUseAbilityCombatAction(targetId: string, abilityName: string): Promise<void>;
+    resolveUseAbilityCombatAction(targetId: string, abilityName: string): IStreamResult<string>;
     /**
     * @param itemName Transpiled from string
-    * @returns Transpiled from System.Threading.Tasks.Task
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
-    resolveUseItemCombatAction(itemName: string): Promise<void>;
+    resolveUseItemCombatAction(itemName: string): IStreamResult<string>;
     /**
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
@@ -99,12 +101,6 @@ export type IChatHub = {
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
     resolveFightTheftEncounterAction(): IStreamResult<string>;
-    /**
-    * @param fightId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
-    */
-    streamCombatConclusionNarration(fightId: string): IStreamResult<string>;
     /**
     * @param flushId Transpiled from System.Guid
     * @returns Transpiled from System.Threading.Tasks.Task

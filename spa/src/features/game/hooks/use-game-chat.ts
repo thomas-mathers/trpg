@@ -11,7 +11,12 @@ import { useChatHub } from './use-game-hub-connection';
 export interface GameChat {
   messages: ChatMessage[];
   isStreaming: boolean;
-  submitNarratedTurn: (displayText: string | null, stream: IStreamResult<string>) => void;
+  submitNarratedTurn: (
+    displayText: string | null,
+    stream: IStreamResult<string>,
+    onError?: (error: unknown) => void,
+    onSettle?: () => void,
+  ) => void;
 }
 
 export const GameChatContext = createContext<GameChat | null>(null);
@@ -37,24 +42,30 @@ export function useGameChatBuilder(sessionId: string): GameChat {
     (
       streamResult: IStreamResult<string>,
       onReceiveToken: (token: string) => void,
-      onComplete: (() => void) | undefined,
+      onComplete: ((receivedAnyToken: boolean) => void) | undefined,
+      onError?: (error: unknown) => void,
     ) => {
       setIsStreaming(true);
       let subscription: ISubscription<string> | null = null;
+      let receivedAnyToken = false;
 
       const subscriber: IStreamSubscriber<string> = {
         complete() {
           subscription?.dispose();
           setIsStreaming(false);
-          onComplete?.();
+          onComplete?.(receivedAnyToken);
         },
         error(err: unknown) {
           console.error('Error receiving stream response', err);
           subscription?.dispose();
           setIsStreaming(false);
-          onComplete?.();
+          onError?.(err);
+          onComplete?.(receivedAnyToken);
         },
-        next: onReceiveToken,
+        next(token) {
+          receivedAnyToken = true;
+          onReceiveToken(token);
+        },
       };
 
       subscription = streamResult.subscribe(subscriber);
@@ -108,7 +119,11 @@ export function useGameChatBuilder(sessionId: string): GameChat {
 
   const startTurn = (
     playerInput: string | null,
-    stream: (onToken: (token: string) => void, onComplete: () => void) => void,
+    stream: (
+      onToken: (token: string) => void,
+      onComplete: (receivedAnyToken: boolean) => void,
+    ) => void,
+    onSettle?: () => void,
   ) => {
     const narratorMessageId = crypto.randomUUID();
 
@@ -124,14 +139,28 @@ export function useGameChatBuilder(sessionId: string): GameChat {
 
     stream(
       (token) => appendTokenToActiveNarrationMessage(narratorMessageId, token),
-      () => {
+      (receivedAnyToken) => {
         activeNarratorMessageId.current = null;
+        // A stream that never yielded a token (e.g. a combat action that didn't conclude the fight) has nothing to show — drop the placeholder bubble it started with.
+        if (!receivedAnyToken) {
+          setMessages((current) => current.filter((m) => m.id !== narratorMessageId));
+        }
+        onSettle?.();
       },
     );
   };
 
-  const submitNarratedTurn = (displayText: string | null, stream: IStreamResult<string>) => {
-    startTurn(displayText, (onToken, onComplete) => subscribeToStream(stream, onToken, onComplete));
+  const submitNarratedTurn = (
+    displayText: string | null,
+    stream: IStreamResult<string>,
+    onError?: (error: unknown) => void,
+    onSettle?: () => void,
+  ) => {
+    startTurn(
+      displayText,
+      (onToken, onComplete) => subscribeToStream(stream, onToken, onComplete, onError),
+      onSettle,
+    );
   };
 
   return {

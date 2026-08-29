@@ -1,5 +1,6 @@
-import { HubConnectionState } from '@microsoft/signalr';
+import { HubConnectionState, type IStreamResult, type IStreamSubscriber } from '@microsoft/signalr';
 import { act, configure, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import { byRole } from 'testing-library-selector';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -81,6 +82,10 @@ function ability(name: string, category: AbilitySummary['category']): AbilitySum
   };
 }
 
+function noopStreamResult(): IStreamResult<string> {
+  return { subscribe: () => ({ dispose: () => undefined }) };
+}
+
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
@@ -88,8 +93,8 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     sendChat: vi.fn(),
     sendWait: vi.fn(),
     sendFlee: vi.fn(),
-    resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
-    resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
+    resolveUseAbilityCombatAction: vi.fn(() => noopStreamResult()),
+    resolveUseItemCombatAction: vi.fn(() => noopStreamResult()),
     resolveAttackEncounterAction: vi.fn(),
     resolveEvadeEncounterAction: vi.fn(),
     resolveRetreatEncounterAction: vi.fn(),
@@ -220,14 +225,53 @@ describe('CombatDialog', () => {
       restoreAmount: 25,
     };
     server.use(handleGetCreatureConsumables({ body: [potion] }));
-    let resolveAction: () => void = () => undefined;
-    const resolveUseItemCombatAction = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveAction = resolve;
-        }),
-    );
-    const { user } = renderConsole({}, { chatHub: buildChatHub({ resolveUseItemCombatAction }) });
+
+    let subscriber: IStreamSubscriber<string> | undefined;
+    const pendingStream: IStreamResult<string> = {
+      subscribe: (s) => {
+        subscriber = s;
+        return { dispose: () => undefined };
+      },
+    };
+    const resolveUseItemCombatAction = vi.fn(() => pendingStream);
+
+    function Harness() {
+      const [isStreaming, setIsStreaming] = useState(false);
+      const gameChat = buildGameChat({
+        isStreaming,
+        submitNarratedTurn: (_displayText, stream, _onError, onSettle) => {
+          setIsStreaming(true);
+          stream.subscribe({
+            next: () => undefined,
+            complete: () => {
+              setIsStreaming(false);
+              onSettle?.();
+            },
+            error: () => {
+              setIsStreaming(false);
+              onSettle?.();
+            },
+          });
+        },
+      });
+      const hubConnection = buildGameHubConnection({
+        chatHub: buildChatHub({ resolveUseItemCombatAction }),
+      });
+
+      return (
+        <GameHubConnectionContext.Provider value={hubConnection}>
+          <GameChatContext.Provider value={gameChat}>
+            <SceneProvider sessionId="session-id">
+              <CombatDialog />
+            </SceneProvider>
+          </GameChatContext.Provider>
+        </GameHubConnectionContext.Provider>
+      );
+    }
+
+    const { user } = renderWithProviders(<Harness />);
+    gameEventBus.emit('SceneSnapshot', { playerStatus: { id: 'player-id' } } as SceneSnapshot);
+    gameEventBus.emit('CombatStarted', { fightId: 'fight-id', combatants: fight });
 
     await user.click(await ui.item.find());
     await user.click(await ui.consumable('Healing Potion').find());
@@ -235,7 +279,7 @@ describe('CombatDialog', () => {
     expect(ui.attack.get()).toBeDisabled();
     expect(screen.getByRole('dialog', { name: 'Combat' })).toBeInTheDocument();
 
-    await act(async () => resolveAction());
+    await act(async () => subscriber?.complete());
 
     await waitFor(() => expect(ui.attack.get()).not.toBeDisabled());
   });

@@ -13,6 +13,11 @@ public class ResolvePlayerCombatActionCommand
     public required PlayerCombatAction Action { get; init; }
 }
 
+public record PlayerCombatActionResult(
+    CombatResult CombatResult,
+    IReadOnlyCollection<string> OpponentNames
+);
+
 internal class ResolvePlayerCombatActionCommandHandler(
     ICommandHandler<
         ApplyPassiveRegenCommand,
@@ -21,9 +26,9 @@ internal class ResolvePlayerCombatActionCommandHandler(
     ActiveFightCombatantLoader combatantLoader,
     CombatEngine combatEngine,
     ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound
-) : ICommandHandler<ResolvePlayerCombatActionCommand>
+) : ICommandHandler<ResolvePlayerCombatActionCommand, PlayerCombatActionResult>
 {
-    public async Task Handle(
+    public async Task<PlayerCombatActionResult> Handle(
         ResolvePlayerCombatActionCommand command,
         CancellationToken cancellationToken = default
     )
@@ -43,7 +48,7 @@ internal class ResolvePlayerCombatActionCommandHandler(
         if (resolved.ErrorMessage is not null)
             throw new InvalidOperationException(resolved.ErrorMessage);
         var state = combatEngine.ProcessRound(combatants, resolved.Result!);
-        await resolveCombatRound.Handle(
+        var combatResult = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {
                 SessionId = command.SessionId,
@@ -54,5 +59,12 @@ internal class ResolvePlayerCombatActionCommandHandler(
             },
             cancellationToken
         );
+
+        var opponentNames = combatants
+            .Where(combatant => !combatant.IsPlayer)
+            .Select(combatant => combatant.Name)
+            .ToArray();
+
+        return new PlayerCombatActionResult(combatResult, opponentNames);
     }
 }

@@ -1,7 +1,10 @@
 using System.Text.Json;
-using TRPG.Application.Combat.Queries;
-using TRPG.Application.Common.Queries;
-using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Combat;
+using TRPG.Application.Combat.Commands;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
+using TRPG.Application.GameTurns.Events;
+using TRPG.Application.Scenes.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -11,46 +14,53 @@ internal record CombatConclusionFact(
     IReadOnlyCollection<string> OpponentNames
 );
 
-internal class StreamCombatConclusionNarrationTurnHandler(
+internal class StreamCombatActionTurnHandler(
     GameTurnStreamer streamer,
-    IQueryHandler<GetFightByIdQuery, FightEncounter?> getFightById,
-    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds
+    ICommandHandler<ResolvePlayerCombatActionCommand, PlayerCombatActionResult> resolveCombatAction,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    IGameClientEventSink gameEvents
 )
 {
     public IAsyncEnumerable<string> Handle(
         GameTurnSession session,
-        Guid fightId,
+        PlayerCombatAction action,
         CancellationToken cancellationToken = default
-    ) => streamer.StreamTurn(session, ct => ResolveTurn(session, fightId, ct), cancellationToken);
+    ) => streamer.StreamTurn(session, ct => ResolveTurn(session, action, ct), cancellationToken);
 
     private async Task<GameTurnPrompt> ResolveTurn(
         GameTurnSession session,
-        Guid fightId,
+        PlayerCombatAction action,
         CancellationToken cancellationToken
     )
     {
-        var fight = await getFightById.Handle(
-            new GetFightByIdQuery { FightId = fightId },
+        var result = await resolveCombatAction.Handle(
+            new ResolvePlayerCombatActionCommand
+            {
+                SessionId = session.SessionId,
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                Action = action,
+            },
             cancellationToken
         );
 
-        if (fight == null || fight.WorldId != session.WorldId || fight.PlayerId != session.PlayerId)
+        var refreshed = await refreshScene.Handle(
+            new RefreshSceneCommand
+            {
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                SessionId = session.SessionId,
+            },
+            cancellationToken
+        );
+        gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
+
+        if (result.CombatResult.Outcome == CombatOutcome.Ongoing)
         {
-            return new GameTurnPrompt.Reply("There's no fight to narrate the conclusion of.");
+            return new GameTurnPrompt.None();
         }
 
-        var combatants = await getCreaturesByIds.Handle(
-            new GetCreaturesByIdsQuery { Ids = fight.CombatantIds },
-            cancellationToken
-        );
-        var opponentNames = fight
-            .CombatantIds.Where(id => id != session.PlayerId)
-            .Select(id => combatants.GetValueOrDefault(id)?.Name)
-            .Where(name => name != null)
-            .Select(name => name!)
-            .ToArray();
-
-        var fact = new CombatConclusionFact(fight.Outcome, opponentNames);
+        var fact = new CombatConclusionFact(result.CombatResult.Outcome, result.OpponentNames);
 
         return new GameTurnPrompt.Narrate(BuildNarrationPrompt(fact), IncludeTools: false);
     }
@@ -72,12 +82,6 @@ internal class StreamCombatConclusionNarrationTurnHandler(
                 The player has been struck down and lost consciousness; the opponent(s) survive.
                 Narrate only up to the moment the player blacks out — what happens next is handled
                 separately, so do not narrate anything after that. Do not call any tools.
-                """,
-            CombatOutcome.Fled => $"""
-                The fight has concluded. Result: {json}.
-                The player has escaped the fight; the opponent(s) survive and are left behind.
-                Narrate the moment of breaking free and getting clear of danger, and the immediate
-                relief or lingering fear once safe. Do not call any tools.
                 """,
             _ => throw new ArgumentOutOfRangeException(nameof(fact)),
         };

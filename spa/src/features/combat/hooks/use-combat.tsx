@@ -1,3 +1,4 @@
+import type { IStreamResult } from '@microsoft/signalr';
 import { ShieldAlert } from 'lucide-react';
 import { useEffect, useReducer, useState } from 'react';
 import { toast } from 'sonner';
@@ -252,7 +253,7 @@ function combatReducer(state: CombatState, action: CombatStateAction): CombatSta
     case 'ROUND_RECEIVED': {
       const outcome = action.payload.outcome === 'Ongoing' ? undefined : action.payload.outcome;
 
-      // A round with no actions (e.g. a clean flee) has nothing worth animating, so skip queuing it — even a zero-delay queued step costs an async tick, enough for a synchronous SceneUpdatedEvent to insert its marker first despite arriving after this on the wire.
+      // A round with no actions (e.g. a clean flee) has nothing worth animating, so skip queuing it and apply it immediately.
       if (state.fight === null || action.skipAnimation || action.payload.actions.length === 0) {
         return {
           ...state,
@@ -307,8 +308,9 @@ export function useCombat() {
   const { isStreaming, submitNarratedTurn } = useGameChat();
   const chatHub = useChatHub();
   const submitFlee = () => submitNarratedTurn(null, chatHub.sendFlee());
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const isRevealed = useDelayedReveal(!!state.fight && !isStreaming);
+  const [isActionPending, setIsActionPending] = useState(false);
+  // Exclude our own combat action's isStreaming flip so an ordinary round doesn't hide the dialog; a concluding fight closes it via state.fight going null instead.
+  const isRevealed = useDelayedReveal(!!state.fight && !(isStreaming && !isActionPending));
 
   useEffect(() => {
     if (state.queue.length === 0) {
@@ -325,6 +327,9 @@ export function useCombat() {
     });
     const unsubscribeCombatUpdated = gameEventBus.on('CombatUpdated', (payload) => {
       dispatch({ type: 'ROUND_RECEIVED', payload, skipAnimation: prefersReducedMotion() });
+      if (payload.outcome !== 'Ongoing') {
+        gameEventBus.emit('CombatOutcomeKnown', payload.outcome);
+      }
     });
 
     return () => {
@@ -340,16 +345,14 @@ export function useCombat() {
 
     gameEventBus.emit('CombatResolved', state.combatOutcome);
     dispatch({ type: 'RESOLVED' });
-    // Fleeing already streams its own dedicated narration (see submitFlee) covering the same beat the generic conclusion narration would otherwise repeat.
-    if (state.combatOutcome !== 'Fled') {
-      submitNarratedTurn(null, chatHub.streamCombatConclusionNarration(state.fightId));
-    }
   }, [state.combatOutcome]);
 
-  const runCombatAction = (action: Promise<void>) => {
-    setIsSubmitting(true);
-    action
-      .catch((error: unknown) => {
+  const submitCombatAction = (stream: IStreamResult<string>) => {
+    setIsActionPending(true);
+    submitNarratedTurn(
+      null,
+      stream,
+      (error) => {
         const description =
           error instanceof Error ? error.message : 'Combat action could not be resolved.';
         toast.custom((toastId) => (
@@ -360,18 +363,18 @@ export function useCombat() {
             description={description}
           />
         ));
-      })
-      .finally(() => setIsSubmitting(false));
+      },
+      () => setIsActionPending(false),
+    );
   };
 
   const submitUseAbilityCombatAction = (targetId: string, abilityName: string) =>
-    runCombatAction(chatHub.resolveUseAbilityCombatAction(targetId, abilityName));
+    submitCombatAction(chatHub.resolveUseAbilityCombatAction(targetId, abilityName));
 
   const submitUseItemCombatAction = (itemName: string) =>
-    runCombatAction(chatHub.resolveUseItemCombatAction(itemName));
+    submitCombatAction(chatHub.resolveUseItemCombatAction(itemName));
 
-  const isResolvingRound = state.isPlayingBack || isSubmitting;
-  const disabled = isResolvingRound || isStreaming;
+  const disabled = state.isPlayingBack || isActionPending || isStreaming;
 
   return {
     fight: state.fight,
