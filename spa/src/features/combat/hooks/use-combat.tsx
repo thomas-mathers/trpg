@@ -252,7 +252,8 @@ function combatReducer(state: CombatState, action: CombatStateAction): CombatSta
     case 'ROUND_RECEIVED': {
       const outcome = action.payload.outcome === 'Ongoing' ? undefined : action.payload.outcome;
 
-      if (state.fight === null || action.skipAnimation) {
+      // A round with no actions (e.g. a clean flee) has nothing worth animating, so skip queuing it — even a zero-delay queued step costs an async tick, enough for a synchronous SceneUpdatedEvent to insert its marker first despite arriving after this on the wire.
+      if (state.fight === null || action.skipAnimation || action.payload.actions.length === 0) {
         return {
           ...state,
           fight: action.payload.combatants,
@@ -339,7 +340,10 @@ export function useCombat() {
 
     gameEventBus.emit('CombatResolved', state.combatOutcome);
     dispatch({ type: 'RESOLVED' });
-    submitNarratedTurn(null, chatHub.streamCombatConclusionNarration(state.fightId));
+    // Fleeing already streams its own dedicated narration (see submitFlee) covering the same beat the generic conclusion narration would otherwise repeat.
+    if (state.combatOutcome !== 'Fled') {
+      submitNarratedTurn(null, chatHub.streamCombatConclusionNarration(state.fightId));
+    }
   }, [state.combatOutcome]);
 
   const runCombatAction = (action: Promise<void>) => {

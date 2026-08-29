@@ -55,7 +55,7 @@ internal class StreamCombatConclusionNarrationTurnHandler(
         return new GameTurnPrompt.Narrate(BuildNarrationPrompt(fact), IncludeTools: false);
     }
 
-    private static string BuildNarrationPrompt(CombatConclusionFact fact)
+    internal static string BuildNarrationPrompt(CombatConclusionFact fact)
     {
         var json = JsonSerializer.Serialize(fact, Common.Serialization.TrpgJsonOptions.Default);
 
@@ -72,6 +72,12 @@ internal class StreamCombatConclusionNarrationTurnHandler(
                 The player has been struck down and lost consciousness; the opponent(s) survive.
                 Narrate only up to the moment the player blacks out — what happens next is handled
                 separately, so do not narrate anything after that. Do not call any tools.
+                """,
+            CombatOutcome.Fled => $"""
+                The fight has concluded. Result: {json}.
+                The player has escaped the fight; the opponent(s) survive and are left behind.
+                Narrate the moment of breaking free and getting clear of danger, and the immediate
+                relief or lingering fear once safe. Do not call any tools.
                 """,
             _ => throw new ArgumentOutOfRangeException(nameof(fact)),
         };

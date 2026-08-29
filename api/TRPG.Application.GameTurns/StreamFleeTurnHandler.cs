@@ -1,12 +1,17 @@
 using System.Text.Json;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
+using TRPG.Application.GameTurns.Events;
+using TRPG.Application.Scenes.Commands;
 
 namespace TRPG.Application.GameTurns;
 
 internal class StreamFleeTurnHandler(
     GameTurnStreamer streamer,
-    ICommandHandler<ResolveFleeCombatCommand, FleeCombatResult?> resolveFleeCombat
+    ICommandHandler<ResolveFleeCombatCommand, FleeCombatResult?> resolveFleeCombat,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    IGameClientEventSink gameEvents
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -31,6 +36,20 @@ internal class StreamFleeTurnHandler(
         if (result == null)
         {
             return new GameTurnPrompt.Reply("There's no fight to flee from right now.");
+        }
+
+        if (result.DestinationLocationName != null)
+        {
+            var refreshed = await refreshScene.Handle(
+                new RefreshSceneCommand
+                {
+                    WorldId = session.WorldId,
+                    PlayerId = session.PlayerId,
+                    SessionId = session.SessionId,
+                },
+                cancellationToken
+            );
+            gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
         }
 
         return new GameTurnPrompt.Narrate(BuildNarrationPrompt(result), IncludeTools: false);
