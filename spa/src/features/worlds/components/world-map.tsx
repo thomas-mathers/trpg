@@ -55,7 +55,7 @@ const COUNTRY_PALETTE = [
 ];
 
 const ROAD_COLOR = '#8a3c1f'; // rust
-const ROAD_OPACITY = 0.68;
+const ROAD_OPACITY = 0.45;
 
 // One fixed, opaque border color for every country (not each country's own color) — a shared edge is drawn twice, once by each side's polygon, and same-color double-draws are invisible where two different translucent colors would visibly stack.
 const COUNTRY_BORDER_COLOR = INK;
@@ -170,6 +170,31 @@ function boundingBoxOf(points: PointResponse[]) {
   };
 }
 
+// Voronoi-neighbor states share exact vertex coordinates for their common edge, so it's deduplicated across states instead of each one stroking its own whole loop, which double-draws every internal edge — invisible for a solid stroke, but a dashed one shows two independently-phased patterns overlapping.
+function dedupedStateEdges(
+  states: StateMapResponse[],
+  countryColors: Map<string, string>,
+): StateBorderEdge[] {
+  const roundCoord = (value: number) => Math.round(value * 100) / 100;
+  const pointKey = (point: PointResponse) => `${roundCoord(point.x)},${roundCoord(point.y)}`;
+
+  const edgesByKey = new Map<string, StateBorderEdge>();
+  for (const state of states) {
+    const color = countryColors.get(state.countryId)!;
+    const boundary = state.boundary;
+    for (let i = 0; i < boundary.length; i++) {
+      const from = boundary[i];
+      const to = boundary[(i + 1) % boundary.length];
+      const key = [pointKey(from), pointKey(to)].sort().join('|');
+      if (!edgesByKey.has(key)) {
+        edgesByKey.set(key, { from, to, color });
+      }
+    }
+  }
+
+  return [...edgesByKey.values()];
+}
+
 function computeScale(countries: CountryMapResponse[], states: StateMapResponse[]): MapScale {
   const points =
     countries.length > 0
@@ -204,10 +229,10 @@ function colorsByCountryId(countries: CountryMapResponse[]): Map<string, string>
   );
 }
 
-// Paint order low to high: borders, roads, connector stems, state labels, markers, country banner — so nothing meant to sit underneath something else ends up overlapping it.
+// Paint order low to high: borders, roads, connector stems, state labels, markers, country banner — so nothing meant to sit underneath something else ends up overlapping it. Country above state (not the reverse) specifically: wherever a state sits at its own country's outer edge, that segment is drawn by both — country on top lets its solid stroke win cleanly there instead of fighting the state's dashed one.
 const Z_INDEX = {
-  countryBorder: 0,
-  stateBorder: 1,
+  stateBorder: 0,
+  countryBorder: 1,
   road: 2,
   markerConnector: 3,
   countryLabelConnector: 3,
@@ -219,11 +244,10 @@ const Z_INDEX = {
 type CountryBorderData = { points: PointResponse[]; color: string; strokeWidth: number };
 type CountryLabelData = { name: string; color: string };
 type CountryLabelConnectorData = { strokeWidth: number };
-type StateBorderData = {
-  points: PointResponse[];
-  color: string;
-  strokeWidth: number;
-};
+type StateBorderData = { points: PointResponse[]; color: string };
+// A deduplicated edge, shared by both neighboring states that border it — see dedupedStateEdges.
+type StateBorderEdge = { from: PointResponse; to: PointResponse; color: string };
+type StateBorderLinesData = { edges: StateBorderEdge[]; strokeWidth: number };
 type StateLabelData = {
   name: string;
   description: string;
@@ -239,6 +263,7 @@ type CountryBorderFlowNode = Node<CountryBorderData, 'country-border'>;
 type CountryLabelFlowNode = Node<CountryLabelData, 'country-label'>;
 type CountryLabelConnectorFlowNode = Node<CountryLabelConnectorData, 'country-label-connector'>;
 type StateBorderFlowNode = Node<StateBorderData, 'state-border'>;
+type StateBorderLinesFlowNode = Node<StateBorderLinesData, 'state-border-lines'>;
 type StateLabelFlowNode = Node<StateLabelData, 'state-label'>;
 type MarkerFlowNode = Node<MarkerData, 'marker'>;
 type MarkerConnectorFlowNode = Node<MarkerConnectorData, 'marker-connector'>;
@@ -352,7 +377,6 @@ function buildWorldMap(
       data: {
         points: state.boundary.map((point) => ({ x: point.x - box.minX, y: point.y - box.minY })),
         color,
-        strokeWidth: scale.stateStrokeWidth,
       },
     });
 
@@ -368,6 +392,29 @@ function buildWorldMap(
       zIndex: Z_INDEX.stateLabel,
       draggable: false,
       data: { name: state.name, description: state.description, color, city },
+    });
+  }
+
+  const stateEdges = dedupedStateEdges(states, countryColors);
+  const stateBorderLinesNode: StateBorderLinesFlowNode[] = [];
+  if (stateEdges.length > 0) {
+    const edgesBox = boundingBoxOf(stateEdges.flatMap((edge) => [edge.from, edge.to]));
+    stateBorderLinesNode.push({
+      id: 'state-border-lines',
+      type: 'state-border-lines',
+      position: { x: edgesBox.minX, y: edgesBox.minY },
+      style: { width: edgesBox.width, height: edgesBox.height },
+      zIndex: Z_INDEX.stateBorder,
+      draggable: false,
+      selectable: false,
+      data: {
+        edges: stateEdges.map((edge) => ({
+          from: { x: edge.from.x - edgesBox.minX, y: edge.from.y - edgesBox.minY },
+          to: { x: edge.to.x - edgesBox.minX, y: edge.to.y - edgesBox.minY },
+          color: edge.color,
+        })),
+        strokeWidth: scale.stateStrokeWidth,
+      },
     });
   }
 
@@ -469,6 +516,7 @@ function buildWorldMap(
     nodes: [
       ...countryBorders,
       ...stateBorders,
+      ...stateBorderLinesNode,
       ...markerConnectorNodes,
       ...countryLabelConnectors,
       ...countryLabels,
@@ -526,6 +574,7 @@ function CountryBorderNode({ data }: NodeProps<CountryBorderFlowNode>) {
         stroke={COUNTRY_BORDER_COLOR}
         strokeOpacity={COUNTRY_BORDER_OPACITY}
         strokeWidth={data.strokeWidth}
+        strokeLinejoin="round"
       />
     </svg>
   );
@@ -568,6 +617,7 @@ function CountryLabelNode({ data }: NodeProps<CountryLabelFlowNode>) {
             color: BANNER_TEXT_COLOR,
             background: hexWithAlpha(data.color, BANNER_BACKGROUND_OPACITY),
             border: `${FONT_FLOW.country * 0.08}px solid ${hexWithAlpha(BANNER_BORDER_COLOR, BANNER_BACKGROUND_OPACITY)}`,
+            boxShadow: '0 3px 6px rgba(0, 0, 0, 0.55)',
           }}
         >
           {data.name}
@@ -597,17 +647,33 @@ function CountryLabelConnectorNode({ data }: NodeProps<CountryLabelConnectorFlow
   );
 }
 
-// Urban and rural states share the same fill/border — the icon (castle/house vs. mountain) already carries that distinction.
+// Fill only (urban/rural states share the same treatment) — the border line itself is drawn once per shared edge by StateBorderLinesNode instead of once per state.
 function StateBorderNode({ data }: NodeProps<StateBorderFlowNode>) {
   return (
     <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
-      <polygon
-        points={polygonPoints(data.points)}
-        fill={data.color}
-        fillOpacity={0.4}
-        stroke={data.color}
-        strokeWidth={data.strokeWidth}
-      />
+      <polygon points={polygonPoints(data.points)} fill={data.color} fillOpacity={0.4} />
+    </svg>
+  );
+}
+
+// Dashed, not solid like the country border — the cartographic distinction between a soft/administrative boundary and a hard/authoritative one. Dash/gap sized off strokeWidth so the ratio stays proportionate at any zoom or world size.
+function StateBorderLinesNode({ data }: NodeProps<StateBorderLinesFlowNode>) {
+  return (
+    <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
+      {data.edges.map((edge, index) => (
+        <line
+          key={index}
+          x1={edge.from.x}
+          y1={edge.from.y}
+          x2={edge.to.x}
+          y2={edge.to.y}
+          stroke={edge.color}
+          strokeOpacity={0.35}
+          strokeWidth={data.strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={`${data.strokeWidth * 3} ${data.strokeWidth * 2}`}
+        />
+      ))}
     </svg>
   );
 }
@@ -635,63 +701,68 @@ function StateLabelNode({ data }: NodeProps<StateLabelFlowNode>) {
 
       <HoverPopover>
         <HoverPopoverTrigger asChild>
-          <div className="absolute cursor-help" style={{ left: anchor, top: anchor }}>
-            {/* The centering translate must live on this same element as the scale, not a separately-transformed child, or the icon drifts off the vertex at low zoom. */}
-            <ZoomFloorConstant
-              zoom={zoom}
-              floor={DETAIL_ZOOM_THRESHOLD}
-              style={{ transform: 'translate(-50%, -50%)' }}
-            >
-              {/* This box (not the label below it) is what centers on the vertex — the label is absolutely positioned, so it doesn't affect this box's own size. */}
-              <div className="relative" style={{ width: iconSize, height: iconSize }}>
-                {/* The icon lives inside the backdrop, not beside it — a position:absolute sibling paints after a static one regardless of DOM order, so nesting it as a child is what keeps the opaque backdrop from hiding the icon. Opaque because these glyphs are mostly hollow line art, so a stem/road tucked underneath would otherwise show through the gaps. */}
-                <div
-                  className="absolute flex items-center justify-center rounded-full"
+          {/* The trigger element itself must carry the zoom-compensation scale (not a nested child) — Radix measures this exact element's own bounding rect to position the tooltip, and a transform on a descendant doesn't grow this element's own rect to match, which is what made the tooltip anchor to the wrong (untransformed, roughly icon-sized) box. */}
+          <div
+            className="absolute cursor-help"
+            style={{
+              left: anchor,
+              top: anchor,
+              transform: `translate(-50%, -50%) scale(${zoomFloorCompensation(zoom, DETAIL_ZOOM_THRESHOLD)})`,
+            }}
+          >
+            {/* This box (not the label below it) is what centers on the vertex — the label is absolutely positioned, so it doesn't affect this box's own size. */}
+            <div className="relative" style={{ width: iconSize, height: iconSize }}>
+              {/* The icon lives inside the backdrop, not beside it — a position:absolute sibling paints after a static one regardless of DOM order, so nesting it as a child is what keeps the opaque backdrop from hiding the icon. Opaque because these glyphs are mostly hollow line art, so a stem/road tucked underneath would otherwise show through the gaps. */}
+              <div
+                className="absolute flex items-center justify-center rounded-full"
+                style={{
+                  left: '50%',
+                  top: '50%',
+                  width: iconSize * 1.3,
+                  height: iconSize * 1.3,
+                  transform: 'translate(-50%, -50%)',
+                  background: PARCHMENT,
+                  border: `${iconSize * 0.03}px solid ${ICON_OUTLINE_COLOR}`,
+                  boxShadow: '0 3px 6px rgba(0, 0, 0, 0.55)',
+                }}
+              >
+                {/* Sized well below the backdrop's diameter — a glyph's artwork reaches its box's corners, and a circle only a little larger than the box still doesn't cover those corners. */}
+                <Icon
                   style={{
-                    left: '50%',
-                    top: '50%',
-                    width: iconSize * 1.3,
-                    height: iconSize * 1.3,
-                    transform: 'translate(-50%, -50%)',
-                    background: PARCHMENT,
-                    border: `${iconSize * 0.03}px solid ${ICON_OUTLINE_COLOR}`,
-                  }}
-                >
-                  {/* Sized well below the backdrop's diameter — a glyph's artwork reaches its box's corners, and a circle only a little larger than the box still doesn't cover those corners. */}
-                  <Icon
-                    style={{
-                      width: iconSize * 0.75,
-                      height: iconSize * 0.75,
-                      color: city ? INK : INK_MUTED,
-                      stroke: ICON_OUTLINE_COLOR,
-                      strokeWidth: iconSize * 0.045,
-                      paintOrder: 'stroke',
-                    }}
-                  />
-                </div>
-                <span
-                  className="absolute font-semibold whitespace-nowrap"
-                  style={{
-                    top: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginTop: iconSize * 0.12,
-                    fontFamily: MAP_FONT,
-                    fontSize: FONT_FLOW.state,
-                    color: INK,
-                    // A continuous parchment text-stroke halo (not a background chip or offset shadow copies, which leave gaps a road shows through) keeps the name legible over anything behind it.
-                    WebkitTextStroke: `${FONT_FLOW.state * 0.22}px ${PARCHMENT}`,
+                    width: iconSize * 0.75,
+                    height: iconSize * 0.75,
+                    color: city ? INK : INK_MUTED,
+                    stroke: ICON_OUTLINE_COLOR,
+                    strokeWidth: iconSize * 0.045,
                     paintOrder: 'stroke',
                   }}
-                >
-                  {label}
-                </span>
+                />
               </div>
-            </ZoomFloorConstant>
+              <span
+                className="absolute font-semibold whitespace-nowrap"
+                style={{
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  marginTop: iconSize * 0.12,
+                  fontFamily: MAP_FONT,
+                  fontSize: FONT_FLOW.state,
+                  color: INK,
+                  // A continuous parchment text-stroke halo (not a background chip or offset shadow copies, which leave gaps a road shows through) keeps the name legible over anything behind it.
+                  WebkitTextStroke: `${FONT_FLOW.state * 0.22}px ${PARCHMENT}`,
+                  paintOrder: 'stroke',
+                }}
+              >
+                {label}
+              </span>
+            </div>
           </div>
         </HoverPopoverTrigger>
 
-        <HoverPopoverContent side="top">
+        <HoverPopoverContent
+          side="top"
+          className="border border-[#a9761f] bg-[#ece0c3] text-[#3a2d1f]"
+        >
           <div className="space-y-1">
             <div className="font-semibold">{label}</div>
             <p>{data.description}</p>
@@ -716,35 +787,39 @@ function MarkerNode({ data }: NodeProps<MarkerFlowNode>) {
     <div className="relative h-full w-full">
       <HoverPopover>
         <HoverPopoverTrigger asChild>
-          <div className="absolute cursor-help" style={{ left: '50%', top: '50%' }}>
-            {/* Same centering pattern as StateLabelNode — this box, not the node's own layout box, centers on the stacked slot point the connector stem targets. */}
-            <ZoomFloorConstant
-              zoom={zoom}
-              floor={DETAIL_ZOOM_THRESHOLD}
-              style={{ transform: 'translate(-50%, -50%)' }}
+          {/* Same centering pattern as StateLabelNode — the scale must live on this trigger element itself, not a nested child, or Radix anchors the tooltip to the wrong (untransformed) box. This box, not the node's own layout box, centers on the stacked slot point the connector stem targets. */}
+          <div
+            className="absolute cursor-help"
+            style={{
+              left: '50%',
+              top: '50%',
+              transform: `translate(-50%, -50%) scale(${zoomFloorCompensation(zoom, DETAIL_ZOOM_THRESHOLD)})`,
+            }}
+          >
+            <div
+              className="flex items-center justify-center rounded-full border shadow"
+              style={{
+                width: ICON_FLOW.marker,
+                height: ICON_FLOW.marker,
+                background: data.kind === 'player' ? GOLD : PARCHMENT,
+                borderColor: data.kind === 'player' ? PARCHMENT : INK,
+              }}
             >
-              <div
-                className="flex items-center justify-center rounded-full border shadow"
+              <Icon
                 style={{
-                  width: ICON_FLOW.marker,
-                  height: ICON_FLOW.marker,
-                  background: data.kind === 'player' ? GOLD : PARCHMENT,
-                  borderColor: data.kind === 'player' ? PARCHMENT : INK,
+                  width: ICON_FLOW.markerIcon,
+                  height: ICON_FLOW.markerIcon,
+                  color: data.kind === 'player' ? PARCHMENT : INK,
                 }}
-              >
-                <Icon
-                  style={{
-                    width: ICON_FLOW.markerIcon,
-                    height: ICON_FLOW.markerIcon,
-                    color: data.kind === 'player' ? PARCHMENT : INK,
-                  }}
-                />
-              </div>
-            </ZoomFloorConstant>
+              />
+            </div>
           </div>
         </HoverPopoverTrigger>
 
-        <HoverPopoverContent side="top">
+        <HoverPopoverContent
+          side="top"
+          className="border border-[#a9761f] bg-[#ece0c3] text-[#3a2d1f]"
+        >
           <div className="space-y-1">
             <div className="font-semibold">{data.label}</div>
             {data.itemCount != null && <p>{data.itemCount} item(s)</p>}
@@ -790,6 +865,7 @@ const nodeTypes = {
   'country-label': CountryLabelNode,
   'country-label-connector': CountryLabelConnectorNode,
   'state-border': StateBorderNode,
+  'state-border-lines': StateBorderLinesNode,
   'state-label': StateLabelNode,
   marker: MarkerNode,
   'marker-connector': MarkerConnectorNode,
