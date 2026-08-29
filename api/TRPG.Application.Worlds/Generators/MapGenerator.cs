@@ -14,6 +14,7 @@ internal class MapState
 {
     public required Polygon Boundary { get; init; }
     public required Point Center { get; init; }
+    public required Point Centroid { get; init; }
     public required Guid CountryId { get; init; }
     public bool HasCity { get; init; }
     public Guid Id { get; } = Guid.NewGuid();
@@ -65,6 +66,8 @@ internal static class MapGenerator
             {
                 CountryId = countries[siteToCountryIndex[site]].Id,
                 Center = new Point((int)site.X, (int)site.Y),
+                // SharpVoronoiLib already computes this cell's real polygon centroid, cached on first access — no need to re-derive it from Boundary ourselves.
+                Centroid = new Point((int)site.Centroid.X, (int)site.Centroid.Y),
                 Boundary = new Polygon
                 {
                     Points =

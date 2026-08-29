@@ -307,7 +307,7 @@ public class GeographyGenerator(
                         Description = $"The territory surrounding {cityName}.",
                         Width = CityTileSize,
                         Height = CityTileSize,
-                        Center = mapState.Center,
+                        Center = mapState.Centroid,
                         Boundary = new Polygon
                         {
                             Points = new List<Point>(mapState.Boundary.Points.ToArray()),
@@ -374,7 +374,7 @@ public class GeographyGenerator(
                     Description = "An untamed wilderness region.",
                     Width = CityTileSize,
                     Height = CityTileSize,
-                    Center = mapState.Center,
+                    Center = mapState.Centroid,
                     Boundary = new Polygon
                     {
                         Points = new List<Point>(mapState.Boundary.Points.ToArray()),

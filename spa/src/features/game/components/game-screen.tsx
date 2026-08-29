@@ -14,6 +14,7 @@ import { InventoryDialog } from '../../inventory/components/inventory-dialog';
 import { QuestDialog } from '../../quests/components/quest-dialog';
 import { QuestJournalDialog } from '../../quests/components/quest-journal-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
+import { WorldMapDialog } from '../../worlds/components/world-map-dialog';
 import { usePlayerId, useScene } from '../contexts/scene-context';
 import { GameChatContext, useGameChatBuilder } from '../hooks/use-game-chat';
 import {
@@ -32,7 +33,14 @@ import { NearbyToggleButton } from './nearby-toggle-button';
 import { StatusBar } from './status-bar';
 import { WaitDialog } from './wait-dialog';
 
-type OpenDialog = 'character' | 'inventory' | 'questJournal' | 'skillTree' | 'wait' | null;
+type OpenDialog =
+  | 'character'
+  | 'inventory'
+  | 'questJournal'
+  | 'skillTree'
+  | 'wait'
+  | 'worldMap'
+  | null;
 
 function GameScreen() {
   const navigate = useNavigate();
@@ -175,6 +183,7 @@ function GameScreenContent({
                   onOpenQuestJournal={() => onOpenDialog('questJournal')}
                   onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
                   onOpenWaitDialog={() => onOpenDialog('wait')}
+                  onOpenWorldMapDialog={() => onOpenDialog('worldMap')}
                   onQuit={onQuit}
                 />
               </>
@@ -204,6 +213,11 @@ function GameScreenContent({
               onClose={() => onOpenDialog(null)}
             />
             <WaitDialog open={openDialog === 'wait'} onClose={() => onOpenDialog(null)} />
+            <WorldMapDialog
+              playerId={playerId}
+              open={openDialog === 'worldMap'}
+              onClose={() => onOpenDialog(null)}
+            />
             <QuestDialog
               playerId={playerId}
               quest={questDialog}

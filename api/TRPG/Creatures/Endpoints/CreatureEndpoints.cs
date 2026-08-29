@@ -15,6 +15,7 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Results;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Creatures.Mappers;
 using TRPG.Creatures.Requests;
 using TRPG.Creatures.Responses;
@@ -60,6 +61,7 @@ internal static class CreatureEndpoints
             .WithName("PreviewCreatureBasicAttackDamage");
         app.MapGet("/players/{playerId:guid}/nearby-corpses", GetNearbyCorpses)
             .WithName("GetNearbyCorpses");
+        app.MapGet("/players/{playerId:guid}/world-map", GetWorldMap).WithName("GetWorldMap");
     }
 
     private static async Task<Ok<AbilitySummary[]>> GetAbilities(
@@ -143,6 +145,57 @@ internal static class CreatureEndpoints
             corpses.Select(c => new NearbyCorpseSummary(c.Id, c.Name, c.ItemCount)).ToArray()
         );
     }
+
+    private static async Task<Ok<WorldMapResponse>> GetWorldMap(
+        Guid playerId,
+        [FromServices] IQueryHandler<GetWorldMapQuery, WorldMapResult> getWorldMap,
+        CancellationToken cancellationToken
+    )
+    {
+        var map = await getWorldMap.Handle(
+            new GetWorldMapQuery { PlayerId = playerId },
+            cancellationToken
+        );
+
+        return TypedResults.Ok(
+            new WorldMapResponse(
+                map.Countries.Select(ToCountryMapResponse).ToArray(),
+                map.States.Select(ToStateMapResponse).ToArray(),
+                map.Cities.Select(ToCityMapResponse).ToArray(),
+                map.Roads.Select(ToRoadMapResponse).ToArray(),
+                map.PlayerStateId,
+                map.Corpses.Select(ToCorpseMapResponse).ToArray(),
+                map.QuestMarkers.Select(ToQuestMapResponse).ToArray()
+            )
+        );
+    }
+
+    private static PointResponse ToPointResponse(Point point) => new(point.X, point.Y);
+
+    private static CountryMapResponse ToCountryMapResponse(Country country) =>
+        new(country.Id, country.Name, country.Boundary.Points.Select(ToPointResponse).ToArray());
+
+    private static StateMapResponse ToStateMapResponse(State state) =>
+        new(
+            state.Id,
+            state.CountryId,
+            state.Name,
+            state.Description,
+            ToPointResponse(state.Center),
+            state.Boundary.Points.Select(ToPointResponse).ToArray()
+        );
+
+    private static CityMapResponse ToCityMapResponse(City city) =>
+        new(city.Id, city.StateId, city.Name, city.IsCapital);
+
+    private static RoadMapResponse ToRoadMapResponse(WorldMapRoad road) =>
+        new(road.Id, road.Name, road.OriginStateId, road.DestinationStateId);
+
+    private static CorpseMapResponse ToCorpseMapResponse(WorldMapCorpse corpse) =>
+        new(corpse.Id, corpse.Name, corpse.StateId, corpse.ItemCount);
+
+    private static QuestMapResponse ToQuestMapResponse(WorldMapQuestMarker marker) =>
+        new(marker.QuestId, marker.ObjectiveName, marker.StateId);
 
     private static async Task<Ok<AttributePointsResponse>> GetAttributePoints(
         Guid creatureId,

@@ -96,6 +96,13 @@ export type BasicAttackDamageResponse = {
 
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
 
+export type CityMapResponse = {
+    id: string;
+    stateId: string;
+    name: string;
+    isCapital: boolean;
+};
+
 export type CombatantState = {
     id: string;
     name: string;
@@ -122,6 +129,19 @@ export type ConsumableSummary = {
     quantity: number;
     resource: ResourceType;
     restoreAmount: number;
+};
+
+export type CorpseMapResponse = {
+    id: string;
+    name: string;
+    stateId: string;
+    itemCount: number;
+};
+
+export type CountryMapResponse = {
+    id: string;
+    name: string;
+    boundary: Array<PointResponse>;
 };
 
 export type CreateSessionRequest = {
@@ -583,6 +603,11 @@ export type PlayerClass = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric';
 
 export type PlayerGender = 'Male' | 'Female';
 
+export type PointResponse = {
+    x: number;
+    y: number;
+};
+
 export type ProblemDetails = {
     type?: null | string;
     title?: null | string;
@@ -605,6 +630,12 @@ export type QuestJournalEntrySnapshot = {
     objectives: Array<QuestObjectiveProgressSnapshot>;
 };
 
+export type QuestMapResponse = {
+    questId: string;
+    objectiveName: string;
+    stateId: string;
+};
+
 export type QuestMarker = 'Available' | 'ReadyToTurnIn';
 
 export type QuestObjectiveProgressSnapshot = {
@@ -618,6 +649,13 @@ export type QuestObjectiveProgressSnapshot = {
 export type Race = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome';
 
 export type ResourceType = 'Hp' | 'Ap' | 'Mp';
+
+export type RoadMapResponse = {
+    id: string;
+    name: string;
+    originStateId: string;
+    destinationStateId: string;
+};
 
 export type SceneSnapshot = {
     worldId: string;
@@ -658,6 +696,15 @@ export type SkillProgressSummary = {
 
 export type SpecialHitType = 'CrushingBlow' | 'DeadlyStrike' | 'OpenWounds';
 
+export type StateMapResponse = {
+    id: string;
+    countryId: string;
+    name: string;
+    description: string;
+    center: PointResponse;
+    boundary: Array<PointResponse>;
+};
+
 export type TheftDetectionChanceRequest = {
     from: OwnerReferenceRequest;
     items: Array<ItemSelection>;
@@ -681,6 +728,16 @@ export type TradeRequest = {
 export type TradeSnapshot = {
     playerInventory: InventorySummary;
     shopInventory: InventorySummary;
+};
+
+export type WorldMapResponse = {
+    countries: Array<CountryMapResponse>;
+    states: Array<StateMapResponse>;
+    cities: Array<CityMapResponse>;
+    roads: Array<RoadMapResponse>;
+    playerStateId: string;
+    corpses: Array<CorpseMapResponse>;
+    questMarkers: Array<QuestMapResponse>;
 };
 
 export type WorldSummary = {
@@ -1033,6 +1090,24 @@ export type GetNearbyCorpsesResponses = {
 };
 
 export type GetNearbyCorpsesResponse = GetNearbyCorpsesResponses[keyof GetNearbyCorpsesResponses];
+
+export type GetWorldMapData = {
+    body?: never;
+    path: {
+        playerId: string;
+    };
+    query?: never;
+    url: '/players/{playerId}/world-map';
+};
+
+export type GetWorldMapResponses = {
+    /**
+     * OK
+     */
+    200: WorldMapResponse;
+};
+
+export type GetWorldMapResponse = GetWorldMapResponses[keyof GetWorldMapResponses];
 
 export type GetPlayerFightData = {
     body?: never;
