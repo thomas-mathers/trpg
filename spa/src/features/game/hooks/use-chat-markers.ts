@@ -55,7 +55,7 @@ export function useChatMarkers(
 
   useEffect(
     () =>
-      gameEventBus.on('CombatResolved', (outcome) =>
+      gameEventBus.on('CombatOutcomeKnown', (outcome) =>
         appendChatMarker(OUTCOME_MARKER[outcome], 'combat-end'),
       ),
     [appendChatMarker],

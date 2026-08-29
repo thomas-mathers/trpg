@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,8 +28,15 @@ public interface IChatHub
     IAsyncEnumerable<string> SendWait(int hours, int minutes, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendRespawn(CancellationToken cancellationToken);
-    Task ResolveUseAbilityCombatAction(Guid targetId, string abilityName);
-    Task ResolveUseItemCombatAction(string itemName);
+    IAsyncEnumerable<string> ResolveUseAbilityCombatAction(
+        Guid targetId,
+        string abilityName,
+        CancellationToken cancellationToken
+    );
+    IAsyncEnumerable<string> ResolveUseItemCombatAction(
+        string itemName,
+        CancellationToken cancellationToken
+    );
     IAsyncEnumerable<string> ResolveAttackEncounterAction(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveEvadeEncounterAction(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveRetreatEncounterAction(CancellationToken cancellationToken);
@@ -45,10 +53,6 @@ public interface IChatHub
         CancellationToken cancellationToken
     );
     IAsyncEnumerable<string> ResolveFightTheftEncounterAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> StreamCombatConclusionNarration(
-        Guid fightId,
-        CancellationToken cancellationToken
-    );
     Task AcknowledgeEvents(Guid flushId);
 }
 
@@ -214,21 +218,30 @@ internal sealed class ChatHub(
             cancellationToken
         );
 
-    public IAsyncEnumerable<string> StreamCombatConclusionNarration(
-        Guid fightId,
+    public IAsyncEnumerable<string> ResolveUseAbilityCombatAction(
+        Guid targetId,
+        string abilityName,
         CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamCombatConclusionNarration(Session, fightId, cancellationToken);
+    ) => ResolveCombatAction(new UseAbilityAction(targetId, abilityName), cancellationToken);
 
-    public Task ResolveUseAbilityCombatAction(Guid targetId, string abilityName) =>
-        ResolveCombatAction(new UseAbilityAction(targetId, abilityName));
+    public IAsyncEnumerable<string> ResolveUseItemCombatAction(
+        string itemName,
+        CancellationToken cancellationToken
+    ) => ResolveCombatAction(new UseItemAction(itemName), cancellationToken);
 
-    public Task ResolveUseItemCombatAction(string itemName) =>
-        ResolveCombatAction(new UseItemAction(itemName));
-
-    private async Task ResolveCombatAction(PlayerCombatAction action)
+    private async IAsyncEnumerable<string> ResolveCombatAction(
+        PlayerCombatAction action,
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
     {
-        await gameTurnRunner.ResolveCombatAction(Session, action, Context.ConnectionAborted);
-        await eventDispatcher.FlushAsync(Session.WorldId, Context.ConnectionAborted);
+        await foreach (
+            var token in gameTurnRunner.StreamCombatAction(Session, action, cancellationToken)
+        )
+        {
+            yield return token;
+        }
+
+        await eventDispatcher.FlushAsync(Session.WorldId, cancellationToken);
     }
 
     public Task AcknowledgeEvents(Guid flushId)

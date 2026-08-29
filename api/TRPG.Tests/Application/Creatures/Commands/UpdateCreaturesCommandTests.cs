@@ -48,6 +48,31 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db) : IAsyncLife
     }
 
     [Fact]
+    public async Task Handle_RecordsThePriorLocationAsPreviousLocation_WhenLocationIsSet()
+    {
+        // Arrange
+        var originalLocationId = _creature.LocationId;
+
+        // Act
+        await _handler.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                LocationId = Guid.NewGuid(),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(originalLocationId, updated!.PreviousLocationId);
+    }
+
+    [Fact]
     public async Task Handle_UpdatesState_WhenSet()
     {
         // Act

@@ -11,7 +11,6 @@ public class EvaluateHostileEncounterCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public Guid? OriginLocationId { get; init; }
 }
 
 internal class EvaluateHostileEncounterCommandHandler(
@@ -107,7 +106,6 @@ internal class EvaluateHostileEncounterCommandHandler(
             WorldId = command.WorldId,
             PlayerId = command.PlayerId,
             LocationId = player.LocationId,
-            ArrivalOriginLocationId = command.OriginLocationId,
             FactionId = selectedFaction.Id,
             FactionName = selectedFaction.Name,
             LocationName = location.Name,

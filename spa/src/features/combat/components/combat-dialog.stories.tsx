@@ -244,17 +244,41 @@ function WorkbenchProviders({
   }, [initialFight]);
 
   const resolveAction = useCallback(
-    (action: SimulatedCombatAction) =>
-      new Promise<void>((resolve) => {
+    (action: SimulatedCombatAction): IStreamResult<string> => ({
+      subscribe: (subscriber) => {
         window.setTimeout(() => {
           setFight((current) => {
             const round = simulateRound(current, action);
             gameEventBus.emit('CombatUpdated', round);
             return round.combatants;
           });
-          resolve();
+          subscriber.complete();
         }, 650);
-      }),
+        return { dispose: () => undefined };
+      },
+    }),
+    [],
+  );
+
+  const resolveFlee = useCallback(
+    (): IStreamResult<string> => ({
+      subscribe: (subscriber) => {
+        window.setTimeout(() => {
+          setFight((current) => {
+            gameEventBus.emit('CombatUpdated', {
+              combatants: current,
+              actions: [],
+              regenerations: [],
+              resourceStates: [],
+              outcome: 'Fled',
+            });
+            return current;
+          });
+          subscriber.complete();
+        }, 650);
+        return { dispose: () => undefined };
+      },
+    }),
     [],
   );
 
@@ -263,7 +287,7 @@ function WorkbenchProviders({
     receiveOpening: noopStream,
     sendChat: noopStream,
     sendWait: noopStream,
-    sendFlee: noopStream,
+    sendFlee: resolveFlee,
     sendRespawn: noopStream,
     resolveUseAbilityCombatAction: (targetId, abilityName) =>
       resolveAction({ type: 'UseAbilityAction', targetId, abilityName }),
@@ -277,7 +301,6 @@ function WorkbenchProviders({
     startTheftEncounterNarration: noopStream,
     resolveApologizeTheftEncounterAction: noopStream,
     resolveFightTheftEncounterAction: noopStream,
-    streamCombatConclusionNarration: noopStream,
     acknowledgeEvents: async () => undefined,
   };
 
@@ -290,18 +313,19 @@ function WorkbenchProviders({
   const gameChat: GameChat = {
     messages: [],
     isStreaming,
-    submitNarratedTurn: () => {
+    submitNarratedTurn: (_displayText, stream, _onError, onSettle) => {
       setIsStreaming(true);
-      window.setTimeout(() => {
-        gameEventBus.emit('CombatUpdated', {
-          combatants: initialFight,
-          actions: [],
-          regenerations: [],
-          resourceStates: [],
-          outcome: 'Fled',
-        });
-        setIsStreaming(false);
-      }, 650);
+      stream.subscribe({
+        next: () => undefined,
+        complete: () => {
+          setIsStreaming(false);
+          onSettle?.();
+        },
+        error: () => {
+          setIsStreaming(false);
+          onSettle?.();
+        },
+      });
     },
   };
 

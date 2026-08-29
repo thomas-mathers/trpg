@@ -645,11 +645,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = connection;
 
         // Act
-        await gameHub.InvokeAsync(
-            "ResolveUseAbilityCombatAction",
-            enemy.Id,
-            "Strike",
-            TestContext.Current.CancellationToken
+        await Drain(
+            gameHub.StreamAsync<string>(
+                "ResolveUseAbilityCombatAction",
+                enemy.Id,
+                "Strike",
+                TestContext.Current.CancellationToken
+            )
         );
 
         // Assert
@@ -834,11 +836,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HubException>(() =>
-            gameHub.InvokeAsync(
-                "ResolveUseAbilityCombatAction",
-                Guid.NewGuid(),
-                "Strike",
-                TestContext.Current.CancellationToken
+            Drain(
+                gameHub.StreamAsync<string>(
+                    "ResolveUseAbilityCombatAction",
+                    Guid.NewGuid(),
+                    "Strike",
+                    TestContext.Current.CancellationToken
+                )
             )
         );
         Assert.Contains(
@@ -859,11 +863,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HubException>(() =>
-            gameHub.InvokeAsync(
-                "ResolveUseAbilityCombatAction",
-                enemy.Id,
-                "Nonexistent Move",
-                TestContext.Current.CancellationToken
+            Drain(
+                gameHub.StreamAsync<string>(
+                    "ResolveUseAbilityCombatAction",
+                    enemy.Id,
+                    "Nonexistent Move",
+                    TestContext.Current.CancellationToken
+                )
             )
         );
         Assert.Contains(
@@ -887,6 +893,71 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal("There's no fight to flee from right now.", narration);
+    }
+
+    [Fact]
+    public async Task SendFlee_PublishesSceneSnapshot_WhenFleeingRelocatesThePlayer()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var destinationDistrictId = Guid.NewGuid();
+        var destinationLocation = Builders.MakeLocation(
+            _worldId,
+            _stateId,
+            districtId: destinationDistrictId
+        );
+        var destinationDistrict = Builders.MakeDistrict(
+            _cityId,
+            DataDistrictType.Residential,
+            worldId: _worldId,
+            name: "Market Row",
+            id: destinationDistrictId,
+            locationId: destinationLocation.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            _locationId,
+            destinationLocationId: destinationDistrict.LocationId,
+            worldId: _worldId,
+            name: "Path",
+            description: "A path leading to Market Row.",
+            destinationLabel: destinationDistrict.Name
+        );
+        context.Districts.Add(destinationDistrict);
+        context.Locations.Add(destinationLocation);
+        context.LocationConnectors.Add(connector);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+        await StartFight(sessionId, enemy);
+        var connection = fixture.CreateHubConnection(sessionId);
+        var initialSnapshotReceived = new TaskCompletionSource<SceneSnapshot>();
+        var sceneSnapshots = new List<SceneSnapshot>();
+        var gameClient = new TestGameClient
+        {
+            Connection = connection,
+            OnSceneSnapshot = snapshot =>
+            {
+                sceneSnapshots.Add(snapshot);
+                initialSnapshotReceived.TrySetResult(snapshot);
+            },
+        };
+        connection.Register<IGameClient>(gameClient);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        sceneSnapshots.Clear();
+        await using var gameHub = connection;
+
+        // Act
+        await Drain(gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken));
+
+        // Assert
+        var scene = Assert.Single(sceneSnapshots);
+        Assert.Equal(destinationDistrict.Name, scene.DistrictName);
     }
 
     [Fact]
@@ -1104,5 +1175,73 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
         Assert.Equal(faction.Name, state.FactionName);
         Assert.Equal(monster.Name, Assert.Single(state.Members).Name);
+    }
+
+    [Fact]
+    public async Task ResolveRetreatEncounterAction_PublishesSceneSnapshot_WhenEncounterResolves()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var faction = Builders.MakeFaction(_worldId, aggression: 150);
+        var monster = Builders.MakeCreature(
+            _worldId,
+            name: "Ravenous Wolf",
+            creatureType: DataCreatureType.Beast,
+            locationId: _locationId,
+            level: 1
+        );
+        var encounter = Builders.MakeHostileEncounter(
+            _worldId,
+            _playerId,
+            _locationId,
+            factionName: faction.Name,
+            members:
+            [
+                new HostileEncounterMemberSnapshot(
+                    monster.Id,
+                    monster.Name,
+                    monster.CreatureType,
+                    monster.Level
+                ),
+            ]
+        );
+        context.Factions.Add(faction);
+        context.Creatures.Add(monster);
+        context.Encounters.Add(encounter);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sessionId = await StartSession();
+        var connection = fixture.CreateHubConnection(sessionId);
+        var initialSnapshotReceived = new TaskCompletionSource<SceneSnapshot>();
+        var sceneSnapshots = new List<SceneSnapshot>();
+        var gameClient = new TestGameClient
+        {
+            Connection = connection,
+            OnSceneSnapshot = snapshot =>
+            {
+                sceneSnapshots.Add(snapshot);
+                initialSnapshotReceived.TrySetResult(snapshot);
+            },
+        };
+        connection.Register<IGameClient>(gameClient);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        sceneSnapshots.Clear();
+        await using var gameHub = connection;
+
+        // Act
+        await Drain(
+            gameHub.StreamAsync<string>(
+                "ResolveRetreatEncounterAction",
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.NotEmpty(sceneSnapshots);
     }
 }

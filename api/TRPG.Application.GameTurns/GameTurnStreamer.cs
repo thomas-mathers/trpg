@@ -23,6 +23,8 @@ internal abstract record GameTurnPrompt
     public sealed record Reply(string Text) : GameTurnPrompt;
 
     public sealed record Narrate(string Text, bool IncludeTools = true) : GameTurnPrompt;
+
+    public sealed record None : GameTurnPrompt;
 }
 
 internal class GameTurnStreamer(
@@ -56,6 +58,11 @@ internal class GameTurnStreamer(
         if (prompt is GameTurnPrompt.Reply reply)
         {
             yield return reply.Text;
+            yield break;
+        }
+
+        if (prompt is GameTurnPrompt.None)
+        {
             yield break;
         }
 

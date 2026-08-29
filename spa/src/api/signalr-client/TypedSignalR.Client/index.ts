@@ -108,12 +108,12 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("SendRespawn");
     }
 
-    public readonly resolveUseAbilityCombatAction = async (targetId: string, abilityName: string): Promise<void> => {
-        return await this.connection.invoke("ResolveUseAbilityCombatAction", targetId, abilityName);
+    public readonly resolveUseAbilityCombatAction = (targetId: string, abilityName: string): IStreamResult<string> => {
+        return this.connection.stream("ResolveUseAbilityCombatAction", targetId, abilityName);
     }
 
-    public readonly resolveUseItemCombatAction = async (itemName: string): Promise<void> => {
-        return await this.connection.invoke("ResolveUseItemCombatAction", itemName);
+    public readonly resolveUseItemCombatAction = (itemName: string): IStreamResult<string> => {
+        return this.connection.stream("ResolveUseItemCombatAction", itemName);
     }
 
     public readonly resolveAttackEncounterAction = (): IStreamResult<string> => {
@@ -150,10 +150,6 @@ class IChatHub_HubProxy implements IChatHub {
 
     public readonly resolveFightTheftEncounterAction = (): IStreamResult<string> => {
         return this.connection.stream("ResolveFightTheftEncounterAction");
-    }
-
-    public readonly streamCombatConclusionNarration = (fightId: string): IStreamResult<string> => {
-        return this.connection.stream("StreamCombatConclusionNarration", fightId);
     }
 
     public readonly acknowledgeEvents = async (flushId: string): Promise<void> => {

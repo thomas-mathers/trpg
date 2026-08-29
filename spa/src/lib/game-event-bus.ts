@@ -29,7 +29,10 @@ interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
   CombatStarted: CombatStartedPayload;
   CombatUpdated: CombatUpdatePayload;
+  // Fires once the round's animation finishes, so the combat UI, toasts, and respawn flow don't jump ahead of what's on screen.
   CombatResolved: TerminalCombatOutcome;
+  // Fires immediately with the round data, before animation — for consumers with nothing to sequence against, like the hidden chat log's marker.
+  CombatOutcomeKnown: TerminalCombatOutcome;
   HostileEncounterStarted: HostileEncounterState;
   HostileEncounterResolved: HostileEncounterResolutionFact;
   GuardEncounterStarted: GuardEncounterState;

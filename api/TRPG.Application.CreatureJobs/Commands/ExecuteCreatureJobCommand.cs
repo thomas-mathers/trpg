@@ -22,7 +22,7 @@ internal class ExecuteCreatureJobCommandHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        if (command.CurrentState == CreatureState.Alerted)
+        if (command.CurrentState is CreatureState.Alerted or CreatureState.Dead)
         {
             return;
         }

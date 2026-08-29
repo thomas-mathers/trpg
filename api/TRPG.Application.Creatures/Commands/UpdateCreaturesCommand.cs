@@ -38,6 +38,7 @@ internal class UpdateCreaturesCommandHandler(TrpgDbContext context)
                 {
                     if (command.LocationId != null)
                     {
+                        s.SetProperty(c => c.PreviousLocationId, c => c.LocationId);
                         s.SetProperty(c => c.LocationId, command.LocationId.Value);
                     }
                     if (command.State != null)

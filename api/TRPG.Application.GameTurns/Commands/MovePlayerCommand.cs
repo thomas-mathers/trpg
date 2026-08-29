@@ -175,12 +175,7 @@ internal class MovePlayerCommandHandler(
         );
 
         var evaluation = await evaluateEncounters.Handle(
-            new EvaluateEncountersCommand
-            {
-                WorldId = player.WorldId,
-                PlayerId = player.Id,
-                OriginLocationId = oldLocationId,
-            },
+            new EvaluateEncountersCommand { WorldId = player.WorldId, PlayerId = player.Id },
             cancellationToken
         );
 

@@ -18,7 +18,6 @@ public class ResolveHostileEncounterActionCommand
     public required string FactionName { get; init; }
     public required string LocationName { get; init; }
     public required IReadOnlyCollection<HostileEncounterMemberSnapshot> Members { get; init; }
-    public Guid? ArrivalOriginLocationId { get; init; }
 }
 
 internal class ResolveHostileEncounterActionCommandHandler(
@@ -74,7 +73,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
     {
         if (
             outcome == HostileEncounterActionOutcome.Retreated
-            && command.ArrivalOriginLocationId is { } originLocationId
+            && player.PreviousLocationId is { } originLocationId
         )
         {
             await updateCreatures.Handle(

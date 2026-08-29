@@ -137,11 +137,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         return (faction, monster);
     }
 
-    private async Task<HostileEncounter> SeedActiveEncounter(
-        Faction faction,
-        Creature monster,
-        Guid? arrivalOriginLocationId = null
-    )
+    private async Task<HostileEncounter> SeedActiveEncounter(Faction faction, Creature monster)
     {
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -159,8 +155,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
                     monster.CreatureType,
                     monster.Level
                 ),
-            ],
-            arrivalOriginLocationId: arrivalOriginLocationId
+            ]
         );
         context.Encounters.Add(encounter);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -299,11 +294,16 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
             context.Locations.Add(originLocation);
+            var trackedPlayer = await context.Creatures.SingleAsync(
+                c => c.Id == _playerId,
+                TestContext.Current.CancellationToken
+            );
+            trackedPlayer.PreviousLocationId = originLocation.Id;
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var (faction, monster) = await SeedHostileGroup();
-        await SeedActiveEncounter(faction, monster, originLocation.Id);
+        await SeedActiveEncounter(faction, monster);
 
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
