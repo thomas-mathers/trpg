@@ -2,7 +2,7 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
@@ -575,6 +575,37 @@ export function handleGetNearbyCorpses(response?: HandleGetNearbyCorpsesResponse
     return http.get<{
         playerId: string;
     }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/nearby-corpses`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleGetWorldMapResponse = {
+    body: GetWorldMapResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `GET /players/{playerId}/world-map` operation.
+ */
+export function handleGetWorldMap(response?: HandleGetWorldMapResponse | HttpResponseResolver<{
+    playerId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.get<{
+        playerId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/world-map`, info => {
         if (typeof response === 'function') {
             return response(info);
         }
@@ -1267,6 +1298,10 @@ export type MswHandlerFactories = {
      */
     getNearbyCorpses: typeof handleGetNearbyCorpses;
     /**
+     * Handler for the `GET /players/{playerId}/world-map` operation.
+     */
+    getWorldMap: typeof handleGetWorldMap;
+    /**
      * Handler for the `GET /players/{playerId}/fight` operation.
      */
     getPlayerFight: typeof handleGetPlayerFight;
@@ -1378,6 +1413,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         previewCreatureEquipment: wrap(handlePreviewCreatureEquipment),
         previewCreatureBasicAttackDamage: wrap(handlePreviewCreatureBasicAttackDamage),
         getNearbyCorpses: wrap(handleGetNearbyCorpses),
+        getWorldMap: wrap(handleGetWorldMap),
         getPlayerFight: wrap(handleGetPlayerFight),
         getPlayerFightAbilities: wrap(handleGetPlayerFightAbilities),
         getCreatureGenerationOptions: wrap(handleGetCreatureGenerationOptions),
@@ -1432,6 +1468,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
             invoke(pick.getCreatureLevel, overrides.getCreatureLevel),
             invoke(pick.equipCreatureItem, overrides.equipCreatureItem),
             invoke(pick.getNearbyCorpses, overrides.getNearbyCorpses),
+            invoke(pick.getWorldMap, overrides.getWorldMap),
             invoke(pick.getPlayerFight, overrides.getPlayerFight),
             invoke(pick.getSessionScene, overrides.getSessionScene),
             invoke(pick.listSessionLoreAnchors, overrides.listSessionLoreAnchors),

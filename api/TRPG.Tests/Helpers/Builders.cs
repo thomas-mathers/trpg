@@ -476,6 +476,37 @@ internal static class Builders
         };
     }
 
+    public static ExploreLocationObjective MakeExploreLocationObjective(
+        Guid questId,
+        Guid? worldId = null,
+        Guid? locationId = null,
+        int requiredAmount = 1,
+        string? name = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            QuestId = questId,
+            Name = name ?? $"Objective-{Guid.NewGuid():N}",
+            Description = "A test objective",
+            LocationId = locationId,
+            RequiredAmount = requiredAmount,
+        };
+
+    public static CreatureQuestObjective MakeCreatureQuestObjective(
+        Guid creatureId,
+        Guid objectiveId,
+        Guid? worldId = null,
+        int amount = 0
+    ) =>
+        new()
+        {
+            CreatureId = creatureId,
+            ObjectiveId = objectiveId,
+            WorldId = worldId ?? Guid.NewGuid(),
+            Amount = amount,
+        };
+
     public static Faction MakeFaction(
         Guid? worldId = null,
         int aggression = 0,
