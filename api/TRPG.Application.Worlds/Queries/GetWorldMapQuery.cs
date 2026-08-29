@@ -105,8 +105,7 @@ internal class GetWorldMapQueryHandler(TrpgDbContext context)
             )
         ).ToArrayAsync(cancellationToken);
 
-        // World generation links two states with a connector in each direction, so collapse
-        // each unordered state pair down to a single road for display.
+        // World generation links two states with a connector in each direction, so collapse each unordered state pair down to a single road for display.
         return roads
             .DistinctBy(road =>
                 road.OriginStateId.CompareTo(road.DestinationStateId) <= 0

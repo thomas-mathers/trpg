@@ -66,9 +66,7 @@ internal static class MapGenerator
             {
                 CountryId = countries[siteToCountryIndex[site]].Id,
                 Center = new Point((int)site.X, (int)site.Y),
-                // SharpVoronoiLib already computes this cell's real (area-weighted) polygon
-                // centroid via the shoelace formula, cached on first access — no need to
-                // re-derive it from Boundary ourselves.
+                // SharpVoronoiLib already computes this cell's real polygon centroid, cached on first access — no need to re-derive it from Boundary ourselves.
                 Centroid = new Point((int)site.Centroid.X, (int)site.Centroid.Y),
                 Boundary = new Polygon
                 {
