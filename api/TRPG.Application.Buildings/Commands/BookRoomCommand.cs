@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
@@ -7,6 +6,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Trading.Commands;
 using TRPG.Data;
 using TRPG.Domain;
@@ -40,6 +40,11 @@ internal class BookRoomCommandHandler(
     IOptionsSnapshot<InnOptions> innOptions,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
+    IQueryHandler<
+        GetGuestRoomDoorsByBuildingIdQuery,
+        IReadOnlyList<GuestRoomDoor>
+    > getGuestRoomDoors,
+    IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AddGoldCommand> addGold,
     ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory
@@ -61,14 +66,24 @@ internal class BookRoomCommandHandler(
             );
         }
 
-        var spareKey = await FindSpareRoomKey(building.Id, cancellationToken);
+        var guestRoomDoors = await getGuestRoomDoors.Handle(
+            new GetGuestRoomDoorsByBuildingIdQuery { BuildingId = building.Id },
+            cancellationToken
+        );
+        var spareKey = guestRoomDoors.FirstOrDefault(door => door.SpareKeyItemId != null);
         if (spareKey == null)
         {
             return new BookRoomResult(BookRoomOutcome.NoVacancy);
         }
 
         var rate = innOptions.Value.RoomRatePerNight;
-        var playerGold = await GetGoldQuantity(command.PlayerId, cancellationToken);
+        var playerGold = await getGoldQuantity.Handle(
+            new GetGoldQuantityQuery
+            {
+                Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+            },
+            cancellationToken
+        );
         if (playerGold < rate)
         {
             return new BookRoomResult(BookRoomOutcome.InsufficientGold);
@@ -85,7 +100,10 @@ internal class BookRoomCommandHandler(
         await addGold.Handle(
             new AddGoldCommand
             {
-                Owner = new ItemOwnerReference(spareKey.WorkstationId, OwnerType.Workstation),
+                Owner = new ItemOwnerReference(
+                    spareKey.WorkstationId!.Value,
+                    OwnerType.Workstation
+                ),
                 WorldId = command.WorldId,
                 Amount = rate,
             },
@@ -94,10 +112,10 @@ internal class BookRoomCommandHandler(
         await receivePlayerInventory.Handle(
             new ReceivePlayerInventoryCommand
             {
-                From = new ItemOwnerReference(spareKey.WorkstationId, OwnerType.Workstation),
+                From = new ItemOwnerReference(spareKey.WorkstationId!.Value, OwnerType.Workstation),
                 PlayerId = command.PlayerId,
                 WorldId = command.WorldId,
-                Items = [new ItemSelection(spareKey.KeyItemId, 1)],
+                Items = [new ItemSelection(spareKey.SpareKeyItemId!.Value, 1)],
             },
             cancellationToken
         );
@@ -111,7 +129,7 @@ internal class BookRoomCommandHandler(
             {
                 WorldId = command.WorldId,
                 RoomId = spareKey.RoomId,
-                KeyItemId = spareKey.KeyItemId,
+                KeyItemId = spareKey.SpareKeyItemId!.Value,
                 PlayerId = command.PlayerId,
                 DueAtPlaytime = playtime + GameClock.RealTimePerInGameHour * 24,
             }
@@ -120,73 +138,4 @@ internal class BookRoomCommandHandler(
 
         return new BookRoomResult(BookRoomOutcome.Booked, spareKey.RoomName, rate);
     }
-
-    private async Task<SpareRoomKey?> FindSpareRoomKey(
-        Guid buildingId,
-        CancellationToken cancellationToken
-    )
-    {
-        var doorsByRoom = await (
-            from door in context.DoorConnectors.AsNoTracking()
-            join connector in context.LocationConnectors.AsNoTracking()
-                on door.ConnectorId equals connector.Id
-            join room in context.Rooms.AsNoTracking()
-                on connector.DestinationLocationId equals room.LocationId
-            where room.BuildingId == buildingId
-            select new
-            {
-                room.Id,
-                room.Name,
-                DoorConnectorId = door.Id,
-            }
-        ).ToListAsync(cancellationToken);
-
-        if (doorsByRoom.Count == 0)
-        {
-            return null;
-        }
-
-        var doorConnectorIds = doorsByRoom.Select(d => d.DoorConnectorId).ToArray();
-
-        var spareKeysByDoor = await (
-            from doorConnectorKey in context.DoorConnectorKeys.AsNoTracking()
-            where doorConnectorIds.AsEnumerable().Contains(doorConnectorKey.DoorConnectorId)
-            join item in context.Items.AsNoTracking() on doorConnectorKey.ItemId equals item.Id
-            where item.Ownership.OwnerType == OwnerType.Workstation
-            select new
-            {
-                doorConnectorKey.DoorConnectorId,
-                KeyItemId = item.Id,
-                WorkstationId = item.Ownership.OwnerId,
-            }
-        ).ToListAsync(cancellationToken);
-
-        var match = doorsByRoom
-            .Join(
-                spareKeysByDoor,
-                d => d.DoorConnectorId,
-                k => k.DoorConnectorId,
-                (d, k) => new SpareRoomKey(d.Id, d.Name, k.KeyItemId, k.WorkstationId)
-            )
-            .FirstOrDefault();
-
-        return match;
-    }
-
-    private async Task<int> GetGoldQuantity(Guid playerId, CancellationToken cancellationToken) =>
-        await context
-            .Items.OfType<Gold>()
-            .Where(item =>
-                item.Ownership.OwnerId == playerId && item.Ownership.OwnerType == OwnerType.Creature
-            )
-            .Select(item => (int?)item.Quantity)
-            .FirstOrDefaultAsync(cancellationToken)
-        ?? 0;
-
-    private sealed record SpareRoomKey(
-        Guid RoomId,
-        string RoomName,
-        Guid KeyItemId,
-        Guid WorkstationId
-    );
 }

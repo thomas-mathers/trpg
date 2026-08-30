@@ -23,7 +23,11 @@ internal class SyncRestockPolicyCommandHandler(
         GetWorkstationsByLocationIdQuery,
         IReadOnlyCollection<Workstation>
     > getWorkstationsByLocationId,
-    IQueryHandler<GetBuildingTypeByLocationIdQuery, BuildingType?> getBuildingTypeByLocationId
+    IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
+    IQueryHandler<
+        GetGuestRoomDoorsByBuildingIdQuery,
+        IReadOnlyList<GuestRoomDoor>
+    > getGuestRoomDoors
 ) : ICommandHandler<SyncRestockPolicyCommand>
 {
     public async Task Handle(
@@ -40,28 +44,29 @@ internal class SyncRestockPolicyCommandHandler(
             return;
         }
 
-        var buildingType = await getBuildingTypeByLocationId.Handle(
-            new GetBuildingTypeByLocationIdQuery { LocationId = command.LocationId },
+        var building = await getBuildingByLocationId.Handle(
+            new GetBuildingByLocationIdQuery { LocationId = command.LocationId },
             cancellationToken
         );
-        if (buildingType == null)
+        if (building == null)
         {
             return;
         }
 
         foreach (var workstation in workstations)
         {
-            await SyncWorkstation(workstation.Id, buildingType.Value, command, cancellationToken);
+            await SyncWorkstation(workstation.Id, building, command, cancellationToken);
         }
     }
 
     private async Task SyncWorkstation(
         Guid workstationId,
-        BuildingType buildingType,
+        BuildingIdentity building,
         SyncRestockPolicyCommand command,
         CancellationToken cancellationToken
     )
     {
+        var buildingType = building.BuildingType;
         var policy = await context.RestockPolicies.FirstOrDefaultAsync(
             p => p.WorkstationId == workstationId,
             cancellationToken
@@ -112,7 +117,12 @@ internal class SyncRestockPolicyCommandHandler(
 
         if (buildingType == BuildingType.Inn)
         {
-            await RegenerateMissingRoomKeys(workstationId, policy.WorldId, cancellationToken);
+            await RegenerateMissingRoomKeys(
+                workstationId,
+                building.Id,
+                policy.WorldId,
+                cancellationToken
+            );
         }
 
         policy.LastSyncPlaytime = command.CurrentPlaytime;
@@ -125,55 +135,23 @@ internal class SyncRestockPolicyCommandHandler(
     // restocking. Never revokes an already-issued key — a door can have more than one.
     private async Task RegenerateMissingRoomKeys(
         Guid workstationId,
+        Guid buildingId,
         Guid worldId,
         CancellationToken cancellationToken
     )
     {
-        var buildingId = await (
-            from workstation in context.Props.OfType<Workstation>().AsNoTracking()
-            where workstation.Id == workstationId
-            join room in context.Rooms.AsNoTracking()
-                on workstation.LocationId equals room.LocationId
-            select (Guid?)room.BuildingId
-        ).FirstOrDefaultAsync(cancellationToken);
-        if (buildingId == null)
-        {
-            return;
-        }
+        var guestRoomDoors = await getGuestRoomDoors.Handle(
+            new GetGuestRoomDoorsByBuildingIdQuery { BuildingId = buildingId },
+            cancellationToken
+        );
 
-        var doorsByRoom = await (
-            from door in context.DoorConnectors.AsNoTracking()
-            join connector in context.LocationConnectors.AsNoTracking()
-                on door.ConnectorId equals connector.Id
-            join room in context.Rooms.AsNoTracking()
-                on connector.DestinationLocationId equals room.LocationId
-            where room.BuildingId == buildingId.Value
-            select new { room.Name, DoorConnectorId = door.Id }
-        ).ToListAsync(cancellationToken);
-        if (doorsByRoom.Count == 0)
-        {
-            return;
-        }
-
-        var doorConnectorIds = doorsByRoom.Select(d => d.DoorConnectorId).ToArray();
-        var doorsWithSpareKey = await (
-            from doorConnectorKey in context.DoorConnectorKeys.AsNoTracking()
-            where doorConnectorIds.AsEnumerable().Contains(doorConnectorKey.DoorConnectorId)
-            join item in context.Items.AsNoTracking() on doorConnectorKey.ItemId equals item.Id
-            where item.Ownership.OwnerType == OwnerType.Workstation
-            select doorConnectorKey.DoorConnectorId
-        ).ToListAsync(cancellationToken);
-        var doorsWithSpareKeySet = doorsWithSpareKey.ToHashSet();
-
-        foreach (
-            var door in doorsByRoom.Where(d => !doorsWithSpareKeySet.Contains(d.DoorConnectorId))
-        )
+        foreach (var door in guestRoomDoors.Where(d => d.SpareKeyItemId == null))
         {
             var replacementKey = new Key
             {
                 WorldId = worldId,
-                Name = $"Key to {door.Name}",
-                Description = $"A replacement key to the {door.Name}.",
+                Name = $"Key to {door.RoomName}",
+                Description = $"A replacement key to the {door.RoomName}.",
                 Quantity = 1,
                 Ownership = new ItemOwnership
                 {
