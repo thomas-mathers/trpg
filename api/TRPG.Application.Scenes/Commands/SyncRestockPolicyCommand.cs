@@ -130,9 +130,7 @@ internal class SyncRestockPolicyCommandHandler(
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    // A guest room whose only key was stolen or never returned would otherwise stay
-    // unbookable forever; the innkeeper has a replacement made on the same cadence as
-    // restocking. Never revokes an already-issued key — a door can have more than one.
+    // Mints a replacement on the same cadence as restocking; never revokes an already-issued key.
     private async Task RegenerateMissingRoomKeys(
         Guid workstationId,
         Guid buildingId,

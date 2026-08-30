@@ -204,9 +204,7 @@ internal class MovePlayerCommandHandler(
             return null;
         }
 
-        // Crossing into or out of an Inn, either direction, is what matters — a player who
-        // leaves before the key is due and returns after it's overdue must still get caught
-        // coming back in, not just on the way out.
+        // Either direction counts — a player who left before it was due must still get caught coming back in.
         var innBuilding =
             oldBuilding is { BuildingType: BuildingType.Inn } ? oldBuilding
             : newBuilding is { BuildingType: BuildingType.Inn } ? newBuilding

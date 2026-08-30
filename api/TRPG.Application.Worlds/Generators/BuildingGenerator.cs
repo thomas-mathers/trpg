@@ -339,8 +339,7 @@ public class BuildingGenerator
         var keyItems = new List<Item>();
         var doorConnectorKeys = new List<DoorConnectorKey>();
 
-        // Only Inns issue keyed access per room today; the Innkeeper's Counter is the sole
-        // Trade workstation an Inn ever generates, so it can be resolved once up front.
+        // The Innkeeper's Counter is the only Trade workstation an Inn ever generates.
         var innkeepersCounterId =
             input.Spec.Type == BuildingType.Inn
                 ? props
@@ -349,9 +348,7 @@ public class BuildingGenerator
                     .Id
                 : (Guid?)null;
 
-        // A floor with more than one room gets a synthesized hallway that the staircase
-        // connects to, instead of an arbitrary "first" room — otherwise every room but one
-        // on that floor is unreachable, and it also gives room-to-room navigation for free.
+        // Multi-room floors route through a synthesized hallway instead of an arbitrary "first" room.
         var connectionPointByFloor = new Room[roomsByFloor.Length];
         for (var i = 0; i < roomsByFloor.Length; i++)
         {
