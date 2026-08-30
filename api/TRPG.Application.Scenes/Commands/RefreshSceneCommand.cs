@@ -46,6 +46,8 @@ internal class RefreshSceneCommandHandler(
             command.WorldId,
             player!.LocationId,
             currentDate,
+            player.Level,
+            playtime,
             cancellationToken
         );
 
@@ -66,6 +68,8 @@ internal class RefreshSceneCommandHandler(
         Guid worldId,
         Guid locationId,
         InGameDate currentDate,
+        int playerLevel,
+        TimeSpan playtime,
         CancellationToken cancellationToken
     )
     {
@@ -80,6 +84,8 @@ internal class RefreshSceneCommandHandler(
                 WorldId = worldId,
                 LocationId = locationId,
                 CurrentDate = currentDate,
+                PlayerLevel = playerLevel,
+                Playtime = playtime,
             },
             cancellationToken
         );

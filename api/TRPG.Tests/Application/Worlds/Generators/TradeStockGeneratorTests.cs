@@ -25,12 +25,15 @@ public class TradeStockGeneratorTests
         var scenarios = Enum.GetValues<BuildingType>().Select(CreateTradeCounter).ToArray();
 
         // Act
-        var stock = _generator.Generate(
-            scenarios.Select(scenario => (Prop)scenario.Workstation).ToArray(),
-            scenarios.Select(scenario => scenario.Room).ToArray(),
-            scenarios.Select(scenario => scenario.Building).ToArray(),
-            WorldId
-        );
+        var stock = _generator
+            .Generate(
+                scenarios.Select(scenario => (Prop)scenario.Workstation).ToArray(),
+                scenarios.Select(scenario => scenario.Room).ToArray(),
+                scenarios.Select(scenario => scenario.Building).ToArray(),
+                WorldId,
+                playerLevel: 1
+            )
+            .Items;
 
         // Assert
         foreach (var scenario in scenarios)
@@ -117,7 +120,15 @@ public class TradeStockGeneratorTests
     }
 
     private IReadOnlyCollection<Item> Generate(TradeCounterScenario scenario) =>
-        _generator.Generate([scenario.Workstation], [scenario.Room], [scenario.Building], WorldId);
+        _generator
+            .Generate(
+                [scenario.Workstation],
+                [scenario.Room],
+                [scenario.Building],
+                WorldId,
+                playerLevel: 1
+            )
+            .Items;
 
     private static TradeCounterScenario CreateTradeCounter(BuildingType buildingType)
     {

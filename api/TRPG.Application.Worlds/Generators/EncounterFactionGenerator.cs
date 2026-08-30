@@ -10,6 +10,7 @@ internal static class EncounterFactionGenerator
         {
             [CreatureType.Beast] = MakeFaction(
                 worldId,
+                CreatureType.Beast,
                 "Wild Beasts",
                 "Predators and territorial animals that defend their hunting grounds.",
                 FactionTemperament.Territorial,
@@ -19,6 +20,7 @@ internal static class EncounterFactionGenerator
             ),
             [CreatureType.Goblin] = MakeFaction(
                 worldId,
+                CreatureType.Goblin,
                 "Goblin Raiders",
                 "Scavengers and raiders who prey on isolated travelers.",
                 FactionTemperament.Predatory,
@@ -28,6 +30,7 @@ internal static class EncounterFactionGenerator
             ),
             [CreatureType.Undead] = MakeFaction(
                 worldId,
+                CreatureType.Undead,
                 "Restless Dead",
                 "The dead who attack the living without fear or restraint.",
                 FactionTemperament.Fanatical,
@@ -37,6 +40,7 @@ internal static class EncounterFactionGenerator
             ),
             [CreatureType.Wraith] = MakeFaction(
                 worldId,
+                CreatureType.Wraith,
                 "Restless Wraiths",
                 "Malignant spirits who attack the living without fear or restraint.",
                 FactionTemperament.Fanatical,
@@ -46,6 +50,7 @@ internal static class EncounterFactionGenerator
             ),
             [CreatureType.Construct] = MakeFaction(
                 worldId,
+                CreatureType.Construct,
                 "Ancient Constructs",
                 "Forgotten guardians bound to defend the places they were built to protect.",
                 FactionTemperament.Fanatical,
@@ -55,6 +60,7 @@ internal static class EncounterFactionGenerator
             ),
             [CreatureType.Demon] = MakeFaction(
                 worldId,
+                CreatureType.Demon,
                 "Infernal Host",
                 "Malevolent creatures who see mortal travelers as prey.",
                 FactionTemperament.Predatory,
@@ -64,6 +70,7 @@ internal static class EncounterFactionGenerator
             ),
             [CreatureType.Giant] = MakeFaction(
                 worldId,
+                CreatureType.Giant,
                 "Giant Clans",
                 "Proud giants who defend their domains from intruders.",
                 FactionTemperament.Territorial,
@@ -73,6 +80,7 @@ internal static class EncounterFactionGenerator
             ),
             [CreatureType.Dragon] = MakeFaction(
                 worldId,
+                CreatureType.Dragon,
                 "Dragons",
                 "Ancient predators who rule the territory around their lairs.",
                 FactionTemperament.Territorial,
@@ -82,6 +90,7 @@ internal static class EncounterFactionGenerator
             ),
             [CreatureType.Elemental] = MakeFaction(
                 worldId,
+                CreatureType.Elemental,
                 "Elemental Forces",
                 "Unstable elemental beings that lash out at intruders.",
                 FactionTemperament.Fanatical,
@@ -94,6 +103,7 @@ internal static class EncounterFactionGenerator
 
     private static Faction MakeFaction(
         Guid worldId,
+        CreatureType creatureType,
         string name,
         string description,
         FactionTemperament temperament,
@@ -104,6 +114,7 @@ internal static class EncounterFactionGenerator
         new()
         {
             WorldId = worldId,
+            CreatureType = creatureType,
             Name = name,
             Description = description,
             Temperament = temperament,

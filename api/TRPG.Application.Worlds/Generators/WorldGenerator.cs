@@ -48,6 +48,7 @@ public class WorldGeneratorResult
     public required IReadOnlyCollection<CreatureSkill> Skills { get; init; }
     public required IReadOnlyList<State> States { get; init; }
     public required World World { get; init; }
+    public required IReadOnlyList<CreatureSpawner> CreatureSpawners { get; init; }
 }
 
 public class WorldGenerator(
@@ -181,6 +182,7 @@ public class WorldGenerator(
         }
 
         var monsters = new List<Creature>();
+        var creatureSpawners = new List<CreatureSpawner>();
         var wildernessLocationByStateId = new Dictionary<Guid, Location>();
         foreach (var state in geography.States)
         {
@@ -206,6 +208,7 @@ public class WorldGenerator(
             jobs.AddRange(wildernessGroups.Jobs);
             encounterGroups.AddRange(wildernessGroups.EncounterGroups);
             encounterGroupMembers.AddRange(wildernessGroups.EncounterGroupMembers);
+            creatureSpawners.Add(wildernessGroups.Spawner);
 
             if (citiesByStateId.TryGetValue(state.Id, out var citiesInState))
             {
@@ -258,6 +261,7 @@ public class WorldGenerator(
                 jobs.AddRange(dungeonMonsters.Jobs);
                 encounterGroups.AddRange(dungeonMonsters.EncounterGroups);
                 encounterGroupMembers.AddRange(dungeonMonsters.EncounterGroupMembers);
+                creatureSpawners.Add(dungeonMonsters.Spawner);
             }
         }
 
@@ -356,6 +360,7 @@ public class WorldGenerator(
             Knowledge = knowledge,
             DoorConnectorKeys = doorConnectorKeys,
             Relationships = relationships,
+            CreatureSpawners = creatureSpawners,
         };
 
         void AddTravelConnector(Guid originStateId, Guid destinationStateId, StateTravelLink link)

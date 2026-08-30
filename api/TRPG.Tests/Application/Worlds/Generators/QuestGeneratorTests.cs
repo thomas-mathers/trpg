@@ -125,6 +125,7 @@ public sealed class QuestGeneratorTests
             Cities = [city],
             Countries = [],
             Creatures = creatures,
+            CreatureSpawners = [],
             Districts = [cityCenter],
             EncounterGroups = [],
             EncounterGroupMembers = [],

@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260830043121_AddCreatureSpawnerAndRestockPolicy")]
+    partial class AddCreatureSpawnerAndRestockPolicy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1083,10 +1086,6 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("aggression");
 
-                    b.Property<string>("CreatureType")
-                        .HasColumnType("text")
-                        .HasColumnName("creature_type");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1122,9 +1121,6 @@ namespace TRPG.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_factions");
-
-                    b.HasIndex("WorldId", "CreatureType")
-                        .HasDatabaseName("ix_factions_world_id_creature_type");
 
                     b.HasIndex("WorldId", "Name")
                         .IsUnique()

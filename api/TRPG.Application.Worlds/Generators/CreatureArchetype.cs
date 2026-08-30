@@ -629,4 +629,23 @@ internal sealed class CreatureArchetype
     };
 
     public static CreatureArchetype For(Profession profession) => ByProfession[profession];
+
+    private static readonly Dictionary<
+        Domain.Models.CreatureType,
+        CreatureArchetype
+    > ByCreatureType = new()
+    {
+        [Domain.Models.CreatureType.Beast] = Beast,
+        [Domain.Models.CreatureType.Undead] = Undead,
+        [Domain.Models.CreatureType.Construct] = Construct,
+        [Domain.Models.CreatureType.Demon] = Demon,
+        [Domain.Models.CreatureType.Elemental] = Elemental,
+        [Domain.Models.CreatureType.Goblin] = Goblin,
+        [Domain.Models.CreatureType.Wraith] = Wraith,
+        [Domain.Models.CreatureType.Giant] = Giant,
+        [Domain.Models.CreatureType.Dragon] = Dragon,
+    };
+
+    internal static CreatureArchetype For(Domain.Models.CreatureType creatureType) =>
+        ByCreatureType[creatureType];
 }

@@ -15,6 +15,8 @@ public class SyncSceneCommand
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
     public required InGameDate CurrentDate { get; init; }
+    public required int PlayerLevel { get; init; }
+    public required TimeSpan Playtime { get; init; }
 }
 
 internal class SyncSceneCommandHandler(
@@ -35,7 +37,9 @@ internal class SyncSceneCommandHandler(
         IReadOnlyCollection<Workstation>
     > getWorkstationsByLocationId,
     ICommandHandler<SetWorkstationOccupantCommand> setWorkstationOccupant,
-    ICommandHandler<SyncFrontDoorLockCommand> syncFrontDoorLock
+    ICommandHandler<SyncFrontDoorLockCommand> syncFrontDoorLock,
+    ICommandHandler<SyncCreatureSpawnerCommand> syncCreatureSpawner,
+    ICommandHandler<SyncRestockPolicyCommand> syncRestockPolicy
 ) : ICommandHandler<SyncSceneCommand>
 {
     public async Task Handle(
@@ -79,6 +83,26 @@ internal class SyncSceneCommandHandler(
                 cancellationToken
             );
         }
+
+        await syncCreatureSpawner.Handle(
+            new SyncCreatureSpawnerCommand
+            {
+                LocationId = command.LocationId,
+                PlayerLevel = command.PlayerLevel,
+                CurrentPlaytime = command.Playtime,
+            },
+            cancellationToken
+        );
+
+        await syncRestockPolicy.Handle(
+            new SyncRestockPolicyCommand
+            {
+                LocationId = command.LocationId,
+                PlayerLevel = command.PlayerLevel,
+                CurrentPlaytime = command.Playtime,
+            },
+            cancellationToken
+        );
     }
 
     private async Task AdvanceJobsTargetingLocation(
