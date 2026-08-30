@@ -71,14 +71,7 @@ public sealed class ResolvePlayerRespawnCommandTests(DatabaseFixture db) : IAsyn
         );
         Assert.Equal(1, corpseItemCount);
 
-        var revivedPlayer = await verifyContext.Creatures.SingleAsync(
-            creature => creature.Id == _player.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(_sanctuaryLocationId, revivedPlayer.LocationId);
-        Assert.Equal(CreatureState.Idle, revivedPlayer.State);
-        Assert.Equal(revivedPlayer.MaximumHp, revivedPlayer.CurrentHp);
-
+        Assert.Equal(_sanctuaryLocationId, fact.SanctuaryLocationId);
         Assert.Equal(1, fact.ItemsLeftOnCorpse);
         Assert.False(fact.IsClericPresent);
         Assert.Null(fact.ClericName);

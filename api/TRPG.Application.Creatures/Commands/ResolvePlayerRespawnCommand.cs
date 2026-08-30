@@ -8,6 +8,7 @@ using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Trading;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -21,12 +22,14 @@ public class ResolvePlayerRespawnCommand
 public record PlayerRespawnFact(
     string DeathLocationName,
     string TempleCityName,
+    Guid SanctuaryLocationId,
     int ItemsLeftOnCorpse,
     bool IsClericPresent,
     string? ClericName
 );
 
 internal class ResolvePlayerRespawnCommandHandler(
+    TrpgDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<
@@ -36,7 +39,6 @@ internal class ResolvePlayerRespawnCommandHandler(
     ICommandHandler<AddCreatureCommand> addCreature,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     InventoryItemTransfer inventoryItemTransfer,
-    ICommandHandler<ReviveCreatureAtLocationCommand> reviveCreatureAtLocation,
     IQueryHandler<
         GetCreaturesAtLocationQuery,
         IReadOnlyCollection<CreatureResult>
@@ -112,16 +114,8 @@ internal class ResolvePlayerRespawnCommandHandler(
                 playerItems.Select(item => new ItemSelection(item.Id, item.Quantity)).ToArray(),
                 cancellationToken
             );
+            await context.SaveChangesAsync(cancellationToken);
         }
-
-        await reviveCreatureAtLocation.Handle(
-            new ReviveCreatureAtLocationCommand
-            {
-                CreatureId = player.Id,
-                LocationId = nearestTemple.SanctuaryLocationId,
-            },
-            cancellationToken
-        );
 
         var sanctuaryOccupants = await getCreaturesAtLocation.Handle(
             new GetCreaturesAtLocationQuery
@@ -143,6 +137,7 @@ internal class ResolvePlayerRespawnCommandHandler(
         return new PlayerRespawnFact(
             deathLocation?.Name ?? "an unknown place",
             nearestTemple.CityName,
+            nearestTemple.SanctuaryLocationId,
             playerItems.Count,
             cleric != null,
             cleric?.Name

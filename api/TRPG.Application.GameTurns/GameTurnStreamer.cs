@@ -42,6 +42,7 @@ internal class GameTurnStreamer(
     > getLoreAnchorAutomatonByWorld,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     IGameClientEventSink gameEvents,
+    IGameClientEventDispatcher eventDispatcher,
     IGameClientEventAckGate eventAckGate,
     IOptionsSnapshot<GameClockOptions> gameClockOptions,
     ILogger<GameTurnStreamer> logger
@@ -53,6 +54,9 @@ internal class GameTurnStreamer(
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
+        // Captured before resolveTurn runs so the diff below also catches direct-command mutations, not just tool calls.
+        var before = await GetScene(session, cancellationToken);
+
         var prompt = await resolveTurn(cancellationToken);
 
         if (prompt is GameTurnPrompt.Reply reply)
@@ -63,6 +67,9 @@ internal class GameTurnStreamer(
 
         if (prompt is GameTurnPrompt.None)
         {
+            // No narration follows, so there's no ordering race to guard with an ack-wait.
+            await EnqueueSceneChange(before, session, cancellationToken);
+            await eventDispatcher.FlushAsync(session.WorldId, cancellationToken);
             yield break;
         }
 
@@ -85,7 +92,14 @@ internal class GameTurnStreamer(
                 cancellationToken
             );
 
-            await foreach (var token in StreamNarration(streamedReply.Tokens, cancellationToken))
+            await foreach (
+                var token in StreamNarration(
+                    before,
+                    session,
+                    streamedReply.Tokens,
+                    cancellationToken
+                )
+            )
             {
                 yield return token;
             }
@@ -95,22 +109,14 @@ internal class GameTurnStreamer(
     }
 
     private async IAsyncEnumerable<string> StreamNarration(
+        SceneResult before,
+        GameTurnSession session,
         IAsyncEnumerable<string> tokens,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
-        var before = await getCurrentScene.Handle(
-            new GetCurrentSceneQuery
-            {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-                SessionId = turnContext.SessionId,
-            },
-            cancellationToken
-        );
-
         var automaton = await getLoreAnchorAutomatonByWorld.Handle(
-            new GetLoreAnchorAutomatonByWorldQuery { WorldId = turnContext.WorldId },
+            new GetLoreAnchorAutomatonByWorldQuery { WorldId = session.WorldId },
             cancellationToken
         );
 
@@ -123,7 +129,7 @@ internal class GameTurnStreamer(
         {
             if (!flushed)
             {
-                await FlushSceneChange(before, cancellationToken);
+                await FlushSceneChange(before, session, cancellationToken);
                 flushed = true;
             }
 
@@ -132,28 +138,48 @@ internal class GameTurnStreamer(
 
         if (!flushed)
         {
-            await FlushSceneChange(before, cancellationToken);
+            await FlushSceneChange(before, session, cancellationToken);
         }
     }
 
-    private async Task FlushSceneChange(SceneResult before, CancellationToken cancellationToken)
-    {
-        var after = await getCurrentScene.Handle(
+    private async Task<SceneResult> GetScene(
+        GameTurnSession session,
+        CancellationToken cancellationToken
+    ) =>
+        await getCurrentScene.Handle(
             new GetCurrentSceneQuery
             {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-                SessionId = turnContext.SessionId,
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                SessionId = session.SessionId,
             },
             cancellationToken
         );
+
+    private async Task<SceneResult> EnqueueSceneChange(
+        SceneResult before,
+        GameTurnSession session,
+        CancellationToken cancellationToken
+    )
+    {
+        var after = await GetScene(session, cancellationToken);
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
             gameEvents.Enqueue(new SceneUpdatedEvent(after));
         }
 
-        await eventAckGate.FlushAndAwaitAckAsync(turnContext.WorldId, cancellationToken);
+        return after;
+    }
+
+    private async Task FlushSceneChange(
+        SceneResult before,
+        GameTurnSession session,
+        CancellationToken cancellationToken
+    )
+    {
+        await EnqueueSceneChange(before, session, cancellationToken);
+        await eventAckGate.FlushAndAwaitAckAsync(session.WorldId, cancellationToken);
     }
 
     private async Task BeginTurn(GameTurnSession session, CancellationToken cancellationToken)

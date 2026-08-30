@@ -963,8 +963,18 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task SendRespawn_RelocatesPlayerAndDropsCorpse_AndNarratesTheRespawn()
     {
-        // Arrange
+        // Arrange - the corpse must keep at least one item, or MovePlayerCommand cleans up the
+        // now-empty corpse as part of relocating the player away from the death location.
         var sanctuaryLocationId = await SeedTempleInExistingCity();
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            var item = Builders.MakeWeapon(_worldId, quantity: 1);
+            item.Ownership.OwnerId = _playerId;
+            item.Ownership.OwnerType = OwnerType.Creature;
+            context.Items.Add(item);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
         await KillPlayer();
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
@@ -976,15 +986,15 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var player = await context.Creatures.SingleAsync(
+        await using var scope2 = fixture.CreateScope();
+        var context2 = scope2.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var player = await context2.Creatures.SingleAsync(
             c => c.Id == _playerId,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(sanctuaryLocationId, player.LocationId);
         Assert.Equal(DataCreatureState.Idle, player.State);
-        var corpse = await context.Creatures.SingleAsync(
+        var corpse = await context2.Creatures.SingleAsync(
             c => c.PlayerCorpseOwnerId == _playerId,
             TestContext.Current.CancellationToken
         );
@@ -1206,9 +1216,19 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
                 ),
             ]
         );
+        var previousLocation = Builders.MakeLocation(_worldId, _stateId);
         context.Factions.Add(faction);
         context.Creatures.Add(monster);
         context.Encounters.Add(encounter);
+        context.Locations.Add(previousLocation);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Retreat only relocates the player when a previous location was recorded to retreat to.
+        var trackedPlayer = await context.Creatures.SingleAsync(
+            c => c.Id == _playerId,
+            TestContext.Current.CancellationToken
+        );
+        trackedPlayer.PreviousLocationId = previousLocation.Id;
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var sessionId = await StartSession();

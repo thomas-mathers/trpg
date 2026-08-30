@@ -3,15 +3,13 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Encounters.Events;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
-using TRPG.Application.Inventory;
-using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Domain.Models;
+using TRPG.GameTurns.Mappers;
 using TRPG.Tools;
 
 namespace TRPG.GameTurns.Tools;
@@ -40,9 +38,12 @@ internal record MoveToolResult(
 
 internal class MoveTool(
     GameTurnContext turnContext,
-    IGameClientEventSink gameEvents,
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
+    ICommandHandler<
+        ResolveMoveDestinationCommand,
+        ResolveMoveDestinationResult
+    > resolveMoveDestination,
     ICommandHandler<MovePlayerCommand, MovePlayerResult> movePlayer,
-    IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
     ILogger<MoveTool> logger
 ) : IGameTool
 {
@@ -63,8 +64,17 @@ internal class MoveTool(
         logger.LogInformation("[move] destinationName={DestinationName}", destinationName);
         var stopwatch = Stopwatch.StartNew();
 
-        var moveResult = await movePlayer.Handle(
-            new MovePlayerCommand
+        var activeEncounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = turnContext.PlayerId },
+            cancellationToken
+        );
+        if (activeEncounter != null)
+        {
+            return EntryOutcome.EncounterActive.ToToolError(destinationName);
+        }
+
+        var destinationResult = await resolveMoveDestination.Handle(
+            new ResolveMoveDestinationCommand
             {
                 PlayerId = turnContext.PlayerId,
                 SessionId = turnContext.SessionId,
@@ -73,59 +83,31 @@ internal class MoveTool(
             cancellationToken
         );
 
-        var error = ToToolError(moveResult.Outcome, destinationName);
+        var error = destinationResult.Outcome.ToToolError(destinationName);
         if (error != null)
         {
             return error;
         }
 
+        var moveResult = await movePlayer.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = turnContext.PlayerId,
+                SessionId = turnContext.SessionId,
+                DestinationLocationId = destinationResult.DestinationLocationId!.Value,
+            },
+            cancellationToken
+        );
+
         turnContext.PlayerMoved = true;
 
-        var scene = moveResult.Scene!;
+        var scene = moveResult.Scene;
 
-        MoveToolHostileEncounter? hostileEncounterSummary = null;
-        if (moveResult.Encounter is HostileEncounter hostileEncounter)
-        {
-            gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
-            hostileEncounterSummary = new MoveToolHostileEncounter(
-                hostileEncounter.FactionName,
-                hostileEncounter.LocationName!,
-                hostileEncounter
-                    .Members.Select(member => new MoveToolEncounterMember(
-                        member.Name,
-                        member.CreatureType,
-                        member.Level
-                    ))
-                    .ToArray()
-            );
-        }
-
-        MoveToolGuardEncounter? guardEncounterSummary = null;
-        if (moveResult.GuardEncounter is { } guardEncounter)
-        {
-            var playerGold = await getGoldQuantity.Handle(
-                new GetGoldQuantityQuery
-                {
-                    Owner = new ItemOwnerReference(turnContext.PlayerId, OwnerType.Creature),
-                },
-                cancellationToken
-            );
-            gameEvents.Enqueue(
-                new GuardEncounterStartedEvent(
-                    guardEncounter,
-                    playerGold >= guardEncounter.FineAmount
-                )
-            );
-            guardEncounterSummary = new MoveToolGuardEncounter(
-                guardEncounter.GuardName,
-                guardEncounter.LocationName!,
-                guardEncounter.FineAmount,
-                guardEncounter.JailHours,
-                guardEncounter.RecentOffenses
-            );
-        }
-
-        var result = new MoveToolResult(scene, hostileEncounterSummary, guardEncounterSummary);
+        var result = new MoveToolResult(
+            scene,
+            moveResult.Encounter?.ToMoveToolSummary(),
+            moveResult.GuardEncounter?.ToMoveToolSummary()
+        );
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
@@ -137,24 +119,4 @@ internal class MoveTool(
         );
         return result;
     }
-
-    private static ToolError? ToToolError(EntryOutcome outcome, string destinationName) =>
-        outcome switch
-        {
-            EntryOutcome.Entered => null,
-            EntryOutcome.NoEntrance => new ToolError(
-                $"'{destinationName}' has no entrance. Call look to see what's around."
-            ),
-            EntryOutcome.Locked => new ToolError($"The door to '{destinationName}' is locked."),
-            EntryOutcome.DestinationNotFound => new ToolError(
-                $"No building or district named '{destinationName}' found nearby. Call look to see what's around."
-            ),
-            EntryOutcome.ExitNotFound => new ToolError(
-                $"No exit named '{destinationName}' found here. Call look to see the available exits."
-            ),
-            EntryOutcome.EncounterActive => new ToolError(
-                "A hostile encounter is already underway — resolve it before moving."
-            ),
-            _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
-        };
 }

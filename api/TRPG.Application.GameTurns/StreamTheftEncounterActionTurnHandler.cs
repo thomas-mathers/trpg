@@ -6,7 +6,6 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
-using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Domain.Models;
 
@@ -62,7 +61,7 @@ internal class StreamTheftEncounterActionTurnHandler(
 
         gameEvents.Enqueue(new TheftEncounterResolvedEvent(resolution));
 
-        var refreshed = await refreshScene.Handle(
+        await refreshScene.Handle(
             new RefreshSceneCommand
             {
                 WorldId = session.WorldId,
@@ -71,7 +70,6 @@ internal class StreamTheftEncounterActionTurnHandler(
             },
             cancellationToken
         );
-        gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
 
         return new GameTurnPrompt.Narrate(
             BuildNarrationPrompt(action, resolution),

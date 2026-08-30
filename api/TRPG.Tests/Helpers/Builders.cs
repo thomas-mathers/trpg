@@ -334,6 +334,18 @@ internal static class Builders
         };
     }
 
+    public static Key MakeKey(Guid? worldId = null, int quantity = 0)
+    {
+        return new Key
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Key-{Guid.NewGuid():N}",
+            Description = "A test key",
+            Weight = 1,
+            Quantity = quantity,
+        };
+    }
+
     public static Gold MakeGold(Guid? worldId = null, int quantity = 0)
     {
         return new Gold

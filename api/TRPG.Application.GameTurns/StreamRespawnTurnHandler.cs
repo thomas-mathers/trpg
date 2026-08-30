@@ -1,11 +1,10 @@
 using System.Text.Json;
+using System.Transactions;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameTurns.Events;
-using TRPG.Application.Scenes.Commands;
+using TRPG.Application.GameTurns.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -14,8 +13,9 @@ internal class StreamRespawnTurnHandler(
     GameTurnStreamer streamer,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<ResolvePlayerRespawnCommand, PlayerRespawnFact> resolvePlayerRespawn,
-    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
-    IGameClientEventSink gameEvents
+    ICommandHandler<RestoreCreatureResourcesCommand> restoreCreatureResources,
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<MovePlayerCommand, MovePlayerResult> movePlayer
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -38,26 +38,50 @@ internal class StreamRespawnTurnHandler(
             return new GameTurnPrompt.Reply("There's nothing to respawn from right now.");
         }
 
-        var fact = await resolvePlayerRespawn.Handle(
-            new ResolvePlayerRespawnCommand
-            {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-            },
-            cancellationToken
-        );
+        PlayerRespawnFact fact;
 
-        var refreshed = await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-                SessionId = session.SessionId,
-            },
-            cancellationToken
-        );
+        using (
+            var transaction = new TransactionScope(
+                TransactionScopeOption.Required,
+                TransactionScopeAsyncFlowOption.Enabled
+            )
+        )
+        {
+            fact = await resolvePlayerRespawn.Handle(
+                new ResolvePlayerRespawnCommand
+                {
+                    WorldId = session.WorldId,
+                    PlayerId = session.PlayerId,
+                },
+                cancellationToken
+            );
 
-        gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
+            await restoreCreatureResources.Handle(
+                new RestoreCreatureResourcesCommand { CreatureIds = [session.PlayerId] },
+                cancellationToken
+            );
+
+            await updateCreatures.Handle(
+                new UpdateCreaturesCommand
+                {
+                    CreatureIds = [session.PlayerId],
+                    State = CreatureState.Idle,
+                },
+                cancellationToken
+            );
+
+            await movePlayer.Handle(
+                new MovePlayerCommand
+                {
+                    PlayerId = session.PlayerId,
+                    SessionId = session.SessionId,
+                    DestinationLocationId = fact.SanctuaryLocationId,
+                },
+                cancellationToken
+            );
+
+            transaction.Complete();
+        }
 
         return new GameTurnPrompt.Narrate(BuildNarrationPrompt(fact), IncludeTools: false);
     }

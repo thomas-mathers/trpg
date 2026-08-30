@@ -150,6 +150,91 @@ public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Handle_ExcludesNonHumanoidCreatures_FromKillWitnesses()
+    {
+        // Arrange
+        var beastBystander = Builders.MakeCreature(
+            WorldId,
+            locationId: _player.LocationId,
+            creatureType: CreatureType.Beast
+        );
+        _context.Creatures.Add(beastBystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Victory,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new EndFightCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        Assert.Empty(
+            verifyContext.CrimeWitnesses.Where(witness => witness.CreatureId == beastBystander.Id)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_IncludesSurvivingHumanoidCombatants_AsKillWitnesses()
+    {
+        // Arrange - a second enemy in the same fight survives and should witness the other's death
+        var survivor = Builders.MakeCreature(WorldId, locationId: _player.LocationId);
+        _context.Creatures.Add(survivor);
+        var fight = new FightEncounter
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = _player.LocationId,
+            CombatantIds = [_player.Id, _enemy.Id, survivor.Id],
+        };
+        _context.Encounters.Add(fight);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Victory,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
+                MakeCombatantState(survivor.Id, isPlayer: false, currentHp: 10, isAlive: true),
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new EndFightCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                State = state,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var crime = await verifyContext
+            .Crimes.OfType<KillCrime>()
+            .SingleAsync(item => item.VictimId == _enemy.Id, TestContext.Current.CancellationToken);
+        var witnessIds = await verifyContext
+            .CrimeWitnesses.Where(w => w.CrimeId == crime.Id)
+            .Select(w => w.CreatureId)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Contains(survivor.Id, witnessIds);
+    }
+
+    [Fact]
     public async Task Handle_ExcludesSleepingCreatures_FromKillWitnesses()
     {
         // Arrange

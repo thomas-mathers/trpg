@@ -1,7 +1,5 @@
 using System.Transactions;
 using Microsoft.Extensions.Logging;
-using TRPG.Application.Buildings.Commands;
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
@@ -11,7 +9,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
-using TRPG.Application.Encounters.Queries;
+using TRPG.Application.Encounters.Events;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
@@ -20,7 +18,6 @@ using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -34,22 +31,20 @@ public class MovePlayerCommand
     [NotEmptyGuid]
     public required Guid SessionId { get; init; }
 
-    [NotBlank]
-    public required string DestinationName { get; init; }
+    [NotEmptyGuid]
+    public required Guid DestinationLocationId { get; init; }
 }
 
 public record MovePlayerResult(
-    EntryOutcome Outcome,
     Creature Player,
-    HostileEncounter? Encounter = null,
-    GuardEncounter? GuardEncounter = null,
-    SceneResult? Scene = null
+    HostileEncounter? Encounter,
+    GuardEncounter? GuardEncounter,
+    SceneResult Scene
 );
 
 internal class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<
         GetCreaturesAtLocationQuery,
         IReadOnlyCollection<CreatureResult>
@@ -67,18 +62,12 @@ internal class MovePlayerCommandHandler(
     ICommandHandler<DeleteCreaturesCommand> deleteCreatures,
     ICommandHandler<ResolveKillCrimesCommand> resolveKillCrimes,
     ICommandHandler<ResolveTheftCrimesCommand> resolveTheftCrimes,
-    IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
-    IQueryHandler<GetBuildingByEntranceLocationQuery, Building?> getBuildingByEntranceLocation,
-    IQueryHandler<GetDoorConnectorByConnectorIdQuery, DoorConnector?> getDoorConnectorByConnectorId,
-    IQueryHandler<GetKeyItemIdsQuery, IReadOnlyList<Guid>> getKeyItemIds,
-    ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
-    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
-    ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
-    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult> evaluateEncounters,
     SceneCatchUpCache catchUpCache,
+    IGameClientEventSink gameEvents,
+    IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
     ILogger<MovePlayerCommandHandler> logger
 ) : ICommandHandler<MovePlayerCommand, MovePlayerResult>
 {
@@ -87,107 +76,129 @@ internal class MovePlayerCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        using var transaction = new TransactionScope(
-            TransactionScopeOption.Required,
-            TransactionScopeAsyncFlowOption.Enabled
-        );
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = command.PlayerId },
-            cancellationToken
-        );
+        Creature player;
+        RefreshSceneResult refreshed;
+        EncounterEvaluationResult evaluation;
 
-        var activeEncounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = command.PlayerId },
-            cancellationToken
-        );
-
-        if (activeEncounter != null)
+        using (
+            var transaction = new TransactionScope(
+                TransactionScopeOption.Required,
+                TransactionScopeAsyncFlowOption.Enabled
+            )
+        )
         {
+            player = (
+                await getCreatureById.Handle(
+                    new GetCreatureByIdQuery { Id = command.PlayerId },
+                    cancellationToken
+                )
+            )!;
+
+            var oldLocationId = player.LocationId;
+
+            await resolveKillCrimes.Handle(
+                new ResolveKillCrimesCommand
+                {
+                    WorldId = player.WorldId,
+                    PlayerId = player.Id,
+                    LocationId = oldLocationId,
+                },
+                cancellationToken
+            );
+
+            await resolveTheftCrimes.Handle(
+                new ResolveTheftCrimesCommand
+                {
+                    WorldId = player.WorldId,
+                    PlayerId = player.Id,
+                    LocationId = oldLocationId,
+                },
+                cancellationToken
+            );
+
+            await CleanUpDeadCreatures(player, oldLocationId, cancellationToken);
+
+            await ResetAlertedCreatures(
+                player,
+                oldLocationId,
+                command.SessionId,
+                cancellationToken
+            );
+
+            await updateCreatures.Handle(
+                new UpdateCreaturesCommand
+                {
+                    CreatureIds = [player.Id],
+                    LocationId = command.DestinationLocationId,
+                },
+                cancellationToken
+            );
+
+            await domainEvents.Publish(
+                new PlayerMovedEvent(
+                    PlayerId: player.Id,
+                    WorldId: player.WorldId,
+                    LocationId: command.DestinationLocationId
+                ),
+                cancellationToken
+            );
+
+            refreshed = await refreshScene.Handle(
+                new RefreshSceneCommand
+                {
+                    WorldId = player.WorldId,
+                    PlayerId = player.Id,
+                    SessionId = command.SessionId,
+                },
+                cancellationToken
+            );
+
+            evaluation = await evaluateEncounters.Handle(
+                new EvaluateEncountersCommand { WorldId = player.WorldId, PlayerId = player.Id },
+                cancellationToken
+            );
+
             transaction.Complete();
-            return new MovePlayerResult(EntryOutcome.EncounterActive, player!);
         }
 
-        var oldLocationId = player!.LocationId;
-
-        var currentLocation = await getLocationById.Handle(
-            new GetLocationByIdQuery { Id = player.LocationId },
-            cancellationToken
-        );
-
-        var outcome = await MoveFromLocation(player, currentLocation!, command, cancellationToken);
-
-        if (outcome != EntryOutcome.Entered)
-        {
-            transaction.Complete();
-            return new MovePlayerResult(outcome, player);
-        }
-
-        await resolveKillCrimes.Handle(
-            new ResolveKillCrimesCommand
-            {
-                WorldId = player.WorldId,
-                PlayerId = player.Id,
-                LocationId = oldLocationId,
-            },
-            cancellationToken
-        );
-
-        await resolveTheftCrimes.Handle(
-            new ResolveTheftCrimesCommand
-            {
-                WorldId = player.WorldId,
-                PlayerId = player.Id,
-                LocationId = oldLocationId,
-            },
-            cancellationToken
-        );
-
-        await CleanUpDeadCreatures(player, oldLocationId, cancellationToken);
-
-        await ResetAlertedCreatures(player, oldLocationId, command.SessionId, cancellationToken);
-
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [player.Id],
-                LocationId = player.LocationId,
-            },
-            cancellationToken
-        );
-
-        await domainEvents.Publish(
-            new PlayerMovedEvent(
-                PlayerId: player.Id,
-                WorldId: player.WorldId,
-                LocationId: player.LocationId
-            ),
-            cancellationToken
-        );
-
-        var refreshed = await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = player.WorldId,
-                PlayerId = player.Id,
-                SessionId = command.SessionId,
-            },
-            cancellationToken
-        );
-
-        var evaluation = await evaluateEncounters.Handle(
-            new EvaluateEncountersCommand { WorldId = player.WorldId, PlayerId = player.Id },
-            cancellationToken
-        );
-
-        transaction.Complete();
+        await PublishEncounterStarted(player.Id, evaluation, cancellationToken);
 
         return new MovePlayerResult(
-            EntryOutcome.Entered,
             player,
             evaluation.HostileEncounter,
             evaluation.GuardEncounter,
             refreshed.Scene
         );
+    }
+
+    private async Task PublishEncounterStarted(
+        Guid playerId,
+        EncounterEvaluationResult evaluation,
+        CancellationToken cancellationToken
+    )
+    {
+        if (evaluation.HostileEncounter is { } hostileEncounter)
+        {
+            gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
+            return;
+        }
+
+        if (evaluation.GuardEncounter is { } guardEncounter)
+        {
+            var playerGold = await getGoldQuantity.Handle(
+                new GetGoldQuantityQuery
+                {
+                    Owner = new ItemOwnerReference(playerId, OwnerType.Creature),
+                },
+                cancellationToken
+            );
+            gameEvents.Enqueue(
+                new GuardEncounterStartedEvent(
+                    guardEncounter,
+                    playerGold >= guardEncounter.FineAmount
+                )
+            );
+        }
     }
 
     private async Task CleanUpDeadCreatures(
@@ -297,137 +308,5 @@ internal class MovePlayerCommandHandler(
         var currentDate = GameClock.GetCurrentInGameDate(schedulePlaytime);
 
         catchUpCache.Evict(player.WorldId, oldLocationId, currentDate.Hour);
-    }
-
-    private async Task<EntryOutcome> MoveFromLocation(
-        Creature player,
-        Location currentLocation,
-        MovePlayerCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var exitMatch = await getExitByDestinationName.Handle(
-            new GetExitByDestinationNameQuery
-            {
-                LocationId = currentLocation.Id,
-                DestinationName = command.DestinationName,
-            },
-            cancellationToken
-        );
-
-        if (!exitMatch.Matched)
-        {
-            return currentLocation.RoomId == null
-                ? EntryOutcome.DestinationNotFound
-                : EntryOutcome.ExitNotFound;
-        }
-
-        await SyncScheduleLockIfEnteringABuilding(
-            exitMatch.DestinationLocationId!.Value,
-            command.SessionId,
-            cancellationToken
-        );
-
-        var door = await getDoorConnectorByConnectorId.Handle(
-            new GetDoorConnectorByConnectorIdQuery { ConnectorId = exitMatch.ConnectorId!.Value },
-            cancellationToken
-        );
-
-        if (door is { IsLocked: true })
-        {
-            var timedUnlockElapsed = false;
-            if (door.UnlocksAtPlaytime is { } unlocksAt)
-            {
-                var playtime = await getPlaytime.Handle(
-                    new GetPlaytimeQuery { SessionId = command.SessionId },
-                    cancellationToken
-                );
-                timedUnlockElapsed = playtime >= unlocksAt;
-            }
-
-            if (timedUnlockElapsed)
-            {
-                await setDoorTimedLock.Handle(
-                    new SetDoorTimedLockCommand
-                    {
-                        DoorConnectorIds = [door.Id],
-                        UnlocksAtPlaytime = null,
-                    },
-                    cancellationToken
-                );
-            }
-            else
-            {
-                var validKeyItemIds = await getKeyItemIds.Handle(
-                    new GetKeyItemIdsQuery { DoorConnectorId = door.Id },
-                    cancellationToken
-                );
-                var playerHasKey = await HasAnyKey(player, validKeyItemIds, cancellationToken);
-
-                if (door.UnlocksAtPlaytime != null && !playerHasKey)
-                {
-                    return EntryOutcome.Locked;
-                }
-
-                // A lock with no key ever configured would otherwise soft-lock the building forever, so it's not enforced.
-                if (validKeyItemIds.Count > 0 && !playerHasKey)
-                {
-                    return EntryOutcome.Locked;
-                }
-            }
-        }
-
-        player.LocationId = exitMatch.DestinationLocationId!.Value;
-
-        return EntryOutcome.Entered;
-    }
-
-    private async Task SyncScheduleLockIfEnteringABuilding(
-        Guid destinationLocationId,
-        Guid sessionId,
-        CancellationToken cancellationToken
-    )
-    {
-        var building = await getBuildingByEntranceLocation.Handle(
-            new GetBuildingByEntranceLocationQuery { LocationId = destinationLocationId },
-            cancellationToken
-        );
-
-        if (building == null)
-        {
-            return;
-        }
-
-        var schedulePlaytime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = sessionId },
-            cancellationToken
-        );
-        var currentDate = GameClock.GetCurrentInGameDate(schedulePlaytime);
-
-        await syncScheduleLock.Handle(
-            new SyncScheduleLockCommand
-            {
-                BuildingId = building.Id,
-                BuildingType = building.BuildingType,
-                CurrentDate = currentDate,
-            },
-            cancellationToken
-        );
-    }
-
-    private async Task<bool> HasAnyKey(
-        Creature player,
-        IReadOnlyCollection<Guid> validKeyItemIds,
-        CancellationToken cancellationToken
-    )
-    {
-        var inventory = await getInventoryItemsByOwner.Handle(
-            new GetInventoryItemsByOwnerQuery
-            {
-                Owner = new ItemOwnerReference(player.Id, OwnerType.Creature),
-            },
-            cancellationToken
-        );
-        return inventory.Any(item => validKeyItemIds.Contains(item.Id));
     }
 }

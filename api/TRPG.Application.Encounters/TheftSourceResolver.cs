@@ -51,6 +51,7 @@ internal class TheftSourceResolver(TrpgDbContext context)
                 && creature.State != CreatureState.Dead
                 && creature.State != CreatureState.Sleeping
                 && creature.Id != excludeCreatureId
+                && CreatureTypes.Humanoid.AsEnumerable().Contains(creature.CreatureType)
             )
             .Select(creature => new TheftWitness(creature.Id, creature.Name))
             .ToArrayAsync(cancellationToken);

@@ -64,15 +64,6 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
             TestContext.Current.CancellationToken
         );
 
-    private async Task<Creature> GetPlayer()
-    {
-        await using var verifyContext = db.CreateContext();
-        return await verifyContext.Creatures.SingleAsync(
-            c => c.Id == _player.Id,
-            TestContext.Current.CancellationToken
-        );
-    }
-
     [Fact]
     public async Task Handle_ReturnsNull_WhenNoFightIsActive()
     {
@@ -92,7 +83,7 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
-    public async Task Handle_MovesPlayerToThePreviousLocation_WhenOneIsRecorded()
+    public async Task Handle_ResolvesThePreviousLocation_WhenOneIsRecorded()
     {
         // Arrange
         var previousLocation = Builders.MakeLocation(WorldId, StateId);
@@ -117,9 +108,8 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
         );
 
         // Assert
-        Assert.Equal(previousLocation.Name, result!.DestinationLocationName);
-        var movedPlayer = await GetPlayer();
-        Assert.Equal(previousLocation.Id, movedPlayer.LocationId);
+        Assert.Equal(previousLocation.Id, result!.DestinationLocationId);
+        Assert.Equal(previousLocation.Name, result.DestinationLocationName);
     }
 
     [Fact]
@@ -155,9 +145,8 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
         );
 
         // Assert
-        Assert.Equal(outsideLocation.Name, result!.DestinationLocationName);
-        var movedPlayer = await GetPlayer();
-        Assert.Equal(outsideLocation.Id, movedPlayer.LocationId);
+        Assert.Equal(outsideLocation.Id, result!.DestinationLocationId);
+        Assert.Equal(outsideLocation.Name, result.DestinationLocationName);
     }
 
     [Fact]
@@ -177,9 +166,14 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
             destinationLabel: "South Hall"
         );
         var lockedDoor = Builders.MakeDoorConnector(lockedConnector.Id, isLocked: true);
+        var keyItem = Builders.MakeKey();
         _context.Locations.AddRange(lockedDestination, openDestination);
         _context.LocationConnectors.AddRange(lockedConnector, openConnector);
         _context.DoorConnectors.Add(lockedDoor);
+        _context.Items.Add(keyItem);
+        _context.DoorConnectorKeys.Add(
+            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = lockedDoor.Id }
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await SeedFight();
 
@@ -195,13 +189,53 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
         );
 
         // Assert
-        Assert.Equal(openDestination.Name, result!.DestinationLocationName);
-        var movedPlayer = await GetPlayer();
-        Assert.Equal(openDestination.Id, movedPlayer.LocationId);
+        Assert.Equal(openDestination.Id, result!.DestinationLocationId);
+        Assert.Equal(openDestination.Name, result.DestinationLocationName);
     }
 
     [Fact]
-    public async Task Handle_LeavesPlayerInPlace_WhenNoPreviousLocationAndNoUsableExits()
+    public async Task Handle_ResolvesTheLockedExit_WhenThePlayerHasTheKey()
+    {
+        // Arrange
+        var lockedDestination = Builders.MakeLocation(WorldId, StateId);
+        var lockedConnector = Builders.MakeLocationConnector(
+            _currentLocation.Id,
+            destinationLocationId: lockedDestination.Id,
+            destinationLabel: "North Hall"
+        );
+        var lockedDoor = Builders.MakeDoorConnector(lockedConnector.Id, isLocked: true);
+        var keyItem = Builders.MakeKey();
+        keyItem.Quantity = 1;
+        keyItem.Ownership.OwnerId = _player.Id;
+        keyItem.Ownership.OwnerType = OwnerType.Creature;
+        _context.Locations.Add(lockedDestination);
+        _context.LocationConnectors.Add(lockedConnector);
+        _context.DoorConnectors.Add(lockedDoor);
+        _context.Items.Add(keyItem);
+        _context.DoorConnectorKeys.Add(
+            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = lockedDoor.Id }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
+
+        // Act
+        var result = await _handler.Handle(
+            new ResolveFleeCombatCommand
+            {
+                SessionId = _session.Id,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(lockedDestination.Id, result!.DestinationLocationId);
+        Assert.Equal(lockedDestination.Name, result.DestinationLocationName);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNoDestination_WhenNoPreviousLocationAndNoUsableExits()
     {
         // Arrange
         await SeedFight();
@@ -218,8 +252,7 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
         );
 
         // Assert
-        Assert.Null(result!.DestinationLocationName);
-        var movedPlayer = await GetPlayer();
-        Assert.Equal(_currentLocation.Id, movedPlayer.LocationId);
+        Assert.Null(result!.DestinationLocationId);
+        Assert.Null(result.DestinationLocationName);
     }
 }

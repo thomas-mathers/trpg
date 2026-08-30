@@ -45,9 +45,18 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
         await _context.DisposeAsync();
     }
 
-    private async Task<Location> SeedLocation(Guid? roomId = null, Guid? districtId = null)
+    private async Task<Location> SeedLocation(
+        Guid? roomId = null,
+        Guid? districtId = null,
+        Guid? id = null
+    )
     {
-        var location = Builders.MakeLocation(WorldId, roomId: roomId, districtId: districtId);
+        var location = Builders.MakeLocation(
+            WorldId,
+            roomId: roomId,
+            districtId: districtId,
+            id: id
+        );
         _context.Locations.Add(location);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return location;
@@ -454,9 +463,10 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
         // Arrange
         var owner = await SeedCreature();
         var building = await SeedBuilding(owner.Id);
-        var entranceRoom = await SeedEntranceRoom(building.Id);
+        var entranceLocationId = Guid.NewGuid();
+        var entranceRoom = await SeedEntranceRoom(building.Id, entranceLocationId);
         var frontDoor = await SeedFrontDoor(entranceRoom);
-        var doorLocation = await SeedLocation(roomId: entranceRoom.Id);
+        var doorLocation = await SeedLocation(roomId: entranceRoom.Id, id: entranceLocationId);
         await AddJob(
             Builders.MakeCreatureJob(
                 owner.Id,
@@ -497,9 +507,9 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
         return building;
     }
 
-    private async Task<Room> SeedEntranceRoom(Guid buildingId)
+    private async Task<Room> SeedEntranceRoom(Guid buildingId, Guid? locationId = null)
     {
-        var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId);
+        var entranceRoom = Builders.MakeRoom(buildingId, worldId: WorldId, locationId: locationId);
         _context.Rooms.Add(entranceRoom);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return entranceRoom;
