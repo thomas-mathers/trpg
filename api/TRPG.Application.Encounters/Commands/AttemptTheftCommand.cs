@@ -14,6 +14,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Reputations.Events;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Trading;
+using TRPG.Application.Trading.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -40,7 +41,10 @@ public class AttemptTheftCommand
 internal class AttemptTheftCommandHandler(
     TrpgDbContext context,
     TheftSourceResolver theftSourceResolver,
-    InventoryItemTransfer itemTransfer,
+    ICommandHandler<
+        TransferInventoryItemsCommand,
+        IReadOnlyCollection<InventoryItemTransferResult>
+    > transferInventoryItems,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     SkillCheckService skillCheckService,
@@ -71,7 +75,7 @@ internal class AttemptTheftCommandHandler(
             return new TheftAttemptResult(TheftAttemptOutcome.NotTheft);
         }
 
-        await itemTransfer.Validate(command.From, command.Items, cancellationToken);
+        await ValidateTransferableItems(command.From, command.Items, cancellationToken);
 
         using var transaction = new TransactionScope(
             TransactionScopeOption.Required,
@@ -169,10 +173,13 @@ internal class AttemptTheftCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var transferResults = await itemTransfer.Transfer(
-            command.From,
-            new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
-            command.Items,
+        var transferResults = await transferInventoryItems.Handle(
+            new TransferInventoryItemsCommand
+            {
+                From = command.From,
+                To = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+                Items = command.Items,
+            },
             cancellationToken
         );
 
@@ -243,10 +250,13 @@ internal class AttemptTheftCommandHandler(
     {
         var transferResults = theft.Source.IsPickpocketing
             ? []
-            : await itemTransfer.Transfer(
-                theft.Command.From,
-                new ItemOwnerReference(theft.Command.PlayerId, OwnerType.Creature),
-                theft.Command.Items,
+            : await transferInventoryItems.Handle(
+                new TransferInventoryItemsCommand
+                {
+                    From = theft.Command.From,
+                    To = new ItemOwnerReference(theft.Command.PlayerId, OwnerType.Creature),
+                    Items = theft.Command.Items,
+                },
                 cancellationToken
             );
 
@@ -284,10 +294,13 @@ internal class AttemptTheftCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var results = await itemTransfer.Transfer(
-            theft.Command.From,
-            new ItemOwnerReference(theft.Command.PlayerId, OwnerType.Creature),
-            theft.Command.Items,
+        var results = await transferInventoryItems.Handle(
+            new TransferInventoryItemsCommand
+            {
+                From = theft.Command.From,
+                To = new ItemOwnerReference(theft.Command.PlayerId, OwnerType.Creature),
+                Items = theft.Command.Items,
+            },
             cancellationToken
         );
 
@@ -299,6 +312,18 @@ internal class AttemptTheftCommandHandler(
 
         return new TheftAttemptResult(TheftAttemptOutcome.Completed);
     }
+
+    private async Task ValidateTransferableItems(
+        ItemOwnerReference from,
+        IReadOnlyList<ItemSelection> selections,
+        CancellationToken cancellationToken
+    ) =>
+        _ = await InventoryTransferValidation.GetValidatedTransferItems(
+            from,
+            selections,
+            context.Items.AsNoTracking(),
+            cancellationToken
+        );
 
     private async Task<TheftCrime> CreateCrime(
         AttemptTheftCommand command,

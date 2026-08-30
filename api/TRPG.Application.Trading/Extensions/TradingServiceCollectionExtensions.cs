@@ -8,7 +8,6 @@ public static class TradingServiceCollectionExtensions
         this IServiceCollection serviceCollection
     ) =>
         serviceCollection
-            .AddTransient<InventoryItemTransfer>()
             .AddTransient<TradeOfferValidator>()
             .AddTransient<TradeOfferEvaluator>()
             .AddTransient<QuestItemGuard>();

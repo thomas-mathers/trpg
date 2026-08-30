@@ -6,9 +6,8 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Trading;
+using TRPG.Application.Trading.Commands;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -29,7 +28,6 @@ public record PlayerRespawnFact(
 );
 
 internal class ResolvePlayerRespawnCommandHandler(
-    TrpgDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<
@@ -38,7 +36,10 @@ internal class ResolvePlayerRespawnCommandHandler(
     > getNearestTempleSanctuary,
     ICommandHandler<AddCreatureCommand> addCreature,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
-    InventoryItemTransfer inventoryItemTransfer,
+    ICommandHandler<
+        TransferInventoryItemsCommand,
+        IReadOnlyCollection<InventoryItemTransferResult>
+    > transferInventoryItems,
     IQueryHandler<
         GetCreaturesAtLocationQuery,
         IReadOnlyCollection<CreatureResult>
@@ -108,13 +109,17 @@ internal class ResolvePlayerRespawnCommandHandler(
 
         if (playerItems.Count > 0)
         {
-            await inventoryItemTransfer.Transfer(
-                new ItemOwnerReference(player.Id, OwnerType.Creature),
-                new ItemOwnerReference(corpse.Id, OwnerType.Creature),
-                playerItems.Select(item => new ItemSelection(item.Id, item.Quantity)).ToArray(),
+            await transferInventoryItems.Handle(
+                new TransferInventoryItemsCommand
+                {
+                    From = new ItemOwnerReference(player.Id, OwnerType.Creature),
+                    To = new ItemOwnerReference(corpse.Id, OwnerType.Creature),
+                    Items = playerItems
+                        .Select(item => new ItemSelection(item.Id, item.Quantity))
+                        .ToArray(),
+                },
                 cancellationToken
             );
-            await context.SaveChangesAsync(cancellationToken);
         }
 
         var sanctuaryOccupants = await getCreaturesAtLocation.Handle(

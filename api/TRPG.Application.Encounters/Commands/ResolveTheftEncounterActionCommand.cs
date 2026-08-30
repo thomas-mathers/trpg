@@ -5,7 +5,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Inventory;
-using TRPG.Application.Trading;
+using TRPG.Application.Trading.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -22,7 +22,10 @@ public class ResolveTheftEncounterActionCommand
 
 internal class ResolveTheftEncounterActionCommandHandler(
     TrpgDbContext context,
-    InventoryItemTransfer itemTransfer,
+    ICommandHandler<
+        TransferInventoryItemsCommand,
+        IReadOnlyCollection<InventoryItemTransferResult>
+    > transferInventoryItems,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<StartFightCommand> startFight
 ) : ICommandHandler<ResolveTheftEncounterActionCommand, TheftEncounterResolutionFact>
@@ -79,12 +82,18 @@ internal class ResolveTheftEncounterActionCommandHandler(
             && encounter.SourceOwnerType is OwnerType.Container or OwnerType.Workstation
         )
         {
-            await itemTransfer.Transfer(
-                new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
-                new ItemOwnerReference(sourceOwnerId, encounter.SourceOwnerType.Value),
-                encounter
-                    .ItemSelections.Select(item => new ItemSelection(item.ItemId, item.Quantity))
-                    .ToArray(),
+            await transferInventoryItems.Handle(
+                new TransferInventoryItemsCommand
+                {
+                    From = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+                    To = new ItemOwnerReference(sourceOwnerId, encounter.SourceOwnerType.Value),
+                    Items = encounter
+                        .ItemSelections.Select(item => new ItemSelection(
+                            item.ItemId,
+                            item.Quantity
+                        ))
+                        .ToArray(),
+                },
                 cancellationToken
             );
             itemsReturned = encounter.ItemSelections.Count > 0;

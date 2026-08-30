@@ -2,20 +2,21 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Inventory;
 using TRPG.Application.Trading;
+using TRPG.Application.Trading.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Trading;
+namespace TRPG.Tests.Application.Trading.Commands;
 
 [Collection("Database")]
-public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class TransferInventoryItemsCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private InventoryItemTransfer _transfer = null!;
+    private TransferInventoryItemsCommandHandler _handler = null!;
     private Creature _source = null!;
     private Creature _destination = null!;
 
@@ -25,7 +26,7 @@ public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifet
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _transfer = _serviceProvider.GetRequiredService<InventoryItemTransfer>();
+        _handler = _serviceProvider.GetRequiredService<TransferInventoryItemsCommandHandler>();
         _source = Builders.MakeCreature(WorldId);
         _destination = Builders.MakeCreature(WorldId);
 
@@ -40,7 +41,7 @@ public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifet
     }
 
     [Fact]
-    public async Task Transfer_Throws_WhenDestinationWouldExceedCarryingCapacity()
+    public async Task Handle_Throws_WhenDestinationWouldExceedCarryingCapacity()
     {
         // Arrange
         var item = Builders.MakeWeapon(WorldId, weight: _destination.CarryingCapacity + 1);
@@ -52,17 +53,20 @@ public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifet
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _transfer.Transfer(
-                new ItemOwnerReference(_source.Id, OwnerType.Creature),
-                new ItemOwnerReference(_destination.Id, OwnerType.Creature),
-                [new ItemSelection(item.Id, 1)],
+            _handler.Handle(
+                new TransferInventoryItemsCommand
+                {
+                    From = new ItemOwnerReference(_source.Id, OwnerType.Creature),
+                    To = new ItemOwnerReference(_destination.Id, OwnerType.Creature),
+                    Items = [new ItemSelection(item.Id, 1)],
+                },
                 TestContext.Current.CancellationToken
             )
         );
     }
 
     [Fact]
-    public async Task Transfer_Succeeds_WhenWithinDestinationCarryingCapacity()
+    public async Task Handle_Succeeds_WhenWithinDestinationCarryingCapacity()
     {
         // Arrange
         var item = Builders.MakeWeapon(WorldId, weight: _destination.CarryingCapacity);
@@ -73,10 +77,13 @@ public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifet
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var results = await _transfer.Transfer(
-            new ItemOwnerReference(_source.Id, OwnerType.Creature),
-            new ItemOwnerReference(_destination.Id, OwnerType.Creature),
-            [new ItemSelection(item.Id, 1)],
+        var results = await _handler.Handle(
+            new TransferInventoryItemsCommand
+            {
+                From = new ItemOwnerReference(_source.Id, OwnerType.Creature),
+                To = new ItemOwnerReference(_destination.Id, OwnerType.Creature),
+                Items = [new ItemSelection(item.Id, 1)],
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -85,7 +92,7 @@ public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifet
     }
 
     [Fact]
-    public async Task Transfer_Succeeds_RegardlessOfCapacity_WhenDestinationIsACorpse()
+    public async Task Handle_Succeeds_RegardlessOfCapacity_WhenDestinationIsACorpse()
     {
         // Arrange
         var corpse = Builders.MakeCreature(WorldId, state: CreatureState.Dead);
@@ -98,10 +105,13 @@ public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifet
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var results = await _transfer.Transfer(
-            new ItemOwnerReference(_source.Id, OwnerType.Creature),
-            new ItemOwnerReference(corpse.Id, OwnerType.Creature),
-            [new ItemSelection(item.Id, 1)],
+        var results = await _handler.Handle(
+            new TransferInventoryItemsCommand
+            {
+                From = new ItemOwnerReference(_source.Id, OwnerType.Creature),
+                To = new ItemOwnerReference(corpse.Id, OwnerType.Creature),
+                Items = [new ItemSelection(item.Id, 1)],
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -110,7 +120,7 @@ public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifet
     }
 
     [Fact]
-    public async Task Transfer_UsesCurrentItemQuantity_WhenPreflightValidationPrecedesIt()
+    public async Task Handle_UsesCurrentItemQuantity_WhenPreflightValidationPrecedesIt()
     {
         // Arrange
         var item = Builders.MakeAmmunition(WorldId);
@@ -123,7 +133,12 @@ public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifet
 
         var source = new ItemOwnerReference(_source.Id, OwnerType.Creature);
         var selection = new ItemSelection(item.Id, 2);
-        await _transfer.Validate(source, [selection], TestContext.Current.CancellationToken);
+        await InventoryTransferValidation.GetValidatedTransferItems(
+            source,
+            [selection],
+            _context.Items.AsNoTracking(),
+            TestContext.Current.CancellationToken
+        );
 
         await using (var updateContext = db.CreateContext())
         {
@@ -137,10 +152,13 @@ public sealed class InventoryItemTransferTests(DatabaseFixture db) : IAsyncLifet
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _transfer.Transfer(
-                source,
-                new ItemOwnerReference(_destination.Id, OwnerType.Creature),
-                [selection],
+            _handler.Handle(
+                new TransferInventoryItemsCommand
+                {
+                    From = source,
+                    To = new ItemOwnerReference(_destination.Id, OwnerType.Creature),
+                    Items = [selection],
+                },
                 TestContext.Current.CancellationToken
             )
         );
