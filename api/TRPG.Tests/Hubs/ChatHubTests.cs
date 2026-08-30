@@ -1264,4 +1264,76 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Assert
         Assert.NotEmpty(sceneSnapshots);
     }
+
+    [Fact]
+    public async Task ResolvePayFineEncounterAction_PublishesSceneSnapshot_WhenEncounterResolves()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var cityFaction = Builders.MakeFaction(_worldId, isCityFaction: true);
+        var guard = Builders.MakeCreature(
+            _worldId,
+            profession: TRPG.Domain.Models.Profession.Guard,
+            locationId: _locationId
+        );
+        var encounter = Builders.MakeGuardEncounter(
+            _worldId,
+            _playerId,
+            _locationId,
+            guard.Id,
+            cityFaction.Id,
+            fineAmount: 50
+        );
+        var gold = Builders.MakeGold(_worldId, quantity: 100);
+        gold.Ownership.OwnerId = _playerId;
+        gold.Ownership.OwnerType = OwnerType.Creature;
+        context.Factions.Add(cityFaction);
+        context.Creatures.Add(guard);
+        context.Encounters.Add(encounter);
+        context.Items.Add(gold);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sessionId = await StartSession();
+        var connection = fixture.CreateHubConnection(sessionId);
+        var initialSnapshotReceived = new TaskCompletionSource<SceneSnapshot>();
+        var sceneSnapshots = new List<SceneSnapshot>();
+        var gameClient = new TestGameClient
+        {
+            Connection = connection,
+            OnSceneSnapshot = snapshot =>
+            {
+                sceneSnapshots.Add(snapshot);
+                initialSnapshotReceived.TrySetResult(snapshot);
+            },
+        };
+        connection.Register<IGameClient>(gameClient);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        sceneSnapshots.Clear();
+        await using var gameHub = connection;
+
+        // Act
+        await Drain(
+            gameHub.StreamAsync<string>(
+                "ResolvePayFineEncounterAction",
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert - paying the fine deducts gold, which the scene diff must catch
+        var scene = Assert.Single(sceneSnapshots);
+        Assert.Equal(50, scene.PlayerStatus.Gold);
+
+        await using var verifyScope = fixture.CreateScope();
+        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var updatedEncounter = await verifyContext.Encounters.SingleAsync(
+            e => e.Id == encounter.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(EncounterState.Completed, updatedEncounter.State);
+    }
 }

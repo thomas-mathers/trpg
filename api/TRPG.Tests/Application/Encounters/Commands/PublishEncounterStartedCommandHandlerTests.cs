@@ -65,7 +65,13 @@ public sealed class PublishEncounterStartedCommandHandlerTests(DatabaseFixture d
         gold.Ownership.OwnerType = OwnerType.Creature;
         _context.Items.Add(gold);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var encounter = MakeGuardEncounter(fineAmount: 100);
+        var encounter = Builders.MakeGuardEncounter(
+            WorldId,
+            _player.Id,
+            _player.LocationId,
+            Guid.NewGuid(),
+            fineAmount: 100
+        );
 
         // Act
         await _handler.Handle(
@@ -84,7 +90,13 @@ public sealed class PublishEncounterStartedCommandHandlerTests(DatabaseFixture d
     public async Task Handle_MarksTheFineUnaffordable_WhenGuardEncounterAndPlayerLacksGold()
     {
         // Arrange
-        var encounter = MakeGuardEncounter(fineAmount: 100);
+        var encounter = Builders.MakeGuardEncounter(
+            WorldId,
+            _player.Id,
+            _player.LocationId,
+            Guid.NewGuid(),
+            fineAmount: 100
+        );
 
         // Act
         await _handler.Handle(
@@ -133,18 +145,4 @@ public sealed class PublishEncounterStartedCommandHandlerTests(DatabaseFixture d
         // Assert
         Assert.Empty(_eventSink.EnqueuedEvents);
     }
-
-    private GuardEncounter MakeGuardEncounter(int fineAmount) =>
-        new()
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = _player.LocationId,
-            GuardCreatureId = Guid.NewGuid(),
-            CityFactionId = Guid.NewGuid(),
-            GuardName = "Guard",
-            ReputationScore = -50,
-            FineAmount = fineAmount,
-            JailHours = 4,
-        };
 }
