@@ -202,15 +202,12 @@ public class GeographyGenerator(
         DistrictType.Residential,
         DistrictType.CityCenter,
         DistrictType.CityEntrance,
-    ];
-
-    private static readonly DistrictType[] OptionalDistrictTypes =
-    [
-        DistrictType.Scientific,
+        DistrictType.Encampment,
         DistrictType.Governmental,
         DistrictType.HolySite,
-        DistrictType.Encampment,
     ];
+
+    private static readonly DistrictType[] OptionalDistrictTypes = [DistrictType.Scientific];
 
     private const double OptionalDistrictChance = 0.55;
     private const double FocusedDistrictChance = 0.85;
@@ -218,23 +215,14 @@ public class GeographyGenerator(
     private static readonly Dictionary<CountryFocus, DistrictType> FocusDistrictTypes = new()
     {
         [CountryFocus.Scientific] = DistrictType.Scientific,
-        [CountryFocus.Political] = DistrictType.Governmental,
-        [CountryFocus.Religious] = DistrictType.HolySite,
-        [CountryFocus.Militaristic] = DistrictType.Encampment,
     };
 
-    private static List<DistrictType> SelectDistrictTypes(bool isCapital, CountryFocus focus)
+    private static List<DistrictType> SelectDistrictTypes(CountryFocus focus)
     {
-        var focusedDistrictType = FocusDistrictTypes[focus];
+        var focusedDistrictType = FocusDistrictTypes.GetValueOrDefault(focus);
         var selected = new List<DistrictType>(RequiredDistrictTypes);
         foreach (var districtType in OptionalDistrictTypes)
         {
-            if (districtType == DistrictType.Governmental && isCapital)
-            {
-                selected.Add(districtType);
-                continue;
-            }
-
             var chance =
                 districtType == focusedDistrictType
                     ? FocusedDistrictChance
@@ -292,7 +280,7 @@ public class GeographyGenerator(
                     )
                     .ToList();
                 var cityDistrictTypes = cityStates
-                    .Select(s => SelectDistrictTypes(s.IsCapital, country.Focus))
+                    .Select(_ => SelectDistrictTypes(country.Focus))
                     .ToList();
 
                 for (var j = 0; j < cityStates.Count; j++)
