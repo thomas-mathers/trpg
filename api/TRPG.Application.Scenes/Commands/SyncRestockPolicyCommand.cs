@@ -110,8 +110,86 @@ internal class SyncRestockPolicyCommandHandler(
             existing.Quantity = quantity;
         }
 
+        if (buildingType == BuildingType.Inn)
+        {
+            await RegenerateMissingRoomKeys(workstationId, policy.WorldId, cancellationToken);
+        }
+
         policy.LastSyncPlaytime = command.CurrentPlaytime;
 
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    // A guest room whose only key was stolen or never returned would otherwise stay
+    // unbookable forever; the innkeeper has a replacement made on the same cadence as
+    // restocking. Never revokes an already-issued key — a door can have more than one.
+    private async Task RegenerateMissingRoomKeys(
+        Guid workstationId,
+        Guid worldId,
+        CancellationToken cancellationToken
+    )
+    {
+        var buildingId = await (
+            from workstation in context.Props.OfType<Workstation>().AsNoTracking()
+            where workstation.Id == workstationId
+            join room in context.Rooms.AsNoTracking()
+                on workstation.LocationId equals room.LocationId
+            select (Guid?)room.BuildingId
+        ).FirstOrDefaultAsync(cancellationToken);
+        if (buildingId == null)
+        {
+            return;
+        }
+
+        var doorsByRoom = await (
+            from door in context.DoorConnectors.AsNoTracking()
+            join connector in context.LocationConnectors.AsNoTracking()
+                on door.ConnectorId equals connector.Id
+            join room in context.Rooms.AsNoTracking()
+                on connector.DestinationLocationId equals room.LocationId
+            where room.BuildingId == buildingId.Value
+            select new { room.Name, DoorConnectorId = door.Id }
+        ).ToListAsync(cancellationToken);
+        if (doorsByRoom.Count == 0)
+        {
+            return;
+        }
+
+        var doorConnectorIds = doorsByRoom.Select(d => d.DoorConnectorId).ToArray();
+        var doorsWithSpareKey = await (
+            from doorConnectorKey in context.DoorConnectorKeys.AsNoTracking()
+            where doorConnectorIds.AsEnumerable().Contains(doorConnectorKey.DoorConnectorId)
+            join item in context.Items.AsNoTracking() on doorConnectorKey.ItemId equals item.Id
+            where item.Ownership.OwnerType == OwnerType.Workstation
+            select doorConnectorKey.DoorConnectorId
+        ).ToListAsync(cancellationToken);
+        var doorsWithSpareKeySet = doorsWithSpareKey.ToHashSet();
+
+        foreach (
+            var door in doorsByRoom.Where(d => !doorsWithSpareKeySet.Contains(d.DoorConnectorId))
+        )
+        {
+            var replacementKey = new Key
+            {
+                WorldId = worldId,
+                Name = $"Key to {door.Name}",
+                Description = $"A replacement key to the {door.Name}.",
+                Quantity = 1,
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = workstationId,
+                    OwnerType = OwnerType.Workstation,
+                },
+            };
+            context.Items.Add(replacementKey);
+            context.DoorConnectorKeys.Add(
+                new DoorConnectorKey
+                {
+                    ItemId = replacementKey.Id,
+                    DoorConnectorId = door.DoorConnectorId,
+                    WorldId = worldId,
+                }
+            );
+        }
     }
 }

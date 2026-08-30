@@ -168,6 +168,74 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
+    public async Task Handle_RegeneratesAMissingRoomKey_ForAnInnWorkstation_WhenScheduleHasTriggered()
+    {
+        // Arrange
+        var innLocationId = Guid.NewGuid();
+        var innBuilding = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.Inn);
+        var lobby = Builders.MakeRoom(
+            innBuilding.Id,
+            worldId: WorldId,
+            locationId: innLocationId,
+            name: "Lobby"
+        );
+        var lobbyLocation = Builders.MakeLocation(WorldId, roomId: lobby.Id, id: innLocationId);
+        var counter = Builders.MakeWorkstation(worldId: WorldId, locationId: innLocationId);
+
+        var guestRoom = Builders.MakeRoom(
+            innBuilding.Id,
+            worldId: WorldId,
+            name: "North Guest Room"
+        );
+        var guestRoomLocation = Builders.MakeLocation(
+            WorldId,
+            roomId: guestRoom.Id,
+            id: guestRoom.LocationId
+        );
+        var entryConnector = Builders.MakeLocationConnector(
+            innLocationId,
+            destinationLocationId: guestRoom.LocationId,
+            worldId: WorldId
+        );
+        var door = Builders.MakeDoorConnector(entryConnector.Id, isLocked: true, worldId: WorldId);
+
+        var policy = Builders.MakeRestockPolicy(WorldId, counter.Id);
+
+        _context.Buildings.Add(innBuilding);
+        _context.Rooms.AddRange(lobby, guestRoom);
+        _context.Locations.AddRange(lobbyLocation, guestRoomLocation);
+        _context.Props.Add(counter);
+        _context.LocationConnectors.Add(entryConnector);
+        _context.DoorConnectors.Add(door);
+        _context.RestockPolicies.Add(policy);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act — a full in-game day has passed, enough to trigger a daily-at-hour-0 schedule
+        await _handler.Handle(
+            new SyncRestockPolicyCommand
+            {
+                LocationId = innLocationId,
+                PlayerLevel = 5,
+                CurrentPlaytime = TimeSpan.FromHours(2),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var doorConnectorKey = await verifyContext.DoorConnectorKeys.SingleAsync(
+            k => k.DoorConnectorId == door.Id,
+            TestContext.Current.CancellationToken
+        );
+        var key = await verifyContext.Items.SingleAsync(
+            i => i.Id == doorConnectorKey.ItemId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(OwnerType.Workstation, key.Ownership.OwnerType);
+        Assert.Equal(counter.Id, key.Ownership.OwnerId);
+    }
+
+    [Fact]
     public async Task Handle_AdvancesLastSyncPlaytime_AfterRestocking()
     {
         // Arrange

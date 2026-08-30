@@ -289,7 +289,8 @@ internal static class Builders
         Guid? worldId = null,
         Guid? locationId = null,
         Guid? occupantId = null,
-        Guid? assignedCreatureId = null
+        Guid? assignedCreatureId = null,
+        Guid? ownerCreatureId = null
     ) =>
         new()
         {
@@ -300,6 +301,7 @@ internal static class Builders
             WorkstationType = WorkstationType.Trade,
             OccupantId = occupantId,
             AssignedCreatureId = assignedCreatureId,
+            OwnerCreatureId = ownerCreatureId,
         };
 
     public static CreatureSpawner MakeCreatureSpawner(
@@ -372,9 +374,14 @@ internal static class Builders
         };
     }
 
-    public static Key MakeKey(Guid? worldId = null, int quantity = 0)
+    public static Key MakeKey(
+        Guid? worldId = null,
+        int quantity = 0,
+        Guid? ownerId = null,
+        OwnerType ownerType = OwnerType.Creature
+    )
     {
-        return new Key
+        var key = new Key
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Key-{Guid.NewGuid():N}",
@@ -382,17 +389,62 @@ internal static class Builders
             Weight = 1,
             Quantity = quantity,
         };
+        if (ownerId != null)
+        {
+            key.Ownership.OwnerId = ownerId.Value;
+            key.Ownership.OwnerType = ownerType;
+        }
+        return key;
     }
 
-    public static Gold MakeGold(Guid? worldId = null, int quantity = 0)
+    public static Gold MakeGold(
+        Guid? worldId = null,
+        int quantity = 0,
+        Guid? ownerId = null,
+        OwnerType ownerType = OwnerType.Creature
+    )
     {
-        return new Gold
+        var gold = new Gold
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = "Gold",
             Quantity = quantity,
         };
+        if (ownerId != null)
+        {
+            gold.Ownership.OwnerId = ownerId.Value;
+            gold.Ownership.OwnerType = ownerType;
+        }
+        return gold;
     }
+
+    public static DoorConnectorKey MakeDoorConnectorKey(
+        Guid itemId,
+        Guid doorConnectorId,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            ItemId = itemId,
+            DoorConnectorId = doorConnectorId,
+            WorldId = worldId ?? Guid.NewGuid(),
+        };
+
+    public static RoomBooking MakeRoomBooking(
+        Guid worldId,
+        Guid roomId,
+        Guid keyItemId,
+        Guid playerId,
+        TimeSpan dueAtPlaytime
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            RoomId = roomId,
+            KeyItemId = keyItemId,
+            PlayerId = playerId,
+            DueAtPlaytime = dueAtPlaytime,
+        };
 
     public static Weapon MakeWeapon(
         Guid? worldId = null,

@@ -20,6 +20,7 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Buildings.Tools;
 using TRPG.Combat.Tools;
 using TRPG.Configuration;
 using TRPG.Data;
@@ -64,6 +65,8 @@ internal static class ServiceCollectionExtensions
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
+            .AddGameTool<BookRoomTool>()
+            .AddGameTool<ReturnRoomKeyTool>()
             .AddExceptionHandler<GlobalExceptionHandler>()
             .AddProblemDetails()
             .AddOpenApi()
@@ -363,7 +366,8 @@ internal static class ServiceCollectionExtensions
             .Configure<GameSessionOptions>(configuration.GetSection("GameSession"))
             .Configure<ReputationOptions>(configuration.GetSection("Reputation"))
             .Configure<GuardEncounterOptions>(configuration.GetSection("GuardEncounter"))
-            .Configure<TheftOptions>(configuration.GetSection("Theft"));
+            .Configure<TheftOptions>(configuration.GetSection("Theft"))
+            .Configure<InnOptions>(configuration.GetSection("Inn"));
     }
 
     private static int GetSerializedByteCount(object? value)

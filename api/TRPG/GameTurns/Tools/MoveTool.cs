@@ -30,10 +30,16 @@ internal record MoveToolGuardEncounter(
     IReadOnlyCollection<string> RecentOffenses
 );
 
+internal record MoveToolOverdueKeyEncounter(
+    string ConfrontingName,
+    IReadOnlyCollection<string> ItemNames
+);
+
 internal record MoveToolResult(
     SceneResult Scene,
     MoveToolHostileEncounter? HostileEncounter,
-    MoveToolGuardEncounter? GuardEncounter
+    MoveToolGuardEncounter? GuardEncounter,
+    MoveToolOverdueKeyEncounter? OverdueRoomKeyEncounter
 );
 
 internal class MoveTool(
@@ -106,7 +112,8 @@ internal class MoveTool(
         var result = new MoveToolResult(
             scene,
             moveResult.Encounter?.ToMoveToolSummary(),
-            moveResult.GuardEncounter?.ToMoveToolSummary()
+            moveResult.GuardEncounter?.ToMoveToolSummary(),
+            moveResult.OverdueRoomKeyEncounter?.ToMoveToolSummary()
         );
 
         logger.LogInformation(

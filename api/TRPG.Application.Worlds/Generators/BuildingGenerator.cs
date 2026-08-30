@@ -334,14 +334,123 @@ public class BuildingGenerator
         }
 
         var roomsByFloor = rooms.GroupBy(r => r.FloorNumber).OrderBy(g => g.Key).ToArray();
+        var allRooms = new List<Room>(rooms);
         var interiorDoors = new List<DoorConnector>();
         var keyItems = new List<Item>();
         var doorConnectorKeys = new List<DoorConnectorKey>();
 
-        for (var i = 0; i < roomsByFloor.Length - 1; i++)
+        // Only Inns issue keyed access per room today; the Innkeeper's Counter is the sole
+        // Trade workstation an Inn ever generates, so it can be resolved once up front.
+        var innkeepersCounterId =
+            input.Spec.Type == BuildingType.Inn
+                ? props
+                    .OfType<Workstation>()
+                    .First(w => w.WorkstationType == WorkstationType.Trade)
+                    .Id
+                : (Guid?)null;
+
+        // A floor with more than one room gets a synthesized hallway that the staircase
+        // connects to, instead of an arbitrary "first" room — otherwise every room but one
+        // on that floor is unreachable, and it also gives room-to-room navigation for free.
+        var connectionPointByFloor = new Room[roomsByFloor.Length];
+        for (var i = 0; i < roomsByFloor.Length; i++)
         {
-            var roomAbove = roomsByFloor[i + 1].First();
-            var roomBelow = roomsByFloor[i].First();
+            var floorRooms = roomsByFloor[i].ToArray();
+            if (floorRooms.Length == 1)
+            {
+                connectionPointByFloor[i] = floorRooms[0];
+                continue;
+            }
+
+            var hallwayId = Guid.NewGuid();
+            var hallwayLocation = LocationGenerator.Generate(
+                worldId,
+                input.ExteriorLocation.StateId,
+                input.ExteriorLocation.CityId,
+                input.ExteriorLocation.DistrictId,
+                hallwayId
+            );
+            locations.Add(hallwayLocation);
+
+            var hallway = new Room
+            {
+                Id = hallwayId,
+                BuildingId = building.Id,
+                LocationId = hallwayLocation.Id,
+                Capacity = 4,
+                Description = "A connecting hallway.",
+                FloorNumber = floorRooms[0].FloorNumber,
+                Name = "Hallway",
+                WorldId = worldId,
+            };
+            allRooms.Add(hallway);
+            connectionPointByFloor[i] = hallway;
+
+            foreach (var room in floorRooms)
+            {
+                var toRoomConnector = new LocationConnector
+                {
+                    OriginLocationId = hallway.LocationId,
+                    Name = room.Name,
+                    Description = $"The way to {room.Name}.",
+                    DestinationLocationId = room.LocationId,
+                    DestinationLabel = room.Name,
+                    WorldId = worldId,
+                };
+                locationConnectors.Add(toRoomConnector);
+                locationConnectors.Add(
+                    new LocationConnector
+                    {
+                        OriginLocationId = room.LocationId,
+                        Name = "Hallway",
+                        Description = "The way back to the hallway.",
+                        DestinationLocationId = hallway.LocationId,
+                        DestinationLabel = hallway.Name,
+                        WorldId = worldId,
+                    }
+                );
+
+                if (input.Spec.Type != BuildingType.Inn)
+                {
+                    continue;
+                }
+
+                var roomDoor = new DoorConnector
+                {
+                    ConnectorId = toRoomConnector.Id,
+                    IsLocked = true,
+                    WorldId = worldId,
+                };
+                interiorDoors.Add(roomDoor);
+
+                var roomKey = new Key
+                {
+                    WorldId = worldId,
+                    Name = $"Key to {room.Name}",
+                    Description = $"A key that unlocks the {room.Name} in {building.Name}.",
+                    Quantity = 1,
+                    Ownership = new ItemOwnership
+                    {
+                        OwnerId = innkeepersCounterId!.Value,
+                        OwnerType = OwnerType.Workstation,
+                    },
+                };
+                keyItems.Add(roomKey);
+                doorConnectorKeys.Add(
+                    new DoorConnectorKey
+                    {
+                        ItemId = roomKey.Id,
+                        DoorConnectorId = roomDoor.Id,
+                        WorldId = worldId,
+                    }
+                );
+            }
+        }
+
+        for (var i = 0; i < connectionPointByFloor.Length - 1; i++)
+        {
+            var roomAbove = connectionPointByFloor[i + 1];
+            var roomBelow = connectionPointByFloor[i];
 
             locationConnectors.Add(
                 new LocationConnector
@@ -403,7 +512,7 @@ public class BuildingGenerator
             }
         }
 
-        var entranceRoom = rooms.First(r => r.FloorNumber == 0);
+        var entranceRoom = connectionPointByFloor[0];
         var exitConnector = new LocationConnector
         {
             OriginLocationId = entranceRoom.LocationId,
@@ -463,7 +572,7 @@ public class BuildingGenerator
 
         return new BuildingGeneratorResult(
             building,
-            rooms,
+            allRooms,
             props,
             locations,
             locationConnectors,
