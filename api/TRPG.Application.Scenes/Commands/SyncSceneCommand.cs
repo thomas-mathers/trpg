@@ -1,5 +1,4 @@
 using TRPG.Application.Buildings.Queries;
-using TRPG.Application.Buildings.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs;
@@ -36,8 +35,7 @@ internal class SyncSceneCommandHandler(
         IReadOnlyCollection<Workstation>
     > getWorkstationsByLocationId,
     ICommandHandler<SetWorkstationOccupantCommand> setWorkstationOccupant,
-    IQueryHandler<GetRoomQuery, RoomResult?> getRoom,
-    ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock
+    ICommandHandler<SyncFrontDoorLockCommand> syncFrontDoorLock
 ) : ICommandHandler<SyncSceneCommand>
 {
     public async Task Handle(
@@ -62,7 +60,14 @@ internal class SyncSceneCommandHandler(
 
         if (location.RoomId != null)
         {
-            await SyncFrontDoorLock(location.RoomId.Value, command.CurrentDate, cancellationToken);
+            await syncFrontDoorLock.Handle(
+                new SyncFrontDoorLockCommand
+                {
+                    LocationId = command.LocationId,
+                    CurrentDate = command.CurrentDate,
+                },
+                cancellationToken
+            );
         }
 
         if (location.DistrictId != null)
@@ -202,31 +207,5 @@ internal class SyncSceneCommandHandler(
                 cancellationToken
             );
         }
-    }
-
-    private async Task SyncFrontDoorLock(
-        Guid roomId,
-        InGameDate currentDate,
-        CancellationToken cancellationToken
-    )
-    {
-        var roomResult = await getRoom.Handle(
-            new GetRoomQuery { RoomId = roomId },
-            cancellationToken
-        );
-        if (roomResult == null || roomResult.RoomFloorNumber != 0)
-        {
-            return;
-        }
-
-        await syncScheduleLock.Handle(
-            new SyncScheduleLockCommand
-            {
-                BuildingId = roomResult.BuildingId,
-                BuildingType = roomResult.BuildingType,
-                CurrentDate = currentDate,
-            },
-            cancellationToken
-        );
     }
 }

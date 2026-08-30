@@ -9,6 +9,7 @@ using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameTurns.Tools;
 using TRPG.Tests.Helpers;
+using TRPG.Tools;
 
 namespace TRPG.Tests.Tools;
 
@@ -132,5 +133,53 @@ public sealed class MoveToolTests(DatabaseFixture db) : IAsyncLifetime
             _eventSink.EnqueuedEvents.OfType<GuardEncounterStartedEvent>()
         );
         Assert.False(startedEvent.CanAffordFine);
+    }
+
+    [Fact]
+    public async Task Invoke_ReturnsError_WithoutMoving_WhenPlayerHasAnActiveEncounter()
+    {
+        // Arrange
+        var activeEncounter = Builders.MakeHostileEncounter(WorldId, _player.Id, _oldLocation.Id);
+        _context.Encounters.Add(activeEncounter);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        var error = Assert.IsType<ToolError>(result);
+        Assert.Contains("encounter", error.Error, StringComparison.OrdinalIgnoreCase);
+
+        await using var verifyContext = db.CreateContext();
+        var movedPlayer = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_oldLocation.Id, movedPlayer!.LocationId);
+    }
+
+    [Fact]
+    public async Task Invoke_ReturnsError_WithoutMoving_WhenPlayerHasAnActiveFight()
+    {
+        // Arrange
+        var activeFight = Builders.MakeFight(WorldId, _player.Id, [_player.Id]);
+        _context.Encounters.Add(activeFight);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        var error = Assert.IsType<ToolError>(result);
+        Assert.Contains("encounter", error.Error, StringComparison.OrdinalIgnoreCase);
+
+        await using var verifyContext = db.CreateContext();
+        var movedPlayer = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_oldLocation.Id, movedPlayer!.LocationId);
     }
 }

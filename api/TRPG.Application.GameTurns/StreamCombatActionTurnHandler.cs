@@ -2,8 +2,6 @@ using System.Text.Json;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Events;
-using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Domain.Models;
 
@@ -17,8 +15,7 @@ internal record CombatConclusionFact(
 internal class StreamCombatActionTurnHandler(
     GameTurnStreamer streamer,
     ICommandHandler<ResolvePlayerCombatActionCommand, PlayerCombatActionResult> resolveCombatAction,
-    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
-    IGameClientEventSink gameEvents
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -44,7 +41,7 @@ internal class StreamCombatActionTurnHandler(
             cancellationToken
         );
 
-        var refreshed = await refreshScene.Handle(
+        await refreshScene.Handle(
             new RefreshSceneCommand
             {
                 WorldId = session.WorldId,
@@ -53,7 +50,6 @@ internal class StreamCombatActionTurnHandler(
             },
             cancellationToken
         );
-        gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
 
         if (result.CombatResult.Outcome == CombatOutcome.Ongoing)
         {

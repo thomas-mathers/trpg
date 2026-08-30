@@ -118,7 +118,8 @@ internal class EndFightCommandHandler(
                 && creature.LocationId == fight.LocationId
                 && creature.State != CreatureState.Dead
                 && creature.State != CreatureState.Sleeping
-                && !fight.CombatantIds.AsEnumerable().Contains(creature.Id)
+                && creature.Id != playerId
+                && CreatureTypes.Humanoid.AsEnumerable().Contains(creature.CreatureType)
             )
             .Select(creature => creature.Id)
             .ToArrayAsync(cancellationToken);

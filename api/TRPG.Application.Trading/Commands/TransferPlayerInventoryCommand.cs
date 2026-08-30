@@ -1,7 +1,6 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Inventory;
-using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Trading.Commands;
@@ -14,8 +13,10 @@ public class TransferPlayerInventoryCommand
 }
 
 internal class TransferPlayerInventoryCommandHandler(
-    TrpgDbContext context,
-    InventoryItemTransfer itemTransfer,
+    ICommandHandler<
+        TransferInventoryItemsCommand,
+        IReadOnlyCollection<InventoryItemTransferResult>
+    > transferInventoryItems,
     QuestItemGuard questItemGuard
 ) : ICommandHandler<TransferPlayerInventoryCommand>
 {
@@ -40,14 +41,15 @@ internal class TransferPlayerInventoryCommandHandler(
             cancellationToken
         );
 
-        await itemTransfer.Transfer(
-            new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
-            command.To,
-            command.Items,
+        await transferInventoryItems.Handle(
+            new TransferInventoryItemsCommand
+            {
+                From = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+                To = command.To,
+                Items = command.Items,
+            },
             cancellationToken
         );
-
-        await context.SaveChangesAsync(cancellationToken);
 
         transaction.Complete();
     }

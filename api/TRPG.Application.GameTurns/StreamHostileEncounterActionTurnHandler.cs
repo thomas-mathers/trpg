@@ -7,7 +7,6 @@ using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Encounters.Results;
-using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Domain.Models;
 
@@ -63,7 +62,7 @@ internal class StreamHostileEncounterActionTurnHandler(
 
         gameEvents.Enqueue(new HostileEncounterResolvedEvent(resolution.Fact));
 
-        var refreshed = await refreshScene.Handle(
+        await refreshScene.Handle(
             new RefreshSceneCommand
             {
                 WorldId = session.WorldId,
@@ -72,7 +71,6 @@ internal class StreamHostileEncounterActionTurnHandler(
             },
             cancellationToken
         );
-        gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
 
         return new GameTurnPrompt.Narrate(BuildNarrationPrompt(resolution), IncludeTools: false);
     }

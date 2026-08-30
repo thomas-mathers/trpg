@@ -963,8 +963,18 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task SendRespawn_RelocatesPlayerAndDropsCorpse_AndNarratesTheRespawn()
     {
-        // Arrange
+        // Arrange - the corpse must keep at least one item, or MovePlayerCommand cleans up the
+        // now-empty corpse as part of relocating the player away from the death location.
         var sanctuaryLocationId = await SeedTempleInExistingCity();
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            var item = Builders.MakeWeapon(_worldId, quantity: 1);
+            item.Ownership.OwnerId = _playerId;
+            item.Ownership.OwnerType = OwnerType.Creature;
+            context.Items.Add(item);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
         await KillPlayer();
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
@@ -976,15 +986,15 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var player = await context.Creatures.SingleAsync(
+        await using var scope2 = fixture.CreateScope();
+        var context2 = scope2.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var player = await context2.Creatures.SingleAsync(
             c => c.Id == _playerId,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(sanctuaryLocationId, player.LocationId);
         Assert.Equal(DataCreatureState.Idle, player.State);
-        var corpse = await context.Creatures.SingleAsync(
+        var corpse = await context2.Creatures.SingleAsync(
             c => c.PlayerCorpseOwnerId == _playerId,
             TestContext.Current.CancellationToken
         );
@@ -1206,9 +1216,19 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
                 ),
             ]
         );
+        var previousLocation = Builders.MakeLocation(_worldId, _stateId);
         context.Factions.Add(faction);
         context.Creatures.Add(monster);
         context.Encounters.Add(encounter);
+        context.Locations.Add(previousLocation);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Retreat only relocates the player when a previous location was recorded to retreat to.
+        var trackedPlayer = await context.Creatures.SingleAsync(
+            c => c.Id == _playerId,
+            TestContext.Current.CancellationToken
+        );
+        trackedPlayer.PreviousLocationId = previousLocation.Id;
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var sessionId = await StartSession();
@@ -1243,5 +1263,77 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.NotEmpty(sceneSnapshots);
+    }
+
+    [Fact]
+    public async Task ResolvePayFineEncounterAction_PublishesSceneSnapshot_WhenEncounterResolves()
+    {
+        // Arrange
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var cityFaction = Builders.MakeFaction(_worldId, isCityFaction: true);
+        var guard = Builders.MakeCreature(
+            _worldId,
+            profession: TRPG.Domain.Models.Profession.Guard,
+            locationId: _locationId
+        );
+        var encounter = Builders.MakeGuardEncounter(
+            _worldId,
+            _playerId,
+            _locationId,
+            guard.Id,
+            cityFaction.Id,
+            fineAmount: 50
+        );
+        var gold = Builders.MakeGold(_worldId, quantity: 100);
+        gold.Ownership.OwnerId = _playerId;
+        gold.Ownership.OwnerType = OwnerType.Creature;
+        context.Factions.Add(cityFaction);
+        context.Creatures.Add(guard);
+        context.Encounters.Add(encounter);
+        context.Items.Add(gold);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var sessionId = await StartSession();
+        var connection = fixture.CreateHubConnection(sessionId);
+        var initialSnapshotReceived = new TaskCompletionSource<SceneSnapshot>();
+        var sceneSnapshots = new List<SceneSnapshot>();
+        var gameClient = new TestGameClient
+        {
+            Connection = connection,
+            OnSceneSnapshot = snapshot =>
+            {
+                sceneSnapshots.Add(snapshot);
+                initialSnapshotReceived.TrySetResult(snapshot);
+            },
+        };
+        connection.Register<IGameClient>(gameClient);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await initialSnapshotReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        sceneSnapshots.Clear();
+        await using var gameHub = connection;
+
+        // Act
+        await Drain(
+            gameHub.StreamAsync<string>(
+                "ResolvePayFineEncounterAction",
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert - paying the fine deducts gold, which the scene diff must catch
+        var scene = Assert.Single(sceneSnapshots);
+        Assert.Equal(50, scene.PlayerStatus.Gold);
+
+        await using var verifyScope = fixture.CreateScope();
+        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var updatedEncounter = await verifyContext.Encounters.SingleAsync(
+            e => e.Id == encounter.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(EncounterState.Completed, updatedEncounter.State);
     }
 }

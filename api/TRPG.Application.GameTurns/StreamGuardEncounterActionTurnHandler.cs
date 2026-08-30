@@ -6,7 +6,6 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
-using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Domain.Models;
 
@@ -67,7 +66,7 @@ internal class StreamGuardEncounterActionTurnHandler(
 
         gameEvents.Enqueue(new GuardEncounterResolvedEvent(resolution));
 
-        var refreshed = await refreshScene.Handle(
+        await refreshScene.Handle(
             new RefreshSceneCommand
             {
                 WorldId = session.WorldId,
@@ -76,8 +75,6 @@ internal class StreamGuardEncounterActionTurnHandler(
             },
             cancellationToken
         );
-
-        gameEvents.Enqueue(new SceneUpdatedEvent(refreshed.Scene));
 
         return new GameTurnPrompt.Narrate(
             BuildNarrationPrompt(action, resolution),

@@ -1,9 +1,11 @@
-using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
@@ -16,7 +18,11 @@ public class ResolveFleeCombatCommand
     public required Guid PlayerId { get; init; }
 }
 
-public record FleeCombatResult(CombatResult CombatResult, string? DestinationLocationName);
+public record FleeCombatResult(
+    CombatResult CombatResult,
+    Guid? DestinationLocationId,
+    string? DestinationLocationName
+);
 
 internal class ResolveFleeCombatCommandHandler(
     ActiveFightCombatantLoader combatantLoader,
@@ -27,12 +33,13 @@ internal class ResolveFleeCombatCommandHandler(
         GetConnectorsByLocationIdQuery,
         IReadOnlyCollection<LocationConnector>
     > getConnectorsByLocationId,
-    IQueryHandler<
-        GetDoorConnectorsByConnectorIdsQuery,
-        IReadOnlyDictionary<Guid, DoorConnector>
-    > getDoorConnectorsByConnectorIds,
+    ICommandHandler<
+        ResolveAccessibleConnectorsCommand,
+        IReadOnlyCollection<Guid>
+    > resolveAccessibleConnectors,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner
 ) : ICommandHandler<ResolveFleeCombatCommand, FleeCombatResult?>
 {
     private const string OutsideExitLabel = "Outside";
@@ -59,33 +66,31 @@ internal class ResolveFleeCombatCommandHandler(
             cancellationToken
         );
 
-        var destinationLocationId = await ResolveDestination(command.PlayerId, cancellationToken);
+        var destinationLocationId = await ResolveDestination(command, cancellationToken);
         if (destinationLocationId == null)
         {
-            return new FleeCombatResult(combatResult, null);
+            return new FleeCombatResult(combatResult, null, null);
         }
-
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [command.PlayerId],
-                LocationId = destinationLocationId.Value,
-            },
-            cancellationToken
-        );
 
         var destinationLocation = await getLocationById.Handle(
             new GetLocationByIdQuery { Id = destinationLocationId.Value },
             cancellationToken
         );
 
-        return new FleeCombatResult(combatResult, destinationLocation?.Name);
+        return new FleeCombatResult(
+            combatResult,
+            destinationLocationId.Value,
+            destinationLocation?.Name
+        );
     }
 
-    private async Task<Guid?> ResolveDestination(Guid playerId, CancellationToken cancellationToken)
+    private async Task<Guid?> ResolveDestination(
+        ResolveFleeCombatCommand command,
+        CancellationToken cancellationToken
+    )
     {
         var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = playerId },
+            new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
         );
 
@@ -103,19 +108,33 @@ internal class ResolveFleeCombatCommandHandler(
             return null;
         }
 
-        var doorsByConnectorId = await getDoorConnectorsByConnectorIds.Handle(
-            new GetDoorConnectorsByConnectorIdsQuery
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
+
+        var playerKeyItemIds = await getKeyItemIdsByOwner.Handle(
+            new GetKeyItemIdsByOwnerQuery
             {
+                Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+            },
+            cancellationToken
+        );
+
+        var accessibleConnectorIds = await resolveAccessibleConnectors.Handle(
+            new ResolveAccessibleConnectorsCommand
+            {
+                PlayerKeyItemIds = playerKeyItemIds,
+                Playtime = playtime,
                 ConnectorIds = connectors.Select(connector => connector.Id).ToArray(),
             },
             cancellationToken
         );
 
         var openExits = connectors
-            .Where(connector =>
-                !doorsByConnectorId.TryGetValue(connector.Id, out var door) || !door.IsLocked
-            )
+            .Where(connector => accessibleConnectorIds.Contains(connector.Id))
             .ToArray();
+
         if (openExits.Length == 0)
         {
             return null;

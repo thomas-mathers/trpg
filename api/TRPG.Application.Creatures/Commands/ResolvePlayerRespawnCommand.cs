@@ -6,7 +6,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Trading;
+using TRPG.Application.Trading.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
@@ -21,6 +21,7 @@ public class ResolvePlayerRespawnCommand
 public record PlayerRespawnFact(
     string DeathLocationName,
     string TempleCityName,
+    Guid SanctuaryLocationId,
     int ItemsLeftOnCorpse,
     bool IsClericPresent,
     string? ClericName
@@ -35,8 +36,10 @@ internal class ResolvePlayerRespawnCommandHandler(
     > getNearestTempleSanctuary,
     ICommandHandler<AddCreatureCommand> addCreature,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
-    InventoryItemTransfer inventoryItemTransfer,
-    ICommandHandler<ReviveCreatureAtLocationCommand> reviveCreatureAtLocation,
+    ICommandHandler<
+        TransferInventoryItemsCommand,
+        IReadOnlyCollection<InventoryItemTransferResult>
+    > transferInventoryItems,
     IQueryHandler<
         GetCreaturesAtLocationQuery,
         IReadOnlyCollection<CreatureResult>
@@ -106,22 +109,18 @@ internal class ResolvePlayerRespawnCommandHandler(
 
         if (playerItems.Count > 0)
         {
-            await inventoryItemTransfer.Transfer(
-                new ItemOwnerReference(player.Id, OwnerType.Creature),
-                new ItemOwnerReference(corpse.Id, OwnerType.Creature),
-                playerItems.Select(item => new ItemSelection(item.Id, item.Quantity)).ToArray(),
+            await transferInventoryItems.Handle(
+                new TransferInventoryItemsCommand
+                {
+                    From = new ItemOwnerReference(player.Id, OwnerType.Creature),
+                    To = new ItemOwnerReference(corpse.Id, OwnerType.Creature),
+                    Items = playerItems
+                        .Select(item => new ItemSelection(item.Id, item.Quantity))
+                        .ToArray(),
+                },
                 cancellationToken
             );
         }
-
-        await reviveCreatureAtLocation.Handle(
-            new ReviveCreatureAtLocationCommand
-            {
-                CreatureId = player.Id,
-                LocationId = nearestTemple.SanctuaryLocationId,
-            },
-            cancellationToken
-        );
 
         var sanctuaryOccupants = await getCreaturesAtLocation.Handle(
             new GetCreaturesAtLocationQuery
@@ -143,6 +142,7 @@ internal class ResolvePlayerRespawnCommandHandler(
         return new PlayerRespawnFact(
             deathLocation?.Name ?? "an unknown place",
             nearestTemple.CityName,
+            nearestTemple.SanctuaryLocationId,
             playerItems.Count,
             cleric != null,
             cleric?.Name

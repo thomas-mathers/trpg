@@ -334,6 +334,18 @@ internal static class Builders
         };
     }
 
+    public static Key MakeKey(Guid? worldId = null, int quantity = 0)
+    {
+        return new Key
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Key-{Guid.NewGuid():N}",
+            Description = "A test key",
+            Weight = 1,
+            Quantity = quantity,
+        };
+    }
+
     public static Gold MakeGold(Guid? worldId = null, int quantity = 0)
     {
         return new Gold
@@ -590,6 +602,34 @@ internal static class Builders
             FactionName = factionName,
             LocationName = locationName,
             Members = members?.ToList() ?? [],
+            State = state,
+        };
+
+    public static GuardEncounter MakeGuardEncounter(
+        Guid worldId,
+        Guid playerId,
+        Guid locationId,
+        Guid guardCreatureId,
+        Guid? cityFactionId = null,
+        string guardName = "Guard",
+        string locationName = "Location",
+        int reputationScore = -50,
+        int fineAmount = 50,
+        int jailHours = 4,
+        EncounterState state = EncounterState.Active
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            PlayerId = playerId,
+            LocationId = locationId,
+            LocationName = locationName,
+            GuardCreatureId = guardCreatureId,
+            CityFactionId = cityFactionId ?? Guid.NewGuid(),
+            GuardName = guardName,
+            ReputationScore = reputationScore,
+            FineAmount = fineAmount,
+            JailHours = jailHours,
             State = state,
         };
 

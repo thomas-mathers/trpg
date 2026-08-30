@@ -7,40 +7,37 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Trading;
+namespace TRPG.Application.Trading.Commands;
 
 public record InventoryItemTransferResult(Guid SourceItemId, Guid DestinationItemId, int Quantity);
 
-public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGoldCommand> addGold)
+public class TransferInventoryItemsCommand
 {
-    public async Task Validate(
-        ItemOwnerReference from,
-        IReadOnlyList<ItemSelection> selections,
-        CancellationToken cancellationToken = default
-    ) =>
-        _ = await GetValidatedTransferItems(
-            from,
-            selections,
-            context.Items.AsNoTracking(),
-            cancellationToken
-        );
+    public required ItemOwnerReference From { get; init; }
+    public required ItemOwnerReference To { get; init; }
+    public required IReadOnlyList<ItemSelection> Items { get; init; }
+}
 
-    public async Task<IReadOnlyCollection<InventoryItemTransferResult>> Transfer(
-        ItemOwnerReference from,
-        ItemOwnerReference to,
-        IReadOnlyList<ItemSelection> selections,
+internal class TransferInventoryItemsCommandHandler(
+    TrpgDbContext context,
+    ICommandHandler<AddGoldCommand> addGold
+) : ICommandHandler<TransferInventoryItemsCommand, IReadOnlyCollection<InventoryItemTransferResult>>
+{
+    public async Task<IReadOnlyCollection<InventoryItemTransferResult>> Handle(
+        TransferInventoryItemsCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var transferItems = await GetValidatedTransferItems(
-            from,
-            selections,
+        var transferItems = await InventoryTransferValidation.GetValidatedTransferItems(
+            command.From,
+            command.Items,
             context.Items,
             cancellationToken
         );
-        await EnsureDestinationCapacity(to, transferItems, cancellationToken);
-        var results = await MoveItems(transferItems, to, cancellationToken);
-        await RecalculateSourceAttributes(from, cancellationToken);
+        await EnsureDestinationCapacity(command.To, transferItems, cancellationToken);
+        var results = await MoveItems(transferItems, command.To, cancellationToken);
+        await RecalculateSourceAttributes(command.From, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return results;
     }
 
@@ -82,42 +79,6 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
                 $"Creature {to.Id} cannot carry any more weight; carrying capacity is {creature.CarryingCapacity}."
             );
         }
-    }
-
-    private async Task<IReadOnlyCollection<TransferItem>> GetValidatedTransferItems(
-        ItemOwnerReference from,
-        IReadOnlyList<ItemSelection> selections,
-        IQueryable<Item> items,
-        CancellationToken cancellationToken
-    )
-    {
-        var quantitiesByItemId = selections
-            .GroupBy(selection => selection.ItemId)
-            .ToDictionary(group => group.Key, group => group.Sum(selection => selection.Quantity));
-
-        var itemsById = await items
-            .Where(item => quantitiesByItemId.Keys.AsEnumerable().Contains(item.Id))
-            .ToDictionaryAsync(item => item.Id, cancellationToken);
-
-        var missingItemIds = quantitiesByItemId.Keys.Except(itemsById.Keys).ToArray();
-
-        if (missingItemIds.Length > 0)
-        {
-            throw new InvalidOperationException(
-                $"Item {missingItemIds[0]} not found in {from.Type} {from.Id}'s inventory."
-            );
-        }
-
-        var transferItems = new List<TransferItem>();
-
-        foreach (var (itemId, quantity) in quantitiesByItemId)
-        {
-            var item = itemsById[itemId];
-            ValidateItem(item, itemId, quantity, from);
-            transferItems.Add(new TransferItem(item, quantity));
-        }
-
-        return transferItems;
     }
 
     private async Task<IReadOnlyCollection<InventoryItemTransferResult>> MoveItems(
@@ -172,30 +133,6 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
         return results;
     }
 
-    private static void ValidateItem(Item item, Guid itemId, int quantity, ItemOwnerReference from)
-    {
-        if (item.Ownership.OwnerId != from.Id || item.Ownership.OwnerType != from.Type)
-        {
-            throw new InvalidOperationException(
-                $"Item {itemId} is not owned by {from.Type} {from.Id}."
-            );
-        }
-
-        if (quantity <= 0 || quantity > item.Quantity)
-        {
-            throw new InvalidOperationException(
-                $"Cannot transfer {quantity} of item {itemId}; only {item.Quantity} available."
-            );
-        }
-
-        if (quantity < item.Quantity && !ItemStackability.IsStackable(item))
-        {
-            throw new InvalidOperationException(
-                $"Cannot partially transfer non-stackable item {itemId}."
-            );
-        }
-    }
-
     private static Item Split(Item item, int quantity, ItemOwnerReference owner)
     {
         var type = item.GetType();
@@ -218,8 +155,6 @@ public class InventoryItemTransfer(TrpgDbContext context, ICommandHandler<AddGol
             await RecalculateCreatureAttributes(from.Id, cancellationToken);
         }
     }
-
-    private sealed record TransferItem(Item Item, int Quantity);
 
     private async Task RecalculateCreatureAttributes(
         Guid creatureId,

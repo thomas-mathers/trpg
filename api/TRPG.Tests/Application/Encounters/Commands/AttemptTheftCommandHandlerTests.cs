@@ -508,6 +508,39 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
     }
 
     [Fact]
+    public async Task Handle_ExcludesNonHumanoidCreatures_FromTheftWitnesses()
+    {
+        // Arrange
+        var owner = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var beastBystander = Builders.MakeCreature(
+            WorldId,
+            locationId: _theftLocationId,
+            creatureType: CreatureType.Beast
+        );
+        var item = await SeedItem(owner.Id, OwnerType.Creature);
+        _context.Creatures.AddRange(owner, beastBystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await AttemptTheft(new ItemOwnerReference(owner.Id, OwnerType.Creature), item);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var encounter = await verifyContext
+            .Encounters.OfType<TheftEncounter>()
+            .SingleAsync(
+                candidate => candidate.Id == result.EncounterId,
+                TestContext.Current.CancellationToken
+            );
+        var witnessIds = await verifyContext
+            .CrimeWitnesses.Where(candidate => candidate.CrimeId == encounter.TheftCrimeId)
+            .Select(candidate => candidate.CreatureId)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain(beastBystander.Id, witnessIds);
+    }
+
+    [Fact]
     public async Task Handle_MovesContainerItemAndCreatesEncounter_WhenOwnerCatchesThePlayer()
     {
         // Arrange

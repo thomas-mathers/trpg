@@ -2,7 +2,6 @@ using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Inventory;
-using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Trading.Commands;
@@ -16,8 +15,10 @@ public class ReceivePlayerInventoryCommand
 }
 
 internal class ReceivePlayerInventoryCommandHandler(
-    TrpgDbContext context,
-    InventoryItemTransfer itemTransfer,
+    ICommandHandler<
+        TransferInventoryItemsCommand,
+        IReadOnlyCollection<InventoryItemTransferResult>
+    > transferInventoryItems,
     IDomainEventPublisher<ItemAcquiredEvent> domainEvents
 ) : ICommandHandler<ReceivePlayerInventoryCommand>
 {
@@ -38,9 +39,15 @@ internal class ReceivePlayerInventoryCommandHandler(
 
         var playerOwner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature);
 
-        await itemTransfer.Transfer(command.From, playerOwner, command.Items, cancellationToken);
-
-        await context.SaveChangesAsync(cancellationToken);
+        await transferInventoryItems.Handle(
+            new TransferInventoryItemsCommand
+            {
+                From = command.From,
+                To = playerOwner,
+                Items = command.Items,
+            },
+            cancellationToken
+        );
 
         foreach (var item in command.Items)
         {
