@@ -2,11 +2,9 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Encounters.Events;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns.Events;
-using TRPG.Application.Inventory;
-using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Domain.Models;
 
@@ -25,7 +23,7 @@ internal class PublishSessionStateCommandHandler(
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
-    IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted
 ) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
@@ -53,30 +51,14 @@ internal class PublishSessionStateCommandHandler(
             new GetActiveEncounterQuery { PlayerId = command.PlayerId },
             cancellationToken
         );
-        switch (encounter)
-        {
-            case HostileEncounter hostileEncounter:
-                gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
-                break;
-            case GuardEncounter guardEncounter:
-                var playerGold = await getGoldQuantity.Handle(
-                    new GetGoldQuantityQuery
-                    {
-                        Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
-                    },
-                    cancellationToken
-                );
-                gameEvents.Enqueue(
-                    new GuardEncounterStartedEvent(
-                        guardEncounter,
-                        playerGold >= guardEncounter.FineAmount
-                    )
-                );
-                break;
-            case TheftEncounter theftEncounter:
-                gameEvents.Enqueue(new TheftEncounterStartedEvent(theftEncounter));
-                break;
-        }
+        await publishEncounterStarted.Handle(
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = command.PlayerId,
+                Encounter = encounter,
+            },
+            cancellationToken
+        );
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);
     }
