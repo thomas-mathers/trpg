@@ -86,6 +86,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
     public DbSet<Crime> Crimes => Set<Crime>();
     public DbSet<CrimeWitness> CrimeWitnesses => Set<CrimeWitness>();
+    public DbSet<CreatureSpawner> CreatureSpawners => Set<CreatureSpawner>();
+    public DbSet<RestockPolicy> RestockPolicies => Set<RestockPolicy>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -144,6 +146,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         {
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => p.LocationId);
+            entity.HasIndex(p => p.SpawnerId);
             entity.OwnsOne(p => p.BaseAttributes, s => s.ToJson());
             entity.Property(c => c.ActiveConditions).HasJsonConversion(() => []);
             entity.Property(c => c.CooldownRemainingByAbility).HasJsonConversion(() => []);
@@ -204,6 +207,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             .Entity<Faction>()
             .Property(f => f.Temperament)
             .HasDefaultValue(FactionTemperament.Authoritative);
+
+        modelBuilder.Entity<Faction>(entity =>
+        {
+            entity.HasIndex(f => new { f.WorldId, f.CreatureType });
+        });
 
         modelBuilder.Entity<Item>(entity =>
         {
@@ -416,6 +424,19 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(j => j.CreatureId);
             entity.HasIndex(j => j.LocationId);
             entity.HasIndex(j => j.WorldId);
+        });
+
+        modelBuilder.Entity<CreatureSpawner>(entity =>
+        {
+            entity.HasIndex(s => s.WorldId);
+            entity.HasIndex(s => s.LocationId);
+            entity.Property(s => s.ArchetypeCreatureTypes).HasJsonConversion(() => []);
+        });
+
+        modelBuilder.Entity<RestockPolicy>(entity =>
+        {
+            entity.HasIndex(p => p.WorldId);
+            entity.HasIndex(p => p.WorkstationId).IsUnique();
         });
 
         modelBuilder.Entity<World>().HasIndex(w => w.Name).IsUnique();

@@ -13,17 +13,15 @@ internal record WildernessPopulatorResult(
     IReadOnlyList<CreatureGeneratorResult> Monsters,
     IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<EncounterGroup> EncounterGroups,
-    IReadOnlyList<EncounterGroupMember> EncounterGroupMembers
+    IReadOnlyList<EncounterGroupMember> EncounterGroupMembers,
+    CreatureSpawner Spawner
 );
 
 public class WildernessPopulator(CreatureGenerator creatureGenerator)
 {
-    private const int MinimumGroups = 0;
-    private const int MaximumGroups = 2;
-    private const int MinimumMonsters = 1;
-    private const int MaximumMonsters = 3;
-    private const int MinimumLevel = 1;
-    private const int MaximumLevel = 3;
+    private const int MinimumPopulation = 1;
+    private const int MaximumPopulation = 3;
+    private const int DefaultSpawnerTriggerHour = 0;
 
     private static readonly CreatureArchetype[] Archetypes =
     [
@@ -31,72 +29,42 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
         CreatureArchetype.Goblin,
     ];
 
+    private static readonly IReadOnlyList<CreatureType> ArchetypeCreatureTypes = Archetypes
+        .Select(archetype => archetype.CreatureType!.Value)
+        .ToArray();
+
     internal WildernessPopulatorResult Generate(WildernessPopulatorInput input)
     {
-        var groupCount = Random.Shared.Next(MinimumGroups, MaximumGroups + 1);
-
-        var monsters = new List<CreatureGeneratorResult>();
-        var jobs = new List<CreatureJob>();
-        var groups = new List<EncounterGroup>();
-        var members = new List<EncounterGroupMember>();
-
-        for (var i = 0; i < groupCount; i++)
-        {
-            var group = GenerateGroup(input);
-            monsters.AddRange(group.Monsters);
-            jobs.AddRange(group.Jobs);
-            groups.Add(group.Group);
-            members.AddRange(group.Members);
-        }
-
-        return new WildernessPopulatorResult(monsters, jobs, groups, members);
-    }
-
-    private WildernessGroup GenerateGroup(WildernessPopulatorInput input)
-    {
-        var archetype = Archetypes[Random.Shared.Next(Archetypes.Length)];
-        var count = Random.Shared.Next(MinimumMonsters, MaximumMonsters + 1);
-
-        var generated = new List<MonsterGenerationResult>();
-        for (var i = 0; i < count; i++)
-        {
-            generated.Add(
-                EncounterMonsterGenerator.Generate(
-                    creatureGenerator,
-                    input.WorldId,
-                    input.LocationId,
-                    archetype,
-                    MinimumLevel,
-                    MaximumLevel
-                )
-            );
-        }
-
-        var monsters = generated.Select(g => g.Result).ToArray();
-        var jobs = generated.SelectMany(g => g.Jobs).ToArray();
-
-        var group = new EncounterGroup
+        var maxPopulation = Random.Shared.Next(MinimumPopulation, MaximumPopulation + 1);
+        var spawner = new CreatureSpawner
         {
             WorldId = input.WorldId,
             LocationId = input.LocationId,
-            FactionId = input.FactionsByCreatureType[archetype.CreatureType!.Value].Id,
+            ArchetypeCreatureTypes = ArchetypeCreatureTypes.ToList(),
+            MaxPopulation = maxPopulation,
+            TriggerHour = DefaultSpawnerTriggerHour,
+            SpecificDay = null,
+            LastSyncPlaytime = TimeSpan.Zero,
         };
-        var members = monsters
-            .Select(monster => new EncounterGroupMember
-            {
-                WorldId = input.WorldId,
-                EncounterGroupId = group.Id,
-                CreatureId = monster.Creature.Id,
-            })
-            .ToArray();
 
-        return new WildernessGroup(monsters, jobs, group, members);
+        var fillResult = CreatureSpawnFiller.Fill(
+            creatureGenerator,
+            ArchetypeCreatureTypes,
+            currentPopulation: 0,
+            maxPopulation,
+            playerLevel: 1,
+            input.WorldId,
+            input.LocationId,
+            spawner.Id,
+            input.FactionsByCreatureType
+        );
+
+        return new WildernessPopulatorResult(
+            fillResult.Monsters,
+            fillResult.Jobs,
+            fillResult.EncounterGroups,
+            fillResult.EncounterGroupMembers,
+            spawner
+        );
     }
 }
-
-internal record WildernessGroup(
-    IReadOnlyList<CreatureGeneratorResult> Monsters,
-    IReadOnlyList<CreatureJob> Jobs,
-    EncounterGroup Group,
-    IReadOnlyList<EncounterGroupMember> Members
-);

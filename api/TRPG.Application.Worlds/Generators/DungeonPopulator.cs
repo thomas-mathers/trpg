@@ -14,15 +14,15 @@ internal record DungeonPopulatorResult(
     IReadOnlyList<CreatureGeneratorResult> Monsters,
     IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<EncounterGroup> EncounterGroups,
-    IReadOnlyList<EncounterGroupMember> EncounterGroupMembers
+    IReadOnlyList<EncounterGroupMember> EncounterGroupMembers,
+    CreatureSpawner Spawner
 );
 
 public class DungeonPopulator(CreatureGenerator creatureGenerator)
 {
-    private const int MinimumMonsters = 1;
-    private const int MaximumMonsters = 3;
-    private const int MinimumLevel = 1;
-    private const int MaximumLevel = 3;
+    private const int MinimumPopulation = 1;
+    private const int MaximumPopulation = 3;
+    private const int DefaultSpawnerTriggerHour = 0;
 
     private static readonly Dictionary<BuildingType, CreatureArchetype[]> ArchetypesByDungeonType =
         new()
@@ -54,62 +54,40 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
 
     internal DungeonPopulatorResult Generate(DungeonPopulatorInput input)
     {
-        var archetypes = ArchetypesByDungeonType[input.DungeonType];
-        var archetype = archetypes[Random.Shared.Next(archetypes.Length)];
-        var count = Random.Shared.Next(MinimumMonsters, MaximumMonsters + 1);
+        var archetypeCreatureTypes = ArchetypesByDungeonType[input.DungeonType]
+            .Select(archetype => archetype.CreatureType!.Value)
+            .ToArray();
+        var maxPopulation = Random.Shared.Next(MinimumPopulation, MaximumPopulation + 1);
 
-        var generated = new List<MonsterGenerationResult>();
-        for (var i = 0; i < count; i++)
-        {
-            generated.Add(GenerateMonster(input, archetype));
-        }
-
-        var monsters = generated.Select(g => g.Result).ToArray();
-        var jobs = generated.SelectMany(g => g.Jobs).ToArray();
-        var group = CreateGroup(monsters, archetype.CreatureType!.Value, input);
-
-        return new DungeonPopulatorResult(monsters, jobs, [group.Group], group.Members);
-    }
-
-    private static EncounterGroupWithMembers CreateGroup(
-        IReadOnlyList<CreatureGeneratorResult> monsters,
-        CreatureType creatureType,
-        DungeonPopulatorInput input
-    )
-    {
-        var group = new EncounterGroup
+        var spawner = new CreatureSpawner
         {
             WorldId = input.WorldId,
             LocationId = input.LocationId,
-            FactionId = input.FactionsByCreatureType[creatureType].Id,
+            ArchetypeCreatureTypes = archetypeCreatureTypes.ToList(),
+            MaxPopulation = maxPopulation,
+            TriggerHour = DefaultSpawnerTriggerHour,
+            SpecificDay = null,
+            LastSyncPlaytime = TimeSpan.Zero,
         };
-        var members = monsters
-            .Select(monster => new EncounterGroupMember
-            {
-                WorldId = input.WorldId,
-                EncounterGroupId = group.Id,
-                CreatureId = monster.Creature.Id,
-            })
-            .ToArray();
 
-        return new EncounterGroupWithMembers(group, members);
-    }
-
-    private MonsterGenerationResult GenerateMonster(
-        DungeonPopulatorInput input,
-        CreatureArchetype archetype
-    ) =>
-        EncounterMonsterGenerator.Generate(
+        var fillResult = CreatureSpawnFiller.Fill(
             creatureGenerator,
+            archetypeCreatureTypes,
+            currentPopulation: 0,
+            maxPopulation,
+            playerLevel: 1,
             input.WorldId,
             input.LocationId,
-            archetype,
-            MinimumLevel,
-            MaximumLevel
+            spawner.Id,
+            input.FactionsByCreatureType
         );
-}
 
-internal record EncounterGroupWithMembers(
-    EncounterGroup Group,
-    IReadOnlyList<EncounterGroupMember> Members
-);
+        return new DungeonPopulatorResult(
+            fillResult.Monsters,
+            fillResult.Jobs,
+            fillResult.EncounterGroups,
+            fillResult.EncounterGroupMembers,
+            spawner
+        );
+    }
+}

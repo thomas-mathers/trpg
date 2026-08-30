@@ -11,6 +11,7 @@ public enum FactionTemperament
 public class Faction
 {
     public int Aggression { get; init; }
+    public CreatureType? CreatureType { get; init; }
     public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();
     public bool IsCityFaction { get; init; }

@@ -102,6 +102,8 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(23),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
         );
@@ -150,6 +152,8 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(10),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
         );
@@ -178,6 +182,8 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 LocationId = emptyLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
         );
@@ -228,6 +234,8 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 LocationId = idleLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
         );
@@ -272,6 +280,8 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 LocationId = gateLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(10),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
         );
@@ -340,6 +350,8 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 LocationId = shopLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
         );
@@ -403,6 +415,8 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 LocationId = shopLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
         );
@@ -444,6 +458,8 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 LocationId = wildernessLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
         );
@@ -484,6 +500,8 @@ public sealed class SyncSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
                 WorldId = WorldId,
                 LocationId = doorLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(23),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
             },
             TestContext.Current.CancellationToken
         );

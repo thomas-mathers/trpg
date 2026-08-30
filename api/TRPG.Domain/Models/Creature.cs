@@ -117,6 +117,7 @@ public class Creature
     public Profession? Profession { get; set; }
     public Guid? PlayerCorpseOwnerId { get; init; }
     public Guid? PreviousLocationId { get; set; }
+    public Guid? SpawnerId { get; set; }
     public CreatureState State { get; set; }
     public Guid WorldId { get; init; }
 

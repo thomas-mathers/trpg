@@ -54,9 +54,16 @@ internal class BootstrapWorldCommandHandler(
         context.LocationConnectors.AddRange(world.LocationConnectors);
         context.DoorConnectors.AddRange(world.DoorConnectors);
         context.TravelConnectors.AddRange(world.TravelConnectors);
-        context.Items.AddRange(
-            tradeStockGenerator.Generate(world.Props, world.Rooms, world.Buildings, world.World.Id)
+        var tradeStock = tradeStockGenerator.Generate(
+            world.Props,
+            world.Rooms,
+            world.Buildings,
+            world.World.Id,
+            player?.Creature.Level ?? 1
         );
+        context.Items.AddRange(tradeStock.Items);
+        context.RestockPolicies.AddRange(tradeStock.RestockPolicies);
+        context.CreatureSpawners.AddRange(world.CreatureSpawners);
         context.CreatureSkills.AddRange(world.Skills);
         context.CreatureJobs.AddRange(world.Jobs);
         context.CreatureKnowledge.AddRange(world.Knowledge);

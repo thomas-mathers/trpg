@@ -229,7 +229,8 @@ internal static class Builders
         CreatureState state = default,
         int naturalWeaponMinDamage = 3,
         int naturalWeaponMaxDamage = 3,
-        Guid? playerCorpseOwnerId = null
+        Guid? playerCorpseOwnerId = null,
+        Guid? spawnerId = null
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -247,6 +248,7 @@ internal static class Builders
             Level = level,
             State = state,
             PlayerCorpseOwnerId = playerCorpseOwnerId,
+            SpawnerId = spawnerId,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,
@@ -298,6 +300,42 @@ internal static class Builders
             WorkstationType = WorkstationType.Trade,
             OccupantId = occupantId,
             AssignedCreatureId = assignedCreatureId,
+        };
+
+    public static CreatureSpawner MakeCreatureSpawner(
+        Guid worldId,
+        Guid locationId,
+        IReadOnlyList<CreatureType>? archetypeCreatureTypes = null,
+        int maxPopulation = 3,
+        int triggerHour = 0,
+        DayOfWeek? specificDay = null,
+        TimeSpan? lastSyncPlaytime = null
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            LocationId = locationId,
+            ArchetypeCreatureTypes = (archetypeCreatureTypes ?? [CreatureType.Beast]).ToList(),
+            MaxPopulation = maxPopulation,
+            TriggerHour = triggerHour,
+            SpecificDay = specificDay,
+            LastSyncPlaytime = lastSyncPlaytime ?? TimeSpan.Zero,
+        };
+
+    public static RestockPolicy MakeRestockPolicy(
+        Guid worldId,
+        Guid workstationId,
+        int triggerHour = 0,
+        DayOfWeek? specificDay = null,
+        TimeSpan? lastSyncPlaytime = null
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            WorkstationId = workstationId,
+            TriggerHour = triggerHour,
+            SpecificDay = specificDay,
+            LastSyncPlaytime = lastSyncPlaytime ?? TimeSpan.Zero,
         };
 
     public static Attributes MakeAttributes()
@@ -530,7 +568,8 @@ internal static class Builders
         int aggression = 0,
         int reputationSensitivity = 0,
         int riskAversion = 0,
-        bool isCityFaction = false
+        bool isCityFaction = false,
+        CreatureType? creatureType = null
     )
     {
         return new Faction
@@ -542,6 +581,7 @@ internal static class Builders
             ReputationSensitivity = reputationSensitivity,
             RiskAversion = riskAversion,
             IsCityFaction = isCityFaction,
+            CreatureType = creatureType,
         };
     }
 

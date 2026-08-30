@@ -23,7 +23,7 @@ public class WildernessPopulatorTests
         };
 
     [Fact]
-    public void Generate_ProducesBetweenZeroAndTwoGroups()
+    public void Generate_ProducesExactlyOneGroup()
     {
         for (var i = 0; i < 30; i++)
         {
@@ -31,7 +31,7 @@ public class WildernessPopulatorTests
             var result = _wildernessPopulator.Generate(MakeInput());
 
             // Assert
-            Assert.InRange(result.EncounterGroups.Count, 0, 2);
+            Assert.Single(result.EncounterGroups);
         }
     }
 
