@@ -88,6 +88,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<CrimeWitness> CrimeWitnesses => Set<CrimeWitness>();
     public DbSet<CreatureSpawner> CreatureSpawners => Set<CreatureSpawner>();
     public DbSet<RestockPolicy> RestockPolicies => Set<RestockPolicy>();
+    public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -437,6 +438,13 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
         {
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => p.WorkstationId).IsUnique();
+        });
+
+        modelBuilder.Entity<RoomBooking>(entity =>
+        {
+            entity.HasIndex(b => b.WorldId);
+            entity.HasIndex(b => b.RoomId);
+            entity.HasIndex(b => b.PlayerId);
         });
 
         modelBuilder.Entity<World>().HasIndex(w => w.Name).IsUnique();

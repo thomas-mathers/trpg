@@ -23,7 +23,11 @@ internal class SyncRestockPolicyCommandHandler(
         GetWorkstationsByLocationIdQuery,
         IReadOnlyCollection<Workstation>
     > getWorkstationsByLocationId,
-    IQueryHandler<GetBuildingTypeByLocationIdQuery, BuildingType?> getBuildingTypeByLocationId
+    IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
+    IQueryHandler<
+        GetGuestRoomDoorsByBuildingIdQuery,
+        IReadOnlyList<GuestRoomDoor>
+    > getGuestRoomDoors
 ) : ICommandHandler<SyncRestockPolicyCommand>
 {
     public async Task Handle(
@@ -40,28 +44,29 @@ internal class SyncRestockPolicyCommandHandler(
             return;
         }
 
-        var buildingType = await getBuildingTypeByLocationId.Handle(
-            new GetBuildingTypeByLocationIdQuery { LocationId = command.LocationId },
+        var building = await getBuildingByLocationId.Handle(
+            new GetBuildingByLocationIdQuery { LocationId = command.LocationId },
             cancellationToken
         );
-        if (buildingType == null)
+        if (building == null)
         {
             return;
         }
 
         foreach (var workstation in workstations)
         {
-            await SyncWorkstation(workstation.Id, buildingType.Value, command, cancellationToken);
+            await SyncWorkstation(workstation.Id, building, command, cancellationToken);
         }
     }
 
     private async Task SyncWorkstation(
         Guid workstationId,
-        BuildingType buildingType,
+        BuildingIdentity building,
         SyncRestockPolicyCommand command,
         CancellationToken cancellationToken
     )
     {
+        var buildingType = building.BuildingType;
         var policy = await context.RestockPolicies.FirstOrDefaultAsync(
             p => p.WorkstationId == workstationId,
             cancellationToken
@@ -110,8 +115,57 @@ internal class SyncRestockPolicyCommandHandler(
             existing.Quantity = quantity;
         }
 
+        if (buildingType == BuildingType.Inn)
+        {
+            await RegenerateMissingRoomKeys(
+                workstationId,
+                building.Id,
+                policy.WorldId,
+                cancellationToken
+            );
+        }
+
         policy.LastSyncPlaytime = command.CurrentPlaytime;
 
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    // Mints a replacement on the same cadence as restocking; never revokes an already-issued key.
+    private async Task RegenerateMissingRoomKeys(
+        Guid workstationId,
+        Guid buildingId,
+        Guid worldId,
+        CancellationToken cancellationToken
+    )
+    {
+        var guestRoomDoors = await getGuestRoomDoors.Handle(
+            new GetGuestRoomDoorsByBuildingIdQuery { BuildingId = buildingId },
+            cancellationToken
+        );
+
+        foreach (var door in guestRoomDoors.Where(d => d.SpareKeyItemId == null))
+        {
+            var replacementKey = new Key
+            {
+                WorldId = worldId,
+                Name = $"Key to {door.RoomName}",
+                Description = $"A replacement key to the {door.RoomName}.",
+                Quantity = 1,
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = workstationId,
+                    OwnerType = OwnerType.Workstation,
+                },
+            };
+            context.Items.Add(replacementKey);
+            context.DoorConnectorKeys.Add(
+                new DoorConnectorKey
+                {
+                    ItemId = replacementKey.Id,
+                    DoorConnectorId = door.DoorConnectorId,
+                    WorldId = worldId,
+                }
+            );
+        }
     }
 }

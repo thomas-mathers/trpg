@@ -5,24 +5,24 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Buildings.Queries;
 
-public class GetBuildingTypeByLocationIdQuery
+public class GetBuildingByLocationIdQuery
 {
     public required Guid LocationId { get; init; }
 }
 
-internal class GetBuildingTypeByLocationIdQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetBuildingTypeByLocationIdQuery, BuildingType?>
+public record BuildingIdentity(Guid Id, BuildingType BuildingType);
+
+internal class GetBuildingByLocationIdQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?>
 {
-    public async Task<BuildingType?> Handle(
-        GetBuildingTypeByLocationIdQuery query,
+    public async Task<BuildingIdentity?> Handle(
+        GetBuildingByLocationIdQuery query,
         CancellationToken cancellationToken = default
-    )
-    {
-        return await (
+    ) =>
+        await (
             from room in context.Rooms.AsNoTracking()
             where room.LocationId == query.LocationId
             join building in context.Buildings.AsNoTracking() on room.BuildingId equals building.Id
-            select (BuildingType?)building.BuildingType
+            select new BuildingIdentity(building.Id, building.BuildingType)
         ).FirstOrDefaultAsync(cancellationToken);
-    }
 }

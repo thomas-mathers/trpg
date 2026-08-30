@@ -220,4 +220,159 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
             .SingleAsync(e => e.PlayerId == player.Id, TestContext.Current.CancellationToken);
         Assert.Equal(EncounterState.Active, encounter.State);
     }
+
+    [Fact]
+    public async Task Handle_ConfrontsThePlayer_WhenLeavingTheInnWithAnOverdueRoomKey()
+    {
+        // Arrange
+        var player = Builders.MakeCreature(WorldId);
+        var inn = await SeedOverdueInnBooking(player.Id);
+        player.LocationId = inn.GuestRoomLocationId;
+        var outside = Builders.MakeLocation(WorldId, _stateId);
+        _context.Creatures.Add(player);
+        _context.Locations.Add(outside);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationLocationId = outside.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.NotNull(result.OverdueRoomKeyEncounter);
+        Assert.Equal(inn.InnkeeperId, result.OverdueRoomKeyEncounter.ConfrontingCreatureId);
+    }
+
+    [Fact]
+    public async Task Handle_ConfrontsThePlayer_WhenReturningToTheInnAfterTheKeyBecameOverdue()
+    {
+        // Arrange — the player left before checkout and is only now walking back in
+        var player = Builders.MakeCreature(WorldId);
+        var inn = await SeedOverdueInnBooking(player.Id);
+        var outside = Builders.MakeLocation(WorldId, _stateId);
+        player.LocationId = outside.Id;
+        _context.Creatures.Add(player);
+        _context.Locations.Add(outside);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationLocationId = inn.LobbyLocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.NotNull(result.OverdueRoomKeyEncounter);
+        Assert.Equal(inn.InnkeeperId, result.OverdueRoomKeyEncounter.ConfrontingCreatureId);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotConfrontThePlayer_WhenMovingBetweenRoomsInsideTheSameInn()
+    {
+        // Arrange — still overdue, but this move never crosses the building's boundary
+        var player = Builders.MakeCreature(WorldId);
+        var inn = await SeedOverdueInnBooking(player.Id);
+        player.LocationId = inn.GuestRoomLocationId;
+        _context.Creatures.Add(player);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationLocationId = inn.LobbyLocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(result.OverdueRoomKeyEncounter);
+    }
+
+    private async Task<OverdueInnFixture> SeedOverdueInnBooking(Guid playerId)
+    {
+        var lobbyLocationId = Guid.NewGuid();
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.Inn);
+        var lobby = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            locationId: lobbyLocationId,
+            name: "Lobby"
+        );
+        var lobbyLocation = Builders.MakeLocation(
+            WorldId,
+            _stateId,
+            roomId: lobby.Id,
+            id: lobbyLocationId
+        );
+
+        var innkeeper = Builders.MakeCreature(worldId: WorldId, locationId: lobbyLocationId);
+        var counter = Builders.MakeWorkstation(
+            worldId: WorldId,
+            locationId: lobbyLocationId,
+            ownerCreatureId: innkeeper.Id
+        );
+
+        var guestRoom = Builders.MakeRoom(building.Id, worldId: WorldId, name: "North Guest Room");
+        var guestRoomLocation = Builders.MakeLocation(
+            WorldId,
+            _stateId,
+            roomId: guestRoom.Id,
+            id: guestRoom.LocationId
+        );
+        var entryConnector = Builders.MakeLocationConnector(
+            lobbyLocationId,
+            destinationLocationId: guestRoom.LocationId,
+            worldId: WorldId
+        );
+        var door = Builders.MakeDoorConnector(entryConnector.Id, isLocked: true, worldId: WorldId);
+
+        var key = Builders.MakeKey(
+            WorldId,
+            quantity: 1,
+            ownerId: playerId,
+            ownerType: OwnerType.Creature
+        );
+        var doorConnectorKey = Builders.MakeDoorConnectorKey(key.Id, door.Id, WorldId);
+        var booking = Builders.MakeRoomBooking(
+            WorldId,
+            guestRoom.Id,
+            key.Id,
+            playerId,
+            dueAtPlaytime: TimeSpan.Zero
+        );
+
+        _context.Buildings.Add(building);
+        _context.Rooms.AddRange(lobby, guestRoom);
+        _context.Locations.AddRange(lobbyLocation, guestRoomLocation);
+        _context.Creatures.Add(innkeeper);
+        _context.Props.Add(counter);
+        _context.LocationConnectors.Add(entryConnector);
+        _context.DoorConnectors.Add(door);
+        _context.Items.Add(key);
+        _context.DoorConnectorKeys.Add(doorConnectorKey);
+        _context.RoomBookings.Add(booking);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return new OverdueInnFixture(lobbyLocationId, guestRoom.LocationId, innkeeper.Id);
+    }
+
+    private sealed record OverdueInnFixture(
+        Guid LobbyLocationId,
+        Guid GuestRoomLocationId,
+        Guid InnkeeperId
+    );
 }

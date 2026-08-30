@@ -1,4 +1,5 @@
 using System.Transactions;
+using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
@@ -30,12 +31,14 @@ public record MovePlayerResult(
     Creature Player,
     HostileEncounter? Encounter,
     GuardEncounter? GuardEncounter,
+    TheftEncounter? OverdueRoomKeyEncounter,
     SceneResult Scene
 );
 
 internal class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<ResolveKillCrimesCommand> resolveKillCrimes,
     ICommandHandler<ResolveTheftCrimesCommand> resolveTheftCrimes,
@@ -43,6 +46,10 @@ internal class MovePlayerCommandHandler(
     ICommandHandler<ResetAlertedCreaturesCommand> resetAlertedCreatures,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult> evaluateEncounters,
+    ICommandHandler<
+        ConfrontOverdueRoomKeyCommand,
+        ConfrontOverdueRoomKeyResult
+    > confrontOverdueRoomKey,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted
 ) : ICommandHandler<MovePlayerCommand, MovePlayerResult>
 {
@@ -54,6 +61,7 @@ internal class MovePlayerCommandHandler(
         Creature player;
         RefreshSceneResult refreshed;
         EncounterEvaluationResult evaluation;
+        TheftEncounter? overdueRoomKeyEncounter;
 
         using (
             var transaction = new TransactionScope(
@@ -111,6 +119,13 @@ internal class MovePlayerCommandHandler(
                 cancellationToken
             );
 
+            overdueRoomKeyEncounter = await ResolveOverdueRoomKeyConfrontation(
+                player,
+                oldLocationId,
+                command,
+                cancellationToken
+            );
+
             await updateCreatures.Handle(
                 new UpdateCreaturesCommand
                 {
@@ -151,7 +166,10 @@ internal class MovePlayerCommandHandler(
             new PublishEncounterStartedCommand
             {
                 PlayerId = player.Id,
-                Encounter = evaluation.HostileEncounter ?? (Encounter?)evaluation.GuardEncounter,
+                Encounter =
+                    evaluation.HostileEncounter
+                    ?? (Encounter?)evaluation.GuardEncounter
+                    ?? overdueRoomKeyEncounter,
             },
             cancellationToken
         );
@@ -160,7 +178,54 @@ internal class MovePlayerCommandHandler(
             player,
             evaluation.HostileEncounter,
             evaluation.GuardEncounter,
+            overdueRoomKeyEncounter,
             refreshed.Scene
         );
+    }
+
+    private async Task<TheftEncounter?> ResolveOverdueRoomKeyConfrontation(
+        Creature player,
+        Guid oldLocationId,
+        MovePlayerCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var oldBuilding = await getBuildingByLocationId.Handle(
+            new GetBuildingByLocationIdQuery { LocationId = oldLocationId },
+            cancellationToken
+        );
+        var newBuilding = await getBuildingByLocationId.Handle(
+            new GetBuildingByLocationIdQuery { LocationId = command.DestinationLocationId },
+            cancellationToken
+        );
+
+        if (oldBuilding?.Id == newBuilding?.Id)
+        {
+            return null;
+        }
+
+        // Either direction counts — a player who left before it was due must still get caught coming back in.
+        var innBuilding =
+            oldBuilding is { BuildingType: BuildingType.Inn } ? oldBuilding
+            : newBuilding is { BuildingType: BuildingType.Inn } ? newBuilding
+            : null;
+        if (innBuilding == null)
+        {
+            return null;
+        }
+
+        var confrontation = await confrontOverdueRoomKey.Handle(
+            new ConfrontOverdueRoomKeyCommand
+            {
+                WorldId = player.WorldId,
+                SessionId = command.SessionId,
+                PlayerId = player.Id,
+                LocationId = command.DestinationLocationId,
+                BuildingId = innBuilding.Id,
+            },
+            cancellationToken
+        );
+
+        return confrontation.Encounter;
     }
 }
