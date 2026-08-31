@@ -1,10 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Reputations.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Reputations.Queries;
+namespace TRPG.Tests.Application.Creatures.Queries;
 
 [Collection("Database")]
 public sealed class GetRelativesQueryTests(DatabaseFixture db) : IAsyncLifetime

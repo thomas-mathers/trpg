@@ -8,6 +8,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
@@ -53,6 +54,11 @@ internal class AttemptTheftCommandHandler(
         ValidateTransferItemsQuery,
         IReadOnlyCollection<TransferItem>
     > validateTransferItems,
+    IQueryHandler<
+        GetLiveHumanoidWitnessesAtLocationQuery,
+        IReadOnlyCollection<LiveHumanoidWitness>
+    > getLiveHumanoidWitnessesAtLocation,
+    IQueryHandler<GetEquippedItemCountQuery, int> getEquippedItemCount,
     IDomainEventPublisher<ItemAcquiredEvent> itemAcquiredEvents,
     IGameClientEventSink gameEvents,
     IOptionsMonitor<TheftOptions> theftOptions
@@ -99,10 +105,13 @@ internal class AttemptTheftCommandHandler(
             cancellationToken
         );
 
-        var witnesses = await theftSourceResolver.GetLiveWitnesses(
-            command.WorldId,
-            source.LocationId,
-            command.PlayerId,
+        var witnesses = await getLiveHumanoidWitnessesAtLocation.Handle(
+            new GetLiveHumanoidWitnessesAtLocationQuery
+            {
+                WorldId = command.WorldId,
+                LocationId = source.LocationId,
+                ExcludeCreatureId = command.PlayerId,
+            },
             cancellationToken
         );
 
@@ -114,13 +123,16 @@ internal class AttemptTheftCommandHandler(
             cancellationToken
         );
 
-        var requiresTheftDetectionRoll = source.IsPickpocketing || witnesses.Length > 0;
+        var requiresTheftDetectionRoll = source.IsPickpocketing || witnesses.Count > 0;
 
         var options = theftOptions.CurrentValue;
         var totalQuantity = selections.Sum(selection => selection.Quantity);
-        var equippedItemCount = await theftSourceResolver.GetEquippedItemCount(
-            command.WorldId,
-            selections.Select(selection => selection.ItemId).ToArray(),
+        var equippedItemCount = await getEquippedItemCount.Handle(
+            new GetEquippedItemCountQuery
+            {
+                WorldId = command.WorldId,
+                ItemIds = selections.Select(selection => selection.ItemId).ToArray(),
+            },
             cancellationToken
         );
         var curve = TheftDetectionChanceCalculator.BuildCurve(
@@ -363,7 +375,7 @@ internal class AttemptTheftCommandHandler(
 
     private static ConfrontingCreature? GetConfrontingCreature(
         TheftSource source,
-        IReadOnlyCollection<TheftWitness> witnesses
+        IReadOnlyCollection<LiveHumanoidWitness> witnesses
     )
     {
         var ownerIsPresent =
@@ -408,7 +420,7 @@ internal class AttemptTheftCommandHandler(
         AttemptTheftCommand Command,
         TheftSource Source,
         TheftCrime Crime,
-        IReadOnlyCollection<TheftWitness> Witnesses,
+        IReadOnlyCollection<LiveHumanoidWitness> Witnesses,
         IReadOnlyCollection<ItemSelection> Selections,
         IReadOnlyDictionary<Guid, string> ItemNamesById
     );

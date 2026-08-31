@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Data;
@@ -15,6 +14,7 @@ public class EquipInventoryItemCommand
 
 internal class EquipInventoryItemCommandHandler(
     TrpgDbContext context,
+    EquipmentLoadoutLoader equipmentLoadoutLoader,
     IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged
 ) : ICommandHandler<EquipInventoryItemCommand>
 {
@@ -23,21 +23,10 @@ internal class EquipInventoryItemCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var creatureExists = await context.Creatures.AnyAsync(
-            c => c.Id == command.CreatureId,
+        var items = await equipmentLoadoutLoader.LoadOwnedItems(
+            command.CreatureId,
             cancellationToken
         );
-        if (!creatureExists)
-        {
-            throw new InvalidOperationException($"Creature {command.CreatureId} not found.");
-        }
-
-        var items = await context
-            .Items.Where(i =>
-                i.Ownership.OwnerType == OwnerType.Creature
-                && i.Ownership.OwnerId == command.CreatureId
-            )
-            .ToArrayAsync(cancellationToken);
 
         var toEquip = items.FirstOrDefault(i => i.Id == command.ItemId);
         if (toEquip == null)

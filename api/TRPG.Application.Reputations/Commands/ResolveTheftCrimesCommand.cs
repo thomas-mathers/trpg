@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -14,6 +13,7 @@ public class ResolveTheftCrimesCommand
 
 internal class ResolveTheftCrimesCommandHandler(
     TrpgDbContext context,
+    PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution,
     ICommandHandler<ApplyReputationPenaltyForTheftsCommand> applyReputationPenaltyForThefts
 ) : ICommandHandler<ResolveTheftCrimesCommand>
 {
@@ -22,87 +22,32 @@ internal class ResolveTheftCrimesCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var crimes = await context
-            .Crimes.OfType<TheftCrime>()
-            .Where(crime =>
-                crime.WorldId == command.WorldId
-                && crime.PlayerId == command.PlayerId
-                && crime.LocationId == command.LocationId
-                && crime.Resolution == CrimeResolution.Pending
-            )
-            .ToArrayAsync(cancellationToken);
-        if (crimes.Length == 0)
+        var resolution = await pendingCrimeWitnessResolution.Resolve<TheftCrime>(
+            command.WorldId,
+            command.PlayerId,
+            command.LocationId,
+            cancellationToken
+        );
+        if (resolution.Crimes.Count == 0)
         {
             return;
         }
 
-        var crimeIds = crimes.Select(crime => crime.Id).ToArray();
-        var witnesses = await context
-            .CrimeWitnesses.Where(witness =>
-                crimeIds.AsEnumerable().Contains(witness.CrimeId)
-                && witness.Resolution == CrimeWitnessResolution.Pending
-            )
-            .ToArrayAsync(cancellationToken);
-        var witnessCreatureIds = witnesses
-            .Select(witness => witness.CreatureId)
-            .Distinct()
-            .ToArray();
-        var liveWitnessIds = await context
-            .Creatures.AsNoTracking()
-            .Where(creature =>
-                creature.WorldId == command.WorldId
-                && witnessCreatureIds.AsEnumerable().Contains(creature.Id)
-                && creature.State != CreatureState.Dead
-            )
-            .Select(creature => creature.Id)
-            .ToArrayAsync(cancellationToken);
-
-        foreach (var witness in witnesses)
-        {
-            witness.Resolution = liveWitnessIds.Contains(witness.CreatureId)
-                ? CrimeWitnessResolution.Reported
-                : CrimeWitnessResolution.Dead;
-            witness.ResolvedAt = DateTime.UtcNow;
-        }
-
-        var reportedCrimes = crimes
-            .Where(crime =>
-                witnesses.Any(witness =>
-                    witness.CrimeId == crime.Id
-                    && witness.Resolution == CrimeWitnessResolution.Reported
-                )
-            )
-            .ToArray();
-
-        if (reportedCrimes.Length > 0)
+        if (resolution.ReportedCrimes.Count > 0)
         {
             await applyReputationPenaltyForThefts.Handle(
                 new ApplyReputationPenaltyForTheftsCommand
                 {
                     PlayerId = command.PlayerId,
-                    Thefts = reportedCrimes
-                        .Select(crime => new TheftCrimeReport(
+                    Thefts = resolution
+                        .ReportedCrimes.Select(crime => new TheftCrimeReport(
                             crime.Id,
-                            witnesses
-                                .Where(witness =>
-                                    witness.CrimeId == crime.Id
-                                    && witness.Resolution == CrimeWitnessResolution.Reported
-                                )
-                                .Select(witness => witness.CreatureId)
-                                .ToArray()
+                            resolution.ReportingWitnessIdsByCrimeId[crime.Id]
                         ))
                         .ToArray(),
                 },
                 cancellationToken
             );
-        }
-
-        foreach (var crime in crimes)
-        {
-            crime.Resolution = reportedCrimes.Contains(crime)
-                ? CrimeResolution.Reported
-                : CrimeResolution.Unreported;
-            crime.ResolvedAt = DateTime.UtcNow;
         }
 
         await context.SaveChangesAsync(cancellationToken);

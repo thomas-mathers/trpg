@@ -17,7 +17,8 @@ public class EvaluateHostileEncounterCommand
 internal class EvaluateHostileEncounterCommandHandler(
     TrpgDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds
+    IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds,
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
 ) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?>
 {
     public async Task<HostileEncounter?> Handle(
@@ -99,9 +100,11 @@ internal class EvaluateHostileEncounterCommandHandler(
             .Select(m => livingCreaturesById[m.CreatureId])
             .ToArray();
 
-        var location = await context
-            .Locations.AsNoTracking()
-            .FirstAsync(l => l.Id == player.LocationId, cancellationToken);
+        var location =
+            await getLocationById.Handle(
+                new GetLocationByIdQuery { Id = player.LocationId },
+                cancellationToken
+            ) ?? throw new InvalidOperationException($"Location {player.LocationId} not found.");
 
         var encounter = new HostileEncounter
         {

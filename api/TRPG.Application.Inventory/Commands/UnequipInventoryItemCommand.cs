@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Data;
@@ -14,6 +13,7 @@ public class UnequipInventoryItemCommand
 
 internal class UnequipInventoryItemCommandHandler(
     TrpgDbContext context,
+    EquipmentLoadoutLoader equipmentLoadoutLoader,
     IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged
 ) : ICommandHandler<UnequipInventoryItemCommand>
 {
@@ -22,21 +22,10 @@ internal class UnequipInventoryItemCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var creatureExists = await context.Creatures.AnyAsync(
-            c => c.Id == command.CreatureId,
+        var items = await equipmentLoadoutLoader.LoadOwnedItems(
+            command.CreatureId,
             cancellationToken
         );
-        if (!creatureExists)
-        {
-            throw new InvalidOperationException($"Creature {command.CreatureId} not found.");
-        }
-
-        var items = await context
-            .Items.Where(i =>
-                i.Ownership.OwnerType == OwnerType.Creature
-                && i.Ownership.OwnerId == command.CreatureId
-            )
-            .ToArrayAsync(cancellationToken);
 
         var item = items.FirstOrDefault(i => i.Ownership.EquippedSlot == command.Slot);
         if (item == null)
