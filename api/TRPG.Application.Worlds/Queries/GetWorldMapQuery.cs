@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -27,8 +28,10 @@ public record WorldMapResult(
     IReadOnlyList<WorldMapQuestMarker> QuestMarkers
 );
 
-internal class GetWorldMapQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetWorldMapQuery, WorldMapResult>
+internal class GetWorldMapQueryHandler(
+    TrpgDbContext context,
+    IQueryHandler<GetItemCountsByOwnersQuery, IReadOnlyDictionary<Guid, int>> getItemCountsByOwners
+) : IQueryHandler<GetWorldMapQuery, WorldMapResult>
 {
     public async Task<WorldMapResult> Handle(
         GetWorldMapQuery query,
@@ -147,16 +150,10 @@ internal class GetWorldMapQueryHandler(TrpgDbContext context)
                 cancellationToken
             );
 
-        var itemCountsByOwner = await context
-            .Items.AsNoTracking()
-            .Where(item =>
-                item.Ownership.OwnerType == OwnerType.Creature
-                && corpseIds.AsEnumerable().Contains(item.Ownership.OwnerId)
-                && item.Quantity > 0
-            )
-            .GroupBy(item => item.Ownership.OwnerId)
-            .Select(group => new { OwnerId = group.Key, Count = group.Count() })
-            .ToDictionaryAsync(group => group.OwnerId, group => group.Count, cancellationToken);
+        var itemCountsByOwner = await getItemCountsByOwners.Handle(
+            new GetItemCountsByOwnersQuery { OwnerIds = corpseIds, OwnerType = OwnerType.Creature },
+            cancellationToken
+        );
 
         return corpses
             .Select(corpse => new WorldMapCorpse(

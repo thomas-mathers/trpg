@@ -4,6 +4,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -25,7 +26,8 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
     TrpgDbContext context,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetTradeWorkstationByBuildingIdQuery, Workstation?> getTradeWorkstation,
-    IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature
+    IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
+    IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner
 ) : ICommandHandler<ConfrontOverdueRoomKeyCommand, ConfrontOverdueRoomKeyResult>
 {
     public async Task<ConfrontOverdueRoomKeyResult> Handle(
@@ -141,14 +143,15 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             booking => booking.RoomId
         );
 
-        var heldKeys = await context
-            .Items.AsNoTracking()
-            .Where(item =>
-                keyItemIds.AsEnumerable().Contains(item.Id)
-                && item.Ownership.OwnerId == command.PlayerId
-                && item.Ownership.OwnerType == OwnerType.Creature
-            )
-            .ToListAsync(cancellationToken);
+        var heldKeys = await getItemsByIdsForOwner.Handle(
+            new GetItemsByIdsForOwnerQuery
+            {
+                OwnerId = command.PlayerId,
+                OwnerType = OwnerType.Creature,
+                ItemIds = keyItemIds,
+            },
+            cancellationToken
+        );
 
         return heldKeys
             .Select(item => new HeldOverdueKey(

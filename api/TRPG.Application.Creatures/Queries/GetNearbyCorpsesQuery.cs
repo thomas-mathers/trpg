@@ -1,7 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Results;
-using TRPG.Data;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -14,8 +13,8 @@ public class GetNearbyCorpsesQuery
 public record CorpseResult(Guid Id, string Name, int ItemCount);
 
 internal class GetNearbyCorpsesQueryHandler(
-    TrpgDbContext context,
-    IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>> getNearbyCreatures
+    IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>> getNearbyCreatures,
+    IQueryHandler<GetItemCountsByOwnersQuery, IReadOnlyDictionary<Guid, int>> getItemCountsByOwners
 ) : IQueryHandler<GetNearbyCorpsesQuery, IReadOnlyList<CorpseResult>>
 {
     public async Task<IReadOnlyList<CorpseResult>> Handle(
@@ -35,15 +34,10 @@ internal class GetNearbyCorpsesQueryHandler(
         var corpses = nearby.Where(c => c.State == CreatureState.Dead).ToArray();
         var corpseIds = corpses.Select(c => c.Id).ToArray();
 
-        var itemCountsByOwner = await context
-            .Items.Where(i =>
-                i.Ownership.OwnerType == OwnerType.Creature
-                && corpseIds.Contains(i.Ownership.OwnerId)
-                && i.Quantity > 0
-            )
-            .GroupBy(i => i.Ownership.OwnerId)
-            .Select(g => new { OwnerId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(g => g.OwnerId, g => g.Count, cancellationToken);
+        var itemCountsByOwner = await getItemCountsByOwners.Handle(
+            new GetItemCountsByOwnersQuery { OwnerIds = corpseIds, OwnerType = OwnerType.Creature },
+            cancellationToken
+        );
 
         return corpses
             .Select(c => new CorpseResult(
