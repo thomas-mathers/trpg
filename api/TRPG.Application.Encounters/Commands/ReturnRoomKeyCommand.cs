@@ -1,11 +1,12 @@
 using System.Transactions;
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Data;
+using TRPG.Application.Props.Queries;
+using TRPG.Application.RoomBookings.Commands;
+using TRPG.Application.RoomBookings.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -28,14 +29,18 @@ public enum ReturnRoomKeyOutcome
 public record ReturnRoomKeyResult(ReturnRoomKeyOutcome Outcome, TheftEncounter? Encounter = null);
 
 internal class ReturnRoomKeyCommandHandler(
-    TrpgDbContext context,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
     IQueryHandler<GetTradeWorkstationByBuildingIdQuery, Workstation?> getTradeWorkstation,
+    IQueryHandler<
+        GetRoomBookingsForPlayerInBuildingQuery,
+        IReadOnlyCollection<RoomBooking>
+    > getRoomBookingsForPlayerInBuilding,
     ICommandHandler<
         ConfrontOverdueRoomKeyCommand,
         ConfrontOverdueRoomKeyResult
     > confrontOverdueRoomKey,
-    ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory
+    ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory,
+    ICommandHandler<DeleteRoomBookingsCommand> deleteRoomBookings
 ) : ICommandHandler<ReturnRoomKeyCommand, ReturnRoomKeyResult>
 {
     public async Task<ReturnRoomKeyResult> Handle(
@@ -76,17 +81,15 @@ internal class ReturnRoomKeyCommandHandler(
             return new ReturnRoomKeyResult(ReturnRoomKeyOutcome.Overdue, confrontation.Encounter);
         }
 
-        var booking = await context
-            .RoomBookings.Join(
-                context.Rooms.Where(room => room.BuildingId == building.Id),
-                booking => booking.RoomId,
-                room => room.Id,
-                (booking, _) => booking
-            )
-            .FirstOrDefaultAsync(
-                booking => booking.PlayerId == command.PlayerId,
-                cancellationToken
-            );
+        var bookings = await getRoomBookingsForPlayerInBuilding.Handle(
+            new GetRoomBookingsForPlayerInBuildingQuery
+            {
+                PlayerId = command.PlayerId,
+                BuildingId = building.Id,
+            },
+            cancellationToken
+        );
+        var booking = bookings.FirstOrDefault();
         if (booking == null)
         {
             transaction.Complete();
@@ -114,8 +117,10 @@ internal class ReturnRoomKeyCommandHandler(
             cancellationToken
         );
 
-        context.RoomBookings.Remove(booking);
-        await context.SaveChangesAsync(cancellationToken);
+        await deleteRoomBookings.Handle(
+            new DeleteRoomBookingsCommand { RoomBookingIds = [booking.Id] },
+            cancellationToken
+        );
 
         transaction.Complete();
         return new ReturnRoomKeyResult(ReturnRoomKeyOutcome.Returned);

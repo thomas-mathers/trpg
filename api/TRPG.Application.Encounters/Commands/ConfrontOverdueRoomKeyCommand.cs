@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Reputations.Queries;
+using TRPG.Application.Props.Queries;
+using TRPG.Application.RoomBookings.Commands;
+using TRPG.Application.RoomBookings.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -27,7 +29,12 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetTradeWorkstationByBuildingIdQuery, Workstation?> getTradeWorkstation,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
-    IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner
+    IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
+    IQueryHandler<
+        GetRoomBookingsForPlayerInBuildingQuery,
+        IReadOnlyCollection<RoomBooking>
+    > getRoomBookingsForPlayerInBuilding,
+    ICommandHandler<DeleteRoomBookingsCommand> deleteRoomBookings
 ) : ICommandHandler<ConfrontOverdueRoomKeyCommand, ConfrontOverdueRoomKeyResult>
 {
     public async Task<ConfrontOverdueRoomKeyResult> Handle(
@@ -94,15 +101,15 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
         };
         context.Encounters.Add(encounter);
 
-        var overdueRoomIds = heldOverdueKeys.Select(key => key.RoomId).ToArray();
-        await context
-            .RoomBookings.Where(booking =>
-                booking.PlayerId == command.PlayerId
-                && overdueRoomIds.AsEnumerable().Contains(booking.RoomId)
-            )
-            .ExecuteDeleteAsync(cancellationToken);
-
         await context.SaveChangesAsync(cancellationToken);
+
+        await deleteRoomBookings.Handle(
+            new DeleteRoomBookingsCommand
+            {
+                RoomBookingIds = heldOverdueKeys.Select(key => key.RoomBookingId).ToArray(),
+            },
+            cancellationToken
+        );
 
         return new ConfrontOverdueRoomKeyResult(encounter);
     }
@@ -117,20 +124,19 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             cancellationToken
         );
 
-        var overdueBookings = await context
-            .RoomBookings.AsNoTracking()
+        var bookings = await getRoomBookingsForPlayerInBuilding.Handle(
+            new GetRoomBookingsForPlayerInBuildingQuery
+            {
+                PlayerId = command.PlayerId,
+                BuildingId = command.BuildingId,
+            },
+            cancellationToken
+        );
+        var overdueBookings = bookings
             .Where(booking =>
-                booking.WorldId == command.WorldId
-                && booking.PlayerId == command.PlayerId
-                && booking.DueAtPlaytime <= playtime
+                booking.WorldId == command.WorldId && booking.DueAtPlaytime <= playtime
             )
-            .Join(
-                context.Rooms.AsNoTracking().Where(room => room.BuildingId == command.BuildingId),
-                booking => booking.RoomId,
-                room => room.Id,
-                (booking, room) => booking
-            )
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         if (overdueBookings.Count == 0)
         {
@@ -138,9 +144,9 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
         }
 
         var keyItemIds = overdueBookings.Select(booking => booking.KeyItemId).ToArray();
-        var roomIdByKeyItemId = overdueBookings.ToDictionary(
+        var bookingIdByKeyItemId = overdueBookings.ToDictionary(
             booking => booking.KeyItemId,
-            booking => booking.RoomId
+            booking => booking.Id
         );
 
         var heldKeys = await getItemsByIdsForOwner.Handle(
@@ -158,10 +164,10 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
                 item.Id,
                 item.Name,
                 item.Quantity,
-                roomIdByKeyItemId[item.Id]
+                bookingIdByKeyItemId[item.Id]
             ))
             .ToList();
     }
 
-    private sealed record HeldOverdueKey(Guid Id, string Name, int Quantity, Guid RoomId);
+    private sealed record HeldOverdueKey(Guid Id, string Name, int Quantity, Guid RoomBookingId);
 }

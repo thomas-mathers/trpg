@@ -1,10 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Props.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Scenes.Queries;
+namespace TRPG.Tests.Application.Props.Queries;
 
 [Collection("Database")]
 public sealed class GetPropByIdQueryTests(DatabaseFixture db) : IAsyncLifetime

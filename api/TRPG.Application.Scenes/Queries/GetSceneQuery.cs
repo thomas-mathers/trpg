@@ -5,6 +5,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
+using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
@@ -150,7 +151,9 @@ internal class GetSceneQueryHandler(
         GetTotalCharacterXpFromSkillsQuery,
         IReadOnlyDictionary<Guid, int>
     > getTotalCharacterXpFromSkills,
-    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
+    IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
+    IQueryHandler<GetBuildingsByIdsQuery, IReadOnlyDictionary<Guid, Building>> getBuildingsByIds
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -490,15 +493,15 @@ internal class GetSceneQueryHandler(
             .Values.Select(location => location.RoomId)
             .OfType<Guid>()
             .ToArray();
-        var rooms = await context
-            .Rooms.AsNoTracking()
-            .Where(room => roomIds.Contains(room.Id))
-            .ToDictionaryAsync(room => room.Id, cancellationToken);
+        var rooms = await getRoomsByIds.Handle(
+            new GetRoomsByIdsQuery { Ids = roomIds },
+            cancellationToken
+        );
         var buildingIds = rooms.Values.Select(room => room.BuildingId).ToArray();
-        var buildings = await context
-            .Buildings.AsNoTracking()
-            .Where(building => buildingIds.AsEnumerable().Contains(building.Id))
-            .ToDictionaryAsync(building => building.Id, cancellationToken);
+        var buildings = await getBuildingsByIds.Handle(
+            new GetBuildingsByIdsQuery { Ids = buildingIds },
+            cancellationToken
+        );
         var connectorIds = connectors.Select(connector => connector.Id).ToArray();
         var lockedConnectorIds = await context
             .DoorConnectors.AsNoTracking()
