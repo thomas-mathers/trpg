@@ -13,7 +13,7 @@ using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Reputations.Events;
-using TRPG.Application.Reputations.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

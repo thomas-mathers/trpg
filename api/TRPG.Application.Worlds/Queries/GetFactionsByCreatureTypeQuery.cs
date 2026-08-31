@@ -3,7 +3,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Reputations.Queries;
+namespace TRPG.Application.Worlds.Queries;
 
 public class GetFactionsByCreatureTypeQuery
 {

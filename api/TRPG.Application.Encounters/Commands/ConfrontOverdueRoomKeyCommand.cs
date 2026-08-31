@@ -5,9 +5,9 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
-using TRPG.Application.Reputations.Queries;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.RoomBookings.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
