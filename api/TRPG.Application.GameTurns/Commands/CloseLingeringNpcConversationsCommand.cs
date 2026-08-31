@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Chat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.GameSessions.Commands;
+using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Data;
 
@@ -18,7 +18,7 @@ internal class CloseLingeringNpcConversationsCommandHandler(
     LlmConversationClient llmConversationClient,
     TrpgDbContext context,
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
-    ICommandHandler<UpdateGameSessionCommand> updateGameSession,
+    ICommandHandler<ClearOpenNpcConversationsCommand> clearOpenNpcConversations,
     ICommandHandler<ClearChatMessagesCommand> clearChatMessages,
     ILogger<CloseLingeringNpcConversationsCommandHandler> logger
 ) : ICommandHandler<CloseLingeringNpcConversationsCommand>
@@ -52,12 +52,8 @@ internal class CloseLingeringNpcConversationsCommandHandler(
             cancellationToken
         );
 
-        await updateGameSession.Handle(
-            new UpdateGameSessionCommand
-            {
-                SessionId = command.SessionId,
-                OpenConversationCreatureIdsByName = [],
-            },
+        await clearOpenNpcConversations.Handle(
+            new ClearOpenNpcConversationsCommand { SessionId = command.SessionId },
             cancellationToken
         );
 

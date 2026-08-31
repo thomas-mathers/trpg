@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Data;
-using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.NpcConversations.Commands;
@@ -11,13 +10,14 @@ namespace TRPG.Tests.Application.NpcConversations.Commands;
 public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
+    private static readonly Guid PlayerId = Guid.NewGuid();
 
+    private readonly Guid _sessionId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private OpenNpcConversationCommandHandler _handler = null!;
-    private GameSession _session = null!;
 
-    public async ValueTask InitializeAsync()
+    public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
 
@@ -26,9 +26,7 @@ public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) :
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<OpenNpcConversationCommandHandler>();
 
-        _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
-        _context.GameSessions.Add(_session);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
@@ -44,7 +42,9 @@ public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) :
         var outcome = await _handler.Handle(
             new OpenNpcConversationCommand
             {
-                SessionId = _session.Id,
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 NpcId = Guid.NewGuid(),
                 NpcName = "Wraith",
             },
@@ -65,7 +65,9 @@ public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) :
         await _handler.Handle(
             new OpenNpcConversationCommand
             {
-                SessionId = _session.Id,
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 NpcId = npcId,
                 NpcName = "Wraith",
             },
@@ -74,8 +76,8 @@ public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) :
 
         // Assert
         var updated = await _context
-            .GameSessions.AsNoTracking()
-            .SingleAsync(s => s.Id == _session.Id, TestContext.Current.CancellationToken);
+            .NpcConversationSessionStates.AsNoTracking()
+            .SingleAsync(s => s.SessionId == _sessionId, TestContext.Current.CancellationToken);
         Assert.Equal(npcId, updated.OpenConversationCreatureIdsByName["Wraith"]);
     }
 
@@ -86,7 +88,9 @@ public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) :
         await _handler.Handle(
             new OpenNpcConversationCommand
             {
-                SessionId = _session.Id,
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 NpcId = Guid.NewGuid(),
                 NpcName = "Wraith",
             },
@@ -97,7 +101,9 @@ public sealed class OpenNpcConversationCommandHandlerTests(DatabaseFixture db) :
         var outcome = await _handler.Handle(
             new OpenNpcConversationCommand
             {
-                SessionId = _session.Id,
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                PlayerId = PlayerId,
                 NpcId = Guid.NewGuid(),
                 NpcName = "Wraith",
             },

@@ -1,8 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Common.Queries;
-using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -17,15 +15,15 @@ public enum OpenNpcConversationResult
 public class OpenNpcConversationCommand
 {
     public required Guid SessionId { get; init; }
+    public required Guid WorldId { get; init; }
+    public required Guid PlayerId { get; init; }
     public required Guid NpcId { get; init; }
     public required string NpcName { get; init; }
 }
 
 internal class OpenNpcConversationCommandHandler(
     TrpgDbContext context,
-    IDomainEventPublisher<NpcConversationStartedEvent> domainEvents,
-    IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-    ICommandHandler<UpdateGameSessionCommand> updateGameSession
+    IDomainEventPublisher<NpcConversationStartedEvent> domainEvents
 ) : ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult>
 {
     public async Task<OpenNpcConversationResult> Handle(
@@ -36,30 +34,33 @@ internal class OpenNpcConversationCommandHandler(
         await using var transaction = await context.Database.BeginTransactionAsync(
             cancellationToken
         );
-        var snapshot = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = command.SessionId },
+
+        var state = await context.NpcConversationSessionStates.FirstOrDefaultAsync(
+            s => s.SessionId == command.SessionId,
             cancellationToken
         );
-        if (snapshot.OpenConversationCreatureIdsByName.ContainsKey(command.NpcName))
+        if (state == null)
+        {
+            state = new NpcConversationSessionState
+            {
+                SessionId = command.SessionId,
+                WorldId = command.WorldId,
+            };
+            context.NpcConversationSessionStates.Add(state);
+        }
+        else if (state.OpenConversationCreatureIdsByName.ContainsKey(command.NpcName))
         {
             await transaction.CommitAsync(cancellationToken);
             return OpenNpcConversationResult.AlreadyOpen;
         }
 
-        snapshot.OpenConversationCreatureIdsByName[command.NpcName] = command.NpcId;
-        await updateGameSession.Handle(
-            new UpdateGameSessionCommand
-            {
-                SessionId = command.SessionId,
-                OpenConversationCreatureIdsByName = snapshot.OpenConversationCreatureIdsByName,
-            },
-            cancellationToken
-        );
+        state.OpenConversationCreatureIdsByName[command.NpcName] = command.NpcId;
+        await context.SaveChangesAsync(cancellationToken);
 
         await domainEvents.Publish(
             new NpcConversationStartedEvent(
-                PlayerId: snapshot.PlayerId,
-                WorldId: snapshot.WorldId,
+                PlayerId: command.PlayerId,
+                WorldId: command.WorldId,
                 NpcId: command.NpcId
             ),
             cancellationToken

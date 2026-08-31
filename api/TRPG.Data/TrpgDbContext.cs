@@ -83,6 +83,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
     public DbSet<World> Worlds => Set<World>();
     public DbSet<GameSession> GameSessions => Set<GameSession>();
+    public DbSet<NpcConversationSessionState> NpcConversationSessionStates =>
+        Set<NpcConversationSessionState>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
     public DbSet<Crime> Crimes => Set<Crime>();
     public DbSet<CrimeWitness> CrimeWitnesses => Set<CrimeWitness>();
@@ -562,6 +564,12 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
 
         modelBuilder.Entity<GameSession>(entity =>
         {
+            entity.HasIndex(s => s.WorldId);
+        });
+
+        modelBuilder.Entity<NpcConversationSessionState>(entity =>
+        {
+            entity.HasKey(s => s.SessionId);
             entity.HasIndex(s => s.WorldId);
             entity.Property(s => s.OpenConversationCreatureIdsByName).HasJsonConversion(() => []);
         });

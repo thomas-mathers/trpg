@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Data;
 
@@ -19,16 +18,11 @@ internal class GetOpenNpcConversationsQueryHandler(TrpgDbContext context)
     )
     {
         var openConversations = await context
-            .GameSessions.AsNoTracking()
-            .Where(s => s.Id == query.SessionId)
+            .NpcConversationSessionStates.AsNoTracking()
+            .Where(s => s.SessionId == query.SessionId)
             .Select(s => s.OpenConversationCreatureIdsByName)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (openConversations == null)
-        {
-            throw new EntityNotFoundException("Game session", query.SessionId);
-        }
-
-        return openConversations;
+        return openConversations ?? [];
     }
 }
