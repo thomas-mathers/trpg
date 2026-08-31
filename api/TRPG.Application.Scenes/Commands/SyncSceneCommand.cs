@@ -5,8 +5,8 @@ using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Locations.Queries;
 using TRPG.Application.Props.Queries;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes.Commands;

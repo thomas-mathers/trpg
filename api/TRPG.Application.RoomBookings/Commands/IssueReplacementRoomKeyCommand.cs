@@ -1,6 +1,6 @@
-using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Locations.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.RoomBookings.Commands;

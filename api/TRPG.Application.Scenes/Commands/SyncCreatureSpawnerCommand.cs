@@ -5,9 +5,9 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Worlds.Generators;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

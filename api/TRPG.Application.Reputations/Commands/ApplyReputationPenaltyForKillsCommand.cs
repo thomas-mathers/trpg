@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Application.Worlds.Queries;
+using TRPG.Application.Factions.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Reputations.Commands;
