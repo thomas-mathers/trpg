@@ -6,7 +6,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Rooms.Commands;
+using TRPG.Application.RoomBookings.Commands;
 using TRPG.Domain.Models;
 using TRPG.Tools;
 

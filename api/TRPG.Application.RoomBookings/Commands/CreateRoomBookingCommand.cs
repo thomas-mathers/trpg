@@ -2,7 +2,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Buildings.Commands;
+namespace TRPG.Application.RoomBookings.Commands;
 
 public class CreateRoomBookingCommand
 {

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -11,7 +10,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Rooms.Commands;
+namespace TRPG.Application.RoomBookings.Commands;
 
 public class BookRoomCommand
 {

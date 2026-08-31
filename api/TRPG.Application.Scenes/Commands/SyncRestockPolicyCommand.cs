@@ -7,7 +7,7 @@ using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Rooms.Commands;
+using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
 using TRPG.Domain.Models;
