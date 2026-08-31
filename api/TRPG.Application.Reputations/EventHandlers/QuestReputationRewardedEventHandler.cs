@@ -3,7 +3,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Reputations.Events;
+namespace TRPG.Application.Reputations.EventHandlers;
 
 internal sealed class QuestReputationRewardedEventHandler(
     ICommandHandler<AdjustReputationsCommand> adjustReputations

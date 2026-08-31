@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Inventory.Events;
+using TRPG.Application.Inventory.EventHandlers;
 
 namespace TRPG.Application.Inventory.Extensions;
 

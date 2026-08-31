@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Reputations.Events;
+namespace TRPG.Application.Reputations.EventHandlers;
 
 internal sealed class CreatureKilledCrimeWitnessEventHandler(
     TrpgDbContext context,

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures;
-using TRPG.Application.Creatures.Events;
+using TRPG.Application.Creatures.EventHandlers;
 
 namespace TRPG.Application.Creatures.Extensions;
 

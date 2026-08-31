@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Reputations.Events;
+using TRPG.Application.Reputations.EventHandlers;
 
 namespace TRPG.Application.Reputations.Extensions;
 
