@@ -1,4 +1,3 @@
-using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -6,7 +5,8 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Worlds.Queries;
+using TRPG.Application.Locations.Commands;
+using TRPG.Application.Locations.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;

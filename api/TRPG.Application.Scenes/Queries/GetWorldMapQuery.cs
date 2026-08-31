@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Locations.Queries;
 using TRPG.Application.Quests.Queries;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

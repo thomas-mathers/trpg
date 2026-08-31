@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Worlds.Queries;
+using TRPG.Application.Factions.Queries;
 
 namespace TRPG.Application.Reputations.Queries;
 
