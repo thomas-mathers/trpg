@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
@@ -29,6 +30,7 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetTradeWorkstationByBuildingIdQuery, Workstation?> getTradeWorkstation,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
     IQueryHandler<
         GetRoomBookingsForPlayerInBuildingQuery,
@@ -57,9 +59,11 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             return new ConfrontOverdueRoomKeyResult(null);
         }
 
-        var innkeeper = await context
-            .Creatures.AsNoTracking()
-            .FirstAsync(creature => creature.Id == innkeeperId, cancellationToken);
+        var innkeeper =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = innkeeperId },
+                cancellationToken
+            ) ?? throw new InvalidOperationException($"Creature {innkeeperId} not found.");
 
         var sourceOwner = new ItemOwnerReference(workstation.Id, OwnerType.Workstation);
 

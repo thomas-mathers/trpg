@@ -27,6 +27,7 @@ internal class EvaluateGuardEncounterCommandHandler(
         GetRecentReputationLogQuery,
         IReadOnlyCollection<ReputationLogEntry>
     > getRecentReputationLog,
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
 ) : ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?>
 {
@@ -87,9 +88,11 @@ internal class EvaluateGuardEncounterCommandHandler(
             return null;
         }
 
-        var location = await context
-            .Locations.AsNoTracking()
-            .FirstAsync(l => l.Id == player!.LocationId, cancellationToken);
+        var location =
+            await getLocationById.Handle(
+                new GetLocationByIdQuery { Id = player!.LocationId },
+                cancellationToken
+            ) ?? throw new InvalidOperationException($"Location {player!.LocationId} not found.");
 
         var recentOffenses = await getRecentReputationLog.Handle(
             new GetRecentReputationLogQuery
