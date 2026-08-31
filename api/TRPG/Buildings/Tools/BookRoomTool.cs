@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Domain.Models;
@@ -17,6 +18,7 @@ internal class BookRoomTool(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
     ICommandHandler<BookRoomCommand, BookRoomResult> bookRoom,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ILogger<BookRoomTool> logger
 ) : IGameTool
 {
@@ -57,12 +59,17 @@ internal class BookRoomTool(
             );
         }
 
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+
         var bookingResult = await bookRoom.Handle(
             new BookRoomCommand
             {
                 PlayerId = turnContext.PlayerId,
                 WorldId = turnContext.WorldId,
-                SessionId = turnContext.SessionId,
+                Playtime = playtime,
                 LocationId = player.LocationId,
             },
             cancellationToken

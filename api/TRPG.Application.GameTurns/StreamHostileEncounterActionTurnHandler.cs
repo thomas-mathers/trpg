@@ -7,6 +7,7 @@ using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Encounters.Results;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Domain.Models;
 
@@ -20,6 +21,7 @@ internal class StreamHostileEncounterActionTurnHandler(
         HostileEncounterActionResult
     > resolveHostileEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
 {
@@ -62,12 +64,17 @@ internal class StreamHostileEncounterActionTurnHandler(
 
         gameEvents.Enqueue(new HostileEncounterResolvedEvent(resolution.Fact));
 
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
         await refreshScene.Handle(
             new RefreshSceneCommand
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                SessionId = session.SessionId,
+                Playtime = playtime,
             },
             cancellationToken
         );

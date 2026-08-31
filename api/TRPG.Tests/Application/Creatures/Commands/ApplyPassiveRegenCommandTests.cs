@@ -23,8 +23,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private GameSession _session = null!;
-    private Guid _sessionId;
+    private TimeSpan _playtime;
     private ApplyPassiveRegenCommandHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature(
         currentHp: 0,
@@ -36,11 +35,8 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     {
         _context = db.CreateContext();
 
-        _session = Builders.MakeGameSession(_creature.WorldId, _creature.Id);
         _context.Creatures.Add(_creature);
-        _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        _sessionId = _session.Id;
 
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
@@ -57,21 +53,17 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
         await _context.DisposeAsync();
     }
 
-    private async Task SetPlaytime(TimeSpan playtime)
-    {
-        _session.Playtime = playtime;
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
+    private void SetPlaytime(TimeSpan playtime) => _playtime = playtime;
 
     [Fact]
     public async Task Handle_RegeneratesHpApMp_ProportionalToElapsedInGameHours()
     {
         // Arrange
-        await SetPlaytime(GameClock.RealTimePerInGameHour);
+        SetPlaytime(GameClock.RealTimePerInGameHour);
 
         // Act
         await _handler.Handle(
-            new ApplyPassiveRegenCommand { SessionId = _sessionId, CreatureIds = [_creature.Id] },
+            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
             TestContext.Current.CancellationToken
         );
 
@@ -91,11 +83,11 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_ReturnsDetachedCreatures_ReflectingRegeneratedValues()
     {
         // Arrange
-        await SetPlaytime(GameClock.RealTimePerInGameHour);
+        SetPlaytime(GameClock.RealTimePerInGameHour);
 
         // Act
         var result = await _handler.Handle(
-            new ApplyPassiveRegenCommand { SessionId = _sessionId, CreatureIds = [_creature.Id] },
+            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
             TestContext.Current.CancellationToken
         );
 
@@ -108,11 +100,11 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_ClampsAtMaximum_WhenElapsedTimeExceedsFullRegen()
     {
         // Arrange
-        await SetPlaytime(TimeSpan.FromHours(100 / 12.0));
+        SetPlaytime(TimeSpan.FromHours(100 / 12.0));
 
         // Act
         await _handler.Handle(
-            new ApplyPassiveRegenCommand { SessionId = _sessionId, CreatureIds = [_creature.Id] },
+            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
             TestContext.Current.CancellationToken
         );
 
@@ -133,11 +125,11 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
         // Arrange
         _creature.State = CreatureState.Dead;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await SetPlaytime(TimeSpan.FromHours(100 / 12.0));
+        SetPlaytime(TimeSpan.FromHours(100 / 12.0));
 
         // Act
         await _handler.Handle(
-            new ApplyPassiveRegenCommand { SessionId = _sessionId, CreatureIds = [_creature.Id] },
+            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
             TestContext.Current.CancellationToken
         );
 
@@ -157,11 +149,11 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
         // Arrange
         _creature.LastRegenPlaytime = TimeSpan.FromHours(1);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await SetPlaytime(TimeSpan.FromHours(1));
+        SetPlaytime(TimeSpan.FromHours(1));
 
         // Act
         await _handler.Handle(
-            new ApplyPassiveRegenCommand { SessionId = _sessionId, CreatureIds = [_creature.Id] },
+            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
             TestContext.Current.CancellationToken
         );
 
@@ -210,7 +202,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
                 TestContext.Current.CancellationToken
             );
 
-        await SetPlaytime(GameClock.RealTimePerInGameHour);
+        SetPlaytime(GameClock.RealTimePerInGameHour);
 
         var fullHpRegenOptions = new CreatureRegenOptions { HpRegenPercentPerHour = 1.0f };
         await using var fullRegenServiceProvider = new ServiceCollection()
@@ -224,7 +216,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
 
         // Act
         await handler.Handle(
-            new ApplyPassiveRegenCommand { SessionId = _sessionId, CreatureIds = [_creature.Id] },
+            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
             TestContext.Current.CancellationToken
         );
 

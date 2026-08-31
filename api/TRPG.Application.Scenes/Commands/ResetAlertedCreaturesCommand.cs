@@ -3,7 +3,6 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -13,7 +12,7 @@ public class ResetAlertedCreaturesCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
-    public required Guid SessionId { get; init; }
+    public required TimeSpan Playtime { get; init; }
 }
 
 internal class ResetAlertedCreaturesCommandHandler(
@@ -22,7 +21,6 @@ internal class ResetAlertedCreaturesCommandHandler(
         IReadOnlyCollection<CreatureResult>
     > getCreaturesAtLocation,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     SceneCatchUpCache catchUpCache
 ) : ICommandHandler<ResetAlertedCreaturesCommand>
 {
@@ -59,12 +57,7 @@ internal class ResetAlertedCreaturesCommandHandler(
             cancellationToken
         );
 
-        var schedulePlaytime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
-        var currentDate = GameClock.GetCurrentInGameDate(schedulePlaytime);
+        var currentDate = GameClock.GetCurrentInGameDate(command.Playtime);
 
         catchUpCache.Evict(command.WorldId, command.LocationId, currentDate.Hour);
     }

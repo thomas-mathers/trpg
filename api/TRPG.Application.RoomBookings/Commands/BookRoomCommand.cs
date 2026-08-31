@@ -3,7 +3,6 @@ using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
@@ -16,7 +15,7 @@ public class BookRoomCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
-    public required Guid SessionId { get; init; }
+    public required TimeSpan Playtime { get; init; }
     public required Guid LocationId { get; init; }
 }
 
@@ -35,7 +34,6 @@ public record BookRoomResult(
 
 internal class BookRoomCommandHandler(
     IOptionsSnapshot<InnOptions> innOptions,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
     IQueryHandler<
         GetGuestRoomDoorsByBuildingIdQuery,
@@ -118,10 +116,6 @@ internal class BookRoomCommandHandler(
             cancellationToken
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
         await createRoomBooking.Handle(
             new CreateRoomBookingCommand
             {
@@ -131,7 +125,7 @@ internal class BookRoomCommandHandler(
                     RoomId = spareKey.RoomId,
                     KeyItemId = spareKey.SpareKeyItemId!.Value,
                     PlayerId = command.PlayerId,
-                    DueAtPlaytime = playtime + GameClock.RealTimePerInGameHour * 24,
+                    DueAtPlaytime = command.Playtime + GameClock.RealTimePerInGameHour * 24,
                 },
             },
             cancellationToken

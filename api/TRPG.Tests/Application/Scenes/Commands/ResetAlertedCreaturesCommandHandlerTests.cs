@@ -34,7 +34,6 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
         _context.States.Add(state);
         _context.Locations.Add(_location);
-        _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -65,7 +64,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 LocationId = _location.Id,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
             },
             TestContext.Current.CancellationToken
         );
@@ -102,7 +101,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 LocationId = _location.Id,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
             },
             TestContext.Current.CancellationToken
         );

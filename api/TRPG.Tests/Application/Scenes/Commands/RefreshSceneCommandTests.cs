@@ -35,7 +35,6 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db) : IAsyncLifetim
 
         _context.Locations.Add(_location);
         _context.Creatures.Add(_player);
-        _context.GameSessions.Add(_session);
         _context.States.Add(state);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -55,7 +54,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db) : IAsyncLifetim
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
             },
             TestContext.Current.CancellationToken
         );
@@ -73,7 +72,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db) : IAsyncLifetim
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
             },
             TestContext.Current.CancellationToken
         );
@@ -91,7 +90,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db) : IAsyncLifetim
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
             },
             TestContext.Current.CancellationToken
         );
@@ -102,7 +101,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db) : IAsyncLifetim
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
             },
             TestContext.Current.CancellationToken
         );

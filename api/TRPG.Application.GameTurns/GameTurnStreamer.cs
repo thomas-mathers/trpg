@@ -9,6 +9,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Commands;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Narration;
@@ -41,6 +42,7 @@ internal class GameTurnStreamer(
         LoreAnchorAutomaton
     > getLoreAnchorAutomatonByWorld,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
     IGameClientEventAckGate eventAckGate,
@@ -145,16 +147,23 @@ internal class GameTurnStreamer(
     private async Task<SceneResult> GetScene(
         GameTurnSession session,
         CancellationToken cancellationToken
-    ) =>
-        await getCurrentScene.Handle(
+    )
+    {
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
+        return await getCurrentScene.Handle(
             new GetCurrentSceneQuery
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                SessionId = session.SessionId,
+                Playtime = playtime,
             },
             cancellationToken
         );
+    }
 
     private async Task<SceneResult> EnqueueSceneChange(
         SceneResult before,
@@ -189,10 +198,15 @@ internal class GameTurnStreamer(
         turnContext.PlayerId = session.PlayerId;
         turnContext.PlayerMoved = false;
 
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+
         await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand
             {
-                SessionId = turnContext.SessionId,
+                Playtime = playtime,
                 CreatureIds = [turnContext.PlayerId],
             },
             cancellationToken

@@ -81,7 +81,6 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
         _context.DoorConnectors.Add(door);
         _context.Items.Add(_key);
         _context.DoorConnectorKeys.Add(doorConnectorKey);
-        _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -110,7 +109,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },
@@ -145,7 +144,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },
@@ -175,7 +174,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },

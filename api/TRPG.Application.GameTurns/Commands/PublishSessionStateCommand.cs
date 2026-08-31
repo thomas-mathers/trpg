@@ -4,6 +4,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Domain.Models;
@@ -21,6 +22,7 @@ internal class PublishSessionStateCommandHandler(
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted
@@ -31,12 +33,17 @@ internal class PublishSessionStateCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
+
         var scene = await getCurrentScene.Handle(
             new GetCurrentSceneQuery
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                SessionId = command.SessionId,
+                Playtime = playtime,
             },
             cancellationToken
         );
