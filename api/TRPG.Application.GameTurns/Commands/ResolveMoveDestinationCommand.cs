@@ -4,10 +4,10 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Locations.Commands;
-using TRPG.Application.Locations.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Worlds.Commands;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 

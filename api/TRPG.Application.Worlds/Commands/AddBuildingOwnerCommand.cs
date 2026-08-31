@@ -1,0 +1,38 @@
+using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Commands;
+using TRPG.Data;
+using TRPG.Domain.Models;
+
+namespace TRPG.Application.Worlds.Commands;
+
+public class AddBuildingOwnerCommand
+{
+    public required Guid BuildingId { get; init; }
+    public required Guid OwnerId { get; init; }
+}
+
+internal class AddBuildingOwnerCommandHandler(TrpgDbContext context)
+    : ICommandHandler<AddBuildingOwnerCommand>
+{
+    public async Task Handle(
+        AddBuildingOwnerCommand command,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var worldId = await context
+            .Buildings.Where(b => b.Id == command.BuildingId)
+            .Select(b => b.WorldId)
+            .FirstAsync(cancellationToken);
+
+        context.BuildingOwners.Add(
+            new BuildingOwner
+            {
+                Id = Guid.NewGuid(),
+                BuildingId = command.BuildingId,
+                OwnerId = command.OwnerId,
+                WorldId = worldId,
+            }
+        );
+        await context.SaveChangesAsync(cancellationToken);
+    }
+}

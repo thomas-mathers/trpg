@@ -6,7 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Narration.Queries;
-using TRPG.Application.Worlds;
+using TRPG.Application.WorldGeneration;
 using TRPG.Data;
 using TRPG.Jobs.Responses;
 using TRPG.Tests.Helpers;

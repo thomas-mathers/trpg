@@ -1,15 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Buildings.Queries;
-using TRPG.Application.Buildings.Results;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
-using TRPG.Application.Locations.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Application.Worlds.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

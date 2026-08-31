@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Buildings;
 using TRPG.Application.Configuration;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Inventory;
+using TRPG.Application.WorldGeneration;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;

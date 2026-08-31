@@ -8,7 +8,6 @@
     <InternalsVisibleTo Include="TRPG.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\TRPG.Application.Buildings\TRPG.Application.Buildings.csproj" />
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
     <ProjectReference Include="..\TRPG.Application.CreatureFormulas\TRPG.Application.CreatureFormulas.csproj" />
     <ProjectReference Include="..\TRPG.Application.CreatureJobs\TRPG.Application.CreatureJobs.csproj" />
@@ -16,12 +15,12 @@
     <ProjectReference Include="..\TRPG.Application.Encounters\TRPG.Application.Encounters.csproj" />
     <ProjectReference Include="..\TRPG.Application.Factions\TRPG.Application.Factions.csproj" />
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
-    <ProjectReference Include="..\TRPG.Application.Locations\TRPG.Application.Locations.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
+    <ProjectReference Include="..\TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj" />
     <ProjectReference Include="..\TRPG.Application.Props\TRPG.Application.Props.csproj" />
     <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
     <ProjectReference Include="..\TRPG.Application.Reputations\TRPG.Application.Reputations.csproj" />
     <ProjectReference Include="..\TRPG.Application.RoomBookings\TRPG.Application.RoomBookings.csproj" />
-    <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.AI;
-using TRPG.Application.Worlds.Generators;
+using TRPG.Application.WorldGeneration.Generators;
 
 namespace TRPG.Tests.Helpers;
 

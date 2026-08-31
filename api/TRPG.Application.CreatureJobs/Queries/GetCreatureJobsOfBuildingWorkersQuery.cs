@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

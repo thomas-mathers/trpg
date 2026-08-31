@@ -10,7 +10,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Balance", "TRPG.Balanc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Abilities", "TRPG.Application.Abilities\TRPG.Application.Abilities.csproj", "{46551C49-5B2A-437A-87EC-41DCA71AF8B7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Buildings", "TRPG.Application.Buildings\TRPG.Application.Buildings.csproj", "{AB51DC74-263E-48F9-A64E-48A22DE7EC93}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Configuration", "TRPG.Application.Configuration\TRPG.Application.Configuration.csproj", "{564FD23B-B4A3-479B-BB1D-87092B06E1F9}"
 EndProject
@@ -54,7 +53,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.RoomBookin
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Props", "TRPG.Application.Props\TRPG.Application.Props.csproj", "{E8FB919F-F5F9-45D1-8211-55031E011D62}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Locations", "TRPG.Application.Locations\TRPG.Application.Locations.csproj", "{703B29C4-52DF-4217-B539-C15340F5DF54}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.WorldGeneration", "TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj", "{703B29C4-52DF-4217-B539-C15340F5DF54}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Factions", "TRPG.Application.Factions\TRPG.Application.Factions.csproj", "{08C81C93-F006-4D08-8527-E98B08A2743A}"
 EndProject
@@ -128,18 +127,6 @@ Global
 		{46551C49-5B2A-437A-87EC-41DCA71AF8B7}.Release|x64.Build.0 = Release|Any CPU
 		{46551C49-5B2A-437A-87EC-41DCA71AF8B7}.Release|x86.ActiveCfg = Release|Any CPU
 		{46551C49-5B2A-437A-87EC-41DCA71AF8B7}.Release|x86.Build.0 = Release|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Debug|x64.Build.0 = Debug|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Debug|x86.Build.0 = Debug|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Release|x64.ActiveCfg = Release|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Release|x64.Build.0 = Release|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Release|x86.ActiveCfg = Release|Any CPU
-		{AB51DC74-263E-48F9-A64E-48A22DE7EC93}.Release|x86.Build.0 = Release|Any CPU
 		{564FD23B-B4A3-479B-BB1D-87092B06E1F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{564FD23B-B4A3-479B-BB1D-87092B06E1F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{564FD23B-B4A3-479B-BB1D-87092B06E1F9}.Debug|x64.ActiveCfg = Debug|Any CPU

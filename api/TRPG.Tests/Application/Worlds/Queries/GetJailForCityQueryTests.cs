@@ -1,4 +1,4 @@
-using TRPG.Application.Buildings;
+using TRPG.Application.WorldGeneration;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
