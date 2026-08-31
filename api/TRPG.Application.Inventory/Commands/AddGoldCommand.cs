@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -12,7 +11,8 @@ public class AddGoldCommand
     public required int Amount { get; init; }
 }
 
-internal class AddGoldCommandHandler(TrpgDbContext context) : ICommandHandler<AddGoldCommand>
+internal class AddGoldCommandHandler(TrpgDbContext context, GoldLoader goldLoader)
+    : ICommandHandler<AddGoldCommand>
 {
     public async Task Handle(AddGoldCommand command, CancellationToken cancellationToken = default)
     {
@@ -21,14 +21,7 @@ internal class AddGoldCommandHandler(TrpgDbContext context) : ICommandHandler<Ad
             throw new InvalidOperationException("Gold amount must be positive.");
         }
 
-        var gold = await context
-            .Items.OfType<Gold>()
-            .FirstOrDefaultAsync(
-                item =>
-                    item.Ownership.OwnerId == command.Owner.Id
-                    && item.Ownership.OwnerType == command.Owner.Type,
-                cancellationToken
-            );
+        var gold = await goldLoader.FindGold(command.Owner, cancellationToken);
         if (gold is null)
         {
             gold = new Gold

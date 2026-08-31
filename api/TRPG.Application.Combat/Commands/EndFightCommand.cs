@@ -58,6 +58,13 @@ internal class EndFightCommandHandler(
             cancellationToken
         );
 
+        var fight = await context
+            .Encounters.OfType<FightEncounter>()
+            .FirstOrDefaultAsync(
+                item => item.WorldId == command.WorldId && item.Outcome == CombatOutcome.Ongoing,
+                cancellationToken
+            );
+
         var player = state.Combatants.FirstOrDefault(c => c.IsPlayer);
         if (player != null)
         {
@@ -67,6 +74,7 @@ internal class EndFightCommandHandler(
                 .ToArray();
 
             await RecordKillCrimes(
+                fight,
                 command.WorldId,
                 player.Id,
                 killedCreatureIds,
@@ -75,12 +83,6 @@ internal class EndFightCommandHandler(
             );
         }
 
-        var fight = await context
-            .Encounters.OfType<FightEncounter>()
-            .FirstOrDefaultAsync(
-                item => item.WorldId == command.WorldId && item.Outcome == CombatOutcome.Ongoing,
-                cancellationToken
-            );
         if (fight != null)
         {
             fight.CompletedAt = DateTime.UtcNow;
@@ -93,6 +95,7 @@ internal class EndFightCommandHandler(
     }
 
     private async Task RecordKillCrimes(
+        FightEncounter? fight,
         Guid worldId,
         Guid playerId,
         IReadOnlyCollection<Guid> killedCreatureIds,
@@ -105,12 +108,6 @@ internal class EndFightCommandHandler(
             return;
         }
 
-        var fight = await context
-            .Encounters.OfType<FightEncounter>()
-            .FirstOrDefaultAsync(
-                item => item.WorldId == worldId && item.Outcome == CombatOutcome.Ongoing,
-                cancellationToken
-            );
         if (fight == null)
         {
             return;

@@ -13,5 +13,6 @@ public static class ReputationsServiceCollectionExtensions
             .AddTransient<CreatureKilledCrimeWitnessEventHandler>()
             .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreatureKilledCrimeWitnessEventHandler>()
-            );
+            )
+            .AddTransient<PendingCrimeWitnessResolutionService>();
 }

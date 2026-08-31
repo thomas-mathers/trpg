@@ -1,7 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data;
-using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Commands;
 
@@ -11,7 +9,8 @@ public class RemoveGoldCommand
     public required int Amount { get; init; }
 }
 
-internal class RemoveGoldCommandHandler(TrpgDbContext context) : ICommandHandler<RemoveGoldCommand>
+internal class RemoveGoldCommandHandler(TrpgDbContext context, GoldLoader goldLoader)
+    : ICommandHandler<RemoveGoldCommand>
 {
     public async Task Handle(
         RemoveGoldCommand command,
@@ -23,14 +22,7 @@ internal class RemoveGoldCommandHandler(TrpgDbContext context) : ICommandHandler
             throw new InvalidOperationException("Gold amount must be positive.");
         }
 
-        var gold = await context
-            .Items.OfType<Gold>()
-            .FirstOrDefaultAsync(
-                item =>
-                    item.Ownership.OwnerId == command.Owner.Id
-                    && item.Ownership.OwnerType == command.Owner.Type,
-                cancellationToken
-            );
+        var gold = await goldLoader.FindGold(command.Owner, cancellationToken);
         if (gold is null || gold.Quantity < command.Amount)
         {
             throw new InvalidOperationException("Not enough gold to remove the requested amount.");
