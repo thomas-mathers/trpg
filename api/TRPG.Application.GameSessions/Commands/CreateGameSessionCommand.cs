@@ -1,6 +1,5 @@
-using Microsoft.Extensions.AI;
-using TRPG.Application.Chat.Commands;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Data;
 using GameSession = TRPG.Domain.Models.GameSession;
 
@@ -15,7 +14,7 @@ public class CreateGameSessionCommand
 
 internal class CreateGameSessionCommandHandler(
     TrpgDbContext context,
-    ICommandHandler<AppendChatMessagesCommand, int> appendChatMessages
+    IDomainEventPublisher<GameSessionCreatedEvent> gameSessionCreated
 ) : ICommandHandler<CreateGameSessionCommand, Guid>
 {
     private const string SystemPrompt = """
@@ -51,9 +50,8 @@ internal class CreateGameSessionCommandHandler(
         };
         context.GameSessions.Add(row);
 
-        var systemMessage = new ChatMessage(ChatRole.System, SystemPrompt);
-        await appendChatMessages.Handle(
-            new AppendChatMessagesCommand { SessionId = row.Id, Messages = [systemMessage] },
+        await gameSessionCreated.Publish(
+            new GameSessionCreatedEvent(row.Id, SystemPrompt),
             cancellationToken
         );
 

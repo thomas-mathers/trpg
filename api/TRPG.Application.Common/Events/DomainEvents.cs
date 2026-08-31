@@ -53,3 +53,5 @@ public sealed record QuestReputationRewardedEvent(
     IReadOnlyCollection<QuestReputationReward> Rewards,
     string Detail
 ) : DomainEvent;
+
+public sealed record GameSessionCreatedEvent(Guid SessionId, string SystemPrompt) : DomainEvent;
