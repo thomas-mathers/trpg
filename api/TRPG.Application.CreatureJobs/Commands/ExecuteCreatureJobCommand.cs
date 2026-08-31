@@ -1,6 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.CreatureJobs.Commands;
@@ -14,8 +13,9 @@ public class ExecuteCreatureJobCommand
     public required Guid JobLocationId { get; init; }
 }
 
-internal class ExecuteCreatureJobCommandHandler(TrpgDbContext context)
-    : ICommandHandler<ExecuteCreatureJobCommand>
+internal class ExecuteCreatureJobCommandHandler(
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+) : ICommandHandler<ExecuteCreatureJobCommand>
 {
     public async Task Handle(
         ExecuteCreatureJobCommand command,
@@ -49,13 +49,14 @@ internal class ExecuteCreatureJobCommandHandler(TrpgDbContext context)
             return;
         }
 
-        await context
-            .Creatures.Where(c => c.Id == command.CreatureId)
-            .ExecuteUpdateAsync(
-                s =>
-                    s.SetProperty(c => c.LocationId, command.JobLocationId)
-                        .SetProperty(c => c.State, targetState),
-                cancellationToken
-            );
+        await updateCreatures.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [command.CreatureId],
+                LocationId = command.JobLocationId,
+                State = targetState,
+            },
+            cancellationToken
+        );
     }
 }

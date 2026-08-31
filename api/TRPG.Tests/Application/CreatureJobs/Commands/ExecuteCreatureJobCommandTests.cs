@@ -63,6 +63,36 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
+    public async Task Handle_SetsPreviousLocationId_WhenJobMovesCreature()
+    {
+        // Arrange
+        var originalLocationId = _creature.LocationId;
+        var newLocationId = Guid.NewGuid();
+
+        // Act
+        await _handler.Handle(
+            new ExecuteCreatureJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentLocationId = originalLocationId,
+                CurrentState = _creature.State,
+                CreatureJobAction = CreatureJobAction.Work,
+                JobLocationId = newLocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(originalLocationId, updated!.PreviousLocationId);
+        Assert.Equal(newLocationId, updated.LocationId);
+    }
+
+    [Fact]
     public async Task Handle_LeavesCreatureUnchanged_WhenCurrentlyAlerted()
     {
         // Arrange
