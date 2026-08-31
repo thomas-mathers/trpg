@@ -41,11 +41,7 @@ internal class TheftSourceResolver(TrpgDbContext context)
         CancellationToken cancellationToken
     )
     {
-        var owner =
-            await context.Creatures.FirstOrDefaultAsync(
-                creature => creature.Id == from.Id && creature.WorldId == worldId,
-                cancellationToken
-            ) ?? throw new EntityNotFoundException(nameof(Creature), from.Id);
+        var owner = await GetCreatureOrThrow(from.Id, worldId, cancellationToken);
 
         return owner.State == CreatureState.Dead
             ? null
@@ -64,11 +60,7 @@ internal class TheftSourceResolver(TrpgDbContext context)
         CancellationToken cancellationToken
     )
     {
-        var prop =
-            await context.Props.FirstOrDefaultAsync(
-                candidate => candidate.Id == from.Id && candidate.WorldId == worldId,
-                cancellationToken
-            ) ?? throw new EntityNotFoundException(nameof(Prop), from.Id);
+        var prop = await GetPropOrThrow(from.Id, worldId, cancellationToken);
 
         if (prop is not Container container)
         {
@@ -91,11 +83,7 @@ internal class TheftSourceResolver(TrpgDbContext context)
         CancellationToken cancellationToken
     )
     {
-        var prop =
-            await context.Props.FirstOrDefaultAsync(
-                candidate => candidate.Id == from.Id && candidate.WorldId == worldId,
-                cancellationToken
-            ) ?? throw new EntityNotFoundException(nameof(Prop), from.Id);
+        var prop = await GetPropOrThrow(from.Id, worldId, cancellationToken);
 
         if (prop is not Workstation workstation)
         {
@@ -124,11 +112,7 @@ internal class TheftSourceResolver(TrpgDbContext context)
             return null;
         }
 
-        var sourceOwner =
-            await context.Creatures.FirstOrDefaultAsync(
-                creature => creature.Id == ownerId && creature.WorldId == worldId,
-                cancellationToken
-            ) ?? throw new EntityNotFoundException(nameof(Creature), ownerId);
+        var sourceOwner = await GetCreatureOrThrow(ownerId, worldId, cancellationToken);
 
         return new TheftSource(
             Owner: sourceOwner,
@@ -138,4 +122,24 @@ internal class TheftSourceResolver(TrpgDbContext context)
             WorkstationOccupantId: workstationOccupantId
         );
     }
+
+    private async Task<Creature> GetCreatureOrThrow(
+        Guid creatureId,
+        Guid worldId,
+        CancellationToken cancellationToken
+    ) =>
+        await context.Creatures.FirstOrDefaultAsync(
+            creature => creature.Id == creatureId && creature.WorldId == worldId,
+            cancellationToken
+        ) ?? throw new EntityNotFoundException(nameof(Creature), creatureId);
+
+    private async Task<Prop> GetPropOrThrow(
+        Guid propId,
+        Guid worldId,
+        CancellationToken cancellationToken
+    ) =>
+        await context.Props.FirstOrDefaultAsync(
+            candidate => candidate.Id == propId && candidate.WorldId == worldId,
+            cancellationToken
+        ) ?? throw new EntityNotFoundException(nameof(Prop), propId);
 }
