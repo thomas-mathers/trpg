@@ -1,8 +1,11 @@
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Queries;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -27,7 +30,10 @@ internal class SyncRestockPolicyCommandHandler(
     IQueryHandler<
         GetGuestRoomDoorsByBuildingIdQuery,
         IReadOnlyList<GuestRoomDoor>
-    > getGuestRoomDoors
+    > getGuestRoomDoors,
+    ICommandHandler<AddItemsCommand> addItems,
+    ICommandHandler<UpdateItemQuantitiesCommand> updateItemQuantities,
+    ICommandHandler<IssueReplacementRoomKeyCommand> issueReplacementRoomKey
 ) : ICommandHandler<SyncRestockPolicyCommand>
 {
     public async Task Handle(
@@ -102,17 +108,38 @@ internal class SyncRestockPolicyCommandHandler(
             command.PlayerLevel
         );
 
-        foreach (var item in fillResult.ItemsToAdd)
-        {
-            item.Ownership.OwnerId = workstationId;
-            item.Ownership.OwnerType = OwnerType.Workstation;
-        }
-        context.Items.AddRange(fillResult.ItemsToAdd);
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
 
-        foreach (var (itemId, quantity) in fillResult.QuantityIncreasesByItemId)
+        if (fillResult.ItemsToAdd.Count > 0)
         {
-            var existing = currentItems.First(i => i.Id == itemId);
-            existing.Quantity = quantity;
+            foreach (var item in fillResult.ItemsToAdd)
+            {
+                item.Ownership.OwnerId = workstationId;
+                item.Ownership.OwnerType = OwnerType.Workstation;
+            }
+            await addItems.Handle(
+                new AddItemsCommand { Items = fillResult.ItemsToAdd },
+                cancellationToken
+            );
+        }
+
+        if (fillResult.QuantityIncreasesByItemId.Count > 0)
+        {
+            await updateItemQuantities.Handle(
+                new UpdateItemQuantitiesCommand
+                {
+                    Updates = fillResult
+                        .QuantityIncreasesByItemId.Select(kv => new ItemQuantityUpdate(
+                            kv.Key,
+                            kv.Value
+                        ))
+                        .ToArray(),
+                },
+                cancellationToken
+            );
         }
 
         if (buildingType == BuildingType.Inn)
@@ -128,6 +155,8 @@ internal class SyncRestockPolicyCommandHandler(
         policy.LastSyncPlaytime = command.CurrentPlaytime;
 
         await context.SaveChangesAsync(cancellationToken);
+
+        transaction.Complete();
     }
 
     // Mints a replacement on the same cadence as restocking; never revokes an already-issued key.
@@ -145,26 +174,15 @@ internal class SyncRestockPolicyCommandHandler(
 
         foreach (var door in guestRoomDoors.Where(d => d.SpareKeyItemId == null))
         {
-            var replacementKey = new Key
-            {
-                WorldId = worldId,
-                Name = $"Key to {door.RoomName}",
-                Description = $"A replacement key to the {door.RoomName}.",
-                Quantity = 1,
-                Ownership = new ItemOwnership
+            await issueReplacementRoomKey.Handle(
+                new IssueReplacementRoomKeyCommand
                 {
-                    OwnerId = workstationId,
-                    OwnerType = OwnerType.Workstation,
-                },
-            };
-            context.Items.Add(replacementKey);
-            context.DoorConnectorKeys.Add(
-                new DoorConnectorKey
-                {
-                    ItemId = replacementKey.Id,
+                    WorkstationId = workstationId,
                     DoorConnectorId = door.DoorConnectorId,
                     WorldId = worldId,
-                }
+                    RoomName = door.RoomName,
+                },
+                cancellationToken
             );
         }
     }

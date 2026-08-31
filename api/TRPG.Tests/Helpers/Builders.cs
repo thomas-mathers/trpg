@@ -916,6 +916,22 @@ internal static class Builders
         };
     }
 
+    public static CreatureSkill MakeCreatureSkill(
+        Guid creatureId,
+        Skill skill = Skill.Melee,
+        int level = 1,
+        int experience = 0,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            CreatureId = creatureId,
+            Skill = skill,
+            Level = level,
+            Experience = experience,
+            WorldId = worldId ?? Guid.NewGuid(),
+        };
+
     public static WorldEvent MakeWorldEvent(Guid worldId, Guid? locationId = null)
     {
         return new WorldEvent
