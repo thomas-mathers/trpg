@@ -1,6 +1,11 @@
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.CreatureJobs.Commands;
+using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
@@ -21,7 +26,12 @@ internal class SyncCreatureSpawnerCommandHandler(
     IQueryHandler<
         GetFactionsByCreatureTypeQuery,
         IReadOnlyDictionary<CreatureType, Faction>
-    > getFactionsByCreatureType
+    > getFactionsByCreatureType,
+    ICommandHandler<AddCreaturesCommand> addCreatures,
+    ICommandHandler<AddItemsCommand> addItems,
+    ICommandHandler<AddCreatureSkillsCommand> addCreatureSkills,
+    ICommandHandler<AddCreatureJobsCommand> addCreatureJobs,
+    ICommandHandler<CreateEncounterGroupsCommand> createEncounterGroups
 ) : ICommandHandler<SyncCreatureSpawnerCommand>
 {
     public async Task Handle(
@@ -71,15 +81,45 @@ internal class SyncCreatureSpawnerCommandHandler(
             factionsByCreatureType
         );
 
-        context.Creatures.AddRange(fillResult.Monsters.Select(m => m.Creature));
-        context.Items.AddRange(fillResult.Monsters.SelectMany(m => m.Items));
-        context.CreatureSkills.AddRange(fillResult.Monsters.SelectMany(m => m.Skills));
-        context.CreatureJobs.AddRange(fillResult.Jobs);
-        context.EncounterGroups.AddRange(fillResult.EncounterGroups);
-        context.EncounterGroupMembers.AddRange(fillResult.EncounterGroupMembers);
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+
+        await addCreatures.Handle(
+            new AddCreaturesCommand
+            {
+                Creatures = fillResult.Monsters.Select(m => m.Creature).ToArray(),
+            },
+            cancellationToken
+        );
+        await addItems.Handle(
+            new AddItemsCommand { Items = fillResult.Monsters.SelectMany(m => m.Items).ToArray() },
+            cancellationToken
+        );
+        await addCreatureSkills.Handle(
+            new AddCreatureSkillsCommand
+            {
+                Skills = fillResult.Monsters.SelectMany(m => m.Skills).ToArray(),
+            },
+            cancellationToken
+        );
+        await addCreatureJobs.Handle(
+            new AddCreatureJobsCommand { Jobs = fillResult.Jobs },
+            cancellationToken
+        );
+        await createEncounterGroups.Handle(
+            new CreateEncounterGroupsCommand
+            {
+                Groups = fillResult.EncounterGroups,
+                Members = fillResult.EncounterGroupMembers,
+            },
+            cancellationToken
+        );
 
         spawner.LastSyncPlaytime = command.CurrentPlaytime;
-
         await context.SaveChangesAsync(cancellationToken);
+
+        transaction.Complete();
     }
 }
