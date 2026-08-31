@@ -1,10 +1,10 @@
 using TRPG.Application.Buildings;
-using TRPG.Application.Buildings.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Buildings.Queries;
+namespace TRPG.Tests.Application.Worlds.Queries;
 
 [Collection("Database")]
 public sealed class GetJailForCityQueryTests(DatabaseFixture db) : IAsyncLifetime

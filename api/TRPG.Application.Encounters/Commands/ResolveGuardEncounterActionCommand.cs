@@ -1,7 +1,6 @@
 using System.Transactions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Buildings.Commands;
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;

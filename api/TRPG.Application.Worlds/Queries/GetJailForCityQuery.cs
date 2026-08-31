@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Buildings;
 using TRPG.Application.Common.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Buildings.Queries;
+namespace TRPG.Application.Worlds.Queries;
 
 public class GetJailForCityQuery
 {
