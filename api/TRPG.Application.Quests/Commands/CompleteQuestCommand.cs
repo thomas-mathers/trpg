@@ -1,9 +1,8 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Inventory;
-using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -19,7 +18,7 @@ public class CompleteQuestCommand
 
 internal class CompleteQuestCommandHandler(
     TrpgDbContext context,
-    ICommandHandler<AddGoldCommand> addGold,
+    IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
     ICommandHandler<AdjustReputationsCommand> adjustReputations
 ) : ICommandHandler<CompleteQuestCommand>
 {
@@ -56,13 +55,12 @@ internal class CompleteQuestCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        await addGold.Handle(
-            new AddGoldCommand
-            {
-                Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
-                WorldId = command.WorldId,
-                Amount = creatureQuest.Quest.GoldReward,
-            },
+        await questGoldRewarded.Publish(
+            new QuestGoldRewardedEvent(
+                command.PlayerId,
+                command.WorldId,
+                creatureQuest.Quest.GoldReward
+            ),
             cancellationToken
         );
 

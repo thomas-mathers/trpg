@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Trading.Commands;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Trading.Commands;
+namespace TRPG.Tests.Application.Inventory.Commands;
 
 [Collection("Database")]
 public sealed class DropInventoryItemCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime

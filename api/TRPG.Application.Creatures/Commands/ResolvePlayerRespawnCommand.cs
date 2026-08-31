@@ -5,8 +5,8 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Trading.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 

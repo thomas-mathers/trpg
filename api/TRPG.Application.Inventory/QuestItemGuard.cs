@@ -1,7 +1,7 @@
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Quests.Queries;
 
-namespace TRPG.Application.Trading;
+namespace TRPG.Application.Inventory;
 
 internal class QuestItemGuard(
     IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>> getActiveQuestItemIds

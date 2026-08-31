@@ -38,7 +38,6 @@
     <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
     <ProjectReference Include="..\TRPG.Application.Reputations\TRPG.Application.Reputations.csproj" />
     <ProjectReference Include="..\TRPG.Application.Scenes\TRPG.Application.Scenes.csproj" />
-    <ProjectReference Include="..\TRPG.Application.Trading\TRPG.Application.Trading.csproj" />
     <ProjectReference Include="..\TRPG.Application.WeaponProficiency\TRPG.Application.WeaponProficiency.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />

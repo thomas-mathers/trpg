@@ -5,7 +5,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Inventory;
-using TRPG.Application.Trading.Commands;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

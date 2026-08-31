@@ -4,7 +4,7 @@ using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory;
-using TRPG.Application.Trading.Commands;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

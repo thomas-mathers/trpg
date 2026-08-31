@@ -1,9 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Application.Inventory;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Trading;
+namespace TRPG.Application.Inventory;
 
 public sealed record TransferItem(Item Item, int Quantity);
 

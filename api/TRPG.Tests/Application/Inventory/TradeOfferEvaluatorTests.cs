@@ -1,8 +1,7 @@
 using TRPG.Application.Inventory;
-using TRPG.Application.Trading;
 using TRPG.Domain.Models;
 
-namespace TRPG.Tests.Application.Trading;
+namespace TRPG.Tests.Application.Inventory;
 
 public sealed class TradeOfferEvaluatorTests
 {

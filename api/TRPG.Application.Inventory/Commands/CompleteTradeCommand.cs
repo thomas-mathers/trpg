@@ -2,7 +2,7 @@ using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Trading.Commands;
+namespace TRPG.Application.Inventory.Commands;
 
 public class CompleteTradeCommand
 {

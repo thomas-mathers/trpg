@@ -7,7 +7,6 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Trading.Commands;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;

@@ -2,12 +2,10 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Inventory;
-using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Trading.Commands;
+namespace TRPG.Application.Inventory.Commands;
 
 public record InventoryItemTransferResult(Guid SourceItemId, Guid DestinationItemId, int Quantity);
 

@@ -1,12 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Inventory;
-using TRPG.Application.Trading;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Trading;
+namespace TRPG.Tests.Application.Inventory;
 
 [Collection("Database")]
 public sealed class TradeOfferValidatorTests(DatabaseFixture db) : IAsyncLifetime
