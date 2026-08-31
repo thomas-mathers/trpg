@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Configuration;
-using TRPG.Application.Worlds.Generators;
+using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;

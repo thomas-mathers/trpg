@@ -1,5 +1,4 @@
 using System.Transactions;
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
@@ -12,6 +11,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Commands;

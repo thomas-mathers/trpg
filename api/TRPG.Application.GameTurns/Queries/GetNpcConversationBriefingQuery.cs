@@ -6,7 +6,7 @@ using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations;
 using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
-using TRPG.Application.Worlds;
+using TRPG.Application.WorldGeneration;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

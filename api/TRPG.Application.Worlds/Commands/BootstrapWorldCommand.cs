@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Worlds.Generators;
+using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Data;
 
 namespace TRPG.Application.Worlds.Commands;

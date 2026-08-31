@@ -21,7 +21,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.Abilities\TRPG.Application.Abilities.csproj" />
-    <ProjectReference Include="..\TRPG.Application.Buildings\TRPG.Application.Buildings.csproj" />
     <ProjectReference Include="..\TRPG.Application.Chat\TRPG.Application.Chat.csproj" />
     <ProjectReference Include="..\TRPG.Application.Combat\TRPG.Application.Combat.csproj" />
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
@@ -42,6 +41,7 @@
     <ProjectReference Include="..\TRPG.Application.Scenes\TRPG.Application.Scenes.csproj" />
     <ProjectReference Include="..\TRPG.Application.WeaponProficiency\TRPG.Application.WeaponProficiency.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
+    <ProjectReference Include="..\TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>

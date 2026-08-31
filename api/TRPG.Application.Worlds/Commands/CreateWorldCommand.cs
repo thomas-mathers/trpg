@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Worlds.Generators;
-using TRPG.Application.Worlds.Mappers;
+using TRPG.Application.WorldGeneration;
+using TRPG.Application.WorldGeneration.Generators;
+using TRPG.Application.WorldGeneration.Mappers;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Commands;

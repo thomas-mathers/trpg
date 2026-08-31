@@ -8,7 +8,6 @@
     <InternalsVisibleTo Include="TRPG.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\TRPG.Application.Buildings\TRPG.Application.Buildings.csproj" />
     <ProjectReference Include="..\TRPG.Application.Chat\TRPG.Application.Chat.csproj" />
     <ProjectReference Include="..\TRPG.Application.Combat\TRPG.Application.Combat.csproj" />
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
@@ -17,12 +16,12 @@
     <ProjectReference Include="..\TRPG.Application.Encounters\TRPG.Application.Encounters.csproj" />
     <ProjectReference Include="..\TRPG.Application.GameSessions\TRPG.Application.GameSessions.csproj" />
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
-    <ProjectReference Include="..\TRPG.Application.Locations\TRPG.Application.Locations.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
+    <ProjectReference Include="..\TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj" />
     <ProjectReference Include="..\TRPG.Application.Narration\TRPG.Application.Narration.csproj" />
     <ProjectReference Include="..\TRPG.Application.NpcConversations\TRPG.Application.NpcConversations.csproj" />
     <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
     <ProjectReference Include="..\TRPG.Application.Scenes\TRPG.Application.Scenes.csproj" />
-    <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>

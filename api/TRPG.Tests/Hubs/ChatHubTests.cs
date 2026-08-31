@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Buildings;
+using TRPG.Application.WorldGeneration;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;

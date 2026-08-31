@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameTurns.Queries;
-using TRPG.Application.Worlds;
+using TRPG.Application.WorldGeneration;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;

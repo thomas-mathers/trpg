@@ -1,10 +1,10 @@
-using TRPG.Application.Buildings;
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Queries;
-using TRPG.Application.Locations.Commands;
+using TRPG.Application.WorldGeneration;
+using TRPG.Application.Worlds.Commands;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes.Commands;

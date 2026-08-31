@@ -17,7 +17,8 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 - `api/TRPG.Application.Configuration` — public configuration options shared across modules.
 - `api/TRPG.Application.CreatureFormulas` — public stat, skill, and progression formulas.
 - `api/TRPG.Application.GameTurns` — turn orchestration, player movement, LLM conversation execution, and application event publication for that workflow.
-- Feature modules own their domain: Abilities, Buildings, Chat, Combat, CreatureJobs, Creatures, Encounters, GameSessions, Inventory, Narration, NpcConversations, Quests, Reputations, Scenes, Trading, WeaponProficiency, and Worlds. Worlds also owns navigation and world generation.
+- `api/TRPG.Application.WorldGeneration` — procedural world-generation content: all `Generators/`, the player-creation mapper/enum catalog, and the static naming catalogs (`JailRoomNames`, `TempleRoomNames`, `ShopBuildingTypes`) generated content must match. Zero cross-module Application dependencies — a stateless content-generation library, not an orchestrator.
+- Feature modules own their domain: Abilities, Chat, Combat, CreatureJobs, Creatures, Encounters, Factions, GameSessions, Inventory, Narration, NpcConversations, Props, Quests, Reputations, RoomBookings, Scenes, WeaponProficiency, and Worlds. Worlds owns location/building/room/door-connector structure and ownership, plus world/country/state/city/district lifecycle; it depends on WorldGeneration (never the reverse) to run generation during world creation.
 - `api/TRPG.Domain` — dependency-free game entities, value objects, and domain enums. It has no project or package dependencies.
 - `api/TRPG.Data` — EF Core contexts, persistence configuration, and migrations. It references Domain for the persisted model types.
 - `api/TRPG.Tests` — xUnit tests with Testcontainers-backed PostgreSQL.

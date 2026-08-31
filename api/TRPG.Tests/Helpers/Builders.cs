@@ -4,7 +4,7 @@ using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Application.Worlds.Generators;
+using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
 using Profession = TRPG.Domain.Models.Profession;
 

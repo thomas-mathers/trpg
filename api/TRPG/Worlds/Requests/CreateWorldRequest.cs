@@ -1,4 +1,4 @@
-using TRPG.Application.Worlds;
+using TRPG.Application.WorldGeneration;
 using TRPG.Creatures.Requests;
 
 namespace TRPG.Worlds.Requests;

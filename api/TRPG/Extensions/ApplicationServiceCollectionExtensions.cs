@@ -14,7 +14,7 @@ using TRPG.Application.Inventory.Extensions;
 using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Reputations.Extensions;
 using TRPG.Application.Scenes;
-using TRPG.Application.Worlds.Extensions;
+using TRPG.Application.WorldGeneration.Extensions;
 using TRPG.Commands;
 using TRPG.GameTurns.Tools;
 using TRPG.Queries;
@@ -62,7 +62,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddTransient<SceneCatchUpCache>()
             .AddQuestServices()
             .AddReputationsServices()
-            .AddWorldsServices()
+            .AddWorldGenerationServices()
             .AddCombatServices()
             .AddGameTurnsServices()
             .AddGameTool<LookTool>()

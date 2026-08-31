@@ -1,7 +1,7 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
-using TRPG.Application.Worlds.Generators;
+using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
 
 namespace TRPG.Balance;
