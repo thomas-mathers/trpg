@@ -50,6 +50,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.GameTurns"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Domain", "TRPG.Domain\TRPG.Domain.csproj", "{09FF98A1-A639-4E9F-A22E-448504D792FB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Rooms", "TRPG.Application.Rooms\TRPG.Application.Rooms.csproj", "{0F699B30-3EB8-47DD-BD02-904C9A213B3C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -360,6 +362,18 @@ Global
 		{09FF98A1-A639-4E9F-A22E-448504D792FB}.Release|x64.Build.0 = Release|Any CPU
 		{09FF98A1-A639-4E9F-A22E-448504D792FB}.Release|x86.ActiveCfg = Release|Any CPU
 		{09FF98A1-A639-4E9F-A22E-448504D792FB}.Release|x86.Build.0 = Release|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Debug|x64.Build.0 = Debug|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Debug|x86.Build.0 = Debug|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Release|x64.ActiveCfg = Release|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Release|x64.Build.0 = Release|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Release|x86.ActiveCfg = Release|Any CPU
+		{0F699B30-3EB8-47DD-BD02-904C9A213B3C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -8,9 +8,11 @@
     <InternalsVisibleTo Include="TRPG.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\TRPG.Application.Buildings\TRPG.Application.Buildings.csproj" />
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
     <ProjectReference Include="..\TRPG.Application.Configuration\TRPG.Application.Configuration.csproj" />
     <ProjectReference Include="..\TRPG.Application.GameSessions\TRPG.Application.GameSessions.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>

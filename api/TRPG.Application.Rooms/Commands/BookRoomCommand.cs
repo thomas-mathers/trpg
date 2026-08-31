@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -7,11 +8,10 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Buildings.Commands;
+namespace TRPG.Application.Rooms.Commands;
 
 public class BookRoomCommand
 {
@@ -35,7 +35,6 @@ public record BookRoomResult(
 );
 
 internal class BookRoomCommandHandler(
-    TrpgDbContext context,
     IOptionsSnapshot<InnOptions> innOptions,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
@@ -46,7 +45,8 @@ internal class BookRoomCommandHandler(
     IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AddGoldCommand> addGold,
-    ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory
+    ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory,
+    ICommandHandler<CreateRoomBookingCommand> createRoomBooking
 ) : ICommandHandler<BookRoomCommand, BookRoomResult>
 {
     public async Task<BookRoomResult> Handle(
@@ -123,17 +123,20 @@ internal class BookRoomCommandHandler(
             new GetPlaytimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
-        context.RoomBookings.Add(
-            new RoomBooking
+        await createRoomBooking.Handle(
+            new CreateRoomBookingCommand
             {
-                WorldId = command.WorldId,
-                RoomId = spareKey.RoomId,
-                KeyItemId = spareKey.SpareKeyItemId!.Value,
-                PlayerId = command.PlayerId,
-                DueAtPlaytime = playtime + GameClock.RealTimePerInGameHour * 24,
-            }
+                RoomBooking = new RoomBooking
+                {
+                    WorldId = command.WorldId,
+                    RoomId = spareKey.RoomId,
+                    KeyItemId = spareKey.SpareKeyItemId!.Value,
+                    PlayerId = command.PlayerId,
+                    DueAtPlaytime = playtime + GameClock.RealTimePerInGameHour * 24,
+                },
+            },
+            cancellationToken
         );
-        await context.SaveChangesAsync(cancellationToken);
 
         return new BookRoomResult(BookRoomOutcome.Booked, spareKey.RoomName, rate);
     }

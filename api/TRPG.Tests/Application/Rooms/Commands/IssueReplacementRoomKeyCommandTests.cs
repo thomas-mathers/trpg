@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Buildings.Commands;
+using TRPG.Application.Rooms.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Buildings.Commands;
+namespace TRPG.Tests.Application.Rooms.Commands;
 
 [Collection("Database")]
 public sealed class IssueReplacementRoomKeyCommandTests(DatabaseFixture db) : IAsyncLifetime
