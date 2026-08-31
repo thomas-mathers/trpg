@@ -198,15 +198,17 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
         _context.Items.Add(gear);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await new EquipInventoryItemCommandHandler(_context).Handle(
-            new EquipInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = gear.Id,
-                Slot = EquipmentSlot.Chest,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await _serviceProvider
+            .GetRequiredService<EquipInventoryItemCommandHandler>()
+            .Handle(
+                new EquipInventoryItemCommand
+                {
+                    CreatureId = _creature.Id,
+                    ItemId = gear.Id,
+                    Slot = EquipmentSlot.Chest,
+                },
+                TestContext.Current.CancellationToken
+            );
 
         await SetPlaytime(GameClock.RealTimePerInGameHour);
 

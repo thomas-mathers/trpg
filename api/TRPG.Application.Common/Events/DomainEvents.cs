@@ -42,3 +42,5 @@ public sealed record CreatureKilledEvent(
 public sealed record PlayerMovedEvent(Guid PlayerId, Guid WorldId, Guid LocationId) : DomainEvent;
 
 public sealed record ItemAcquiredEvent(Guid PlayerId, Guid WorldId, Guid ItemId) : DomainEvent;
+
+public sealed record CreatureEquipmentChangedEvent(Guid CreatureId) : DomainEvent;
