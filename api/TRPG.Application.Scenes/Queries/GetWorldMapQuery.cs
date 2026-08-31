@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Quests.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -30,7 +32,12 @@ public record WorldMapResult(
 
 internal class GetWorldMapQueryHandler(
     TrpgDbContext context,
-    IQueryHandler<GetItemCountsByOwnersQuery, IReadOnlyDictionary<Guid, int>> getItemCountsByOwners
+    IQueryHandler<GetItemCountsByOwnersQuery, IReadOnlyDictionary<Guid, int>> getItemCountsByOwners,
+    IQueryHandler<
+        GetInProgressLocationObjectivesQuery,
+        IReadOnlyCollection<InProgressLocationObjective>
+    > getInProgressLocationObjectives,
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds
 ) : IQueryHandler<GetWorldMapQuery, WorldMapResult>
 {
     public async Task<WorldMapResult> Handle(
@@ -172,38 +179,28 @@ internal class GetWorldMapQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var objectives = await context
-            .CreatureQuestObjectives.AsNoTracking()
-            .Include(objective => objective.Objective)
-            .Where(objective => objective.CreatureId == playerId && objective.WorldId == worldId)
-            .Where(objective => objective.Amount < objective.Objective.RequiredAmount)
-            .Where(objective => objective.Objective.LocationId != null)
-            .ToArrayAsync(cancellationToken);
+        var objectives = await getInProgressLocationObjectives.Handle(
+            new GetInProgressLocationObjectivesQuery { PlayerId = playerId, WorldId = worldId },
+            cancellationToken
+        );
 
-        if (objectives.Length == 0)
+        if (objectives.Count == 0)
         {
             return [];
         }
 
-        var locationIds = objectives
-            .Select(objective => objective.Objective.LocationId!.Value)
-            .Distinct()
-            .ToArray();
+        var locationIds = objectives.Select(objective => objective.LocationId).Distinct().ToArray();
 
-        var stateIdByLocationId = await context
-            .Locations.AsNoTracking()
-            .Where(location => locationIds.AsEnumerable().Contains(location.Id))
-            .ToDictionaryAsync(
-                location => location.Id,
-                location => location.StateId,
-                cancellationToken
-            );
+        var locationsById = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery { Ids = locationIds },
+            cancellationToken
+        );
 
         return objectives
             .Select(objective => new WorldMapQuestMarker(
-                objective.Objective.QuestId,
-                objective.Objective.Name,
-                stateIdByLocationId[objective.Objective.LocationId!.Value]
+                objective.QuestId,
+                objective.ObjectiveName,
+                locationsById[objective.LocationId].StateId
             ))
             .ToArray();
     }

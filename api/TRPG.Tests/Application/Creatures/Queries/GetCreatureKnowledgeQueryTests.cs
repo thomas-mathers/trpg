@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -12,18 +13,26 @@ public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncL
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetCreatureKnowledgeQueryHandler _handler = null!;
     private readonly Creature _asker = Builders.MakeCreature(WorldId);
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetCreatureKnowledgeQueryHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<GetCreatureKnowledgeQueryHandler>();
         _context.Creatures.Add(_asker);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    public async ValueTask DisposeAsync() => await _context.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await _serviceProvider.DisposeAsync();
+        await _context.DisposeAsync();
+    }
 
     private GetCreatureKnowledgeQuery MakeQuery(string subjectName)
     {

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Narration.Mappers;
 using TRPG.Application.Narration.Results;
 using TRPG.Data;
@@ -12,8 +13,14 @@ public class GetLoreAnchorsByWorldQuery
     public required Guid WorldId { get; init; }
 }
 
-internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryCache cache)
-    : IQueryHandler<GetLoreAnchorsByWorldQuery, IReadOnlyCollection<LoreAnchorResult>>
+internal class GetLoreAnchorsByWorldQueryHandler(
+    TrpgDbContext context,
+    IMemoryCache cache,
+    IQueryHandler<
+        GetAllCreaturesInWorldQuery,
+        IReadOnlyCollection<CreatureSummary>
+    > getAllCreaturesInWorld
+) : IQueryHandler<GetLoreAnchorsByWorldQuery, IReadOnlyCollection<LoreAnchorResult>>
 {
     public static string CacheKey(Guid worldId) => $"namedEntities:{worldId}";
 
@@ -34,9 +41,11 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
         CancellationToken cancellationToken
     )
     {
-        var creatures = await context
-            .Creatures.AsNoTracking()
-            .Where(c => c.WorldId == worldId)
+        var creatureSummaries = await getAllCreaturesInWorld.Handle(
+            new GetAllCreaturesInWorldQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var creatures = creatureSummaries
             .Select(c => new LoreAnchorResult(
                 c.Id,
                 c.Name,
@@ -44,7 +53,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(TrpgDbContext context, IMemoryC
                 c.CreatureType.ToString(),
                 c.Biography
             ))
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
 
         var buildingRows = await context
             .Buildings.AsNoTracking()

@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -72,8 +73,10 @@ public sealed record PersonLookupResult(
     string? DistrictName
 ) : LookupResult;
 
-internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetCreatureKnowledgeQuery, IReadOnlyList<LookupMatch>>
+internal class GetCreatureKnowledgeQueryHandler(
+    TrpgDbContext context,
+    IQueryHandler<GetRelativesQuery, IReadOnlyCollection<RelativeSummary>> getRelatives
+) : IQueryHandler<GetCreatureKnowledgeQuery, IReadOnlyList<LookupMatch>>
 {
     private const double SimilarityThreshold = 0.35;
     private const int MaxMatches = 5;
@@ -325,12 +328,13 @@ internal class GetCreatureKnowledgeQueryHandler(TrpgDbContext context)
             select f.Name
         ).ToArrayAsync(cancellationToken);
 
-        var relatives = await (
-            from r in context.Relationships
-            where r.SubjectId == creature.Id
-            join relative in context.Creatures on r.RelativeId equals relative.Id
-            select new RelativeInfo(relative.Name, r.RelationshipType.ToString())
-        ).ToArrayAsync(cancellationToken);
+        var relativeSummaries = await getRelatives.Handle(
+            new GetRelativesQuery { CreatureId = creature.Id },
+            cancellationToken
+        );
+        var relatives = relativeSummaries
+            .Select(r => new RelativeInfo(r.Name, r.RelationshipType.ToString()))
+            .ToArray();
 
         return new PersonLookupResult(
             creature.Name,
