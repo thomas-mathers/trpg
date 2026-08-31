@@ -10,7 +10,7 @@ namespace TRPG.Tests.Application.Buildings.Commands;
 public sealed class AddBuildingOwnerCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private GetAllOwnersByBuildingIdQueryHandler _getAllOwnersByBuildingId = null!;
+    private GetAllBuildingOwnersByBuildingIdQueryHandler _getAllBuildingOwnersByBuildingId = null!;
     private AddBuildingOwnerCommandHandler _handler = null!;
     private readonly Building _building = Builders.MakeBuilding();
 
@@ -18,7 +18,9 @@ public sealed class AddBuildingOwnerCommandTests(DatabaseFixture db) : IAsyncLif
     {
         _context = db.CreateContext();
         _handler = new AddBuildingOwnerCommandHandler(_context);
-        _getAllOwnersByBuildingId = new GetAllOwnersByBuildingIdQueryHandler(_context);
+        _getAllBuildingOwnersByBuildingId = new GetAllBuildingOwnersByBuildingIdQueryHandler(
+            _context
+        );
 
         _context.Buildings.Add(_building);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -42,8 +44,8 @@ public sealed class AddBuildingOwnerCommandTests(DatabaseFixture db) : IAsyncLif
         );
 
         // Assert
-        var owners = await _getAllOwnersByBuildingId.Handle(
-            new GetAllOwnersByBuildingIdQuery { BuildingId = _building.Id },
+        var owners = await _getAllBuildingOwnersByBuildingId.Handle(
+            new GetAllBuildingOwnersByBuildingIdQuery { BuildingId = _building.Id },
             TestContext.Current.CancellationToken
         );
         Assert.Single(owners);

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Quests.Events;
+using TRPG.Application.Quests.EventHandlers;
 
 namespace TRPG.Application.Quests.Extensions;
 

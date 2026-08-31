@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Reputations.EventHandlers;
 using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Reputations.Events;
+namespace TRPG.Tests.Application.Reputations.EventHandlers;
 
 [Collection("Database")]
 public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture db) : IAsyncLifetime

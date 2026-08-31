@@ -3,7 +3,7 @@ using TRPG.Application.Chat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 
-namespace TRPG.Application.Chat.Events;
+namespace TRPG.Application.Chat.EventHandlers;
 
 internal sealed class GameSessionCreatedEventHandler(
     ICommandHandler<AppendChatMessagesCommand, int> appendChatMessages

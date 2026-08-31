@@ -4,7 +4,7 @@ using TRPG.Application.CreatureFormulas;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Creatures.Events;
+namespace TRPG.Application.Creatures.EventHandlers;
 
 internal sealed class CreatureEquipmentChangedEventHandler(TrpgDbContext context)
     : IDomainEventConsumer<CreatureEquipmentChangedEvent>

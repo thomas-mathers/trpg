@@ -6,21 +6,21 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Props.Queries;
 
-public class GetStaticPropsByLocationIdQuery
+public class GetAllPropsByLocationIdQuery
 {
     public required Guid LocationId { get; init; }
 }
 
-internal class GetStaticPropsByLocationIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
-    : IQueryHandler<GetStaticPropsByLocationIdQuery, IReadOnlyCollection<Prop>>
+internal class GetAllPropsByLocationIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetAllPropsByLocationIdQuery, IReadOnlyCollection<Prop>>
 {
     public async Task<IReadOnlyCollection<Prop>> Handle(
-        GetStaticPropsByLocationIdQuery query,
+        GetAllPropsByLocationIdQuery query,
         CancellationToken cancellationToken = default
     )
     {
         var props = await cache.GetOrCreateAsync<Prop[]>(
-            $"staticProps:{query.LocationId}",
+            $"allProps:{query.LocationId}",
             async _ =>
                 (
                     await context

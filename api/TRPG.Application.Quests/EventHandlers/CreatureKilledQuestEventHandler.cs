@@ -1,7 +1,7 @@
 using TRPG.Application.Common.Events;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Quests.Events;
+namespace TRPG.Application.Quests.EventHandlers;
 
 internal sealed class CreatureKilledQuestEventHandler(QuestObjectiveAdvancer questObjectiveAdvancer)
     : IDomainEventConsumer<CreatureKilledEvent>

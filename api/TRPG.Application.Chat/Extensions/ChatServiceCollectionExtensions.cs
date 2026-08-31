@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Chat.Events;
+using TRPG.Application.Chat.EventHandlers;
 using TRPG.Application.Common.Events;
 
 namespace TRPG.Application.Chat.Extensions;

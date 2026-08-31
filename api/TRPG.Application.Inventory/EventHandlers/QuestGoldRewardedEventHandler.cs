@@ -3,7 +3,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Inventory.Events;
+namespace TRPG.Application.Inventory.EventHandlers;
 
 internal sealed class QuestGoldRewardedEventHandler(ICommandHandler<AddGoldCommand> addGold)
     : IDomainEventConsumer<QuestGoldRewardedEvent>
