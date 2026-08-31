@@ -8,6 +8,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
@@ -50,7 +51,8 @@ internal class MovePlayerCommandHandler(
         ConfrontOverdueRoomKeyCommand,
         ConfrontOverdueRoomKeyResult
     > confrontOverdueRoomKey,
-    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
 ) : ICommandHandler<MovePlayerCommand, MovePlayerResult>
 {
     public async Task<MovePlayerResult> Handle(
@@ -78,6 +80,11 @@ internal class MovePlayerCommandHandler(
             )!;
 
             var oldLocationId = player.LocationId;
+
+            var playtime = await getPlaytime.Handle(
+                new GetPlaytimeQuery { SessionId = command.SessionId },
+                cancellationToken
+            );
 
             await resolveKillCrimes.Handle(
                 new ResolveKillCrimesCommand
@@ -114,7 +121,7 @@ internal class MovePlayerCommandHandler(
                 {
                     WorldId = player.WorldId,
                     LocationId = oldLocationId,
-                    SessionId = command.SessionId,
+                    Playtime = playtime,
                 },
                 cancellationToken
             );
@@ -123,6 +130,7 @@ internal class MovePlayerCommandHandler(
                 player,
                 oldLocationId,
                 command,
+                playtime,
                 cancellationToken
             );
 
@@ -149,7 +157,7 @@ internal class MovePlayerCommandHandler(
                 {
                     WorldId = player.WorldId,
                     PlayerId = player.Id,
-                    SessionId = command.SessionId,
+                    Playtime = playtime,
                 },
                 cancellationToken
             );
@@ -187,6 +195,7 @@ internal class MovePlayerCommandHandler(
         Creature player,
         Guid oldLocationId,
         MovePlayerCommand command,
+        TimeSpan playtime,
         CancellationToken cancellationToken
     )
     {
@@ -218,7 +227,7 @@ internal class MovePlayerCommandHandler(
             new ConfrontOverdueRoomKeyCommand
             {
                 WorldId = player.WorldId,
-                SessionId = command.SessionId,
+                Playtime = playtime,
                 PlayerId = player.Id,
                 LocationId = command.DestinationLocationId,
                 BuildingId = innBuilding.Id,

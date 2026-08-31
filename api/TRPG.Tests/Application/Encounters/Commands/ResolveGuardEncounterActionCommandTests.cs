@@ -61,6 +61,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
         new()
         {
             SessionId = _session.Id,
+            Playtime = _session.Playtime,
             WorldId = WorldId,
             PlayerId = _player.Id,
             Action = action,

@@ -75,7 +75,7 @@ internal static class GameSessionEndpoints
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                SessionId = sessionId,
+                Playtime = session.Playtime,
             },
             cancellationToken
         );

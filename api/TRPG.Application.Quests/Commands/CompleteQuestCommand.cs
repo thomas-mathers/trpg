@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Reputations.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -19,7 +18,7 @@ public class CompleteQuestCommand
 internal class CompleteQuestCommandHandler(
     TrpgDbContext context,
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
-    ICommandHandler<AdjustReputationsCommand> adjustReputations
+    IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded
 ) : ICommandHandler<CompleteQuestCommand>
 {
     public async Task Handle(
@@ -64,26 +63,15 @@ internal class CompleteQuestCommandHandler(
             cancellationToken
         );
 
-        var rewardGroups = creatureQuest.Quest.ReputationRewards.GroupBy(reward =>
-            reward.TargetType
+        await questReputationRewarded.Publish(
+            new QuestReputationRewardedEvent(
+                command.PlayerId,
+                command.WorldId,
+                creatureQuest.Quest.ReputationRewards,
+                $"Completed quest: {creatureQuest.Quest.Name}"
+            ),
+            cancellationToken
         );
-
-        foreach (var group in rewardGroups)
-        {
-            await adjustReputations.Handle(
-                new AdjustReputationsCommand
-                {
-                    CreatureId = command.PlayerId,
-                    Adjustments = group
-                        .Select(reward => new ReputationAdjustment(reward.TargetId, reward.Score))
-                        .ToArray(),
-                    TargetType = group.Key,
-                    Reason = ReputationReason.QuestCompleted,
-                    Detail = $"Completed quest: {creatureQuest.Quest.Name}",
-                },
-                cancellationToken
-            );
-        }
 
         creatureQuest.Status = QuestStatus.Completed;
         creatureQuest.IsTracked = false;

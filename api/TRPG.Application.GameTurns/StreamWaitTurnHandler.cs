@@ -39,7 +39,7 @@ internal class StreamWaitTurnHandler(
             return new GameTurnPrompt.Reply("The wait duration must be positive.");
         }
 
-        await advanceTime.Handle(
+        var playtime = await advanceTime.Handle(
             new AdvanceTimeCommand
             {
                 SessionId = session.SessionId,
@@ -49,11 +49,7 @@ internal class StreamWaitTurnHandler(
         );
 
         await applyPassiveRegen.Handle(
-            new ApplyPassiveRegenCommand
-            {
-                SessionId = session.SessionId,
-                CreatureIds = [session.PlayerId],
-            },
+            new ApplyPassiveRegenCommand { Playtime = playtime, CreatureIds = [session.PlayerId] },
             cancellationToken
         );
 

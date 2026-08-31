@@ -1,7 +1,6 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -12,14 +11,13 @@ public class RefreshSceneCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required Guid SessionId { get; init; }
+    public required TimeSpan Playtime { get; init; }
 }
 
 public record RefreshSceneResult(SceneResult Scene, bool Refreshed);
 
 internal class RefreshSceneCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<SyncSceneCommand> syncScene,
     IQueryHandler<GetSceneQuery, SceneResult> getScene,
     SceneCatchUpCache catchUpCache
@@ -35,10 +33,7 @@ internal class RefreshSceneCommandHandler(
             cancellationToken
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
+        var playtime = command.Playtime;
 
         var currentDate = GameClock.GetCurrentInGameDate(playtime);
 

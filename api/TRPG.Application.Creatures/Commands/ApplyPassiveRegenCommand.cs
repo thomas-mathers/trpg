@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -12,14 +10,13 @@ namespace TRPG.Application.Creatures.Commands;
 
 public class ApplyPassiveRegenCommand
 {
-    public required Guid SessionId { get; init; }
+    public required TimeSpan Playtime { get; init; }
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
 }
 
 internal class ApplyPassiveRegenCommandHandler(
     TrpgDbContext context,
-    IOptionsSnapshot<CreatureRegenOptions> optionsSnapshot,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+    IOptionsSnapshot<CreatureRegenOptions> optionsSnapshot
 ) : ICommandHandler<ApplyPassiveRegenCommand, IReadOnlyDictionary<Guid, Creature>>
 {
     public async Task<IReadOnlyDictionary<Guid, Creature>> Handle(
@@ -32,18 +29,13 @@ internal class ApplyPassiveRegenCommandHandler(
             return new Dictionary<Guid, Creature>();
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
         var creatures = await context
             .Creatures.Where(c => command.CreatureIds.Contains(c.Id))
             .ToArrayAsync(cancellationToken);
 
         foreach (var creature in creatures)
         {
-            ApplyPassiveRegen(creature, playtime, optionsSnapshot.Value);
+            ApplyPassiveRegen(creature, command.Playtime, optionsSnapshot.Value);
         }
 
         await context.SaveChangesAsync(cancellationToken);

@@ -79,7 +79,6 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLife
         _context.Items.Add(_spareKey);
         _context.DoorConnectorKeys.Add(_doorConnectorKey);
         _context.Creatures.Add(_player);
-        _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -108,7 +107,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLife
             {
                 PlayerId = _player.Id,
                 WorldId = WorldId,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
                 LocationId = _lobbyLocationId,
             },
             TestContext.Current.CancellationToken
@@ -165,7 +164,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLife
             {
                 PlayerId = _player.Id,
                 WorldId = WorldId,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
                 LocationId = _lobbyLocationId,
             },
             TestContext.Current.CancellationToken
@@ -189,7 +188,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLife
             {
                 PlayerId = _player.Id,
                 WorldId = WorldId,
-                SessionId = _session.Id,
+                Playtime = _session.Playtime,
                 LocationId = _lobbyLocationId,
             },
             TestContext.Current.CancellationToken

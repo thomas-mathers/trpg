@@ -80,6 +80,8 @@ internal class StartConversationTool(
             new OpenNpcConversationCommand
             {
                 SessionId = turnContext.SessionId,
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
                 NpcId = npc.Id,
                 NpcName = npc.Name,
             },

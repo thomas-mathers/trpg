@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
@@ -17,7 +16,7 @@ namespace TRPG.Application.Encounters.Commands;
 public class ConfrontOverdueRoomKeyCommand
 {
     public required Guid WorldId { get; init; }
-    public required Guid SessionId { get; init; }
+    public required TimeSpan Playtime { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
     public required Guid BuildingId { get; init; }
@@ -27,7 +26,6 @@ public record ConfrontOverdueRoomKeyResult(TheftEncounter? Encounter);
 
 internal class ConfrontOverdueRoomKeyCommandHandler(
     TrpgDbContext context,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetTradeWorkstationByBuildingIdQuery, Workstation?> getTradeWorkstation,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
@@ -123,11 +121,6 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
         var bookings = await getRoomBookingsForPlayerInBuilding.Handle(
             new GetRoomBookingsForPlayerInBuildingQuery
             {
@@ -138,7 +131,7 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
         );
         var overdueBookings = bookings
             .Where(booking =>
-                booking.WorldId == command.WorldId && booking.DueAtPlaytime <= playtime
+                booking.WorldId == command.WorldId && booking.DueAtPlaytime <= command.Playtime
             )
             .ToList();
 

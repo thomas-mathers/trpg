@@ -1,13 +1,11 @@
 using System.Transactions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Buildings.Commands;
-using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Reputations.Commands;
@@ -20,6 +18,7 @@ namespace TRPG.Application.Encounters.Commands;
 public class ResolveGuardEncounterActionCommand
 {
     public required Guid SessionId { get; init; }
+    public required TimeSpan Playtime { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required GuardEncounterAction Action { get; init; }
@@ -43,7 +42,6 @@ internal class ResolveGuardEncounterActionCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetJailForCityQuery, JailInfo?> getJailForCity,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
 ) : ICommandHandler<ResolveGuardEncounterActionCommand, GuardEncounterResolutionFact>
 {
@@ -139,11 +137,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             throw new InvalidOperationException($"City {location.CityId} has no jail.");
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-        var unlocksAt = playtime + GameClock.RealTimePerInGameHour * command.JailHours;
+        var unlocksAt = command.Playtime + GameClock.RealTimePerInGameHour * command.JailHours;
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand

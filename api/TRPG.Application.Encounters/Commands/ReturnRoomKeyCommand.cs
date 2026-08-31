@@ -14,7 +14,7 @@ namespace TRPG.Application.Encounters.Commands;
 public class ReturnRoomKeyCommand
 {
     public required Guid WorldId { get; init; }
-    public required Guid SessionId { get; init; }
+    public required TimeSpan Playtime { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
 }
@@ -68,7 +68,7 @@ internal class ReturnRoomKeyCommandHandler(
             new ConfrontOverdueRoomKeyCommand
             {
                 WorldId = command.WorldId,
-                SessionId = command.SessionId,
+                Playtime = command.Playtime,
                 PlayerId = command.PlayerId,
                 LocationId = command.LocationId,
                 BuildingId = building.Id,

@@ -5,7 +5,6 @@ using TRPG.Application.Chat.Queries;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.NpcConversations.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
 
@@ -18,7 +17,6 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     private ServiceProvider _serviceProvider = null!;
     private CreateGameSessionCommandHandler _createGameSession = null!;
     private GetGameSessionQueryHandler _getGameSession = null!;
-    private GetOpenNpcConversationsQueryHandler _getOpenNpcConversations = null!;
     private GetPlaytimeQueryHandler _getPlaytime = null!;
     private AdvanceTimeCommandHandler _advanceTime = null!;
     private UpdateGameSessionCommandHandler _updateGameSession = null!;
@@ -37,8 +35,6 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
             .BuildServiceProvider();
         _createGameSession = _serviceProvider.GetRequiredService<CreateGameSessionCommandHandler>();
         _getGameSession = _serviceProvider.GetRequiredService<GetGameSessionQueryHandler>();
-        _getOpenNpcConversations =
-            _serviceProvider.GetRequiredService<GetOpenNpcConversationsQueryHandler>();
         _getPlaytime = _serviceProvider.GetRequiredService<GetPlaytimeQueryHandler>();
         _updateGameSession = _serviceProvider.GetRequiredService<UpdateGameSessionCommandHandler>();
         _advanceTime = _serviceProvider.GetRequiredService<AdvanceTimeCommandHandler>();
@@ -130,127 +126,6 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(TimeSpan.FromHours(1), updated.Playtime);
-    }
-
-    [Fact]
-    public async Task UpdateGameSession_DoesNothing_WhenNoFieldsAreSet()
-    {
-        // Arrange
-        var sessionId = await _createGameSession.Handle(
-            new CreateGameSessionCommand
-            {
-                WorldId = WorldId,
-                PlayerId = PlayerId,
-                Playtime = TimeSpan.FromHours(2),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Act
-        await _updateGameSession.Handle(
-            new UpdateGameSessionCommand { SessionId = sessionId },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var updated = await _getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = sessionId },
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(TimeSpan.FromHours(2), updated.Playtime);
-    }
-
-    [Fact]
-    public async Task UpdateGameSession_LeavesOmittedFieldsUnchanged()
-    {
-        // Arrange
-        var sessionId = await _createGameSession.Handle(
-            new CreateGameSessionCommand
-            {
-                WorldId = WorldId,
-                PlayerId = PlayerId,
-                Playtime = TimeSpan.Zero,
-            },
-            TestContext.Current.CancellationToken
-        );
-        var npcId = Guid.NewGuid();
-        await _updateGameSession.Handle(
-            new UpdateGameSessionCommand
-            {
-                SessionId = sessionId,
-                OpenConversationCreatureIdsByName = new Dictionary<string, Guid>
-                {
-                    ["Some NPC"] = npcId,
-                },
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Act
-        await _updateGameSession.Handle(
-            new UpdateGameSessionCommand
-            {
-                SessionId = sessionId,
-                Playtime = TimeSpan.FromHours(1),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var updated = await _getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = sessionId },
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(npcId, updated.OpenConversationCreatureIdsByName["Some NPC"]);
-        Assert.Equal(TimeSpan.FromHours(1), updated.Playtime);
-    }
-
-    [Fact]
-    public async Task GetOpenConversations_Throws_WhenSessionDoesNotExist()
-    {
-        // Act & Assert
-        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
-            _getOpenNpcConversations.Handle(
-                new GetOpenNpcConversationsQuery { SessionId = Guid.NewGuid() },
-                TestContext.Current.CancellationToken
-            )
-        );
-    }
-
-    [Fact]
-    public async Task GetOpenConversations_ReturnsWhatUpdateGameSessionPersisted()
-    {
-        // Arrange
-        var sessionId = await _createGameSession.Handle(
-            new CreateGameSessionCommand
-            {
-                WorldId = WorldId,
-                PlayerId = PlayerId,
-                Playtime = TimeSpan.Zero,
-            },
-            TestContext.Current.CancellationToken
-        );
-        var npcId = Guid.NewGuid();
-
-        // Act
-        await _updateGameSession.Handle(
-            new UpdateGameSessionCommand
-            {
-                SessionId = sessionId,
-                OpenConversationCreatureIdsByName = new Dictionary<string, Guid>
-                {
-                    ["Some NPC"] = npcId,
-                },
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var openConversations = await _getOpenNpcConversations.Handle(
-            new GetOpenNpcConversationsQuery { SessionId = sessionId },
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(npcId, openConversations["Some NPC"]);
     }
 
     [Fact]

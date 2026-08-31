@@ -43,17 +43,17 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
 
     private async Task OpenConversation(string npcName, Guid npcId)
     {
-        _session.OpenConversationCreatureIdsByName[npcName] = npcId;
-        await _context
-            .GameSessions.Where(s => s.Id == _session.Id)
-            .ExecuteUpdateAsync(
-                s =>
-                    s.SetProperty(
-                        gs => gs.OpenConversationCreatureIdsByName,
-                        _session.OpenConversationCreatureIdsByName
-                    ),
-                TestContext.Current.CancellationToken
-            );
+        var state = await _context.NpcConversationSessionStates.FirstOrDefaultAsync(
+            s => s.SessionId == _session.Id,
+            TestContext.Current.CancellationToken
+        );
+        if (state == null)
+        {
+            state = new NpcConversationSessionState { SessionId = _session.Id, WorldId = WorldId };
+            _context.NpcConversationSessionStates.Add(state);
+        }
+        state.OpenConversationCreatureIdsByName[npcName] = npcId;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -170,8 +170,8 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) 
 
         // Assert
         var updated = await _context
-            .GameSessions.AsNoTracking()
-            .SingleAsync(s => s.Id == _session.Id, TestContext.Current.CancellationToken);
+            .NpcConversationSessionStates.AsNoTracking()
+            .SingleAsync(s => s.SessionId == _session.Id, TestContext.Current.CancellationToken);
         Assert.DoesNotContain("Wraith", updated.OpenConversationCreatureIdsByName.Keys);
     }
 }

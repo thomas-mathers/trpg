@@ -5,6 +5,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -26,6 +27,7 @@ internal class StartFightCommandHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<StartFightCommand>
 {
@@ -39,10 +41,15 @@ internal class StartFightCommandHandler(
             cancellationToken
         );
 
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
+
         var regeneratedCreatures = await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand
             {
-                SessionId = command.SessionId,
+                Playtime = playtime,
                 CreatureIds = [command.PlayerId, .. command.EnemyCreatureIds],
             },
             cancellationToken

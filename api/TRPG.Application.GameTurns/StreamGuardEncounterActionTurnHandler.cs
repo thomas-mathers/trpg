@@ -6,6 +6,7 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Domain.Models;
 
@@ -19,6 +20,7 @@ internal class StreamGuardEncounterActionTurnHandler(
         GuardEncounterResolutionFact
     > resolveGuardEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
 {
@@ -44,10 +46,16 @@ internal class StreamGuardEncounterActionTurnHandler(
             return new GameTurnPrompt.Reply("There's no encounter to resolve right now.");
         }
 
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
         var resolution = await resolveGuardEncounterAction.Handle(
             new ResolveGuardEncounterActionCommand
             {
                 SessionId = session.SessionId,
+                Playtime = playtime,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 Action = action,
@@ -71,7 +79,7 @@ internal class StreamGuardEncounterActionTurnHandler(
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                SessionId = session.SessionId,
+                Playtime = playtime,
             },
             cancellationToken
         );

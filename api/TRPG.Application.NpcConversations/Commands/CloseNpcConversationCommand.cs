@@ -1,8 +1,7 @@
 using System.Transactions;
+using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Queries;
-using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Queries;
+using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.NpcConversations.Commands;
@@ -28,9 +27,8 @@ public class CloseNpcConversationCommand
 }
 
 internal class CloseNpcConversationCommandHandler(
-    IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-    ICommandHandler<RecordNpcConversationCommand> recordNpcConversation,
-    ICommandHandler<UpdateGameSessionCommand> updateGameSession
+    TrpgDbContext context,
+    ICommandHandler<RecordNpcConversationCommand> recordNpcConversation
 ) : ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationResult>
 {
     public async Task<CloseNpcConversationResult> Handle(
@@ -38,11 +36,14 @@ internal class CloseNpcConversationCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var snapshot = await getGameSession.Handle(
-            new GetGameSessionQuery { SessionId = command.SessionId },
+        var state = await context.NpcConversationSessionStates.FirstOrDefaultAsync(
+            s => s.SessionId == command.SessionId,
             cancellationToken
         );
-        if (!snapshot.OpenConversationCreatureIdsByName.TryGetValue(command.NpcName, out var npcId))
+        if (
+            state == null
+            || !state.OpenConversationCreatureIdsByName.TryGetValue(command.NpcName, out var npcId)
+        )
         {
             return CloseNpcConversationResult.NotOpen;
         }
@@ -68,16 +69,8 @@ internal class CloseNpcConversationCommandHandler(
             cancellationToken
         );
 
-        snapshot.OpenConversationCreatureIdsByName.Remove(command.NpcName);
-
-        await updateGameSession.Handle(
-            new UpdateGameSessionCommand
-            {
-                SessionId = command.SessionId,
-                OpenConversationCreatureIdsByName = snapshot.OpenConversationCreatureIdsByName,
-            },
-            cancellationToken
-        );
+        state.OpenConversationCreatureIdsByName.Remove(command.NpcName);
+        await context.SaveChangesAsync(cancellationToken);
 
         transaction.Complete();
 

@@ -14,7 +14,6 @@
     <ProjectReference Include="..\TRPG.Application.CreatureJobs\TRPG.Application.CreatureJobs.csproj" />
     <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
     <ProjectReference Include="..\TRPG.Application.Encounters\TRPG.Application.Encounters.csproj" />
-    <ProjectReference Include="..\TRPG.Application.GameSessions\TRPG.Application.GameSessions.csproj" />
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
     <ProjectReference Include="..\TRPG.Application.Props\TRPG.Application.Props.csproj" />
     <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
