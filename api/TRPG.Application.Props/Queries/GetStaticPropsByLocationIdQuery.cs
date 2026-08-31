@@ -4,7 +4,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Scenes.Queries;
+namespace TRPG.Application.Props.Queries;
 
 public class GetStaticPropsByLocationIdQuery
 {

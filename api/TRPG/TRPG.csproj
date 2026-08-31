@@ -35,6 +35,7 @@
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
     <ProjectReference Include="..\TRPG.Application.Narration\TRPG.Application.Narration.csproj" />
     <ProjectReference Include="..\TRPG.Application.NpcConversations\TRPG.Application.NpcConversations.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Props\TRPG.Application.Props.csproj" />
     <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
     <ProjectReference Include="..\TRPG.Application.Reputations\TRPG.Application.Reputations.csproj" />
     <ProjectReference Include="..\TRPG.Application.RoomBookings\TRPG.Application.RoomBookings.csproj" />
