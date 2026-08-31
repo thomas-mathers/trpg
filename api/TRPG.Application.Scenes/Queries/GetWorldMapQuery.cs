@@ -5,7 +5,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Worlds.Queries;
+namespace TRPG.Application.Scenes.Queries;
 
 public class GetWorldMapQuery
 {
