@@ -46,3 +46,10 @@ public sealed record ItemAcquiredEvent(Guid PlayerId, Guid WorldId, Guid ItemId)
 public sealed record CreatureEquipmentChangedEvent(Guid CreatureId) : DomainEvent;
 
 public sealed record QuestGoldRewardedEvent(Guid PlayerId, Guid WorldId, int Amount) : DomainEvent;
+
+public sealed record QuestReputationRewardedEvent(
+    Guid PlayerId,
+    Guid WorldId,
+    IReadOnlyCollection<QuestReputationReward> Rewards,
+    string Detail
+) : DomainEvent;
