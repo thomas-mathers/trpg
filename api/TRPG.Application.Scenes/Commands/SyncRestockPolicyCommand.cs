@@ -5,7 +5,9 @@ using TRPG.Application.Buildings.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Queries;
+using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Worlds.Generators;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -31,6 +33,7 @@ internal class SyncRestockPolicyCommandHandler(
         GetGuestRoomDoorsByBuildingIdQuery,
         IReadOnlyList<GuestRoomDoor>
     > getGuestRoomDoors,
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     ICommandHandler<AddItemsCommand> addItems,
     ICommandHandler<UpdateItemQuantitiesCommand> updateItemQuantities,
     ICommandHandler<IssueReplacementRoomKeyCommand> issueReplacementRoomKey
@@ -93,12 +96,13 @@ internal class SyncRestockPolicyCommandHandler(
             return;
         }
 
-        var currentItems = await context
-            .Items.Where(i =>
-                i.Ownership.OwnerId == workstationId
-                && i.Ownership.OwnerType == OwnerType.Workstation
-            )
-            .ToListAsync(cancellationToken);
+        var currentItems = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(workstationId, OwnerType.Workstation),
+            },
+            cancellationToken
+        );
 
         var fillResult = TradeStockFiller.Fill(
             itemGenerator,

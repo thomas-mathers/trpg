@@ -1,6 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Application.Creatures.Queries;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Queries;
 
@@ -10,7 +10,7 @@ public class GetCreatureBasicAttackDamageQuery
 }
 
 internal class GetCreatureBasicAttackDamageQueryHandler(
-    TrpgDbContext context,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     CombatantFactory combatantFactory,
     DamageCalculator damageCalculator
 ) : IQueryHandler<GetCreatureBasicAttackDamageQuery, float>
@@ -20,9 +20,11 @@ internal class GetCreatureBasicAttackDamageQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var creature = await context
-            .Creatures.AsNoTracking()
-            .FirstAsync(c => c.Id == query.CreatureId, cancellationToken);
+        var creature =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = query.CreatureId },
+                cancellationToken
+            ) ?? throw new InvalidOperationException($"Creature {query.CreatureId} not found.");
 
         var combatant = await combatantFactory.Create(creature, isPlayer: true, cancellationToken);
 

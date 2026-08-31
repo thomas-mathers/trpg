@@ -1,12 +1,11 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
-using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Queries;
@@ -19,7 +18,8 @@ public class GetEquipItemBasicAttackDamageQuery
 }
 
 internal class GetEquipItemBasicAttackDamageQueryHandler(
-    TrpgDbContext context,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
     IQueryHandler<
         GetAllWeaponProficienciesQuery,
@@ -34,17 +34,19 @@ internal class GetEquipItemBasicAttackDamageQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var creature = await context
-            .Creatures.AsNoTracking()
-            .FirstAsync(c => c.Id == query.CreatureId, cancellationToken);
+        var creature =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = query.CreatureId },
+                cancellationToken
+            ) ?? throw new InvalidOperationException($"Creature {query.CreatureId} not found.");
 
-        var items = await context
-            .Items.AsNoTracking()
-            .Where(i =>
-                i.Ownership.OwnerType == OwnerType.Creature
-                && i.Ownership.OwnerId == query.CreatureId
-            )
-            .ToArrayAsync(cancellationToken);
+        var items = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(query.CreatureId, OwnerType.Creature),
+            },
+            cancellationToken
+        );
 
         var toEquip = items.First(i => i.Id == query.ItemId);
         var currentlyEquipped = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
