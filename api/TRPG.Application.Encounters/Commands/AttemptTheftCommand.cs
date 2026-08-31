@@ -10,11 +10,10 @@ using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters;
 using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Reputations.Events;
 using TRPG.Application.Reputations.Queries;
-using TRPG.Application.Trading;
-using TRPG.Application.Trading.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 

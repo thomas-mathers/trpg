@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
@@ -10,6 +11,7 @@ namespace TRPG.Tests.Application.Inventory.Queries;
 public sealed class GetEquipItemStatsQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetEquipItemStatsQueryHandler _getHandler = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
@@ -18,8 +20,11 @@ public sealed class GetEquipItemStatsQueryTests(DatabaseFixture db) : IAsyncLife
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _getHandler = new GetEquipItemStatsQueryHandler(_context);
-        _equipHandler = new EquipInventoryItemCommandHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _getHandler = _serviceProvider.GetRequiredService<GetEquipItemStatsQueryHandler>();
+        _equipHandler = _serviceProvider.GetRequiredService<EquipInventoryItemCommandHandler>();
 
         GiveToCreature(_armor);
 
@@ -30,6 +35,7 @@ public sealed class GetEquipItemStatsQueryTests(DatabaseFixture db) : IAsyncLife
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

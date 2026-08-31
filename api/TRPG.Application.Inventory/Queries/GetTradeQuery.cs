@@ -1,10 +1,8 @@
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Inventory;
-using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Results;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Trading.Queries;
+namespace TRPG.Application.Inventory.Queries;
 
 public class GetTradeQuery
 {

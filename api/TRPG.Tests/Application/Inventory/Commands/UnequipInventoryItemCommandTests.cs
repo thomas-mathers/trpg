@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
@@ -11,6 +12,7 @@ namespace TRPG.Tests.Application.Inventory.Commands;
 public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private EquipInventoryItemCommandHandler _equipHandler = null!;
     private GetInventoryItemsByOwnerQueryHandler _getHandler = null!;
     private UnequipInventoryItemCommandHandler _unequipHandler = null!;
@@ -20,9 +22,12 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _equipHandler = new EquipInventoryItemCommandHandler(_context);
-        _unequipHandler = new UnequipInventoryItemCommandHandler(_context);
-        _getHandler = new GetInventoryItemsByOwnerQueryHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _equipHandler = _serviceProvider.GetRequiredService<EquipInventoryItemCommandHandler>();
+        _unequipHandler = _serviceProvider.GetRequiredService<UnequipInventoryItemCommandHandler>();
+        _getHandler = _serviceProvider.GetRequiredService<GetInventoryItemsByOwnerQueryHandler>();
 
         _item.Quantity = 1;
         _item.Ownership.OwnerId = _creature.Id;
@@ -36,6 +41,7 @@ public sealed class UnequipInventoryItemCommandTests(DatabaseFixture db) : IAsyn
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

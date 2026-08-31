@@ -1,8 +1,7 @@
-using System.Text.Json;
 using Microsoft.Extensions.AI;
+using TRPG.Application.Chat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Data;
-using ChatMessageRow = TRPG.Domain.Models.ChatMessage;
 using GameSession = TRPG.Domain.Models.GameSession;
 
 namespace TRPG.Application.GameSessions.Commands;
@@ -14,8 +13,10 @@ public class CreateGameSessionCommand
     public required TimeSpan Playtime { get; init; }
 }
 
-internal class CreateGameSessionCommandHandler(TrpgDbContext context)
-    : ICommandHandler<CreateGameSessionCommand, Guid>
+internal class CreateGameSessionCommandHandler(
+    TrpgDbContext context,
+    ICommandHandler<AppendChatMessagesCommand, int> appendChatMessages
+) : ICommandHandler<CreateGameSessionCommand, Guid>
 {
     private const string SystemPrompt = """
         You are the game master of a living fantasy world. Your role is to narrate the player's experience and interpret their actions to advance the story.
@@ -51,20 +52,11 @@ internal class CreateGameSessionCommandHandler(TrpgDbContext context)
         context.GameSessions.Add(row);
 
         var systemMessage = new ChatMessage(ChatRole.System, SystemPrompt);
-        context.ChatMessages.Add(
-            new ChatMessageRow
-            {
-                SessionId = row.Id,
-                Ordinal = 0,
-                Role = ChatRole.System.Value,
-                MessageJson = JsonSerializer.Serialize(
-                    systemMessage,
-                    AIJsonUtilities.DefaultOptions
-                ),
-            }
+        await appendChatMessages.Handle(
+            new AppendChatMessagesCommand { SessionId = row.Id, Messages = [systemMessage] },
+            cancellationToken
         );
 
-        await context.SaveChangesAsync(cancellationToken);
         return row.Id;
     }
 }

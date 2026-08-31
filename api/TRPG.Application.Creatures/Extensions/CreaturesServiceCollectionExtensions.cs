@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures;
+using TRPG.Application.Creatures.Events;
 
 namespace TRPG.Application.Creatures.Extensions;
 
@@ -10,5 +12,9 @@ public static class CreaturesServiceCollectionExtensions
     ) =>
         serviceCollection
             .AddSingleton<IChanceRoller, ChanceRoller>()
-            .AddTransient<SkillCheckService>();
+            .AddTransient<SkillCheckService>()
+            .AddTransient<CreatureEquipmentChangedEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreatureEquipmentChangedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreatureEquipmentChangedEventHandler>()
+            );
 }

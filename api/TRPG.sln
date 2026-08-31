@@ -36,8 +36,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Inventory"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Quests", "TRPG.Application.Quests\TRPG.Application.Quests.csproj", "{81DC8A40-F478-4AE5-B5B8-32A8642F77ED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Trading", "TRPG.Application.Trading\TRPG.Application.Trading.csproj", "{3FC34646-AD0E-41E6-8768-072925B64967}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Creatures", "TRPG.Application.Creatures\TRPG.Application.Creatures.csproj", "{A17651A5-5F80-46F4-93BD-61CAA40B22B9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Scenes", "TRPG.Application.Scenes\TRPG.Application.Scenes.csproj", "{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}"
@@ -278,18 +276,6 @@ Global
 		{81DC8A40-F478-4AE5-B5B8-32A8642F77ED}.Release|x64.Build.0 = Release|Any CPU
 		{81DC8A40-F478-4AE5-B5B8-32A8642F77ED}.Release|x86.ActiveCfg = Release|Any CPU
 		{81DC8A40-F478-4AE5-B5B8-32A8642F77ED}.Release|x86.Build.0 = Release|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Debug|x64.Build.0 = Debug|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Debug|x86.Build.0 = Debug|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Release|x64.ActiveCfg = Release|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Release|x64.Build.0 = Release|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Release|x86.ActiveCfg = Release|Any CPU
-		{3FC34646-AD0E-41E6-8768-072925B64967}.Release|x86.Build.0 = Release|Any CPU
 		{A17651A5-5F80-46F4-93BD-61CAA40B22B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A17651A5-5F80-46F4-93BD-61CAA40B22B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A17651A5-5F80-46F4-93BD-61CAA40B22B9}.Debug|x64.ActiveCfg = Debug|Any CPU

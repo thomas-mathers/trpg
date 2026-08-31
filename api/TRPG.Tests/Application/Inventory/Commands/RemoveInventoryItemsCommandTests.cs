@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
@@ -11,6 +12,7 @@ namespace TRPG.Tests.Application.Inventory.Commands;
 public sealed class RemoveInventoryItemsCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetInventoryItemsByOwnerQueryHandler _getHandler = null!;
     private RemoveInventoryItemsCommandHandler _removeHandler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
@@ -21,8 +23,11 @@ public sealed class RemoveInventoryItemsCommandTests(DatabaseFixture db) : IAsyn
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _removeHandler = new RemoveInventoryItemsCommandHandler(_context);
-        _getHandler = new GetInventoryItemsByOwnerQueryHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _removeHandler = _serviceProvider.GetRequiredService<RemoveInventoryItemsCommandHandler>();
+        _getHandler = _serviceProvider.GetRequiredService<GetInventoryItemsByOwnerQueryHandler>();
 
         _context.Creatures.AddRange(_creature, _otherCreature);
         _context.Items.AddRange(_item, _stackableItem);
@@ -32,6 +37,7 @@ public sealed class RemoveInventoryItemsCommandTests(DatabaseFixture db) : IAsyn
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -130,15 +136,17 @@ public sealed class RemoveInventoryItemsCommandTests(DatabaseFixture db) : IAsyn
         );
         _context.Items.Add(gear);
         await GiveToCreature(gear, _creature.Id, 1);
-        await new EquipInventoryItemCommandHandler(_context).Handle(
-            new EquipInventoryItemCommand
-            {
-                CreatureId = _creature.Id,
-                ItemId = gear.Id,
-                Slot = EquipmentSlot.Chest,
-            },
-            TestContext.Current.CancellationToken
-        );
+        await _serviceProvider
+            .GetRequiredService<EquipInventoryItemCommandHandler>()
+            .Handle(
+                new EquipInventoryItemCommand
+                {
+                    CreatureId = _creature.Id,
+                    ItemId = gear.Id,
+                    Slot = EquipmentSlot.Chest,
+                },
+                TestContext.Current.CancellationToken
+            );
         _creature.CurrentHp = _creature.MaximumHp;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

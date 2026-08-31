@@ -1,6 +1,4 @@
-using TRPG.Application.Inventory;
-
-namespace TRPG.Application.Trading;
+namespace TRPG.Application.Inventory;
 
 public enum TradeOutcome
 {

@@ -9,10 +9,10 @@ using TRPG.Application.Creatures.Extensions;
 using TRPG.Application.Encounters.Extensions;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Extensions;
+using TRPG.Application.Inventory.Extensions;
 using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Reputations.Extensions;
 using TRPG.Application.Scenes;
-using TRPG.Application.Trading.Extensions;
 using TRPG.Application.Worlds.Extensions;
 using TRPG.Commands;
 using TRPG.GameTurns.Tools;
@@ -54,7 +54,7 @@ public static class ApplicationServiceCollectionExtensions
                     .AsSelfWithInterfaces()
                     .WithTransientLifetime()
             )
-            .AddTradingServices()
+            .AddInventoryServices()
             .AddCreaturesServices()
             .AddEncountersServices()
             .AddTransient<SceneCatchUpCache>()

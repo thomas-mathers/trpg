@@ -1,29 +1,26 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Events;
-using TRPG.Application.Inventory;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Trading.Commands;
+namespace TRPG.Application.Inventory.Commands;
 
-public class ReceivePlayerInventoryCommand
+public class TransferPlayerInventoryCommand
 {
-    public required ItemOwnerReference From { get; init; }
+    public required ItemOwnerReference To { get; init; }
     public required IReadOnlyList<ItemSelection> Items { get; init; }
     public required Guid PlayerId { get; init; }
-    public required Guid WorldId { get; init; }
 }
 
-internal class ReceivePlayerInventoryCommandHandler(
+internal class TransferPlayerInventoryCommandHandler(
     ICommandHandler<
         TransferInventoryItemsCommand,
         IReadOnlyCollection<InventoryItemTransferResult>
     > transferInventoryItems,
-    IDomainEventPublisher<ItemAcquiredEvent> domainEvents
-) : ICommandHandler<ReceivePlayerInventoryCommand>
+    QuestItemGuard questItemGuard
+) : ICommandHandler<TransferPlayerInventoryCommand>
 {
     public async Task Handle(
-        ReceivePlayerInventoryCommand command,
+        TransferPlayerInventoryCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -37,25 +34,21 @@ internal class ReceivePlayerInventoryCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var playerOwner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature);
+        await questItemGuard.EnsureNotActiveQuestItems(
+            command.PlayerId,
+            command.Items.Select(item => item.ItemId).ToArray(),
+            cancellationToken
+        );
 
         await transferInventoryItems.Handle(
             new TransferInventoryItemsCommand
             {
-                From = command.From,
-                To = playerOwner,
+                From = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+                To = command.To,
                 Items = command.Items,
             },
             cancellationToken
         );
-
-        foreach (var item in command.Items)
-        {
-            await domainEvents.Publish(
-                new ItemAcquiredEvent(command.PlayerId, command.WorldId, item.ItemId),
-                cancellationToken
-            );
-        }
 
         transaction.Complete();
     }

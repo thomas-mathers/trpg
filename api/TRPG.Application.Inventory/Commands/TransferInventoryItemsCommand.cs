@@ -1,13 +1,11 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.CreatureFormulas;
-using TRPG.Application.Inventory;
-using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Trading.Commands;
+namespace TRPG.Application.Inventory.Commands;
 
 public record InventoryItemTransferResult(Guid SourceItemId, Guid DestinationItemId, int Quantity);
 
@@ -20,7 +18,8 @@ public class TransferInventoryItemsCommand
 
 internal class TransferInventoryItemsCommandHandler(
     TrpgDbContext context,
-    ICommandHandler<AddGoldCommand> addGold
+    ICommandHandler<AddGoldCommand> addGold,
+    IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged
 ) : ICommandHandler<TransferInventoryItemsCommand, IReadOnlyCollection<InventoryItemTransferResult>>
 {
     public async Task<IReadOnlyCollection<InventoryItemTransferResult>> Handle(
@@ -36,8 +35,8 @@ internal class TransferInventoryItemsCommandHandler(
         );
         await EnsureDestinationCapacity(command.To, transferItems, cancellationToken);
         var results = await MoveItems(transferItems, command.To, cancellationToken);
-        await RecalculateSourceAttributes(command.From, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+        await RecalculateSourceAttributes(command.From, cancellationToken);
         return results;
     }
 
@@ -152,29 +151,10 @@ internal class TransferInventoryItemsCommandHandler(
     {
         if (from.Type == OwnerType.Creature)
         {
-            await RecalculateCreatureAttributes(from.Id, cancellationToken);
-        }
-    }
-
-    private async Task RecalculateCreatureAttributes(
-        Guid creatureId,
-        CancellationToken cancellationToken
-    )
-    {
-        var creature =
-            await context.Creatures.FirstOrDefaultAsync(
-                creature => creature.Id == creatureId,
+            await creatureEquipmentChanged.Publish(
+                new CreatureEquipmentChangedEvent(from.Id),
                 cancellationToken
-            ) ?? throw new InvalidOperationException($"Creature {creatureId} not found.");
-
-        var equippedItems = await context
-            .Items.Where(item =>
-                item.Ownership.OwnerType == OwnerType.Creature
-                && item.Ownership.OwnerId == creatureId
-                && item.Ownership.EquippedSlot != null
-            )
-            .ToListAsync(cancellationToken);
-
-        StatFormulas.Recalculate(creature, equippedItems);
+            );
+        }
     }
 }

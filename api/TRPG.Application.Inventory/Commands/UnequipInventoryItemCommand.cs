@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.CreatureFormulas;
+using TRPG.Application.Common.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -12,19 +12,21 @@ public class UnequipInventoryItemCommand
     public required EquipmentSlot Slot { get; init; }
 }
 
-internal class UnequipInventoryItemCommandHandler(TrpgDbContext context)
-    : ICommandHandler<UnequipInventoryItemCommand>
+internal class UnequipInventoryItemCommandHandler(
+    TrpgDbContext context,
+    IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged
+) : ICommandHandler<UnequipInventoryItemCommand>
 {
     public async Task Handle(
         UnequipInventoryItemCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var creature = await context.Creatures.FirstOrDefaultAsync(
+        var creatureExists = await context.Creatures.AnyAsync(
             c => c.Id == command.CreatureId,
             cancellationToken
         );
-        if (creature == null)
+        if (!creatureExists)
         {
             throw new InvalidOperationException($"Creature {command.CreatureId} not found.");
         }
@@ -45,10 +47,11 @@ internal class UnequipInventoryItemCommandHandler(TrpgDbContext context)
         }
 
         item.Ownership.EquippedSlot = null;
-
-        var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
-        StatFormulas.Recalculate(creature, equippedItems);
-
         await context.SaveChangesAsync(cancellationToken);
+
+        await creatureEquipmentChanged.Publish(
+            new CreatureEquipmentChangedEvent(command.CreatureId),
+            cancellationToken
+        );
     }
 }

@@ -1,4 +1,4 @@
-using TRPG.Application.Trading;
+using TRPG.Application.Inventory;
 using TRPG.Inventory.Responses;
 
 namespace TRPG.Inventory.Mappers;

@@ -4,7 +4,7 @@ using TRPG.Application.Reputations;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Trading.Commands;
+namespace TRPG.Application.Inventory.Commands;
 
 public class ProposeTradeCommand
 {
