@@ -2,7 +2,9 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Queries;
@@ -18,6 +20,11 @@ public class GetTheftDetectionChanceQuery
 internal class GetTheftDetectionChanceQueryHandler(
     TheftSourceResolver theftSourceResolver,
     SkillCheckService skillCheckService,
+    IQueryHandler<
+        GetLiveHumanoidWitnessesAtLocationQuery,
+        IReadOnlyCollection<LiveHumanoidWitness>
+    > getLiveHumanoidWitnessesAtLocation,
+    IQueryHandler<GetEquippedItemCountQuery, int> getEquippedItemCount,
     IOptionsMonitor<TheftOptions> theftOptions
 ) : IQueryHandler<GetTheftDetectionChanceQuery, float?>
 {
@@ -41,22 +48,28 @@ internal class GetTheftDetectionChanceQueryHandler(
             return null;
         }
 
-        var witnesses = await theftSourceResolver.GetLiveWitnesses(
-            query.WorldId,
-            source.LocationId,
-            query.PlayerId,
+        var witnesses = await getLiveHumanoidWitnessesAtLocation.Handle(
+            new GetLiveHumanoidWitnessesAtLocationQuery
+            {
+                WorldId = query.WorldId,
+                LocationId = source.LocationId,
+                ExcludeCreatureId = query.PlayerId,
+            },
             cancellationToken
         );
-        var requiresTheftDetectionRoll = source.IsPickpocketing || witnesses.Length > 0;
+        var requiresTheftDetectionRoll = source.IsPickpocketing || witnesses.Count > 0;
         if (!requiresTheftDetectionRoll)
         {
             return 1f;
         }
 
         var totalQuantity = query.Items.Sum(item => item.Quantity);
-        var equippedItemCount = await theftSourceResolver.GetEquippedItemCount(
-            query.WorldId,
-            query.Items.Select(item => item.ItemId).ToArray(),
+        var equippedItemCount = await getEquippedItemCount.Handle(
+            new GetEquippedItemCountQuery
+            {
+                WorldId = query.WorldId,
+                ItemIds = query.Items.Select(item => item.ItemId).ToArray(),
+            },
             cancellationToken
         );
         var curve = TheftDetectionChanceCalculator.BuildCurve(

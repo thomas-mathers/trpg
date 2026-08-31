@@ -14,8 +14,6 @@ internal sealed record TheftSource(
     Guid? WorkstationOccupantId
 );
 
-internal sealed record TheftWitness(Guid Id, string Name);
-
 internal class TheftSourceResolver(TrpgDbContext context)
 {
     public async Task<TheftSource?> Resolve(
@@ -36,39 +34,6 @@ internal class TheftSourceResolver(TrpgDbContext context)
                 $"Owner type {from.Type} is not valid for theft."
             ),
         };
-
-    public async Task<TheftWitness[]> GetLiveWitnesses(
-        Guid worldId,
-        Guid locationId,
-        Guid excludeCreatureId,
-        CancellationToken cancellationToken
-    ) =>
-        await context
-            .Creatures.AsNoTracking()
-            .Where(creature =>
-                creature.WorldId == worldId
-                && creature.LocationId == locationId
-                && creature.State != CreatureState.Dead
-                && creature.State != CreatureState.Sleeping
-                && creature.Id != excludeCreatureId
-                && CreatureTypes.Humanoid.AsEnumerable().Contains(creature.CreatureType)
-            )
-            .Select(creature => new TheftWitness(creature.Id, creature.Name))
-            .ToArrayAsync(cancellationToken);
-
-    public async Task<int> GetEquippedItemCount(
-        Guid worldId,
-        IReadOnlyCollection<Guid> itemIds,
-        CancellationToken cancellationToken
-    ) =>
-        await context
-            .Items.AsNoTracking()
-            .Where(item =>
-                item.WorldId == worldId
-                && itemIds.AsEnumerable().Contains(item.Id)
-                && item.Ownership.EquippedSlot != null
-            )
-            .CountAsync(cancellationToken);
 
     private async Task<TheftSource?> GetCreatureTheftSource(
         ItemOwnerReference from,
