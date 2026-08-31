@@ -49,6 +49,10 @@ internal class AttemptTheftCommandHandler(
     SkillCheckService skillCheckService,
     IQueryHandler<GetItemNamesByIdsQuery, IReadOnlyDictionary<Guid, string>> getItemNamesByIds,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
+    IQueryHandler<
+        ValidateTransferItemsQuery,
+        IReadOnlyCollection<TransferItem>
+    > validateTransferItems,
     IDomainEventPublisher<ItemAcquiredEvent> itemAcquiredEvents,
     IGameClientEventSink gameEvents,
     IOptionsMonitor<TheftOptions> theftOptions
@@ -317,10 +321,8 @@ internal class AttemptTheftCommandHandler(
         IReadOnlyList<ItemSelection> selections,
         CancellationToken cancellationToken
     ) =>
-        _ = await InventoryTransferValidation.GetValidatedTransferItems(
-            from,
-            selections,
-            context.Items.AsNoTracking(),
+        _ = await validateTransferItems.Handle(
+            new ValidateTransferItemsQuery { From = from, Selections = selections },
             cancellationToken
         );
 

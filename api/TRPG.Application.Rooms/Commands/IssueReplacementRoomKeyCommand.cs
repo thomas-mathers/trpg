@@ -1,9 +1,9 @@
+using TRPG.Application.Buildings.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Buildings.Commands;
+namespace TRPG.Application.Rooms.Commands;
 
 public class IssueReplacementRoomKeyCommand
 {
@@ -14,8 +14,8 @@ public class IssueReplacementRoomKeyCommand
 }
 
 internal class IssueReplacementRoomKeyCommandHandler(
-    TrpgDbContext context,
-    ICommandHandler<AddItemsCommand> addItems
+    ICommandHandler<AddItemsCommand> addItems,
+    ICommandHandler<AddDoorConnectorKeyCommand> addDoorConnectorKey
 ) : ICommandHandler<IssueReplacementRoomKeyCommand>
 {
     public async Task Handle(
@@ -37,14 +37,17 @@ internal class IssueReplacementRoomKeyCommandHandler(
         };
         await addItems.Handle(new AddItemsCommand { Items = [replacementKey] }, cancellationToken);
 
-        context.DoorConnectorKeys.Add(
-            new DoorConnectorKey
+        await addDoorConnectorKey.Handle(
+            new AddDoorConnectorKeyCommand
             {
-                ItemId = replacementKey.Id,
-                DoorConnectorId = command.DoorConnectorId,
-                WorldId = command.WorldId,
-            }
+                DoorConnectorKey = new DoorConnectorKey
+                {
+                    ItemId = replacementKey.Id,
+                    DoorConnectorId = command.DoorConnectorId,
+                    WorldId = command.WorldId,
+                },
+            },
+            cancellationToken
         );
-        await context.SaveChangesAsync(cancellationToken);
     }
 }

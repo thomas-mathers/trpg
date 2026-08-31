@@ -9,7 +9,10 @@ public class GetEffectiveReputationsQuery
 {
     public required Guid ObserverCreatureId { get; init; }
     public required IReadOnlyCollection<Guid> TargetCreatureIds { get; init; }
-    public required IReadOnlyDictionary<Guid, Guid[]> FactionIdsByCreature { get; init; }
+    public required IReadOnlyDictionary<
+        Guid,
+        IReadOnlyList<Guid>
+    > FactionIdsByCreature { get; init; }
 }
 
 internal class GetEffectiveReputationsQueryHandler(TrpgDbContext context)

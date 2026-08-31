@@ -1,6 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Application.Worlds.Queries;
 
 namespace TRPG.Application.Reputations.Queries;
 
@@ -11,11 +10,14 @@ public class GetEffectiveReputationQuery
 }
 
 internal class GetEffectiveReputationQueryHandler(
-    TrpgDbContext context,
     IQueryHandler<
         GetEffectiveReputationsQuery,
         IReadOnlyDictionary<Guid, int>
-    > getEffectiveReputations
+    > getEffectiveReputations,
+    IQueryHandler<
+        GetFactionIdsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getFactionIdsByCreatureIds
 ) : IQueryHandler<GetEffectiveReputationQuery, int>
 {
     public async Task<int> Handle(
@@ -23,14 +25,10 @@ internal class GetEffectiveReputationQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var factionIds = await context
-            .FactionMembers.Where(fm => fm.CreatureId == query.TargetCreatureId)
-            .Select(fm => fm.FactionId)
-            .ToArrayAsync(cancellationToken);
-        var factionIdsByCreature = new Dictionary<Guid, Guid[]>
-        {
-            [query.TargetCreatureId] = factionIds,
-        };
+        var factionIdsByCreature = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = [query.TargetCreatureId] },
+            cancellationToken
+        );
 
         var reputations = await getEffectiveReputations.Handle(
             new GetEffectiveReputationsQuery

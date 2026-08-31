@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -29,8 +30,10 @@ public record QuestJournalEntry(
     IReadOnlyCollection<QuestObjectiveProgress> Objectives
 );
 
-internal class GetQuestJournalQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetQuestJournalQuery, IReadOnlyCollection<QuestJournalEntry>>
+internal class GetQuestJournalQueryHandler(
+    TrpgDbContext context,
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds
+) : IQueryHandler<GetQuestJournalQuery, IReadOnlyCollection<QuestJournalEntry>>
 {
     public async Task<IReadOnlyCollection<QuestJournalEntry>> Handle(
         GetQuestJournalQuery query,
@@ -55,14 +58,11 @@ internal class GetQuestJournalQueryHandler(TrpgDbContext context)
             .Distinct()
             .ToArray();
 
-        var locationNamesById = await context
-            .Locations.AsNoTracking()
-            .Where(location => locationIds.AsEnumerable().Contains(location.Id))
-            .ToDictionaryAsync(
-                location => location.Id,
-                location => location.Name,
-                cancellationToken
-            );
+        var locationsById = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery { Ids = locationIds },
+            cancellationToken
+        );
+        var locationNamesById = locationsById.ToDictionary(kv => kv.Key, kv => kv.Value.Name);
 
         var objectivesByQuestId = objectives
             .GroupBy(objective => objective.Objective.QuestId)

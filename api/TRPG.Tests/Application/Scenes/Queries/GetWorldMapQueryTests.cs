@@ -1,10 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Worlds.Queries;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Worlds.Queries;
+namespace TRPG.Tests.Application.Scenes.Queries;
 
 [Collection("Database")]
 public sealed class GetWorldMapQueryTests(DatabaseFixture db) : IAsyncLifetime

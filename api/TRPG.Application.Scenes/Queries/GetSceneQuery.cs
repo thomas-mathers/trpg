@@ -149,7 +149,8 @@ internal class GetSceneQueryHandler(
     IQueryHandler<
         GetTotalCharacterXpFromSkillsQuery,
         IReadOnlyDictionary<Guid, int>
-    > getTotalCharacterXpFromSkills
+    > getTotalCharacterXpFromSkills,
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -416,7 +417,7 @@ internal class GetSceneQueryHandler(
         );
         var factionIdsByCreature = factionMembershipsByCreature.ToDictionary(
             kv => kv.Key,
-            kv => kv.Value.FactionIds
+            IReadOnlyList<Guid> (kv) => kv.Value.FactionIds
         );
 
         var reputationByCreature = await getEffectiveReputations.Handle(
@@ -473,10 +474,10 @@ internal class GetSceneQueryHandler(
         var destinationLocationIds = connectors
             .Select(connector => connector.DestinationLocationId)
             .ToArray();
-        var destinations = await context
-            .Locations.AsNoTracking()
-            .Where(location => destinationLocationIds.AsEnumerable().Contains(location.Id))
-            .ToDictionaryAsync(location => location.Id, cancellationToken);
+        var destinations = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery { Ids = destinationLocationIds },
+            cancellationToken
+        );
         var districtIds = destinations
             .Values.Select(location => location.DistrictId)
             .OfType<Guid>()

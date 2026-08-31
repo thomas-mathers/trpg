@@ -15,7 +15,7 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Results;
 using TRPG.Application.Quests.Queries;
-using TRPG.Application.Worlds.Queries;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Creatures.Mappers;
 using TRPG.Creatures.Requests;
 using TRPG.Creatures.Responses;
