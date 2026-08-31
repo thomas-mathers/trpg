@@ -57,7 +57,7 @@ public sealed class GetEffectiveReputationsQueryTests(DatabaseFixture db) : IAsy
             {
                 ObserverCreatureId = _creatureId,
                 TargetCreatureIds = [],
-                FactionIdsByCreature = new Dictionary<Guid, Guid[]>(),
+                FactionIdsByCreature = new Dictionary<Guid, IReadOnlyList<Guid>>(),
             },
             TestContext.Current.CancellationToken
         );
@@ -121,7 +121,7 @@ public sealed class GetEffectiveReputationsQueryTests(DatabaseFixture db) : IAsy
             TestContext.Current.CancellationToken
         );
 
-        var factionIdsByCreature = new Dictionary<Guid, Guid[]>
+        var factionIdsByCreature = new Dictionary<Guid, IReadOnlyList<Guid>>
         {
             [npcA.Id] = [_faction.Id],
             [npcB.Id] = [factionB.Id],

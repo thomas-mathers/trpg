@@ -1,8 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Data;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Reputations.Commands;
@@ -16,9 +16,12 @@ public class ApplyReputationPenaltyForKillsCommand
 }
 
 internal class ApplyReputationPenaltyForKillsCommandHandler(
-    TrpgDbContext context,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
-    IOptionsMonitor<ReputationOptions> reputationOptions
+    IOptionsMonitor<ReputationOptions> reputationOptions,
+    IQueryHandler<
+        GetFactionIdsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getFactionIdsByCreatureIds
 ) : ICommandHandler<ApplyReputationPenaltyForKillsCommand>
 {
     public async Task Handle(
@@ -44,12 +47,14 @@ internal class ApplyReputationPenaltyForKillsCommandHandler(
     )
     {
         var victimIds = command.Kills.Select(kill => kill.VictimId).ToArray();
-        var killedFactionIds = await context
-            .FactionMembers.AsNoTracking()
-            .Where(m => victimIds.Contains(m.CreatureId))
-            .Select(m => m.FactionId)
+        var factionIdsByCreature = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = victimIds },
+            cancellationToken
+        );
+        var killedFactionIds = factionIdsByCreature
+            .Values.SelectMany(ids => ids)
             .Distinct()
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
 
         if (killedFactionIds.Length == 0)
         {

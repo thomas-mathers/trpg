@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -15,7 +16,8 @@ public class EvaluateHostileEncounterCommand
 
 internal class EvaluateHostileEncounterCommandHandler(
     TrpgDbContext context,
-    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds
 ) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?>
 {
     public async Task<HostileEncounter?> Handle(
@@ -57,10 +59,10 @@ internal class EvaluateHostileEncounterCommandHandler(
 
         var factionIds = groups.Select(g => g.FactionId).Distinct().ToArray();
 
-        var factionsById = await context
-            .Factions.AsNoTracking()
-            .Where(f => factionIds.AsEnumerable().Contains(f.Id))
-            .ToDictionaryAsync(f => f.Id, cancellationToken);
+        var factionsById = await getFactionsByIds.Handle(
+            new GetFactionsByIdsQuery { Ids = factionIds },
+            cancellationToken
+        );
 
         var reputationByFactionId = await context
             .Reputations.AsNoTracking()
