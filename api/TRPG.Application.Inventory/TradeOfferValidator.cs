@@ -1,11 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Props.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory;
 
-internal class TradeOfferValidator(TrpgDbContext context)
+internal class TradeOfferValidator(
+    TrpgDbContext context,
+    IQueryHandler<GetPropByIdQuery, Prop?> getPropById
+)
 {
     public async Task<ValidatedTradeOffer> Validate(
         Guid playerId,
@@ -22,13 +27,12 @@ internal class TradeOfferValidator(TrpgDbContext context)
         if (!playerExists)
             throw new EntityNotFoundException("Player", playerId);
 
+        var prop = await getPropById.Handle(
+            new GetPropByIdQuery { Id = workstationId },
+            cancellationToken
+        );
         var workstation =
-            await context
-                .Props.OfType<Workstation>()
-                .FirstOrDefaultAsync(
-                    workstation => workstation.Id == workstationId,
-                    cancellationToken
-                )
+            prop as Workstation
             ?? throw new EntityNotFoundException("Trade workstation", workstationId);
 
         var shopOwner = new ItemOwnerReference(workstationId, OwnerType.Workstation);

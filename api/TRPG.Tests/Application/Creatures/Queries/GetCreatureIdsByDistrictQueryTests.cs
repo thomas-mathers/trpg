@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
@@ -8,17 +9,22 @@ namespace TRPG.Tests.Application.Creatures.Queries;
 public sealed class GetCreatureIdsByDistrictQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetCreatureIdsByDistrictQueryHandler _handler = null!;
 
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetCreatureIdsByDistrictQueryHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<GetCreatureIdsByDistrictQueryHandler>();
         return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

@@ -9,6 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Factions\TRPG.Application.Factions.csproj" />
     <ProjectReference Include="..\TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />

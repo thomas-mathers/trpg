@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.Worlds.Results;
 using TRPG.Data;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
 
@@ -11,8 +13,11 @@ public class GetRoomQuery
     public required Guid RoomId { get; init; }
 }
 
-internal class GetRoomQueryHandler(TrpgDbContext context, IMemoryCache cache)
-    : IQueryHandler<GetRoomQuery, RoomResult?>
+internal class GetRoomQueryHandler(
+    TrpgDbContext context,
+    IMemoryCache cache,
+    IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds
+) : IQueryHandler<GetRoomQuery, RoomResult?>
 {
     public async Task<RoomResult?> Handle(
         GetRoomQuery query,
@@ -22,7 +27,8 @@ internal class GetRoomQueryHandler(TrpgDbContext context, IMemoryCache cache)
         return await cache.GetOrCreateAsync(
             $"roomResult:{query.RoomId}",
             async _ =>
-                await (
+            {
+                var raw = await (
                     from r in context.Rooms.AsNoTracking()
                     where r.Id == query.RoomId
                     join b in context.Buildings.AsNoTracking() on r.BuildingId equals b.Id
@@ -30,20 +36,46 @@ internal class GetRoomQueryHandler(TrpgDbContext context, IMemoryCache cache)
                     from bo in ownersGroup.DefaultIfEmpty()
                     join owner in context.Creatures on bo.OwnerId equals owner.Id into ownerGroup
                     from owner in ownerGroup.DefaultIfEmpty()
-                    join f in context.Factions on b.FactionId equals (Guid?)f.Id into factionGroup
-                    from f in factionGroup.DefaultIfEmpty()
-                    select new RoomResult(
+                    select new
+                    {
                         r.Name,
                         r.Description,
                         r.FloorNumber,
-                        b.Id,
-                        b.Name,
+                        BuildingId = b.Id,
+                        BuildingName = b.Name,
                         b.BuildingType,
-                        owner != null ? owner.Name : null,
-                        f != null ? f.Name : null,
-                        f != null ? f.Description : null
-                    )
-                ).FirstOrDefaultAsync(cancellationToken)
+                        OwnerName = owner != null ? owner.Name : null,
+                        b.FactionId,
+                    }
+                ).FirstOrDefaultAsync(cancellationToken);
+
+                if (raw == null)
+                {
+                    return null;
+                }
+
+                Faction? faction = null;
+                if (raw.FactionId is { } factionId)
+                {
+                    var factionsById = await getFactionsByIds.Handle(
+                        new GetFactionsByIdsQuery { Ids = [factionId] },
+                        cancellationToken
+                    );
+                    factionsById.TryGetValue(factionId, out faction);
+                }
+
+                return new RoomResult(
+                    raw.Name,
+                    raw.Description,
+                    raw.FloorNumber,
+                    raw.BuildingId,
+                    raw.BuildingName,
+                    raw.BuildingType,
+                    raw.OwnerName,
+                    faction?.Name,
+                    faction?.Description
+                );
+            }
         );
     }
 }

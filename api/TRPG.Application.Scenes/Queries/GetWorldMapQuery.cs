@@ -37,7 +37,11 @@ internal class GetWorldMapQueryHandler(
         GetInProgressLocationObjectivesQuery,
         IReadOnlyCollection<InProgressLocationObjective>
     > getInProgressLocationObjectives,
-    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
+    IQueryHandler<
+        GetCrossStateConnectorsQuery,
+        IReadOnlyList<CrossStateConnector>
+    > getCrossStateConnectors
 ) : IQueryHandler<GetWorldMapQuery, WorldMapResult>
 {
     public async Task<WorldMapResult> Handle(
@@ -99,24 +103,19 @@ internal class GetWorldMapQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var roads = await (
-            from connector in context.LocationConnectors.AsNoTracking()
-            where connector.WorldId == worldId
-            join origin in context.Locations.AsNoTracking()
-                on connector.OriginLocationId equals origin.Id
-            join destination in context.Locations.AsNoTracking()
-                on connector.DestinationLocationId equals destination.Id
-            where origin.StateId != destination.StateId
-            select new WorldMapRoad(
-                connector.Id,
-                connector.Name,
-                origin.StateId,
-                destination.StateId
-            )
-        ).ToArrayAsync(cancellationToken);
+        var connectors = await getCrossStateConnectors.Handle(
+            new GetCrossStateConnectorsQuery { WorldId = worldId },
+            cancellationToken
+        );
 
         // World generation links two states with a connector in each direction, so collapse each unordered state pair down to a single road for display.
-        return roads
+        return connectors
+            .Select(connector => new WorldMapRoad(
+                connector.Id,
+                connector.Name,
+                connector.OriginStateId,
+                connector.DestinationStateId
+            ))
             .DistinctBy(road =>
                 road.OriginStateId.CompareTo(road.DestinationStateId) <= 0
                     ? (road.OriginStateId, road.DestinationStateId)

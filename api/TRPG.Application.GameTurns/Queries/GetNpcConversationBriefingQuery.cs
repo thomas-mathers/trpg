@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations;
@@ -58,8 +59,6 @@ public record NpcConversationObservedCrime(string Text);
 
 public record NpcConversationReputationEvent(string Text);
 
-internal record ObservedCrime(DateTime OccurredAt, string Text);
-
 public record NpcConversationHistoryResult(
     string Summary,
     IReadOnlyCollection<NpcConversationRecord> Recent,
@@ -101,7 +100,11 @@ internal class GetNpcConversationBriefingQueryHandler(
     IQueryHandler<
         GetRecentReputationLogQuery,
         IReadOnlyCollection<ReputationLogEntry>
-    > getRecentReputationLog
+    > getRecentReputationLog,
+    IQueryHandler<
+        GetCrimesWitnessedByCreatureQuery,
+        IReadOnlyList<WitnessedCrime>
+    > getCrimesWitnessedByCreature
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
     private const int ReputationHistoryLimit = 5;
@@ -227,79 +230,24 @@ internal class GetNpcConversationBriefingQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var kills = await GetObservedKills(query, cancellationToken);
-        var thefts = await GetObservedThefts(query, cancellationToken);
+        var witnessedCrimes = await getCrimesWitnessedByCreature.Handle(
+            new GetCrimesWitnessedByCreatureQuery
+            {
+                WorldId = query.WorldId,
+                WitnessCreatureId = query.NpcId,
+                PlayerId = query.PlayerId,
+            },
+            cancellationToken
+        );
 
-        return
-        [
-            .. kills
-                .Concat(thefts)
-                .OrderByDescending(crime => crime.OccurredAt)
-                .Select(crime => new NpcConversationObservedCrime(crime.Text)),
-        ];
+        return witnessedCrimes
+            .Select(crime => new NpcConversationObservedCrime(
+                crime.Kind == WitnessedCrimeKind.Kill
+                    ? $"You witnessed the player kill {crime.SubjectName}."
+                    : $"You witnessed the player steal from {crime.SubjectName}."
+            ))
+            .ToArray();
     }
-
-    private async Task<ObservedCrime[]> GetObservedKills(
-        GetNpcConversationBriefingQuery query,
-        CancellationToken cancellationToken
-    ) =>
-        await context
-            .CrimeWitnesses.AsNoTracking()
-            .Where(witness =>
-                witness.WorldId == query.WorldId
-                && witness.CreatureId == query.NpcId
-                && witness.Resolution != CrimeWitnessResolution.Dead
-            )
-            .Join(
-                context.Crimes.OfType<KillCrime>().AsNoTracking(),
-                witness => witness.CrimeId,
-                crime => crime.Id,
-                (witness, crime) =>
-                    new
-                    {
-                        crime.PlayerId,
-                        crime.VictimName,
-                        crime.OccurredAt,
-                    }
-            )
-            .Where(crime => crime.PlayerId == query.PlayerId)
-            .OrderByDescending(crime => crime.OccurredAt)
-            .Select(crime => new ObservedCrime(
-                crime.OccurredAt,
-                $"You witnessed the player kill {crime.VictimName}."
-            ))
-            .ToArrayAsync(cancellationToken);
-
-    private async Task<ObservedCrime[]> GetObservedThefts(
-        GetNpcConversationBriefingQuery query,
-        CancellationToken cancellationToken
-    ) =>
-        await context
-            .CrimeWitnesses.AsNoTracking()
-            .Where(witness =>
-                witness.WorldId == query.WorldId
-                && witness.CreatureId == query.NpcId
-                && witness.Resolution != CrimeWitnessResolution.Dead
-            )
-            .Join(
-                context.Crimes.OfType<TheftCrime>().AsNoTracking(),
-                witness => witness.CrimeId,
-                crime => crime.Id,
-                (witness, crime) =>
-                    new
-                    {
-                        crime.PlayerId,
-                        crime.OwnerName,
-                        crime.OccurredAt,
-                    }
-            )
-            .Where(crime => crime.PlayerId == query.PlayerId)
-            .OrderByDescending(crime => crime.OccurredAt)
-            .Select(crime => new ObservedCrime(
-                crime.OccurredAt,
-                $"You witnessed the player steal from {crime.OwnerName}."
-            ))
-            .ToArrayAsync(cancellationToken);
 
     private async Task<NpcConversationReputationEvent[]> GetReputationHistory(
         GetNpcConversationBriefingQuery query,

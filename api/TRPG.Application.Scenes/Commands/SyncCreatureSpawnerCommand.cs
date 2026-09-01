@@ -4,6 +4,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory.Commands;
@@ -31,7 +32,8 @@ internal class SyncCreatureSpawnerCommandHandler(
     ICommandHandler<AddItemsCommand> addItems,
     ICommandHandler<AddCreatureSkillsCommand> addCreatureSkills,
     ICommandHandler<AddCreatureJobsCommand> addCreatureJobs,
-    ICommandHandler<CreateEncounterGroupsCommand> createEncounterGroups
+    ICommandHandler<CreateEncounterGroupsCommand> createEncounterGroups,
+    IQueryHandler<GetLivingCreatureCountBySpawnerIdQuery, int> getLivingCreatureCountBySpawnerId
 ) : ICommandHandler<SyncCreatureSpawnerCommand>
 {
     public async Task Handle(
@@ -59,8 +61,8 @@ internal class SyncCreatureSpawnerCommandHandler(
             return;
         }
 
-        var currentPopulation = await context.Creatures.CountAsync(
-            c => c.SpawnerId == spawner.Id && c.State != CreatureState.Dead,
+        var currentPopulation = await getLivingCreatureCountBySpawnerId.Handle(
+            new GetLivingCreatureCountBySpawnerIdQuery { SpawnerId = spawner.Id },
             cancellationToken
         );
 
