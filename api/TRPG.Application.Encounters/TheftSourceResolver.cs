@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
-using TRPG.Data;
+using TRPG.Application.Props.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters;
@@ -14,7 +15,10 @@ internal sealed record TheftSource(
     Guid? WorkstationOccupantId
 );
 
-internal class TheftSourceResolver(TrpgDbContext context)
+internal class TheftSourceResolver(
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetPropByIdQuery, Prop?> getPropById
+)
 {
     public async Task<TheftSource?> Resolve(
         ItemOwnerReference from,
@@ -127,19 +131,29 @@ internal class TheftSourceResolver(TrpgDbContext context)
         Guid creatureId,
         Guid worldId,
         CancellationToken cancellationToken
-    ) =>
-        await context.Creatures.FirstOrDefaultAsync(
-            creature => creature.Id == creatureId && creature.WorldId == worldId,
+    )
+    {
+        var creature = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = creatureId },
             cancellationToken
-        ) ?? throw new EntityNotFoundException(nameof(Creature), creatureId);
+        );
+        return creature is { } found && found.WorldId == worldId
+            ? found
+            : throw new EntityNotFoundException(nameof(Creature), creatureId);
+    }
 
     private async Task<Prop> GetPropOrThrow(
         Guid propId,
         Guid worldId,
         CancellationToken cancellationToken
-    ) =>
-        await context.Props.FirstOrDefaultAsync(
-            candidate => candidate.Id == propId && candidate.WorldId == worldId,
+    )
+    {
+        var prop = await getPropById.Handle(
+            new GetPropByIdQuery { Id = propId },
             cancellationToken
-        ) ?? throw new EntityNotFoundException(nameof(Prop), propId);
+        );
+        return prop is { } found && found.WorldId == worldId
+            ? found
+            : throw new EntityNotFoundException(nameof(Prop), propId);
+    }
 }

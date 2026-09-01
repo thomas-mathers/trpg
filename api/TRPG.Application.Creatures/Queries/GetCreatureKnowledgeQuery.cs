@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -74,7 +75,11 @@ public sealed record PersonLookupResult(
 
 internal class GetCreatureKnowledgeQueryHandler(
     TrpgDbContext context,
-    IQueryHandler<GetRelativesQuery, IReadOnlyCollection<RelativeSummary>> getRelatives
+    IQueryHandler<GetRelativesQuery, IReadOnlyCollection<RelativeSummary>> getRelatives,
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<GetStateByIdQuery, State?> getStateById,
+    IQueryHandler<GetCityByIdQuery, City?> getCityById,
+    IQueryHandler<GetDistrictByIdQuery, District?> getDistrictById
 ) : IQueryHandler<GetCreatureKnowledgeQuery, IReadOnlyList<LookupMatch>>
 {
     private const double SimilarityThreshold = 0.35;
@@ -243,9 +248,10 @@ internal class GetCreatureKnowledgeQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var state = await context
-            .States.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == city.StateId, cancellationToken);
+        var state = await getStateById.Handle(
+            new GetStateByIdQuery { Id = city.StateId },
+            cancellationToken
+        );
         var country =
             state != null
                 ? await context
@@ -301,23 +307,24 @@ internal class GetCreatureKnowledgeQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var location = await context
-            .Locations.AsNoTracking()
-            .FirstOrDefaultAsync(l => l.Id == creature.LocationId, cancellationToken);
+        var location = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = creature.LocationId },
+            cancellationToken
+        );
         var state = location is null
             ? null
-            : await context
-                .States.AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == location.StateId, cancellationToken);
+            : await getStateById.Handle(
+                new GetStateByIdQuery { Id = location.StateId },
+                cancellationToken
+            );
         var city = location?.CityId is { } cityId
-            ? await context
-                .Cities.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == cityId, cancellationToken)
+            ? await getCityById.Handle(new GetCityByIdQuery { Id = cityId }, cancellationToken)
             : null;
         var district = location?.DistrictId is { } districtId
-            ? await context
-                .Districts.AsNoTracking()
-                .FirstOrDefaultAsync(d => d.Id == districtId, cancellationToken)
+            ? await getDistrictById.Handle(
+                new GetDistrictByIdQuery { Id = districtId },
+                cancellationToken
+            )
             : null;
         var factionNames = await (
             from fm in context.FactionMembers
