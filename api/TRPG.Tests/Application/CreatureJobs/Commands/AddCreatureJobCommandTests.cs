@@ -10,7 +10,7 @@ namespace TRPG.Tests.Application.CreatureJobs.Commands;
 public sealed class AddCreatureJobCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private GetAllCreatureJobsByCreatureIdQueryHandler _getAllByCreatureId = null!;
+    private GetCreatureJobsByCreatureIdQueryHandler _getAllByCreatureId = null!;
     private AddCreatureJobCommandHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
 
@@ -18,7 +18,7 @@ public sealed class AddCreatureJobCommandTests(DatabaseFixture db) : IAsyncLifet
     {
         _context = db.CreateContext();
         _handler = new AddCreatureJobCommandHandler(_context);
-        _getAllByCreatureId = new GetAllCreatureJobsByCreatureIdQueryHandler(_context);
+        _getAllByCreatureId = new GetCreatureJobsByCreatureIdQueryHandler(_context);
 
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -43,7 +43,7 @@ public sealed class AddCreatureJobCommandTests(DatabaseFixture db) : IAsyncLifet
 
         // Assert
         var jobs = await _getAllByCreatureId.Handle(
-            new GetAllCreatureJobsByCreatureIdQuery { CreatureId = _creature.Id },
+            new GetCreatureJobsByCreatureIdQuery { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
         Assert.Contains(jobs, j => j.Id == job.Id);

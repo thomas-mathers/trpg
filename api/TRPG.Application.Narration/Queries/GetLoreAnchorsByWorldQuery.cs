@@ -17,7 +17,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(
     TrpgDbContext context,
     IMemoryCache cache,
     IQueryHandler<
-        GetAllCreaturesInWorldQuery,
+        GetCreaturesInWorldQuery,
         IReadOnlyCollection<CreatureSummary>
     > getAllCreaturesInWorld
 ) : IQueryHandler<GetLoreAnchorsByWorldQuery, IReadOnlyCollection<LoreAnchorResult>>
@@ -42,7 +42,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(
     )
     {
         var creatureSummaries = await getAllCreaturesInWorld.Handle(
-            new GetAllCreaturesInWorldQuery { WorldId = worldId },
+            new GetCreaturesInWorldQuery { WorldId = worldId },
             cancellationToken
         );
         var creatures = creatureSummaries

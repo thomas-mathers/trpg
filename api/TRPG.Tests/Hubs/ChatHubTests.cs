@@ -589,8 +589,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
         await StartFight(sessionId, enemy);
         var connection = fixture.CreateHubConnection(sessionId);
-        var combatUpdatedReceived =
-            new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdatePayload>();
+        var combatUpdatedReceived = new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdated>();
         var gameClient = new TestGameClient
         {
             Connection = connection,
@@ -620,8 +619,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
         await StartFight(sessionId, enemy);
         var connection = fixture.CreateHubConnection(sessionId);
-        var combatUpdatedReceived =
-            new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdatePayload>();
+        var combatUpdatedReceived = new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdated>();
         var initialSnapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();

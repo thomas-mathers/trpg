@@ -5,16 +5,16 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
 
-public class GetAllBuildingOwnersByBuildingIdQuery
+public class GetBuildingOwnersByBuildingIdQuery
 {
     public required Guid BuildingId { get; init; }
 }
 
-internal class GetAllBuildingOwnersByBuildingIdQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetAllBuildingOwnersByBuildingIdQuery, IReadOnlyCollection<BuildingOwner>>
+internal class GetBuildingOwnersByBuildingIdQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetBuildingOwnersByBuildingIdQuery, IReadOnlyCollection<BuildingOwner>>
 {
     public async Task<IReadOnlyCollection<BuildingOwner>> Handle(
-        GetAllBuildingOwnersByBuildingIdQuery query,
+        GetBuildingOwnersByBuildingIdQuery query,
         CancellationToken cancellationToken = default
     )
     {

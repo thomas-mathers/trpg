@@ -125,13 +125,13 @@ internal class GetSceneQueryHandler(
     IQueryHandler<GetCityByStateIdQuery, City?> getCityByStateId,
     IQueryHandler<GetDistrictByIdQuery, District?> getDistrictById,
     IQueryHandler<GetRoomQuery, RoomResult?> getRoom,
-    IQueryHandler<GetAllPropsByLocationIdQuery, IReadOnlyCollection<Prop>> getAllPropsByLocationId,
+    IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>> getAllPropsByLocationId,
     IQueryHandler<
         GetConnectorsByLocationIdQuery,
         IReadOnlyCollection<LocationConnector>
     > getConnectorsByLocationId,
     IQueryHandler<
-        GetAllBuildingsByLocationQuery,
+        GetBuildingsByLocationQuery,
         IReadOnlyCollection<Building>
     > getAllBuildingsByLocation,
     IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>> getNearbyCreatures,
@@ -334,7 +334,7 @@ internal class GetSceneQueryHandler(
         );
 
         var props = await getAllPropsByLocationId.Handle(
-            new GetAllPropsByLocationIdQuery { LocationId = player.LocationId },
+            new GetPropsByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
         );
 
@@ -364,7 +364,7 @@ internal class GetSceneQueryHandler(
     )
     {
         var buildings = await getAllBuildingsByLocation.Handle(
-            new GetAllBuildingsByLocationQuery { LocationId = player.LocationId },
+            new GetBuildingsByLocationQuery { LocationId = player.LocationId },
             cancellationToken
         );
 

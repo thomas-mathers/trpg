@@ -22,7 +22,7 @@ internal class GetEquipItemBasicAttackDamageQueryHandler(
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
     IQueryHandler<
-        GetAllWeaponProficienciesQuery,
+        GetWeaponProficienciesQuery,
         IReadOnlyDictionary<WeaponType, int>
     > getAllWeaponProficiencies,
     DamageCalculator damageCalculator,
@@ -70,7 +70,7 @@ internal class GetEquipItemBasicAttackDamageQueryHandler(
             cancellationToken
         );
         var weaponProficiencies = await getAllWeaponProficiencies.Handle(
-            new GetAllWeaponProficienciesQuery
+            new GetWeaponProficienciesQuery
             {
                 WorldId = creature.WorldId,
                 CreatureId = query.CreatureId,

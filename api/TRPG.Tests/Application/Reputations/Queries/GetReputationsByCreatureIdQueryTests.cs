@@ -7,17 +7,17 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Reputations.Queries;
 
 [Collection("Database")]
-public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetReputationsByCreatureIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private AdjustReputationsCommandHandler _adjustReputations = null!;
     private TrpgDbContext _context = null!;
-    private GetAllReputationsByCreatureIdQueryHandler _handler = null!;
+    private GetReputationsByCreatureIdQueryHandler _handler = null!;
     private readonly Faction _faction = Builders.MakeFaction();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetAllReputationsByCreatureIdQueryHandler(_context);
+        _handler = new GetReputationsByCreatureIdQueryHandler(_context);
         _adjustReputations = new AdjustReputationsCommandHandler(_context);
 
         _context.Factions.Add(_faction);
@@ -63,7 +63,7 @@ public sealed class GetAllReputationsByCreatureIdQueryTests(DatabaseFixture db) 
 
         // Act
         var result = await _handler.Handle(
-            new GetAllReputationsByCreatureIdQuery { CreatureId = creatureId },
+            new GetReputationsByCreatureIdQuery { CreatureId = creatureId },
             TestContext.Current.CancellationToken
         );
 

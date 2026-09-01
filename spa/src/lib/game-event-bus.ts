@@ -1,7 +1,4 @@
-import type {
-  CombatStartedPayload,
-  CombatUpdatePayload,
-} from '@/api/signalr-client/TRPG.Combat.Responses';
+import type { CombatStarted, CombatUpdated } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type { CharacterLevelUp, SkillLevelUp } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type {
   GuardEncounterResolutionFact,
@@ -27,8 +24,8 @@ export type { CharacterLevelUp, QuestDialogRequested, QuestObjectiveCompleted, S
 
 interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
-  CombatStarted: CombatStartedPayload;
-  CombatUpdated: CombatUpdatePayload;
+  CombatStarted: CombatStarted;
+  CombatUpdated: CombatUpdated;
   // Fires once the round's animation finishes, so the combat UI, toasts, and respawn flow don't jump ahead of what's on screen.
   CombatResolved: TerminalCombatOutcome;
   // Fires immediately with the round data, before animation — for consumers with nothing to sequence against, like the hidden chat log's marker.

@@ -26,7 +26,7 @@ internal class SyncSceneCommandHandler(
         IReadOnlyList<Guid>
     > getCreatureIdsWithJobInLocation,
     IQueryHandler<
-        GetAllCreatureJobsByCreatureIdQuery,
+        GetCreatureJobsByCreatureIdQuery,
         IReadOnlyList<CreatureJob>
     > getAllJobsByCreatureId,
     IQueryHandler<GetCreatureIdsByDistrictQuery, IReadOnlyList<Guid>> getCreatureIdsByDistrict,
@@ -143,7 +143,7 @@ internal class SyncSceneCommandHandler(
         foreach (var creatureId in creatureIds)
         {
             var jobs = await getAllJobsByCreatureId.Handle(
-                new GetAllCreatureJobsByCreatureIdQuery { CreatureId = creatureId },
+                new GetCreatureJobsByCreatureIdQuery { CreatureId = creatureId },
                 cancellationToken
             );
 

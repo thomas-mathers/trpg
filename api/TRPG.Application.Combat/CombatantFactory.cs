@@ -13,7 +13,7 @@ namespace TRPG.Application.Combat;
 internal class CombatantFactory(
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventory,
     IQueryHandler<
-        GetAllWeaponProficienciesQuery,
+        GetWeaponProficienciesQuery,
         IReadOnlyDictionary<WeaponType, int>
     > getAllWeaponProficiencies,
     IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
@@ -39,7 +39,7 @@ internal class CombatantFactory(
     )
     {
         var weaponProficiencies = await getAllWeaponProficiencies.Handle(
-            new GetAllWeaponProficienciesQuery
+            new GetWeaponProficienciesQuery
             {
                 WorldId = creature.WorldId,
                 CreatureId = creature.Id,

@@ -7,13 +7,13 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Creatures.Queries;
 
 [Collection("Database")]
-public sealed class GetAllCreaturesInWorldQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetCreaturesInWorldQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private GetAllCreaturesInWorldQueryHandler _handler = null!;
+    private GetCreaturesInWorldQueryHandler _handler = null!;
     private readonly Creature _inWorld = Builders.MakeCreature(WorldId);
     private readonly Creature _inOtherWorld = Builders.MakeCreature();
 
@@ -23,7 +23,7 @@ public sealed class GetAllCreaturesInWorldQueryTests(DatabaseFixture db) : IAsyn
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<GetAllCreaturesInWorldQueryHandler>();
+        _handler = _serviceProvider.GetRequiredService<GetCreaturesInWorldQueryHandler>();
 
         _context.Creatures.AddRange(_inWorld, _inOtherWorld);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -40,7 +40,7 @@ public sealed class GetAllCreaturesInWorldQueryTests(DatabaseFixture db) : IAsyn
     {
         // Act
         var result = await _handler.Handle(
-            new GetAllCreaturesInWorldQuery { WorldId = WorldId },
+            new GetCreaturesInWorldQuery { WorldId = WorldId },
             TestContext.Current.CancellationToken
         );
 

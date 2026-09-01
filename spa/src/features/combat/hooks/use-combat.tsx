@@ -8,7 +8,7 @@ import type {
   CombatRegeneration,
   CombatResourceState,
   CombatantState,
-  CombatUpdatePayload,
+  CombatUpdated,
 } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type { TerminalCombatOutcome } from '@/features/combat/terminal-combat-outcome';
 import { GameToast } from '@/features/game/components/game-toast';
@@ -61,7 +61,7 @@ interface CombatState {
 
 type CombatStateAction =
   | { type: 'FIGHT_STARTED'; fightId: string; fight: CombatantState[] }
-  | { type: 'ROUND_RECEIVED'; payload: CombatUpdatePayload; skipAnimation: boolean }
+  | { type: 'ROUND_RECEIVED'; payload: CombatUpdated; skipAnimation: boolean }
   | { type: 'STEP_ADVANCED' }
   | { type: 'RESOLVED' };
 
@@ -158,7 +158,7 @@ function toCombatFlash(event: CombatActionResult, nonce: number): CombatFlash {
   }
 }
 
-function buildRoundSteps(payload: CombatUpdatePayload): AnimationStep[] {
+function buildRoundSteps(payload: CombatUpdated): AnimationStep[] {
   const steps: AnimationStep[] = [];
   if (payload.actions.length === 0) {
     steps.push({ kind: 'settle', combatants: payload.combatants, delayMs: 0 });

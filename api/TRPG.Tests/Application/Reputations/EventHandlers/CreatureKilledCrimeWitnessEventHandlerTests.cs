@@ -46,7 +46,7 @@ public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture 
         var crime = MakeTheftCrime();
         _context.Creatures.Add(witness);
         _context.Crimes.Add(crime);
-        _context.CrimeWitnesses.Add(MakeWitness(crime.Id, witness.Id));
+        _context.CrimeWitnesses.Add(Builders.MakeCrimeWitness(crime.Id, witness.Id, WorldId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -90,7 +90,7 @@ public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture 
         };
         _context.Creatures.AddRange(victim, witness);
         _context.Crimes.Add(crime);
-        _context.CrimeWitnesses.Add(MakeWitness(crime.Id, witness.Id));
+        _context.CrimeWitnesses.Add(Builders.MakeCrimeWitness(crime.Id, witness.Id, WorldId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -123,8 +123,8 @@ public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture 
         _context.Creatures.AddRange(deadWitness, livingWitness);
         _context.Crimes.Add(crime);
         _context.CrimeWitnesses.AddRange(
-            MakeWitness(crime.Id, deadWitness.Id),
-            MakeWitness(crime.Id, livingWitness.Id)
+            Builders.MakeCrimeWitness(crime.Id, deadWitness.Id, WorldId),
+            Builders.MakeCrimeWitness(crime.Id, livingWitness.Id, WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -167,13 +167,5 @@ public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture 
             OwnerName = "Mara",
             SourceOwnerId = Guid.NewGuid(),
             SourceOwnerType = OwnerType.Container,
-        };
-
-    private static CrimeWitness MakeWitness(Guid crimeId, Guid creatureId) =>
-        new()
-        {
-            WorldId = WorldId,
-            CrimeId = crimeId,
-            CreatureId = creatureId,
         };
 }

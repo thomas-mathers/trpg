@@ -5,29 +5,28 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
+using TRPG.Application.RoomBookings.Commands;
 using TRPG.Domain.Models;
 using TRPG.Tools;
 
-namespace TRPG.Buildings.Tools;
+namespace TRPG.RoomBookings.Tools;
 
-internal class ReturnRoomKeyTool(
+internal class BookRoomTool(
     GameTurnContext turnContext,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
-    ICommandHandler<ReturnRoomKeyCommand, ReturnRoomKeyResult> returnRoomKey,
-    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
+    ICommandHandler<BookRoomCommand, BookRoomResult> bookRoom,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
-    ILogger<ReturnRoomKeyTool> logger
+    ILogger<BookRoomTool> logger
 ) : IGameTool
 {
     public Delegate Invoke => InvokeAsync;
 
-    [DisplayName("return_key")]
+    [DisplayName("book_room")]
     [Description(
-        "Call this when the player explicitly hands their room key back to an innkeeper to check out. If the player is past their checkout time and never returned it, the innkeeper confronts them instead of accepting a plain return — in that case stop the response without narrating the checkout as if it went smoothly."
+        "Call this only after the player has explicitly confirmed they want to rent a room for the night from an innkeeper — never merely because they asked about rates or availability. Renting a room costs 5 gold, charged immediately, and covers one night."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -37,7 +36,7 @@ internal class ReturnRoomKeyTool(
         CancellationToken cancellationToken
     )
     {
-        logger.LogInformation("[return_key] npcName={NpcName}", npcName);
+        logger.LogInformation("[book_room] npcName={NpcName}", npcName);
         var stopwatch = Stopwatch.StartNew();
 
         var player = await getCreatureById.Handle(
@@ -65,8 +64,8 @@ internal class ReturnRoomKeyTool(
             cancellationToken
         );
 
-        var returnResult = await returnRoomKey.Handle(
-            new ReturnRoomKeyCommand
+        var bookingResult = await bookRoom.Handle(
+            new BookRoomCommand
             {
                 PlayerId = turnContext.PlayerId,
                 WorldId = turnContext.WorldId,
@@ -76,36 +75,22 @@ internal class ReturnRoomKeyTool(
             cancellationToken
         );
 
-        object? result;
-        if (returnResult.Outcome == ReturnRoomKeyOutcome.Overdue)
+        object? result = bookingResult.Outcome switch
         {
-            await publishEncounterStarted.Handle(
-                new PublishEncounterStartedCommand
-                {
-                    PlayerId = turnContext.PlayerId,
-                    Encounter = returnResult.Encounter,
-                },
-                cancellationToken
-            );
-            result = new
+            BookRoomOutcome.NoVacancy => new ToolError("Every room here is taken right now."),
+            BookRoomOutcome.InsufficientGold => new ToolError(
+                "The player doesn't have enough gold to cover the room."
+            ),
+            _ => new
             {
-                Confronted = true,
-                Instruction = "The innkeeper has confronted the player about the overdue key. Stop the response without narration.",
-            };
-        }
-        else
-        {
-            result = returnResult.Outcome switch
-            {
-                ReturnRoomKeyOutcome.NoActiveBooking => new ToolError(
-                    "The player isn't currently renting a room here."
-                ),
-                _ => new { Returned = true },
-            };
-        }
+                Booked = true,
+                bookingResult.RoomName,
+                bookingResult.GoldCharged,
+            },
+        };
 
         logger.LogInformation(
-            "[perf] [return_key] result in {ElapsedMs}ms: {Result}",
+            "[perf] [book_room] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,
             JsonSerializer.Serialize(
                 result,

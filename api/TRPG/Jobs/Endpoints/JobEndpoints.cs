@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Data;
 using TRPG.Jobs.Responses;
 
-namespace TRPG.Endpoints;
+namespace TRPG.Jobs.Endpoints;
 
-internal static class JobsEndpoints
+internal static class JobEndpoints
 {
-    public static void MapJobsEndpoints(this WebApplication app)
+    public static void MapJobEndpoints(this WebApplication app)
     {
         app.MapGet("/jobs/{id:guid}", GetJob).WithName("GetJob");
     }

@@ -5,17 +5,17 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WeaponProficiency.Queries;
 
-public class GetAllWeaponProficienciesQuery
+public class GetWeaponProficienciesQuery
 {
     public required Guid WorldId { get; init; }
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetAllWeaponProficienciesQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetAllWeaponProficienciesQuery, IReadOnlyDictionary<WeaponType, int>>
+internal class GetWeaponProficienciesQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetWeaponProficienciesQuery, IReadOnlyDictionary<WeaponType, int>>
 {
     public async Task<IReadOnlyDictionary<WeaponType, int>> Handle(
-        GetAllWeaponProficienciesQuery query,
+        GetWeaponProficienciesQuery query,
         CancellationToken cancellationToken
     )
     {

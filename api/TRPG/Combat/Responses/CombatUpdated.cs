@@ -1,7 +1,7 @@
 namespace TRPG.Combat.Responses;
 
 [Tapper.TranspilationSource]
-public record CombatUpdatePayload(
+public record CombatUpdated(
     IReadOnlyCollection<CombatantState> Combatants,
     IReadOnlyList<CombatActionResult> Actions,
     IReadOnlyList<CombatRegeneration> Regenerations,

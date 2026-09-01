@@ -6,16 +6,16 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
 
-public class GetAllBuildingsByLocationQuery
+public class GetBuildingsByLocationQuery
 {
     public required Guid LocationId { get; init; }
 }
 
-internal class GetAllBuildingsByLocationQueryHandler(TrpgDbContext context, IMemoryCache cache)
-    : IQueryHandler<GetAllBuildingsByLocationQuery, IReadOnlyCollection<Building>>
+internal class GetBuildingsByLocationQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetBuildingsByLocationQuery, IReadOnlyCollection<Building>>
 {
     public async Task<IReadOnlyCollection<Building>> Handle(
-        GetAllBuildingsByLocationQuery query,
+        GetBuildingsByLocationQuery query,
         CancellationToken cancellationToken = default
     )
     {

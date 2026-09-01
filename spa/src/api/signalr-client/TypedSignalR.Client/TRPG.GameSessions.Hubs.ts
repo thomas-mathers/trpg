@@ -4,7 +4,7 @@
 // @ts-nocheck
 import type { IStreamResult, Subject } from '@microsoft/signalr';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
-import type { CombatStartedPayload, CombatUpdatePayload } from '../TRPG.Combat.Responses';
+import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
@@ -115,15 +115,15 @@ export type IGameClient = {
     */
     sceneSnapshot(snapshot: SceneSnapshot): Promise<void>;
     /**
-    * @param payload Transpiled from TRPG.Combat.Responses.CombatStartedPayload
+    * @param payload Transpiled from TRPG.Combat.Responses.CombatStarted
     * @returns Transpiled from System.Threading.Tasks.Task
     */
-    combatStarted(payload: CombatStartedPayload): Promise<void>;
+    combatStarted(payload: CombatStarted): Promise<void>;
     /**
-    * @param update Transpiled from TRPG.Combat.Responses.CombatUpdatePayload
+    * @param update Transpiled from TRPG.Combat.Responses.CombatUpdated
     * @returns Transpiled from System.Threading.Tasks.Task
     */
-    combatUpdated(update: CombatUpdatePayload): Promise<void>;
+    combatUpdated(update: CombatUpdated): Promise<void>;
     /**
     * @param encounter Transpiled from TRPG.Encounters.Responses.HostileEncounterState
     * @returns Transpiled from System.Threading.Tasks.Task

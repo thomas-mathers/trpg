@@ -6,10 +6,10 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.WeaponProficiency.Queries;
 
 [Collection("Database")]
-public sealed class GetAllWeaponProficienciesQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetWeaponProficienciesQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
-    private GetAllWeaponProficienciesQueryHandler _handler = null!;
+    private GetWeaponProficienciesQueryHandler _handler = null!;
     private Guid _worldId;
     private Guid _creatureId;
     private readonly Creature _creature = Builders.MakeCreature();
@@ -17,7 +17,7 @@ public sealed class GetAllWeaponProficienciesQueryTests(DatabaseFixture db) : IA
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetAllWeaponProficienciesQueryHandler(_context);
+        _handler = new GetWeaponProficienciesQueryHandler(_context);
 
         _worldId = _creature.WorldId;
         _creatureId = _creature.Id;
@@ -35,7 +35,7 @@ public sealed class GetAllWeaponProficienciesQueryTests(DatabaseFixture db) : IA
     {
         // Act
         var result = await _handler.Handle(
-            new GetAllWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
+            new GetWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
             TestContext.Current.CancellationToken
         );
 
@@ -68,7 +68,7 @@ public sealed class GetAllWeaponProficienciesQueryTests(DatabaseFixture db) : IA
 
         // Act
         var result = await _handler.Handle(
-            new GetAllWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
+            new GetWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
             TestContext.Current.CancellationToken
         );
 
@@ -98,7 +98,7 @@ public sealed class GetAllWeaponProficienciesQueryTests(DatabaseFixture db) : IA
 
         // Act
         var result = await _handler.Handle(
-            new GetAllWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
+            new GetWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
             TestContext.Current.CancellationToken
         );
 
