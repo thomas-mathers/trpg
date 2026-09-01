@@ -3,6 +3,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
@@ -149,7 +150,12 @@ internal class GetSceneQueryHandler(
     > getTotalCharacterXpFromSkills,
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
-    IQueryHandler<GetBuildingsByIdsQuery, IReadOnlyDictionary<Guid, Building>> getBuildingsByIds
+    IQueryHandler<GetBuildingsByIdsQuery, IReadOnlyDictionary<Guid, Building>> getBuildingsByIds,
+    IQueryHandler<
+        GetFactionIdsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getFactionIdsByCreatureIds,
+    IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -387,36 +393,26 @@ internal class GetSceneQueryHandler(
         }
 
         var nearbyCreatureIds = nearby.Select(x => x.Id).ToArray();
-        var factionMembershipsByCreature = await (
-            from fm in context.FactionMembers
-            where nearbyCreatureIds.Contains(fm.CreatureId)
-            join f in context.Factions on fm.FactionId equals f.Id
-            select new
-            {
-                fm.CreatureId,
-                fm.FactionId,
-                f.Name,
-                f.IsCityFaction,
-            }
-        )
-            .GroupBy(x => x.CreatureId)
-            .ToDictionaryAsync(
-                g => g.Key,
-                g => new
-                {
-                    FactionIds = g.Select(x => x.FactionId).ToArray(),
-                    FactionNames = g.Where(x => !x.IsCityFaction).Select(x => x.Name).ToArray(),
-                },
-                cancellationToken
-            );
-
-        var factionNamesByCreature = factionMembershipsByCreature.ToDictionary(
-            kv => kv.Key,
-            kv => kv.Value.FactionNames
+        var factionIdsByCreature = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = nearbyCreatureIds },
+            cancellationToken
         );
-        var factionIdsByCreature = factionMembershipsByCreature.ToDictionary(
+        var allFactionIds = factionIdsByCreature.Values.SelectMany(ids => ids).Distinct().ToArray();
+        var factionsById = await getFactionsByIds.Handle(
+            new GetFactionsByIdsQuery { Ids = allFactionIds },
+            cancellationToken
+        );
+
+        var factionNamesByCreature = factionIdsByCreature.ToDictionary(
             kv => kv.Key,
-            IReadOnlyList<Guid> (kv) => kv.Value.FactionIds
+            kv =>
+                (IReadOnlyList<string>)
+                    kv
+                        .Value.Where(id =>
+                            factionsById.TryGetValue(id, out var f) && !f.IsCityFaction
+                        )
+                        .Select(id => factionsById[id].Name)
+                        .ToArray()
         );
 
         var reputationByCreature = await getEffectiveReputations.Handle(
