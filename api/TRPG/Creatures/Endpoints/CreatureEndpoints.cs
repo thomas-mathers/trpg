@@ -7,6 +7,7 @@ using TRPG.Abilities.Responses;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
@@ -235,9 +236,12 @@ internal static class CreatureEndpoints
         Guid creatureId,
         EquipItemRequest request,
         [FromServices] ICommandHandler<EquipInventoryItemCommand> equipInventoryItem,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         CancellationToken cancellationToken
     )
     {
+        await EnsureCreatureExists(creatureId, getCreatureById, cancellationToken);
+
         await equipInventoryItem.Handle(
             new EquipInventoryItemCommand
             {
@@ -255,9 +259,12 @@ internal static class CreatureEndpoints
         Guid creatureId,
         TRPG.Inventory.Responses.EquipmentSlot slot,
         [FromServices] ICommandHandler<UnequipInventoryItemCommand> unequipInventoryItem,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         CancellationToken cancellationToken
     )
     {
+        await EnsureCreatureExists(creatureId, getCreatureById, cancellationToken);
+
         await unequipInventoryItem.Handle(
             new UnequipInventoryItemCommand { CreatureId = creatureId, Slot = slot.ToDataModel() },
             cancellationToken
@@ -642,4 +649,20 @@ internal static class CreatureEndpoints
             progress.ExperienceCurrent,
             progress.ExperienceToNextLevel
         );
+
+    private static async Task EnsureCreatureExists(
+        Guid creatureId,
+        IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        CancellationToken cancellationToken
+    )
+    {
+        var creature = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = creatureId },
+            cancellationToken
+        );
+        if (creature == null)
+        {
+            throw new EntityNotFoundException(nameof(Creature), creatureId);
+        }
+    }
 }

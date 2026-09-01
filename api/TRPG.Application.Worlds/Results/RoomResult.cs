@@ -9,7 +9,7 @@ public record RoomResult(
     Guid BuildingId,
     string BuildingName,
     BuildingType BuildingType,
-    string? OwnerName,
+    Guid? OwnerId,
     string? FactionName,
     string? FactionDescription
 );

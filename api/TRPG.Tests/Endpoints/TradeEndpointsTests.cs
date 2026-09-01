@@ -127,6 +127,21 @@ public sealed class TradeEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
     }
 
     [Fact]
+    public async Task ProposeTrade_ReturnsNotFound_WhenPlayerDoesNotExist()
+    {
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            "ProposeTrade",
+            new TradeRequest([], []),
+            new { playerId = Guid.NewGuid(), workstationId = _workstation.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task CompleteTrade_TransfersBothOffers_WhenOfferIsAccepted()
     {
         // Arrange

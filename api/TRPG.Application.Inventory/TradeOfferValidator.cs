@@ -20,13 +20,6 @@ internal class TradeOfferValidator(
         CancellationToken cancellationToken = default
     )
     {
-        var playerExists = await context.Creatures.AnyAsync(
-            creature => creature.Id == playerId,
-            cancellationToken
-        );
-        if (!playerExists)
-            throw new EntityNotFoundException("Player", playerId);
-
         var prop = await getPropById.Handle(
             new GetPropByIdQuery { Id = workstationId },
             cancellationToken

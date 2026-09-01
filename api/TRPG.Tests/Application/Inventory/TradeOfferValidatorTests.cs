@@ -105,21 +105,6 @@ public sealed class TradeOfferValidatorTests(DatabaseFixture db) : IAsyncLifetim
     }
 
     [Fact]
-    public async Task Validate_ThrowsEntityNotFoundException_WhenPlayerDoesNotExist()
-    {
-        // Act & Assert
-        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
-            _validator.Validate(
-                Guid.NewGuid(),
-                _workstation.Id,
-                [],
-                [],
-                TestContext.Current.CancellationToken
-            )
-        );
-    }
-
-    [Fact]
     public async Task Validate_ThrowsEntityNotFoundException_WhenWorkstationDoesNotExist()
     {
         // Act & Assert
