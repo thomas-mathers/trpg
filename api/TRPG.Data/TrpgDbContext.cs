@@ -49,6 +49,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<City> Cities => Set<City>();
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<CreatureKnowledge> CreatureKnowledge => Set<CreatureKnowledge>();
+    public DbSet<CreatureProfile> CreatureProfiles => Set<CreatureProfile>();
     public DbSet<CreatureWeaponProficiency> CreatureWeaponProficiencies =>
         Set<CreatureWeaponProficiency>();
     public DbSet<CreatureQuestObjective> CreatureQuestObjectives => Set<CreatureQuestObjective>();
@@ -65,7 +66,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<DoorConnector> DoorConnectors => Set<DoorConnector>();
     public DbSet<NpcConversation> NpcConversations => Set<NpcConversation>();
     public DbSet<NpcConversationHistory> NpcConversationHistories => Set<NpcConversationHistory>();
-    public DbSet<NpcProfile> NpcProfiles => Set<NpcProfile>();
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
@@ -80,7 +80,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<State> States => Set<State>();
     public DbSet<TravelConnector> TravelConnectors => Set<TravelConnector>();
-    public DbSet<WorldEvent> WorldEvents => Set<WorldEvent>();
     public DbSet<World> Worlds => Set<World>();
     public DbSet<GameSession> GameSessions => Set<GameSession>();
     public DbSet<NpcConversationSessionState> NpcConversationSessionStates =>
@@ -280,11 +279,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(k => k.WorldId);
         });
 
-        modelBuilder.Entity<WorldEvent>(entity =>
-        {
-            entity.Property(e => e.Tags).HasColumnType("text[]");
-        });
-
         modelBuilder.Entity<World>(entity =>
         {
             entity.OwnsOne(w => w.Boundary, b => b.ToJson());
@@ -481,23 +475,19 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(
             entity.HasIndex(c => new { c.NpcConversationHistoryId, c.CreatedAt });
         });
 
-        modelBuilder.Entity<NpcProfile>(entity =>
+        modelBuilder.Entity<CreatureProfile>(entity =>
         {
             entity.HasIndex(profile => profile.WorldId);
             entity.HasIndex(profile => profile.CreatureId).IsUnique();
             entity
                 .Property(profile => profile.Appearance)
-                .HasJsonConversion(() => new NpcAppearance());
-            entity.Property(profile => profile.Behavior).HasJsonConversion(() => new NpcBehavior());
+                .HasJsonConversion(() => new CreatureAppearance());
+            entity
+                .Property(profile => profile.Behavior)
+                .HasJsonConversion(() => new CreatureBehavior());
             entity
                 .Property(profile => profile.PrivateBackground)
-                .HasJsonConversion(() => new NpcPrivateBackground());
-        });
-
-        modelBuilder.Entity<WorldEvent>(entity =>
-        {
-            entity.HasIndex(e => e.WorldId);
-            entity.HasIndex(e => e.LocationId);
+                .HasJsonConversion(() => new CreaturePrivateBackground());
         });
 
         modelBuilder.Entity<Reputation>(entity =>

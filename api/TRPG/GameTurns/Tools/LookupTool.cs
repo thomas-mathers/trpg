@@ -6,6 +6,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tools;

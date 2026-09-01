@@ -123,15 +123,11 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
-            .NpcProfiles.Where(x => x.WorldId == worldId)
+            .CreatureProfiles.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
             .CreatureKnowledge.Where(x => x.WorldId == worldId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context
-            .WorldEvents.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context.Items.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);

@@ -18,7 +18,7 @@ The LLM's role is deliberately narrow: it narrates and roleplays, but doesn't de
 - `api/TRPG.Application.CreatureFormulas` — public stat, skill, and progression formulas.
 - `api/TRPG.Application.GameTurns` — turn orchestration, player movement, LLM conversation execution, and application event publication for that workflow.
 - `api/TRPG.Application.WorldGeneration` — procedural world-generation content: all `Generators/`, the player-creation mapper/enum catalog, and the static naming catalogs (`JailRoomNames`, `TempleRoomNames`, `ShopBuildingTypes`) generated content must match. Zero cross-module Application dependencies — a stateless content-generation library, not an orchestrator.
-- Feature modules own their domain: Abilities, Chat, Combat, CreatureJobs, Creatures, Encounters, Factions, GameSessions, Inventory, Narration, NpcConversations, Props, Quests, Reputations, RoomBookings, Scenes, WeaponProficiency, and Worlds. Worlds owns location/building/room/door-connector structure and ownership, plus world/country/state/city/district lifecycle; it depends on WorldGeneration (never the reverse) to run generation during world creation.
+- Feature modules own their domain: Abilities, Chat, Combat, CreatureJobs, Creatures, Encounters, Factions, GameSessions, Inventory, Knowledge, Narration, NpcConversations, Props, Quests, Reputations, RoomBookings, Scenes, WeaponProficiency, and Worlds. Worlds owns location/building/room/door-connector structure and ownership, plus world/country/state/city/district lifecycle; it depends on WorldGeneration (never the reverse) to run generation during world creation. Knowledge owns what a creature has learned about the world (`CreatureKnowledge`) and family ties (`Relationship`) — graph-edge tables distinct from Creatures' intrinsic-attribute tables.
 - `api/TRPG.Domain` — dependency-free game entities, value objects, and domain enums. It has no project or package dependencies.
 - `api/TRPG.Data` — EF Core contexts, persistence configuration, and migrations. It references Domain for the persisted model types.
 - `api/TRPG.Tests` — xUnit tests with Testcontainers-backed PostgreSQL.
@@ -204,7 +204,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - To apply migrations against a running Postgres instance: `dotnet ef database update --project api/TRPG.Data --startup-project api/TRPG.Data --context TrpgDbContext` (tests never need this — `DatabaseFixture` calls `MigrateAsync` itself against its Testcontainers instance)
 
 ### Owned entities
-- `ToJson()` for owned types not queried/indexed (e.g. `Attributes`, `Progression`, `WorldEvent.Region`)
+- `ToJson()` for owned types not queried/indexed (e.g. `Attributes`, `Progression`, `World.Boundary`)
 - No `ToJson()` for owned types that need indexed columns (e.g. `Person.Location`) — these flatten to regular columns
 - Composite index `(RegionId, BuildingId)` on any flattened `Location`
 

@@ -1,43 +1,43 @@
 namespace TRPG.Domain.Models;
 
-public class NpcProfile
+public class CreatureProfile
 {
-    public NpcAppearance Appearance { get; init; } = new();
-    public NpcBehavior Behavior { get; init; } = new();
+    public CreatureAppearance Appearance { get; init; } = new();
+    public CreatureBehavior Behavior { get; init; } = new();
     public Guid CreatureId { get; init; }
     public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();
-    public NpcPrivateBackground PrivateBackground { get; init; } = new();
+    public CreaturePrivateBackground PrivateBackground { get; init; } = new();
     public Guid WorldId { get; init; }
 }
 
-public class NpcAppearance
+public class CreatureAppearance
 {
     public List<string> DistinguishingFeatures { get; init; } = [];
 }
 
-public class NpcBehavior
+public class CreatureBehavior
 {
     public string Hobby { get; init; } = "";
     public string Personality { get; init; } = "";
     public string SpeechStyle { get; init; } = "";
 }
 
-public class NpcPrivateBackground
+public class CreaturePrivateBackground
 {
-    public IReadOnlyCollection<NpcFamilyMember> Family { get; init; } = [];
-    public IReadOnlyCollection<NpcFaction> Factions { get; init; } = [];
+    public IReadOnlyCollection<CreatureFamilyMember> Family { get; init; } = [];
+    public IReadOnlyCollection<CreatureFaction> Factions { get; init; } = [];
     public string? Home { get; init; }
     public string Origin { get; init; } = "";
     public string? Profession { get; init; }
-    public NpcWorkBackground? Work { get; init; }
+    public CreatureWorkBackground? Work { get; init; }
 }
 
-public record NpcFamilyMember(string Name, string Relationship);
+public record CreatureFamilyMember(string Name, string Relationship);
 
-public record NpcFaction(Guid Id, string Name, bool IsCityFaction = false);
+public record CreatureFaction(Guid Id, string Name, bool IsCityFaction = false);
 
-public class NpcWorkBackground
+public class CreatureWorkBackground
 {
     public IReadOnlyCollection<string> DaysOff { get; init; } = [];
     public string Building { get; init; } = "";

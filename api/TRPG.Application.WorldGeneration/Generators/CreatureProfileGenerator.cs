@@ -2,7 +2,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
 
-internal record NpcProfileGeneratorInput(
+internal record CreatureProfileGeneratorInput(
     IReadOnlyCollection<Creature> Creatures,
     IReadOnlyDictionary<Guid, Location> LocationsById,
     IReadOnlyCollection<FactionMember> FactionMembers,
@@ -14,7 +14,7 @@ internal record NpcProfileGeneratorInput(
     IReadOnlyCollection<BuildingOwner> BuildingOwners
 );
 
-internal static class NpcProfileGenerator
+internal static class CreatureProfileGenerator
 {
     private static readonly string[] Features =
     [
@@ -48,7 +48,7 @@ internal static class NpcProfileGenerator
         "fishing",
     ];
 
-    public static NpcProfile[] Generate(NpcProfileGeneratorInput input)
+    public static CreatureProfile[] Generate(CreatureProfileGeneratorInput input)
     {
         var creaturesById = input.Creatures.ToDictionary(creature => creature.Id);
 
@@ -71,7 +71,7 @@ internal static class NpcProfileGenerator
                 group => group.Key,
                 group =>
                     group
-                        .Select(member => new NpcFaction(
+                        .Select(member => new CreatureFaction(
                             member.FactionId,
                             factionsById[member.FactionId].Name,
                             factionsById[member.FactionId].IsCityFaction
@@ -86,7 +86,7 @@ internal static class NpcProfileGenerator
                 group =>
                     group
                         .Where(relationship => creaturesById.ContainsKey(relationship.RelativeId))
-                        .Select(relationship => new NpcFamilyMember(
+                        .Select(relationship => new CreatureFamilyMember(
                             creaturesById[relationship.RelativeId].Name,
                             relationship.RelationshipType.ToString()
                         ))
@@ -117,14 +117,14 @@ internal static class NpcProfileGenerator
             .ToArray();
     }
 
-    private static NpcProfile CreateProfile(
+    private static CreatureProfile CreateProfile(
         Creature creature,
         IReadOnlyDictionary<Guid, Location> locationsById,
         IReadOnlyDictionary<Guid, CreatureJob[]> jobsByCreatureId,
         IReadOnlyDictionary<Guid, Guid> buildingIdByLocationId,
         IReadOnlyDictionary<Guid, Building> buildingsById,
-        IReadOnlyDictionary<Guid, NpcFaction[]> factionsByCreatureId,
-        IReadOnlyDictionary<Guid, NpcFamilyMember[]> familyByCreatureId,
+        IReadOnlyDictionary<Guid, CreatureFaction[]> factionsByCreatureId,
+        IReadOnlyDictionary<Guid, CreatureFamilyMember[]> familyByCreatureId,
         IReadOnlyDictionary<Guid, HashSet<Guid>> ownedBuildingIdsByCreatureId
     )
     {
@@ -153,23 +153,23 @@ internal static class NpcProfileGenerator
 
         var profession = creature.Profession?.ToString().ToLowerInvariant() ?? "wanderer";
 
-        return new NpcProfile
+        return new CreatureProfile
         {
             WorldId = creature.WorldId,
             CreatureId = creature.Id,
             Description =
                 $"A {creature.CreatureType.ToString().ToLowerInvariant()} {profession} with a watchful bearing.",
-            Appearance = new NpcAppearance
+            Appearance = new CreatureAppearance
             {
                 DistinguishingFeatures = [Features[Random.Shared.Next(Features.Length)]],
             },
-            Behavior = new NpcBehavior
+            Behavior = new CreatureBehavior
             {
                 Personality = Personalities[Random.Shared.Next(Personalities.Length)],
                 SpeechStyle = SpeechStyles[Random.Shared.Next(SpeechStyles.Length)],
                 Hobby = Hobbies[Random.Shared.Next(Hobbies.Length)],
             },
-            PrivateBackground = new NpcPrivateBackground
+            PrivateBackground = new CreaturePrivateBackground
             {
                 Origin = locationsById[creature.BirthLocationId].Name,
                 Profession = creature.Profession?.ToString(),
@@ -179,7 +179,7 @@ internal static class NpcProfileGenerator
                 Work =
                     workBuilding == null || workJob == null
                         ? null
-                        : new NpcWorkBackground
+                        : new CreatureWorkBackground
                         {
                             Building = workBuilding.Name,
                             IsOwner = isOwner,
