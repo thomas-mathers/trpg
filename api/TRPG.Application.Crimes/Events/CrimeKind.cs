@@ -1,4 +1,4 @@
-namespace TRPG.Application.Reputations.Events;
+namespace TRPG.Application.Crimes.Events;
 
 public enum CrimeKind
 {

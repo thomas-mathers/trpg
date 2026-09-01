@@ -4,6 +4,7 @@ using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
@@ -27,7 +28,8 @@ internal class ResolveTheftEncounterActionCommandHandler(
         IReadOnlyCollection<InventoryItemTransferResult>
     > transferInventoryItems,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<StartFightCommand> startFight
+    ICommandHandler<StartFightCommand> startFight,
+    ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome
 ) : ICommandHandler<ResolveTheftEncounterActionCommand, TheftEncounterResolutionFact>
 {
     public async Task<TheftEncounterResolutionFact> Handle(
@@ -41,22 +43,15 @@ internal class ResolveTheftEncounterActionCommandHandler(
         );
 
         var encounter = await GetEncounter(command, cancellationToken);
-        var crime = await GetCrime(encounter, cancellationToken);
 
         var resolution = command.Action switch
         {
             ApologizeTheftEncounterAction => await ResolveApology(
                 encounter,
-                crime,
                 command,
                 cancellationToken
             ),
-            FightTheftEncounterAction => await ResolveFight(
-                encounter,
-                crime,
-                command,
-                cancellationToken
-            ),
+            FightTheftEncounterAction => await ResolveFight(encounter, command, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(command)),
         };
 
@@ -71,7 +66,6 @@ internal class ResolveTheftEncounterActionCommandHandler(
 
     private async Task<TheftEncounterResolutionFact> ResolveApology(
         TheftEncounter encounter,
-        TheftCrime crime,
         ResolveTheftEncounterActionCommand command,
         CancellationToken cancellationToken
     )
@@ -99,7 +93,14 @@ internal class ResolveTheftEncounterActionCommandHandler(
             itemsReturned = encounter.ItemSelections.Count > 0;
         }
 
-        crime.Outcome = TheftCrimeOutcome.Apologized;
+        await setTheftCrimeOutcome.Handle(
+            new SetTheftCrimeOutcomeCommand
+            {
+                CrimeId = encounter.TheftCrimeId,
+                Outcome = TheftCrimeOutcome.Apologized,
+            },
+            cancellationToken
+        );
 
         return new TheftEncounterResolutionFact(
             encounter.Id,
@@ -112,12 +113,18 @@ internal class ResolveTheftEncounterActionCommandHandler(
 
     private async Task<TheftEncounterResolutionFact> ResolveFight(
         TheftEncounter encounter,
-        TheftCrime crime,
         ResolveTheftEncounterActionCommand command,
         CancellationToken cancellationToken
     )
     {
-        crime.Outcome = TheftCrimeOutcome.Resisted;
+        await setTheftCrimeOutcome.Handle(
+            new SetTheftCrimeOutcomeCommand
+            {
+                CrimeId = encounter.TheftCrimeId,
+                Outcome = TheftCrimeOutcome.Resisted,
+            },
+            cancellationToken
+        );
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
@@ -172,19 +179,4 @@ internal class ResolveTheftEncounterActionCommandHandler(
 
         return encounter;
     }
-
-    private async Task<TheftCrime> GetCrime(
-        TheftEncounter encounter,
-        CancellationToken cancellationToken
-    ) =>
-        await context
-            .Crimes.OfType<TheftCrime>()
-            .FirstOrDefaultAsync(
-                item =>
-                    item.Id == encounter.TheftCrimeId
-                    && item.WorldId == encounter.WorldId
-                    && item.PlayerId == encounter.PlayerId,
-                cancellationToken
-            )
-        ?? throw new EntityNotFoundException(nameof(TheftCrime), encounter.TheftCrimeId);
 }

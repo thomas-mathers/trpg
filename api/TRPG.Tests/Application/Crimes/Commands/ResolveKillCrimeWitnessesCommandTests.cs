@@ -1,38 +1,30 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using TRPG.Application.Configuration;
-using TRPG.Application.Reputations.Commands;
-using TRPG.Application.Reputations.Events;
+using TRPG.Application.Crimes.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Reputations.Commands;
+namespace TRPG.Tests.Application.Crimes.Commands;
 
 [Collection("Database")]
-public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class ResolveKillCrimeWitnessesCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid LocationId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private ResolveKillCrimesCommandHandler _handler = null!;
-    private Creature _player = null!;
+    private ResolveKillCrimeWitnessesCommandHandler _handler = null!;
+    private readonly Creature _player = Builders.MakeCreature(WorldId, locationId: LocationId);
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
-            .AddSingleton<IOptionsMonitor<ReputationOptions>>(
-                new TestOptionsMonitor<ReputationOptions>(
-                    new ReputationOptions { KillReputationPenalty = -31 }
-                )
-            )
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<ResolveKillCrimesCommandHandler>();
-        _player = Builders.MakeCreature(WorldId, locationId: LocationId);
+        _handler = _serviceProvider.GetRequiredService<ResolveKillCrimeWitnessesCommandHandler>();
+
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -46,7 +38,7 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
     [Fact]
     public async Task Handle_ReportsMovedWitnessAndMarksDeadWitnessDead()
     {
-        var faction = Builders.MakeFaction(WorldId);
+        // Arrange
         var victim = Builders.MakeCreature(WorldId, locationId: LocationId);
         var movedWitness = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
         var deadWitness = Builders.MakeCreature(
@@ -62,28 +54,17 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
             VictimId = victim.Id,
             VictimName = victim.Name,
         };
-        _context.Factions.Add(faction);
         _context.Creatures.AddRange(victim, movedWitness, deadWitness);
-        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, victim.Id));
         _context.Crimes.Add(crime);
         _context.CrimeWitnesses.AddRange(
-            new CrimeWitness
-            {
-                WorldId = WorldId,
-                CrimeId = crime.Id,
-                CreatureId = movedWitness.Id,
-            },
-            new CrimeWitness
-            {
-                WorldId = WorldId,
-                CrimeId = crime.Id,
-                CreatureId = deadWitness.Id,
-            }
+            Builders.MakeCrimeWitness(crime.Id, movedWitness.Id, WorldId),
+            Builders.MakeCrimeWitness(crime.Id, deadWitness.Id, WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await _handler.Handle(
-            new ResolveKillCrimesCommand
+        // Act
+        var result = await _handler.Handle(
+            new ResolveKillCrimeWitnessesCommand
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
@@ -92,6 +73,7 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
             TestContext.Current.CancellationToken
         );
 
+        // Assert
         await using var verifyContext = db.CreateContext();
         var witnesses = await verifyContext
             .CrimeWitnesses.Where(witness => witness.CrimeId == crime.Id)
@@ -100,27 +82,15 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
                 witness => witness.Resolution,
                 TestContext.Current.CancellationToken
             );
-        var log = await verifyContext.ReputationLogEntries.SingleAsync(
-            entry => entry.CreatureId == _player.Id && entry.TargetId == faction.Id,
-            TestContext.Current.CancellationToken
-        );
-        var witnessLog = await verifyContext.ReputationLogEntries.SingleAsync(
-            entry => entry.CreatureId == _player.Id && entry.TargetId == movedWitness.Id,
-            TestContext.Current.CancellationToken
-        );
-
         Assert.Equal(CrimeWitnessResolution.Reported, witnesses[movedWitness.Id]);
         Assert.Equal(CrimeWitnessResolution.Dead, witnesses[deadWitness.Id]);
-        Assert.Equal(-31, log.DeltaScore);
-        Assert.Equal(-31, witnessLog.DeltaScore);
-        Assert.DoesNotContain(
-            _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent is CrimeWitnessesRemovedEvent
-        );
+        var report = Assert.Single(result.ReportedCrimes);
+        Assert.Equal(victim.Id, report.VictimId);
+        Assert.Equal([movedWitness.Id], report.ReportedWitnessIds);
     }
 
     [Fact]
-    public async Task Handle_DoesNotEnqueueRemovedWitnessesNotification_WhenAllKillWitnessesAreDead()
+    public async Task Handle_ReturnsNoReportedCrimes_WhenAllKillWitnessesAreDead()
     {
         // Arrange
         var victim = Builders.MakeCreature(WorldId, locationId: LocationId);
@@ -139,19 +109,12 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
         };
         _context.Creatures.AddRange(victim, witness);
         _context.Crimes.Add(crime);
-        _context.CrimeWitnesses.Add(
-            new CrimeWitness
-            {
-                WorldId = WorldId,
-                CrimeId = crime.Id,
-                CreatureId = witness.Id,
-            }
-        );
+        _context.CrimeWitnesses.Add(Builders.MakeCrimeWitness(crime.Id, witness.Id, WorldId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await _handler.Handle(
-            new ResolveKillCrimesCommand
+        var result = await _handler.Handle(
+            new ResolveKillCrimeWitnessesCommand
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
@@ -161,19 +124,6 @@ public sealed class ResolveKillCrimesCommandTests(DatabaseFixture db) : IAsyncLi
         );
 
         // Assert
-        Assert.DoesNotContain(
-            _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent is CrimeWitnessesRemovedEvent
-        );
-    }
-
-    private sealed class TestOptionsMonitor<T>(T value) : IOptionsMonitor<T>
-        where T : class
-    {
-        public T CurrentValue => value;
-
-        public T Get(string? name) => value;
-
-        public IDisposable? OnChange(Action<T, string?> listener) => null;
+        Assert.Empty(result.ReportedCrimes);
     }
 }

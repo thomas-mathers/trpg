@@ -10,13 +10,8 @@ public static class ReputationsServiceCollectionExtensions
         this IServiceCollection serviceCollection
     ) =>
         serviceCollection
-            .AddTransient<CreatureKilledCrimeWitnessEventHandler>()
-            .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<CreatureKilledCrimeWitnessEventHandler>()
-            )
             .AddTransient<QuestReputationRewardedEventHandler>()
             .AddTransient<IDomainEventConsumer<QuestReputationRewardedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<QuestReputationRewardedEventHandler>()
-            )
-            .AddTransient<PendingCrimeWitnessResolutionService>();
+            );
 }

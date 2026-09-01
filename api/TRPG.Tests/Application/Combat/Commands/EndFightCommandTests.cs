@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Results;
-using TRPG.Application.Reputations.Events;
+using TRPG.Application.Crimes.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;

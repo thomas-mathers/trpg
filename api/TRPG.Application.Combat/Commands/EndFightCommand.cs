@@ -5,8 +5,9 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Crimes.Commands;
+using TRPG.Application.Crimes.Events;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -27,6 +28,8 @@ internal class EndFightCommandHandler(
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
     > getLiveHumanoidWitnessesAtLocation,
+    ICommandHandler<AddKillCrimesCommand> addKillCrimes,
+    ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<EndFightCommand>
 {
@@ -128,28 +131,27 @@ internal class EndFightCommandHandler(
             .Combatants.Where(combatant => killedCreatureIds.Contains(combatant.Id))
             .ToDictionary(combatant => combatant.Id);
 
-        foreach (var killedCreatureId in killedCreatureIds)
-        {
-            var crime = new KillCrime
+        var crimes = killedCreatureIds
+            .Select(killedCreatureId => new KillCrime
             {
                 WorldId = worldId,
                 PlayerId = playerId,
                 LocationId = fight.LocationId,
                 VictimId = killedCreatureId,
                 VictimName = killedCombatants[killedCreatureId].Name,
-            };
-            context.Crimes.Add(crime);
-            context.CrimeWitnesses.AddRange(
-                witnesses.Select(witnessId => new CrimeWitness
-                {
-                    WorldId = worldId,
-                    CrimeId = crime.Id,
-                    CreatureId = witnessId,
-                })
-            );
-        }
+            })
+            .ToArray();
 
-        await context.SaveChangesAsync(cancellationToken);
+        await addKillCrimes.Handle(new AddKillCrimesCommand { Crimes = crimes }, cancellationToken);
+        await addCrimeWitnesses.Handle(
+            new AddCrimeWitnessesCommand
+            {
+                WorldId = worldId,
+                CrimeIds = crimes.Select(crime => crime.Id).ToArray(),
+                WitnessCreatureIds = witnesses,
+            },
+            cancellationToken
+        );
 
         if (witnesses.Length > 0)
         {
