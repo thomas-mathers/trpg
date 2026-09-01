@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;

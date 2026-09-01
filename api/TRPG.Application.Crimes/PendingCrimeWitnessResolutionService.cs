@@ -2,16 +2,16 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Reputations;
+namespace TRPG.Application.Crimes;
 
-internal sealed record PendingCrimeResolution<TCrime>(
+public sealed record PendingCrimeResolution<TCrime>(
     IReadOnlyList<TCrime> Crimes,
     IReadOnlyList<TCrime> ReportedCrimes,
     IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> ReportingWitnessIdsByCrimeId
 )
     where TCrime : Crime;
 
-internal class PendingCrimeWitnessResolutionService(TrpgDbContext context)
+public class PendingCrimeWitnessResolutionService(TrpgDbContext context)
 {
     public async Task<PendingCrimeResolution<TCrime>> Resolve<TCrime>(
         Guid worldId,

@@ -1,7 +1,9 @@
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
@@ -34,7 +36,8 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
         GetRoomBookingsForPlayerInBuildingQuery,
         IReadOnlyCollection<RoomBooking>
     > getRoomBookingsForPlayerInBuilding,
-    ICommandHandler<DeleteRoomBookingsCommand> deleteRoomBookings
+    ICommandHandler<DeleteRoomBookingsCommand> deleteRoomBookings,
+    ICommandHandler<AddTheftCrimesCommand> addTheftCrimes
 ) : ICommandHandler<ConfrontOverdueRoomKeyCommand, ConfrontOverdueRoomKeyResult>
 {
     public async Task<ConfrontOverdueRoomKeyResult> Handle(
@@ -42,9 +45,15 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+
         var heldOverdueKeys = await GetHeldOverdueKeys(command, cancellationToken);
         if (heldOverdueKeys.Count == 0)
         {
+            transaction.Complete();
             return new ConfrontOverdueRoomKeyResult(null);
         }
 
@@ -54,6 +63,7 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
         );
         if (workstation?.OwnerCreatureId is not { } innkeeperId)
         {
+            transaction.Complete();
             return new ConfrontOverdueRoomKeyResult(null);
         }
 
@@ -82,7 +92,10 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
                 .Select(key => new TheftCrimeItem(key.Name, key.Quantity))
                 .ToList(),
         };
-        context.Crimes.Add(crime);
+        await addTheftCrimes.Handle(
+            new AddTheftCrimesCommand { Crimes = [crime] },
+            cancellationToken
+        );
 
         var encounter = new TheftEncounter
         {
@@ -112,6 +125,8 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             },
             cancellationToken
         );
+
+        transaction.Complete();
 
         return new ConfrontOverdueRoomKeyResult(encounter);
     }

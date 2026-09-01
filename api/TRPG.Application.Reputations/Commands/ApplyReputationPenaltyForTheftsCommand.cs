@@ -1,13 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Data;
+using TRPG.Application.Crimes.Commands;
+using TRPG.Application.Crimes.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Reputations.Commands;
-
-public record TheftCrimeReport(Guid TheftCrimeId, IReadOnlyCollection<Guid> ReportedWitnessIds);
 
 public class ApplyReputationPenaltyForTheftsCommand
 {
@@ -15,10 +14,11 @@ public class ApplyReputationPenaltyForTheftsCommand
     public required IReadOnlyCollection<TheftCrimeReport> Thefts { get; init; }
 }
 
-internal record TheftCrimeDetails(Guid Id, Guid? OwnerFactionId, TheftCrimeOutcome? Outcome);
-
 internal class ApplyReputationPenaltyForTheftsCommandHandler(
-    TrpgDbContext context,
+    IQueryHandler<
+        GetTheftCrimeDetailsByIdsQuery,
+        IReadOnlyDictionary<Guid, TheftCrimeDetails>
+    > getTheftCrimeDetailsByIds,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICommandHandler<ApplyReputationPenaltyForTheftsCommand>
@@ -34,11 +34,10 @@ internal class ApplyReputationPenaltyForTheftsCommandHandler(
         }
 
         var theftCrimeIds = command.Thefts.Select(theft => theft.TheftCrimeId).ToArray();
-        var thefts = await context
-            .Crimes.OfType<TheftCrime>()
-            .Where(crime => theftCrimeIds.Contains(crime.Id))
-            .Select(crime => new TheftCrimeDetails(crime.Id, crime.OwnerFactionId, crime.Outcome))
-            .ToDictionaryAsync(theft => theft.Id, cancellationToken);
+        var thefts = await getTheftCrimeDetailsByIds.Handle(
+            new GetTheftCrimeDetailsByIdsQuery { CrimeIds = theftCrimeIds },
+            cancellationToken
+        );
 
         await ApplyFactionPenalty(command, thefts, cancellationToken);
         await ApplyWitnessPenalty(command, thefts, cancellationToken);
@@ -46,7 +45,7 @@ internal class ApplyReputationPenaltyForTheftsCommandHandler(
 
     private async Task ApplyFactionPenalty(
         ApplyReputationPenaltyForTheftsCommand command,
-        Dictionary<Guid, TheftCrimeDetails> thefts,
+        IReadOnlyDictionary<Guid, TheftCrimeDetails> thefts,
         CancellationToken cancellationToken
     )
     {
@@ -79,7 +78,7 @@ internal class ApplyReputationPenaltyForTheftsCommandHandler(
 
     private async Task ApplyWitnessPenalty(
         ApplyReputationPenaltyForTheftsCommand command,
-        Dictionary<Guid, TheftCrimeDetails> thefts,
+        IReadOnlyDictionary<Guid, TheftCrimeDetails> thefts,
         CancellationToken cancellationToken
     )
     {

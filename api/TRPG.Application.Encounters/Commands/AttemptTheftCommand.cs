@@ -9,12 +9,13 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Crimes.Commands;
+using TRPG.Application.Crimes.Events;
 using TRPG.Application.Encounters;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.Reputations.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -61,7 +62,10 @@ internal class AttemptTheftCommandHandler(
     IQueryHandler<GetEquippedItemCountQuery, int> getEquippedItemCount,
     IDomainEventPublisher<ItemAcquiredEvent> itemAcquiredEvents,
     IGameClientEventSink gameEvents,
-    IOptionsMonitor<TheftOptions> theftOptions
+    IOptionsMonitor<TheftOptions> theftOptions,
+    ICommandHandler<AddTheftCrimesCommand> addTheftCrimes,
+    ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
+    ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome
 ) : ICommandHandler<AttemptTheftCommand, TheftAttemptResult>
 {
     public async Task<TheftAttemptResult> Handle(
@@ -198,7 +202,14 @@ internal class AttemptTheftCommandHandler(
             cancellationToken
         );
 
-        crime.Outcome = TheftCrimeOutcome.Taken;
+        await setTheftCrimeOutcome.Handle(
+            new SetTheftCrimeOutcomeCommand
+            {
+                CrimeId = crime.Id,
+                Outcome = TheftCrimeOutcome.Taken,
+            },
+            cancellationToken
+        );
 
         if (requiresTheftDetectionRoll)
         {
@@ -213,8 +224,6 @@ internal class AttemptTheftCommandHandler(
             );
         }
 
-        await context.SaveChangesAsync(cancellationToken);
-
         await PublishItemAcquiredEvents(command, transferResults, cancellationToken);
 
         return new TheftAttemptResult(TheftAttemptOutcome.Completed);
@@ -225,13 +234,14 @@ internal class AttemptTheftCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        context.CrimeWitnesses.AddRange(
-            theft.Witnesses.Select(witness => new CrimeWitness
+        await addCrimeWitnesses.Handle(
+            new AddCrimeWitnessesCommand
             {
                 WorldId = theft.Command.WorldId,
-                CrimeId = theft.Crime.Id,
-                CreatureId = witness.Id,
-            })
+                CrimeIds = [theft.Crime.Id],
+                WitnessCreatureIds = theft.Witnesses.Select(witness => witness.Id).ToArray(),
+            },
+            cancellationToken
         );
 
         if (theft.Witnesses.Count > 0)
@@ -275,7 +285,14 @@ internal class AttemptTheftCommandHandler(
                 cancellationToken
             );
 
-        theft.Crime.Outcome = theft.Source.IsPickpocketing ? null : TheftCrimeOutcome.Taken;
+        await setTheftCrimeOutcome.Handle(
+            new SetTheftCrimeOutcomeCommand
+            {
+                CrimeId = theft.Crime.Id,
+                Outcome = theft.Source.IsPickpocketing ? null : TheftCrimeOutcome.Taken,
+            },
+            cancellationToken
+        );
 
         var encounter = new TheftEncounter
         {
@@ -319,9 +336,14 @@ internal class AttemptTheftCommandHandler(
             cancellationToken
         );
 
-        theft.Crime.Outcome = TheftCrimeOutcome.Taken;
-
-        await context.SaveChangesAsync(cancellationToken);
+        await setTheftCrimeOutcome.Handle(
+            new SetTheftCrimeOutcomeCommand
+            {
+                CrimeId = theft.Crime.Id,
+                Outcome = TheftCrimeOutcome.Taken,
+            },
+            cancellationToken
+        );
 
         await PublishItemAcquiredEvents(theft.Command, results, cancellationToken);
 
@@ -368,7 +390,10 @@ internal class AttemptTheftCommandHandler(
                 ))
                 .ToList(),
         };
-        context.Crimes.Add(crime);
+        await addTheftCrimes.Handle(
+            new AddTheftCrimesCommand { Crimes = [crime] },
+            cancellationToken
+        );
 
         return crime;
     }

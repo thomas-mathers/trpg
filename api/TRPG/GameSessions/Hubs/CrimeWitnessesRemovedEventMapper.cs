@@ -1,4 +1,4 @@
-using TRPG.Application.Reputations.Events;
+using TRPG.Application.Crimes.Events;
 using TRPG.GameSessions.Responses;
 
 namespace TRPG.GameSessions.Hubs;

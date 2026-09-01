@@ -7,6 +7,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
 using TRPG.Application.Creatures.Extensions;
+using TRPG.Application.Crimes.Extensions;
 using TRPG.Application.Encounters.Extensions;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Extensions;
@@ -58,6 +59,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddChatServices()
             .AddInventoryServices()
             .AddCreaturesServices()
+            .AddCrimesServices()
             .AddEncountersServices()
             .AddTransient<SceneCatchUpCache>()
             .AddQuestServices()
