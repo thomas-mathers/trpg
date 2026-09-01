@@ -620,7 +620,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await StartFight(sessionId, enemy);
         var connection = fixture.CreateHubConnection(sessionId);
         var combatUpdatedReceived = new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdated>();
-        var initialSnapshotReceived =
+        var snapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
         var gameClient = new TestGameClient
@@ -630,16 +630,17 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             OnSceneSnapshot = snapshot =>
             {
                 sceneSnapshots.Add(snapshot);
-                initialSnapshotReceived.TrySetResult(snapshot);
+                snapshotReceived.TrySetResult(snapshot);
             },
         };
         connection.Register<IGameClient>(gameClient);
         await connection.StartAsync(TestContext.Current.CancellationToken);
-        await initialSnapshotReceived.Task.WaitAsync(
-            PushTimeout,
-            TestContext.Current.CancellationToken
-        );
+        await snapshotReceived.Task.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         sceneSnapshots.Clear();
+        // CombatUpdated and SceneSnapshot are pushed as two separate, sequentially-dispatched
+        // messages after the combat action resolves; awaiting only the first doesn't guarantee
+        // the second's client-side callback has already run, so this is reset to wait for it too.
+        snapshotReceived = new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         await using var gameHub = connection;
 
         // Act
@@ -658,6 +659,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
+        await snapshotReceived.Task.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var freshEnemy = await context.Creatures.SingleAsync(
