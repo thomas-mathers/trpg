@@ -1,9 +1,12 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using FactionsMatch = TRPG.Application.Factions.Queries.NameSimilarityMatch;
+using WorldsMatch = TRPG.Application.Worlds.Queries.NameSimilarityMatch;
 
 namespace TRPG.Application.Creatures.Queries;
 
@@ -79,7 +82,30 @@ internal class GetCreatureKnowledgeQueryHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetStateByIdQuery, State?> getStateById,
     IQueryHandler<GetCityByIdQuery, City?> getCityById,
-    IQueryHandler<GetDistrictByIdQuery, District?> getDistrictById
+    IQueryHandler<GetDistrictByIdQuery, District?> getDistrictById,
+    IQueryHandler<GetCountryByIdQuery, Country?> getCountryById,
+    IQueryHandler<GetCapitalCityByCountryIdQuery, City?> getCapitalCityByCountryId,
+    IQueryHandler<GetDistrictsByCityIdQuery, IReadOnlyCollection<District>> getDistrictsByCityId,
+    IQueryHandler<GetLocationIdsByCityIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByCityId,
+    IQueryHandler<
+        GetCountriesRankedBySimilarityQuery,
+        IReadOnlyList<WorldsMatch>
+    > getCountriesRankedBySimilarity,
+    IQueryHandler<
+        GetCitiesRankedBySimilarityQuery,
+        IReadOnlyList<WorldsMatch>
+    > getCitiesRankedBySimilarity,
+    IQueryHandler<GetFactionByIdQuery, Faction?> getFactionById,
+    IQueryHandler<GetFactionLeadershipQuery, FactionLeadership> getFactionLeadership,
+    IQueryHandler<
+        GetNonCityFactionNamesByCreatureIdQuery,
+        IReadOnlyList<string>
+    > getNonCityFactionNamesByCreatureId,
+    IQueryHandler<
+        GetFactionsRankedBySimilarityQuery,
+        IReadOnlyList<FactionsMatch>
+    > getFactionsRankedBySimilarity,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
 ) : IQueryHandler<GetCreatureKnowledgeQuery, IReadOnlyList<LookupMatch>>
 {
     private const double SimilarityThreshold = 0.35;
@@ -98,38 +124,10 @@ internal class GetCreatureKnowledgeQueryHandler(
     )
     {
         var candidates = new List<Candidate>();
-        candidates.AddRange(
-            await FindCandidates(
-                query,
-                context.Countries,
-                KnowledgeSubjectType.Country,
-                cancellationToken
-            )
-        );
-        candidates.AddRange(
-            await FindCandidates(
-                query,
-                context.Cities,
-                KnowledgeSubjectType.City,
-                cancellationToken
-            )
-        );
-        candidates.AddRange(
-            await FindCandidates(
-                query,
-                context.Factions,
-                KnowledgeSubjectType.Faction,
-                cancellationToken
-            )
-        );
-        candidates.AddRange(
-            await FindCandidates(
-                query,
-                context.Creatures,
-                KnowledgeSubjectType.Creature,
-                cancellationToken
-            )
-        );
+        candidates.AddRange(await FindCountryCandidates(query, cancellationToken));
+        candidates.AddRange(await FindCityCandidates(query, cancellationToken));
+        candidates.AddRange(await FindFactionCandidates(query, cancellationToken));
+        candidates.AddRange(await FindCreatureCandidates(query, cancellationToken));
 
         var ranked = candidates.OrderByDescending(c => c.Similarity).Take(MaxMatches).ToList();
 
@@ -151,40 +149,142 @@ internal class GetCreatureKnowledgeQueryHandler(
         return matches;
     }
 
-    private async Task<IReadOnlyList<Candidate>> FindCandidates<TEntity>(
+    private async Task<IReadOnlyList<Guid>> GetKnownSubjectIds(
         GetCreatureKnowledgeQuery query,
-        IQueryable<TEntity> entities,
         KnowledgeSubjectType subjectType,
         CancellationToken cancellationToken
-    )
-        where TEntity : class
-    {
-        return await context
+    ) =>
+        await context
             .CreatureKnowledge.AsNoTracking()
             .Where(k =>
                 k.KnowerId == query.AskingPerson.Id
                 && k.SubjectType == subjectType
                 && k.SubjectId != query.AskingPerson.Id
             )
-            .Join(
-                entities.AsNoTracking(),
-                k => k.SubjectId,
-                e => EF.Property<Guid>(e, "Id"),
-                (k, e) => e
-            )
-            .Select(e => new
+            .Select(k => k.SubjectId)
+            .ToArrayAsync(cancellationToken);
+
+    private async Task<IReadOnlyList<Candidate>> FindCountryCandidates(
+        GetCreatureKnowledgeQuery query,
+        CancellationToken cancellationToken
+    )
+    {
+        var candidateIds = await GetKnownSubjectIds(
+            query,
+            KnowledgeSubjectType.Country,
+            cancellationToken
+        );
+        if (candidateIds.Count == 0)
+        {
+            return [];
+        }
+
+        var matches = await getCountriesRankedBySimilarity.Handle(
+            new GetCountriesRankedBySimilarityQuery
             {
-                Name = EF.Property<string>(e, "Name"),
-                Id = EF.Property<Guid>(e, "Id"),
-                Similarity = EF.Functions.TrigramsStrictWordSimilarity(
-                    query.SubjectName,
-                    EF.Property<string>(e, "Name")
-                ),
+                CandidateIds = candidateIds,
+                SearchName = query.SubjectName,
+                SimilarityThreshold = SimilarityThreshold,
+                MaxMatches = MaxMatches,
+            },
+            cancellationToken
+        );
+
+        return matches
+            .Select(m => new Candidate(m.Similarity, m.Name, KnowledgeSubjectType.Country, m.Id))
+            .ToArray();
+    }
+
+    private async Task<IReadOnlyList<Candidate>> FindCityCandidates(
+        GetCreatureKnowledgeQuery query,
+        CancellationToken cancellationToken
+    )
+    {
+        var candidateIds = await GetKnownSubjectIds(
+            query,
+            KnowledgeSubjectType.City,
+            cancellationToken
+        );
+        if (candidateIds.Count == 0)
+        {
+            return [];
+        }
+
+        var matches = await getCitiesRankedBySimilarity.Handle(
+            new GetCitiesRankedBySimilarityQuery
+            {
+                CandidateIds = candidateIds,
+                SearchName = query.SubjectName,
+                SimilarityThreshold = SimilarityThreshold,
+                MaxMatches = MaxMatches,
+            },
+            cancellationToken
+        );
+
+        return matches
+            .Select(m => new Candidate(m.Similarity, m.Name, KnowledgeSubjectType.City, m.Id))
+            .ToArray();
+    }
+
+    private async Task<IReadOnlyList<Candidate>> FindFactionCandidates(
+        GetCreatureKnowledgeQuery query,
+        CancellationToken cancellationToken
+    )
+    {
+        var candidateIds = await GetKnownSubjectIds(
+            query,
+            KnowledgeSubjectType.Faction,
+            cancellationToken
+        );
+        if (candidateIds.Count == 0)
+        {
+            return [];
+        }
+
+        var matches = await getFactionsRankedBySimilarity.Handle(
+            new GetFactionsRankedBySimilarityQuery
+            {
+                CandidateIds = candidateIds,
+                SearchName = query.SubjectName,
+                SimilarityThreshold = SimilarityThreshold,
+                MaxMatches = MaxMatches,
+            },
+            cancellationToken
+        );
+
+        return matches
+            .Select(m => new Candidate(m.Similarity, m.Name, KnowledgeSubjectType.Faction, m.Id))
+            .ToArray();
+    }
+
+    private async Task<IReadOnlyList<Candidate>> FindCreatureCandidates(
+        GetCreatureKnowledgeQuery query,
+        CancellationToken cancellationToken
+    )
+    {
+        var candidateIds = await GetKnownSubjectIds(
+            query,
+            KnowledgeSubjectType.Creature,
+            cancellationToken
+        );
+        if (candidateIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await context
+            .Creatures.AsNoTracking()
+            .Where(c => candidateIds.AsEnumerable().Contains(c.Id))
+            .Select(c => new
+            {
+                c.Id,
+                c.Name,
+                Similarity = EF.Functions.TrigramsStrictWordSimilarity(query.SubjectName, c.Name),
             })
             .Where(x => x.Similarity >= SimilarityThreshold)
             .OrderByDescending(x => x.Similarity)
             .Take(MaxMatches)
-            .Select(x => new Candidate(x.Similarity, x.Name, subjectType, x.Id))
+            .Select(x => new Candidate(x.Similarity, x.Name, KnowledgeSubjectType.Creature, x.Id))
             .ToArrayAsync(cancellationToken);
     }
 
@@ -197,20 +297,29 @@ internal class GetCreatureKnowledgeQueryHandler(
         switch (candidate.SubjectType)
         {
             case KnowledgeSubjectType.Country:
-                var country = await context
-                    .Countries.AsNoTracking()
-                    .FirstAsync(c => c.Id == candidate.EntityId, cancellationToken);
-                return await BuildCountryResult(country, cancellationToken);
+                var country = await getCountryById.Handle(
+                    new GetCountryByIdQuery { Id = candidate.EntityId },
+                    cancellationToken
+                );
+                return country == null
+                    ? null
+                    : await BuildCountryResult(country, cancellationToken);
             case KnowledgeSubjectType.City:
-                var city = await context
-                    .Cities.AsNoTracking()
-                    .FirstAsync(c => c.Id == candidate.EntityId, cancellationToken);
-                return await BuildCityResult(city, query.WorldId, cancellationToken);
+                var city = await getCityById.Handle(
+                    new GetCityByIdQuery { Id = candidate.EntityId },
+                    cancellationToken
+                );
+                return city == null
+                    ? null
+                    : await BuildCityResult(city, query.WorldId, cancellationToken);
             case KnowledgeSubjectType.Faction:
-                var faction = await context
-                    .Factions.AsNoTracking()
-                    .FirstAsync(f => f.Id == candidate.EntityId, cancellationToken);
-                return await BuildFactionResult(faction, cancellationToken);
+                var faction = await getFactionById.Handle(
+                    new GetFactionByIdQuery { Id = candidate.EntityId },
+                    cancellationToken
+                );
+                return faction == null
+                    ? null
+                    : await BuildFactionResult(faction, cancellationToken);
             case KnowledgeSubjectType.Creature:
                 var creature = await context
                     .Creatures.AsNoTracking()
@@ -226,12 +335,10 @@ internal class GetCreatureKnowledgeQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var capital = await (
-            from city in context.Cities.AsNoTracking()
-            join state in context.States on city.StateId equals state.Id
-            where state.CountryId == country.Id && city.IsCapital
-            select city
-        ).FirstOrDefaultAsync(cancellationToken);
+        var capital = await getCapitalCityByCountryId.Handle(
+            new GetCapitalCityByCountryIdQuery { CountryId = country.Id },
+            cancellationToken
+        );
 
         return new CountryLookupResult(
             country.Name,
@@ -254,18 +361,21 @@ internal class GetCreatureKnowledgeQueryHandler(
         );
         var country =
             state != null
-                ? await context
-                    .Countries.AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.Id == state.CountryId, cancellationToken)
+                ? await getCountryById.Handle(
+                    new GetCountryByIdQuery { Id = state.CountryId },
+                    cancellationToken
+                )
                 : null;
-        var districts = await context
-            .Districts.AsNoTracking()
-            .Where(d => d.CityId == city.Id)
-            .ToArrayAsync(cancellationToken);
+        var districts = await getDistrictsByCityId.Handle(
+            new GetDistrictsByCityIdQuery { CityId = city.Id },
+            cancellationToken
+        );
+        var locationIds = await getLocationIdsByCityId.Handle(
+            new GetLocationIdsByCityIdQuery { CityId = city.Id },
+            cancellationToken
+        );
         var populationCount = await context.Creatures.CountAsync(
-            p =>
-                p.WorldId == worldId
-                && context.Locations.Any(l => l.Id == p.LocationId && l.CityId == city.Id),
+            p => p.WorldId == worldId && locationIds.AsEnumerable().Contains(p.LocationId),
             cancellationToken
         );
 
@@ -287,18 +397,25 @@ internal class GetCreatureKnowledgeQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var leaderName = await (
-            from fm in context.FactionMembers
-            where fm.FactionId == faction.Id && fm.Role == FactionRole.Leader
-            join c in context.Creatures on fm.CreatureId equals c.Id
-            select c.Name
-        ).FirstOrDefaultAsync(cancellationToken);
-        var memberCount = await context.FactionMembers.CountAsync(
-            fm => fm.FactionId == faction.Id,
+        var leadership = await getFactionLeadership.Handle(
+            new GetFactionLeadershipQuery { FactionId = faction.Id },
             cancellationToken
         );
+        var leaderName = leadership.LeaderCreatureId is { } leaderCreatureId
+            ? (
+                await getCreatureById.Handle(
+                    new GetCreatureByIdQuery { Id = leaderCreatureId },
+                    cancellationToken
+                )
+            )?.Name
+            : null;
 
-        return new FactionLookupResult(faction.Name, faction.Description, leaderName, memberCount);
+        return new FactionLookupResult(
+            faction.Name,
+            faction.Description,
+            leaderName,
+            leadership.MemberCount
+        );
     }
 
     private async Task<PersonLookupResult> BuildPersonResult(
@@ -326,13 +443,10 @@ internal class GetCreatureKnowledgeQueryHandler(
                 cancellationToken
             )
             : null;
-        var factionNames = await (
-            from fm in context.FactionMembers
-            where fm.CreatureId == creature.Id
-            join f in context.Factions on fm.FactionId equals f.Id
-            where !f.IsCityFaction
-            select f.Name
-        ).ToArrayAsync(cancellationToken);
+        var factionNames = await getNonCityFactionNamesByCreatureId.Handle(
+            new GetNonCityFactionNamesByCreatureIdQuery { CreatureId = creature.Id },
+            cancellationToken
+        );
 
         var relativeSummaries = await getRelatives.Handle(
             new GetRelativesQuery { CreatureId = creature.Id },
