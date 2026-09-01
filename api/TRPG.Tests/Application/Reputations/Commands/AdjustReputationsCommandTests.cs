@@ -11,7 +11,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
 {
     private TrpgDbContext _context = null!;
     private Guid _creatureId;
-    private GetAllReputationsByCreatureIdQueryHandler _getAllByCreatureId = null!;
+    private GetReputationsByCreatureIdQueryHandler _getAllByCreatureId = null!;
     private AdjustReputationsCommandHandler _handler = null!;
     private readonly Faction _faction = Builders.MakeFaction();
 
@@ -19,7 +19,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
     {
         _context = db.CreateContext();
         _handler = new AdjustReputationsCommandHandler(_context);
-        _getAllByCreatureId = new GetAllReputationsByCreatureIdQueryHandler(_context);
+        _getAllByCreatureId = new GetReputationsByCreatureIdQueryHandler(_context);
 
         _context.Factions.Add(_faction);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -56,7 +56,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         var reputations = await _getAllByCreatureId.Handle(
-            new GetAllReputationsByCreatureIdQuery { CreatureId = _creatureId },
+            new GetReputationsByCreatureIdQuery { CreatureId = _creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.Single(reputations);
@@ -100,7 +100,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         var reputations = await _getAllByCreatureId.Handle(
-            new GetAllReputationsByCreatureIdQuery { CreatureId = _creatureId },
+            new GetReputationsByCreatureIdQuery { CreatureId = _creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(15, reputations.Single(r => r.TargetId == existingTargetFaction.Id).Score);
@@ -177,7 +177,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         var reputations = await _getAllByCreatureId.Handle(
-            new GetAllReputationsByCreatureIdQuery { CreatureId = creatureId },
+            new GetReputationsByCreatureIdQuery { CreatureId = creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.Single(reputations);
@@ -214,7 +214,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         var reputations = await _getAllByCreatureId.Handle(
-            new GetAllReputationsByCreatureIdQuery { CreatureId = creatureId },
+            new GetReputationsByCreatureIdQuery { CreatureId = creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(12, reputations.First().Score);
@@ -250,7 +250,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         var reputations = await _getAllByCreatureId.Handle(
-            new GetAllReputationsByCreatureIdQuery { CreatureId = creatureId },
+            new GetReputationsByCreatureIdQuery { CreatureId = creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(100, reputations.First().Score);
@@ -286,7 +286,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         var reputations = await _getAllByCreatureId.Handle(
-            new GetAllReputationsByCreatureIdQuery { CreatureId = creatureId },
+            new GetReputationsByCreatureIdQuery { CreatureId = creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(-100, reputations.First().Score);

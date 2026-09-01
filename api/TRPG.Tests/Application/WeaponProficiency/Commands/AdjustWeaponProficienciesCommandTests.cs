@@ -11,7 +11,7 @@ public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : 
 {
     private TrpgDbContext _context = null!;
     private AdjustWeaponProficienciesCommandHandler _handler = null!;
-    private GetAllWeaponProficienciesQueryHandler _getAllWeaponProficiencies = null!;
+    private GetWeaponProficienciesQueryHandler _getAllWeaponProficiencies = null!;
     private Guid _worldId;
     private Guid _creatureId;
     private readonly Creature _creature = Builders.MakeCreature();
@@ -19,7 +19,7 @@ public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _getAllWeaponProficiencies = new GetAllWeaponProficienciesQueryHandler(_context);
+        _getAllWeaponProficiencies = new GetWeaponProficienciesQueryHandler(_context);
         _handler = new AdjustWeaponProficienciesCommandHandler(_context);
 
         _worldId = _creature.WorldId;
@@ -49,7 +49,7 @@ public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : 
 
         // Assert
         var proficiencies = await _getAllWeaponProficiencies.Handle(
-            new GetAllWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
+            new GetWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(5, proficiencies[WeaponType.Sword]);
@@ -82,7 +82,7 @@ public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : 
 
         // Assert
         var proficiencies = await _getAllWeaponProficiencies.Handle(
-            new GetAllWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
+            new GetWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(8, proficiencies[WeaponType.Sword]);
@@ -108,7 +108,7 @@ public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : 
 
         // Assert
         var proficiencies = await _getAllWeaponProficiencies.Handle(
-            new GetAllWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
+            new GetWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(5, proficiencies[WeaponType.Sword]);
@@ -131,7 +131,7 @@ public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : 
 
         // Assert
         var proficiencies = await _getAllWeaponProficiencies.Handle(
-            new GetAllWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
+            new GetWeaponProficienciesQuery { WorldId = _worldId, CreatureId = _creatureId },
             TestContext.Current.CancellationToken
         );
         Assert.All(proficiencies.Values, proficiency => Assert.Equal(0, proficiency));

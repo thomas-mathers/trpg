@@ -7,8 +7,8 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class CombatUpdatedEventMapper : GameClientEventMapper<CombatUpdatedEvent>
 {
     protected override IGameClientCall Map(CombatUpdatedEvent gameEvent) =>
-        new GameClientCall<CombatUpdatePayload>(
-            new CombatUpdatePayload(
+        new GameClientCall<CombatUpdated>(
+            new CombatUpdated(
                 gameEvent.Combatants.ToCombatantStates(),
                 gameEvent.Events.ToCombatActionResults(),
                 gameEvent.Events.ToCombatRegenerations(),

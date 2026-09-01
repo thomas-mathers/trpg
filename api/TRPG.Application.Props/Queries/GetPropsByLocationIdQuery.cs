@@ -6,16 +6,16 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Props.Queries;
 
-public class GetAllPropsByLocationIdQuery
+public class GetPropsByLocationIdQuery
 {
     public required Guid LocationId { get; init; }
 }
 
-internal class GetAllPropsByLocationIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
-    : IQueryHandler<GetAllPropsByLocationIdQuery, IReadOnlyCollection<Prop>>
+internal class GetPropsByLocationIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>>
 {
     public async Task<IReadOnlyCollection<Prop>> Handle(
-        GetAllPropsByLocationIdQuery query,
+        GetPropsByLocationIdQuery query,
         CancellationToken cancellationToken = default
     )
     {

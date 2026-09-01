@@ -5,16 +5,16 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.CreatureJobs.Queries;
 
-public class GetAllCreatureJobsByCreatureIdQuery
+public class GetCreatureJobsByCreatureIdQuery
 {
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetAllCreatureJobsByCreatureIdQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetAllCreatureJobsByCreatureIdQuery, IReadOnlyList<CreatureJob>>
+internal class GetCreatureJobsByCreatureIdQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetCreatureJobsByCreatureIdQuery, IReadOnlyList<CreatureJob>>
 {
     public async Task<IReadOnlyList<CreatureJob>> Handle(
-        GetAllCreatureJobsByCreatureIdQuery query,
+        GetCreatureJobsByCreatureIdQuery query,
         CancellationToken cancellationToken = default
     )
     {

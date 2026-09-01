@@ -7,17 +7,17 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Worlds.Queries;
 
 [Collection("Database")]
-public sealed class GetAllBuildingOwnersByBuildingIdQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetBuildingOwnersByBuildingIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private TrpgDbContext _context = null!;
-    private GetAllBuildingOwnersByBuildingIdQueryHandler _handler = null!;
+    private GetBuildingOwnersByBuildingIdQueryHandler _handler = null!;
     private readonly Building _building = Builders.MakeBuilding();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetAllBuildingOwnersByBuildingIdQueryHandler(_context);
+        _handler = new GetBuildingOwnersByBuildingIdQueryHandler(_context);
         _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
 
         _context.Buildings.Add(_building);
@@ -46,7 +46,7 @@ public sealed class GetAllBuildingOwnersByBuildingIdQueryTests(DatabaseFixture d
 
         // Act
         var result = await _handler.Handle(
-            new GetAllBuildingOwnersByBuildingIdQuery { BuildingId = _building.Id },
+            new GetBuildingOwnersByBuildingIdQuery { BuildingId = _building.Id },
             TestContext.Current.CancellationToken
         );
 

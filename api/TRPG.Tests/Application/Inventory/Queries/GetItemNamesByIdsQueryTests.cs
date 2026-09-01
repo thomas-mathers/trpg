@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
-using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Inventory.Queries;
@@ -34,9 +33,9 @@ public sealed class GetItemNamesByIdsQueryTests(DatabaseFixture db) : IAsyncLife
     public async Task Handle_ReturnsNamesForSelectedItems()
     {
         // Arrange
-        var selectedSword = MakeItem(WorldId, "Selected Sword");
-        var selectedShield = MakeItem(WorldId, "Selected Shield");
-        var unselectedItem = MakeItem(WorldId, "Unselected Item");
+        var selectedSword = Builders.MakeItem(worldId: WorldId, name: "Selected Sword");
+        var selectedShield = Builders.MakeItem(worldId: WorldId, name: "Selected Shield");
+        var unselectedItem = Builders.MakeItem(worldId: WorldId, name: "Unselected Item");
         _context.Items.AddRange(selectedSword, selectedShield, unselectedItem);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -61,8 +60,8 @@ public sealed class GetItemNamesByIdsQueryTests(DatabaseFixture db) : IAsyncLife
     public async Task Handle_ExcludesItemsFromAnotherWorld()
     {
         // Arrange
-        var selectedItem = MakeItem(WorldId, "Local Item");
-        var foreignItem = MakeItem(Guid.NewGuid(), "Foreign Item");
+        var selectedItem = Builders.MakeItem(worldId: WorldId, name: "Local Item");
+        var foreignItem = Builders.MakeItem(worldId: Guid.NewGuid(), name: "Foreign Item");
         _context.Items.AddRange(selectedItem, foreignItem);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -80,13 +79,4 @@ public sealed class GetItemNamesByIdsQueryTests(DatabaseFixture db) : IAsyncLife
         Assert.Equal([selectedItem.Id], names.Keys);
         Assert.Equal(selectedItem.Name, names[selectedItem.Id]);
     }
-
-    private static Item MakeItem(Guid worldId, string name) =>
-        new()
-        {
-            WorldId = worldId,
-            Name = name,
-            Description = "A test item",
-            Weight = 1,
-        };
 }

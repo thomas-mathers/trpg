@@ -5,7 +5,7 @@
 import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
-import type { CombatStartedPayload, CombatUpdatePayload } from '../TRPG.Combat.Responses';
+import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
@@ -170,8 +170,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
     public readonly register = (connection: HubConnection, receiver: IGameClient): Disposable => {
 
         const __sceneSnapshot = (...args: [SceneSnapshot]) => receiver.sceneSnapshot(...args);
-        const __combatStarted = (...args: [CombatStartedPayload]) => receiver.combatStarted(...args);
-        const __combatUpdated = (...args: [CombatUpdatePayload]) => receiver.combatUpdated(...args);
+        const __combatStarted = (...args: [CombatStarted]) => receiver.combatStarted(...args);
+        const __combatUpdated = (...args: [CombatUpdated]) => receiver.combatUpdated(...args);
         const __hostileEncounterStarted = (...args: [HostileEncounterState]) => receiver.hostileEncounterStarted(...args);
         const __hostileEncounterResolved = (...args: [HostileEncounterResolutionFact]) => receiver.hostileEncounterResolved(...args);
         const __guardEncounterStarted = (...args: [GuardEncounterState]) => receiver.guardEncounterStarted(...args);

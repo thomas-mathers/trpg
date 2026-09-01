@@ -18,11 +18,11 @@ public class SyncScheduleLockCommand
 
 internal class SyncScheduleLockCommandHandler(
     IQueryHandler<
-        GetAllBuildingOwnersByBuildingIdQuery,
+        GetBuildingOwnersByBuildingIdQuery,
         IReadOnlyCollection<BuildingOwner>
     > getAllBuildingOwnersByBuildingId,
     IQueryHandler<
-        GetAllCreatureJobsByCreatureIdQuery,
+        GetCreatureJobsByCreatureIdQuery,
         IReadOnlyList<CreatureJob>
     > getAllJobsByCreatureId,
     IQueryHandler<
@@ -99,7 +99,7 @@ internal class SyncScheduleLockCommandHandler(
     )
     {
         var owners = await getAllBuildingOwnersByBuildingId.Handle(
-            new GetAllBuildingOwnersByBuildingIdQuery { BuildingId = command.BuildingId },
+            new GetBuildingOwnersByBuildingIdQuery { BuildingId = command.BuildingId },
             cancellationToken
         );
         var ownerId = owners.FirstOrDefault()?.OwnerId;
@@ -109,7 +109,7 @@ internal class SyncScheduleLockCommandHandler(
         }
 
         var jobs = await getAllJobsByCreatureId.Handle(
-            new GetAllCreatureJobsByCreatureIdQuery { CreatureId = ownerId.Value },
+            new GetCreatureJobsByCreatureIdQuery { CreatureId = ownerId.Value },
             cancellationToken
         );
         var activeJob = jobs.Where(j =>

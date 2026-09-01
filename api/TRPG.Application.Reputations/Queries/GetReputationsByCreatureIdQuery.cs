@@ -5,16 +5,16 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Reputations.Queries;
 
-public class GetAllReputationsByCreatureIdQuery
+public class GetReputationsByCreatureIdQuery
 {
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetAllReputationsByCreatureIdQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetAllReputationsByCreatureIdQuery, IReadOnlyCollection<Reputation>>
+internal class GetReputationsByCreatureIdQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetReputationsByCreatureIdQuery, IReadOnlyCollection<Reputation>>
 {
     public async Task<IReadOnlyCollection<Reputation>> Handle(
-        GetAllReputationsByCreatureIdQuery query,
+        GetReputationsByCreatureIdQuery query,
         CancellationToken cancellationToken = default
     )
     {

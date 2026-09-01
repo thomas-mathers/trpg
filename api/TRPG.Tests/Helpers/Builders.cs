@@ -363,16 +363,28 @@ internal static class Builders
         };
     }
 
-    public static Item MakeItem(Guid? worldId = null)
+    public static Item MakeItem(Guid? worldId = null, string? name = null)
     {
         return new Item
         {
             WorldId = worldId ?? Guid.NewGuid(),
-            Name = $"Item-{Guid.NewGuid():N}",
+            Name = name ?? $"Item-{Guid.NewGuid():N}",
             Description = "A test item",
             Weight = 1,
         };
     }
+
+    public static CrimeWitness MakeCrimeWitness(
+        Guid crimeId,
+        Guid creatureId,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            CrimeId = crimeId,
+            CreatureId = creatureId,
+        };
 
     public static Key MakeKey(
         Guid? worldId = null,

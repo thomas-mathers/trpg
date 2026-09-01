@@ -5,18 +5,18 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
 
-public class GetAllCreaturesInWorldQuery
+public class GetCreaturesInWorldQuery
 {
     public required Guid WorldId { get; init; }
 }
 
 public record CreatureSummary(Guid Id, string Name, CreatureType CreatureType, string Biography);
 
-internal class GetAllCreaturesInWorldQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetAllCreaturesInWorldQuery, IReadOnlyCollection<CreatureSummary>>
+internal class GetCreaturesInWorldQueryHandler(TrpgDbContext context)
+    : IQueryHandler<GetCreaturesInWorldQuery, IReadOnlyCollection<CreatureSummary>>
 {
     public async Task<IReadOnlyCollection<CreatureSummary>> Handle(
-        GetAllCreaturesInWorldQuery query,
+        GetCreaturesInWorldQuery query,
         CancellationToken cancellationToken = default
     ) =>
         await context

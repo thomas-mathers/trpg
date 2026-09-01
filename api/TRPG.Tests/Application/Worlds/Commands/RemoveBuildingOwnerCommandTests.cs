@@ -11,7 +11,7 @@ public sealed class RemoveBuildingOwnerCommandTests(DatabaseFixture db) : IAsync
 {
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private TrpgDbContext _context = null!;
-    private GetAllBuildingOwnersByBuildingIdQueryHandler _getAllBuildingOwnersByBuildingId = null!;
+    private GetBuildingOwnersByBuildingIdQueryHandler _getAllBuildingOwnersByBuildingId = null!;
     private RemoveBuildingOwnerCommandHandler _handler = null!;
     private readonly Building _building = Builders.MakeBuilding();
 
@@ -20,9 +20,7 @@ public sealed class RemoveBuildingOwnerCommandTests(DatabaseFixture db) : IAsync
         _context = db.CreateContext();
         _handler = new RemoveBuildingOwnerCommandHandler(_context);
         _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
-        _getAllBuildingOwnersByBuildingId = new GetAllBuildingOwnersByBuildingIdQueryHandler(
-            _context
-        );
+        _getAllBuildingOwnersByBuildingId = new GetBuildingOwnersByBuildingIdQueryHandler(_context);
 
         _context.Buildings.Add(_building);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -51,7 +49,7 @@ public sealed class RemoveBuildingOwnerCommandTests(DatabaseFixture db) : IAsync
 
         // Assert
         var owners = await _getAllBuildingOwnersByBuildingId.Handle(
-            new GetAllBuildingOwnersByBuildingIdQuery { BuildingId = _building.Id },
+            new GetBuildingOwnersByBuildingIdQuery { BuildingId = _building.Id },
             TestContext.Current.CancellationToken
         );
         Assert.Empty(owners);
