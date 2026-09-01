@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 
@@ -11,21 +12,28 @@ public class GetRoomBookingsForPlayerInBuildingQuery
     public required Guid BuildingId { get; init; }
 }
 
-internal class GetRoomBookingsForPlayerInBuildingQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetRoomBookingsForPlayerInBuildingQuery, IReadOnlyCollection<RoomBooking>>
+internal class GetRoomBookingsForPlayerInBuildingQueryHandler(
+    TrpgDbContext context,
+    IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId
+) : IQueryHandler<GetRoomBookingsForPlayerInBuildingQuery, IReadOnlyCollection<RoomBooking>>
 {
     public async Task<IReadOnlyCollection<RoomBooking>> Handle(
         GetRoomBookingsForPlayerInBuildingQuery query,
         CancellationToken cancellationToken = default
-    ) =>
-        await context
+    )
+    {
+        var rooms = await getRoomsByBuildingId.Handle(
+            new GetRoomsByBuildingIdQuery { BuildingId = query.BuildingId },
+            cancellationToken
+        );
+        var roomIds = rooms.Select(room => room.Id).ToArray();
+
+        return await context
             .RoomBookings.AsNoTracking()
-            .Where(booking => booking.PlayerId == query.PlayerId)
-            .Join(
-                context.Rooms.AsNoTracking().Where(room => room.BuildingId == query.BuildingId),
-                booking => booking.RoomId,
-                room => room.Id,
-                (booking, _) => booking
+            .Where(booking =>
+                booking.PlayerId == query.PlayerId
+                && roomIds.AsEnumerable().Contains(booking.RoomId)
             )
             .ToArrayAsync(cancellationToken);
+    }
 }
