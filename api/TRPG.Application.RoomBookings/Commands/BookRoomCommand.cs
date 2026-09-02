@@ -40,6 +40,10 @@ internal class BookRoomCommandHandler(
         IReadOnlyList<GuestRoomDoor>
     > getGuestRoomDoors,
     IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
+    IQueryHandler<
+        GetWorkstationOwnedItemIdsQuery,
+        IReadOnlyDictionary<Guid, Guid>
+    > getWorkstationOwnedItemIds,
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AddGoldCommand> addGold,
     ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory,
@@ -66,11 +70,24 @@ internal class BookRoomCommandHandler(
             new GetGuestRoomDoorsByBuildingIdQuery { BuildingId = building.Id },
             cancellationToken
         );
-        var spareKey = guestRoomDoors.FirstOrDefault(door => door.SpareKeyItemId != null);
-        if (spareKey == null)
+        var candidateKeyItemIds = guestRoomDoors
+            .Where(door => door.CandidateKeyItemId != null)
+            .Select(door => door.CandidateKeyItemId!.Value)
+            .ToArray();
+        var workstationIdsByItemId = await getWorkstationOwnedItemIds.Handle(
+            new GetWorkstationOwnedItemIdsQuery { ItemIds = candidateKeyItemIds },
+            cancellationToken
+        );
+        var spareKeyDoor = guestRoomDoors.FirstOrDefault(door =>
+            door.CandidateKeyItemId != null
+            && workstationIdsByItemId.ContainsKey(door.CandidateKeyItemId.Value)
+        );
+        if (spareKeyDoor == null)
         {
             return new BookRoomResult(BookRoomOutcome.NoVacancy);
         }
+        var workstationId = workstationIdsByItemId[spareKeyDoor.CandidateKeyItemId!.Value];
+        var spareKeyItemId = spareKeyDoor.CandidateKeyItemId!.Value;
 
         var rate = innOptions.Value.RoomRatePerNight;
         var playerGold = await getGoldQuantity.Handle(
@@ -96,10 +113,7 @@ internal class BookRoomCommandHandler(
         await addGold.Handle(
             new AddGoldCommand
             {
-                Owner = new ItemOwnerReference(
-                    spareKey.WorkstationId!.Value,
-                    OwnerType.Workstation
-                ),
+                Owner = new ItemOwnerReference(workstationId, OwnerType.Workstation),
                 WorldId = command.WorldId,
                 Amount = rate,
             },
@@ -108,10 +122,10 @@ internal class BookRoomCommandHandler(
         await receivePlayerInventory.Handle(
             new ReceivePlayerInventoryCommand
             {
-                From = new ItemOwnerReference(spareKey.WorkstationId!.Value, OwnerType.Workstation),
+                From = new ItemOwnerReference(workstationId, OwnerType.Workstation),
                 PlayerId = command.PlayerId,
                 WorldId = command.WorldId,
-                Items = [new ItemSelection(spareKey.SpareKeyItemId!.Value, 1)],
+                Items = [new ItemSelection(spareKeyItemId, 1)],
             },
             cancellationToken
         );
@@ -122,8 +136,8 @@ internal class BookRoomCommandHandler(
                 RoomBooking = new RoomBooking
                 {
                     WorldId = command.WorldId,
-                    RoomId = spareKey.RoomId,
-                    KeyItemId = spareKey.SpareKeyItemId!.Value,
+                    RoomId = spareKeyDoor.RoomId,
+                    KeyItemId = spareKeyItemId,
                     PlayerId = command.PlayerId,
                     DueAtPlaytime = command.Playtime + GameClock.RealTimePerInGameHour * 24,
                 },
@@ -131,6 +145,6 @@ internal class BookRoomCommandHandler(
             cancellationToken
         );
 
-        return new BookRoomResult(BookRoomOutcome.Booked, spareKey.RoomName, rate);
+        return new BookRoomResult(BookRoomOutcome.Booked, spareKeyDoor.RoomName, rate);
     }
 }

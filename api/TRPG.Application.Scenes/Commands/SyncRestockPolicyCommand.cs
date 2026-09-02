@@ -34,6 +34,10 @@ internal class SyncRestockPolicyCommandHandler(
         IReadOnlyList<GuestRoomDoor>
     > getGuestRoomDoors,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
+    IQueryHandler<
+        GetWorkstationOwnedItemIdsQuery,
+        IReadOnlyDictionary<Guid, Guid>
+    > getWorkstationOwnedItemIds,
     ICommandHandler<AddItemsCommand> addItems,
     ICommandHandler<UpdateItemQuantitiesCommand> updateItemQuantities,
     ICommandHandler<IssueReplacementRoomKeyCommand> issueReplacementRoomKey
@@ -175,8 +179,21 @@ internal class SyncRestockPolicyCommandHandler(
             new GetGuestRoomDoorsByBuildingIdQuery { BuildingId = buildingId },
             cancellationToken
         );
+        var candidateKeyItemIds = guestRoomDoors
+            .Where(door => door.CandidateKeyItemId != null)
+            .Select(door => door.CandidateKeyItemId!.Value)
+            .ToArray();
+        var workstationIdsByItemId = await getWorkstationOwnedItemIds.Handle(
+            new GetWorkstationOwnedItemIdsQuery { ItemIds = candidateKeyItemIds },
+            cancellationToken
+        );
 
-        foreach (var door in guestRoomDoors.Where(d => d.SpareKeyItemId == null))
+        foreach (
+            var door in guestRoomDoors.Where(d =>
+                d.CandidateKeyItemId == null
+                || !workstationIdsByItemId.ContainsKey(d.CandidateKeyItemId.Value)
+            )
+        )
         {
             await issueReplacementRoomKey.Handle(
                 new IssueReplacementRoomKeyCommand

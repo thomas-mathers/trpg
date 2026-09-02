@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
@@ -323,9 +324,12 @@ internal static class InventoryEndpoints
         Guid workstationId,
         TradeRequest request,
         [FromServices] ICommandHandler<ProposeTradeCommand, TradeOutcome> proposeTrade,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         CancellationToken cancellationToken
     )
     {
+        await EnsureCreatureExists(playerId, getCreatureById, cancellationToken);
+
         var outcome = await proposeTrade.Handle(
             new ProposeTradeCommand
             {
@@ -345,9 +349,12 @@ internal static class InventoryEndpoints
         Guid worldId,
         TradeRequest request,
         [FromServices] ICommandHandler<CompleteTradeCommand> completeTrade,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         CancellationToken cancellationToken
     )
     {
+        await EnsureCreatureExists(playerId, getCreatureById, cancellationToken);
+
         await completeTrade.Handle(
             new CompleteTradeCommand
             {
@@ -360,5 +367,21 @@ internal static class InventoryEndpoints
             cancellationToken
         );
         return TypedResults.NoContent();
+    }
+
+    private static async Task EnsureCreatureExists(
+        Guid creatureId,
+        IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        CancellationToken cancellationToken
+    )
+    {
+        var creature = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = creatureId },
+            cancellationToken
+        );
+        if (creature == null)
+        {
+            throw new EntityNotFoundException(nameof(Creature), creatureId);
+        }
     }
 }

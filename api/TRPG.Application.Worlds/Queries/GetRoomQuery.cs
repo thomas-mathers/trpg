@@ -34,8 +34,6 @@ internal class GetRoomQueryHandler(
                     join b in context.Buildings.AsNoTracking() on r.BuildingId equals b.Id
                     join bo in context.BuildingOwners on b.Id equals bo.BuildingId into ownersGroup
                     from bo in ownersGroup.DefaultIfEmpty()
-                    join owner in context.Creatures on bo.OwnerId equals owner.Id into ownerGroup
-                    from owner in ownerGroup.DefaultIfEmpty()
                     select new
                     {
                         r.Name,
@@ -44,7 +42,7 @@ internal class GetRoomQueryHandler(
                         BuildingId = b.Id,
                         BuildingName = b.Name,
                         b.BuildingType,
-                        OwnerName = owner != null ? owner.Name : null,
+                        OwnerId = bo != null ? (Guid?)bo.OwnerId : null,
                         b.FactionId,
                     }
                 ).FirstOrDefaultAsync(cancellationToken);
@@ -71,7 +69,7 @@ internal class GetRoomQueryHandler(
                     raw.BuildingId,
                     raw.BuildingName,
                     raw.BuildingType,
-                    raw.OwnerName,
+                    raw.OwnerId,
                     faction?.Name,
                     faction?.Description
                 );

@@ -155,7 +155,8 @@ internal class GetSceneQueryHandler(
         GetFactionIdsByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
     > getFactionIdsByCreatureIds,
-    IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds
+    IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -344,10 +345,18 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
 
+        var ownerName = roomResult!.OwnerId is { } ownerId
+            ? (
+                await getCreatureById.Handle(
+                    new GetCreatureByIdQuery { Id = ownerId },
+                    cancellationToken
+                )
+            )?.Name
+            : null;
         var buildingInfo = new SceneBuildingInfo(
-            roomResult!.BuildingName,
+            roomResult.BuildingName,
             roomResult.BuildingType,
-            roomResult.OwnerName,
+            ownerName,
             roomResult.FactionName,
             roomResult.FactionDescription
         );

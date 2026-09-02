@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Data;
-using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
 
@@ -14,8 +13,7 @@ public record GuestRoomDoor(
     Guid RoomId,
     string RoomName,
     Guid DoorConnectorId,
-    Guid? SpareKeyItemId,
-    Guid? WorkstationId
+    Guid? CandidateKeyItemId
 );
 
 internal class GetGuestRoomDoorsByBuildingIdQueryHandler(TrpgDbContext context)
@@ -48,30 +46,22 @@ internal class GetGuestRoomDoorsByBuildingIdQueryHandler(TrpgDbContext context)
 
         var doorConnectorIds = doorsByRoom.Select(d => d.DoorConnectorId).ToArray();
 
-        var spareKeysByDoor = await (
-            from doorConnectorKey in context.DoorConnectorKeys.AsNoTracking()
-            where doorConnectorIds.AsEnumerable().Contains(doorConnectorKey.DoorConnectorId)
-            join item in context.Items.AsNoTracking() on doorConnectorKey.ItemId equals item.Id
-            where item.Ownership.OwnerType == OwnerType.Workstation
-            select new
-            {
-                doorConnectorKey.DoorConnectorId,
-                KeyItemId = item.Id,
-                WorkstationId = item.Ownership.OwnerId,
-            }
-        ).ToDictionaryAsync(k => k.DoorConnectorId, cancellationToken);
+        var keyItemIdsByDoor = await context
+            .DoorConnectorKeys.AsNoTracking()
+            .Where(doorConnectorKey =>
+                doorConnectorIds.AsEnumerable().Contains(doorConnectorKey.DoorConnectorId)
+            )
+            .ToDictionaryAsync(
+                doorConnectorKey => doorConnectorKey.DoorConnectorId,
+                doorConnectorKey => (Guid?)doorConnectorKey.ItemId,
+                cancellationToken
+            );
 
         return doorsByRoom
             .Select(d =>
             {
-                spareKeysByDoor.TryGetValue(d.DoorConnectorId, out var spare);
-                return new GuestRoomDoor(
-                    d.Id,
-                    d.Name,
-                    d.DoorConnectorId,
-                    spare?.KeyItemId,
-                    spare?.WorkstationId
-                );
+                keyItemIdsByDoor.TryGetValue(d.DoorConnectorId, out var keyItemId);
+                return new GuestRoomDoor(d.Id, d.Name, d.DoorConnectorId, keyItemId);
             })
             .ToArray();
     }
