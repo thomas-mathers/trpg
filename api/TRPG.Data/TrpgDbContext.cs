@@ -57,7 +57,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         IPropsDbContext,
         IReputationsDbContext,
         IEncountersDbContext,
-        ICombatDbContext,
         IGameSessionsDbContext,
         IChatDbContext,
         ICrimesDbContext,

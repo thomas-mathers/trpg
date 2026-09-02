@@ -1,15 +1,17 @@
 using System.Transactions;
-using TRPG.Application.Combat.Events;
+using TRPG.Application.Combat;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Encounters.Events;
+using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat.Commands;
+namespace TRPG.Application.Encounters.Commands;
 
 internal class ResolveCombatRoundCommand
 {

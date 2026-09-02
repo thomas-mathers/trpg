@@ -1,8 +1,8 @@
 using System.Text.Json;
 using TRPG.Application.Combat;
-using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Domain.Models;

@@ -1,4 +1,4 @@
-using TRPG.Application.Combat.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Combat.Responses;
 
 namespace TRPG.Combat.Mappers;

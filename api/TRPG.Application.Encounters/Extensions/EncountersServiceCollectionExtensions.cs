@@ -6,5 +6,9 @@ public static class EncountersServiceCollectionExtensions
 {
     public static IServiceCollection AddEncountersServices(
         this IServiceCollection serviceCollection
-    ) => serviceCollection.AddTransient<TheftSourceResolver>();
+    ) =>
+        serviceCollection
+            .AddTransient<TheftSourceResolver>()
+            .AddTransient<CombatantFactory>()
+            .AddTransient<ActiveFightCombatantLoader>();
 }

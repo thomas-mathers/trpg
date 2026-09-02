@@ -1,6 +1,6 @@
 using System.Text.Json;
-using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameTurns.Commands;
 
 namespace TRPG.Application.GameTurns;

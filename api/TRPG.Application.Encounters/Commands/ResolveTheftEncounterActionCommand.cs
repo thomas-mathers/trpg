@@ -1,6 +1,5 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Creatures.Commands;

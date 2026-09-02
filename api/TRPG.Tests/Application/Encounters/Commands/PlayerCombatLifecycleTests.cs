@@ -1,16 +1,18 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
-using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Encounters;
+using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Combat.Commands;
+namespace TRPG.Tests.Application.Encounters.Commands;
 
 [Collection("Database")]
 public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifetime
