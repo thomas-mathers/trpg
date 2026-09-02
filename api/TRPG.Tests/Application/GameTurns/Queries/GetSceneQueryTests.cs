@@ -241,6 +241,43 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Handle_IncludesBuildingFactionDetails_WhenIndoors()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(WorldId);
+        var building = Builders.MakeBuilding(worldId: WorldId);
+        building.FactionId = faction.Id;
+        var roomId = Guid.NewGuid();
+        var location = Builders.MakeLocation(WorldId, _state.Id, roomId: roomId);
+        var room = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            id: roomId,
+            locationId: location.Id
+        );
+        _context.Factions.Add(faction);
+        _context.Buildings.Add(building);
+        _context.Rooms.Add(room);
+        _context.Locations.Add(location);
+        _player.LocationId = location.Id;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(faction.Name, result.Building!.FactionName);
+        Assert.Equal(faction.Description, result.Building.FactionDescription);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsExitToAdjacentDistrict_WhenOutdoors()
     {
         // Arrange

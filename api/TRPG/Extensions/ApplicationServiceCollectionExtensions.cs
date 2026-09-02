@@ -13,6 +13,7 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Extensions;
 using TRPG.Application.Inventory.Extensions;
 using TRPG.Application.LocationSimulation.Extensions;
+using TRPG.Application.NpcConversations.Extensions;
 using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Reputations.Extensions;
 using TRPG.Application.WorldGeneration.Extensions;
@@ -57,6 +58,7 @@ public static class ApplicationServiceCollectionExtensions
                     .WithTransientLifetime()
             )
             .AddChatServices()
+            .AddNpcConversationsServices()
             .AddInventoryServices()
             .AddCreaturesServices()
             .AddCrimesServices()

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Chat.Commands;
@@ -7,6 +8,7 @@ using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
+using NpcConversationSessionState = TRPG.Domain.Models.NpcConversationSessionState;
 
 namespace TRPG.Tests.Application.GameSessions;
 
@@ -23,6 +25,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     private GetChatMessagesQueryHandler _getChatMessages = null!;
     private AppendChatMessagesCommandHandler _appendChatMessages = null!;
     private ClearChatMessagesCommandHandler _clearChatMessages = null!;
+    private DeleteGameSessionCommandHandler _deleteGameSession = null!;
 
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid PlayerId = Guid.NewGuid();
@@ -42,6 +45,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         _appendChatMessages =
             _serviceProvider.GetRequiredService<AppendChatMessagesCommandHandler>();
         _clearChatMessages = _serviceProvider.GetRequiredService<ClearChatMessagesCommandHandler>();
+        _deleteGameSession = _serviceProvider.GetRequiredService<DeleteGameSessionCommandHandler>();
         return ValueTask.CompletedTask;
     }
 
@@ -250,5 +254,59 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         Assert.Equal(2, remaining.Count);
         Assert.Equal(ChatRole.System, remaining[0].Role);
         Assert.Equal("turn two", remaining[1].Text);
+    }
+
+    [Fact]
+    public async Task Handle_DeletesChatAndNpcConversationSessionState_WhenGameSessionIsDeleted()
+    {
+        // Arrange
+        var sessionId = await _createGameSession.Handle(
+            new CreateGameSessionCommand
+            {
+                WorldId = WorldId,
+                PlayerId = PlayerId,
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+        await _appendChatMessages.Handle(
+            new AppendChatMessagesCommand
+            {
+                SessionId = sessionId,
+                Messages = [new ChatMessage(ChatRole.User, "hello")],
+            },
+            TestContext.Current.CancellationToken
+        );
+        _context.NpcConversationSessionStates.Add(
+            new NpcConversationSessionState { SessionId = sessionId, WorldId = WorldId }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _deleteGameSession.Handle(
+            new DeleteGameSessionCommand { SessionId = sessionId },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        Assert.False(
+            await verifyContext.GameSessions.AnyAsync(
+                session => session.Id == sessionId,
+                TestContext.Current.CancellationToken
+            )
+        );
+        Assert.False(
+            await verifyContext.ChatMessages.AnyAsync(
+                message => message.SessionId == sessionId,
+                TestContext.Current.CancellationToken
+            )
+        );
+        Assert.False(
+            await verifyContext.NpcConversationSessionStates.AnyAsync(
+                state => state.SessionId == sessionId,
+                TestContext.Current.CancellationToken
+            )
+        );
     }
 }

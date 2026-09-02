@@ -270,12 +270,13 @@ internal class GetSceneQueryHandler(
                 )
             )?.Name
             : null;
+        var faction = await GetFaction(roomResult.FactionId, cancellationToken);
         var buildingInfo = new SceneBuildingInfo(
             roomResult.BuildingName,
             roomResult.BuildingType,
             ownerName,
-            roomResult.FactionName,
-            roomResult.FactionDescription
+            faction?.Name,
+            faction?.Description
         );
         var roomInfo = new SceneRoomInfo(
             roomResult.RoomName,
@@ -287,6 +288,20 @@ internal class GetSceneQueryHandler(
             .ToArray();
 
         return new SceneLocationData(buildingInfo, roomInfo, null, nearbyProps, []);
+    }
+
+    private async Task<Faction?> GetFaction(Guid? factionId, CancellationToken cancellationToken)
+    {
+        if (factionId is { } id)
+        {
+            var factionsById = await getFactionsByIds.Handle(
+                new GetFactionsByIdsQuery { Ids = [id] },
+                cancellationToken
+            );
+            return factionsById.GetValueOrDefault(id);
+        }
+
+        return null;
     }
 
     private async Task<SceneLocationData> BuildOutdoorScene(

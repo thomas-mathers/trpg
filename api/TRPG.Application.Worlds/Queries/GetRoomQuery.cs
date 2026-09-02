@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Factions.Queries;
 using TRPG.Application.Worlds.Results;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -13,11 +12,8 @@ public class GetRoomQuery
     public required Guid RoomId { get; init; }
 }
 
-internal class GetRoomQueryHandler(
-    IWorldsDbContext context,
-    IMemoryCache cache,
-    IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds
-) : IQueryHandler<GetRoomQuery, RoomResult?>
+internal class GetRoomQueryHandler(IWorldsDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetRoomQuery, RoomResult?>
 {
     public async Task<RoomResult?> Handle(
         GetRoomQuery query,
@@ -52,26 +48,15 @@ internal class GetRoomQueryHandler(
                     return null;
                 }
 
-                Faction? faction = null;
-                if (raw.FactionId is { } factionId)
-                {
-                    var factionsById = await getFactionsByIds.Handle(
-                        new GetFactionsByIdsQuery { Ids = [factionId] },
-                        cancellationToken
-                    );
-                    factionsById.TryGetValue(factionId, out faction);
-                }
-
                 return new RoomResult(
-                    raw.Name,
-                    raw.Description,
-                    raw.FloorNumber,
-                    raw.BuildingId,
-                    raw.BuildingName,
-                    raw.BuildingType,
-                    raw.OwnerId,
-                    faction?.Name,
-                    faction?.Description
+                    RoomName: raw.Name,
+                    RoomDescription: raw.Description,
+                    RoomFloorNumber: raw.FloorNumber,
+                    BuildingId: raw.BuildingId,
+                    BuildingName: raw.BuildingName,
+                    BuildingType: raw.BuildingType,
+                    OwnerId: raw.OwnerId,
+                    FactionId: raw.FactionId
                 );
             }
         );

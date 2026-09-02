@@ -11,5 +11,9 @@ public static class ChatServiceCollectionExtensions
             .AddTransient<GameSessionCreatedEventHandler>()
             .AddTransient<IDomainEventConsumer<GameSessionCreatedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<GameSessionCreatedEventHandler>()
+            )
+            .AddTransient<GameSessionDeletedEventHandler>()
+            .AddTransient<IDomainEventConsumer<GameSessionDeletedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<GameSessionDeletedEventHandler>()
             );
 }

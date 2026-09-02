@@ -10,6 +10,5 @@ public record RoomResult(
     string BuildingName,
     BuildingType BuildingType,
     Guid? OwnerId,
-    string? FactionName,
-    string? FactionDescription
+    Guid? FactionId
 );
