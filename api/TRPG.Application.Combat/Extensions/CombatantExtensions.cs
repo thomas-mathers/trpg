@@ -2,7 +2,7 @@ using TRPG.Application.Combat.Results;
 
 namespace TRPG.Application.Combat.Extensions;
 
-internal static class CombatantExtensions
+public static class CombatantExtensions
 {
     public static CombatantResult ToCombatantResult(this Combatant combatant)
     {

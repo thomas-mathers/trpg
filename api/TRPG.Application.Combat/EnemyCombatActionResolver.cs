@@ -6,7 +6,7 @@ using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 
 namespace TRPG.Application.Combat;
 
-internal class EnemyCombatActionResolver(
+public class EnemyCombatActionResolver(
     IOptionsSnapshot<CombatOptions> optionsSnapshot,
     DamageCalculator damageCalculator,
     HitCalculator hitCalculator

@@ -2,7 +2,7 @@ using TRPG.Application.Combat.Results;
 
 namespace TRPG.Application.Combat.Mappers;
 
-internal static class CombatStateMapper
+public static class CombatStateMapper
 {
     public static CombatResult ToCombatResult(this CombatState state)
     {

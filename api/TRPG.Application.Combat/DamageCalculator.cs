@@ -7,7 +7,7 @@ namespace TRPG.Application.Combat;
 
 public record DamageResult(int Amount, bool IsCritical);
 
-internal class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
+public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 {
     public DamageResult CalculateDamage(
         Combatant attacker,

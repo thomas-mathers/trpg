@@ -7,7 +7,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="TRPG.Tests" />
     <InternalsVisibleTo Include="TRPG.Balance" />
-    <InternalsVisibleTo Include="TRPG.Application.Encounters" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.Abilities\TRPG.Application.Abilities.csproj" />

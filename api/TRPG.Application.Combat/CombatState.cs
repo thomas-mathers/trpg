@@ -4,7 +4,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat;
 
-internal record CombatState(
+public record CombatState(
     CombatOutcome Outcome,
     IReadOnlyList<CombatantResult> Combatants,
     IReadOnlyList<CombatResolution> Events,

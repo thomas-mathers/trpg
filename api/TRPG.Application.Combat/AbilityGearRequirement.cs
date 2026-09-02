@@ -3,7 +3,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat;
 
-internal static class AbilityGearRequirement
+public static class AbilityGearRequirement
 {
     private static readonly IReadOnlyDictionary<
         WeaponType,
