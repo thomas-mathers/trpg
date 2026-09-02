@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using ChatMessageRow = TRPG.Domain.Models.ChatMessage;
 
 namespace TRPG.Application.Chat.Commands;
@@ -13,7 +13,7 @@ public class AppendChatMessagesCommand
     public required IReadOnlyList<ChatMessage> Messages { get; init; }
 }
 
-internal class AppendChatMessagesCommandHandler(TrpgDbContext context)
+internal class AppendChatMessagesCommandHandler(IChatDbContext context)
     : ICommandHandler<AppendChatMessagesCommand, int>
 {
     public async Task<int> Handle(

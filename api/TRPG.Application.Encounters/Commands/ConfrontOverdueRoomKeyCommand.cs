@@ -10,7 +10,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.RoomBookings.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -27,7 +27,7 @@ public class ConfrontOverdueRoomKeyCommand
 public record ConfrontOverdueRoomKeyResult(TheftEncounter? Encounter);
 
 internal class ConfrontOverdueRoomKeyCommandHandler(
-    TrpgDbContext context,
+    IEncountersDbContext context,
     IQueryHandler<GetTradeWorkstationByBuildingIdQuery, Workstation?> getTradeWorkstation,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,

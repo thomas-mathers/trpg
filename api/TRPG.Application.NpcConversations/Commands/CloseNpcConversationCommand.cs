@@ -1,7 +1,7 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.NpcConversations.Commands;
@@ -27,7 +27,7 @@ public class CloseNpcConversationCommand
 }
 
 internal class CloseNpcConversationCommandHandler(
-    TrpgDbContext context,
+    INpcConversationsDbContext context,
     ICommandHandler<RecordNpcConversationCommand> recordNpcConversation
 ) : ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationResult>
 {

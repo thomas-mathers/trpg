@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -13,7 +13,7 @@ public class UpdateCreaturesCommand
     public TimeSpan? LastRegenPlaytime { get; init; }
 }
 
-internal class UpdateCreaturesCommandHandler(TrpgDbContext context)
+internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
     : ICommandHandler<UpdateCreaturesCommand>
 {
     public async Task Handle(

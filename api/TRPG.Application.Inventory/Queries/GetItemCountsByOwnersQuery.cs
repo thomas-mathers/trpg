@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Queries;
@@ -11,7 +11,7 @@ public class GetItemCountsByOwnersQuery
     public required OwnerType OwnerType { get; init; }
 }
 
-internal class GetItemCountsByOwnersQueryHandler(TrpgDbContext context)
+internal class GetItemCountsByOwnersQueryHandler(IInventoryDbContext context)
     : IQueryHandler<GetItemCountsByOwnersQuery, IReadOnlyDictionary<Guid, int>>
 {
     public async Task<IReadOnlyDictionary<Guid, int>> Handle(

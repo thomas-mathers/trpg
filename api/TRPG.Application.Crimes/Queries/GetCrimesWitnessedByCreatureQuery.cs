@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Queries;
@@ -20,7 +20,7 @@ public class GetCrimesWitnessedByCreatureQuery
     public required Guid PlayerId { get; init; }
 }
 
-internal class GetCrimesWitnessedByCreatureQueryHandler(TrpgDbContext context)
+internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context)
     : IQueryHandler<GetCrimesWitnessedByCreatureQuery, IReadOnlyList<WitnessedCrime>>
 {
     public async Task<IReadOnlyList<WitnessedCrime>> Handle(

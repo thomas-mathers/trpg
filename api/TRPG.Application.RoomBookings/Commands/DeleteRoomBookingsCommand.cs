@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.RoomBookings.Commands;
 
@@ -9,7 +9,7 @@ public class DeleteRoomBookingsCommand
     public required IReadOnlyCollection<Guid> RoomBookingIds { get; init; }
 }
 
-internal class DeleteRoomBookingsCommandHandler(TrpgDbContext context)
+internal class DeleteRoomBookingsCommandHandler(IRoomBookingsDbContext context)
     : ICommandHandler<DeleteRoomBookingsCommand>
 {
     public async Task Handle(

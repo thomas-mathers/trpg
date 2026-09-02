@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
@@ -13,10 +13,11 @@ public class ResolveKillCrimeWitnessesCommand
     public required Guid LocationId { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
+    public required IReadOnlyCollection<Guid> LiveWitnessCreatureIds { get; init; }
 }
 
 internal class ResolveKillCrimeWitnessesCommandHandler(
-    TrpgDbContext context,
+    ICrimesDbContext context,
     PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution
 ) : ICommandHandler<ResolveKillCrimeWitnessesCommand, ResolveKillCrimeWitnessesResult>
 {
@@ -29,6 +30,7 @@ internal class ResolveKillCrimeWitnessesCommandHandler(
             command.WorldId,
             command.PlayerId,
             command.LocationId,
+            command.LiveWitnessCreatureIds,
             cancellationToken
         );
         if (resolution.Crimes.Count == 0)

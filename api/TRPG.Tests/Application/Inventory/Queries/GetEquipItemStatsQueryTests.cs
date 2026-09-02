@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data;
@@ -56,6 +57,8 @@ public sealed class GetEquipItemStatsQueryTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = _creature.Id,
                 ItemId = _armor.Id,
                 Slot = EquipmentSlot.Chest,
+                BaseAttributes = _creature.BaseAttributes,
+                ActiveBuffs = StatFormulas.ToActiveBuffs(_creature),
             },
             TestContext.Current.CancellationToken
         );
@@ -90,6 +93,8 @@ public sealed class GetEquipItemStatsQueryTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = _creature.Id,
                 ItemId = replacementArmor.Id,
                 Slot = EquipmentSlot.Chest,
+                BaseAttributes = _creature.BaseAttributes,
+                ActiveBuffs = StatFormulas.ToActiveBuffs(_creature),
             },
             TestContext.Current.CancellationToken
         );
@@ -137,6 +142,8 @@ public sealed class GetEquipItemStatsQueryTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = _creature.Id,
                 ItemId = greatSword.Id,
                 Slot = EquipmentSlot.RightHand,
+                BaseAttributes = _creature.BaseAttributes,
+                ActiveBuffs = StatFormulas.ToActiveBuffs(_creature),
             },
             TestContext.Current.CancellationToken
         );
@@ -155,6 +162,8 @@ public sealed class GetEquipItemStatsQueryTests(DatabaseFixture db) : IAsyncLife
                 CreatureId = _creature.Id,
                 ItemId = _armor.Id,
                 Slot = EquipmentSlot.Chest,
+                BaseAttributes = _creature.BaseAttributes,
+                ActiveBuffs = StatFormulas.ToActiveBuffs(_creature),
             },
             TestContext.Current.CancellationToken
         );

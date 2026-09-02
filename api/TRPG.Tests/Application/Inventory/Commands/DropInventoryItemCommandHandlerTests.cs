@@ -129,36 +129,8 @@ public sealed class DropInventoryItemCommandHandlerTests(DatabaseFixture db) : I
         var item = Builders.MakeItem(WorldId);
         item.Ownership.OwnerId = _player.Id;
         item.Ownership.OwnerType = OwnerType.Creature;
-        var quest = Builders.MakeQuest(Guid.NewGuid(), WorldId);
-        var objective = new CollectItemObjective
-        {
-            QuestId = quest.Id,
-            WorldId = WorldId,
-            Name = "Recover item",
-            Description = "Recover item",
-            ItemId = item.Id,
-        };
+        item.IsQuestItem = true;
         _context.Items.Add(item);
-        _context.Quests.Add(quest);
-        _context.QuestObjectives.Add(objective);
-        _context.CreatureQuests.Add(
-            new CreatureQuest
-            {
-                CreatureId = _player.Id,
-                QuestId = quest.Id,
-                Status = QuestStatus.Accepted,
-                WorldId = WorldId,
-            }
-        );
-        _context.CreatureQuestObjectives.Add(
-            new CreatureQuestObjective
-            {
-                CreatureId = _player.Id,
-                ObjectiveId = objective.Id,
-                Objective = objective,
-                WorldId = WorldId,
-            }
-        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act & Assert

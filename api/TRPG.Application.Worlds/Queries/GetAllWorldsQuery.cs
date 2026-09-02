@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
 
 public class GetAllWorldsQuery;
 
-internal class GetAllWorldsQueryHandler(TrpgDbContext context)
+internal class GetAllWorldsQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetAllWorldsQuery, IReadOnlyList<World>>
 {
     public async Task<IReadOnlyList<World>> Handle(

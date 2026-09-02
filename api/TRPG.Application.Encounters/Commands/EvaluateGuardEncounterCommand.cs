@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -8,7 +7,7 @@ using TRPG.Application.Factions.Queries;
 using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -20,8 +19,9 @@ public class EvaluateGuardEncounterCommand
 }
 
 internal class EvaluateGuardEncounterCommandHandler(
-    TrpgDbContext context,
+    IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetGuardAtLocationQuery, Creature?> getGuardAtLocation,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
     IQueryHandler<
@@ -44,15 +44,14 @@ internal class EvaluateGuardEncounterCommandHandler(
             cancellationToken
         );
 
-        var guard = await context
-            .Creatures.AsNoTracking()
-            .Where(c =>
-                c.WorldId == command.WorldId
-                && c.LocationId == player!.LocationId
-                && c.Profession == Profession.Guard
-                && c.State != CreatureState.Dead
-            )
-            .FirstOrDefaultAsync(cancellationToken);
+        var guard = await getGuardAtLocation.Handle(
+            new GetGuardAtLocationQuery
+            {
+                WorldId = command.WorldId,
+                LocationId = player!.LocationId,
+            },
+            cancellationToken
+        );
         if (guard == null)
         {
             return null;

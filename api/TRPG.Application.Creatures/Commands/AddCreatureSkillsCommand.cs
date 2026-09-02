@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -9,7 +9,7 @@ public class AddCreatureSkillsCommand
     public required IReadOnlyCollection<CreatureSkill> Skills { get; init; }
 }
 
-internal class AddCreatureSkillsCommandHandler(TrpgDbContext context)
+internal class AddCreatureSkillsCommandHandler(ICreaturesDbContext context)
     : ICommandHandler<AddCreatureSkillsCommand>
 {
     public async Task Handle(

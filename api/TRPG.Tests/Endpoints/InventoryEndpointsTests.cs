@@ -103,17 +103,53 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
     }
 
     [Fact]
-    public async Task Transfer_ReturnsBadRequest_WhenDestinationCarryingCapacityExceeded()
+    public async Task Transfer_ReturnsConflict_WhenReceivingPlayerCarryingCapacityExceeded()
     {
-        // Arrange
+        // Arrange — looting from a container is never treated as theft, so this exercises the
+        // same receive path a real steal/loot pickup would.
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var container = Builders.MakeContainer(_worldId, LocationId);
         var item = Builders.MakeWeapon(_worldId, weight: _toCreature.CarryingCapacity + 1);
         item.Quantity = 1;
-        item.Ownership.OwnerId = _fromCreature.Id;
-        item.Ownership.OwnerType = OwnerType.Creature;
+        item.Ownership.OwnerId = container.Id;
+        item.Ownership.OwnerType = OwnerType.Container;
+        context.Props.Add(container);
         context.Items.Add(item);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            "TransferInventory",
+            new InventoryTransferRequest(
+                new OwnerReferenceRequest(container.Id, OwnerType.Container),
+                new OwnerReferenceRequest(_toCreature.Id, OwnerType.Creature),
+                [new ItemSelection(item.Id, 1)]
+            ),
+            routeValues: new { playerId = _toCreature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Transfer_MovesItem_WhenGivingToAnotherCreatureExceedsTheirCapacity()
+    {
+        // Arrange — capacity is only a soft cap on what the receiving player chooses to pick up;
+        // giving an item away is not blocked by the recipient's own carrying capacity.
+        var item = await SeedItemOnFromCreature();
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            await context
+                .Creatures.Where(c => c.Id == _toCreature.Id)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(c => c.CarryingCapacity, 0),
+                    TestContext.Current.CancellationToken
+                );
+        }
 
         // Act
         var response = await _client.PostAsJsonAsync(
@@ -128,7 +164,7 @@ public sealed class InventoryEndpointsTests(EndpointTestFixture fixture) : IAsyn
         );
 
         // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]

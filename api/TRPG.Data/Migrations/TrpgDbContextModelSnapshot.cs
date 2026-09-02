@@ -1265,6 +1265,10 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("gold_value");
 
+                    b.Property<bool>("IsQuestItem")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_quest_item");
+
                     b.Property<string>("Modifiers")
                         .IsRequired()
                         .HasColumnType("jsonb")

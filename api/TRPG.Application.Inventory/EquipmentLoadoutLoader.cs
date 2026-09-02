@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory;
 
-internal class EquipmentLoadoutLoader(TrpgDbContext context)
+internal class EquipmentLoadoutLoader(IInventoryDbContext context)
 {
     public async Task<IReadOnlyList<Item>> LoadOwnedItems(
         Guid creatureId,

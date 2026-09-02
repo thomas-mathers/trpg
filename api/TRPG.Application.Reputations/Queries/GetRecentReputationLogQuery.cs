@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Reputations.Queries;
@@ -15,7 +15,7 @@ public class GetRecentReputationLogQuery
     public bool NegativeOnly { get; init; }
 }
 
-internal class GetRecentReputationLogQueryHandler(TrpgDbContext context)
+internal class GetRecentReputationLogQueryHandler(IReputationsDbContext context)
     : IQueryHandler<GetRecentReputationLogQuery, IReadOnlyCollection<ReputationLogEntry>>
 {
     public async Task<IReadOnlyCollection<ReputationLogEntry>> Handle(

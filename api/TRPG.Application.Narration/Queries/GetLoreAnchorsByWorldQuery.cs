@@ -1,10 +1,10 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Narration.Mappers;
 using TRPG.Application.Narration.Results;
-using TRPG.Data;
+using TRPG.Application.Worlds.Queries;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Narration.Queries;
 
@@ -14,12 +14,17 @@ public class GetLoreAnchorsByWorldQuery
 }
 
 internal class GetLoreAnchorsByWorldQueryHandler(
-    TrpgDbContext context,
     IMemoryCache cache,
     IQueryHandler<
         GetCreaturesInWorldQuery,
         IReadOnlyCollection<CreatureSummary>
-    > getAllCreaturesInWorld
+    > getAllCreaturesInWorld,
+    IQueryHandler<GetBuildingsByWorldIdQuery, IReadOnlyCollection<Building>> getBuildingsByWorldId,
+    IQueryHandler<GetDistrictsByWorldIdQuery, IReadOnlyCollection<District>> getDistrictsByWorldId,
+    IQueryHandler<GetWorldQuery, World?> getWorld,
+    IQueryHandler<GetCountriesByWorldIdQuery, IReadOnlyCollection<Country>> getCountriesByWorldId,
+    IQueryHandler<GetStatesByWorldIdQuery, IReadOnlyCollection<State>> getStatesByWorldId,
+    IQueryHandler<GetCitiesByWorldIdQuery, IReadOnlyCollection<City>> getCitiesByWorldId
 ) : IQueryHandler<GetLoreAnchorsByWorldQuery, IReadOnlyCollection<LoreAnchorResult>>
 {
     public static string CacheKey(Guid worldId) => $"namedEntities:{worldId}";
@@ -55,17 +60,10 @@ internal class GetLoreAnchorsByWorldQueryHandler(
             ))
             .ToArray();
 
-        var buildingRows = await context
-            .Buildings.AsNoTracking()
-            .Where(b => b.WorldId == worldId)
-            .Select(b => new
-            {
-                b.Id,
-                b.Name,
-                b.BuildingType,
-                b.Description,
-            })
-            .ToArrayAsync(cancellationToken);
+        var buildingRows = await getBuildingsByWorldId.Handle(
+            new GetBuildingsByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
         var buildings = buildingRows
             .Select(b => new LoreAnchorResult(
                 b.Id,
@@ -76,17 +74,10 @@ internal class GetLoreAnchorsByWorldQueryHandler(
             ))
             .ToArray();
 
-        var districtRows = await context
-            .Districts.AsNoTracking()
-            .Where(d => d.WorldId == worldId)
-            .Select(d => new
-            {
-                d.Id,
-                d.Name,
-                d.DistrictType,
-                d.Description,
-            })
-            .ToArrayAsync(cancellationToken);
+        var districtRows = await getDistrictsByWorldId.Handle(
+            new GetDistrictsByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
         var districts = districtRows
             .Select(d => new LoreAnchorResult(
                 d.Id,
@@ -97,21 +88,29 @@ internal class GetLoreAnchorsByWorldQueryHandler(
             ))
             .ToArray();
 
-        var world = await context
-            .Worlds.AsNoTracking()
-            .Where(w => w.Id == worldId)
-            .Select(w => new LoreAnchorResult(
-                w.Id,
-                w.Name,
-                LoreAnchorType.World,
-                null,
-                w.Description
-            ))
-            .ToArrayAsync(cancellationToken);
+        var worldEntity = await getWorld.Handle(
+            new GetWorldQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var world =
+            worldEntity != null
+                ? new[]
+                {
+                    new LoreAnchorResult(
+                        worldEntity.Id,
+                        worldEntity.Name,
+                        LoreAnchorType.World,
+                        null,
+                        worldEntity.Description
+                    ),
+                }
+                : [];
 
-        var countries = await context
-            .Countries.AsNoTracking()
-            .Where(c => c.WorldId == worldId)
+        var countryRows = await getCountriesByWorldId.Handle(
+            new GetCountriesByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var countries = countryRows
             .Select(c => new LoreAnchorResult(
                 c.Id,
                 c.Name,
@@ -119,11 +118,13 @@ internal class GetLoreAnchorsByWorldQueryHandler(
                 c.Focus.ToString(),
                 c.Description
             ))
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
 
-        var states = await context
-            .States.AsNoTracking()
-            .Where(s => s.WorldId == worldId)
+        var stateRows = await getStatesByWorldId.Handle(
+            new GetStatesByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var states = stateRows
             .Select(s => new LoreAnchorResult(
                 s.Id,
                 s.Name,
@@ -131,11 +132,13 @@ internal class GetLoreAnchorsByWorldQueryHandler(
                 null,
                 s.Description
             ))
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
 
-        var cities = await context
-            .Cities.AsNoTracking()
-            .Where(c => c.WorldId == worldId)
+        var cityRows = await getCitiesByWorldId.Handle(
+            new GetCitiesByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var cities = cityRows
             .Select(c => new LoreAnchorResult(
                 c.Id,
                 c.Name,
@@ -143,7 +146,7 @@ internal class GetLoreAnchorsByWorldQueryHandler(
                 null,
                 c.Description
             ))
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
 
         return creatures
             .Concat(buildings)

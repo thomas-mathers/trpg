@@ -8,7 +8,9 @@
     <InternalsVisibleTo Include="TRPG.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\TRPG.Application.Chat\TRPG.Application.Chat.csproj" />
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
+    <ProjectReference Include="..\TRPG.Application.NpcConversations\TRPG.Application.NpcConversations.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>

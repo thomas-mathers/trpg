@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.NpcConversations.Queries;
 
@@ -9,7 +9,7 @@ public class GetOpenNpcConversationsQuery
     public required Guid SessionId { get; init; }
 }
 
-internal class GetOpenNpcConversationsQueryHandler(TrpgDbContext context)
+internal class GetOpenNpcConversationsQueryHandler(INpcConversationsDbContext context)
     : IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>>
 {
     public async Task<Dictionary<string, Guid>> Handle(

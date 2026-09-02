@@ -5,7 +5,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Events;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -18,7 +18,7 @@ public class AdjustCreatureSkillsCommand
 }
 
 internal class AdjustCreatureSkillsCommandHandler(
-    TrpgDbContext context,
+    ICreaturesDbContext context,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<AdjustCreatureSkillsCommand>

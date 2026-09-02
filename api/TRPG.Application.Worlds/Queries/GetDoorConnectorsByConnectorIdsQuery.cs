@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
@@ -10,7 +10,7 @@ public class GetDoorConnectorsByConnectorIdsQuery
     public required IReadOnlyCollection<Guid> ConnectorIds { get; init; }
 }
 
-internal class GetDoorConnectorsByConnectorIdsQueryHandler(TrpgDbContext context)
+internal class GetDoorConnectorsByConnectorIdsQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetDoorConnectorsByConnectorIdsQuery, IReadOnlyDictionary<Guid, DoorConnector>>
 {
     public async Task<IReadOnlyDictionary<Guid, DoorConnector>> Handle(

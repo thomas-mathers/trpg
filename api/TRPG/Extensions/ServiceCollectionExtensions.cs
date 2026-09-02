@@ -23,6 +23,7 @@ using TRPG.Application.Worlds.Commands;
 using TRPG.Combat.Tools;
 using TRPG.Configuration;
 using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.GameSessions.ChatClients;
 using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
@@ -177,21 +178,47 @@ internal static class ServiceCollectionExtensions
 
     public static IServiceCollection AddTrpgDbContext(this IServiceCollection serviceCollection)
     {
-        return serviceCollection.AddDbContext<TrpgDbContext>(
-            (provider, options) =>
-            {
-                var connectionString = provider
-                    .GetRequiredService<IConfiguration>()
-                    .GetConnectionString("Trpg");
-                options
-                    .UseNpgsql(
-                        connectionString,
-                        sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)
-                    )
-                    .UseLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
-            }
-        );
+        return serviceCollection
+            .AddDbContext<TrpgDbContext>(
+                (provider, options) =>
+                {
+                    var connectionString = provider
+                        .GetRequiredService<IConfiguration>()
+                        .GetConnectionString("Trpg");
+                    options
+                        .UseNpgsql(
+                            connectionString,
+                            sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)
+                        )
+                        .UseLoggerFactory(provider.GetRequiredService<ILoggerFactory>());
+                }
+            )
+            .AddModuleDbContexts();
     }
+
+    public static IServiceCollection AddModuleDbContexts(
+        this IServiceCollection serviceCollection
+    ) =>
+        serviceCollection
+            .AddScoped<ITrpgDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IWorldsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IKnowledgeDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<ICreaturesDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IWeaponProficiencyDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IQuestsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IFactionsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IInventoryDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<ICreatureJobsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<INpcConversationsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IPropsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IReputationsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IEncountersDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<ICombatDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IGameSessionsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IChatDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<ICrimesDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IScenesDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IRoomBookingsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>());
 
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {

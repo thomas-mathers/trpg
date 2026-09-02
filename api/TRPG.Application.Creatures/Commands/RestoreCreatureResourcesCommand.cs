@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Creatures.Commands;
 
@@ -9,7 +9,7 @@ public class RestoreCreatureResourcesCommand
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
 }
 
-internal class RestoreCreatureResourcesCommandHandler(TrpgDbContext context)
+internal class RestoreCreatureResourcesCommandHandler(ICreaturesDbContext context)
     : ICommandHandler<RestoreCreatureResourcesCommand>
 {
     public async Task Handle(

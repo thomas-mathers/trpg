@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Commands;
@@ -11,7 +11,7 @@ public class AddGoldCommand
     public required int Amount { get; init; }
 }
 
-internal class AddGoldCommandHandler(TrpgDbContext context, GoldLoader goldLoader)
+internal class AddGoldCommandHandler(IInventoryDbContext context, GoldLoader goldLoader)
     : ICommandHandler<AddGoldCommand>
 {
     public async Task Handle(AddGoldCommand command, CancellationToken cancellationToken = default)

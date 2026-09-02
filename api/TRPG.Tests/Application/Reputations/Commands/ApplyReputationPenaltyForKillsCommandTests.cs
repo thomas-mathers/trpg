@@ -55,6 +55,7 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
             new ApplyReputationPenaltyForKillsCommand
             {
                 KillerId = _killer.Id,
+                WorldId = WorldId,
                 Kills = [new KillCrimeReport(victim.Id, [])],
             },
             TestContext.Current.CancellationToken
@@ -75,7 +76,12 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
     {
         // Act
         await _handler.Handle(
-            new ApplyReputationPenaltyForKillsCommand { KillerId = _killer.Id, Kills = [] },
+            new ApplyReputationPenaltyForKillsCommand
+            {
+                KillerId = _killer.Id,
+                WorldId = WorldId,
+                Kills = [],
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -96,6 +102,7 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
             new ApplyReputationPenaltyForKillsCommand
             {
                 KillerId = _killer.Id,
+                WorldId = WorldId,
                 Kills = [new KillCrimeReport(victim.Id, [])],
             },
             TestContext.Current.CancellationToken
@@ -119,6 +126,7 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
             new ApplyReputationPenaltyForKillsCommand
             {
                 KillerId = _killer.Id,
+                WorldId = WorldId,
                 Kills = [new KillCrimeReport(victim.Id, [witness.Id])],
             },
             TestContext.Current.CancellationToken

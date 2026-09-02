@@ -11,6 +11,7 @@ namespace TRPG.Application.Reputations.Commands;
 public class ApplyReputationPenaltyForKillsCommand
 {
     public required Guid KillerId { get; init; }
+    public required Guid WorldId { get; init; }
     public required IReadOnlyCollection<KillCrimeReport> Kills { get; init; }
 }
 
@@ -64,6 +65,7 @@ internal class ApplyReputationPenaltyForKillsCommandHandler(
             new AdjustReputationsCommand
             {
                 CreatureId = command.KillerId,
+                WorldId = command.WorldId,
                 Adjustments = killedFactionIds
                     .Select(factionId => new ReputationAdjustment(factionId, penalty))
                     .ToArray(),
@@ -98,6 +100,7 @@ internal class ApplyReputationPenaltyForKillsCommandHandler(
             new AdjustReputationsCommand
             {
                 CreatureId = command.KillerId,
+                WorldId = command.WorldId,
                 Adjustments = witnessAdjustments,
                 TargetType = ReputationTargetType.Creature,
                 Reason = ReputationReason.WitnessedKilling,

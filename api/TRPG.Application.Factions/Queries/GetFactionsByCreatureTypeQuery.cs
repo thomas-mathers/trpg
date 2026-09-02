@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Factions.Queries;
@@ -10,7 +10,7 @@ public class GetFactionsByCreatureTypeQuery
     public required Guid WorldId { get; init; }
 }
 
-internal class GetFactionsByCreatureTypeQueryHandler(TrpgDbContext context)
+internal class GetFactionsByCreatureTypeQueryHandler(IFactionsDbContext context)
     : IQueryHandler<GetFactionsByCreatureTypeQuery, IReadOnlyDictionary<CreatureType, Faction>>
 {
     public async Task<IReadOnlyDictionary<CreatureType, Faction>> Handle(

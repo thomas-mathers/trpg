@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -18,7 +18,7 @@ public class GetCreatureSkillsQuery
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetCreatureSkillsQueryHandler(TrpgDbContext context)
+internal class GetCreatureSkillsQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<GetCreatureSkillsQuery, IReadOnlyCollection<CreatureSkillProgress>>
 {
     public async Task<IReadOnlyCollection<CreatureSkillProgress>> Handle(

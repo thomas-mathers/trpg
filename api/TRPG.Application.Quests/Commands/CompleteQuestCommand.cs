@@ -3,7 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Data;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Inventory.Queries;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.Commands;
@@ -16,9 +19,11 @@ public class CompleteQuestCommand
 }
 
 internal class CompleteQuestCommandHandler(
-    TrpgDbContext context,
+    IQuestsDbContext context,
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
-    IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded
+    IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded,
+    IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
+    ICommandHandler<SetItemsQuestLockedCommand> setItemsQuestLocked
 ) : ICommandHandler<CompleteQuestCommand>
 {
     public async Task Handle(
@@ -47,7 +52,7 @@ internal class CompleteQuestCommandHandler(
             throw new InvalidOperationException("Quest objectives have not all been completed.");
         }
 
-        await EnsureQuestItemsAreOwned(command, cancellationToken);
+        var requiredItemIds = await EnsureQuestItemsAreOwned(command, cancellationToken);
 
         using var transaction = new TransactionScope(
             TransactionScopeOption.Required,
@@ -77,10 +82,16 @@ internal class CompleteQuestCommandHandler(
         creatureQuest.IsTracked = false;
 
         await context.SaveChangesAsync(cancellationToken);
+
+        await setItemsQuestLocked.Handle(
+            new SetItemsQuestLockedCommand { ItemIds = requiredItemIds, IsQuestItem = false },
+            cancellationToken
+        );
+
         transaction.Complete();
     }
 
-    private async Task EnsureQuestItemsAreOwned(
+    private async Task<IReadOnlyCollection<Guid>> EnsureQuestItemsAreOwned(
         CompleteQuestCommand command,
         CancellationToken cancellationToken
     )
@@ -91,14 +102,16 @@ internal class CompleteQuestCommandHandler(
             .Select(objective => objective.ItemId)
             .ToArrayAsync(cancellationToken);
 
-        var ownedItemIds = await context
-            .Items.Where(item =>
-                requiredItemIds.AsEnumerable().Contains(item.Id)
-                && item.Ownership.OwnerId == command.PlayerId
-                && item.Ownership.OwnerType == OwnerType.Creature
-            )
-            .Select(item => item.Id)
-            .ToArrayAsync(cancellationToken);
+        var ownedItems = await getItemsByIdsForOwner.Handle(
+            new GetItemsByIdsForOwnerQuery
+            {
+                ItemIds = requiredItemIds,
+                OwnerId = command.PlayerId,
+                OwnerType = OwnerType.Creature,
+            },
+            cancellationToken
+        );
+        var ownedItemIds = ownedItems.Select(item => item.Id).ToArray();
 
         var missingItemIds = requiredItemIds.Except(ownedItemIds).ToArray();
 
@@ -108,5 +121,7 @@ internal class CompleteQuestCommandHandler(
                 $"Item {missingItemIds[0]} is required to complete this quest."
             );
         }
+
+        return requiredItemIds;
     }
 }

@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -9,7 +9,7 @@ public class AddCreatureCommand
     public required Creature Creature { get; init; }
 }
 
-internal class AddCreatureCommandHandler(TrpgDbContext context)
+internal class AddCreatureCommandHandler(ICreaturesDbContext context)
     : ICommandHandler<AddCreatureCommand>
 {
     public async Task Handle(

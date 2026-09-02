@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.WorldGeneration;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
@@ -13,7 +13,7 @@ public class GetJailForCityQuery
 
 public record JailInfo(Guid CellsLocationId, Guid ExitDoorConnectorId);
 
-internal class GetJailForCityQueryHandler(TrpgDbContext context)
+internal class GetJailForCityQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetJailForCityQuery, JailInfo?>
 {
     public async Task<JailInfo?> Handle(

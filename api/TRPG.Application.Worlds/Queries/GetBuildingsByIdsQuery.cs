@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
@@ -10,7 +10,7 @@ public class GetBuildingsByIdsQuery
     public required IReadOnlyCollection<Guid> Ids { get; init; }
 }
 
-internal class GetBuildingsByIdsQueryHandler(TrpgDbContext context)
+internal class GetBuildingsByIdsQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetBuildingsByIdsQuery, IReadOnlyDictionary<Guid, Building>>
 {
     public async Task<IReadOnlyDictionary<Guid, Building>> Handle(

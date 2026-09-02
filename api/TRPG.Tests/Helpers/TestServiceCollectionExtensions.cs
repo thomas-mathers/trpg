@@ -25,6 +25,7 @@ internal static class TestServiceCollectionExtensions
             .AddScoped<TestGameClientEventSink>()
             .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<TestGameClientEventSink>())
             .AddSingleton(context)
+            .AddModuleDbContexts()
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddSingleton(typeof(IOptionsSnapshot<>), typeof(DefaultOptionsSnapshot<>));
 }

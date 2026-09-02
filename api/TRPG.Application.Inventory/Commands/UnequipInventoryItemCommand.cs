@@ -1,6 +1,6 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Commands;
@@ -12,7 +12,7 @@ public class UnequipInventoryItemCommand
 }
 
 internal class UnequipInventoryItemCommandHandler(
-    TrpgDbContext context,
+    IInventoryDbContext context,
     EquipmentLoadoutLoader equipmentLoadoutLoader,
     IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged
 ) : ICommandHandler<UnequipInventoryItemCommand>

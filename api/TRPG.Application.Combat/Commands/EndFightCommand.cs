@@ -8,7 +8,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Crimes.Events;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;
@@ -21,7 +21,7 @@ internal class EndFightCommand
 }
 
 internal class EndFightCommandHandler(
-    TrpgDbContext context,
+    ICombatDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<

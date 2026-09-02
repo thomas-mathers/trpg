@@ -91,6 +91,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             new AdjustReputationsCommand
             {
                 CreatureId = command.PlayerId,
+                WorldId = command.WorldId,
                 Adjustments =
                 [
                     new ReputationAdjustment(command.CityFactionId, -command.ReputationScore),
@@ -164,6 +165,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             new AdjustReputationsCommand
             {
                 CreatureId = command.PlayerId,
+                WorldId = command.WorldId,
                 Adjustments = [new ReputationAdjustment(command.CityFactionId, restoreAmount)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.ServedJailTime,

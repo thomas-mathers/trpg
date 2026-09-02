@@ -4,7 +4,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;
@@ -17,7 +17,7 @@ public class AbandonActiveFightCommand
 }
 
 internal class AbandonActiveFightCommandHandler(
-    TrpgDbContext context,
+    ICombatDbContext context,
     IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures

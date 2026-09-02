@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Validation;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.Commands;
@@ -21,7 +21,7 @@ public class SetQuestTrackingCommand
     public required Guid WorldId { get; init; }
 }
 
-internal class SetQuestTrackingCommandHandler(TrpgDbContext context)
+internal class SetQuestTrackingCommandHandler(IQuestsDbContext context)
     : ICommandHandler<SetQuestTrackingCommand>
 {
     public async Task Handle(

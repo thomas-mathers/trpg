@@ -2,13 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Props.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory;
 
 internal class TradeOfferValidator(
-    TrpgDbContext context,
+    IInventoryDbContext context,
     IQueryHandler<GetPropByIdQuery, Prop?> getPropById
 )
 {

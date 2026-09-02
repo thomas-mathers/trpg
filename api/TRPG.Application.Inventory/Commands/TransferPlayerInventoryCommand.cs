@@ -35,7 +35,6 @@ internal class TransferPlayerInventoryCommandHandler(
         );
 
         await questItemGuard.EnsureNotActiveQuestItems(
-            command.PlayerId,
             command.Items.Select(item => item.ItemId).ToArray(),
             cancellationToken
         );

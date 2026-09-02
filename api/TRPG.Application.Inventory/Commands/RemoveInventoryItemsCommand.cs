@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.CreatureFormulas;
-using TRPG.Data;
+using TRPG.Application.Common.Events;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Commands;
@@ -13,8 +13,10 @@ public class RemoveInventoryItemsCommand
     public required IReadOnlyCollection<InventoryItemRemoval> Removals { get; init; }
 }
 
-internal class RemoveInventoryItemsCommandHandler(TrpgDbContext context)
-    : ICommandHandler<RemoveInventoryItemsCommand>
+internal class RemoveInventoryItemsCommandHandler(
+    IInventoryDbContext context,
+    IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged
+) : ICommandHandler<RemoveInventoryItemsCommand>
 {
     public async Task Handle(
         RemoveInventoryItemsCommand command,
@@ -34,16 +36,6 @@ internal class RemoveInventoryItemsCommandHandler(TrpgDbContext context)
             .Keys.Select(key => key.CreatureId)
             .Distinct()
             .ToArray();
-
-        var creaturesById = await context
-            .Creatures.Where(c => creatureIds.AsEnumerable().Contains(c.Id))
-            .ToDictionaryAsync(c => c.Id, cancellationToken);
-
-        var missingCreatureIds = creatureIds.Except(creaturesById.Keys).ToArray();
-        if (missingCreatureIds.Length > 0)
-        {
-            throw new InvalidOperationException($"Creature {missingCreatureIds[0]} not found.");
-        }
 
         var itemsByCreature = await context
             .Items.Where(i =>
@@ -66,6 +58,13 @@ internal class RemoveInventoryItemsCommandHandler(TrpgDbContext context)
                 );
             }
 
+            if (existing.IsQuestItem)
+            {
+                throw new InvalidOperationException(
+                    $"Item {itemId} is required for an active quest and cannot be consumed."
+                );
+            }
+
             existing.Quantity -= quantity;
 
             if (existing.Quantity <= 0)
@@ -75,15 +74,14 @@ internal class RemoveInventoryItemsCommandHandler(TrpgDbContext context)
             }
         }
 
+        await context.SaveChangesAsync(cancellationToken);
+
         foreach (var creatureId in creatureIds)
         {
-            var equippedItems = itemsByCreatureId
-                .GetValueOrDefault(creatureId, [])
-                .Where(i => i.Ownership.EquippedSlot != null)
-                .ToArray();
-            StatFormulas.Recalculate(creaturesById[creatureId], equippedItems);
+            await creatureEquipmentChanged.Publish(
+                new CreatureEquipmentChangedEvent(creatureId),
+                cancellationToken
+            );
         }
-
-        await context.SaveChangesAsync(cancellationToken);
     }
 }

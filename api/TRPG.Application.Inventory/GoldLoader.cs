@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory;
 
-internal class GoldLoader(TrpgDbContext context)
+internal class GoldLoader(IInventoryDbContext context)
 {
     public Task<Gold?> FindGold(ItemOwnerReference owner, CancellationToken cancellationToken) =>
         context

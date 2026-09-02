@@ -3,7 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Worlds.Results;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
@@ -14,7 +14,7 @@ public class GetRoomQuery
 }
 
 internal class GetRoomQueryHandler(
-    TrpgDbContext context,
+    IWorldsDbContext context,
     IMemoryCache cache,
     IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds
 ) : IQueryHandler<GetRoomQuery, RoomResult?>

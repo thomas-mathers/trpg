@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Chat.Queries;
 
@@ -11,7 +11,7 @@ public class GetChatMessagesQuery
     public required Guid SessionId { get; init; }
 }
 
-internal class GetChatMessagesQueryHandler(TrpgDbContext context)
+internal class GetChatMessagesQueryHandler(IChatDbContext context)
     : IQueryHandler<GetChatMessagesQuery, IReadOnlyList<ChatMessage>>
 {
     public async Task<IReadOnlyList<ChatMessage>> Handle(

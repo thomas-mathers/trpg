@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Inventory.Queries;
 
@@ -10,7 +10,7 @@ public class GetEquippedItemCountQuery
     public required IReadOnlyCollection<Guid> ItemIds { get; init; }
 }
 
-internal class GetEquippedItemCountQueryHandler(TrpgDbContext context)
+internal class GetEquippedItemCountQueryHandler(IInventoryDbContext context)
     : IQueryHandler<GetEquippedItemCountQuery, int>
 {
     public async Task<int> Handle(

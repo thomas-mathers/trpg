@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Worlds.Queries;
 
@@ -16,7 +16,7 @@ public record GuestRoomDoor(
     Guid? CandidateKeyItemId
 );
 
-internal class GetGuestRoomDoorsByBuildingIdQueryHandler(TrpgDbContext context)
+internal class GetGuestRoomDoorsByBuildingIdQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetGuestRoomDoorsByBuildingIdQuery, IReadOnlyList<GuestRoomDoor>>
 {
     public async Task<IReadOnlyList<GuestRoomDoor>> Handle(

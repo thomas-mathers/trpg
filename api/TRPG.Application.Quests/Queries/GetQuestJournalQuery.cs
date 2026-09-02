@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.Queries;
@@ -31,7 +31,7 @@ public record QuestJournalEntry(
 );
 
 internal class GetQuestJournalQueryHandler(
-    TrpgDbContext context,
+    IQuestsDbContext context,
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds
 ) : IQueryHandler<GetQuestJournalQuery, IReadOnlyCollection<QuestJournalEntry>>
 {

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameSessions.Queries;
@@ -11,7 +11,7 @@ public class GetGameSessionQuery
     public required Guid SessionId { get; init; }
 }
 
-internal class GetGameSessionQueryHandler(TrpgDbContext context)
+internal class GetGameSessionQueryHandler(IGameSessionsDbContext context)
     : IQueryHandler<GetGameSessionQuery, GameSession>
 {
     public async Task<GameSession> Handle(

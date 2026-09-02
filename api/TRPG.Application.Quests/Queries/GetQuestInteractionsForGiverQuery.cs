@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Quests.Results;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.Queries;
@@ -13,7 +13,7 @@ public class GetQuestInteractionsForGiverQuery
     public required Guid WorldId { get; init; }
 }
 
-internal class GetQuestInteractionsForGiverQueryHandler(TrpgDbContext context)
+internal class GetQuestInteractionsForGiverQueryHandler(IQuestsDbContext context)
     : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult>
 {
     public async Task<QuestInteractionsResult> Handle(

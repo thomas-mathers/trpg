@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Crimes.Events;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.EventHandlers;
 
 internal sealed class CreatureKilledCrimeWitnessEventHandler(
-    TrpgDbContext context,
+    ICrimesDbContext context,
     IGameClientEventSink gameEvents
 ) : IDomainEventConsumer<CreatureKilledEvent>
 {

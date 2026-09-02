@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Factions.Queries;
 
@@ -9,7 +9,7 @@ public class GetCityFactionForCreatureQuery
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetCityFactionForCreatureQueryHandler(TrpgDbContext context)
+internal class GetCityFactionForCreatureQueryHandler(IFactionsDbContext context)
     : IQueryHandler<GetCityFactionForCreatureQuery, Guid?>
 {
     public async Task<Guid?> Handle(

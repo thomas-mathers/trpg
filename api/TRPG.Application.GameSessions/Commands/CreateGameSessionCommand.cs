@@ -1,6 +1,6 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using GameSession = TRPG.Domain.Models.GameSession;
 
 namespace TRPG.Application.GameSessions.Commands;
@@ -13,7 +13,7 @@ public class CreateGameSessionCommand
 }
 
 internal class CreateGameSessionCommandHandler(
-    TrpgDbContext context,
+    IGameSessionsDbContext context,
     IDomainEventPublisher<GameSessionCreatedEvent> gameSessionCreated
 ) : ICommandHandler<CreateGameSessionCommand, Guid>
 {

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Queries;
@@ -10,7 +10,7 @@ public class GetFightByIdQuery
     public required Guid FightId { get; init; }
 }
 
-internal class GetFightByIdQueryHandler(TrpgDbContext context)
+internal class GetFightByIdQueryHandler(ICombatDbContext context)
     : IQueryHandler<GetFightByIdQuery, FightEncounter?>
 {
     public async Task<FightEncounter?> Handle(

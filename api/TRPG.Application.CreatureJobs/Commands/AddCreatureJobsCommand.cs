@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.CreatureJobs.Commands;
@@ -9,7 +9,7 @@ public class AddCreatureJobsCommand
     public required IReadOnlyCollection<CreatureJob> Jobs { get; init; }
 }
 
-internal class AddCreatureJobsCommandHandler(TrpgDbContext context)
+internal class AddCreatureJobsCommandHandler(ICreatureJobsDbContext context)
     : ICommandHandler<AddCreatureJobsCommand>
 {
     public async Task Handle(

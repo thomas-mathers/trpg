@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Creatures.Queries;
 
@@ -13,7 +13,7 @@ public class GetUnallocatedAttributePointsQuery
 }
 
 internal class GetUnallocatedAttributePointsQueryHandler(
-    TrpgDbContext context,
+    ICreaturesDbContext context,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
 ) : IQueryHandler<GetUnallocatedAttributePointsQuery, int>
 {

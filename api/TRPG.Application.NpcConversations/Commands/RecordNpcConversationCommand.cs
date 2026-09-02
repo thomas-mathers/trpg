@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.NpcConversations.Commands;
@@ -18,7 +18,7 @@ public class RecordNpcConversationCommand
     public required Guid WorldId { get; init; }
 }
 
-internal class RecordNpcConversationCommandHandler(TrpgDbContext context)
+internal class RecordNpcConversationCommandHandler(INpcConversationsDbContext context)
     : ICommandHandler<RecordNpcConversationCommand>
 {
     public async Task Handle(

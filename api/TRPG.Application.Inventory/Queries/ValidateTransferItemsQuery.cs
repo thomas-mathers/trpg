@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Queries;
@@ -11,7 +11,7 @@ public class ValidateTransferItemsQuery
     public required IReadOnlyList<ItemSelection> Selections { get; init; }
 }
 
-internal class ValidateTransferItemsQueryHandler(TrpgDbContext context)
+internal class ValidateTransferItemsQueryHandler(IInventoryDbContext context)
     : IQueryHandler<ValidateTransferItemsQuery, IReadOnlyCollection<TransferItem>>
 {
     public Task<IReadOnlyCollection<TransferItem>> Handle(

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Reputations.Queries;
@@ -12,7 +12,7 @@ public class GetReputationScoreQuery
     public required ReputationTargetType TargetType { get; init; }
 }
 
-internal class GetReputationScoreQueryHandler(TrpgDbContext context)
+internal class GetReputationScoreQueryHandler(IReputationsDbContext context)
     : IQueryHandler<GetReputationScoreQuery, int>
 {
     public async Task<int> Handle(

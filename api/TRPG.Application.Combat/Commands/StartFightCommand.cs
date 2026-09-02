@@ -6,7 +6,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;
@@ -20,7 +20,7 @@ public class StartFightCommand
 }
 
 internal class StartFightCommandHandler(
-    TrpgDbContext context,
+    ICombatDbContext context,
     CombatantFactory combatantFactory,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<

@@ -65,6 +65,7 @@ public sealed class ApplyReputationPenaltyForTheftsCommandTests(DatabaseFixture 
             new ApplyReputationPenaltyForTheftsCommand
             {
                 PlayerId = _player.Id,
+                WorldId = WorldId,
                 Thefts = [new TheftCrimeReport(crime.Id, [])],
             },
             TestContext.Current.CancellationToken
@@ -84,7 +85,12 @@ public sealed class ApplyReputationPenaltyForTheftsCommandTests(DatabaseFixture 
     {
         // Act
         await _handler.Handle(
-            new ApplyReputationPenaltyForTheftsCommand { PlayerId = _player.Id, Thefts = [] },
+            new ApplyReputationPenaltyForTheftsCommand
+            {
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+                Thefts = [],
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -105,6 +111,7 @@ public sealed class ApplyReputationPenaltyForTheftsCommandTests(DatabaseFixture 
             new ApplyReputationPenaltyForTheftsCommand
             {
                 PlayerId = _player.Id,
+                WorldId = WorldId,
                 Thefts = [new TheftCrimeReport(crime.Id, [])],
             },
             TestContext.Current.CancellationToken
@@ -129,6 +136,7 @@ public sealed class ApplyReputationPenaltyForTheftsCommandTests(DatabaseFixture 
             new ApplyReputationPenaltyForTheftsCommand
             {
                 PlayerId = _player.Id,
+                WorldId = WorldId,
                 Thefts = [new TheftCrimeReport(crime.Id, [witness.Id])],
             },
             TestContext.Current.CancellationToken
@@ -158,6 +166,7 @@ public sealed class ApplyReputationPenaltyForTheftsCommandTests(DatabaseFixture 
             new ApplyReputationPenaltyForTheftsCommand
             {
                 PlayerId = _player.Id,
+                WorldId = WorldId,
                 Thefts = [new TheftCrimeReport(crime.Id, [])],
             },
             TestContext.Current.CancellationToken
@@ -193,6 +202,7 @@ public sealed class ApplyReputationPenaltyForTheftsCommandTests(DatabaseFixture 
             new ApplyReputationPenaltyForTheftsCommand
             {
                 PlayerId = _player.Id,
+                WorldId = WorldId,
                 Thefts = crimes.Select(crime => new TheftCrimeReport(crime.Id, [])).ToArray(),
             },
             TestContext.Current.CancellationToken

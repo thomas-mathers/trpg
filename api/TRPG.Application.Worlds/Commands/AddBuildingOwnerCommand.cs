@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Commands;
@@ -11,7 +11,7 @@ public class AddBuildingOwnerCommand
     public required Guid OwnerId { get; init; }
 }
 
-internal class AddBuildingOwnerCommandHandler(TrpgDbContext context)
+internal class AddBuildingOwnerCommandHandler(IWorldsDbContext context)
     : ICommandHandler<AddBuildingOwnerCommand>
 {
     public async Task Handle(

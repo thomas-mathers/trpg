@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Configuration;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -15,7 +15,7 @@ public class ApplyPassiveRegenCommand
 }
 
 internal class ApplyPassiveRegenCommandHandler(
-    TrpgDbContext context,
+    ICreaturesDbContext context,
     IOptionsSnapshot<CreatureRegenOptions> optionsSnapshot
 ) : ICommandHandler<ApplyPassiveRegenCommand, IReadOnlyDictionary<Guid, Creature>>
 {
