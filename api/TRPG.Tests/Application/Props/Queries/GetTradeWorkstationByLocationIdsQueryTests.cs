@@ -7,26 +7,24 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Props.Queries;
 
 [Collection("Database")]
-public sealed class GetTradeWorkstationByBuildingIdQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetTradeWorkstationByLocationIdsQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private GetTradeWorkstationByBuildingIdQueryHandler _handler = null!;
-    private readonly Building _building = Builders.MakeBuilding(worldId: WorldId);
+    private GetTradeWorkstationByLocationIdsQueryHandler _handler = null!;
 
-    public async ValueTask InitializeAsync()
+    public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _handler =
-            _serviceProvider.GetRequiredService<GetTradeWorkstationByBuildingIdQueryHandler>();
+            _serviceProvider.GetRequiredService<GetTradeWorkstationByLocationIdsQueryHandler>();
 
-        _context.Buildings.Add(_building);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
@@ -36,30 +34,30 @@ public sealed class GetTradeWorkstationByBuildingIdQueryTests(DatabaseFixture db
     }
 
     [Fact]
-    public async Task Handle_ReturnsTheTradeWorkstationInTheBuilding()
+    public async Task Handle_ReturnsTradeWorkstation_WhenLocationIsIncluded()
     {
-        // Arrange
-        var room = Builders.MakeRoom(_building.Id, worldId: WorldId);
-        var tradeWorkstation = Builders.MakeWorkstation(WorldId, locationId: room.LocationId);
+        var locationId = Guid.NewGuid();
+        var tradeWorkstation = Builders.MakeWorkstation(WorldId, locationId: locationId);
         var craftingWorkstation = new Workstation
         {
             WorldId = WorldId,
-            LocationId = room.LocationId,
+            LocationId = locationId,
             Name = "Forge",
             Description = "A test forge",
             WorkstationType = WorkstationType.Weaponsmithing,
         };
-        _context.Rooms.Add(room);
-        _context.Props.AddRange(tradeWorkstation, craftingWorkstation);
+        var workstationAtOtherLocation = Builders.MakeWorkstation(
+            WorldId,
+            locationId: Guid.NewGuid()
+        );
+        _context.Props.AddRange(tradeWorkstation, craftingWorkstation, workstationAtOtherLocation);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Act
         var result = await _handler.Handle(
-            new GetTradeWorkstationByBuildingIdQuery { BuildingId = _building.Id },
+            new GetTradeWorkstationByLocationIdsQuery { LocationIds = [locationId] },
             TestContext.Current.CancellationToken
         );
 
-        // Assert
         Assert.NotNull(result);
         Assert.Equal(tradeWorkstation.Id, result.Id);
     }

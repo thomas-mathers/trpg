@@ -1,10 +1,10 @@
+using System.Transactions;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Chat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
-using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.GameTurns.Commands;
 
@@ -16,7 +16,6 @@ public class CloseLingeringNpcConversationsCommand
 
 internal class CloseLingeringNpcConversationsCommandHandler(
     LlmConversationClient llmConversationClient,
-    ITrpgDbContext context,
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
     ICommandHandler<ClearOpenNpcConversationsCommand> clearOpenNpcConversations,
     ICommandHandler<ClearChatMessagesCommand> clearChatMessages,
@@ -48,8 +47,9 @@ internal class CloseLingeringNpcConversationsCommandHandler(
             logger.LogWarning("[game] Failed to save conversation summary for {NpcName}", npcName);
         }
 
-        await using var transaction = await context.Database.BeginTransactionAsync(
-            cancellationToken
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
         );
 
         await clearOpenNpcConversations.Handle(
@@ -66,7 +66,7 @@ internal class CloseLingeringNpcConversationsCommandHandler(
             cancellationToken
         );
 
-        await transaction.CommitAsync(cancellationToken);
+        transaction.Complete();
     }
 
     private async Task ForceEndConversation(string npcName, CancellationToken cancellationToken)

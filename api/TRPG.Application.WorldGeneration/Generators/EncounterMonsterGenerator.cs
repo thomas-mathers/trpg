@@ -1,3 +1,4 @@
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -37,7 +38,7 @@ internal static class EncounterMonsterGenerator
     )
     {
         var level = Random.Shared.Next(minimumLevel, maximumLevel + 1);
-        var birthYear = WorldEpoch.Year - level;
+        var birthYear = GameClock.EpochYear - level;
 
         var result = creatureGenerator.Generate(
             new CreatureGeneratorInput(

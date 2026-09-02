@@ -1,3 +1,4 @@
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -44,7 +45,7 @@ public class HouseholdGenerator(
     private const int MaxParentBirthYear = 949;
     private const int YoungestParentingAge = 18;
     private const int AdultAge = 18;
-    private const int MaxAdultBirthYear = WorldEpoch.Year - AdultAge;
+    private const int MaxAdultBirthYear = GameClock.EpochYear - AdultAge;
 
     internal HouseholdGeneratorResult Generate(
         HouseholdGeneratorInput input,
@@ -229,11 +230,13 @@ public class HouseholdGenerator(
                         lastName
                     ),
                     MinBirthYear = minKidBirthYear,
-                    MaxBirthYear = WorldEpoch.Year - 1,
+                    MaxBirthYear = GameClock.EpochYear - 1,
                 }
             );
             kid.Creature.Profession =
-                WorldEpoch.Year - kid.Creature.BirthYear < AdultAge ? null : Profession.Unemployed;
+                GameClock.EpochYear - kid.Creature.BirthYear < AdultAge
+                    ? null
+                    : Profession.Unemployed;
             kids.Add(kid);
         }
 

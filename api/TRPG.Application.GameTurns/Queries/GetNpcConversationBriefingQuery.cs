@@ -8,7 +8,7 @@ using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations;
 using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
-using TRPG.Application.WorldGeneration;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Queries;
@@ -178,7 +178,7 @@ internal class GetNpcConversationBriefingQueryHandler(
                 npc.Name,
                 npc.CreatureType.ToString(),
                 npc.Gender,
-                WorldEpoch.Year - npc.BirthYear
+                GameClock.EpochYear - npc.BirthYear
             ),
             new NpcConversationAppearance(
                 profile.Description,

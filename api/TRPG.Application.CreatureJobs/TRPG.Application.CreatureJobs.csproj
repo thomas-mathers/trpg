@@ -8,7 +8,6 @@
     <InternalsVisibleTo Include="TRPG.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
     <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />

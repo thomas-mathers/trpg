@@ -1,9 +1,9 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Application.Props.Queries;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.RoomBookings.Queries;
 using TRPG.Application.Worlds.Queries;

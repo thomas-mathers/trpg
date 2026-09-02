@@ -5,7 +5,7 @@ namespace TRPG.Domain;
 
 public static class GameClock
 {
-    internal const int EpochYear = 975;
+    public const int EpochYear = 975;
     private const double InGameHoursPerRealHour = 12.0;
     private static readonly DateTime WorldEpoch = new(EpochYear, 1, 1, 8, 0, 0);
 
