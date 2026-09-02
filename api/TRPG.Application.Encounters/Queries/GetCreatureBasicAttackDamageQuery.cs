@@ -1,8 +1,9 @@
+using TRPG.Application.Combat;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat.Queries;
+namespace TRPG.Application.Encounters.Queries;
 
 public class GetCreatureBasicAttackDamageQuery
 {

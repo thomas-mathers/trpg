@@ -1,7 +1,8 @@
+using TRPG.Application.Combat;
 using TRPG.Application.Creatures.Commands;
 using PersistedCombat = TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat.Mappers;
+namespace TRPG.Application.Encounters.Mappers;
 
 internal static class CombatantMapper
 {

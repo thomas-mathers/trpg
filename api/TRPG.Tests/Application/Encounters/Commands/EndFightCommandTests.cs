@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Crimes.Events;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Combat.Commands;
+namespace TRPG.Tests.Application.Encounters.Commands;
 
 [Collection("Database")]
 public sealed class EndFightCommandTests(DatabaseFixture db) : IAsyncLifetime

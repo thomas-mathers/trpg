@@ -1,3 +1,4 @@
+using TRPG.Application.Combat;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -5,7 +6,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat.Commands;
+namespace TRPG.Application.Encounters.Commands;
 
 public class ResolvePlayerCombatActionCommand
 {

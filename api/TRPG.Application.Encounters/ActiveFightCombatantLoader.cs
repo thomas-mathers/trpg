@@ -1,9 +1,10 @@
-using TRPG.Application.Combat.Queries;
+using TRPG.Application.Combat;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat;
+namespace TRPG.Application.Encounters;
 
 internal class ActiveFightCombatantLoader(
     IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,

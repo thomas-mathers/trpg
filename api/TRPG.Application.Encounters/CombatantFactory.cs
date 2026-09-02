@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
+using TRPG.Application.Combat;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
@@ -8,7 +9,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.WeaponProficiency.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat;
+namespace TRPG.Application.Encounters;
 
 internal class CombatantFactory(
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventory,

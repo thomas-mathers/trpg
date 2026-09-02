@@ -1,8 +1,9 @@
+using TRPG.Application.Combat;
 using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Queries;
 
-namespace TRPG.Application.Combat.Queries;
+namespace TRPG.Application.Encounters.Queries;
 
 public class GetActiveFightCombatantsQuery
 {

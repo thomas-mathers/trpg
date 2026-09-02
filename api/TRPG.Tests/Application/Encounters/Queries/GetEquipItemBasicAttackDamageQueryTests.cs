@@ -1,11 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Combat.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Combat.Queries;
+namespace TRPG.Tests.Application.Encounters.Queries;
 
 [Collection("Database")]
 public sealed class GetEquipItemBasicAttackDamageQueryTests(DatabaseFixture db) : IAsyncLifetime

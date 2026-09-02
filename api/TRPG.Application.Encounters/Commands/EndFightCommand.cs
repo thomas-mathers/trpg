@@ -1,5 +1,6 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Combat;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
@@ -11,7 +12,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat.Commands;
+namespace TRPG.Application.Encounters.Commands;
 
 internal class EndFightCommand
 {
@@ -21,7 +22,7 @@ internal class EndFightCommand
 }
 
 internal class EndFightCommandHandler(
-    ICombatDbContext context,
+    IEncountersDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<

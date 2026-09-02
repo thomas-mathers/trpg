@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat.Commands;
+namespace TRPG.Application.Encounters.Commands;
 
 public class AbandonActiveFightCommand
 {
@@ -17,7 +17,7 @@ public class AbandonActiveFightCommand
 }
 
 internal class AbandonActiveFightCommandHandler(
-    ICombatDbContext context,
+    IEncountersDbContext context,
     IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures

@@ -3,14 +3,14 @@ using TRPG.Application.Common.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Combat.Queries;
+namespace TRPG.Application.Encounters.Queries;
 
 public class GetActiveFightQuery
 {
     public required Guid PlayerId { get; init; }
 }
 
-internal class GetActiveFightQueryHandler(ICombatDbContext context)
+internal class GetActiveFightQueryHandler(IEncountersDbContext context)
     : IQueryHandler<GetActiveFightQuery, FightEncounter?>
 {
     public async Task<FightEncounter?> Handle(

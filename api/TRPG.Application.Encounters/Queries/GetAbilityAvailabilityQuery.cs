@@ -1,7 +1,8 @@
 using TRPG.Application.Abilities;
+using TRPG.Application.Combat;
 using TRPG.Application.Common.Queries;
 
-namespace TRPG.Application.Combat.Queries;
+namespace TRPG.Application.Encounters.Queries;
 
 public record AbilityAvailability(string Name, bool IsUsable, string? Reason);
 
