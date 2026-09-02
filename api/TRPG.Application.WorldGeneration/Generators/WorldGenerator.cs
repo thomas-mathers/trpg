@@ -37,7 +37,7 @@ public class WorldGeneratorResult
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required IReadOnlyList<CreatureKnowledge> Knowledge { get; init; }
     public required IReadOnlyList<Location> Locations { get; init; }
-    public required IReadOnlyList<NpcProfile> NpcProfiles { get; init; }
+    public required IReadOnlyList<CreatureProfile> CreatureProfiles { get; init; }
     public required IReadOnlyList<Prop> Props { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
     public required IReadOnlyList<LocationConnector> LocationConnectors { get; init; }
@@ -317,8 +317,8 @@ public class WorldGenerator(
 
         creatures.AddRange(monsters);
 
-        var npcProfiles = NpcProfileGenerator.Generate(
-            new NpcProfileGeneratorInput(
+        var creatureProfiles = CreatureProfileGenerator.Generate(
+            new CreatureProfileGeneratorInput(
                 creatures,
                 anchoredLocations.ToDictionary(location => location.Id),
                 factionMembers,
@@ -353,7 +353,7 @@ public class WorldGenerator(
             Items = items,
             Rooms = rooms,
             Locations = anchoredLocations,
-            NpcProfiles = npcProfiles,
+            CreatureProfiles = creatureProfiles,
             Props = props,
             Skills = skills,
             Jobs = jobs,

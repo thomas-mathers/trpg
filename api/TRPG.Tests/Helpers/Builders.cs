@@ -944,18 +944,6 @@ internal static class Builders
             WorldId = worldId ?? Guid.NewGuid(),
         };
 
-    public static WorldEvent MakeWorldEvent(Guid worldId, Guid? locationId = null)
-    {
-        return new WorldEvent
-        {
-            WorldId = worldId,
-            Description = "A test world event",
-            Date = DateTime.UtcNow,
-            Tags = [],
-            LocationId = locationId,
-        };
-    }
-
     public static GameSession MakeGameSession(
         Guid worldId,
         Guid playerId,

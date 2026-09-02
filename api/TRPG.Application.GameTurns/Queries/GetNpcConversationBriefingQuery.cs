@@ -104,7 +104,8 @@ internal class GetNpcConversationBriefingQueryHandler(
     IQueryHandler<
         GetCrimesWitnessedByCreatureQuery,
         IReadOnlyList<WitnessedCrime>
-    > getCrimesWitnessedByCreature
+    > getCrimesWitnessedByCreature,
+    IQueryHandler<GetCreatureProfileByCreatureIdQuery, CreatureProfile?> getCreatureProfile
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
     private const int ReputationHistoryLimit = 5;
@@ -121,14 +122,15 @@ internal class GetNpcConversationBriefingQueryHandler(
             ) ?? throw new InvalidOperationException($"Creature {query.NpcId} not found.");
 
         var profile =
-            await context
-                .NpcProfiles.AsNoTracking()
-                .FirstOrDefaultAsync(
-                    profile =>
-                        profile.CreatureId == query.NpcId && profile.WorldId == query.WorldId,
-                    cancellationToken
-                )
-            ?? new NpcProfile
+            await getCreatureProfile.Handle(
+                new GetCreatureProfileByCreatureIdQuery
+                {
+                    CreatureId = query.NpcId,
+                    WorldId = query.WorldId,
+                },
+                cancellationToken
+            )
+            ?? new CreatureProfile
             {
                 CreatureId = npc.Id,
                 WorldId = npc.WorldId,

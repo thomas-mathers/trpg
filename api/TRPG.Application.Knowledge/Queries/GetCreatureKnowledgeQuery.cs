@@ -1,14 +1,16 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using CreaturesMatch = TRPG.Application.Creatures.Queries.NameSimilarityMatch;
 using FactionsMatch = TRPG.Application.Factions.Queries.NameSimilarityMatch;
 using WorldsMatch = TRPG.Application.Worlds.Queries.NameSimilarityMatch;
 
-namespace TRPG.Application.Creatures.Queries;
+namespace TRPG.Application.Knowledge.Queries;
 
 public class GetCreatureKnowledgeQuery
 {
@@ -105,7 +107,12 @@ internal class GetCreatureKnowledgeQueryHandler(
         GetFactionsRankedBySimilarityQuery,
         IReadOnlyList<FactionsMatch>
     > getFactionsRankedBySimilarity,
-    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<
+        GetCreaturesRankedBySimilarityQuery,
+        IReadOnlyList<CreaturesMatch>
+    > getCreaturesRankedBySimilarity,
+    IQueryHandler<GetCreatureCountByLocationIdsQuery, int> getCreatureCountByLocationIds
 ) : IQueryHandler<GetCreatureKnowledgeQuery, IReadOnlyList<LookupMatch>>
 {
     private const double SimilarityThreshold = 0.35;
@@ -272,20 +279,20 @@ internal class GetCreatureKnowledgeQueryHandler(
             return [];
         }
 
-        return await context
-            .Creatures.AsNoTracking()
-            .Where(c => candidateIds.AsEnumerable().Contains(c.Id))
-            .Select(c => new
+        var matches = await getCreaturesRankedBySimilarity.Handle(
+            new GetCreaturesRankedBySimilarityQuery
             {
-                c.Id,
-                c.Name,
-                Similarity = EF.Functions.TrigramsStrictWordSimilarity(query.SubjectName, c.Name),
-            })
-            .Where(x => x.Similarity >= SimilarityThreshold)
-            .OrderByDescending(x => x.Similarity)
-            .Take(MaxMatches)
-            .Select(x => new Candidate(x.Similarity, x.Name, KnowledgeSubjectType.Creature, x.Id))
-            .ToArrayAsync(cancellationToken);
+                CandidateIds = candidateIds,
+                SearchName = query.SubjectName,
+                SimilarityThreshold = SimilarityThreshold,
+                MaxMatches = MaxMatches,
+            },
+            cancellationToken
+        );
+
+        return matches
+            .Select(m => new Candidate(m.Similarity, m.Name, KnowledgeSubjectType.Creature, m.Id))
+            .ToArray();
     }
 
     private async Task<LookupResult?> BuildResult(
@@ -321,10 +328,13 @@ internal class GetCreatureKnowledgeQueryHandler(
                     ? null
                     : await BuildFactionResult(faction, cancellationToken);
             case KnowledgeSubjectType.Creature:
-                var creature = await context
-                    .Creatures.AsNoTracking()
-                    .FirstAsync(c => c.Id == candidate.EntityId, cancellationToken);
-                return await BuildPersonResult(creature, query.CurrentYear, cancellationToken);
+                var creature = await getCreatureById.Handle(
+                    new GetCreatureByIdQuery { Id = candidate.EntityId },
+                    cancellationToken
+                );
+                return creature == null
+                    ? null
+                    : await BuildPersonResult(creature, query.CurrentYear, cancellationToken);
             default:
                 throw new ArgumentOutOfRangeException(nameof(candidate));
         }
@@ -374,8 +384,8 @@ internal class GetCreatureKnowledgeQueryHandler(
             new GetLocationIdsByCityIdQuery { CityId = city.Id },
             cancellationToken
         );
-        var populationCount = await context.Creatures.CountAsync(
-            p => p.WorldId == worldId && locationIds.AsEnumerable().Contains(p.LocationId),
+        var populationCount = await getCreatureCountByLocationIds.Handle(
+            new GetCreatureCountByLocationIdsQuery { WorldId = worldId, LocationIds = locationIds },
             cancellationToken
         );
 

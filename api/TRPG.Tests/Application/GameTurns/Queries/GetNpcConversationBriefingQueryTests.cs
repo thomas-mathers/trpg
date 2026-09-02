@@ -75,30 +75,30 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     {
         // Arrange
         var factionId = Guid.NewGuid();
-        _context.NpcProfiles.Add(
-            new NpcProfile
+        _context.CreatureProfiles.Add(
+            new CreatureProfile
             {
                 WorldId = WorldId,
                 CreatureId = _npc.Id,
                 Description = "A watchful shopkeeper.",
-                Appearance = new NpcAppearance
+                Appearance = new CreatureAppearance
                 {
                     DistinguishingFeatures = ["A scar above one eye."],
                 },
-                Behavior = new NpcBehavior
+                Behavior = new CreatureBehavior
                 {
                     Personality = "Blunt and practical.",
                     SpeechStyle = "Clipped, direct sentences.",
                     Hobby = "woodworking",
                 },
-                PrivateBackground = new NpcPrivateBackground
+                PrivateBackground = new CreaturePrivateBackground
                 {
                     Origin = "Millhaven",
                     Profession = "Merchant",
-                    Factions = [new NpcFaction(factionId, "The Ledger Guild")],
-                    Family = [new NpcFamilyMember("Bram", "Brother")],
+                    Factions = [new CreatureFaction(factionId, "The Ledger Guild")],
+                    Family = [new CreatureFamilyMember("Bram", "Brother")],
                     Home = "The Old Mill House",
-                    Work = new NpcWorkBackground
+                    Work = new CreatureWorkBackground
                     {
                         Building = "General Store",
                         IsOwner = true,
@@ -165,14 +165,14 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     {
         // Arrange
         var factionId = Guid.NewGuid();
-        _context.NpcProfiles.Add(
-            new NpcProfile
+        _context.CreatureProfiles.Add(
+            new CreatureProfile
             {
                 WorldId = WorldId,
                 CreatureId = _npc.Id,
-                PrivateBackground = new NpcPrivateBackground
+                PrivateBackground = new CreaturePrivateBackground
                 {
-                    Factions = [new NpcFaction(factionId, "The Ledger Guild")],
+                    Factions = [new CreatureFaction(factionId, "The Ledger Guild")],
                 },
             }
         );
@@ -217,17 +217,17 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         // Arrange
         var namedFactionId = Guid.NewGuid();
         var cityFactionId = Guid.NewGuid();
-        _context.NpcProfiles.Add(
-            new NpcProfile
+        _context.CreatureProfiles.Add(
+            new CreatureProfile
             {
                 WorldId = WorldId,
                 CreatureId = _npc.Id,
-                PrivateBackground = new NpcPrivateBackground
+                PrivateBackground = new CreaturePrivateBackground
                 {
                     Factions =
                     [
-                        new NpcFaction(namedFactionId, "The Ledger Guild"),
-                        new NpcFaction(
+                        new CreatureFaction(namedFactionId, "The Ledger Guild"),
+                        new CreatureFaction(
                             cityFactionId,
                             "The People of Millhaven",
                             IsCityFaction: true

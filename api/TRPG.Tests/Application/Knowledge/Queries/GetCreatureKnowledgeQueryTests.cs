@@ -1,10 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Creatures.Queries;
+namespace TRPG.Tests.Application.Knowledge.Queries;
 
 [Collection("Database")]
 public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncLifetime

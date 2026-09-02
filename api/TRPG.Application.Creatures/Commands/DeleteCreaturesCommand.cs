@@ -99,7 +99,7 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
-            .NpcProfiles.Where(profile => ids.Contains(profile.CreatureId))
+            .CreatureProfiles.Where(profile => ids.Contains(profile.CreatureId))
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
