@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
@@ -11,7 +11,7 @@ public class AddCrimeWitnessesCommand
     public required IReadOnlyCollection<Guid> WitnessCreatureIds { get; init; }
 }
 
-internal class AddCrimeWitnessesCommandHandler(TrpgDbContext context)
+internal class AddCrimeWitnessesCommandHandler(ICrimesDbContext context)
     : ICommandHandler<AddCrimeWitnessesCommand>
 {
     public async Task Handle(

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
@@ -9,16 +10,22 @@ namespace TRPG.Tests.Application.Reputations.Queries;
 [Collection("Database")]
 public sealed class GetReputationsByCreatureIdQueryTests(DatabaseFixture db) : IAsyncLifetime
 {
+    private static readonly Guid WorldId = Guid.NewGuid();
+
     private AdjustReputationsCommandHandler _adjustReputations = null!;
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetReputationsByCreatureIdQueryHandler _handler = null!;
     private readonly Faction _faction = Builders.MakeFaction();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
         _handler = new GetReputationsByCreatureIdQueryHandler(_context);
-        _adjustReputations = new AdjustReputationsCommandHandler(_context);
+        _adjustReputations = _serviceProvider.GetRequiredService<AdjustReputationsCommandHandler>();
 
         _context.Factions.Add(_faction);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -26,6 +33,7 @@ public sealed class GetReputationsByCreatureIdQueryTests(DatabaseFixture db) : I
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -44,6 +52,7 @@ public sealed class GetReputationsByCreatureIdQueryTests(DatabaseFixture db) : I
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, 5)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -54,6 +63,7 @@ public sealed class GetReputationsByCreatureIdQueryTests(DatabaseFixture db) : I
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(faction2.Id, 10)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,

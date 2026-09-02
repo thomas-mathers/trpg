@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Commands;
@@ -17,7 +17,7 @@ public class TransferInventoryItemsCommand
 }
 
 internal class TransferInventoryItemsCommandHandler(
-    TrpgDbContext context,
+    IInventoryDbContext context,
     ICommandHandler<AddGoldCommand> addGold,
     IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged
 ) : ICommandHandler<TransferInventoryItemsCommand, IReadOnlyCollection<InventoryItemTransferResult>>
@@ -33,51 +33,10 @@ internal class TransferInventoryItemsCommandHandler(
             context.Items,
             cancellationToken
         );
-        await EnsureDestinationCapacity(command.To, transferItems, cancellationToken);
         var results = await MoveItems(transferItems, command.To, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
         await RecalculateSourceAttributes(command.From, cancellationToken);
         return results;
-    }
-
-    private async Task EnsureDestinationCapacity(
-        ItemOwnerReference to,
-        IReadOnlyCollection<TransferItem> transferItems,
-        CancellationToken cancellationToken
-    )
-    {
-        if (to.Type != OwnerType.Creature)
-        {
-            return;
-        }
-
-        var creature =
-            await context
-                .Creatures.AsNoTracking()
-                .FirstOrDefaultAsync(creature => creature.Id == to.Id, cancellationToken)
-            ?? throw new InvalidOperationException($"Creature {to.Id} not found.");
-
-        if (creature.State == CreatureState.Dead)
-        {
-            return;
-        }
-
-        var currentWeight = await context
-            .Items.Where(item =>
-                item.Ownership.OwnerType == OwnerType.Creature && item.Ownership.OwnerId == to.Id
-            )
-            .SumAsync(item => item.Weight * item.Quantity, cancellationToken);
-
-        var incomingWeight = transferItems.Sum(transferItem =>
-            transferItem.Item.Weight * transferItem.Quantity
-        );
-
-        if (currentWeight + incomingWeight > creature.CarryingCapacity)
-        {
-            throw new InvalidOperationException(
-                $"Creature {to.Id} cannot carry any more weight; carrying capacity is {creature.CarryingCapacity}."
-            );
-        }
     }
 
     private async Task<IReadOnlyCollection<InventoryItemTransferResult>> MoveItems(

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
@@ -10,7 +10,7 @@ public class GetWorldQuery
     public required Guid WorldId { get; init; }
 }
 
-internal class GetWorldQueryHandler(TrpgDbContext context) : IQueryHandler<GetWorldQuery, World?>
+internal class GetWorldQueryHandler(IWorldsDbContext context) : IQueryHandler<GetWorldQuery, World?>
 {
     public async Task<World?> Handle(
         GetWorldQuery query,

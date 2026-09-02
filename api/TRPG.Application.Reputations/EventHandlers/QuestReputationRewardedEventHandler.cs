@@ -22,6 +22,7 @@ internal sealed class QuestReputationRewardedEventHandler(
                 new AdjustReputationsCommand
                 {
                     CreatureId = domainEvent.PlayerId,
+                    WorldId = domainEvent.WorldId,
                     Adjustments = group
                         .Select(reward => new ReputationAdjustment(reward.TargetId, reward.Score))
                         .ToArray(),

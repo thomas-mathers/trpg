@@ -1,10 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes.Queries;
@@ -31,7 +30,11 @@ public record WorldMapResult(
 );
 
 internal class GetWorldMapQueryHandler(
-    TrpgDbContext context,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCountriesByWorldIdQuery, IReadOnlyCollection<Country>> getCountriesByWorldId,
+    IQueryHandler<GetStatesByWorldIdQuery, IReadOnlyCollection<State>> getStatesByWorldId,
+    IQueryHandler<GetCitiesByWorldIdQuery, IReadOnlyCollection<City>> getCitiesByWorldId,
+    IQueryHandler<GetCorpsesByOwnerQuery, IReadOnlyCollection<Creature>> getCorpsesByOwner,
     IQueryHandler<GetItemCountsByOwnersQuery, IReadOnlyDictionary<Guid, int>> getItemCountsByOwners,
     IQueryHandler<
         GetInProgressLocationObjectivesQuery,
@@ -50,27 +53,30 @@ internal class GetWorldMapQueryHandler(
     )
     {
         var player =
-            await context
-                .Creatures.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == query.PlayerId, cancellationToken)
-            ?? throw new EntityNotFoundException(nameof(Creature), query.PlayerId);
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = query.PlayerId },
+                cancellationToken
+            ) ?? throw new EntityNotFoundException(nameof(Creature), query.PlayerId);
 
         var worldId = player.WorldId;
 
-        var countries = await context
-            .Countries.AsNoTracking()
-            .Where(country => country.WorldId == worldId)
-            .ToArrayAsync(cancellationToken);
+        var countryResults = await getCountriesByWorldId.Handle(
+            new GetCountriesByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var countries = countryResults.ToArray();
 
-        var states = await context
-            .States.AsNoTracking()
-            .Where(state => state.WorldId == worldId)
-            .ToArrayAsync(cancellationToken);
+        var stateResults = await getStatesByWorldId.Handle(
+            new GetStatesByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var states = stateResults.ToArray();
 
-        var cities = await context
-            .Cities.AsNoTracking()
-            .Where(city => city.WorldId == worldId)
-            .ToArrayAsync(cancellationToken);
+        var cityResults = await getCitiesByWorldId.Handle(
+            new GetCitiesByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var cities = cityResults.ToArray();
 
         var roads = await ResolveRoads(worldId, cancellationToken);
         var playerStateId = await ResolvePlayerStateId(player.LocationId, cancellationToken);
@@ -91,12 +97,14 @@ internal class GetWorldMapQueryHandler(
     private async Task<Guid> ResolvePlayerStateId(
         Guid locationId,
         CancellationToken cancellationToken
-    ) =>
-        await context
-            .Locations.AsNoTracking()
-            .Where(location => location.Id == locationId)
-            .Select(location => location.StateId)
-            .FirstAsync(cancellationToken);
+    )
+    {
+        var locationsById = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery { Ids = [locationId] },
+            cancellationToken
+        );
+        return locationsById[locationId].StateId;
+    }
 
     private async Task<IReadOnlyList<WorldMapRoad>> ResolveRoads(
         Guid worldId,
@@ -130,14 +138,11 @@ internal class GetWorldMapQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var corpses = await context
-            .Creatures.AsNoTracking()
-            .Where(creature =>
-                creature.WorldId == worldId
-                && creature.PlayerCorpseOwnerId == playerId
-                && creature.State == CreatureState.Dead
-            )
-            .ToArrayAsync(cancellationToken);
+        var corpseResults = await getCorpsesByOwner.Handle(
+            new GetCorpsesByOwnerQuery { WorldId = worldId, OwnerId = playerId },
+            cancellationToken
+        );
+        var corpses = corpseResults.ToArray();
 
         if (corpses.Length == 0)
         {
@@ -147,14 +152,14 @@ internal class GetWorldMapQueryHandler(
         var corpseIds = corpses.Select(corpse => corpse.Id).ToArray();
         var corpseLocationIds = corpses.Select(corpse => corpse.LocationId).Distinct().ToArray();
 
-        var stateIdByLocationId = await context
-            .Locations.AsNoTracking()
-            .Where(location => corpseLocationIds.AsEnumerable().Contains(location.Id))
-            .ToDictionaryAsync(
-                location => location.Id,
-                location => location.StateId,
-                cancellationToken
-            );
+        var corpseLocationsById = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery { Ids = corpseLocationIds },
+            cancellationToken
+        );
+        var stateIdByLocationId = corpseLocationsById.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value.StateId
+        );
 
         var itemCountsByOwner = await getItemCountsByOwners.Handle(
             new GetItemCountsByOwnersQuery { OwnerIds = corpseIds, OwnerType = OwnerType.Creature },

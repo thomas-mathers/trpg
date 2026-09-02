@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes;
@@ -11,12 +11,46 @@ public sealed record PendingCrimeResolution<TCrime>(
 )
     where TCrime : Crime;
 
-public class PendingCrimeWitnessResolutionService(TrpgDbContext context)
+public class PendingCrimeWitnessResolutionService(ICrimesDbContext context)
 {
+    public async Task<IReadOnlyCollection<Guid>> GetWitnessCandidateCreatureIds<TCrime>(
+        Guid worldId,
+        Guid playerId,
+        Guid locationId,
+        CancellationToken cancellationToken
+    )
+        where TCrime : Crime
+    {
+        var crimeIds = await context
+            .Crimes.OfType<TCrime>()
+            .Where(crime =>
+                crime.WorldId == worldId
+                && crime.PlayerId == playerId
+                && crime.LocationId == locationId
+                && crime.Resolution == CrimeResolution.Pending
+            )
+            .Select(crime => crime.Id)
+            .ToArrayAsync(cancellationToken);
+        if (crimeIds.Length == 0)
+        {
+            return [];
+        }
+
+        return await context
+            .CrimeWitnesses.Where(witness =>
+                crimeIds.AsEnumerable().Contains(witness.CrimeId)
+                && witness.Resolution == CrimeWitnessResolution.Pending
+            )
+            .Select(witness => witness.CreatureId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+    }
+
     public async Task<PendingCrimeResolution<TCrime>> Resolve<TCrime>(
         Guid worldId,
         Guid playerId,
         Guid locationId,
+        IReadOnlyCollection<Guid> liveWitnessCreatureIds,
         CancellationToken cancellationToken
     )
         where TCrime : Crime
@@ -46,23 +80,10 @@ public class PendingCrimeWitnessResolutionService(TrpgDbContext context)
                 && witness.Resolution == CrimeWitnessResolution.Pending
             )
             .ToArrayAsync(cancellationToken);
-        var witnessCreatureIds = witnesses
-            .Select(witness => witness.CreatureId)
-            .Distinct()
-            .ToArray();
-        var liveWitnessIds = await context
-            .Creatures.AsNoTracking()
-            .Where(creature =>
-                creature.WorldId == worldId
-                && witnessCreatureIds.AsEnumerable().Contains(creature.Id)
-                && creature.State != CreatureState.Dead
-            )
-            .Select(creature => creature.Id)
-            .ToArrayAsync(cancellationToken);
 
         foreach (var witness in witnesses)
         {
-            witness.Resolution = liveWitnessIds.Contains(witness.CreatureId)
+            witness.Resolution = liveWitnessCreatureIds.Contains(witness.CreatureId)
                 ? CrimeWitnessResolution.Reported
                 : CrimeWitnessResolution.Dead;
             witness.ResolvedAt = DateTime.UtcNow;

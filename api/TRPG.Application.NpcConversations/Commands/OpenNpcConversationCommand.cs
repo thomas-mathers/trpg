@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.NpcConversations.Commands;
@@ -22,7 +22,7 @@ public class OpenNpcConversationCommand
 }
 
 internal class OpenNpcConversationCommandHandler(
-    TrpgDbContext context,
+    INpcConversationsDbContext context,
     IDomainEventPublisher<NpcConversationStartedEvent> domainEvents
 ) : ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult>
 {

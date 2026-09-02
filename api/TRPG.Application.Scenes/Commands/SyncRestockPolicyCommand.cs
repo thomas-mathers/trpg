@@ -9,7 +9,7 @@ using TRPG.Application.Props.Queries;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes.Commands;
@@ -22,7 +22,7 @@ public class SyncRestockPolicyCommand
 }
 
 internal class SyncRestockPolicyCommandHandler(
-    TrpgDbContext context,
+    IScenesDbContext context,
     ItemGenerator itemGenerator,
     IQueryHandler<
         GetWorkstationsByLocationIdQuery,

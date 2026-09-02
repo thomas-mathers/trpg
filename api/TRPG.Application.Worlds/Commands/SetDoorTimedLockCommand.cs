@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Worlds.Commands;
 
@@ -10,7 +10,7 @@ public class SetDoorTimedLockCommand
     public required TimeSpan? UnlocksAtPlaytime { get; init; }
 }
 
-internal class SetDoorTimedLockCommandHandler(TrpgDbContext context)
+internal class SetDoorTimedLockCommandHandler(IWorldsDbContext context)
     : ICommandHandler<SetDoorTimedLockCommand>
 {
     public async Task Handle(

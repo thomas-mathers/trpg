@@ -25,11 +25,7 @@ internal class DropInventoryItemCommandHandler(
             throw new InvalidOperationException("Drop quantity must be positive.");
         }
 
-        await questItemGuard.EnsureNotActiveQuestItems(
-            command.PlayerId,
-            [command.ItemId],
-            cancellationToken
-        );
+        await questItemGuard.EnsureNotActiveQuestItems([command.ItemId], cancellationToken);
 
         await removeInventoryItems.Handle(
             new RemoveInventoryItemsCommand

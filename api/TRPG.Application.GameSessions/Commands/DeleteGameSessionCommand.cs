@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Chat.Commands;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Application.NpcConversations.Commands;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.GameSessions.Commands;
 
@@ -9,8 +11,11 @@ public class DeleteGameSessionCommand
     public required Guid SessionId { get; init; }
 }
 
-internal class DeleteGameSessionCommandHandler(TrpgDbContext context)
-    : ICommandHandler<DeleteGameSessionCommand>
+internal class DeleteGameSessionCommandHandler(
+    IGameSessionsDbContext context,
+    ICommandHandler<DeleteChatMessagesBySessionCommand> deleteChatMessagesBySession,
+    ICommandHandler<DeleteNpcConversationSessionStatesBySessionCommand> deleteNpcConversationSessionStatesBySession
+) : ICommandHandler<DeleteGameSessionCommand>
 {
     public async Task Handle(
         DeleteGameSessionCommand command,
@@ -21,12 +26,17 @@ internal class DeleteGameSessionCommandHandler(TrpgDbContext context)
             cancellationToken
         );
 
-        await context
-            .ChatMessages.Where(m => m.SessionId == command.SessionId)
-            .ExecuteDeleteAsync(cancellationToken);
-        await context
-            .NpcConversationSessionStates.Where(s => s.SessionId == command.SessionId)
-            .ExecuteDeleteAsync(cancellationToken);
+        await deleteChatMessagesBySession.Handle(
+            new DeleteChatMessagesBySessionCommand { SessionId = command.SessionId },
+            cancellationToken
+        );
+        await deleteNpcConversationSessionStatesBySession.Handle(
+            new DeleteNpcConversationSessionStatesBySessionCommand
+            {
+                SessionId = command.SessionId,
+            },
+            cancellationToken
+        );
         await context
             .GameSessions.Where(s => s.Id == command.SessionId)
             .ExecuteDeleteAsync(cancellationToken);

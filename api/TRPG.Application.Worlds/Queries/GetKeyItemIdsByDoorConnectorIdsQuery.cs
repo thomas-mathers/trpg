@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Worlds.Queries;
 
@@ -9,7 +9,7 @@ public class GetKeyItemIdsByDoorConnectorIdsQuery
     public required IReadOnlyCollection<Guid> DoorConnectorIds { get; init; }
 }
 
-internal class GetKeyItemIdsByDoorConnectorIdsQueryHandler(TrpgDbContext context)
+internal class GetKeyItemIdsByDoorConnectorIdsQueryHandler(IWorldsDbContext context)
     : IQueryHandler<
         GetKeyItemIdsByDoorConnectorIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>

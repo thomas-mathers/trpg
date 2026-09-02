@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Props.Queries;
@@ -11,7 +11,7 @@ public class GetPropsByLocationIdQuery
     public required Guid LocationId { get; init; }
 }
 
-internal class GetPropsByLocationIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetPropsByLocationIdQueryHandler(IPropsDbContext context, IMemoryCache cache)
     : IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>>
 {
     public async Task<IReadOnlyCollection<Prop>> Handle(

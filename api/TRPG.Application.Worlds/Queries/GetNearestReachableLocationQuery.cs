@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Algorithms;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Worlds.Queries;
 
@@ -12,7 +12,7 @@ public class GetNearestReachableLocationQuery
     public required IReadOnlyCollection<Guid> CandidateLocationIds { get; init; }
 }
 
-internal class GetNearestReachableLocationQueryHandler(TrpgDbContext context)
+internal class GetNearestReachableLocationQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetNearestReachableLocationQuery, Guid?>
 {
     public async Task<Guid?> Handle(

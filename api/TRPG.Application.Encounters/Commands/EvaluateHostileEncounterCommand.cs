@@ -3,8 +3,9 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Factions.Queries;
+using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -16,9 +17,14 @@ public class EvaluateHostileEncounterCommand
 }
 
 internal class EvaluateHostileEncounterCommandHandler(
-    TrpgDbContext context,
+    IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds,
+    IQueryHandler<
+        GetReputationsByCreatureIdQuery,
+        IReadOnlyCollection<Reputation>
+    > getReputationsByCreatureId,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
 ) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?>
 {
@@ -50,14 +56,15 @@ internal class EvaluateHostileEncounterCommandHandler(
 
         var memberCreatureIds = members.Select(m => m.CreatureId).ToArray();
 
-        var livingCreaturesById = await context
-            .Creatures.AsNoTracking()
-            .Where(c =>
-                memberCreatureIds.AsEnumerable().Contains(c.Id)
-                && c.State != CreatureState.Dead
-                && c.State != CreatureState.Sleeping
+        var candidateCreaturesById = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = memberCreatureIds },
+            cancellationToken
+        );
+        var livingCreaturesById = candidateCreaturesById
+            .Where(kv =>
+                kv.Value.State != CreatureState.Dead && kv.Value.State != CreatureState.Sleeping
             )
-            .ToDictionaryAsync(c => c.Id, cancellationToken);
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
 
         var factionIds = groups.Select(g => g.FactionId).Distinct().ToArray();
 
@@ -66,14 +73,15 @@ internal class EvaluateHostileEncounterCommandHandler(
             cancellationToken
         );
 
-        var reputationByFactionId = await context
-            .Reputations.AsNoTracking()
+        var playerReputations = await getReputationsByCreatureId.Handle(
+            new GetReputationsByCreatureIdQuery { CreatureId = command.PlayerId },
+            cancellationToken
+        );
+        var reputationByFactionId = playerReputations
             .Where(r =>
-                r.CreatureId == command.PlayerId
-                && r.TargetType == ReputationTargetType.Faction
-                && factionIds.AsEnumerable().Contains(r.TargetId)
+                r.TargetType == ReputationTargetType.Faction && factionIds.Contains(r.TargetId)
             )
-            .ToDictionaryAsync(r => r.TargetId, r => r.Score, cancellationToken);
+            .ToDictionary(r => r.TargetId, r => r.Score);
 
         var candidates = groups
             .Select(group =>

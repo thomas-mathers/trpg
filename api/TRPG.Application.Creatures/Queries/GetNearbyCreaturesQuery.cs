@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Results;
-using TRPG.Data;
+using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Worlds.Queries;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -14,8 +16,14 @@ public class GetNearbyCreaturesQuery
     public bool IncludeDead { get; init; } = true;
 }
 
-internal class GetNearbyCreaturesQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>>
+internal class GetNearbyCreaturesQueryHandler(
+    ICreaturesDbContext context,
+    IQueryHandler<
+        GetGoldQuantitiesByOwnersQuery,
+        IReadOnlyDictionary<Guid, int>
+    > getGoldQuantitiesByOwners,
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds
+) : IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>>
 {
     public async Task<IReadOnlyCollection<CreatureResult>> Handle(
         GetNearbyCreaturesQuery query,
@@ -38,7 +46,8 @@ internal class GetNearbyCreaturesQueryHandler(TrpgDbContext context)
         );
 
         return await CreatureLocationFiltering.BuildSummaries(
-            context,
+            getGoldQuantitiesByOwners,
+            getLocationsByIds,
             creatureQuery,
             cancellationToken
         );

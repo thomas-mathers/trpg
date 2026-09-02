@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -10,7 +10,7 @@ public class GetLivingCreatureCountBySpawnerIdQuery
     public required Guid SpawnerId { get; init; }
 }
 
-internal class GetLivingCreatureCountBySpawnerIdQueryHandler(TrpgDbContext context)
+internal class GetLivingCreatureCountBySpawnerIdQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<GetLivingCreatureCountBySpawnerIdQuery, int>
 {
     public async Task<int> Handle(

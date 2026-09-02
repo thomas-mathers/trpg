@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Mappers;
 using TRPG.Application.Creatures.Results;
-using TRPG.Data;
+using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Worlds.Queries;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -35,43 +37,54 @@ internal static class CreatureLocationFiltering
     }
 
     public static async Task<IReadOnlyCollection<CreatureResult>> BuildSummaries(
-        TrpgDbContext context,
+        IQueryHandler<
+            GetGoldQuantitiesByOwnersQuery,
+            IReadOnlyDictionary<Guid, int>
+        > getGoldQuantitiesByOwners,
+        IQueryHandler<
+            GetLocationsByIdsQuery,
+            IReadOnlyDictionary<Guid, Location>
+        > getLocationsByIds,
         IQueryable<Creature> creatureQuery,
         CancellationToken cancellationToken
     )
     {
-        var rows = await creatureQuery
-            .Select(p => new
-            {
-                Creature = p,
-                Gold = context
-                    .Items.OfType<Gold>()
-                    .Where(g => g.Ownership.OwnerId == p.Id)
-                    .Select(g => (int?)g.Quantity)
-                    .FirstOrDefault(),
-                Location = context
-                    .Locations.Where(l => p.LocationId == l.Id)
-                    .Select(l => new
-                    {
-                        l.StateId,
-                        l.CityId,
-                        l.DistrictId,
-                        l.RoomId,
-                    })
-                    .FirstOrDefault(),
-            })
-            .ToArrayAsync(cancellationToken);
+        var creatures = await creatureQuery.ToArrayAsync(cancellationToken);
+        if (creatures.Length == 0)
+        {
+            return [];
+        }
 
-        return rows.Select(r =>
-                r.Creature.ToResult(
-                    r.Gold ?? 0,
-                    r.Location?.StateId
-                        ?? throw new InvalidOperationException("Creature location was not found."),
-                    r.Location?.CityId,
-                    r.Location?.DistrictId,
-                    r.Location?.RoomId
-                )
-            )
+        var creatureIds = creatures.Select(creature => creature.Id).ToArray();
+        var goldByCreatureId = await getGoldQuantitiesByOwners.Handle(
+            new GetGoldQuantitiesByOwnersQuery
+            {
+                OwnerIds = creatureIds,
+                OwnerType = OwnerType.Creature,
+            },
+            cancellationToken
+        );
+
+        var locationIds = creatures.Select(creature => creature.LocationId).Distinct().ToArray();
+        var locationsById = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery { Ids = locationIds },
+            cancellationToken
+        );
+
+        return creatures
+            .Select(creature =>
+            {
+                var location =
+                    locationsById.GetValueOrDefault(creature.LocationId)
+                    ?? throw new InvalidOperationException("Creature location was not found.");
+                return creature.ToResult(
+                    goldByCreatureId.GetValueOrDefault(creature.Id, 0),
+                    location.StateId,
+                    location.CityId,
+                    location.DistrictId,
+                    location.RoomId
+                );
+            })
             .ToArray();
     }
 }
@@ -86,8 +99,14 @@ public class GetCreaturesAtLocationQuery
     public bool IncludeDead { get; init; } = true;
 }
 
-internal class GetCreaturesAtLocationQueryHandler(TrpgDbContext context)
-    : IQueryHandler<GetCreaturesAtLocationQuery, IReadOnlyCollection<CreatureResult>>
+internal class GetCreaturesAtLocationQueryHandler(
+    ICreaturesDbContext context,
+    IQueryHandler<
+        GetGoldQuantitiesByOwnersQuery,
+        IReadOnlyDictionary<Guid, int>
+    > getGoldQuantitiesByOwners,
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds
+) : IQueryHandler<GetCreaturesAtLocationQuery, IReadOnlyCollection<CreatureResult>>
 {
     public async Task<IReadOnlyCollection<CreatureResult>> Handle(
         GetCreaturesAtLocationQuery query,
@@ -108,7 +127,8 @@ internal class GetCreaturesAtLocationQueryHandler(TrpgDbContext context)
         );
 
         return await CreatureLocationFiltering.BuildSummaries(
-            context,
+            getGoldQuantitiesByOwners,
+            getLocationsByIds,
             creatureQuery,
             cancellationToken
         );

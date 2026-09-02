@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.CreatureJobs.Queries;
@@ -10,7 +10,7 @@ public class GetCreatureJobsByCreatureIdQuery
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetCreatureJobsByCreatureIdQueryHandler(TrpgDbContext context)
+internal class GetCreatureJobsByCreatureIdQueryHandler(ICreatureJobsDbContext context)
     : IQueryHandler<GetCreatureJobsByCreatureIdQuery, IReadOnlyList<CreatureJob>>
 {
     public async Task<IReadOnlyList<CreatureJob>> Handle(

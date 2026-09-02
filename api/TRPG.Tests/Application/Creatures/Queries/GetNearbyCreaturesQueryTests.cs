@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -11,17 +12,22 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db) : IAsyncLif
     private static readonly Guid WorldId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private GetNearbyCreaturesQueryHandler _handler = null!;
 
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new GetNearbyCreaturesQueryHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<GetNearbyCreaturesQueryHandler>();
         return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

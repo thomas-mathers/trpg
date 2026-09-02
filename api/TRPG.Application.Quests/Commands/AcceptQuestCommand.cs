@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Data;
+using TRPG.Application.Inventory.Commands;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.Commands;
@@ -13,8 +14,10 @@ public class AcceptQuestCommand
     public required Guid WorldId { get; init; }
 }
 
-internal class AcceptQuestCommandHandler(TrpgDbContext context)
-    : ICommandHandler<AcceptQuestCommand>
+internal class AcceptQuestCommandHandler(
+    IQuestsDbContext context,
+    ICommandHandler<SetItemsQuestLockedCommand> setItemsQuestLocked
+) : ICommandHandler<AcceptQuestCommand>
 {
     public async Task Handle(
         AcceptQuestCommand command,
@@ -49,6 +52,13 @@ internal class AcceptQuestCommandHandler(TrpgDbContext context)
             .Select(objective => objective.Id)
             .ToArrayAsync(cancellationToken);
 
+        var requiredItemIds = await context
+            .QuestObjectives.AsNoTracking()
+            .OfType<CollectItemObjective>()
+            .Where(objective => objective.QuestId == quest.Id)
+            .Select(objective => objective.ItemId)
+            .ToArrayAsync(cancellationToken);
+
         context.CreatureQuests.Add(
             new CreatureQuest
             {
@@ -70,5 +80,10 @@ internal class AcceptQuestCommandHandler(TrpgDbContext context)
         );
 
         await context.SaveChangesAsync(cancellationToken);
+
+        await setItemsQuestLocked.Handle(
+            new SetItemsQuestLockedCommand { ItemIds = requiredItemIds, IsQuestItem = true },
+            cancellationToken
+        );
     }
 }

@@ -1,14 +1,14 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Queries;
+using TRPG.Application.Factions.Queries;
+using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations;
 using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.WorldGeneration;
-using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Queries;
@@ -93,7 +93,6 @@ public record NpcConversationBriefing(
 );
 
 internal class GetNpcConversationBriefingQueryHandler(
-    TrpgDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult> getQuestInteractions,
     IQueryHandler<GetEffectiveReputationQuery, int> getEffectiveReputation,
@@ -105,7 +104,19 @@ internal class GetNpcConversationBriefingQueryHandler(
         GetCrimesWitnessedByCreatureQuery,
         IReadOnlyList<WitnessedCrime>
     > getCrimesWitnessedByCreature,
-    IQueryHandler<GetCreatureProfileByCreatureIdQuery, CreatureProfile?> getCreatureProfile
+    IQueryHandler<GetCreatureProfileByCreatureIdQuery, CreatureProfile?> getCreatureProfile,
+    IQueryHandler<
+        GetNpcConversationHistoryQuery,
+        NpcConversationHistory?
+    > getNpcConversationHistory,
+    IQueryHandler<
+        GetRecentNpcConversationsQuery,
+        IReadOnlyList<NpcConversation>
+    > getRecentNpcConversations,
+    IQueryHandler<
+        GetFactionIdsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getFactionIdsByCreatureIds
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
     private const int ReputationHistoryLimit = 5;
@@ -137,24 +148,25 @@ internal class GetNpcConversationBriefingQueryHandler(
                 Description = npc.Biography,
             };
 
-        var history = await context
-            .NpcConversationHistories.AsNoTracking()
-            .FirstOrDefaultAsync(
-                item => item.CreatureId == query.PlayerId && item.NpcId == query.NpcId,
-                cancellationToken
-            );
+        var history = await getNpcConversationHistory.Handle(
+            new GetNpcConversationHistoryQuery { CreatureId = query.PlayerId, NpcId = query.NpcId },
+            cancellationToken
+        );
 
-        var recent =
+        var recentConversations =
             history == null
                 ? []
-                : await context
-                    .NpcConversations.AsNoTracking()
-                    .Where(conversation => conversation.NpcConversationHistoryId == history.Id)
-                    .OrderByDescending(conversation => conversation.CreatedAt)
-                    .Take(5)
-                    .OrderBy(conversation => conversation.CreatedAt)
-                    .Select(conversation => new NpcConversationRecord(conversation.Summary))
-                    .ToArrayAsync(cancellationToken);
+                : await getRecentNpcConversations.Handle(
+                    new GetRecentNpcConversationsQuery
+                    {
+                        NpcConversationHistoryId = history.Id,
+                        Limit = 5,
+                    },
+                    cancellationToken
+                );
+        var recent = recentConversations
+            .Select(conversation => new NpcConversationRecord(conversation.Summary))
+            .ToArray();
 
         var attitude = await GetAttitude(query, cancellationToken);
         var quests = await GetQuests(query, cancellationToken);
@@ -256,11 +268,11 @@ internal class GetNpcConversationBriefingQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var factionIds = await context
-            .FactionMembers.AsNoTracking()
-            .Where(member => member.CreatureId == query.NpcId)
-            .Select(member => member.FactionId)
-            .ToArrayAsync(cancellationToken);
+        var factionIdsByCreature = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = [query.NpcId] },
+            cancellationToken
+        );
+        var factionIds = factionIdsByCreature.GetValueOrDefault(query.NpcId, []);
 
         var targets = new List<ReputationLogTarget>
         {

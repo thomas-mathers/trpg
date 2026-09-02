@@ -6,6 +6,7 @@ using TRPG.Application.Common.Validation;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
+using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Queries;
@@ -40,13 +41,22 @@ public record MovePlayerResult(
 internal class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    IQueryHandler<
+        GetKillWitnessCandidateCreatureIdsQuery,
+        IReadOnlyCollection<Guid>
+    > getKillWitnessCandidateCreatureIds,
     ICommandHandler<
         ResolveKillCrimeWitnessesCommand,
         ResolveKillCrimeWitnessesResult
     > resolveKillCrimeWitnesses,
     ICommandHandler<ApplyReputationPenaltyForKillsCommand> applyReputationPenaltyForKills,
+    IQueryHandler<
+        GetTheftWitnessCandidateCreatureIdsQuery,
+        IReadOnlyCollection<Guid>
+    > getTheftWitnessCandidateCreatureIds,
     ICommandHandler<
         ResolveTheftCrimeWitnessesCommand,
         ResolveTheftCrimeWitnessesResult
@@ -95,12 +105,27 @@ internal class MovePlayerCommandHandler(
                 cancellationToken
             );
 
+            var killWitnessCandidateIds = await getKillWitnessCandidateCreatureIds.Handle(
+                new GetKillWitnessCandidateCreatureIdsQuery
+                {
+                    WorldId = player.WorldId,
+                    PlayerId = player.Id,
+                    LocationId = oldLocationId,
+                },
+                cancellationToken
+            );
+            var liveKillWitnessIds = await ResolveLiveCreatureIds(
+                killWitnessCandidateIds,
+                cancellationToken
+            );
+
             var killResolution = await resolveKillCrimeWitnesses.Handle(
                 new ResolveKillCrimeWitnessesCommand
                 {
                     WorldId = player.WorldId,
                     PlayerId = player.Id,
                     LocationId = oldLocationId,
+                    LiveWitnessCreatureIds = liveKillWitnessIds,
                 },
                 cancellationToken
             );
@@ -110,11 +135,26 @@ internal class MovePlayerCommandHandler(
                     new ApplyReputationPenaltyForKillsCommand
                     {
                         KillerId = player.Id,
+                        WorldId = player.WorldId,
                         Kills = killResolution.ReportedCrimes,
                     },
                     cancellationToken
                 );
             }
+
+            var theftWitnessCandidateIds = await getTheftWitnessCandidateCreatureIds.Handle(
+                new GetTheftWitnessCandidateCreatureIdsQuery
+                {
+                    WorldId = player.WorldId,
+                    PlayerId = player.Id,
+                    LocationId = oldLocationId,
+                },
+                cancellationToken
+            );
+            var liveTheftWitnessIds = await ResolveLiveCreatureIds(
+                theftWitnessCandidateIds,
+                cancellationToken
+            );
 
             var theftResolution = await resolveTheftCrimeWitnesses.Handle(
                 new ResolveTheftCrimeWitnessesCommand
@@ -122,6 +162,7 @@ internal class MovePlayerCommandHandler(
                     WorldId = player.WorldId,
                     PlayerId = player.Id,
                     LocationId = oldLocationId,
+                    LiveWitnessCreatureIds = liveTheftWitnessIds,
                 },
                 cancellationToken
             );
@@ -131,6 +172,7 @@ internal class MovePlayerCommandHandler(
                     new ApplyReputationPenaltyForTheftsCommand
                     {
                         PlayerId = player.Id,
+                        WorldId = player.WorldId,
                         Thefts = theftResolution.ReportedCrimes,
                     },
                     cancellationToken
@@ -267,5 +309,25 @@ internal class MovePlayerCommandHandler(
         );
 
         return confrontation.Encounter;
+    }
+
+    private async Task<IReadOnlyCollection<Guid>> ResolveLiveCreatureIds(
+        IReadOnlyCollection<Guid> creatureIds,
+        CancellationToken cancellationToken
+    )
+    {
+        if (creatureIds.Count == 0)
+        {
+            return [];
+        }
+
+        var creaturesById = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = creatureIds },
+            cancellationToken
+        );
+        return creaturesById
+            .Where(creature => creature.Value.State != CreatureState.Dead)
+            .Select(creature => creature.Key)
+            .ToArray();
     }
 }

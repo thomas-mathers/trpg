@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Worlds.Queries;
 
@@ -12,7 +12,7 @@ public class GetExitByDestinationNameQuery
 
 public record ExitMatch(bool Matched, Guid? DestinationLocationId, Guid? ConnectorId = null);
 
-internal class GetExitByDestinationNameQueryHandler(TrpgDbContext context)
+internal class GetExitByDestinationNameQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetExitByDestinationNameQuery, ExitMatch>
 {
     public async Task<ExitMatch> Handle(

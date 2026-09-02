@@ -4,7 +4,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 using CreaturesMatch = TRPG.Application.Creatures.Queries.NameSimilarityMatch;
 using FactionsMatch = TRPG.Application.Factions.Queries.NameSimilarityMatch;
@@ -79,7 +79,7 @@ public sealed record PersonLookupResult(
 ) : LookupResult;
 
 internal class GetCreatureKnowledgeQueryHandler(
-    TrpgDbContext context,
+    IKnowledgeDbContext context,
     IQueryHandler<GetRelativesQuery, IReadOnlyCollection<RelativeSummary>> getRelatives,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetStateByIdQuery, State?> getStateById,

@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Inventory.Commands;
 
@@ -9,7 +9,7 @@ public class RemoveGoldCommand
     public required int Amount { get; init; }
 }
 
-internal class RemoveGoldCommandHandler(TrpgDbContext context, GoldLoader goldLoader)
+internal class RemoveGoldCommandHandler(IInventoryDbContext context, GoldLoader goldLoader)
     : ICommandHandler<RemoveGoldCommand>
 {
     public async Task Handle(

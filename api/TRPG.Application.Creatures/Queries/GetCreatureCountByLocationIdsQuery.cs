@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Creatures.Queries;
 
@@ -10,7 +10,7 @@ public class GetCreatureCountByLocationIdsQuery
     public required IReadOnlyCollection<Guid> LocationIds { get; init; }
 }
 
-internal class GetCreatureCountByLocationIdsQueryHandler(TrpgDbContext context)
+internal class GetCreatureCountByLocationIdsQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<GetCreatureCountByLocationIdsQuery, int>
 {
     public async Task<int> Handle(

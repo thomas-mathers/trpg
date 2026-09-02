@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Worlds.Commands;
 
@@ -10,7 +10,7 @@ public class RemoveBuildingOwnerCommand
     public required Guid OwnerId { get; init; }
 }
 
-internal class RemoveBuildingOwnerCommandHandler(TrpgDbContext context)
+internal class RemoveBuildingOwnerCommandHandler(IWorldsDbContext context)
     : ICommandHandler<RemoveBuildingOwnerCommand>
 {
     public async Task Handle(

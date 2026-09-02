@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WeaponProficiency.Commands;
@@ -12,7 +12,7 @@ public class AdjustWeaponProficienciesCommand
     public required IReadOnlyDictionary<WeaponType, int> ProficiencyDeltas { get; init; }
 }
 
-internal class AdjustWeaponProficienciesCommandHandler(TrpgDbContext context)
+internal class AdjustWeaponProficienciesCommandHandler(IWeaponProficiencyDbContext context)
     : ICommandHandler<AdjustWeaponProficienciesCommand>
 {
     public async Task Handle(

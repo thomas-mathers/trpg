@@ -69,6 +69,7 @@ public sealed class ResolveKillCrimeWitnessesCommandTests(DatabaseFixture db) : 
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 LocationId = LocationId,
+                LiveWitnessCreatureIds = [movedWitness.Id],
             },
             TestContext.Current.CancellationToken
         );
@@ -119,6 +120,7 @@ public sealed class ResolveKillCrimeWitnessesCommandTests(DatabaseFixture db) : 
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 LocationId = LocationId,
+                LiveWitnessCreatureIds = [],
             },
             TestContext.Current.CancellationToken
         );

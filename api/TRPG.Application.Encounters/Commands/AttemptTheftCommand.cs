@@ -16,7 +16,7 @@ using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -40,7 +40,7 @@ public class AttemptTheftCommand
 }
 
 internal class AttemptTheftCommandHandler(
-    TrpgDbContext context,
+    IEncountersDbContext context,
     TheftSourceResolver theftSourceResolver,
     ICommandHandler<
         TransferInventoryItemsCommand,

@@ -42,7 +42,12 @@ internal class ResolveCombatRoundCommandHandler(
         var state = command.State;
 
         await persistCombatants.Handle(
-            new PersistCombatantsCommand { Combatants = command.Combatants },
+            new PersistCombatantsCommand
+            {
+                Updates = command
+                    .Combatants.Select(combatant => combatant.ToCreatureCombatStateUpdate())
+                    .ToArray(),
+            },
             cancellationToken
         );
 

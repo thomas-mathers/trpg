@@ -3,7 +3,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Events;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests;
@@ -11,7 +11,7 @@ namespace TRPG.Application.Quests;
 internal sealed class QuestObjectiveAdvancer(
     ICommandHandler<MarkQuestsReadyToCompleteCommand> markQuestsReadyToComplete,
     IGameClientEventSink gameEvents,
-    TrpgDbContext context
+    IQuestsDbContext context
 )
 {
     public async Task Advance(

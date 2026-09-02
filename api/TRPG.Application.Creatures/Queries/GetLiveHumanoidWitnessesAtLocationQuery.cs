@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -14,7 +14,7 @@ public class GetLiveHumanoidWitnessesAtLocationQuery
 
 public record LiveHumanoidWitness(Guid Id, string Name);
 
-internal class GetLiveHumanoidWitnessesAtLocationQueryHandler(TrpgDbContext context)
+internal class GetLiveHumanoidWitnessesAtLocationQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Reputations.Queries;
@@ -15,7 +15,7 @@ public class GetEffectiveReputationsQuery
     > FactionIdsByCreature { get; init; }
 }
 
-internal class GetEffectiveReputationsQueryHandler(TrpgDbContext context)
+internal class GetEffectiveReputationsQueryHandler(IReputationsDbContext context)
     : IQueryHandler<GetEffectiveReputationsQuery, IReadOnlyDictionary<Guid, int>>
 {
     public async Task<IReadOnlyDictionary<Guid, int>> Handle(

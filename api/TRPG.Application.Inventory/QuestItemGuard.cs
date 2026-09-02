@@ -1,23 +1,19 @@
-using TRPG.Application.Common.Queries;
-using TRPG.Application.Quests.Queries;
+using Microsoft.EntityFrameworkCore;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Inventory;
 
-internal class QuestItemGuard(
-    IQueryHandler<GetActiveQuestItemIdsQuery, IReadOnlyCollection<Guid>> getActiveQuestItemIds
-)
+internal class QuestItemGuard(IInventoryDbContext context)
 {
     public async Task EnsureNotActiveQuestItems(
-        Guid playerId,
         IReadOnlyCollection<Guid> itemIds,
         CancellationToken cancellationToken
     )
     {
-        var questItemIds = await getActiveQuestItemIds.Handle(
-            new GetActiveQuestItemIdsQuery { PlayerId = playerId },
-            cancellationToken
-        );
-        var questItemId = itemIds.FirstOrDefault(questItemIds.Contains);
+        var questItemId = await context
+            .Items.Where(item => itemIds.Contains(item.Id) && item.IsQuestItem)
+            .Select(item => item.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (questItemId != Guid.Empty)
         {

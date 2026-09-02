@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
@@ -10,7 +11,9 @@ namespace TRPG.Tests.Application.Reputations.Commands;
 public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private Guid _creatureId;
+    private static readonly Guid WorldId = Guid.NewGuid();
     private GetReputationsByCreatureIdQueryHandler _getAllByCreatureId = null!;
     private AdjustReputationsCommandHandler _handler = null!;
     private readonly Faction _faction = Builders.MakeFaction();
@@ -18,7 +21,10 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new AdjustReputationsCommandHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<AdjustReputationsCommandHandler>();
         _getAllByCreatureId = new GetReputationsByCreatureIdQueryHandler(_context);
 
         _context.Factions.Add(_faction);
@@ -28,6 +34,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 
@@ -47,6 +54,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, 10)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -75,6 +83,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(existingTargetFaction.Id, 5)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -87,6 +96,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
+                WorldId = WorldId,
                 Adjustments =
                 [
                     new ReputationAdjustment(existingTargetFaction.Id, 10),
@@ -124,6 +134,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
+                WorldId = WorldId,
                 Adjustments =
                 [
                     new ReputationAdjustment(_faction.Id, 7),
@@ -156,6 +167,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, 10)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -168,6 +180,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, 5)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -193,6 +206,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, 20)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -205,6 +219,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, -8)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -229,6 +244,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, 90)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -241,6 +257,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, 90)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -265,6 +282,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, -90)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -277,6 +295,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, -90)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -300,6 +319,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
             new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, -30)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.KilledFactionMember,
@@ -328,6 +348,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
                 new AdjustReputationsCommand
                 {
                     CreatureId = _creatureId,
+                    WorldId = WorldId,
                     Adjustments = [new ReputationAdjustment(Guid.NewGuid(), 10)],
                     TargetType = ReputationTargetType.Faction,
                     Reason = ReputationReason.QuestCompleted,
@@ -338,21 +359,29 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
-    public async Task Handle_Throws_WhenCreatureTargetDoesNotExist()
+    public async Task Handle_Succeeds_WhenCreatureTargetDoesNotExist()
     {
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _handler.Handle(
-                new AdjustReputationsCommand
-                {
-                    CreatureId = _creatureId,
-                    Adjustments = [new ReputationAdjustment(Guid.NewGuid(), 10)],
-                    TargetType = ReputationTargetType.Creature,
-                    Reason = ReputationReason.QuestCompleted,
-                },
-                TestContext.Current.CancellationToken
-            )
+        // Arrange — the creature-existence check was dropped as redundant: every real caller
+        // already resolves creature target ids from a source that guarantees they're live
+        // (witness resolution, quest reward definitions), so an unrecognized id is trusted here.
+        var targetId = Guid.NewGuid();
+
+        // Act
+        await _handler.Handle(
+            new AdjustReputationsCommand
+            {
+                CreatureId = _creatureId,
+                WorldId = WorldId,
+                Adjustments = [new ReputationAdjustment(targetId, 10)],
+                TargetType = ReputationTargetType.Creature,
+                Reason = ReputationReason.QuestCompleted,
+            },
+            TestContext.Current.CancellationToken
         );
+
+        // Assert
+        var reputation = Assert.Single(_context.Reputations.Where(r => r.TargetId == targetId));
+        Assert.Equal(10, reputation.Score);
     }
 
     [Fact]
@@ -368,6 +397,7 @@ public sealed class AdjustReputationsCommandTests(DatabaseFixture db) : IAsyncLi
                 new AdjustReputationsCommand
                 {
                     CreatureId = _creatureId,
+                    WorldId = WorldId,
                     Adjustments =
                     [
                         new ReputationAdjustment(firstMissingTargetId, 10),

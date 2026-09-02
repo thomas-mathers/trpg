@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Data;
@@ -42,7 +43,26 @@ file static class JsonColumnConversion
         );
 }
 
-public class TrpgDbContext(DbContextOptions<TrpgDbContext> options) : DbContext(options)
+public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
+    : DbContext(options),
+        IWorldsDbContext,
+        IKnowledgeDbContext,
+        ICreaturesDbContext,
+        IWeaponProficiencyDbContext,
+        IQuestsDbContext,
+        IFactionsDbContext,
+        IInventoryDbContext,
+        ICreatureJobsDbContext,
+        INpcConversationsDbContext,
+        IPropsDbContext,
+        IReputationsDbContext,
+        IEncountersDbContext,
+        ICombatDbContext,
+        IGameSessionsDbContext,
+        IChatDbContext,
+        ICrimesDbContext,
+        IScenesDbContext,
+        IRoomBookingsDbContext
 {
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
     public DbSet<Building> Buildings => Set<Building>();

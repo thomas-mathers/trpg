@@ -1,13 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Data;
+using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Queries;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.EventHandlers;
 
-internal sealed class CreatureEquipmentChangedEventHandler(TrpgDbContext context)
-    : IDomainEventConsumer<CreatureEquipmentChangedEvent>
+internal sealed class CreatureEquipmentChangedEventHandler(
+    ICreaturesDbContext context,
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner
+) : IDomainEventConsumer<CreatureEquipmentChangedEvent>
 {
     public async Task Handle(
         CreatureEquipmentChangedEvent domainEvent,
@@ -19,13 +24,14 @@ internal sealed class CreatureEquipmentChangedEventHandler(TrpgDbContext context
             cancellationToken
         );
 
-        var equippedItems = await context
-            .Items.Where(i =>
-                i.Ownership.OwnerType == OwnerType.Creature
-                && i.Ownership.OwnerId == domainEvent.CreatureId
-                && i.Ownership.EquippedSlot != null
-            )
-            .ToListAsync(cancellationToken);
+        var ownedItems = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(domainEvent.CreatureId, OwnerType.Creature),
+            },
+            cancellationToken
+        );
+        var equippedItems = ownedItems.Where(item => item.Ownership.EquippedSlot != null).ToList();
 
         StatFormulas.Recalculate(creature, equippedItems);
 

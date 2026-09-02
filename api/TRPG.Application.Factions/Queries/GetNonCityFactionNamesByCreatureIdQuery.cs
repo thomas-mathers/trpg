@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Factions.Queries;
 
@@ -9,7 +9,7 @@ public class GetNonCityFactionNamesByCreatureIdQuery
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetNonCityFactionNamesByCreatureIdQueryHandler(TrpgDbContext context)
+internal class GetNonCityFactionNamesByCreatureIdQueryHandler(IFactionsDbContext context)
     : IQueryHandler<GetNonCityFactionNamesByCreatureIdQuery, IReadOnlyList<string>>
 {
     public async Task<IReadOnlyList<string>> Handle(

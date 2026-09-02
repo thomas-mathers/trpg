@@ -9,6 +9,7 @@ using TRPG.Application.Combat.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
@@ -82,6 +83,7 @@ internal static class CreatureEndpoints
 
     private static async Task<Ok<InventorySummary>> GetInventory(
         Guid creatureId,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         [FromServices] IQueryHandler<GetInventoryByOwnerQuery, InventoryResult> getInventoryByOwner,
         [FromServices]
             IQueryHandler<
@@ -91,6 +93,11 @@ internal static class CreatureEndpoints
         CancellationToken cancellationToken
     )
     {
+        var creature = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = creatureId },
+            cancellationToken
+        );
+
         var snapshot = await getInventoryByOwner.Handle(
             new GetInventoryByOwnerQuery
             {
@@ -104,7 +111,7 @@ internal static class CreatureEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(snapshot.ToSummary(questItemIds));
+        return TypedResults.Ok(snapshot.ToSummary(questItemIds, creature?.CarryingCapacity));
     }
 
     private static async Task<Ok<ConsumableSummary[]>> GetConsumables(
@@ -317,16 +324,24 @@ internal static class CreatureEndpoints
         Guid creatureId,
         Guid itemId,
         TRPG.Inventory.Responses.EquipmentSlot slot,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         [FromServices] IQueryHandler<GetEquipItemStatsQuery, Attributes> getEquipItemStats,
         CancellationToken cancellationToken
     )
     {
+        var creature = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = creatureId },
+            cancellationToken
+        );
+
         var attributes = await getEquipItemStats.Handle(
             new GetEquipItemStatsQuery
             {
                 CreatureId = creatureId,
                 ItemId = itemId,
                 Slot = slot.ToDataModel(),
+                BaseAttributes = creature!.BaseAttributes,
+                ActiveBuffs = StatFormulas.ToActiveBuffs(creature),
             },
             cancellationToken
         );

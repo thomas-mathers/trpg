@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -12,7 +12,7 @@ public class GetCreaturesInWorldQuery
 
 public record CreatureSummary(Guid Id, string Name, CreatureType CreatureType, string Biography);
 
-internal class GetCreaturesInWorldQueryHandler(TrpgDbContext context)
+internal class GetCreaturesInWorldQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<GetCreaturesInWorldQuery, IReadOnlyCollection<CreatureSummary>>
 {
     public async Task<IReadOnlyCollection<CreatureSummary>> Handle(

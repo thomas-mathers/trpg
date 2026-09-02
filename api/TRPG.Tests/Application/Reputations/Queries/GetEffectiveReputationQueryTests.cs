@@ -14,6 +14,7 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private Guid _creatureId;
+    private static readonly Guid WorldId = Guid.NewGuid();
     private GetEffectiveReputationQueryHandler _handler = null!;
     private readonly Faction _faction = Builders.MakeFaction();
 
@@ -89,6 +90,7 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
             new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(_faction.Id, 5)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -99,6 +101,7 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
             new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(guildFaction.Id, 10)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.QuestCompleted,
@@ -109,6 +112,7 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db) : IAsyn
             new AdjustReputationsCommand
             {
                 CreatureId = _creatureId,
+                WorldId = WorldId,
                 Adjustments = [new ReputationAdjustment(npc.Id, 3)],
                 TargetType = ReputationTargetType.Creature,
                 Reason = ReputationReason.QuestCompleted,

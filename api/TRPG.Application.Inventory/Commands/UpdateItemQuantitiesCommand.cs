@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Inventory.Commands;
 
@@ -11,7 +11,7 @@ public class UpdateItemQuantitiesCommand
     public required IReadOnlyCollection<ItemQuantityUpdate> Updates { get; init; }
 }
 
-internal class UpdateItemQuantitiesCommandHandler(TrpgDbContext context)
+internal class UpdateItemQuantitiesCommandHandler(IInventoryDbContext context)
     : ICommandHandler<UpdateItemQuantitiesCommand>
 {
     public async Task Handle(

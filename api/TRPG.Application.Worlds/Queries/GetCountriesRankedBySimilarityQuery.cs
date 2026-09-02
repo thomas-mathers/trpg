@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Worlds.Queries;
 
@@ -14,7 +14,7 @@ public class GetCountriesRankedBySimilarityQuery
     public required int MaxMatches { get; init; }
 }
 
-internal class GetCountriesRankedBySimilarityQueryHandler(TrpgDbContext context)
+internal class GetCountriesRankedBySimilarityQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetCountriesRankedBySimilarityQuery, IReadOnlyList<NameSimilarityMatch>>
 {
     public async Task<IReadOnlyList<NameSimilarityMatch>> Handle(

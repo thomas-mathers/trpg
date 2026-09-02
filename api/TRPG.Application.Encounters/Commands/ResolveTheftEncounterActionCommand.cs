@@ -7,7 +7,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -22,7 +22,7 @@ public class ResolveTheftEncounterActionCommand
 }
 
 internal class ResolveTheftEncounterActionCommandHandler(
-    TrpgDbContext context,
+    IEncountersDbContext context,
     ICommandHandler<
         TransferInventoryItemsCommand,
         IReadOnlyCollection<InventoryItemTransferResult>

@@ -11,6 +11,7 @@ namespace TRPG.Application.Reputations.Commands;
 public class ApplyReputationPenaltyForTheftsCommand
 {
     public required Guid PlayerId { get; init; }
+    public required Guid WorldId { get; init; }
     public required IReadOnlyCollection<TheftCrimeReport> Thefts { get; init; }
 }
 
@@ -66,6 +67,7 @@ internal class ApplyReputationPenaltyForTheftsCommandHandler(
             new AdjustReputationsCommand
             {
                 CreatureId = command.PlayerId,
+                WorldId = command.WorldId,
                 Adjustments = penaltyByFactionId
                     .Select(pair => new ReputationAdjustment(pair.Key, pair.Value))
                     .ToArray(),
@@ -100,6 +102,7 @@ internal class ApplyReputationPenaltyForTheftsCommandHandler(
             new AdjustReputationsCommand
             {
                 CreatureId = command.PlayerId,
+                WorldId = command.WorldId,
                 Adjustments = witnessAdjustments,
                 TargetType = ReputationTargetType.Creature,
                 Reason = ReputationReason.WitnessedTheft,

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -10,7 +10,7 @@ public class GetCreatureStatesByIdsQuery
     public required IReadOnlyCollection<Guid> Ids { get; init; }
 }
 
-internal class GetCreatureStatesByIdsQueryHandler(TrpgDbContext context)
+internal class GetCreatureStatesByIdsQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<GetCreatureStatesByIdsQuery, IReadOnlyDictionary<Guid, CreatureState>>
 {
     public async Task<IReadOnlyDictionary<Guid, CreatureState>> Handle(

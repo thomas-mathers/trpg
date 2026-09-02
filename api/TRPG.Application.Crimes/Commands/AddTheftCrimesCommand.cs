@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
@@ -9,7 +9,7 @@ public class AddTheftCrimesCommand
     public required IReadOnlyCollection<TheftCrime> Crimes { get; init; }
 }
 
-internal class AddTheftCrimesCommandHandler(TrpgDbContext context)
+internal class AddTheftCrimesCommandHandler(ICrimesDbContext context)
     : ICommandHandler<AddTheftCrimesCommand>
 {
     public async Task Handle(

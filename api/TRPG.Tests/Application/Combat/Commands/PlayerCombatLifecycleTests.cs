@@ -2,7 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
+using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Configuration;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -129,7 +131,12 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         _combatEngine.ProcessRound(combatants, resolution.Result);
 
         await _persistCombatants.Handle(
-            new PersistCombatantsCommand { Combatants = combatants },
+            new PersistCombatantsCommand
+            {
+                Updates = combatants
+                    .Select(combatant => combatant.ToCreatureCombatStateUpdate())
+                    .ToArray(),
+            },
             TestContext.Current.CancellationToken
         );
 

@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.CreatureJobs.Commands;
+namespace TRPG.Application.Props.Commands;
 
 public class SetWorkstationOccupantCommand
 {
@@ -11,7 +11,7 @@ public class SetWorkstationOccupantCommand
     public required Guid? OccupantId { get; init; }
 }
 
-internal class SetWorkstationOccupantCommandHandler(TrpgDbContext context)
+internal class SetWorkstationOccupantCommandHandler(IPropsDbContext context)
     : ICommandHandler<SetWorkstationOccupantCommand>
 {
     public async Task Handle(

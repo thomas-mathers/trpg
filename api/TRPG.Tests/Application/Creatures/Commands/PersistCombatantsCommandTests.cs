@@ -1,18 +1,16 @@
-using TRPG.Application.Abilities;
-using TRPG.Application.Combat.Commands;
+using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
-using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
-using ActiveDot = TRPG.Application.Combat.ActiveDot;
-using ActiveHot = TRPG.Application.Combat.ActiveHot;
 
-namespace TRPG.Tests.Application.Combat.Commands;
+namespace TRPG.Tests.Application.Creatures.Commands;
 
 [Collection("Database")]
 public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private PersistCombatantsCommandHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature(
         currentHp: 100,
@@ -23,7 +21,10 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new PersistCombatantsCommandHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<PersistCombatantsCommandHandler>();
 
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -31,23 +32,43 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
+
+    private static CreatureCombatStateUpdate MakeUpdate(
+        Guid creatureId,
+        int currentHp = 100,
+        int currentAp = 20,
+        int currentMp = 10,
+        bool isAlive = true,
+        IReadOnlyDictionary<string, int>? activeConditions = null,
+        IReadOnlyList<ActiveDot>? activeDots = null,
+        IReadOnlyList<ActiveHot>? activeHots = null,
+        IReadOnlyList<ActiveBuff>? activeBuffs = null
+    ) =>
+        new(
+            creatureId,
+            currentHp,
+            currentAp,
+            currentMp,
+            isAlive,
+            activeConditions ?? new Dictionary<string, int>(),
+            new Dictionary<string, int>(),
+            activeDots ?? [],
+            activeHots ?? [],
+            activeBuffs ?? []
+        );
 
     [Fact]
     public async Task Handle_PersistsHpApMp_ForAliveCombatant()
     {
         // Arrange
-        var combatant = Builders.MakeCombatant(
-            _creature.Id,
-            currentHp: 30,
-            currentAp: 5,
-            currentMp: 3
-        );
+        var update = MakeUpdate(_creature.Id, currentHp: 30, currentAp: 5, currentMp: 3);
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Combatants = [combatant] },
+            new PersistCombatantsCommand { Updates = [update] },
             TestContext.Current.CancellationToken
         );
 
@@ -67,16 +88,17 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_MarksCreatureDead_WhenCombatantIsNotAlive()
     {
         // Arrange
-        var combatant = Builders.MakeCombatant(
+        var update = MakeUpdate(
             _creature.Id,
             currentHp: 0,
             currentAp: 5,
-            currentMp: 3
+            currentMp: 3,
+            isAlive: false
         );
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Combatants = [combatant] },
+            new PersistCombatantsCommand { Updates = [update] },
             TestContext.Current.CancellationToken
         );
 
@@ -98,22 +120,18 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
         _context.Creatures.Add(otherCreature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var aliveCombatant = Builders.MakeCombatant(
-            _creature.Id,
-            currentHp: 30,
-            currentAp: 5,
-            currentMp: 3
-        );
-        var deadCombatant = Builders.MakeCombatant(
+        var aliveUpdate = MakeUpdate(_creature.Id, currentHp: 30, currentAp: 5, currentMp: 3);
+        var deadUpdate = MakeUpdate(
             otherCreature.Id,
             currentHp: 0,
             currentAp: 0,
-            currentMp: 0
+            currentMp: 0,
+            isAlive: false
         );
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Combatants = [aliveCombatant, deadCombatant] },
+            new PersistCombatantsCommand { Updates = [aliveUpdate, deadUpdate] },
             TestContext.Current.CancellationToken
         );
 
@@ -135,38 +153,43 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
     public async Task Handle_PersistsActiveConditionsDotsHotsBuffs_OntoCreature()
     {
         // Arrange
-        var combatant = Builders.MakeCombatant(_creature.Id);
-        combatant.ActiveConditions[ConditionType.Poisoned] = 3;
-        combatant.ActiveDots.Add(
-            new ActiveDot
-            {
-                AbilityName = "Venom",
-                Amount = 5,
-                DamageType = DamageType.Poison,
-                RemainingTurns = 3,
-            }
-        );
-        combatant.ActiveHots.Add(
-            new ActiveHot
-            {
-                AbilityName = "Regen",
-                Amount = 4,
-                RemainingTurns = 2,
-            }
-        );
-        combatant.ActiveBuffs.Add(
-            new ActiveBuff
-            {
-                Amount = 2,
-                Attribute = AttributeName.Strength,
-                RemainingTurns = 4,
-                AmountType = AmountType.Flat,
-            }
+        var update = MakeUpdate(
+            _creature.Id,
+            activeConditions: new Dictionary<string, int> { ["Poisoned"] = 3 },
+            activeDots:
+            [
+                new ActiveDot
+                {
+                    AbilityName = "Venom",
+                    Amount = 5,
+                    DamageType = "Poison",
+                    RemainingTurns = 3,
+                },
+            ],
+            activeHots:
+            [
+                new ActiveHot
+                {
+                    AbilityName = "Regen",
+                    Amount = 4,
+                    RemainingTurns = 2,
+                },
+            ],
+            activeBuffs:
+            [
+                new ActiveBuff
+                {
+                    Amount = 2,
+                    Attribute = "Strength",
+                    RemainingTurns = 4,
+                    AmountType = "Flat",
+                },
+            ]
         );
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Combatants = [combatant] },
+            new PersistCombatantsCommand { Updates = [update] },
             TestContext.Current.CancellationToken
         );
 
@@ -187,20 +210,23 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLi
     {
         // Arrange
         var baseMaximumHp = _creature.MaximumHp;
-        var combatant = Builders.MakeCombatant(_creature.Id);
-        combatant.ActiveBuffs.Add(
-            new ActiveBuff
-            {
-                Amount = 50,
-                Attribute = AttributeName.MaximumHp,
-                RemainingTurns = 4,
-                AmountType = AmountType.Flat,
-            }
+        var update = MakeUpdate(
+            _creature.Id,
+            activeBuffs:
+            [
+                new ActiveBuff
+                {
+                    Amount = 50,
+                    Attribute = "MaximumHp",
+                    RemainingTurns = 4,
+                    AmountType = "Flat",
+                },
+            ]
         );
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Combatants = [combatant] },
+            new PersistCombatantsCommand { Updates = [update] },
             TestContext.Current.CancellationToken
         );
 

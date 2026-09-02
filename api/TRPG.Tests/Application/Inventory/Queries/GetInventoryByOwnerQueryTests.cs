@@ -77,11 +77,10 @@ public sealed class GetInventoryByOwnerQueryTests(DatabaseFixture db) : IAsyncLi
         // Assert
         Assert.Equal(0, result.Gold);
         Assert.Empty(result.Items);
-        Assert.Null(result.CarryingCapacity);
     }
 
     [Fact]
-    public async Task Handle_ReturnsTotalWeightAndCarryingCapacity_ForCreatureOwner()
+    public async Task Handle_ReturnsTotalWeight()
     {
         // Arrange
         await SeedItem(Builders.MakeWeapon(_creature.WorldId, weight: 10), 1);
@@ -98,28 +97,6 @@ public sealed class GetInventoryByOwnerQueryTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         Assert.Equal(16, result.Weight);
-        Assert.Equal(_creature.CarryingCapacity, result.CarryingCapacity);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsNullCarryingCapacity_ForContainerOwner()
-    {
-        // Arrange
-        var container = Builders.MakeContainer();
-        _context.Props.Add(container);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var result = await _handler.Handle(
-            new GetInventoryByOwnerQuery
-            {
-                Owner = new ItemOwnerReference(container.Id, OwnerType.Container),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Null(result.CarryingCapacity);
     }
 
     [Fact]

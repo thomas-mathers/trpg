@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Chat.Commands;
 
@@ -10,7 +10,7 @@ public class ClearChatMessagesCommand
     public required int KeepFromOrdinal { get; init; }
 }
 
-internal class ClearChatMessagesCommandHandler(TrpgDbContext context)
+internal class ClearChatMessagesCommandHandler(IChatDbContext context)
     : ICommandHandler<ClearChatMessagesCommand>
 {
     public async Task Handle(

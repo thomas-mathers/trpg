@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Creatures.Queries;
 
@@ -14,7 +14,7 @@ public class GetCreaturesRankedBySimilarityQuery
     public required int MaxMatches { get; init; }
 }
 
-internal class GetCreaturesRankedBySimilarityQueryHandler(TrpgDbContext context)
+internal class GetCreaturesRankedBySimilarityQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<GetCreaturesRankedBySimilarityQuery, IReadOnlyList<NameSimilarityMatch>>
 {
     public async Task<IReadOnlyList<NameSimilarityMatch>> Handle(

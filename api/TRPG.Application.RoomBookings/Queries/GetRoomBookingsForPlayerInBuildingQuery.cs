@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.RoomBookings.Queries;
@@ -13,7 +13,7 @@ public class GetRoomBookingsForPlayerInBuildingQuery
 }
 
 internal class GetRoomBookingsForPlayerInBuildingQueryHandler(
-    TrpgDbContext context,
+    IRoomBookingsDbContext context,
     IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId
 ) : IQueryHandler<GetRoomBookingsForPlayerInBuildingQuery, IReadOnlyCollection<RoomBooking>>
 {

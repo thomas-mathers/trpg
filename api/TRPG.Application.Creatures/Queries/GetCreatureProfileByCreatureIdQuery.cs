@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -11,7 +11,7 @@ public class GetCreatureProfileByCreatureIdQuery
     public required Guid WorldId { get; init; }
 }
 
-internal class GetCreatureProfileByCreatureIdQueryHandler(TrpgDbContext context)
+internal class GetCreatureProfileByCreatureIdQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<GetCreatureProfileByCreatureIdQuery, CreatureProfile?>
 {
     public async Task<CreatureProfile?> Handle(

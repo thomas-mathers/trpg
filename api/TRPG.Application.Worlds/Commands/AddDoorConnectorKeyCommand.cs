@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Commands;
@@ -9,7 +9,7 @@ public class AddDoorConnectorKeyCommand
     public required DoorConnectorKey DoorConnectorKey { get; init; }
 }
 
-internal class AddDoorConnectorKeyCommandHandler(TrpgDbContext context)
+internal class AddDoorConnectorKeyCommandHandler(IWorldsDbContext context)
     : ICommandHandler<AddDoorConnectorKeyCommand>
 {
     public async Task Handle(

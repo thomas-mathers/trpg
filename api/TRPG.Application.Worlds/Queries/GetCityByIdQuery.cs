@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
@@ -11,7 +11,7 @@ public class GetCityByIdQuery
     public required Guid Id { get; init; }
 }
 
-internal class GetCityByIdQueryHandler(TrpgDbContext context, IMemoryCache cache)
+internal class GetCityByIdQueryHandler(IWorldsDbContext context, IMemoryCache cache)
     : IQueryHandler<GetCityByIdQuery, City?>
 {
     public async Task<City?> Handle(

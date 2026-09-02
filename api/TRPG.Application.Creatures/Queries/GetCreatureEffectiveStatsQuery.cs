@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
@@ -10,7 +10,7 @@ public class GetCreatureEffectiveStatsQuery
     public required Guid CreatureId { get; init; }
 }
 
-internal class GetCreatureEffectiveStatsQueryHandler(TrpgDbContext context)
+internal class GetCreatureEffectiveStatsQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<GetCreatureEffectiveStatsQuery, Attributes>
 {
     public async Task<Attributes> Handle(

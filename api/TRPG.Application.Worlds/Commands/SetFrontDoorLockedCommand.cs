@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Worlds.Commands;
 
@@ -10,7 +10,7 @@ public class SetFrontDoorLockedCommand
     public required bool IsLocked { get; init; }
 }
 
-internal class SetFrontDoorLockedCommandHandler(TrpgDbContext context)
+internal class SetFrontDoorLockedCommandHandler(IWorldsDbContext context)
     : ICommandHandler<SetFrontDoorLockedCommand, bool?>
 {
     public async Task<bool?> Handle(

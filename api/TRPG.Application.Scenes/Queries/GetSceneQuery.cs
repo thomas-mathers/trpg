@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
@@ -9,7 +8,6 @@ using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Application.Worlds.Results;
-using TRPG.Data;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes.Queries;
@@ -120,7 +118,6 @@ internal record SceneLocationData(
 );
 
 internal class GetSceneQueryHandler(
-    TrpgDbContext context,
     IQueryHandler<GetStateByIdQuery, State?> getStateById,
     IQueryHandler<GetCityByIdQuery, City?> getCityById,
     IQueryHandler<GetCityByStateIdQuery, City?> getCityByStateId,
@@ -151,12 +148,21 @@ internal class GetSceneQueryHandler(
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
     IQueryHandler<GetBuildingsByIdsQuery, IReadOnlyDictionary<Guid, Building>> getBuildingsByIds,
+    IQueryHandler<GetDistrictsByIdsQuery, IReadOnlyDictionary<Guid, District>> getDistrictsByIds,
+    IQueryHandler<
+        GetDoorConnectorsByConnectorIdsQuery,
+        IReadOnlyDictionary<Guid, DoorConnector>
+    > getDoorConnectorsByConnectorIds,
     IQueryHandler<
         GetFactionIdsByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
     > getFactionIdsByCreatureIds,
     IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds,
-    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<
+        GetTradeWorkstationIdsByOccupantIdsQuery,
+        IReadOnlyDictionary<Guid, Guid?>
+    > getTradeWorkstationIdsByOccupantIds
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -433,14 +439,10 @@ internal class GetSceneQueryHandler(
             },
             cancellationToken
         );
-        var tradeWorkstationIdsByCreature = await context
-            .Props.AsNoTracking()
-            .OfType<Workstation>()
-            .Where(w =>
-                nearbyCreatureIds.AsEnumerable().Contains(w.OccupantId ?? Guid.Empty)
-                && w.WorkstationType == WorkstationType.Trade
-            )
-            .ToDictionaryAsync(w => w.OccupantId!.Value, w => (Guid?)w.Id, cancellationToken);
+        var tradeWorkstationIdsByCreature = await getTradeWorkstationIdsByOccupantIds.Handle(
+            new GetTradeWorkstationIdsByOccupantIdsQuery { OccupantIds = nearbyCreatureIds },
+            cancellationToken
+        );
         var questMarkersByGiver = await getQuestMarkersForGivers.Handle(
             new GetQuestMarkersForGiversQuery
             {
@@ -486,10 +488,10 @@ internal class GetSceneQueryHandler(
             .Values.Select(location => location.DistrictId)
             .OfType<Guid>()
             .ToArray();
-        var districts = await context
-            .Districts.AsNoTracking()
-            .Where(district => districtIds.AsEnumerable().Contains(district.Id))
-            .ToDictionaryAsync(district => district.Id, cancellationToken);
+        var districts = await getDistrictsByIds.Handle(
+            new GetDistrictsByIdsQuery { Ids = districtIds },
+            cancellationToken
+        );
         var roomIds = destinations
             .Values.Select(location => location.RoomId)
             .OfType<Guid>()
@@ -504,11 +506,14 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
         var connectorIds = connectors.Select(connector => connector.Id).ToArray();
-        var lockedConnectorIds = await context
-            .DoorConnectors.AsNoTracking()
-            .Where(door => connectorIds.AsEnumerable().Contains(door.ConnectorId) && door.IsLocked)
-            .Select(door => door.ConnectorId)
-            .ToArrayAsync(cancellationToken);
+        var doorConnectorsByConnectorId = await getDoorConnectorsByConnectorIds.Handle(
+            new GetDoorConnectorsByConnectorIdsQuery { ConnectorIds = connectorIds },
+            cancellationToken
+        );
+        var lockedConnectorIds = doorConnectorsByConnectorId
+            .Where(kv => kv.Value.IsLocked)
+            .Select(kv => kv.Key)
+            .ToArray();
 
         return connectors
             // Outdoors, a building's front door duplicates its NearbyBuildings entry.

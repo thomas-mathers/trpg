@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
+using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 
 namespace TRPG.Application.Inventory.Queries;
 
@@ -11,9 +12,11 @@ public class GetEquipItemStatsQuery
     public required Guid CreatureId { get; init; }
     public required Guid ItemId { get; init; }
     public required EquipmentSlot Slot { get; init; }
+    public required Attributes BaseAttributes { get; init; }
+    public required IReadOnlyCollection<ActiveBuff> ActiveBuffs { get; init; }
 }
 
-internal class GetEquipItemStatsQueryHandler(TrpgDbContext context)
+internal class GetEquipItemStatsQueryHandler(IInventoryDbContext context)
     : IQueryHandler<GetEquipItemStatsQuery, Attributes>
 {
     public async Task<Attributes> Handle(
@@ -21,10 +24,6 @@ internal class GetEquipItemStatsQueryHandler(TrpgDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var creature = await context
-            .Creatures.AsNoTracking()
-            .FirstAsync(c => c.Id == query.CreatureId, cancellationToken);
-
         var items = await context
             .Items.AsNoTracking()
             .Where(i =>
@@ -47,11 +46,9 @@ internal class GetEquipItemStatsQueryHandler(TrpgDbContext context)
             .Append(toEquip)
             .ToArray();
 
-        var buffs = StatFormulas.ToActiveBuffs(creature);
-
         return StatFormulas.CalculateEffectiveAttributes(
-            creature.BaseAttributes,
-            buffs,
+            query.BaseAttributes,
+            query.ActiveBuffs,
             hypotheticalEquipped
         );
     }

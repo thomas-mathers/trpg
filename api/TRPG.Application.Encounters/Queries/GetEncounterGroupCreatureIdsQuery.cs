@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Queries;
@@ -13,7 +13,7 @@ public class GetEncounterGroupCreatureIdsQuery
 }
 
 internal class GetEncounterGroupCreatureIdsQueryHandler(
-    TrpgDbContext context,
+    IEncountersDbContext context,
     IQueryHandler<
         GetCreatureStatesByIdsQuery,
         IReadOnlyDictionary<Guid, CreatureState>

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Knowledge.Queries;
@@ -14,7 +14,7 @@ public class GetRelativesQuery
 public record RelativeSummary(Guid RelativeId, string Name, RelationshipType RelationshipType);
 
 internal class GetRelativesQueryHandler(
-    TrpgDbContext context,
+    IKnowledgeDbContext context,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds
 ) : IQueryHandler<GetRelativesQuery, IReadOnlyCollection<RelativeSummary>>
 {

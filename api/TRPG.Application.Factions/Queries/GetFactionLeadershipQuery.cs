@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Factions.Queries;
@@ -12,7 +12,7 @@ public class GetFactionLeadershipQuery
     public required Guid FactionId { get; init; }
 }
 
-internal class GetFactionLeadershipQueryHandler(TrpgDbContext context)
+internal class GetFactionLeadershipQueryHandler(IFactionsDbContext context)
     : IQueryHandler<GetFactionLeadershipQuery, FactionLeadership>
 {
     public async Task<FactionLeadership> Handle(

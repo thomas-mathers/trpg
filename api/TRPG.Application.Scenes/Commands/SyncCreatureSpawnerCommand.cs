@@ -9,7 +9,7 @@ using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WorldGeneration.Generators;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes.Commands;
@@ -22,7 +22,7 @@ public class SyncCreatureSpawnerCommand
 }
 
 internal class SyncCreatureSpawnerCommandHandler(
-    TrpgDbContext context,
+    IScenesDbContext context,
     CreatureGenerator creatureGenerator,
     IQueryHandler<
         GetFactionsByCreatureTypeQuery,

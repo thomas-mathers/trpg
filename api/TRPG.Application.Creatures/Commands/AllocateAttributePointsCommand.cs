@@ -6,7 +6,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -18,7 +18,7 @@ public class AllocateAttributePointsCommand
 }
 
 internal class AllocateAttributePointsCommandHandler(
-    TrpgDbContext context,
+    ICreaturesDbContext context,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
 ) : ICommandHandler<AllocateAttributePointsCommand>

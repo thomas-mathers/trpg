@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Worlds.Queries;
 
@@ -16,7 +16,7 @@ public class GetCrossStateConnectorsQuery
     public required Guid WorldId { get; init; }
 }
 
-internal class GetCrossStateConnectorsQueryHandler(TrpgDbContext context)
+internal class GetCrossStateConnectorsQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetCrossStateConnectorsQuery, IReadOnlyList<CrossStateConnector>>
 {
     public async Task<IReadOnlyList<CrossStateConnector>> Handle(

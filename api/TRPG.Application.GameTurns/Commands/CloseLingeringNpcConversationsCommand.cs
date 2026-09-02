@@ -4,7 +4,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.GameTurns.Commands;
 
@@ -16,7 +16,7 @@ public class CloseLingeringNpcConversationsCommand
 
 internal class CloseLingeringNpcConversationsCommandHandler(
     LlmConversationClient llmConversationClient,
-    TrpgDbContext context,
+    ITrpgDbContext context,
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
     ICommandHandler<ClearOpenNpcConversationsCommand> clearOpenNpcConversations,
     ICommandHandler<ClearChatMessagesCommand> clearChatMessages,

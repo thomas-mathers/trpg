@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Quests.Events;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.EventHandlers;
 
 internal sealed class CreatureKilledQuestGiverEventHandler(
-    TrpgDbContext context,
+    IQuestsDbContext context,
     IGameClientEventSink gameEvents
 ) : IDomainEventConsumer<CreatureKilledEvent>
 {

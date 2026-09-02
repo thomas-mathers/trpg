@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
@@ -10,7 +10,7 @@ public class GetCapitalCityByCountryIdQuery
     public required Guid CountryId { get; init; }
 }
 
-internal class GetCapitalCityByCountryIdQueryHandler(TrpgDbContext context)
+internal class GetCapitalCityByCountryIdQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetCapitalCityByCountryIdQuery, City?>
 {
     public async Task<City?> Handle(

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Creatures.Queries;
 
@@ -10,7 +10,7 @@ public class GetTotalCharacterXpFromSkillsQuery
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
 }
 
-internal class GetTotalCharacterXpFromSkillsQueryHandler(TrpgDbContext context)
+internal class GetTotalCharacterXpFromSkillsQueryHandler(ICreaturesDbContext context)
     : IQueryHandler<GetTotalCharacterXpFromSkillsQuery, IReadOnlyDictionary<Guid, int>>
 {
     public async Task<IReadOnlyDictionary<Guid, int>> Handle(

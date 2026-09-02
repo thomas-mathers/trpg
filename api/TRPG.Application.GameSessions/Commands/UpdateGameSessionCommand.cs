@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.GameSessions.Commands;
 
@@ -10,7 +10,7 @@ public class UpdateGameSessionCommand
     public required TimeSpan Playtime { get; init; }
 }
 
-internal class UpdateGameSessionCommandHandler(TrpgDbContext context)
+internal class UpdateGameSessionCommandHandler(IGameSessionsDbContext context)
     : ICommandHandler<UpdateGameSessionCommand>
 {
     public async Task Handle(

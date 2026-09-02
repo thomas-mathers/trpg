@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Queries;
@@ -10,7 +10,7 @@ public class GetGoldQuantityQuery
     public required ItemOwnerReference Owner { get; init; }
 }
 
-internal class GetGoldQuantityQueryHandler(TrpgDbContext context)
+internal class GetGoldQuantityQueryHandler(IInventoryDbContext context)
     : IQueryHandler<GetGoldQuantityQuery, int>
 {
     public async Task<int> Handle(

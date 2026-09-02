@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Creatures.Queries;
 
@@ -12,7 +12,7 @@ public class GetCreatureIdsByDistrictQuery
 }
 
 internal class GetCreatureIdsByDistrictQueryHandler(
-    TrpgDbContext context,
+    ICreaturesDbContext context,
     IQueryHandler<GetLocationIdsByDistrictQuery, IReadOnlyCollection<Guid>> getLocationIdsByDistrict
 ) : IQueryHandler<GetCreatureIdsByDistrictQuery, IReadOnlyList<Guid>>
 {

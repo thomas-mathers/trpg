@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.NpcConversations.Commands;
 
@@ -9,7 +9,7 @@ public class ClearOpenNpcConversationsCommand
     public required Guid SessionId { get; init; }
 }
 
-internal class ClearOpenNpcConversationsCommandHandler(TrpgDbContext context)
+internal class ClearOpenNpcConversationsCommandHandler(INpcConversationsDbContext context)
     : ICommandHandler<ClearOpenNpcConversationsCommand>
 {
     public async Task Handle(

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
@@ -10,7 +10,7 @@ public class GetBuildingByEntranceLocationQuery
     public required Guid LocationId { get; init; }
 }
 
-internal class GetBuildingByEntranceLocationQueryHandler(TrpgDbContext context)
+internal class GetBuildingByEntranceLocationQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetBuildingByEntranceLocationQuery, Building?>
 {
     public async Task<Building?> Handle(

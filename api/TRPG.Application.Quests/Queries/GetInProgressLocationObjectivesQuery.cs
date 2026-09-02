@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Quests.Queries;
 
@@ -12,7 +12,7 @@ public class GetInProgressLocationObjectivesQuery
 
 public record InProgressLocationObjective(Guid QuestId, string ObjectiveName, Guid LocationId);
 
-internal class GetInProgressLocationObjectivesQueryHandler(TrpgDbContext context)
+internal class GetInProgressLocationObjectivesQueryHandler(IQuestsDbContext context)
     : IQueryHandler<
         GetInProgressLocationObjectivesQuery,
         IReadOnlyCollection<InProgressLocationObjective>

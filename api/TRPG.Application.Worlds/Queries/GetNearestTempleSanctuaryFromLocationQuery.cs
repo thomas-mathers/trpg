@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.WorldGeneration;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
@@ -15,7 +15,7 @@ public class GetNearestTempleSanctuaryFromLocationQuery
 public record NearestTemple(Guid SanctuaryLocationId, string CityName);
 
 internal class GetNearestTempleSanctuaryFromLocationQueryHandler(
-    TrpgDbContext context,
+    IWorldsDbContext context,
     IQueryHandler<GetNearestReachableLocationQuery, Guid?> getNearestReachableLocation
 ) : IQueryHandler<GetNearestTempleSanctuaryFromLocationQuery, NearestTemple?>
 {

@@ -78,6 +78,13 @@ internal static class InventoryEndpoints
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         [FromServices] IQueryHandler<GetPropByIdQuery, Prop?> getPropById,
         [FromServices] IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
+        [FromServices]
+            IQueryHandler<
+            GetInventoryItemsByOwnerQuery,
+            IReadOnlyList<Item>
+        > getInventoryItemsByOwner,
+        [FromServices]
+            IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
         [FromServices] ICommandHandler<ReceivePlayerInventoryCommand> receiveInventory,
         [FromServices] ICommandHandler<AttemptTheftCommand, TheftAttemptResult> attemptTheft,
         [FromServices] ICommandHandler<TransferPlayerInventoryCommand> transferInventory,
@@ -164,6 +171,24 @@ internal static class InventoryEndpoints
             );
             if (theftAttempt.Outcome == TheftAttemptOutcome.NotTheft)
             {
+                var hasCapacity = await DestinationHasCapacity(
+                    playerId,
+                    new ItemOwnerReference(request.From.Id, request.From.Type),
+                    request.Items,
+                    getCreatureById,
+                    getInventoryItemsByOwner,
+                    getItemsByIdsForOwner,
+                    cancellationToken
+                );
+                if (!hasCapacity)
+                {
+                    return TypedResults.Problem(
+                        statusCode: StatusCodes.Status409Conflict,
+                        title: "Carrying capacity exceeded",
+                        detail: "You cannot carry any more weight."
+                    );
+                }
+
                 await receiveInventory.Handle(
                     new ReceivePlayerInventoryCommand
                     {
@@ -209,6 +234,54 @@ internal static class InventoryEndpoints
         );
 
         return TypedResults.NoContent();
+    }
+
+    private static async Task<bool> DestinationHasCapacity(
+        Guid creatureId,
+        ItemOwnerReference from,
+        IReadOnlyList<ItemSelection> incomingSelections,
+        IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
+        IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
+        CancellationToken cancellationToken
+    )
+    {
+        var creature = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = creatureId },
+            cancellationToken
+        );
+        if (creature is not { State: not CreatureState.Dead })
+        {
+            return true;
+        }
+
+        var currentItems = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(creatureId, OwnerType.Creature),
+            },
+            cancellationToken
+        );
+        var currentWeight = currentItems.Sum(item => item.Weight * item.Quantity);
+
+        var incomingItems = await getItemsByIdsForOwner.Handle(
+            new GetItemsByIdsForOwnerQuery
+            {
+                ItemIds = incomingSelections.Select(selection => selection.ItemId).ToArray(),
+                OwnerId = from.Id,
+                OwnerType = from.Type,
+            },
+            cancellationToken
+        );
+        var quantityByItemId = incomingSelections.ToDictionary(
+            selection => selection.ItemId,
+            selection => selection.Quantity
+        );
+        var incomingWeight = incomingItems.Sum(item =>
+            item.Weight * quantityByItemId.GetValueOrDefault(item.Id, 0)
+        );
+
+        return currentWeight + incomingWeight <= creature.CarryingCapacity;
     }
 
     private static async Task<(Guid LocationId, Guid WorldId)?> ResolveOwnerLocation(
@@ -293,6 +366,7 @@ internal static class InventoryEndpoints
     private static async Task<Ok<TradeSnapshot>> GetTrade(
         Guid playerId,
         Guid workstationId,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         [FromServices] IQueryHandler<GetTradeQuery, TradeResult> getTrade,
         [FromServices]
             IQueryHandler<
@@ -302,6 +376,10 @@ internal static class InventoryEndpoints
         CancellationToken cancellationToken
     )
     {
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = playerId },
+            cancellationToken
+        );
         var trade = await getTrade.Handle(
             new GetTradeQuery { PlayerId = playerId, WorkstationId = workstationId },
             cancellationToken
@@ -313,7 +391,7 @@ internal static class InventoryEndpoints
 
         return TypedResults.Ok(
             new TradeSnapshot(
-                trade.PlayerInventory.ToSummary(questItemIds),
+                trade.PlayerInventory.ToSummary(questItemIds, player?.CarryingCapacity),
                 trade.ShopInventory.ToSummary([])
             )
         );
@@ -343,17 +421,42 @@ internal static class InventoryEndpoints
         return TypedResults.Ok(new TradeProposalResponse(outcome.ToStatus()));
     }
 
-    private static async Task<NoContent> CompleteTrade(
+    private static async Task<Results<ProblemHttpResult, NoContent>> CompleteTrade(
         Guid playerId,
         Guid workstationId,
         Guid worldId,
         TradeRequest request,
         [FromServices] ICommandHandler<CompleteTradeCommand> completeTrade,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices]
+            IQueryHandler<
+            GetInventoryItemsByOwnerQuery,
+            IReadOnlyList<Item>
+        > getInventoryItemsByOwner,
+        [FromServices]
+            IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
         CancellationToken cancellationToken
     )
     {
         await EnsureCreatureExists(playerId, getCreatureById, cancellationToken);
+
+        var hasCapacity = await DestinationHasCapacity(
+            playerId,
+            new ItemOwnerReference(workstationId, OwnerType.Workstation),
+            request.ShopOffer,
+            getCreatureById,
+            getInventoryItemsByOwner,
+            getItemsByIdsForOwner,
+            cancellationToken
+        );
+        if (!hasCapacity)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Carrying capacity exceeded",
+                detail: "You cannot carry any more weight."
+            );
+        }
 
         await completeTrade.Handle(
             new CompleteTradeCommand

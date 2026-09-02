@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -10,7 +10,7 @@ public class CreateEncounterGroupsCommand
     public required IReadOnlyCollection<EncounterGroupMember> Members { get; init; }
 }
 
-internal class CreateEncounterGroupsCommandHandler(TrpgDbContext context)
+internal class CreateEncounterGroupsCommandHandler(IEncountersDbContext context)
     : ICommandHandler<CreateEncounterGroupsCommand>
 {
     public async Task Handle(

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
@@ -11,7 +11,7 @@ public class SetTheftCrimeOutcomeCommand
     public TheftCrimeOutcome? Outcome { get; init; }
 }
 
-internal class SetTheftCrimeOutcomeCommandHandler(TrpgDbContext context)
+internal class SetTheftCrimeOutcomeCommandHandler(ICrimesDbContext context)
     : ICommandHandler<SetTheftCrimeOutcomeCommand>
 {
     public async Task Handle(
