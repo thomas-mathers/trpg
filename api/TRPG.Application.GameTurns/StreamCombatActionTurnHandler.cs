@@ -4,7 +4,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Scenes.Commands;
+using TRPG.Application.GameTurns.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;

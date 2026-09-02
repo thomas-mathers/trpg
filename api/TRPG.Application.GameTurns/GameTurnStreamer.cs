@@ -12,9 +12,10 @@ using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.GameTurns.Events;
+using TRPG.Application.GameTurns.Queries;
+using TRPG.Application.GameTurns.Results;
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
-using TRPG.Application.Scenes.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;

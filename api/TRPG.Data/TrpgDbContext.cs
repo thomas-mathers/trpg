@@ -60,7 +60,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         IGameSessionsDbContext,
         IChatDbContext,
         ICrimesDbContext,
-        IScenesDbContext,
+        ILocationSimulationDbContext,
         IRoomBookingsDbContext
 {
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();

@@ -6,7 +6,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Scenes.Commands;
+using TRPG.Application.GameTurns.Commands;
 using TRPG.Tools;
 
 namespace TRPG.GameTurns.Tools;

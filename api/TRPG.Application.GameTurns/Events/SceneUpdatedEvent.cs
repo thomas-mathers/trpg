@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Events;
-using TRPG.Application.Scenes.Queries;
+using TRPG.Application.GameTurns.Results;
 
 namespace TRPG.Application.GameTurns.Events;
 

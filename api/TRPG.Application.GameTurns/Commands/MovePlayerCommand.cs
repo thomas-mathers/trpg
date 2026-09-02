@@ -10,9 +10,9 @@ using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.GameTurns.Results;
+using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.Reputations.Commands;
-using TRPG.Application.Scenes.Commands;
-using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 

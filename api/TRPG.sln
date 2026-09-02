@@ -36,7 +36,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Quests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Creatures", "TRPG.Application.Creatures\TRPG.Application.Creatures.csproj", "{A17651A5-5F80-46F4-93BD-61CAA40B22B9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Scenes", "TRPG.Application.Scenes\TRPG.Application.Scenes.csproj", "{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.LocationSimulation", "TRPG.Application.LocationSimulation\TRPG.Application.LocationSimulation.csproj", "{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.NpcConversations", "TRPG.Application.NpcConversations\TRPG.Application.NpcConversations.csproj", "{B629A341-0021-44F3-9200-DE5A1E49C337}"
 EndProject
