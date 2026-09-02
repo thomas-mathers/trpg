@@ -5,7 +5,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat;
 
-internal class HitCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
+public class HitCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 {
     public bool RollHit(
         Combatant attacker,

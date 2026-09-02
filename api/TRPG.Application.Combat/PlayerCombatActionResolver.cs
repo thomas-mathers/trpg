@@ -2,14 +2,14 @@ using TRPG.Application.Abilities;
 
 namespace TRPG.Application.Combat;
 
-internal abstract record ResolvedCombatAction;
+public abstract record ResolvedCombatAction;
 
 internal sealed record ResolvedUseAbilityAction(Ability Ability, IReadOnlyList<Combatant> Targets)
     : ResolvedCombatAction;
 
 internal sealed record ResolvedUseItemAction(ConsumableItemSnapshot Item) : ResolvedCombatAction;
 
-internal class PlayerCombatActionResolverResult
+public class PlayerCombatActionResolverResult
 {
     public ResolvedCombatAction? Result { get; }
     public string? ErrorMessage { get; }
@@ -31,7 +31,7 @@ internal class PlayerCombatActionResolverResult
         new(null, errorMessage);
 }
 
-internal class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
+public class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
 {
     public PlayerCombatActionResolverResult Resolve(PlayerCombatAction playerAction) =>
         playerAction switch

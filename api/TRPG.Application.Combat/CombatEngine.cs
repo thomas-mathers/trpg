@@ -9,14 +9,14 @@ using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 
 namespace TRPG.Application.Combat;
 
-internal class CombatEngine(
+public class CombatEngine(
     IOptionsSnapshot<CombatOptions> optionsSnapshot,
     HitCalculator hitCalculator,
     DamageCalculator damageCalculator,
     EnemyCombatActionResolver enemyCombatActionResolver
 )
 {
-    internal CombatState ProcessRound(
+    public CombatState ProcessRound(
         IReadOnlyList<Combatant> combatants,
         ResolvedCombatAction action
     )
