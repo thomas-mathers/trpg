@@ -1,4 +1,5 @@
 using System.Globalization;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -216,7 +217,7 @@ internal static class BiographyGenerator
         string? homeName
     )
     {
-        var age = WorldEpoch.Year - creature.BirthYear;
+        var age = GameClock.EpochYear - creature.BirthYear;
         var raceLabel = creature.CreatureType.ToString().ToLowerInvariant();
         var professionLabel = creature.Profession?.ToString().ToLowerInvariant() ?? "wanderer";
         var affiliation = factionName != null ? $" and affiliated with {factionName}" : "";

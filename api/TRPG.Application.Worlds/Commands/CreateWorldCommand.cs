@@ -2,6 +2,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.WorldGeneration;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.WorldGeneration.Mappers;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Commands;
@@ -49,7 +50,7 @@ internal class CreateWorldCommandHandler(
             d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter
         );
 
-        var birthYear = WorldEpoch.Year - command.Age;
+        var birthYear = GameClock.EpochYear - command.Age;
 
         var playerResult = creatureGenerator.Generate(
             new CreatureGeneratorInput(

@@ -1,3 +1,4 @@
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -15,7 +16,7 @@ internal record CreatureGroupGeneratorInput(
 public class CreatureGroupGenerator(CreatureGenerator creatureGenerator)
 {
     private const int AdultAge = 18;
-    private const int MaxAdultBirthYear = WorldEpoch.Year - AdultAge;
+    private const int MaxAdultBirthYear = GameClock.EpochYear - AdultAge;
 
     internal IReadOnlyList<CreatureGeneratorResult> Generate(CreatureGroupGeneratorInput input)
     {

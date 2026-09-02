@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameTurns.Queries;
-using TRPG.Application.WorldGeneration;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -53,7 +53,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
         Assert.Equal(_npc.Name, result.Identity.Name);
         Assert.Equal(_npc.CreatureType.ToString(), result.Identity.Race);
         Assert.Equal(_npc.Gender, result.Identity.Gender);
-        Assert.Equal(WorldEpoch.Year - _npc.BirthYear, result.Identity.Age);
+        Assert.Equal(GameClock.EpochYear - _npc.BirthYear, result.Identity.Age);
     }
 
     [Fact]

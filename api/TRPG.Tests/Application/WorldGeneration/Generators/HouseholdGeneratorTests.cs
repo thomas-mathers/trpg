@@ -1,6 +1,6 @@
 using TRPG.Application.Configuration;
-using TRPG.Application.WorldGeneration;
 using TRPG.Application.WorldGeneration.Generators;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -8,7 +8,7 @@ namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
 public class HouseholdGeneratorTests
 {
-    private const int EpochYear = WorldEpoch.Year;
+    private const int EpochYear = GameClock.EpochYear;
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly City _city = new()
     {

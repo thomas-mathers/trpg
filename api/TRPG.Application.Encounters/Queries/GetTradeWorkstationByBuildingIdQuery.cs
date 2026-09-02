@@ -1,10 +1,9 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Props.Queries;
+namespace TRPG.Application.Encounters.Queries;
 
 public class GetTradeWorkstationByBuildingIdQuery
 {
@@ -12,8 +11,11 @@ public class GetTradeWorkstationByBuildingIdQuery
 }
 
 internal class GetTradeWorkstationByBuildingIdQueryHandler(
-    IPropsDbContext context,
-    IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId
+    IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId,
+    IQueryHandler<
+        GetTradeWorkstationByLocationIdsQuery,
+        Workstation?
+    > getTradeWorkstationByLocationIds
 ) : IQueryHandler<GetTradeWorkstationByBuildingIdQuery, Workstation?>
 {
     public async Task<Workstation?> Handle(
@@ -25,15 +27,13 @@ internal class GetTradeWorkstationByBuildingIdQueryHandler(
             new GetRoomsByBuildingIdQuery { BuildingId = query.BuildingId },
             cancellationToken
         );
-        var locationIds = rooms.Select(room => room.LocationId).ToArray();
 
-        return await context
-            .Props.OfType<Workstation>()
-            .AsNoTracking()
-            .Where(workstation =>
-                workstation.WorkstationType == WorkstationType.Trade
-                && locationIds.AsEnumerable().Contains(workstation.LocationId)
-            )
-            .FirstOrDefaultAsync(cancellationToken);
+        return await getTradeWorkstationByLocationIds.Handle(
+            new GetTradeWorkstationByLocationIdsQuery
+            {
+                LocationIds = rooms.Select(room => room.LocationId).ToArray(),
+            },
+            cancellationToken
+        );
     }
 }

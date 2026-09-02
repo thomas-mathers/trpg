@@ -26,9 +26,10 @@ internal class SyncScheduleLockCommandHandler(
         IReadOnlyList<CreatureJob>
     > getAllJobsByCreatureId,
     IQueryHandler<
-        GetCreatureJobsOfBuildingWorkersQuery,
+        GetCreatureJobsOfWorkersAtLocationsQuery,
         IReadOnlyList<CreatureJob>
     > getJobsOfBuildingWorkers,
+    IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId,
     ICommandHandler<SetFrontDoorLockedCommand, bool?> setFrontDoorLocked
 ) : ICommandHandler<SyncScheduleLockCommand, bool?>
 {
@@ -61,8 +62,16 @@ internal class SyncScheduleLockCommandHandler(
         CancellationToken cancellationToken
     )
     {
+        var rooms = await getRoomsByBuildingId.Handle(
+            new GetRoomsByBuildingIdQuery { BuildingId = command.BuildingId },
+            cancellationToken
+        );
+
         var workerJobs = await getJobsOfBuildingWorkers.Handle(
-            new GetCreatureJobsOfBuildingWorkersQuery { BuildingId = command.BuildingId },
+            new GetCreatureJobsOfWorkersAtLocationsQuery
+            {
+                LocationIds = rooms.Select(room => room.LocationId).ToArray(),
+            },
             cancellationToken
         );
 
