@@ -11,7 +11,8 @@ public class EvaluateEncountersCommand
 
 public record EncounterEvaluationResult(
     HostileEncounter? HostileEncounter,
-    GuardEncounter? GuardEncounter
+    GuardEncounter? GuardEncounter,
+    HostileEncounter? TrespassingEncounter = null
 )
 {
     public static readonly EncounterEvaluationResult None = new(null, null);
@@ -19,7 +20,11 @@ public record EncounterEvaluationResult(
 
 internal class EvaluateEncountersCommandHandler(
     ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?> evaluateHostileEncounter,
-    ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?> evaluateGuardEncounter
+    ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?> evaluateGuardEncounter,
+    ICommandHandler<
+        EvaluateTrespassingEncounterCommand,
+        HostileEncounter?
+    > evaluateTrespassingEncounter
 ) : ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult>
 {
     public async Task<EncounterEvaluationResult> Handle(
@@ -48,7 +53,20 @@ internal class EvaluateEncountersCommandHandler(
             },
             cancellationToken
         );
+        if (guardEncounter != null)
+        {
+            return new EncounterEvaluationResult(null, guardEncounter);
+        }
 
-        return new EncounterEvaluationResult(null, guardEncounter);
+        var trespassingEncounter = await evaluateTrespassingEncounter.Handle(
+            new EvaluateTrespassingEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+            },
+            cancellationToken
+        );
+
+        return new EncounterEvaluationResult(null, null, trespassingEncounter);
     }
 }

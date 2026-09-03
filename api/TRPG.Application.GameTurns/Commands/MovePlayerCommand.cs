@@ -35,6 +35,7 @@ public record MovePlayerResult(
     HostileEncounter? Encounter,
     GuardEncounter? GuardEncounter,
     TheftEncounter? OverdueRoomKeyEncounter,
+    HostileEncounter? TrespassingEncounter,
     SceneResult Scene
 );
 
@@ -227,6 +228,7 @@ internal class MovePlayerCommandHandler(
                     null,
                     null,
                     overdueRoomKeyEncounter,
+                    null,
                     refreshed.Scene
                 );
             }
@@ -271,7 +273,10 @@ internal class MovePlayerCommandHandler(
             new PublishEncounterStartedCommand
             {
                 PlayerId = player.Id,
-                Encounter = evaluation.HostileEncounter ?? (Encounter?)evaluation.GuardEncounter,
+                Encounter =
+                    evaluation.HostileEncounter
+                    ?? (Encounter?)evaluation.GuardEncounter
+                    ?? evaluation.TrespassingEncounter,
             },
             cancellationToken
         );
@@ -281,6 +286,7 @@ internal class MovePlayerCommandHandler(
             evaluation.HostileEncounter,
             evaluation.GuardEncounter,
             overdueRoomKeyEncounter,
+            evaluation.TrespassingEncounter,
             refreshed.Scene
         );
     }

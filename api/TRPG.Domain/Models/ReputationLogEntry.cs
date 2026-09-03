@@ -9,6 +9,8 @@ public enum ReputationReason
     ServedJailTime,
     WitnessedKilling,
     WitnessedTheft,
+    BrokeIntoFactionProperty,
+    WitnessedBreakingAndEntering,
 }
 
 public class ReputationLogEntry

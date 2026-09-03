@@ -535,6 +535,7 @@ public class BuildingGenerator
         {
             ConnectorId = entryConnector.Id,
             IsLocked = input.Spec.IsLockable,
+            LockLevel = input.Spec.LockLevel,
             WorldId = worldId,
         };
 

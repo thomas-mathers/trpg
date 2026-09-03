@@ -148,7 +148,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity
                 .HasDiscriminator<string>("crime_type")
                 .HasValue<KillCrime>("Kill")
-                .HasValue<TheftCrime>("Theft");
+                .HasValue<TheftCrime>("Theft")
+                .HasValue<BreakingAndEnteringCrime>("BreakEnter");
         });
 
         modelBuilder.Entity<CrimeWitness>(entity =>
@@ -161,6 +162,13 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         modelBuilder.Entity<TheftCrime>(entity =>
         {
             entity.Property(crime => crime.Items).HasJsonConversion(() => []);
+        });
+
+        modelBuilder.Entity<BreakingAndEnteringCrime>(entity =>
+        {
+            entity
+                .Property(crime => crime.OwnerFactionId)
+                .HasColumnName("break_enter_owner_faction_id");
         });
 
         modelBuilder.Entity<Creature>(entity =>

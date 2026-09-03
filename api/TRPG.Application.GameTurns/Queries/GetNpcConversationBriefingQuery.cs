@@ -325,21 +325,18 @@ internal class GetNpcConversationBriefingQueryHandler(
         return witnessedCrimes.Select(ToObservedCrime).ToArray();
     }
 
-    private static NpcConversationObservedCrime ToObservedCrime(WitnessedCrime crime)
-    {
-        if (crime.Kind == WitnessedCrimeKind.Kill)
-        {
-            return new NpcConversationObservedCrime(
-                $"You witnessed the player kill {crime.SubjectName}."
-            );
-        }
-
-        var text =
-            crime.Outcome == TheftCrimeOutcome.Apologized
-                ? $"You witnessed the player steal from {crime.SubjectName}, though they later apologized and made it right."
-                : $"You witnessed the player steal from {crime.SubjectName}.";
-        return new NpcConversationObservedCrime(text);
-    }
+    private static NpcConversationObservedCrime ToObservedCrime(WitnessedCrime crime) =>
+        new(
+            crime.Kind switch
+            {
+                WitnessedCrimeKind.Kill => $"You witnessed the player kill {crime.SubjectName}.",
+                WitnessedCrimeKind.BreakingAndEntering =>
+                    $"You witnessed the player break into {crime.SubjectName}.",
+                _ when crime.Outcome == TheftCrimeOutcome.Apologized =>
+                    $"You witnessed the player steal from {crime.SubjectName}, though they later apologized and made it right.",
+                _ => $"You witnessed the player steal from {crime.SubjectName}.",
+            }
+        );
 
     private async Task<NpcConversationReputationEvent[]> GetReputationHistory(
         GetNpcConversationBriefingQuery query,

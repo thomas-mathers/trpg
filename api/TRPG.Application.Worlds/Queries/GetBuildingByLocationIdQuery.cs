@@ -10,7 +10,7 @@ public class GetBuildingByLocationIdQuery
     public required Guid LocationId { get; init; }
 }
 
-public record BuildingIdentity(Guid Id, BuildingType BuildingType);
+public record BuildingIdentity(Guid Id, BuildingType BuildingType, string Name);
 
 internal class GetBuildingByLocationIdQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?>
@@ -23,6 +23,6 @@ internal class GetBuildingByLocationIdQueryHandler(IWorldsDbContext context)
             from room in context.Rooms.AsNoTracking()
             where room.LocationId == query.LocationId
             join building in context.Buildings.AsNoTracking() on room.BuildingId equals building.Id
-            select new BuildingIdentity(building.Id, building.BuildingType)
+            select new BuildingIdentity(building.Id, building.BuildingType, building.Name)
         ).FirstOrDefaultAsync(cancellationToken);
 }

@@ -14,6 +14,7 @@ public enum Skill
     Alteration,
     General,
     Blocking,
+    Lockpicking,
 }
 
 [Tapper.TranspilationSource]

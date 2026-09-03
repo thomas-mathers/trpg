@@ -212,6 +212,7 @@ export const SKILL_FALLBACK_ICON: Record<Skill, IconType> = {
   Alteration: GiMagicSwirl,
   General: GiShiningSword,
   Blocking: GiShield,
+  Lockpicking: GiLockedFortress,
 };
 
 export function getAbilityIcon(ability: AbilitySummary): IconType {

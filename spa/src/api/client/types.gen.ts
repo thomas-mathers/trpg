@@ -685,7 +685,7 @@ export type SetQuestTrackingRequest = {
     isTracked: boolean;
 };
 
-export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Pickpocketing' | 'Destruction' | 'Illusion' | 'Archery' | 'Restoration' | 'Alteration' | 'General' | 'Blocking';
+export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Pickpocketing' | 'Destruction' | 'Illusion' | 'Archery' | 'Restoration' | 'Alteration' | 'General' | 'Blocking' | 'Lockpicking';
 
 export type SkillProgressSummary = {
     skill: Skill;

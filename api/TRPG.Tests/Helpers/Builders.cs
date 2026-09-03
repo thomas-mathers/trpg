@@ -82,6 +82,7 @@ internal static class Builders
     public static DoorConnector MakeDoorConnector(
         Guid connectorId,
         bool isLocked = false,
+        int lockLevel = 0,
         Guid? worldId = null,
         TimeSpan? unlocksAtPlaytime = null
     ) =>
@@ -89,6 +90,7 @@ internal static class Builders
         {
             ConnectorId = connectorId,
             IsLocked = isLocked,
+            LockLevel = lockLevel,
             UnlocksAtPlaytime = unlocksAtPlaytime,
             WorldId = worldId ?? Guid.NewGuid(),
         };
@@ -903,15 +905,25 @@ internal static class Builders
         };
     }
 
+    public static BuildingOwner MakeBuildingOwner(Guid buildingId, Guid ownerId, Guid? worldId = null) =>
+        new()
+        {
+            BuildingId = buildingId,
+            OwnerId = ownerId,
+            WorldId = worldId ?? Guid.NewGuid(),
+        };
+
     public static Building MakeBuilding(
         Guid? exteriorLocationId = null,
         Guid? worldId = null,
         string? name = null,
-        BuildingType buildingType = BuildingType.House
+        BuildingType buildingType = BuildingType.House,
+        Guid? id = null
     )
     {
         return new Building
         {
+            Id = id ?? Guid.NewGuid(),
             ExteriorLocationId = exteriorLocationId ?? Guid.NewGuid(),
             Name = name ?? $"Building-{Guid.NewGuid():N}",
             Description = "A test building",

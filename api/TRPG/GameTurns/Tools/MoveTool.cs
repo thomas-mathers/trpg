@@ -111,7 +111,8 @@ internal class MoveTool(
 
         var result = new MoveToolResult(
             scene,
-            moveResult.Encounter?.ToMoveToolSummary(),
+            moveResult.Encounter?.ToMoveToolSummary()
+                ?? moveResult.TrespassingEncounter?.ToMoveToolSummary(),
             moveResult.GuardEncounter?.ToMoveToolSummary(),
             moveResult.OverdueRoomKeyEncounter?.ToMoveToolSummary()
         );

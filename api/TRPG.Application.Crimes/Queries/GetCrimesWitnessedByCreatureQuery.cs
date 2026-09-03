@@ -9,6 +9,7 @@ public enum WitnessedCrimeKind
 {
     Kill,
     Theft,
+    BreakingAndEntering,
 }
 
 public record WitnessedCrime(
@@ -67,6 +68,27 @@ internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context
             )
         ).ToArrayAsync(cancellationToken);
 
-        return kills.Concat(thefts).OrderByDescending(crime => crime.OccurredAt).ToArray();
+        var breakIns = await (
+            from witness in context.CrimeWitnesses.AsNoTracking()
+            where
+                witness.WorldId == query.WorldId
+                && witness.CreatureId == query.WitnessCreatureId
+                && witness.Resolution != CrimeWitnessResolution.Dead
+            join crime in context.Crimes.OfType<BreakingAndEnteringCrime>().AsNoTracking()
+                on witness.CrimeId equals crime.Id
+            where crime.PlayerId == query.PlayerId
+            select new WitnessedCrime(
+                crime.OccurredAt,
+                WitnessedCrimeKind.BreakingAndEntering,
+                crime.BuildingName,
+                null
+            )
+        ).ToArrayAsync(cancellationToken);
+
+        return kills
+            .Concat(thefts)
+            .Concat(breakIns)
+            .OrderByDescending(crime => crime.OccurredAt)
+            .ToArray();
     }
 }
