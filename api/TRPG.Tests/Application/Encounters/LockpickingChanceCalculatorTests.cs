@@ -39,6 +39,9 @@ public class LockpickingChanceCalculatorTests
     {
         var curve = LockpickingChanceCalculator.BuildDetectionCurve(Options);
 
-        Assert.Equal(-Options.DetectionChanceReductionPerSkillLevel, curve.ChanceChangePerSkillLevel);
+        Assert.Equal(
+            -Options.DetectionChanceReductionPerSkillLevel,
+            curve.ChanceChangePerSkillLevel
+        );
     }
 }

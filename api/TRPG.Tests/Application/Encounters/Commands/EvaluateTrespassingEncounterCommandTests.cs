@@ -33,7 +33,8 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
             )
             .AddSingleton<IChanceRoller>(_chanceRoller)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<EvaluateTrespassingEncounterCommandHandler>();
+        _handler =
+            _serviceProvider.GetRequiredService<EvaluateTrespassingEncounterCommandHandler>();
 
         var building = Builders.MakeBuilding(
             worldId: WorldId,
@@ -69,9 +70,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
         // Arrange
         var occupant = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
         _context.Creatures.Add(occupant);
-        _context.BuildingOwners.Add(
-            Builders.MakeBuildingOwner(_buildingId, _player.Id, WorldId)
-        );
+        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(_buildingId, _player.Id, WorldId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -103,9 +102,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
         var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
         _context.Creatures.Add(occupant);
         _context.Factions.Add(faction);
-        _context.FactionMembers.Add(
-            Builders.MakeFactionMember(WorldId, faction.Id, occupant.Id)
-        );
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, occupant.Id));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _chanceRoller.Result = true;
 

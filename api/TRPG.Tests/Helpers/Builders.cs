@@ -905,7 +905,11 @@ internal static class Builders
         };
     }
 
-    public static BuildingOwner MakeBuildingOwner(Guid buildingId, Guid ownerId, Guid? worldId = null) =>
+    public static BuildingOwner MakeBuildingOwner(
+        Guid buildingId,
+        Guid ownerId,
+        Guid? worldId = null
+    ) =>
         new()
         {
             BuildingId = buildingId,
