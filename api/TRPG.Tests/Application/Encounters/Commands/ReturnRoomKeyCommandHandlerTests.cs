@@ -17,11 +17,13 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
     private ReturnRoomKeyCommandHandler _handler = null!;
     private Guid _lobbyLocationId;
     private Guid _guestRoomId;
+    private Guid _guestRoomLocationId;
     private Workstation _counter = null!;
     private Creature _innkeeper = null!;
     private Creature _player = null!;
     private GameSession _session = null!;
     private Item _key = null!;
+    private Bed _bed = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -50,6 +52,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
 
         var guestRoom = Builders.MakeRoom(building.Id, worldId: WorldId, name: "North Guest Room");
         _guestRoomId = guestRoom.Id;
+        _guestRoomLocationId = guestRoom.LocationId;
         var guestRoomLocation = Builders.MakeLocation(
             WorldId,
             roomId: guestRoom.Id,
@@ -71,12 +74,17 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
         );
         var doorConnectorKey = Builders.MakeDoorConnectorKey(_key.Id, door.Id, WorldId);
         _session = Builders.MakeGameSession(WorldId, _player.Id, playtime: TimeSpan.FromHours(10));
+        _bed = Builders.MakeBed(
+            WorldId,
+            locationId: _guestRoomLocationId,
+            assignedCreatureId: _player.Id
+        );
 
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(lobby, guestRoom);
         _context.Locations.AddRange(lobbyLocation, guestRoomLocation);
         _context.Creatures.AddRange(_innkeeper, _player);
-        _context.Props.Add(_counter);
+        _context.Props.AddRange(_counter, _bed);
         _context.LocationConnectors.Add(entryConnector);
         _context.DoorConnectors.Add(door);
         _context.Items.Add(_key);
@@ -134,6 +142,11 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
                 TestContext.Current.CancellationToken
             )
         );
+
+        var updatedBed = await verifyContext
+            .Props.OfType<Bed>()
+            .SingleAsync(b => b.Id == _bed.Id, TestContext.Current.CancellationToken);
+        Assert.Null(updatedBed.AssignedCreatureId);
     }
 
     [Fact]
@@ -187,6 +200,13 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
         Assert.NotNull(result.Encounter);
         Assert.Equal(_innkeeper.Id, result.Encounter.ConfrontingCreatureId);
         Assert.Contains(_key.Id, result.Encounter.ItemIds);
+        Assert.Contains(_innkeeper.Id, result.Encounter.WitnessCreatureIds);
+
+        var witness = await verifyContext.CrimeWitnesses.SingleAsync(
+            w => w.CrimeId == result.Encounter.TheftCrimeId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_innkeeper.Id, witness.CreatureId);
 
         var updatedKey = await verifyContext.Items.SingleAsync(
             i => i.Id == _key.Id,
@@ -201,5 +221,10 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db) : IAsyn
                 TestContext.Current.CancellationToken
             )
         );
+
+        var updatedBed = await verifyContext
+            .Props.OfType<Bed>()
+            .SingleAsync(b => b.Id == _bed.Id, TestContext.Current.CancellationToken);
+        Assert.Null(updatedBed.AssignedCreatureId);
     }
 }

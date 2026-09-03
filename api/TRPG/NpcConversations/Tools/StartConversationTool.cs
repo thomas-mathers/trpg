@@ -100,6 +100,7 @@ internal class StartConversationTool(
                 NpcId = npc.Id,
                 PlayerId = player.Id,
                 WorldId = turnContext.WorldId,
+                LocationId = player.LocationId,
             },
             cancellationToken
         );

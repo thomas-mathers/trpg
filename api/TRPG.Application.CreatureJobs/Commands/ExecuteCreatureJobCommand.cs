@@ -1,5 +1,8 @@
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Props.Commands;
+using TRPG.Application.Props.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.CreatureJobs.Commands;
@@ -14,7 +17,9 @@ public class ExecuteCreatureJobCommand
 }
 
 internal class ExecuteCreatureJobCommandHandler(
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
+    ICommandHandler<SetBedOccupantCommand> setBedOccupant
 ) : ICommandHandler<ExecuteCreatureJobCommand>
 {
     public async Task Handle(
@@ -49,6 +54,15 @@ internal class ExecuteCreatureJobCommandHandler(
             return;
         }
 
+        if (command.CurrentState == CreatureState.Sleeping && targetState != CreatureState.Sleeping)
+        {
+            await ClearBedOccupant(
+                command.CurrentLocationId,
+                command.CreatureId,
+                cancellationToken
+            );
+        }
+
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
             {
@@ -58,5 +72,48 @@ internal class ExecuteCreatureJobCommandHandler(
             },
             cancellationToken
         );
+
+        if (targetState == CreatureState.Sleeping && command.CurrentState != CreatureState.Sleeping)
+        {
+            await SetBedOccupant(command.JobLocationId, command.CreatureId, cancellationToken);
+        }
+    }
+
+    private async Task SetBedOccupant(
+        Guid locationId,
+        Guid creatureId,
+        CancellationToken cancellationToken
+    )
+    {
+        var bed = await getBedByLocationId.Handle(
+            new GetBedByLocationIdQuery { LocationId = locationId },
+            cancellationToken
+        );
+        if (bed?.AssignedCreatureId == creatureId)
+        {
+            await setBedOccupant.Handle(
+                new SetBedOccupantCommand { BedId = bed.Id, OccupantId = creatureId },
+                cancellationToken
+            );
+        }
+    }
+
+    private async Task ClearBedOccupant(
+        Guid locationId,
+        Guid creatureId,
+        CancellationToken cancellationToken
+    )
+    {
+        var bed = await getBedByLocationId.Handle(
+            new GetBedByLocationIdQuery { LocationId = locationId },
+            cancellationToken
+        );
+        if (bed?.OccupantId == creatureId)
+        {
+            await setBedOccupant.Handle(
+                new SetBedOccupantCommand { BedId = bed.Id, OccupantId = null },
+                cancellationToken
+            );
+        }
     }
 }

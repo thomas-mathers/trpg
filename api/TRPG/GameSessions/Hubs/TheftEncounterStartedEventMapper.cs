@@ -6,7 +6,7 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class TheftEncounterStartedEventMapper
     : GameClientEventMapper<TheftEncounterStartedEvent>
 {
-    private static readonly string[] AllowedActions = ["Apologize", "Fight"];
+    private static readonly string[] AllowedActions = ["Apologize", "Flee"];
 
     protected override IGameClientCall Map(TheftEncounterStartedEvent gameEvent) =>
         new GameClientCall<TheftEncounterState>(

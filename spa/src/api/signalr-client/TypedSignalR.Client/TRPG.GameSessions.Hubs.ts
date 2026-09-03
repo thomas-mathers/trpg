@@ -33,6 +33,13 @@ export type IChatHub = {
     */
     sendWait(hours: number, minutes: number): IStreamResult<string>;
     /**
+    * @param hours Transpiled from int
+    * @param minutes Transpiled from int
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    sendSleep(hours: number, minutes: number): IStreamResult<string>;
+    /**
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
@@ -100,7 +107,7 @@ export type IChatHub = {
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
-    resolveFightTheftEncounterAction(): IStreamResult<string>;
+    resolveFleeTheftEncounterAction(): IStreamResult<string>;
     /**
     * @param flushId Transpiled from System.Guid
     * @returns Transpiled from System.Threading.Tasks.Task

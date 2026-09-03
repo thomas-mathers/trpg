@@ -84,7 +84,7 @@ export type HostileEncounterState = {
 }
 
 /** Transpiled from TRPG.Encounters.Responses.TheftEncounterResolutionOutcome */
-export type TheftEncounterResolutionOutcome = "Apologized" | "Fought";
+export type TheftEncounterResolutionOutcome = "Apologized" | "Fled";
 
 /** Transpiled from TRPG.Encounters.Responses.TheftEncounterResolutionFact */
 export type TheftEncounterResolutionFact = {

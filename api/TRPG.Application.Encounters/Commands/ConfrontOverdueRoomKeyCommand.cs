@@ -37,7 +37,8 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
         IReadOnlyCollection<RoomBooking>
     > getRoomBookingsForPlayerInBuilding,
     ICommandHandler<DeleteRoomBookingsCommand> deleteRoomBookings,
-    ICommandHandler<AddTheftCrimesCommand> addTheftCrimes
+    ICommandHandler<AddTheftCrimesCommand> addTheftCrimes,
+    ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses
 ) : ICommandHandler<ConfrontOverdueRoomKeyCommand, ConfrontOverdueRoomKeyResult>
 {
     public async Task<ConfrontOverdueRoomKeyResult> Handle(
@@ -96,6 +97,15 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             new AddTheftCrimesCommand { Crimes = [crime] },
             cancellationToken
         );
+        await addCrimeWitnesses.Handle(
+            new AddCrimeWitnessesCommand
+            {
+                WorldId = command.WorldId,
+                CrimeIds = [crime.Id],
+                WitnessCreatureIds = [innkeeper.Id],
+            },
+            cancellationToken
+        );
 
         var encounter = new TheftEncounter
         {
@@ -112,7 +122,7 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             ItemSelections = heldOverdueKeys
                 .Select(key => new TheftEncounterItem(key.Id, key.Quantity))
                 .ToList(),
-            WitnessCreatureIds = [],
+            WitnessCreatureIds = [innkeeper.Id],
         };
         context.Encounters.Add(encounter);
 

@@ -207,6 +207,30 @@ internal class MovePlayerCommandHandler(
                 cancellationToken
             );
 
+            if (overdueRoomKeyEncounter != null)
+            {
+                refreshed = await RefreshSceneWithoutMoving(player, playtime, cancellationToken);
+
+                transaction.Complete();
+
+                await publishEncounterStarted.Handle(
+                    new PublishEncounterStartedCommand
+                    {
+                        PlayerId = player.Id,
+                        Encounter = overdueRoomKeyEncounter,
+                    },
+                    cancellationToken
+                );
+
+                return new MovePlayerResult(
+                    player,
+                    null,
+                    null,
+                    overdueRoomKeyEncounter,
+                    refreshed.Scene
+                );
+            }
+
             await updateCreatures.Handle(
                 new UpdateCreaturesCommand
                 {
@@ -247,10 +271,7 @@ internal class MovePlayerCommandHandler(
             new PublishEncounterStartedCommand
             {
                 PlayerId = player.Id,
-                Encounter =
-                    evaluation.HostileEncounter
-                    ?? (Encounter?)evaluation.GuardEncounter
-                    ?? overdueRoomKeyEncounter,
+                Encounter = evaluation.HostileEncounter ?? (Encounter?)evaluation.GuardEncounter,
             },
             cancellationToken
         );
@@ -263,6 +284,21 @@ internal class MovePlayerCommandHandler(
             refreshed.Scene
         );
     }
+
+    private async Task<RefreshSceneResult> RefreshSceneWithoutMoving(
+        Creature player,
+        TimeSpan playtime,
+        CancellationToken cancellationToken
+    ) =>
+        await refreshScene.Handle(
+            new RefreshSceneCommand
+            {
+                WorldId = player.WorldId,
+                PlayerId = player.Id,
+                Playtime = playtime,
+            },
+            cancellationToken
+        );
 
     private async Task<TheftEncounter?> ResolveOverdueRoomKeyConfrontation(
         Creature player,

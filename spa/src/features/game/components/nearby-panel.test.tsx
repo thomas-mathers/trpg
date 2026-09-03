@@ -1,6 +1,7 @@
+import { HubConnectionState } from '@microsoft/signalr';
 import { screen, waitFor } from '@testing-library/react';
 import { HttpResponse } from 'msw';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { QuestJournalEntrySnapshot, TradeSnapshot } from '@/api/client';
 import {
@@ -10,6 +11,13 @@ import {
   handleGetTrade,
 } from '@/api/client/msw.gen';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
+import { SceneContext } from '@/features/game/contexts/scene-context';
+import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
+import {
+  GameHubConnectionContext,
+  type GameHubConnection,
+} from '@/features/game/hooks/use-game-hub-connection';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 
@@ -44,6 +52,49 @@ const emptyTrade: TradeSnapshot = {
 
 const emptyJournal: QuestJournalEntrySnapshot[] = [];
 
+function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
+  return {
+    endSession: vi.fn(),
+    receiveOpening: vi.fn(),
+    sendChat: vi.fn(),
+    sendWait: vi.fn(),
+    sendSleep: vi.fn(),
+    sendFlee: vi.fn(),
+    ...overrides,
+  } as IChatHub;
+}
+
+function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
+  return {
+    messages: [],
+    isStreaming: false,
+    submitNarratedTurn: vi.fn(),
+    ...overrides,
+  };
+}
+
+function renderPanel(sceneSnapshot: SceneSnapshot) {
+  const chatHub = buildChatHub();
+  const gameChat = buildGameChat();
+  const hubConnection: GameHubConnection = {
+    connectionStatus: HubConnectionState.Connected,
+    connectionError: false,
+    chatHub,
+  };
+
+  const result = renderWithProviders(
+    <SceneContext.Provider value={sceneSnapshot}>
+      <GameHubConnectionContext.Provider value={hubConnection}>
+        <GameChatContext.Provider value={gameChat}>
+          <NearbyPanel scene={sceneSnapshot} onOpenQuestJournal={() => {}} />
+        </GameChatContext.Provider>
+      </GameHubConnectionContext.Provider>
+    </SceneContext.Provider>,
+  );
+
+  return { ...result, chatHub, gameChat };
+}
+
 describe('NearbyPanel', () => {
   beforeEach(() => {
     server.use(handleGetQuestJournal({ body: emptyJournal }));
@@ -57,9 +108,7 @@ describe('NearbyPanel', () => {
         return HttpResponse.json(emptyTrade);
       }),
     );
-    const { user } = renderWithProviders(
-      <NearbyPanel scene={scene('workstation-id')} onOpenQuestJournal={() => {}} />,
-    );
+    const { user } = renderPanel(scene('workstation-id'));
 
     await user.click(screen.getByRole('button', { name: 'Actions for Tessa' }));
     await user.click(screen.getByRole('menuitem', { name: 'Trade' }));
@@ -74,9 +123,7 @@ describe('NearbyPanel', () => {
   });
 
   it('does not show trade when a scene snapshot omits the trade workstation ID', async () => {
-    const { user } = renderWithProviders(
-      <NearbyPanel scene={scene(undefined)} onOpenQuestJournal={() => {}} />,
-    );
+    const { user } = renderPanel(scene(undefined));
 
     await user.click(screen.getByRole('button', { name: 'Actions for Tessa' }));
 
@@ -110,9 +157,7 @@ describe('NearbyPanel', () => {
         }),
       ),
     );
-    const { user } = renderWithProviders(
-      <NearbyPanel scene={scene(undefined)} onOpenQuestJournal={() => {}} />,
-    );
+    const { user } = renderPanel(scene(undefined));
 
     await user.click(screen.getByRole('button', { name: 'Tessa' }));
 
@@ -132,13 +177,26 @@ describe('NearbyPanel', () => {
       ...scene(undefined),
       nearbyProps: [{ id: 'chest-id', name: 'Wooden Chest', description: '', type: 'Container' }],
     };
-    const { user } = renderWithProviders(
-      <NearbyPanel scene={sceneWithContainer} onOpenQuestJournal={() => {}} />,
-    );
+    const { user } = renderPanel(sceneWithContainer);
 
     await user.click(screen.getByRole('button', { name: 'Wooden Chest' }));
 
     expect(await screen.findByRole('heading', { name: 'Transfer Items' })).toBeVisible();
     expect(screen.getByRole('region', { name: "Wooden Chest's inventory" })).toBeVisible();
+  });
+
+  it('opens the sleep dialog from a nearby bed', async () => {
+    const sceneWithBed = {
+      ...scene(undefined),
+      hour: 8,
+      nearbyProps: [{ id: 'bed-id', name: 'Bed', description: '', type: 'Bed' }],
+    };
+    const { user } = renderPanel(sceneWithBed);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Bed' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Sleep' }));
+
+    expect(await screen.findByRole('heading', { name: 'Sleep' })).toBeVisible();
+    expect(screen.getByLabelText('Sleep until')).toBeVisible();
   });
 });

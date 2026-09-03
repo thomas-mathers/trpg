@@ -20,6 +20,7 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
     private CreateGameSessionCommandHandler _createGameSession = null!;
     private GetGameSessionQueryHandler _getGameSession = null!;
     private GetPlaytimeQueryHandler _getPlaytime = null!;
+    private GetPlaytimeByWorldIdQueryHandler _getPlaytimeByWorldId = null!;
     private AdvanceTimeCommandHandler _advanceTime = null!;
     private UpdateGameSessionCommandHandler _updateGameSession = null!;
     private GetChatMessagesQueryHandler _getChatMessages = null!;
@@ -39,6 +40,8 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         _createGameSession = _serviceProvider.GetRequiredService<CreateGameSessionCommandHandler>();
         _getGameSession = _serviceProvider.GetRequiredService<GetGameSessionQueryHandler>();
         _getPlaytime = _serviceProvider.GetRequiredService<GetPlaytimeQueryHandler>();
+        _getPlaytimeByWorldId =
+            _serviceProvider.GetRequiredService<GetPlaytimeByWorldIdQueryHandler>();
         _updateGameSession = _serviceProvider.GetRequiredService<UpdateGameSessionCommandHandler>();
         _advanceTime = _serviceProvider.GetRequiredService<AdvanceTimeCommandHandler>();
         _getChatMessages = _serviceProvider.GetRequiredService<GetChatMessagesQueryHandler>();
@@ -161,6 +164,43 @@ public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
         // Act
         var playtime = await _getPlaytime.Handle(
             new GetPlaytimeQuery { SessionId = sessionId },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(TimeSpan.FromHours(5), playtime);
+    }
+
+    [Fact]
+    public async Task GetPlaytimeByWorldId_Throws_WhenNoSessionExistsForTheWorld()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _getPlaytimeByWorldId.Handle(
+                new GetPlaytimeByWorldIdQuery { WorldId = Guid.NewGuid() },
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task GetPlaytimeByWorldId_ReturnsTheCurrentValue()
+    {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        await _createGameSession.Handle(
+            new CreateGameSessionCommand
+            {
+                WorldId = worldId,
+                PlayerId = PlayerId,
+                Playtime = TimeSpan.FromHours(5),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        var playtime = await _getPlaytimeByWorldId.Handle(
+            new GetPlaytimeByWorldIdQuery { WorldId = worldId },
             TestContext.Current.CancellationToken
         );
 

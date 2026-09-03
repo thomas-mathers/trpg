@@ -332,7 +332,6 @@ internal static class ServiceCollectionExtensions
                                         when (ex
                                                 is InputValidationException
                                                     or InvalidOperationException
-                                                    or ArgumentException
                                         )
                                     {
                                         toolLogger.LogWarning(

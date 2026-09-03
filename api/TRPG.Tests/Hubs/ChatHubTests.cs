@@ -473,6 +473,32 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SendSleep_AdvancesTimeAndNarrates_WhenTheBedIsRentedToThePlayer()
+    {
+        // Arrange
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            context.Props.Add(
+                Builders.MakeBed(_worldId, locationId: _locationId, assignedCreatureId: _playerId)
+            );
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        // Act
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendSleep", 8, 0, TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        var session = await GetGameSession(sessionId);
+        Assert.True(session.Playtime > TimeSpan.Zero);
+    }
+
+    [Fact]
     public async Task SendChat_PersistsTheUserMessage_AndNarratesTheReply()
     {
         // Arrange
@@ -1096,7 +1122,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         Assert.Equal(encounter.Id, state.EncounterId);
         Assert.Equal(owner.Name, state.ConfrontingName);
         Assert.Equal(["Silver Ring"], state.ItemNames);
-        Assert.Equal(["Apologize", "Fight"], state.AllowedActions);
+        Assert.Equal(["Apologize", "Flee"], state.AllowedActions);
     }
 
     [Fact]
@@ -1127,7 +1153,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         Assert.Equal(encounter.Id, state.EncounterId);
         Assert.Equal(owner.Name, state.ConfrontingName);
         Assert.Equal(["Silver Ring"], state.ItemNames);
-        Assert.Equal(["Apologize", "Fight"], state.AllowedActions);
+        Assert.Equal(["Apologize", "Flee"], state.AllowedActions);
     }
 
     [Fact]

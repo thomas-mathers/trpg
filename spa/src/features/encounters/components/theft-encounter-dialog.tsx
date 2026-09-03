@@ -1,4 +1,4 @@
-import { Handshake, ShieldAlert, Swords } from 'lucide-react';
+import { Footprints, Handshake, ShieldAlert } from 'lucide-react';
 
 import {
   Dialog,
@@ -13,7 +13,7 @@ import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 
-const ACTION_NAMES: readonly TheftEncounterActionName[] = ['Apologize', 'Fight'];
+const ACTION_NAMES: readonly TheftEncounterActionName[] = ['Apologize', 'Flee'];
 
 function isTheftEncounterActionName(name: string): name is TheftEncounterActionName {
   return (ACTION_NAMES as readonly string[]).includes(name);
@@ -27,7 +27,7 @@ export function TheftEncounterDialog() {
 
   const actionDetails: Record<
     TheftEncounterActionName,
-    { label: string; description: string; icon: typeof Swords; submit: () => void }
+    { label: string; description: string; icon: typeof Handshake; submit: () => void }
   > = {
     Apologize: {
       label: 'Apologize',
@@ -35,11 +35,11 @@ export function TheftEncounterDialog() {
       icon: Handshake,
       submit: () => submitNarratedTurn('Apologize', chatHub.resolveApologizeTheftEncounterAction()),
     },
-    Fight: {
-      label: 'Fight',
-      description: 'Refuse to yield and fight your way out.',
-      icon: Swords,
-      submit: () => submitNarratedTurn('Fight', chatHub.resolveFightTheftEncounterAction()),
+    Flee: {
+      label: 'Flee',
+      description: 'Slip away before they can stop you.',
+      icon: Footprints,
+      submit: () => submitNarratedTurn('Flee', chatHub.resolveFleeTheftEncounterAction()),
     },
   };
 

@@ -100,6 +100,10 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("SendWait", hours, minutes);
     }
 
+    public readonly sendSleep = (hours: number, minutes: number): IStreamResult<string> => {
+        return this.connection.stream("SendSleep", hours, minutes);
+    }
+
     public readonly sendFlee = (): IStreamResult<string> => {
         return this.connection.stream("SendFlee");
     }
@@ -148,8 +152,8 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("ResolveApologizeTheftEncounterAction");
     }
 
-    public readonly resolveFightTheftEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveFightTheftEncounterAction");
+    public readonly resolveFleeTheftEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveFleeTheftEncounterAction");
     }
 
     public readonly acknowledgeEvents = async (flushId: string): Promise<void> => {

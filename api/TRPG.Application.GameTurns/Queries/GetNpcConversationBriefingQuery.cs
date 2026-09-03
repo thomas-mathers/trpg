@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests.Queries;
@@ -8,6 +9,8 @@ using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations;
 using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
+using TRPG.Application.RoomBookings.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -18,6 +21,7 @@ public class GetNpcConversationBriefingQuery
     public required Guid NpcId { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
+    public required Guid LocationId { get; init; }
 }
 
 public record NpcConversationIdentity(string Name, string Race, Gender Gender, int Age);
@@ -68,6 +72,8 @@ public record NpcConversationHistoryResult(
     IReadOnlyCollection<NpcConversationReputationEvent> ReputationHistory
 );
 
+public record NpcConversationRoomBookingStatus(bool HasActiveBooking, string? RoomName);
+
 public record NpcConversationQuest(string Name);
 
 public record NpcConversationQuests(
@@ -81,7 +87,8 @@ public record NpcConversationRuntimeState(
     CreatureState State,
     NpcConversationAttitude Attitude,
     NpcConversationHistoryResult ConversationHistory,
-    NpcConversationQuests Quests
+    NpcConversationQuests Quests,
+    NpcConversationRoomBookingStatus? RoomBooking
 );
 
 public record NpcConversationBriefing(
@@ -116,7 +123,17 @@ internal class GetNpcConversationBriefingQueryHandler(
     IQueryHandler<
         GetFactionIdsByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
-    > getFactionIdsByCreatureIds
+    > getFactionIdsByCreatureIds,
+    IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
+    IQueryHandler<
+        GetTradeWorkstationByBuildingIdQuery,
+        Workstation?
+    > getTradeWorkstationByBuildingId,
+    IQueryHandler<
+        GetRoomBookingsForPlayerInBuildingQuery,
+        IReadOnlyCollection<RoomBooking>
+    > getRoomBookingsForPlayerInBuilding,
+    IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
     private const int ReputationHistoryLimit = 5;
@@ -172,6 +189,7 @@ internal class GetNpcConversationBriefingQueryHandler(
         var quests = await GetQuests(query, cancellationToken);
         var observedCrimes = await GetObservedCrimes(query, cancellationToken);
         var reputationHistory = await GetReputationHistory(query, cancellationToken);
+        var roomBooking = await GetRoomBookingStatus(query, cancellationToken);
 
         return new NpcConversationBriefing(
             new NpcConversationIdentity(
@@ -218,8 +236,58 @@ internal class GetNpcConversationBriefingQueryHandler(
                     observedCrimes,
                     reputationHistory
                 ),
-                quests
+                quests,
+                roomBooking
             )
+        );
+    }
+
+    private async Task<NpcConversationRoomBookingStatus?> GetRoomBookingStatus(
+        GetNpcConversationBriefingQuery query,
+        CancellationToken cancellationToken
+    )
+    {
+        var building = await getBuildingByLocationId.Handle(
+            new GetBuildingByLocationIdQuery { LocationId = query.LocationId },
+            cancellationToken
+        );
+        if (building is not { BuildingType: BuildingType.Inn })
+        {
+            return null;
+        }
+
+        var workstation = await getTradeWorkstationByBuildingId.Handle(
+            new GetTradeWorkstationByBuildingIdQuery { BuildingId = building.Id },
+            cancellationToken
+        );
+        var isInnkeeperOrStaff =
+            workstation?.OwnerCreatureId == query.NpcId || workstation?.OccupantId == query.NpcId;
+        if (!isInnkeeperOrStaff)
+        {
+            return null;
+        }
+
+        var bookings = await getRoomBookingsForPlayerInBuilding.Handle(
+            new GetRoomBookingsForPlayerInBuildingQuery
+            {
+                PlayerId = query.PlayerId,
+                BuildingId = building.Id,
+            },
+            cancellationToken
+        );
+        var booking = bookings.FirstOrDefault();
+        if (booking == null)
+        {
+            return new NpcConversationRoomBookingStatus(false, null);
+        }
+
+        var rooms = await getRoomsByIds.Handle(
+            new GetRoomsByIdsQuery { Ids = [booking.RoomId] },
+            cancellationToken
+        );
+        return new NpcConversationRoomBookingStatus(
+            true,
+            rooms.GetValueOrDefault(booking.RoomId)?.Name
         );
     }
 
@@ -254,13 +322,23 @@ internal class GetNpcConversationBriefingQueryHandler(
             cancellationToken
         );
 
-        return witnessedCrimes
-            .Select(crime => new NpcConversationObservedCrime(
-                crime.Kind == WitnessedCrimeKind.Kill
-                    ? $"You witnessed the player kill {crime.SubjectName}."
-                    : $"You witnessed the player steal from {crime.SubjectName}."
-            ))
-            .ToArray();
+        return witnessedCrimes.Select(ToObservedCrime).ToArray();
+    }
+
+    private static NpcConversationObservedCrime ToObservedCrime(WitnessedCrime crime)
+    {
+        if (crime.Kind == WitnessedCrimeKind.Kill)
+        {
+            return new NpcConversationObservedCrime(
+                $"You witnessed the player kill {crime.SubjectName}."
+            );
+        }
+
+        var text =
+            crime.Outcome == TheftCrimeOutcome.Apologized
+                ? $"You witnessed the player steal from {crime.SubjectName}, though they later apologized and made it right."
+                : $"You witnessed the player steal from {crime.SubjectName}.";
+        return new NpcConversationObservedCrime(text);
     }
 
     private async Task<NpcConversationReputationEvent[]> GetReputationHistory(

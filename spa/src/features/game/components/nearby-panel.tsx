@@ -70,6 +70,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
+import { SleepDialog } from '@/features/game/components/sleep-dialog';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
 import { QuestTracker } from '@/features/quests/components/quest-tracker';
@@ -154,12 +155,14 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
     workstationId: string;
   } | null>(null);
   const [isTradeOpen, setIsTradeOpen] = useState(false);
+  const [isSleepOpen, setIsSleepOpen] = useState(false);
 
   const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
     ...b,
     entityType: 'Building' as const,
   }));
   const nearbyContainers = scene.nearbyProps.filter((prop) => prop.type === 'Container');
+  const nearbyBeds = scene.nearbyProps.filter((prop) => prop.type === 'Bed');
 
   return (
     <div className="flex flex-col gap-6 p-4 text-sm">
@@ -244,6 +247,31 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
         )}
       </Section>
 
+      <Section title="Nearby Beds">
+        {nearbyBeds.length === 0 ? (
+          <EmptyState />
+        ) : (
+          nearbyBeds.map((bed) => (
+            <div key={bed.id} className="flex items-center justify-between gap-2 py-1.5">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <GiBed className="text-muted-foreground size-[18px] shrink-0" />
+                <span className="truncate font-medium">{bed.name}</span>
+              </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${bed.name}`}>
+                    <MoreVertical />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsSleepOpen(true)}>Sleep</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))
+        )}
+      </Section>
+
       <Section title="Nearby Buildings">
         {nearbyBuildings.length === 0 ? (
           <EmptyState />
@@ -291,6 +319,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
           onClose={() => setIsTradeOpen(false)}
         />
       )}
+      <SleepDialog open={isSleepOpen} onClose={() => setIsSleepOpen(false)} />
     </div>
   );
 }

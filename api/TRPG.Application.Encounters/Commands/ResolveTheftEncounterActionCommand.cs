@@ -2,7 +2,9 @@ using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
@@ -26,9 +28,9 @@ internal class ResolveTheftEncounterActionCommandHandler(
         TransferInventoryItemsCommand,
         IReadOnlyCollection<InventoryItemTransferResult>
     > transferInventoryItems,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<StartFightCommand> startFight,
-    ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome
+    ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures
 ) : ICommandHandler<ResolveTheftEncounterActionCommand, TheftEncounterResolutionFact>
 {
     public async Task<TheftEncounterResolutionFact> Handle(
@@ -50,7 +52,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
                 command,
                 cancellationToken
             ),
-            FightTheftEncounterAction => await ResolveFight(encounter, command, cancellationToken),
+            FleeTheftEncounterAction => await ResolveFlee(encounter, command, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(command)),
         };
 
@@ -110,43 +112,40 @@ internal class ResolveTheftEncounterActionCommandHandler(
         );
     }
 
-    private async Task<TheftEncounterResolutionFact> ResolveFight(
+    private async Task<TheftEncounterResolutionFact> ResolveFlee(
         TheftEncounter encounter,
         ResolveTheftEncounterActionCommand command,
         CancellationToken cancellationToken
     )
     {
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = command.PlayerId },
+            cancellationToken
+        );
+        if (player!.LocationId != encounter.LocationId)
+        {
+            await updateCreatures.Handle(
+                new UpdateCreaturesCommand
+                {
+                    CreatureIds = [command.PlayerId],
+                    LocationId = encounter.LocationId,
+                },
+                cancellationToken
+            );
+        }
+
         await setTheftCrimeOutcome.Handle(
             new SetTheftCrimeOutcomeCommand
             {
                 CrimeId = encounter.TheftCrimeId,
-                Outcome = TheftCrimeOutcome.Resisted,
-            },
-            cancellationToken
-        );
-
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [encounter.ConfrontingCreatureId],
-                State = CreatureState.Alerted,
-            },
-            cancellationToken
-        );
-        await startFight.Handle(
-            new StartFightCommand
-            {
-                SessionId = command.SessionId,
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-                EnemyCreatureIds = [encounter.ConfrontingCreatureId],
+                Outcome = TheftCrimeOutcome.Fled,
             },
             cancellationToken
         );
 
         return new TheftEncounterResolutionFact(
             encounter.Id,
-            TheftEncounterResolutionOutcome.Fought,
+            TheftEncounterResolutionOutcome.Fled,
             encounter.ConfrontingName,
             encounter.ItemNames.ToArray(),
             false

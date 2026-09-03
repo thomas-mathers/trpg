@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Events;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -20,6 +22,7 @@ public class AdjustCreatureSkillsCommand
 internal class AdjustCreatureSkillsCommandHandler(
     ICreaturesDbContext context,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot,
+    IQueryHandler<GetPlaytimeByWorldIdQuery, TimeSpan> getPlaytimeByWorldId,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<AdjustCreatureSkillsCommand>
 {
@@ -33,6 +36,19 @@ internal class AdjustCreatureSkillsCommandHandler(
             return;
         }
 
+        var creature = await context.Creatures.FirstAsync(
+            c => c.Id == command.CreatureId,
+            cancellationToken
+        );
+        var playtime = await getPlaytimeByWorldId.Handle(
+            new GetPlaytimeByWorldIdQuery { WorldId = command.WorldId },
+            cancellationToken
+        );
+        var isRested = creature.RestedUntilPlaytime is { } restedUntil && playtime < restedUntil;
+        var experienceMultiplier = isRested
+            ? optionsSnapshot.Value.RestedSkillExperienceMultiplier
+            : 1f;
+
         var skills = await context
             .CreatureSkills.Where(s =>
                 s.WorldId == command.WorldId && s.CreatureId == command.CreatureId
@@ -45,7 +61,12 @@ internal class AdjustCreatureSkillsCommandHandler(
         {
             var usageCount = command.UsageCounts.GetValueOrDefault(skill.Skill, 0);
 
-            skill.Experience += usageCount * optionsSnapshot.Value.SkillExperiencePerAbilityUse;
+            skill.Experience += (int)
+                Math.Round(
+                    usageCount
+                        * optionsSnapshot.Value.SkillExperiencePerAbilityUse
+                        * experienceMultiplier
+                );
 
             while (
                 skill.Experience
@@ -60,11 +81,6 @@ internal class AdjustCreatureSkillsCommandHandler(
         var characterLevelUps = new List<CharacterLevelUpEvent>();
         if (skillLevelUps.Count > 0)
         {
-            var creature = await context.Creatures.FirstAsync(
-                c => c.Id == command.CreatureId,
-                cancellationToken
-            );
-
             var skillLevels = skills.Select(s => s.Level).ToArray();
 
             var previousLevel = creature.Level;
