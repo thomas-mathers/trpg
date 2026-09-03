@@ -72,4 +72,46 @@ public sealed class DeleteRoomBookingsCommandTests(DatabaseFixture db) : IAsyncL
             )
         );
     }
+
+    [Fact]
+    public async Task Handle_ClearsTheRoomsBedAssignment_WhenTheRoomHasABed()
+    {
+        // Arrange
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.Inn);
+        var room = Builders.MakeRoom(building.Id, worldId: WorldId);
+        var location = Builders.MakeLocation(WorldId, roomId: room.Id, id: room.LocationId);
+        var playerId = Guid.NewGuid();
+        var bed = Builders.MakeBed(
+            WorldId,
+            locationId: room.LocationId,
+            assignedCreatureId: playerId
+        );
+        var booking = new RoomBooking
+        {
+            WorldId = WorldId,
+            RoomId = room.Id,
+            KeyItemId = Guid.NewGuid(),
+            PlayerId = playerId,
+            DueAtPlaytime = TimeSpan.FromHours(24),
+        };
+        _context.Buildings.Add(building);
+        _context.Rooms.Add(room);
+        _context.Locations.Add(location);
+        _context.Props.Add(bed);
+        _context.RoomBookings.Add(booking);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new DeleteRoomBookingsCommand { RoomBookingIds = [booking.Id] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedBed = await verifyContext
+            .Props.OfType<Bed>()
+            .SingleAsync(b => b.Id == bed.Id, TestContext.Current.CancellationToken);
+        Assert.Null(updatedBed.AssignedCreatureId);
+    }
 }

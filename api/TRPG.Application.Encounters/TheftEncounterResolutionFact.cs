@@ -3,7 +3,7 @@ namespace TRPG.Application.Encounters;
 public enum TheftEncounterResolutionOutcome
 {
     Apologized,
-    Fought,
+    Fled,
 }
 
 public record TheftEncounterResolutionFact(

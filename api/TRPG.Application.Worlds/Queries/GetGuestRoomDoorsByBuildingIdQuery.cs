@@ -12,8 +12,9 @@ public class GetGuestRoomDoorsByBuildingIdQuery
 public record GuestRoomDoor(
     Guid RoomId,
     string RoomName,
+    Guid LocationId,
     Guid DoorConnectorId,
-    Guid? CandidateKeyItemId
+    IReadOnlyList<Guid> CandidateKeyItemIds
 );
 
 internal class GetGuestRoomDoorsByBuildingIdQueryHandler(IWorldsDbContext context)
@@ -35,6 +36,7 @@ internal class GetGuestRoomDoorsByBuildingIdQueryHandler(IWorldsDbContext contex
             {
                 room.Id,
                 room.Name,
+                room.LocationId,
                 DoorConnectorId = door.Id,
             }
         ).ToListAsync(cancellationToken);
@@ -46,23 +48,27 @@ internal class GetGuestRoomDoorsByBuildingIdQueryHandler(IWorldsDbContext contex
 
         var doorConnectorIds = doorsByRoom.Select(d => d.DoorConnectorId).ToArray();
 
-        var keyItemIdsByDoor = await context
+        var doorConnectorKeys = await context
             .DoorConnectorKeys.AsNoTracking()
             .Where(doorConnectorKey =>
                 doorConnectorIds.AsEnumerable().Contains(doorConnectorKey.DoorConnectorId)
             )
-            .ToDictionaryAsync(
-                doorConnectorKey => doorConnectorKey.DoorConnectorId,
-                doorConnectorKey => (Guid?)doorConnectorKey.ItemId,
-                cancellationToken
+            .ToArrayAsync(cancellationToken);
+        var keyItemIdsByDoor = doorConnectorKeys
+            .GroupBy(doorConnectorKey => doorConnectorKey.DoorConnectorId)
+            .ToDictionary(
+                group => group.Key,
+                IReadOnlyList<Guid> (group) => group.Select(k => k.ItemId).ToArray()
             );
 
         return doorsByRoom
-            .Select(d =>
-            {
-                keyItemIdsByDoor.TryGetValue(d.DoorConnectorId, out var keyItemId);
-                return new GuestRoomDoor(d.Id, d.Name, d.DoorConnectorId, keyItemId);
-            })
+            .Select(d => new GuestRoomDoor(
+                d.Id,
+                d.Name,
+                d.LocationId,
+                d.DoorConnectorId,
+                keyItemIdsByDoor.GetValueOrDefault(d.DoorConnectorId, [])
+            ))
             .ToArray();
     }
 }

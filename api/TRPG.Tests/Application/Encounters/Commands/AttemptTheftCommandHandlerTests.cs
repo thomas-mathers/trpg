@@ -47,6 +47,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
         _handler = _serviceProvider.GetRequiredService<AttemptTheftCommandHandler>();
 
         _context.Creatures.Add(_player);
+        _context.GameSessions.Add(Builders.MakeGameSession(WorldId, _player.Id));
         _context.CreatureSkills.AddRange(
             new CreatureSkill
             {

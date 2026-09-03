@@ -18,7 +18,7 @@ const encounter: TheftEncounterState = {
   encounterId: 'encounter-id',
   confrontingName: 'Tessa',
   itemNames: ['Silver necklace'],
-  allowedActions: ['Apologize', 'Fight'],
+  allowedActions: ['Apologize', 'Flee'],
 };
 
 function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
@@ -40,7 +40,7 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveApologizeTheftEncounterAction: vi.fn(),
-    resolveFightTheftEncounterAction: vi.fn(),
+    resolveFleeTheftEncounterAction: vi.fn(),
     ...overrides,
   } as IChatHub;
 }
@@ -107,17 +107,17 @@ describe('TheftEncounterDialog', () => {
     await resolveEncounter();
   });
 
-  it('sends the selected fight action', async () => {
+  it('sends the selected flee action', async () => {
     const { user, gameChat, chatHub } = renderDialog();
 
     gameEventBus.emit('TheftEncounterStarted', encounter);
 
-    await user.click(await screen.findByRole('button', { name: /Fight/ }));
+    await user.click(await screen.findByRole('button', { name: /Flee/ }));
 
-    expect(chatHub.resolveFightTheftEncounterAction).toHaveBeenCalledOnce();
+    expect(chatHub.resolveFleeTheftEncounterAction).toHaveBeenCalledOnce();
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Fight',
-      vi.mocked(chatHub.resolveFightTheftEncounterAction).mock.results[0]?.value,
+      'Flee',
+      vi.mocked(chatHub.resolveFleeTheftEncounterAction).mock.results[0]?.value,
     );
     await resolveEncounter();
   });

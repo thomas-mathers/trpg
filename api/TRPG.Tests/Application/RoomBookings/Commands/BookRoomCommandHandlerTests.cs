@@ -23,6 +23,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLife
     private DoorConnectorKey _doorConnectorKey = null!;
     private Creature _player = null!;
     private GameSession _session = null!;
+    private Bed _bed = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -66,6 +67,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLife
             ownerType: OwnerType.Workstation
         );
         _doorConnectorKey = Builders.MakeDoorConnectorKey(_spareKey.Id, _guestRoomDoor.Id, WorldId);
+        _bed = Builders.MakeBed(WorldId, locationId: guestRoom.LocationId);
 
         _player = Builders.MakeCreature(worldId: WorldId, locationId: _lobbyLocationId);
         _session = Builders.MakeGameSession(WorldId, _player.Id, playtime: TimeSpan.FromHours(10));
@@ -73,7 +75,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLife
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(lobby, guestRoom);
         _context.Locations.AddRange(lobbyLocation, guestRoomLocation);
-        _context.Props.Add(_counter);
+        _context.Props.AddRange(_counter, _bed);
         _context.LocationConnectors.Add(entryConnector);
         _context.DoorConnectors.Add(_guestRoomDoor);
         _context.Items.Add(_spareKey);
@@ -143,6 +145,11 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLife
             _session.Playtime + GameClock.RealTimePerInGameHour * 24,
             booking.DueAtPlaytime
         );
+
+        var updatedBed = await verifyContext
+            .Props.OfType<Bed>()
+            .SingleAsync(b => b.Id == _bed.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(_player.Id, updatedBed.AssignedCreatureId);
     }
 
     [Fact]

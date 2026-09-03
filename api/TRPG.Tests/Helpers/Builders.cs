@@ -304,6 +304,22 @@ internal static class Builders
             OwnerCreatureId = ownerCreatureId,
         };
 
+    public static Bed MakeBed(
+        Guid? worldId = null,
+        Guid? locationId = null,
+        Guid? occupantId = null,
+        Guid? assignedCreatureId = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = "Bed",
+            Description = "A test bed",
+            LocationId = locationId ?? Guid.NewGuid(),
+            OccupantId = occupantId,
+            AssignedCreatureId = assignedCreatureId,
+        };
+
     public static CreatureSpawner MakeCreatureSpawner(
         Guid worldId,
         Guid locationId,

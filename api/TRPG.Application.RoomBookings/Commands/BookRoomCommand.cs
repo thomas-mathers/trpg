@@ -5,6 +5,8 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Props.Commands;
+using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -47,7 +49,9 @@ internal class BookRoomCommandHandler(
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AddGoldCommand> addGold,
     ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory,
-    ICommandHandler<CreateRoomBookingCommand> createRoomBooking
+    ICommandHandler<CreateRoomBookingCommand> createRoomBooking,
+    IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
+    ICommandHandler<SetBedAssignmentCommand> setBedAssignment
 ) : ICommandHandler<BookRoomCommand, BookRoomResult>
 {
     public async Task<BookRoomResult> Handle(
@@ -71,23 +75,19 @@ internal class BookRoomCommandHandler(
             cancellationToken
         );
         var candidateKeyItemIds = guestRoomDoors
-            .Where(door => door.CandidateKeyItemId != null)
-            .Select(door => door.CandidateKeyItemId!.Value)
+            .SelectMany(door => door.CandidateKeyItemIds)
             .ToArray();
         var workstationIdsByItemId = await getWorkstationOwnedItemIds.Handle(
             new GetWorkstationOwnedItemIdsQuery { ItemIds = candidateKeyItemIds },
             cancellationToken
         );
-        var spareKeyDoor = guestRoomDoors.FirstOrDefault(door =>
-            door.CandidateKeyItemId != null
-            && workstationIdsByItemId.ContainsKey(door.CandidateKeyItemId.Value)
-        );
-        if (spareKeyDoor == null)
+        var spareKey = FindSpareKeyDoor(guestRoomDoors, workstationIdsByItemId);
+        if (spareKey == null)
         {
             return new BookRoomResult(BookRoomOutcome.NoVacancy);
         }
-        var workstationId = workstationIdsByItemId[spareKeyDoor.CandidateKeyItemId!.Value];
-        var spareKeyItemId = spareKeyDoor.CandidateKeyItemId!.Value;
+        var (spareKeyDoor, spareKeyItemId) = spareKey.Value;
+        var workstationId = workstationIdsByItemId[spareKeyItemId];
 
         var rate = innOptions.Value.RoomRatePerNight;
         var playerGold = await getGoldQuantity.Handle(
@@ -145,6 +145,36 @@ internal class BookRoomCommandHandler(
             cancellationToken
         );
 
+        var bed =
+            await getBedByLocationId.Handle(
+                new GetBedByLocationIdQuery { LocationId = spareKeyDoor.LocationId },
+                cancellationToken
+            )
+            ?? throw new InvalidOperationException($"Guest room {spareKeyDoor.RoomId} has no bed.");
+        await setBedAssignment.Handle(
+            new SetBedAssignmentCommand { BedId = bed.Id, AssignedCreatureId = command.PlayerId },
+            cancellationToken
+        );
+
         return new BookRoomResult(BookRoomOutcome.Booked, spareKeyDoor.RoomName, rate);
+    }
+
+    private static (GuestRoomDoor Door, Guid KeyItemId)? FindSpareKeyDoor(
+        IReadOnlyList<GuestRoomDoor> guestRoomDoors,
+        IReadOnlyDictionary<Guid, Guid> workstationIdsByItemId
+    )
+    {
+        foreach (var door in guestRoomDoors)
+        {
+            foreach (var keyItemId in door.CandidateKeyItemIds)
+            {
+                if (workstationIdsByItemId.ContainsKey(keyItemId))
+                {
+                    return (door, keyItemId);
+                }
+            }
+        }
+
+        return null;
     }
 }

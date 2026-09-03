@@ -191,7 +191,7 @@ public sealed class ApplyReputationPenaltyForTheftsCommandTests(DatabaseFixture 
         {
             MakeCrime(firstFaction.Id, TheftCrimeOutcome.Taken),
             MakeCrime(firstFaction.Id, TheftCrimeOutcome.Apologized),
-            MakeCrime(secondFaction.Id, TheftCrimeOutcome.Resisted),
+            MakeCrime(secondFaction.Id, TheftCrimeOutcome.Fled),
         };
         _context.Factions.AddRange(firstFaction, secondFaction);
         _context.Crimes.AddRange(crimes);

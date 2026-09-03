@@ -287,6 +287,7 @@ function WorkbenchProviders({
     receiveOpening: noopStream,
     sendChat: noopStream,
     sendWait: noopStream,
+    sendSleep: noopStream,
     sendFlee: resolveFlee,
     sendRespawn: noopStream,
     resolveUseAbilityCombatAction: (targetId, abilityName) =>
@@ -300,7 +301,7 @@ function WorkbenchProviders({
     resolveResistArrestEncounterAction: noopStream,
     startTheftEncounterNarration: noopStream,
     resolveApologizeTheftEncounterAction: noopStream,
-    resolveFightTheftEncounterAction: noopStream,
+    resolveFleeTheftEncounterAction: noopStream,
     acknowledgeEvents: async () => undefined,
   };
 

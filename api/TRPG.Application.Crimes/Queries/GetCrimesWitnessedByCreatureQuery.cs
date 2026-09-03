@@ -11,7 +11,12 @@ public enum WitnessedCrimeKind
     Theft,
 }
 
-public record WitnessedCrime(DateTime OccurredAt, WitnessedCrimeKind Kind, string SubjectName);
+public record WitnessedCrime(
+    DateTime OccurredAt,
+    WitnessedCrimeKind Kind,
+    string SubjectName,
+    TheftCrimeOutcome? Outcome
+);
 
 public class GetCrimesWitnessedByCreatureQuery
 {
@@ -37,7 +42,12 @@ internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context
             join crime in context.Crimes.OfType<KillCrime>().AsNoTracking()
                 on witness.CrimeId equals crime.Id
             where crime.PlayerId == query.PlayerId
-            select new WitnessedCrime(crime.OccurredAt, WitnessedCrimeKind.Kill, crime.VictimName)
+            select new WitnessedCrime(
+                crime.OccurredAt,
+                WitnessedCrimeKind.Kill,
+                crime.VictimName,
+                null
+            )
         ).ToArrayAsync(cancellationToken);
 
         var thefts = await (
@@ -49,7 +59,12 @@ internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context
             join crime in context.Crimes.OfType<TheftCrime>().AsNoTracking()
                 on witness.CrimeId equals crime.Id
             where crime.PlayerId == query.PlayerId
-            select new WitnessedCrime(crime.OccurredAt, WitnessedCrimeKind.Theft, crime.OwnerName)
+            select new WitnessedCrime(
+                crime.OccurredAt,
+                WitnessedCrimeKind.Theft,
+                crime.OwnerName,
+                crime.Outcome
+            )
         ).ToArrayAsync(cancellationToken);
 
         return kills.Concat(thefts).OrderByDescending(crime => crime.OccurredAt).ToArray();

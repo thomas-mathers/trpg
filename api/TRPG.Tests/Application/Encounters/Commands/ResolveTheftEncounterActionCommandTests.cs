@@ -144,7 +144,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     }
 
     [Fact]
-    public async Task Handle_Fight_AlertsTheConfrontingCreatureStartsAFightAndMarksTheCrimeResisted()
+    public async Task Handle_Flee_StartsNoCombatAndMarksTheCrimeFled()
     {
         // Arrange
         var encounter = await SeedEncounter(
@@ -155,7 +155,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
 
         // Act
         var fact = await _handler.Handle(
-            MakeCommand(new FightTheftEncounterAction(), encounter.Id),
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -165,12 +165,10 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             [_confronter.Id],
             TestContext.Current.CancellationToken
         );
-        var fight = await verifyContext
-            .Encounters.OfType<FightEncounter>()
-            .SingleAsync(
-                item => item.PlayerId == _player.Id,
-                TestContext.Current.CancellationToken
-            );
+        var updatedPlayer = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
         var crime = await verifyContext
             .Crimes.OfType<TheftCrime>()
             .SingleAsync(
@@ -181,12 +179,51 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             .Encounters.OfType<TheftEncounter>()
             .SingleAsync(item => item.Id == encounter.Id, TestContext.Current.CancellationToken);
 
-        Assert.Equal(CreatureState.Alerted, updatedConfronter!.State);
-        Assert.Contains(_confronter.Id, fight.CombatantIds);
-        Assert.Equal(TheftCrimeOutcome.Resisted, crime.Outcome);
+        Assert.Equal(CreatureState.Idle, updatedConfronter!.State);
+        Assert.False(
+            await verifyContext
+                .Encounters.OfType<FightEncounter>()
+                .AnyAsync(
+                    item => item.PlayerId == _player.Id,
+                    TestContext.Current.CancellationToken
+                )
+        );
+        Assert.Equal(TheftCrimeOutcome.Fled, crime.Outcome);
         Assert.Equal(EncounterState.Completed, persistedEncounter.State);
-        Assert.Equal(TheftEncounterResolutionOutcome.Fought, fact.Outcome);
+        Assert.Equal(TheftEncounterResolutionOutcome.Fled, fact.Outcome);
         Assert.Equal(_confronter.Name, fact.ConfrontingName);
+        Assert.Equal(_locationId, updatedPlayer!.LocationId);
+        Assert.Null(updatedPlayer.PreviousLocationId);
+    }
+
+    [Fact]
+    public async Task Handle_Flee_MovesThePlayerToTheEncounterLocation_WhenItDiffersFromWhereTheyAre()
+    {
+        // Arrange — mirrors a blocked departure: the encounter's location is where the player
+        // was trying to go, not where they're actually standing
+        var destinationLocationId = Guid.NewGuid();
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            confrontingCreature: _confronter,
+            locationId: destinationLocationId
+        );
+
+        // Act
+        await _handler.Handle(
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var movedPlayer = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(destinationLocationId, movedPlayer!.LocationId);
+        Assert.Equal(_locationId, movedPlayer.PreviousLocationId);
     }
 
     [Fact]
@@ -279,7 +316,8 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         Guid sourceOwnerId,
         OwnerType sourceOwnerType,
         Item? item = null,
-        Creature? confrontingCreature = null
+        Creature? confrontingCreature = null,
+        Guid? locationId = null
     )
     {
         var confrontingCreatureToUse = confrontingCreature ?? _owner;
@@ -298,7 +336,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         {
             WorldId = WorldId,
             PlayerId = _player.Id,
-            LocationId = _locationId,
+            LocationId = locationId ?? _locationId,
             TheftCrimeId = crime.Id,
             ConfrontingCreatureId = confrontingCreatureToUse.Id,
             ConfrontingName = confrontingCreatureToUse.Name,

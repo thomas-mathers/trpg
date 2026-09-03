@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Data;
@@ -150,6 +151,109 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db) : IAsyncL
         );
         Assert.Equal(originalLocationId, updated!.LocationId);
         Assert.Equal(originalState, updated.State);
+    }
+
+    [Fact]
+    public async Task Handle_SetsBedOccupant_WhenTransitioningIntoSleepAtALocationWithTheirAssignedBed()
+    {
+        // Arrange
+        var locationId = Guid.NewGuid();
+        var bed = Builders.MakeBed(
+            _creature.WorldId,
+            locationId: locationId,
+            assignedCreatureId: _creature.Id
+        );
+        _context.Props.Add(bed);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ExecuteCreatureJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentLocationId = _creature.LocationId,
+                CurrentState = _creature.State,
+                CreatureJobAction = CreatureJobAction.Sleep,
+                JobLocationId = locationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedBed = await verifyContext
+            .Props.OfType<Bed>()
+            .SingleAsync(b => b.Id == bed.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(_creature.Id, updatedBed.OccupantId);
+    }
+
+    [Fact]
+    public async Task Handle_LeavesNoBedOccupied_WhenTheCreatureHasNoAssignedBedAtTheLocation()
+    {
+        // Arrange
+        var locationId = Guid.NewGuid();
+        var bed = Builders.MakeBed(
+            _creature.WorldId,
+            locationId: locationId,
+            assignedCreatureId: Guid.NewGuid()
+        );
+        _context.Props.Add(bed);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ExecuteCreatureJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentLocationId = _creature.LocationId,
+                CurrentState = _creature.State,
+                CreatureJobAction = CreatureJobAction.Sleep,
+                JobLocationId = locationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedBed = await verifyContext
+            .Props.OfType<Bed>()
+            .SingleAsync(b => b.Id == bed.Id, TestContext.Current.CancellationToken);
+        Assert.Null(updatedBed.OccupantId);
+    }
+
+    [Fact]
+    public async Task Handle_ClearsBedOccupant_WhenTransitioningOutOfSleep()
+    {
+        // Arrange
+        var locationId = Guid.NewGuid();
+        var bed = Builders.MakeBed(
+            _creature.WorldId,
+            locationId: locationId,
+            assignedCreatureId: _creature.Id,
+            occupantId: _creature.Id
+        );
+        _context.Props.Add(bed);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ExecuteCreatureJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentLocationId = locationId,
+                CurrentState = CreatureState.Sleeping,
+                CreatureJobAction = CreatureJobAction.Work,
+                JobLocationId = Guid.NewGuid(),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedBed = await verifyContext
+            .Props.OfType<Bed>()
+            .SingleAsync(b => b.Id == bed.Id, TestContext.Current.CancellationToken);
+        Assert.Null(updatedBed.OccupantId);
     }
 
     private async Task AssertLocationIdUpdated(

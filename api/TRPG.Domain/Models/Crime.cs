@@ -35,7 +35,7 @@ public enum TheftCrimeOutcome
 {
     Taken,
     Apologized,
-    Resisted,
+    Fled,
 }
 
 public class TheftCrime : Crime

@@ -180,8 +180,7 @@ internal class SyncRestockPolicyCommandHandler(
             cancellationToken
         );
         var candidateKeyItemIds = guestRoomDoors
-            .Where(door => door.CandidateKeyItemId != null)
-            .Select(door => door.CandidateKeyItemId!.Value)
+            .SelectMany(door => door.CandidateKeyItemIds)
             .ToArray();
         var workstationIdsByItemId = await getWorkstationOwnedItemIds.Handle(
             new GetWorkstationOwnedItemIdsQuery { ItemIds = candidateKeyItemIds },
@@ -190,8 +189,7 @@ internal class SyncRestockPolicyCommandHandler(
 
         foreach (
             var door in guestRoomDoors.Where(d =>
-                d.CandidateKeyItemId == null
-                || !workstationIdsByItemId.ContainsKey(d.CandidateKeyItemId.Value)
+                !d.CandidateKeyItemIds.Any(id => workstationIdsByItemId.ContainsKey(id))
             )
         )
         {

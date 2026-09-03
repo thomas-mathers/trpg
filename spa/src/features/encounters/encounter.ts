@@ -13,4 +13,4 @@ export type {
 
 export type EncounterActionName = 'Attack' | 'Evade' | 'Retreat';
 export type GuardEncounterActionName = 'PayFine' | 'GoToJail' | 'ResistArrest';
-export type TheftEncounterActionName = 'Apologize' | 'Fight';
+export type TheftEncounterActionName = 'Apologize' | 'Flee';

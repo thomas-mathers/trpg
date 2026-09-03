@@ -26,6 +26,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
 
         _worldId = _creature.WorldId;
         _context.Creatures.Add(_creature);
+        _context.GameSessions.Add(Builders.MakeGameSession(_worldId, _creature.Id));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -261,5 +262,36 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
             TestContext.Current.CancellationToken
         );
         Assert.Equal(100, skill.Experience);
+    }
+
+    [Fact]
+    public async Task Handle_GrantsBoostedExperience_WhenCreatureIsRested()
+    {
+        // Arrange
+        await SeedSkill(Skill.Melee, level: 1, experience: 100);
+        var trackedCreature = await _context.Creatures.SingleAsync(
+            c => c.Id == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        trackedCreature.RestedUntilPlaytime = TimeSpan.FromHours(24);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new AdjustCreatureSkillsCommand
+            {
+                WorldId = _worldId,
+                CreatureId = _creature.Id,
+                UsageCounts = new Dictionary<Skill, int> { [Skill.Melee] = 1 },
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — banker's rounding takes 1*10*1.25=12.5 to 12 (nearest even), so 100+12=112
+        var skill = await _context.CreatureSkills.SingleAsync(
+            s => s.CreatureId == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(112, skill.Experience);
     }
 }

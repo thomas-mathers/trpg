@@ -90,10 +90,10 @@ internal class StreamTheftEncounterActionTurnHandler(
     ) =>
         action switch
         {
-            FightTheftEncounterAction =>
-                $"The player chose to fight after {resolution.ConfrontingName} caught them stealing. Narrate only the confrontation erupting into violence — {resolution.ConfrontingName} readying to defend themselves and the fight beginning. The fight has not been resolved yet: do not describe who wins, who is hurt, or how it ends. Do not call any tools.",
+            FleeTheftEncounterAction =>
+                $"The player chose to flee after {resolution.ConfrontingName} caught them stealing. Narrate them wrenching free and getting away with the item before {resolution.ConfrontingName} can stop them — no violence occurs. Do not call any tools.",
             ApologizeTheftEncounterAction =>
-                $"The player chose to apologize after {resolution.ConfrontingName} caught them stealing. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
+                $"The player chose to apologize after {resolution.ConfrontingName} caught them stealing. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. This resolves the confrontation only — the player has not gone anywhere; narrate them as still standing right where they were caught, not as having left or arrived somewhere new. Do not call any tools.",
             _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
 }

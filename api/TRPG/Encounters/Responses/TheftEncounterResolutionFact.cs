@@ -4,7 +4,7 @@ namespace TRPG.Encounters.Responses;
 public enum TheftEncounterResolutionOutcome
 {
     Apologized,
-    Fought,
+    Fled,
 }
 
 [Tapper.TranspilationSource]

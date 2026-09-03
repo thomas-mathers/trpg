@@ -371,7 +371,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         Assert.Equal(encounter.Id, state.EncounterId);
         Assert.Equal(owner.Name, state.ConfrontingName);
         Assert.Equal(["Silver Ring"], state.ItemNames);
-        Assert.Equal(["Apologize", "Fight"], state.AllowedActions);
+        Assert.Equal(["Apologize", "Flee"], state.AllowedActions);
     }
 
     [Fact]
@@ -487,10 +487,10 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
     }
 
     [Fact]
-    public async Task ResolveFightTheftEncounterAction_CompletesTheEncounterAndStartsAFight()
+    public async Task ResolveFleeTheftEncounterAction_CompletesTheEncounterWithoutStartingAFight()
     {
         // Arrange
-        var (encounter, owner) = await SeedActiveTheftEncounter();
+        var (encounter, _) = await SeedActiveTheftEncounter();
         var sessionId = await StartSession();
         await using var connection = fixture.CreateHubConnection(sessionId);
         await connection.StartAsync(TestContext.Current.CancellationToken);
@@ -507,7 +507,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         // Act
         await Drain(
             connection.StreamAsync<string>(
-                "ResolveFightTheftEncounterAction",
+                "ResolveFleeTheftEncounterAction",
                 TestContext.Current.CancellationToken
             )
         );
@@ -517,16 +517,12 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
             PushTimeout,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TheftEncounterResolutionOutcome.Fought, resolution.Outcome);
+        Assert.Equal(TheftEncounterResolutionOutcome.Fled, resolution.Outcome);
 
         var persistedEncounter = await GetEncounter(encounter.Id);
         Assert.Equal(EncounterState.Completed, persistedEncounter.State);
 
         var fight = await FindFight(_playerId);
-        Assert.NotNull(fight);
-        Assert.Equal(
-            new[] { _playerId, owner.Id }.OrderBy(id => id),
-            fight.CombatantIds.OrderBy(id => id)
-        );
+        Assert.Null(fight);
     }
 }

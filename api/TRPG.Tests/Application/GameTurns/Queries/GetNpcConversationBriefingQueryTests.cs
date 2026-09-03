@@ -41,6 +41,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
             NpcId = _npc.Id,
             PlayerId = _player.Id,
             WorldId = WorldId,
+            LocationId = _player.LocationId,
         };
 
     [Fact]
@@ -462,6 +463,44 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     }
 
     [Fact]
+    public async Task Handle_NotesTheApologyOnAWitnessedTheft_WhenTheCrimeWasApologizedFor()
+    {
+        // Arrange
+        var crime = new TheftCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = _npc.LocationId,
+            OwnerCreatureId = Guid.NewGuid(),
+            OwnerName = "Mara",
+            Outcome = TheftCrimeOutcome.Apologized,
+            SourceOwnerId = Guid.NewGuid(),
+            SourceOwnerType = OwnerType.Container,
+        };
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(
+            new CrimeWitness
+            {
+                WorldId = WorldId,
+                CrimeId = crime.Id,
+                CreatureId = _npc.Id,
+                Resolution = CrimeWitnessResolution.Reported,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var observedCrime = Assert.Single(result.RuntimeState.ConversationHistory.ObservedCrimes);
+        Assert.Equal(
+            "You witnessed the player steal from Mara, though they later apologized and made it right.",
+            observedCrime.Text
+        );
+    }
+
+    [Fact]
     public async Task Handle_ReturnsReputationLogEntriesTargetingTheNpcPersonally()
     {
         // Arrange
@@ -553,5 +592,123 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
 
         // Assert
         Assert.Empty(result.RuntimeState.ConversationHistory.ReputationHistory);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNoRoomBookingStatus_WhenTheNpcIsNotAnInnkeeper()
+    {
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Null(result.RuntimeState.RoomBooking);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNoActiveBooking_WhenTalkingToTheInnkeeperWithoutABooking()
+    {
+        // Arrange
+        var (lobbyLocationId, _) = await SeedInn();
+        _player.LocationId = lobbyLocationId;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result.RuntimeState.RoomBooking);
+        Assert.False(result.RuntimeState.RoomBooking.HasActiveBooking);
+        Assert.Null(result.RuntimeState.RoomBooking.RoomName);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheBookedRoomName_WhenTalkingToTheInnkeeperWithAnActiveBooking()
+    {
+        // Arrange
+        var (lobbyLocationId, guestRoom) = await SeedInn();
+        _player.LocationId = lobbyLocationId;
+        _context.RoomBookings.Add(
+            Builders.MakeRoomBooking(
+                WorldId,
+                guestRoom.Id,
+                Guid.NewGuid(),
+                _player.Id,
+                dueAtPlaytime: TimeSpan.FromHours(24)
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result.RuntimeState.RoomBooking);
+        Assert.True(result.RuntimeState.RoomBooking.HasActiveBooking);
+        Assert.Equal(guestRoom.Name, result.RuntimeState.RoomBooking.RoomName);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsRoomBookingStatus_WhenTheNpcStaffsTheCounterWithoutOwningIt()
+    {
+        // Arrange
+        var (lobbyLocationId, guestRoom) = await SeedInn(staffAsOccupant: true);
+        _player.LocationId = lobbyLocationId;
+        _context.RoomBookings.Add(
+            Builders.MakeRoomBooking(
+                WorldId,
+                guestRoom.Id,
+                Guid.NewGuid(),
+                _player.Id,
+                dueAtPlaytime: TimeSpan.FromHours(24)
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result.RuntimeState.RoomBooking);
+        Assert.True(result.RuntimeState.RoomBooking.HasActiveBooking);
+        Assert.Equal(guestRoom.Name, result.RuntimeState.RoomBooking.RoomName);
+    }
+
+    private async Task<(Guid LobbyLocationId, Room GuestRoom)> SeedInn(bool staffAsOccupant = false)
+    {
+        var lobbyLocationId = Guid.NewGuid();
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.Inn);
+        var lobby = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            locationId: lobbyLocationId,
+            name: "Lobby"
+        );
+        var lobbyLocation = Builders.MakeLocation(WorldId, roomId: lobby.Id, id: lobbyLocationId);
+        var guestRoom = Builders.MakeRoom(building.Id, worldId: WorldId, name: "North Guest Room");
+        var guestRoomLocation = Builders.MakeLocation(
+            WorldId,
+            roomId: guestRoom.Id,
+            id: guestRoom.LocationId
+        );
+        var workstation = staffAsOccupant
+            ? Builders.MakeWorkstation(
+                worldId: WorldId,
+                locationId: lobbyLocationId,
+                ownerCreatureId: Guid.NewGuid(),
+                occupantId: _npc.Id
+            )
+            : Builders.MakeWorkstation(
+                worldId: WorldId,
+                locationId: lobbyLocationId,
+                ownerCreatureId: _npc.Id
+            );
+
+        _context.Buildings.Add(building);
+        _context.Rooms.AddRange(lobby, guestRoom);
+        _context.Locations.AddRange(lobbyLocation, guestRoomLocation);
+        _context.Props.Add(workstation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return (lobbyLocationId, guestRoom);
     }
 }

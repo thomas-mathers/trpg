@@ -26,6 +26,7 @@ public interface IChatHub
     IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendWait(int hours, int minutes, CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendSleep(int hours, int minutes, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendRespawn(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveUseAbilityCombatAction(
@@ -52,7 +53,7 @@ public interface IChatHub
     IAsyncEnumerable<string> ResolveApologizeTheftEncounterAction(
         CancellationToken cancellationToken
     );
-    IAsyncEnumerable<string> ResolveFightTheftEncounterAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolveFleeTheftEncounterAction(CancellationToken cancellationToken);
     Task AcknowledgeEvents(Guid flushId);
 }
 
@@ -135,6 +136,12 @@ internal sealed class ChatHub(
         CancellationToken cancellationToken
     ) => gameTurnRunner.StreamWait(Session, hours, minutes, cancellationToken);
 
+    public IAsyncEnumerable<string> SendSleep(
+        int hours,
+        int minutes,
+        CancellationToken cancellationToken
+    ) => gameTurnRunner.StreamSleep(Session, hours, minutes, cancellationToken);
+
     public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
         gameTurnRunner.StreamFlee(Session, cancellationToken);
 
@@ -209,12 +216,12 @@ internal sealed class ChatHub(
             cancellationToken
         );
 
-    public IAsyncEnumerable<string> ResolveFightTheftEncounterAction(
+    public IAsyncEnumerable<string> ResolveFleeTheftEncounterAction(
         CancellationToken cancellationToken
     ) =>
         gameTurnRunner.StreamTheftEncounterAction(
             Session,
-            new FightTheftEncounterAction(),
+            new FleeTheftEncounterAction(),
             cancellationToken
         );
 
