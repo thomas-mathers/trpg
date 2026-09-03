@@ -58,10 +58,10 @@ internal class RemoveInventoryItemsCommandHandler(
                 );
             }
 
-            if (existing.IsQuestItem)
+            if (!existing.CanTrade)
             {
                 throw new InvalidOperationException(
-                    $"Item {itemId} is required for an active quest and cannot be consumed."
+                    $"Item {itemId} cannot be traded away right now and cannot be consumed."
                 );
             }
 

@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260903144013_AddGameSessionTrespassingBuilding")]
+    partial class AddGameSessionTrespassingBuilding
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1268,10 +1271,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<bool>("CanTrade")
-                        .HasColumnType("boolean")
-                        .HasColumnName("can_trade");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1281,9 +1280,9 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("gold_value");
 
-                    b.Property<bool>("IsHidden")
+                    b.Property<bool>("IsQuestItem")
                         .HasColumnType("boolean")
-                        .HasColumnName("is_hidden");
+                        .HasColumnName("is_quest_item");
 
                     b.Property<string>("Modifiers")
                         .IsRequired()

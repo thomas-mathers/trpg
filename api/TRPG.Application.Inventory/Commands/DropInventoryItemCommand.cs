@@ -12,7 +12,7 @@ public class DropInventoryItemCommand
 
 internal class DropInventoryItemCommandHandler(
     ICommandHandler<RemoveInventoryItemsCommand> removeInventoryItems,
-    QuestItemGuard questItemGuard
+    TradeGuard tradeGuard
 ) : ICommandHandler<DropInventoryItemCommand>
 {
     public async Task Handle(
@@ -25,7 +25,7 @@ internal class DropInventoryItemCommandHandler(
             throw new InvalidOperationException("Drop quantity must be positive.");
         }
 
-        await questItemGuard.EnsureNotActiveQuestItems([command.ItemId], cancellationToken);
+        await tradeGuard.EnsureAllTradeable([command.ItemId], cancellationToken);
 
         await removeInventoryItems.Handle(
             new RemoveInventoryItemsCommand

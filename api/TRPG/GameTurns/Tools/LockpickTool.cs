@@ -30,7 +30,7 @@ internal class LockpickTool(
 
     [DisplayName("pick_lock")]
     [Description(
-        "Attempts to pick the lock on a nearby locked door by exact name — a building's front door, or an interior door within a building the player is already inside. Only meaningful when the target is described as locked. The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased."
+        "Attempts to pick the lock on a nearby locked door by exact name — a building's front door, or an interior door within a building the player is already inside. Picking a lock is a crime if witnessed, with real consequences (fines, jail, hostile confrontation). Call this ONLY after the player explicitly says they want to pick, force, or break into the lock or door — never call it automatically as a fallback when a move fails because a door is locked, and never call it merely because a door is known or described as locked. A locked door encountered during ordinary movement should just be narrated as locked; the player must explicitly choose to attempt lockpicking as its own action. Opening the lock does NOT move the player through the door — narrate only the lock itself (it opening or resisting); never describe the player entering, stepping through, or being inside as part of this result, even if Opened is true. The player is still standing where they were and must issue a separate move to actually go through. The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased."
     )]
     private async Task<object?> InvokeAsync(
         [Description(

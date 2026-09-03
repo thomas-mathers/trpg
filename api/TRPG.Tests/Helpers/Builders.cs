@@ -84,10 +84,12 @@ internal static class Builders
         bool isLocked = false,
         int lockLevel = 0,
         Guid? worldId = null,
-        TimeSpan? unlocksAtPlaytime = null
+        TimeSpan? unlocksAtPlaytime = null,
+        Guid? id = null
     ) =>
         new()
         {
+            Id = id ?? Guid.NewGuid(),
             ConnectorId = connectorId,
             IsLocked = isLocked,
             LockLevel = lockLevel,
@@ -979,7 +981,8 @@ internal static class Builders
     public static GameSession MakeGameSession(
         Guid worldId,
         Guid playerId,
-        TimeSpan playtime = default
+        TimeSpan playtime = default,
+        Guid? trespassingBuildingId = null
     )
     {
         return new GameSession
@@ -987,6 +990,7 @@ internal static class Builders
             WorldId = worldId,
             PlayerId = playerId,
             Playtime = playtime,
+            TrespassingBuildingId = trespassingBuildingId,
         };
     }
 

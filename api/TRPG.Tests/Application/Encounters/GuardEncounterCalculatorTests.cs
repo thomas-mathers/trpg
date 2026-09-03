@@ -8,8 +8,10 @@ public class GuardEncounterCalculatorTests
     private static readonly GuardEncounterOptions Options = new()
     {
         FineGoldPerReputationPoint = 5f,
+        MinimumFineGold = 5,
         MaxFineGold = 250,
         JailHoursPerReputationPoint = 0.5f,
+        MinimumJailHours = 1,
         MaxJailHours = 24,
     };
 
@@ -34,6 +36,18 @@ public class GuardEncounterCalculatorTests
     }
 
     [Fact]
+    public void ComputeFineGold_ClampsAtTheConfiguredMinimum_WhenReputationScoreIsZero()
+    {
+        // Arrange — a brand-new, neutral-reputation player caught red-handed should never be
+        // fined 0 gold, which RemoveGoldCommand rejects outright.
+        // Act
+        var fine = GuardEncounterCalculator.ComputeFineGold(0, Options);
+
+        // Assert
+        Assert.Equal(Options.MinimumFineGold, fine);
+    }
+
+    [Fact]
     public void ComputeJailHours_ScalesWithTheMagnitudeOfTheReputationScore()
     {
         // Act
@@ -51,5 +65,17 @@ public class GuardEncounterCalculatorTests
 
         // Assert
         Assert.Equal(Options.MaxJailHours, jailHours);
+    }
+
+    [Fact]
+    public void ComputeJailHours_ClampsAtTheConfiguredMinimum_WhenReputationScoreIsZero()
+    {
+        // Arrange — a brand-new, neutral-reputation player caught red-handed should never be
+        // offered "serve 0 hours" as a jail sentence.
+        // Act
+        var jailHours = GuardEncounterCalculator.ComputeJailHours(0, Options);
+
+        // Assert
+        Assert.Equal(Options.MinimumJailHours, jailHours);
     }
 }

@@ -123,13 +123,13 @@ public sealed class DropInventoryItemCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
-    public async Task Handle_Throws_WhenItemIsRequiredForAnActiveQuest()
+    public async Task Handle_Throws_WhenItemCannotBeTraded()
     {
         // Arrange
         var item = Builders.MakeItem(WorldId);
         item.Ownership.OwnerId = _player.Id;
         item.Ownership.OwnerType = OwnerType.Creature;
-        item.IsQuestItem = true;
+        item.CanTrade = false;
         _context.Items.Add(item);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

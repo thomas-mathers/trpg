@@ -9,6 +9,8 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Encounters;
 using TRPG.Application.Factions.Queries;
+using TRPG.Application.GameSessions.Commands;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Commands;
@@ -52,6 +54,13 @@ internal class AttemptLockpickCommandHandler(
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
     IQueryHandler<GetGuardAtLocationQuery, Creature?> getGuardAtLocation,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
+    IQueryHandler<
+        GetBuildingOwnersByBuildingIdQuery,
+        IReadOnlyCollection<BuildingOwner>
+    > getBuildingOwnersByBuildingId,
+    ICommandHandler<SetTrespassingBuildingCommand> setTrespassingBuilding,
+    ICommandHandler<AddItemsCommand> addItems,
+    ICommandHandler<AddDoorConnectorKeyCommand> addDoorConnectorKey,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
     IQueryHandler<
@@ -106,6 +115,8 @@ internal class AttemptLockpickCommandHandler(
             cancellationToken
         );
 
+        BreakingAndEnteringCrime? crime = null;
+
         if (opened)
         {
             await setDoorConnectorLocked.Handle(
@@ -125,6 +136,8 @@ internal class AttemptLockpickCommandHandler(
                 },
                 cancellationToken
             );
+
+            crime = await RecordBreakIn(command, player, door.Id, cancellationToken);
         }
 
         var currentLocation = await getLocationById.Handle(
@@ -141,6 +154,7 @@ internal class AttemptLockpickCommandHandler(
                 command,
                 player,
                 currentLocation,
+                crime,
                 cancellationToken
             );
         }
@@ -174,10 +188,94 @@ internal class AttemptLockpickCommandHandler(
         );
     }
 
+    private async Task<BreakingAndEnteringCrime?> RecordBreakIn(
+        AttemptLockpickCommand command,
+        Creature player,
+        Guid doorConnectorRowId,
+        CancellationToken cancellationToken
+    )
+    {
+        var building = await getBuildingByLocationId.Handle(
+            new GetBuildingByLocationIdQuery { LocationId = command.DestinationLocationId },
+            cancellationToken
+        );
+
+        if (building == null)
+        {
+            return null;
+        }
+
+        var owners = await getBuildingOwnersByBuildingId.Handle(
+            new GetBuildingOwnersByBuildingIdQuery { BuildingId = building.Id },
+            cancellationToken
+        );
+
+        if (owners.Any(owner => owner.OwnerId == player.Id))
+        {
+            return null;
+        }
+
+        // A picked lock's IsLocked flip is cosmetic/immediate only — schedule sync (business hours)
+        // recomputes IsLocked from scratch on every later move and knows nothing about the pick, so
+        // this key is what keeps the door genuinely passable afterward, the same way a found key would.
+        var pickedLockKey = new Key
+        {
+            WorldId = command.WorldId,
+            Name = $"Forced entry — {building.Name}",
+            Description = $"Proof of a forced entry into {building.Name}.",
+            Quantity = 1,
+            CanTrade = false,
+            IsHidden = true,
+            Ownership = new ItemOwnership { OwnerId = player.Id, OwnerType = OwnerType.Creature },
+        };
+
+        await addItems.Handle(new AddItemsCommand { Items = [pickedLockKey] }, cancellationToken);
+
+        await addDoorConnectorKey.Handle(
+            new AddDoorConnectorKeyCommand
+            {
+                DoorConnectorKey = new DoorConnectorKey
+                {
+                    ItemId = pickedLockKey.Id,
+                    DoorConnectorId = doorConnectorRowId,
+                    WorldId = command.WorldId,
+                },
+            },
+            cancellationToken
+        );
+
+        var crime = new BreakingAndEnteringCrime
+        {
+            WorldId = command.WorldId,
+            PlayerId = player.Id,
+            LocationId = player.LocationId,
+            BuildingId = building.Id,
+            BuildingName = building.Name,
+            OwnerFactionId = building.FactionId,
+        };
+
+        await addBreakingAndEnteringCrimes.Handle(
+            new AddBreakingAndEnteringCrimesCommand { Crimes = [crime] },
+            cancellationToken
+        );
+
+        await setTrespassingBuilding.Handle(
+            new SetTrespassingBuildingCommand
+            {
+                WorldId = command.WorldId,
+                BuildingId = building.Id,
+            },
+            cancellationToken
+        );
+
+        return crime;
+    }
+
     private async Task<GuardEncounter?> EvaluateExteriorDetection(
         AttemptLockpickCommand command,
         Creature player,
         Location currentLocation,
+        BreakingAndEnteringCrime? crime,
         CancellationToken cancellationToken
     )
     {
@@ -205,11 +303,6 @@ internal class AttemptLockpickCommandHandler(
             return null;
         }
 
-        var building = await getBuildingByLocationId.Handle(
-            new GetBuildingByLocationIdQuery { LocationId = command.DestinationLocationId },
-            cancellationToken
-        );
-
         var cityFactionId =
             await getCityFactionForCreature.Handle(
                 new GetCityFactionForCreatureQuery { CreatureId = guard.Id },
@@ -219,19 +312,28 @@ internal class AttemptLockpickCommandHandler(
                 $"Guard {guard.Id} has no city faction membership."
             );
 
-        var crime = new BreakingAndEnteringCrime
+        // A failed pick never went through RecordBreakIn, so there's no crime yet to attach the guard's witness to.
+        if (crime == null)
         {
-            WorldId = command.WorldId,
-            PlayerId = player.Id,
-            LocationId = player.LocationId,
-            BuildingId = building?.Id ?? Guid.Empty,
-            BuildingName = building?.Name ?? "",
-            OwnerFactionId = cityFactionId,
-        };
-        await addBreakingAndEnteringCrimes.Handle(
-            new AddBreakingAndEnteringCrimesCommand { Crimes = [crime] },
-            cancellationToken
-        );
+            var building = await getBuildingByLocationId.Handle(
+                new GetBuildingByLocationIdQuery { LocationId = command.DestinationLocationId },
+                cancellationToken
+            );
+            crime = new BreakingAndEnteringCrime
+            {
+                WorldId = command.WorldId,
+                PlayerId = player.Id,
+                LocationId = player.LocationId,
+                BuildingId = building?.Id ?? Guid.Empty,
+                BuildingName = building?.Name ?? "",
+                OwnerFactionId = building?.FactionId ?? cityFactionId,
+            };
+            await addBreakingAndEnteringCrimes.Handle(
+                new AddBreakingAndEnteringCrimesCommand { Crimes = [crime] },
+                cancellationToken
+            );
+        }
+
         await addCrimeWitnesses.Handle(
             new AddCrimeWitnessesCommand
             {

@@ -12,11 +12,11 @@ internal sealed class LoggedCommandHandlerDecorator<TCommand>(
     public async Task Handle(TCommand command, CancellationToken cancellationToken = default)
     {
         var startedAt = Stopwatch.GetTimestamp();
-        logger.LogDebug("Handling {CommandType}", typeof(TCommand).Name);
+        logger.LogTrace("Handling {CommandType}", typeof(TCommand).Name);
         try
         {
             await inner.Handle(command, cancellationToken);
-            logger.LogDebug(
+            logger.LogTrace(
                 "Handled {CommandType} in {ElapsedMilliseconds} ms",
                 typeof(TCommand).Name,
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds
@@ -46,11 +46,11 @@ internal sealed class LoggedCommandHandlerDecorator<TCommand, TResult>(
     )
     {
         var startedAt = Stopwatch.GetTimestamp();
-        logger.LogDebug("Handling {CommandType}", typeof(TCommand).Name);
+        logger.LogTrace("Handling {CommandType}", typeof(TCommand).Name);
         try
         {
             var result = await inner.Handle(command, cancellationToken);
-            logger.LogDebug(
+            logger.LogTrace(
                 "Handled {CommandType} in {ElapsedMilliseconds} ms",
                 typeof(TCommand).Name,
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds

@@ -47,7 +47,8 @@ public class Item
     public int Weight { get; init; }
     public int Quantity { get; set; }
     public int GoldValue { get; init; }
-    public bool IsQuestItem { get; set; }
+    public bool CanTrade { get; set; } = true;
+    public bool IsHidden { get; set; }
     public IReadOnlyCollection<ItemModifier> Modifiers { get; init; } = [];
     public ItemOwnership Ownership { get; init; } = new();
 }

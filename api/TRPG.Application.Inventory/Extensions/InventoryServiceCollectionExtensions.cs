@@ -12,7 +12,7 @@ public static class InventoryServiceCollectionExtensions
         serviceCollection
             .AddTransient<TradeOfferValidator>()
             .AddTransient<TradeOfferEvaluator>()
-            .AddTransient<QuestItemGuard>()
+            .AddTransient<TradeGuard>()
             .AddTransient<GoldLoader>()
             .AddTransient<EquipmentLoadoutLoader>()
             .AddTransient<QuestGoldRewardedEventHandler>()

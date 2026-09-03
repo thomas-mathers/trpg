@@ -16,7 +16,7 @@ public class AcceptQuestCommand
 
 internal class AcceptQuestCommandHandler(
     IQuestsDbContext context,
-    ICommandHandler<SetItemsQuestLockedCommand> setItemsQuestLocked
+    ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade
 ) : ICommandHandler<AcceptQuestCommand>
 {
     public async Task Handle(
@@ -81,8 +81,8 @@ internal class AcceptQuestCommandHandler(
 
         await context.SaveChangesAsync(cancellationToken);
 
-        await setItemsQuestLocked.Handle(
-            new SetItemsQuestLockedCommand { ItemIds = requiredItemIds, IsQuestItem = true },
+        await setItemsCanTrade.Handle(
+            new SetItemsCanTradeCommand { ItemIds = requiredItemIds, CanTrade = false },
             cancellationToken
         );
     }

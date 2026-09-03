@@ -6,6 +6,8 @@ using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Factions.Queries;
+using TRPG.Application.GameSessions.Commands;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -23,10 +25,8 @@ internal class EvaluateTrespassingEncounterCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
-    IQueryHandler<
-        GetBuildingOwnersByBuildingIdQuery,
-        IReadOnlyCollection<BuildingOwner>
-    > getBuildingOwnersByBuildingId,
+    IQueryHandler<GetTrespassingBuildingIdQuery, Guid?> getTrespassingBuildingId,
+    ICommandHandler<SetTrespassingBuildingCommand> setTrespassingBuilding,
     IQueryHandler<
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
@@ -53,17 +53,23 @@ internal class EvaluateTrespassingEncounterCommandHandler(
             new GetBuildingByLocationIdQuery { LocationId = player!.LocationId },
             cancellationToken
         );
-        if (building == null)
+
+        var trespassingBuildingId = await getTrespassingBuildingId.Handle(
+            new GetTrespassingBuildingIdQuery { WorldId = command.WorldId },
+            cancellationToken
+        );
+        if (trespassingBuildingId == null)
         {
             return null;
         }
 
-        var owners = await getBuildingOwnersByBuildingId.Handle(
-            new GetBuildingOwnersByBuildingIdQuery { BuildingId = building.Id },
-            cancellationToken
-        );
-        if (owners.Any(owner => owner.OwnerId == player.Id))
+        if (building == null || building.Id != trespassingBuildingId)
         {
+            // The player has moved on from the building they broke into — the flag no longer applies.
+            await setTrespassingBuilding.Handle(
+                new SetTrespassingBuildingCommand { WorldId = command.WorldId, BuildingId = null },
+                cancellationToken
+            );
             return null;
         }
 

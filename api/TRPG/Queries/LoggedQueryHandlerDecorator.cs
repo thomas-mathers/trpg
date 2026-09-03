@@ -12,11 +12,11 @@ internal sealed class LoggedQueryHandlerDecorator<TQuery, TResult>(
     public async Task<TResult> Handle(TQuery query, CancellationToken cancellationToken = default)
     {
         var startedAt = Stopwatch.GetTimestamp();
-        logger.LogDebug("Handling {QueryType}", typeof(TQuery).Name);
+        logger.LogTrace("Handling {QueryType}", typeof(TQuery).Name);
         try
         {
             var result = await inner.Handle(query, cancellationToken);
-            logger.LogDebug(
+            logger.LogTrace(
                 "Handled {QueryType} in {ElapsedMilliseconds} ms",
                 typeof(TQuery).Name,
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds
